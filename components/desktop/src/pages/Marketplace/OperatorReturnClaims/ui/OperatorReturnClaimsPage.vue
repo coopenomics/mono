@@ -20,7 +20,7 @@ import OnSiteDecisionDialog from './OnSiteDecisionDialog.vue';
  *
  * - PENDING_CHAIRMAN_REVIEW → RemoteDecisionDialog (одобрить очный визит /
  *   отказать удалённо).
- * - APPROVED_FOR_VISIT      → OnSiteDecisionDialog (BarcodeScanner +
+ * - APPROVED_FOR_VISIT      → OnSiteDecisionDialog (CodeScanner +
  *   inspection_result + accept / reject; accept атомарно выполняет
  *   compensating forward `o.mkt.return + o.mkt.return2`).
  */

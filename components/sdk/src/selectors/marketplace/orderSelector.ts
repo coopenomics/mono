@@ -30,7 +30,7 @@ export const marketplaceOrderIssuanceFactSnapshotSelector = Selector(
   'MarketplaceOrderIssuanceFactSnapshot',
 )(rawOrderIssuanceFactSnapshotSelector)
 
-const rawOrderSelector = {
+export const rawOrderSelector = {
   id: true,
   coopname: true,
   order_hash: true,
@@ -51,6 +51,7 @@ const rawOrderSelector = {
   price_per_unit: true,
   total_cost: true,
   cycle_id: true,
+  checkout_id: true,
   shipment_id: true,
   warranty_period_secs: true,
   warranty_until: true,

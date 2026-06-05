@@ -37,6 +37,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly price_per_unit: string;
   public readonly total_cost: string;
   public readonly cycle_id: string | null;
+  /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
+  public readonly checkout_id: string | null;
   /** Партия, в которую заказ включён при формировании (null = вне партии). */
   public shipment_id: string | null;
   public readonly warranty_period_secs: number;
@@ -91,6 +93,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.price_per_unit = props.price_per_unit;
     this.total_cost = props.total_cost;
     this.cycle_id = props.cycle_id;
+    this.checkout_id = props.checkout_id;
     this.shipment_id = props.shipment_id;
     this.warranty_period_secs = props.warranty_period_secs;
     this.warranty_until = props.warranty_until;

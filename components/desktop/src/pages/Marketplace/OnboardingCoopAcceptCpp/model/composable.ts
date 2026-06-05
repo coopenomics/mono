@@ -18,7 +18,7 @@ import {
  * L1-онбординг ЦПП «Стол заказов» на платформенном механизме онбординга.
  *
  * Два документа утверждаются Советом по очереди (free-decision):
- *  1. Положение ЦПП «Стол заказов»   — cooptypes 1107.MarketplaceProgramTemplate;
+ *  1. Положение ЦПП «Стол заказов»   — cooptypes 1099.MarketplaceProgramTemplate;
  *  2. Шаблон публичной оферты ЦПП     — cooptypes 1100.MarketplaceOfferTemplate.
  *
  * Статус каждого шага приходит с бэкенда (`done`/`hash`) и обновляется по
@@ -28,7 +28,7 @@ import {
 
 // step_key (бэкенд) → registry_id рендерящегося документа
 const stepToRegistryId: Record<string, number> = {
-  marketplace_provision: 1107,
+  marketplace_provision: 1099,
   marketplace_offer_template: 1100,
 };
 
@@ -136,7 +136,7 @@ export const useMarketplaceOnboarding = () => {
       await systemStore.loadSystemInfo();
       onboardingState.value = await fetchOnboardingState();
 
-      // Заранее рендерим HTML обоих документов (registry 1107 + 1100).
+      // Заранее рендерим HTML обоих документов (registry 1099 + 1100).
       const coopname = systemStore.info?.coopname || '';
       const username = sessionStore.username;
       const entries = await Promise.all(

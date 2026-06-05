@@ -126,6 +126,16 @@ import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
+// Эпик 16 — корзина и заказ-агрегат
+import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
+import {
+  MarketplaceCartService,
+  MARKETPLACE_CART_SERVICE,
+} from './services/marketplace-cart.service';
+import {
+  MarketplaceCheckoutService,
+  MARKETPLACE_CHECKOUT_SERVICE,
+} from './services/marketplace-checkout.service';
 
 /**
  * Модуль приложения marketplace
@@ -195,6 +205,8 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
+    // Эпик 16 — корзина заказчика
+    MarketplaceCartResolver,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
@@ -341,6 +353,17 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
     MarketplaceWriteoffResolver,
+    // Эпик 16 — корзина заказчика
+    {
+      provide: MARKETPLACE_CART_SERVICE,
+      useClass: MarketplaceCartService,
+    },
+    MarketplaceCartService,
+    {
+      provide: MARKETPLACE_CHECKOUT_SERVICE,
+      useClass: MarketplaceCheckoutService,
+    },
+    MarketplaceCheckoutService,
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
@@ -421,6 +444,12 @@ import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketpla
     // Эпик 8
     MarketplaceWriteoffService,
     MarketplaceWriteoffResolver,
+    // Эпик 16 — корзина заказчика
+    MARKETPLACE_CART_SERVICE,
+    MarketplaceCartService,
+    MARKETPLACE_CHECKOUT_SERVICE,
+    MarketplaceCheckoutService,
+    MarketplaceCartResolver,
   ],
 })
 export class MarketplaceExtensionApplicationModule {}

@@ -15,6 +15,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -43,7 +44,6 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import { EMPTY_HASH, DEFAULT_DOCUMENT_VERSION } from '~/shared/utils/constants';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -86,8 +86,6 @@ export interface MarketplaceApproveReturnVisitInput {
   braname: string;
   claim_id: string;
   comment: string;
-  /** Опциональный документ-решение (registry_id=0 по стандарту, либо in-system запись). */
-  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceRejectReturnRemoteInput {
@@ -96,7 +94,6 @@ export interface MarketplaceRejectReturnRemoteInput {
   braname: string;
   claim_id: string;
   comment: string;
-  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceAcceptReturnAtVisitInput {
@@ -107,7 +104,13 @@ export interface MarketplaceAcceptReturnAtVisitInput {
   inspection_result: string;
   scanned_barcode: string | null;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
-  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
+  /**
+   * Заявление пайщика (registry_id=1104) со второй подписью председателя —
+   * принятие возврата оформляется со-подписью на том же документе (канон
+   * двухподписных актов), а не отдельным решением. Контракт требует обе
+   * подписи; передаётся клиентом председателя на шаге приёма.
+   */
+  signed_statement?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceRejectReturnAtVisitInput {
@@ -117,7 +120,6 @@ export interface MarketplaceRejectReturnAtVisitInput {
   claim_id: string;
   inspection_result: string;
   inspection_photos?: MarketplaceReturnClaimImageUploadDTO[];
-  signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 export interface MarketplaceReturnClaimResult {
@@ -210,6 +212,37 @@ export class MarketplaceReturnClaimService {
       reason_text: input.reason_text,
       defect_category: input.defect_category ?? undefined,
     });
+  }
+
+  /**
+   * Агрегат для со-подписи председателя на очном осмотре: исходное заявление
+   * пайщика (1104) с его подписью + тело документа для ознакомления. Фронт
+   * накладывает вторую подпись (`signDocument(rawDocument, chairman, 2,
+   * [document])`) и отправляет в `acceptReturnAtVisit`. Ownership-проверка КУ —
+   * на резолвере (как в АПП-приёмке).
+   */
+  async getChairmanReturnSignablePayload(
+    coopname: string,
+    claim_id: string
+  ): Promise<DocumentDomainAggregate> {
+    const claim = await this.findById(coopname, claim_id);
+    if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
+      throw new ConflictException(
+        `Заявление в статусе «${claim.status}»: со-подпись председателя доступна только после одобрения очного визита.`
+      );
+    }
+    if (!claim.statement) {
+      throw new ConflictException(
+        `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
+      );
+    }
+    const aggregate = await this.documentDomainService.buildDocumentAggregate(claim.statement);
+    if (!aggregate) {
+      throw new ConflictException(
+        `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
+      );
+    }
+    return aggregate;
   }
 
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
@@ -308,6 +341,7 @@ export class MarketplaceReturnClaimService {
       actual_quantity,
       fact_cost,
       photos,
+      statement: input.signed_statement as ISignedDocumentDomainInterface,
       submretrn_tx_hash: txHash,
       status: MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW,
     });
@@ -345,12 +379,6 @@ export class MarketplaceReturnClaimService {
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'удалённое одобрение');
 
-    if (input.signed_decision) this.verifySignatures(input.signed_decision);
-
-    const decisionDoc = input.signed_decision
-      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.AprRetRem.IAprRetRem['decision'])
-      : this.emptyDocument();
-
     let tx;
     try {
       tx = await this.chainPort.aprRetRem({
@@ -358,7 +386,6 @@ export class MarketplaceReturnClaimService {
         signer: input.chairman_account,
         braname: input.braname,
         request_hash: claim.request_hash,
-        decision: decisionDoc,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -409,11 +436,6 @@ export class MarketplaceReturnClaimService {
       );
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'удалённый отказ');
-    if (input.signed_decision) this.verifySignatures(input.signed_decision);
-
-    const decisionDoc = input.signed_decision
-      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.RejRetRem.IRejRetRem['decision'])
-      : this.emptyDocument();
 
     let tx;
     try {
@@ -423,7 +445,6 @@ export class MarketplaceReturnClaimService {
         braname: input.braname,
         request_hash: claim.request_hash,
         reason: input.comment,
-        decision: decisionDoc,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -476,11 +497,18 @@ export class MarketplaceReturnClaimService {
     // Story 7.3/FR32: считанный штрих-код фиксируется в decision_log/inspection
     // для аудита; полноценная сверка с marketplace_inventory будет реализована
     // вместе с canonical Inventory (Эпик 5/9).
-    if (input.signed_decision) this.verifySignatures(input.signed_decision);
 
-    const decisionDoc = input.signed_decision
-      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['decision'])
-      : this.emptyDocument();
+    // Принятие возврата = вторая подпись председателя на заявлении пайщика
+    // (тот же документ registry 1104 с двумя подписями), контракт сверяет обе.
+    if (!input.signed_statement) {
+      throw new BadRequestException(
+        'Для приёма возврата требуется заявление пайщика со второй подписью председателя.'
+      );
+    }
+    this.verifySignatures(input.signed_statement);
+    const coSignedStatement = new SignedDigitalDocumentInputDTO(
+      input.signed_statement
+    ).toDocument() as MarketContract.Actions.AccRetrn.IAccRetrn['statement'];
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -497,7 +525,7 @@ export class MarketplaceReturnClaimService {
         signer: input.chairman_account,
         braname: input.braname,
         request_hash: claim.request_hash,
-        decision: decisionDoc,
+        statement: coSignedStatement,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -567,11 +595,6 @@ export class MarketplaceReturnClaimService {
       );
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'отказ на месте');
-    if (input.signed_decision) this.verifySignatures(input.signed_decision);
-
-    const decisionDoc = input.signed_decision
-      ? (new SignedDigitalDocumentInputDTO(input.signed_decision).toDocument() as MarketContract.Actions.RejRetrn.IRejRetrn['decision'])
-      : this.emptyDocument();
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -589,7 +612,6 @@ export class MarketplaceReturnClaimService {
         braname: input.braname,
         request_hash: claim.request_hash,
         reason: input.inspection_result,
-        decision: decisionDoc,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -830,22 +852,6 @@ export class MarketplaceReturnClaimService {
         throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись документа возврата.');
       }
     }
-  }
-
-  // Решение председателя без приложенного подписанного документа: signed_decision
-  // опционален (фронт удалённого/очного решения шлёт только комментарий). Поля
-  // hash/doc_hash/meta_hash контракта document2 — checksum256, поэтому пустая
-  // строка не кодируется в ABI («Checksum size mismatch, expected 32 bytes got 0»).
-  // Канонический sentinel «документа нет» — zero-hash (как parent_hash/batch_hash).
-  private emptyDocument(): MarketContract.Actions.AprRetRem.IAprRetRem['decision'] {
-    return {
-      version: DEFAULT_DOCUMENT_VERSION,
-      hash: EMPTY_HASH,
-      doc_hash: EMPTY_HASH,
-      meta_hash: EMPTY_HASH,
-      meta: '',
-      signatures: [],
-    };
   }
 
   private extractTxHash(tx: unknown): string {

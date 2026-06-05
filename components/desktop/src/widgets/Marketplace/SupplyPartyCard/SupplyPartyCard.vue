@@ -34,7 +34,9 @@ const props = defineProps<{
   /** Цвет бара (Quasar color): primary пока копится, positive когда набрано/принято. */
   barColor: string;
   /** Состав партии строками: кто · сколько · стоимость. */
-  members: Array<{ id: string; who: string; qty: string; cost: string }>;
+  // `who` опционально: на столе поставщика ФИО заказчиков НЕ показываем
+  // (приватность — поставщику видны только объёмы партии, не кто заказал).
+  members: Array<{ id: string; who?: string; qty: string; cost: string }>;
   /** Подпись итога, напр. «Итого партии» / «Ваш вклад в партию». */
   totalLabel: string;
   /** Значение итога, напр. «1 200 ₽ · 5 кг». */
@@ -72,9 +74,16 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
     .t-muted.supply-party__progress-hint
       slot(name="hint")
 
-  .supply-party__members
-    .supply-party__member(v-for="m in members", :key="m.id")
-      span.supply-party__member-who {{ m.who }}
+  //- Разбивка по участникам — только когда есть смысловые строки. На столе
+  //- поставщика ФИО скрыты, поэтому страница не передаёт состав вовсе (одна
+  //- анонимная строка = дубль «Итого партии»); здесь блок просто не рисуется.
+  .supply-party__members(v-if="members.length")
+    .supply-party__member(
+      v-for="m in members",
+      :key="m.id",
+      :class="{ 'supply-party__member--anon': !m.who }"
+    )
+      span.supply-party__member-who(v-if="m.who") {{ m.who }}
       span.supply-party__member-qty {{ m.qty }}
       span.supply-party__member-cost {{ m.cost }}
 
@@ -89,12 +98,12 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
 <style scoped lang="scss">
 .supply-party {
   border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md, 12px);
+  border-radius: var(--p-r-lg, 16px);
   background: var(--p-surface);
-  padding: var(--p-4, 16px);
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--p-3, 12px);
+  gap: var(--p-5, 20px);
 
   &__sub {
     display: inline-flex;
@@ -106,7 +115,7 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
   &__progress {
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
   }
 
   &__progress-row {
@@ -145,6 +154,11 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
     &:first-child {
       border-top: none;
     }
+
+    // Без ФИО (поставщик): объём слева, сумма справа.
+    &--anon {
+      grid-template-columns: 1fr auto;
+    }
   }
 
   &__member-who {
@@ -164,15 +178,16 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
   &__foot {
     display: flex;
     align-items: center;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    padding-top: var(--p-2, 8px);
+    padding-top: var(--p-4, 16px);
     border-top: 1px solid var(--p-line);
   }
 
   &__total {
     display: flex;
     flex-direction: column;
+    gap: var(--p-1, 4px);
   }
 
   &__total-val {

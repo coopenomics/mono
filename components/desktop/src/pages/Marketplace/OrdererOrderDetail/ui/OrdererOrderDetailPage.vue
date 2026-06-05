@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, Loading } from 'quasar';
+import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
@@ -124,15 +124,12 @@ function confirmCancel(): void {
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
-    Loading.show({ message: 'Отменяю заказ…' });
     try {
       const result = await cancelOrder(o.id);
       SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
       await load();
     } catch (e) {
       FailAlert(e);
-    } finally {
-      Loading.hide();
     }
   });
 }
@@ -238,7 +235,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
     OrdererFinalizeIssuanceDialog(
       v-model="finalizeDialogOpen",
-      :order="order",
+      :orders="order ? [order] : []",
       @finalized="onFinalized"
     )
 
@@ -247,8 +244,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
 <style scoped lang="scss">
 .order-detail {
-  // Воздух сверху: отделяем контент от шапки-топбара.
-  padding: var(--p-4, 16px) var(--p-4, 16px) var(--p-6, 24px);
+  // Воздух сверху как на столе поставщика — единый канон столов.
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
   &__col {
     max-width: 760px;

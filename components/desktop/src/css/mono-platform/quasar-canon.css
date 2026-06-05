@@ -258,6 +258,12 @@
 .q-item__section--main {
   font-size: var(--p-fs-body);
 }
+/* Caption (вторичный текст строки, напр. адрес) — Quasar по умолчанию красит
+   его хардкод-цветом rgba(0,0,0,.54), который не следует за темой и на dark
+   остаётся тёмным-на-тёмном. Привязываем к канон-токену — переключается сам. */
+.q-item__label--caption {
+  color: var(--p-ink-3);
+}
 .q-item:hover,
 .q-item.q-manual-focusable--focused {
   background: var(--p-surface-2);

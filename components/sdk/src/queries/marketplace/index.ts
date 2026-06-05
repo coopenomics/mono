@@ -76,3 +76,5 @@ export * as GetAvailableCategories from './getAvailableCategories'
 export * as GetAvailabilityStats from './getAvailabilityStats'
 /** Эпик 1 / Story 1.4: состояние L3 онбординга пайщика в Marketplace */
 export * as MarketplaceOnboardingState from './marketplaceOnboardingState'
+/** Эпик 16: корзина текущего заказчика */
+export * as GetCart from './getCart'

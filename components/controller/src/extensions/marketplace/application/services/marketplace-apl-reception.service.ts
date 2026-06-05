@@ -75,6 +75,7 @@ import {
   MarketplaceShipmentDeliveryVariants,
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
+import { computeActNumber } from '../shared/act-number.util';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -298,7 +299,7 @@ export class MarketplaceAplReceptionService {
       username: input.order.orderer_account,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
-      act_id: this.formatActId(input.reception.id, input.order.id),
+      act_id: computeActNumber(input.order.order_hash, input.reception.id),
       transmitter,
       braname: input.reception.braname,
       accept_braname: input.reception.braname,
@@ -313,12 +314,6 @@ export class MarketplaceAplReceptionService {
       skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
-  }
-
-  private formatActId(reception_id: string, order_id: string): string {
-    const receptionShort = reception_id.replace(/-/g, '').slice(0, 8).toUpperCase();
-    const orderShort = order_id.replace(/-/g, '').slice(0, 6).toUpperCase();
-    return `APL-${receptionShort}-${orderShort}`;
   }
 
   async create(

@@ -105,6 +105,8 @@ export interface MarketplaceOrderProps {
   price_per_unit: string;
   total_cost: string;
   cycle_id: string | null;
+  /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
+  checkout_id: string | null;
   /** Партия, в которую заказ включён при формировании (null = вне партии). */
   shipment_id: string | null;
   warranty_period_secs: number;

@@ -1,9 +1,10 @@
 <template>
   <q-input
-    outlined
+    :outlined="!flat"
+    :borderless="flat"
     dense
     color="primary"
-    reserve-hint-space
+    :reserve-hint-space="!flat"
     no-error-icon
     :model-value="modelValue ?? ''"
     :label="label"
@@ -21,9 +22,11 @@
     :name="name"
     :for="resolvedId"
     :input-class="mono ? 'base-input__native--mono' : undefined"
-    class="base-input"
+    :class="['base-input', { 'base-input--flat': flat }]"
     @update:model-value="onUpdate"
     @clear="$emit('clear')"
+    @blur="$emit('blur', $event)"
+    @focus="$emit('focus', $event)"
   >
     <template v-if="$slots.prepend" #prepend>
       <slot name="prepend" />
@@ -58,6 +61,8 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   clear: [];
+  blur: [event: FocusEvent];
+  focus: [event: FocusEvent];
 }>();
 
 const autoId = useId();
@@ -72,5 +77,19 @@ function onUpdate(value: string | number | null): void {
 .base-input :deep(.base-input__native--mono) {
   font-family: var(--p-mono);
   font-size: var(--p-fs-mono);
+}
+
+/* Безрамочный (flat) режим: поле выглядит как текст в ячейке, на наведении —
+   мягкий фон, на фокусе — нижняя линия акцентом, чтобы видеть, что поле активно. */
+.base-input--flat :deep(.q-field__control) {
+  border-radius: var(--p-r-sm, 8px);
+  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.base-input--flat:hover :deep(.q-field__control) {
+  background: var(--p-surface-2);
+}
+.base-input--flat.q-field--focused :deep(.q-field__control) {
+  background: var(--p-surface-2);
+  box-shadow: inset 0 -2px 0 var(--p-primary);
 }
 </style>

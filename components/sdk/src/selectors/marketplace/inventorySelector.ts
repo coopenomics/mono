@@ -13,6 +13,7 @@ const rawInventorySelector = {
   product_name_snapshot: true,
   quantity_per_label: true,
   orderer_account_snapshot: true,
+  orderer_name: true,
   shelf: true,
   received_at: true,
   received_by_operator_account: true,

@@ -29,7 +29,7 @@
         <q-space />
       </div>
 
-      <q-card-section class="mp-takeover__body">
+      <q-card-section class="mp-takeover__body" :class="{ 'mp-takeover__body--wide': wide }">
         <div v-if="leadText" :id="leadId" class="mp-takeover__lead">{{ leadText }}</div>
         <slot />
       </q-card-section>
@@ -69,6 +69,9 @@ const props = defineProps({
   confirmLabel: { type: String, default: 'Подтвердить' },
   loading: { type: Boolean, default: false },
   disableConfirm: { type: Boolean, default: false },
+  // Широкий контент-контейнер для takeover'ов с таблицами (сводная выдача,
+  // приёмка): 720px тесно для многоколоночной сверки. Дефолт не меняется.
+  wide: { type: Boolean, default: false },
 })
 
 const emit = defineEmits<{
@@ -165,6 +168,10 @@ function onConfirm() {
     max-width: 720px;
     margin: 0 auto;
     width: 100%;
+
+    &--wide {
+      max-width: 1100px;
+    }
   }
 
   &__lead {

@@ -92,7 +92,6 @@
     - Стол председателя КУ:
         - Закрывающая подпись приёмки: new/marketplace/branch-chairman/apl-reception-close.md
         - Открытие выдачи: new/marketplace/branch-chairman/issuance-open.md
-        - Заказы участка: new/marketplace/branch-chairman/branch-orders.md
         - Обработка возвратов: new/marketplace/branch-chairman/return-approve.md
     - Стол председателя кооператива:
         - Модерация предложений: new/marketplace/chairman/offer-moderation.md
@@ -138,7 +137,6 @@ components/docs-harness/scenarios/marketplace/
 ├── branch-chairman/                     (фикстура chairkrg)
 │   ├── apl-reception-close.mjs
 │   ├── issuance-open.mjs
-│   ├── branch-orders.mjs
 │   └── return-approve.mjs
 ├── chairman/                            (фикстура ant)
 │   ├── offer-moderation.mjs
@@ -389,7 +387,6 @@ Magistral II разблокирована тремя коммитами PR #24 (
 | `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market/category-whitelist` | `50538b45d43` |
 | `offerer/offers` | OffererMyOffers.vue | `/market/my-offers` | `69d3e79f36c` |
 | `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market/incoming-orders` | `69d3e79f36c` |
-| `branch-chairman/branch-orders` | BranchChairmanBranchOrders.vue | `/market-pvz/branch-orders` | `d1bebf6f645` |
 | `board/agenda-writeoff` | BoardAgendaWriteoff.vue | `/market/board-writeoff` | `2a41354c328` |
 | `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market/payouts` | `261be9a2702` (placeholder, требует Phase 2 backend) |
 | `orderer/consolidated` | OrdererConsolidated.vue | `/market/consolidated` | `e40b74fcf91` |
@@ -409,7 +406,6 @@ Magistral II разблокирована тремя коммитами PR #24 (
 | `chairman/category-whitelist` | ✅ available-category-admin.resolver.ts | ✅ создано 4 wrappers (Get/Stats/Add/Remove) | Vue с диалогом ID-через-запятую (tree-выбор — следующий шаг) |
 | `offerer/offers` | ✅ `marketplaceListMyOffers` (был всё время) | ✅ создан wrapper | Vue с canon `CatalogOfferCard`, client-side фильтр + поиск |
 | `offerer/incoming-orders` | ✅ `marketplaceListSupplierOrders` (был всё время) | ✅ создан wrapper | Vue с canon `OrderCard role='offerer'`, фильтр по статусу |
-| `branch-chairman/branch-orders` | ✅ 3 existing query (`*ByBraname`) | ✅ reuse существующих | Vue с 3 табами и Promise.all |
 | `board/agenda-writeoff` | ✅ `marketplaceListWriteoffProposals` | ✅ reuse через AdminWriteoffs/api | Vue read-only лента, фильтр по статусу |
 | `board/payouts-readonly` | ⚠️ требует доп. `Payment / read:all` policy | — | Informational placeholder со ссылками на нужные файлы |
 | `orderer/consolidated` | ✅ `marketplaceListMyOrders` + cycle_id | ✅ reuse MyOrders/api | Vue с группировкой по cycle_id |
@@ -420,8 +416,7 @@ Magistral II разблокирована тремя коммитами PR #24 (
 
 1. **`board/payouts-readonly` backend**: расширить `marketplace-access-matrix.ts` `Payment / read:all` и добавить query `marketplaceListOutgoingPayments` (опц. `supplier_account`).
 2. **`chairman/category-whitelist` tree-выбор**: подключить `marketplaceGetCategoryTree` через диалог-tree.
-3. **`branch-chairman/branch-orders` auto-detect braname**: подтянуть `marketplaceWhoAmI` или `marketplace_member_wallet` вместо ручного ввода (председатель КУ привязан к одному branch через trustee).
-4. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
+3. **~~Прогон harness'а~~ ✅ выполнен** — 9 PNG установлены, admonition сняты (коммит `ee06d405136`, 2026-05-22). MD-проза готова.
 
 ### 9.14. Backend-фоллоуап Эпика 1 реализован (вариант A) — magistral II разблокирована (2026-05-22 вечер)
 
@@ -604,7 +599,6 @@ Empty-state магистраль I покрыта. Магистраль II (ст
 - `operator/inventory-label.mjs` — после APP
 - `operator/warehouse.mjs` — реальный inventory
 - `operator/issuance.mjs` — Order готов к выдаче
-- `branch-chairman/branch-orders.mjs` — 3 таба с данными
 - `orderer/ready-to-receive.mjs` — Order в RECEIVED
 - `offerer/apl-reception-sign.mjs` — first signature
 

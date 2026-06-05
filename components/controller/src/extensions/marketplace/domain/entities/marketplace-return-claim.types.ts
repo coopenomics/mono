@@ -9,6 +9,8 @@
  * (`pendrev / approvvisit / accepted / rejremote / rejatku`).
  */
 
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+
 /**
  * Категория дефекта — опциональный признак для фасеточной аналитики
  * (по согласованию с продакт-менеджером может расширяться без миграции).
@@ -153,6 +155,12 @@ export interface MarketplaceReturnClaimProps {
   /** Возвращаемая сумма = actual_quantity × unit_price (рассчитывается на submit). */
   fact_cost: string;
   photos: MarketplaceReturnClaimPhoto[];
+  /**
+   * Подписанное пайщиком заявление (registry 1104) — сохраняется при подаче,
+   * чтобы председатель мог наложить вторую подпись при принятии возврата
+   * (агрегат для со-подписи строится из этого документа).
+   */
+  statement: ISignedDocumentDomainInterface | null;
   /** tx_hash on-chain submretrn (хранится для трассировки). */
   submretrn_tx_hash: string;
   decision_log: MarketplaceReturnClaimDecisionLogEntry[];

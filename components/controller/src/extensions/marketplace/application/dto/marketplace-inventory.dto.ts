@@ -88,6 +88,12 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта.',
+  })
+  orderer_name!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
     description: 'Полка/ячейка склада, куда положена позиция. Пусто — место не назначено.',
   })
   shelf!: string | null;
@@ -130,6 +136,30 @@ export class MarketplaceGenerateInventoryLabelInputDTO {
   format?: MarketplaceBarcodeFormatEnum;
 }
 
+@InputType('MarketplaceBindInventoryBarcodeInput')
+export class MarketplaceBindInventoryBarcodeInputDTO {
+  @Field(() => ID, { description: 'Позиция склада, к которой привязывается отсканированный штрих-код.' })
+  @IsString()
+  @IsNotEmpty()
+  inventory_id!: string;
+
+  @Field(() => String, {
+    description:
+      'Значение штрих-кода с заранее напечатанной этикетки (считанное сканером или введённое вручную).',
+  })
+  @IsString()
+  @IsNotEmpty()
+  barcode_value!: string;
+
+  @Field(() => MarketplaceBarcodeFormatEnum, {
+    nullable: true,
+    description: 'Формат штрих-кода. По умолчанию — EAN-13.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceBarcodeFormatEnum)
+  format?: MarketplaceBarcodeFormatEnum;
+}
+
 @InputType('MarketplaceAssignInventoryShelfInput')
 export class MarketplaceAssignInventoryShelfInputDTO {
   @Field(() => ID, { description: 'Позиция склада, для которой назначается полка.' })
@@ -144,6 +174,14 @@ export class MarketplaceAssignInventoryShelfInputDTO {
   @IsOptional()
   @IsString()
   shelf?: string | null;
+}
+
+@InputType('MarketplaceClearInventoryLabelInput')
+export class MarketplaceClearInventoryLabelInputDTO {
+  @Field(() => ID, { description: 'Позиция склада, с которой снимается штрих-код (для переклейки).' })
+  @IsString()
+  @IsNotEmpty()
+  inventory_id!: string;
 }
 
 @InputType('MarketplaceInventorySplitEntryInput')
@@ -227,6 +265,9 @@ export function toMarketplaceInventoryItemDTO(
   dto.product_name_snapshot = e.product_name_snapshot;
   dto.quantity_per_label = e.quantity_per_label;
   dto.orderer_account_snapshot = e.orderer_account_snapshot;
+  // ФИО заказчика резолвится на read-path (резолвер списка), не хранится снимком —
+  // как orderer_name в ленте заказов. По умолчанию null, дозаполняется батчем.
+  dto.orderer_name = null;
   dto.shelf = e.shelf;
   dto.received_at = e.received_at;
   dto.received_by_operator_account = e.received_by_operator_account;

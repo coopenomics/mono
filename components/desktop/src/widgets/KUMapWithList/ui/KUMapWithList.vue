@@ -12,8 +12,8 @@
         @click="onSelectFromList(pvz)"
       )
         q-item-section
-          q-item-label.text-weight-medium {{ pvz.coreBraname }}
-          q-item-label(caption) {{ pvz.addressFull }}
+          q-item-label.text-weight-medium {{ displayName(pvz) }}
+          q-item-label(caption, v-if="pvz.name && pvz.addressFull") {{ pvz.addressFull }}
           q-item-label(v-if="pvz.geocodeStatus !== 'OK'" caption :class="geocodeWarnClass(pvz)") {{ geocodeWarnText(pvz) }}
         q-item-section(side top v-if="$slots.cardAction")
           slot(name="cardAction" :pvz="pvz")
@@ -53,10 +53,21 @@ const apiKey = (env as unknown as { YANDEX_MAPS_API_KEY?: string }).YANDEX_MAPS_
 const mapContainer = ref<HTMLElement | null>(null)
 let mapInstance: any = null
 let placemarks: Map<string, any> = new Map()
+// Yandex-карта не реагирует на изменение размера своего контейнера сама: при
+// смене ширины (флекс/грид-лейаут, скрытие сайдбара, HMR) тайлы и маркеры
+// «съезжают» или пропадают, пока не вызвать container.fitToViewport(). Следим
+// за контейнером и рефлоуим карту.
+let resizeObserver: ResizeObserver | null = null
 
 const visibleItems = computed(() =>
   props.items.filter((pvz) => pvz.geocodeStatus === 'OK' && pvz.lat !== null && pvz.lng !== null)
 )
+
+// Человеческое имя КУ для показа: braname (служебный account-id) пользователю
+// не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
+function displayName(pvz: IMarketplaceKUDetails): string {
+  return pvz.name || pvz.addressFull || 'Кооперативный участок'
+}
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
   if (pvz.status === 'INACTIVE') return 'ku-map-with-list__item--inactive'
@@ -80,7 +91,11 @@ function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
 function onSelectFromList(pvz: IMarketplaceKUDetails) {
   emit('select', pvz)
   if (mapInstance && pvz.lat !== null && pvz.lng !== null) {
-    mapInstance.setCenter([pvz.lat!, pvz.lng!], 15, { duration: 300 })
+    // При выборе КУ приближаем на 2 единицы относительно текущего зума
+    // (центрируясь на участке), но не глубже 18.
+    const current = typeof mapInstance.getZoom === 'function' ? mapInstance.getZoom() : 12
+    const zoom = Math.min(current + 2, 18)
+    mapInstance.setCenter([pvz.lat!, pvz.lng!], zoom, { duration: 300 })
     const pm = placemarks.get(pvz.coreBraname)
     pm?.balloon.open()
   }
@@ -100,6 +115,14 @@ async function initMap() {
       controls: ['zoomControl', 'fullscreenControl'],
     })
     syncPlacemarks(ymaps)
+    // Рефлоу карты при любом изменении размера контейнера (смена ширины
+    // лейаута, скрытие меню, HMR) — иначе тайлы/маркеры не перерисовываются.
+    if (typeof ResizeObserver !== 'undefined' && mapContainer.value) {
+      resizeObserver = new ResizeObserver(() => {
+        mapInstance?.container.fitToViewport()
+      })
+      resizeObserver.observe(mapContainer.value)
+    }
   } catch (err) {
     console.warn('[KUMapWithList] Yandex Maps init упал:', err)
   }
@@ -113,8 +136,8 @@ function syncPlacemarks(ymaps: any) {
     const pm = new ymaps.Placemark(
       [pvz.lat!, pvz.lng!],
       {
-        balloonContent: `<strong>${pvz.coreBraname}</strong><br>${pvz.addressFull}`,
-        hintContent: pvz.coreBraname,
+        balloonContent: `<strong>${displayName(pvz)}</strong><br>${pvz.addressFull ?? ''}`,
+        hintContent: displayName(pvz),
       },
       { preset: pvz.status === 'INACTIVE' ? 'islands#grayDotIcon' : 'islands#blueDotIcon' }
     )
@@ -122,7 +145,13 @@ function syncPlacemarks(ymaps: any) {
     mapInstance.geoObjects.add(pm)
     placemarks.set(pvz.coreBraname, pm)
   }
-  if (visibleItems.value.length > 0) {
+  // Одна точка: setBounds на bbox из одной точки зумит в максимум («упёрся
+  // носом в дом») — центрируем на ней с городским зумом. Несколько точек —
+  // подгоняем границы под все. Ноль — оставляем дефолтный центр (Москва).
+  if (visibleItems.value.length === 1) {
+    const p = visibleItems.value[0]!
+    mapInstance.setCenter([p.lat!, p.lng!], 12, { duration: 300 })
+  } else if (visibleItems.value.length > 1) {
     mapInstance.setBounds(mapInstance.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 40 })
   }
 }
@@ -140,6 +169,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   if (mapInstance) {
     mapInstance.destroy()
     mapInstance = null

@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -12,10 +11,9 @@ import {
   CatalogOfferCard,
   type CatalogOffer,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
+import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import {
-  approveOffer,
   fetchPendingOffers,
-  rejectOffer,
   type MarketplacePendingOfferView,
 } from '../api';
 
@@ -38,9 +36,20 @@ const router = useRouter();
 const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
-const approving = ref<Set<string>>(new Set());
-const rejecting = ref<Set<string>>(new Set());
 const currentPage = ref(1);
+
+// Убираем offer из ленты после решения (он сменил статус и пропал из очереди).
+function removeFromList(offerId: string): void {
+  items.value = items.value.filter((o) => o.id !== offerId);
+  total.value = Math.max(0, total.value - 1);
+}
+
+// Диалоги + мутации модерации — общий feature-композабл (DRY со страницей
+// предложения на столе администратора).
+const { isApproving, isRejecting, confirmApprove, confirmReject } = useOfferModeration({
+  onApproved: removeFromList,
+  onRejected: removeFromList,
+});
 
 // Справочник категорий (id → название) — показываем прямо в карточке.
 const categoryNames = ref<Record<number, string>>({});
@@ -111,58 +120,6 @@ async function onLoadMore(): Promise<void> {
   await loadPage(true);
 }
 
-function onApprove(offer: MarketplacePendingOfferView): void {
-  Dialog.create({
-    title: 'Одобрить предложение?',
-    message: `«${offer.product_name}» появится в публичном каталоге кооператива.`,
-    ok: { label: 'Одобрить', color: 'primary', unelevated: true, noCaps: true },
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    persistent: true,
-  }).onOk(async () => {
-    approving.value.add(offer.id);
-    try {
-      await approveOffer(offer.id);
-      items.value = items.value.filter((o) => o.id !== offer.id);
-      total.value = Math.max(0, total.value - 1);
-      SuccessAlert(`Предложение «${offer.product_name}» одобрено`);
-    } catch (e) {
-      FailAlert(e);
-    } finally {
-      approving.value.delete(offer.id);
-    }
-  });
-}
-
-function onReject(offer: MarketplacePendingOfferView): void {
-  Dialog.create({
-    title: 'Отклонить предложение?',
-    message: `Укажите причину отказа по «${offer.product_name}» — она будет видна поставщику в «Мои предложения».`,
-    prompt: {
-      model: '',
-      type: 'textarea',
-      isValid: (val: string) => val.trim().length > 0,
-      label: 'Причина отказа',
-      counter: true,
-      maxlength: 1000,
-    },
-    ok: { label: 'Отклонить', color: 'negative', unelevated: true, noCaps: true },
-    cancel: { label: 'Отмена', flat: true, noCaps: true },
-    persistent: true,
-  }).onOk(async (reason: string) => {
-    rejecting.value.add(offer.id);
-    try {
-      await rejectOffer(offer.id, reason.trim());
-      items.value = items.value.filter((o) => o.id !== offer.id);
-      total.value = Math.max(0, total.value - 1);
-      SuccessAlert(`Предложение «${offer.product_name}» отклонено`);
-    } catch (e) {
-      FailAlert(e);
-    } finally {
-      rejecting.value.delete(offer.id);
-    }
-  });
-}
-
 onMounted(async () => {
   await Promise.all([loadPage(false), loadCategories()]);
 });
@@ -201,8 +158,8 @@ q-page.moderation(role="region", aria-label="Модерация предложе
             BaseButton(
               variant="danger",
               size="sm",
-              :loading="rejecting.has(o.id)",
-              @click.stop="onReject(o)"
+              :loading="isRejecting(o.id)",
+              @click.stop="confirmReject(o)"
             )
               template(#icon-left)
                 q-icon(name="close", size="16px")
@@ -210,8 +167,8 @@ q-page.moderation(role="region", aria-label="Модерация предложе
             BaseButton(
               variant="primary",
               size="sm",
-              :loading="approving.has(o.id)",
-              @click.stop="onApprove(o)"
+              :loading="isApproving(o.id)",
+              @click.stop="confirmApprove(o)"
             )
               template(#icon-left)
                 q-icon(name="check", size="16px")

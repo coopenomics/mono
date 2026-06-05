@@ -40,6 +40,12 @@ export interface MarketplaceOrderCreateInputDto {
   quantity: number;
   /** ПВЗ получения (branch.name). Story 2.3 валидирует existence в C++. */
   delivery_braname: string;
+  /**
+   * Грань «заказ заказчика» (Эпик 16): общий id всех строк одного
+   * оформления корзины на один КУ. Штампуется checkout-сервисом; для
+   * legacy покарточного заказа — не передаётся (null).
+   */
+  checkout_id?: string | null;
 }
 
 export interface MarketplaceOrderCreateResult {
@@ -201,6 +207,7 @@ export class MarketplaceOrderCreateService {
       price_per_unit: offer.price_per_unit,
       total_cost: locked_amount,
       cycle_id: null,
+      checkout_id: input.checkout_id ?? null,
       warranty_period_secs,
       warranty_until: null,
       status: MarketplaceOrderStatuses.ACTIVE,

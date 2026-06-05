@@ -12,9 +12,16 @@
  * Status: approved_for_visit → return_accepted (final). Имущество возвращается
  * на склад КУ; средства восстанавливаются на w.mkt.member.available заказчика.
  *
+ * Принятие возврата оформляется второй подписью председателя на заявлении
+ * пайщика (канон двухподписных актов): на вход приходит тот же документ
+ * заявления (registry 1104) с двумя подписями — пайщика и председателя; обе
+ * проверяются, поле `statement` перезаписывается со-подписанной версией.
+ * Отдельного документа решения нет.
+ *
  * Guards:
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
  *  - return_request.status == approved_for_visit.
+ *  - statement подписан пайщиком (orderer) и председателем (signer).
  *
  * @ingroup public_marketplace_actions
  */
@@ -22,7 +29,7 @@ void marketplace::accretrn(eosio::name coopname,
                             eosio::name signer,
                             eosio::name braname,
                             checksum256 request_hash,
-                            document2 decision) {
+                            document2 statement) {
   require_auth(coopname);
 
   auto branch = get_branch_or_fail(coopname, braname);
@@ -33,9 +40,11 @@ void marketplace::accretrn(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
                "Заявление не одобрено для очного осмотра");
 
-  if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { signer });
-  }
+  // Председатель накладывает вторую подпись на заявление пайщика — документ
+  // должен нести обе подписи (пайщика и председателя).
+  eosio::check(!is_empty_document(statement),
+               "Принятие возврата требует подписанного председателем заявления");
+  verify_document_or_fail(statement, { r.orderer, signer });
 
   // o.mkt.return: ISSUE w.mkt.member, Дт 10 / Кт 86
   Ledger2::apply(_marketplace, coopname,
@@ -44,7 +53,7 @@ void marketplace::accretrn(eosio::name coopname,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status         = ReturnStatus::RETURN_ACCEPTED;
-    upd.decision_visit = decision;
+    upd.status    = ReturnStatus::RETURN_ACCEPTED;
+    upd.statement = statement;
   });
 }

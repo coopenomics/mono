@@ -21,6 +21,7 @@ export class MarketplaceReturnClaimMapper {
       actual_quantity: row.actual_quantity,
       fact_cost: row.fact_cost,
       photos: row.photos,
+      statement: row.statement,
       submretrn_tx_hash: row.submretrn_tx_hash,
       decision_log: row.decision_log,
       on_site_inspection: row.on_site_inspection,

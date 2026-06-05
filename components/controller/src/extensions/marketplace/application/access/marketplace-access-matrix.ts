@@ -33,6 +33,8 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
   orderer: {
     Order: ['create', 'read:own', 'cancel:own'],
     Offer: ['read'],
+    // Эпик 16: заказчик управляет своей корзиной (накопитель перед оформлением).
+    Cart: ['manage:own'],
     KU: ['read'],
     Vitrine: ['read'],
     // Story 6.3 / FR24: заказчик закрывает АПП-выдачу финальной подписью

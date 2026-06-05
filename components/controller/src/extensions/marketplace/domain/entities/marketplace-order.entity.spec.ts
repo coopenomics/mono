@@ -15,6 +15,7 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     price_per_unit: '150.0000',
     total_cost: '450.0000',
     cycle_id: null,
+    checkout_id: null,
     shipment_id: null,
     warranty_period_secs: 7 * 86_400,
     warranty_until: null,

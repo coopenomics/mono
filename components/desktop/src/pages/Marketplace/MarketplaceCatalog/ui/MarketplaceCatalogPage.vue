@@ -10,6 +10,8 @@ import {
 import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
+import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
@@ -22,18 +24,26 @@ import type {
   MarketplaceCategoryView,
   MarketplaceOfferView,
 } from '../types';
-import OrderCreateDialog from './OrderCreateDialog.vue';
+import AddToCartDialog from './AddToCartDialog.vue';
 
 /**
  * Story 3.5: каталог Стола заказов на orderer-столе.
  *
  * Канон UI — `widgets/Marketplace/CatalogOfferCard` (карточка предложения).
- * Страница свёрстана по MONO Platform v2: канон-токены `--p-*`, фильтр
- * категорий — тоггл-чипы `.chip`, действие «Заказать» — `BaseButton`.
+ *
+ * Эпик 16: каталог КУ-scoped, но витрина видна ВСЕГДА.
+ *  - КУ выбран → витрина фильтруется по нему (`delivery_braname`): только
+ *    доставимое на этот пункт. Действие — «В корзину».
+ *  - КУ НЕ выбран (гость/ещё не выбрал) → показываем ВСЕ товары кооператива с
+ *    указанием, на каких КУ они есть (offer.delivery_points). Заказ при этом
+ *    недоступен: «В корзину» заблокирована, пока пункт выдачи не выбран в шапке
+ *    (`KUHeaderBar`). Так гость видит ассортимент, не выбирая КУ.
  */
 
 const ALL_KEY = -1 as number;
 const PAGE_SIZE = 24;
+
+const cartStore = useMarketplaceCartStore();
 
 const categories = ref<MarketplaceCategoryView[]>([]);
 const counts = ref<Map<number, number>>(new Map());
@@ -125,6 +135,7 @@ async function loadPage(append: boolean): Promise<void> {
       page: currentPage.value,
       limit: PAGE_SIZE,
       sort: sort.value,
+      delivery_braname: cartStore.currentBraname,
     });
     total.value = page.totalCount;
     items.value = append ? items.value.concat(page.items) : page.items;
@@ -164,13 +175,27 @@ async function onLoadMore(): Promise<void> {
 const route = useRoute();
 const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
-const orderDialogOpen = ref(false);
-const orderDialogOffer = ref<MarketplaceOfferView | null>(null);
+const cartDialogOpen = ref(false);
+const cartDialogOffer = ref<MarketplaceOfferView | null>(null);
+
+// Пункт выдачи не выбран: витрину всё равно показываем (режим просмотра/гостя),
+// но заказ недоступен — нужен КУ. КУ выбирается в шапке (KUHeaderBar).
+const needsKU = computed(() => !cartStore.currentBraname);
+
+// Названия КУ, на которые доставим оффер — для подписи на карточке в режиме
+// просмотра без выбранного пункта выдачи (показываем «где это есть»).
+function offerKUNames(offer: MarketplaceOfferView): string[] {
+  const seen = new Set<string>();
+  for (const p of offer.delivery_points ?? []) {
+    seen.add(p.name || p.braname);
+  }
+  return [...seen];
+}
 
 function onSelectOffer(offer: MarketplaceOfferView): void {
-  if (!canOrder(offer)) return;
-  orderDialogOffer.value = offer;
-  orderDialogOpen.value = true;
+  if (!canOrder(offer) || needsKU.value) return;
+  cartDialogOffer.value = offer;
+  cartDialogOpen.value = true;
 }
 
 // Клик по карточке открывает страницу с полным описанием предложения; быстрый
@@ -182,11 +207,29 @@ function goToDetail(offer: MarketplaceOfferView): void {
   });
 }
 
-async function onOrderCreated(): Promise<void> {
-  await loadPage(false);
+// Перезагрузка витрины под текущий КУ (категории зависят от КУ-фильтра).
+async function reloadCatalog(): Promise<void> {
+  currentPage.value = 1;
+  await Promise.all([loadCategories(), loadPage(false)]);
+}
+
+// КУ сменили в шапке — перегружаем витрину под новый пункт выдачи.
+async function onKUChanged(): Promise<void> {
+  await reloadCatalog();
+}
+
+function goToCart(): void {
+  void router.push({ name: 'marketplace-cart', params: { coopname: coopname.value } });
 }
 
 onMounted(async () => {
+  // Корзина хранит текущий КУ — грузим её первой (если упадёт, напр. у гостя
+  // без orderer-прав, витрину всё равно показываем — без КУ-фильтра).
+  try {
+    await cartStore.load();
+  } catch {
+    // Без корзины currentBraname=null → витрина покажется целиком.
+  }
   await loadCategories();
   await loadPage(false);
 });
@@ -194,8 +237,25 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
+  //- Индикатор корзины в шапке стола (Story 16.1) — с числом позиций.
+  Teleport(to="#header-actions-host", defer)
+    BaseButton(v-if="!needsKU", variant="secondary", size="sm", @click="goToCart")
+      template(#icon-left)
+        q-icon(name="shopping_cart", size="16px")
+      | Корзина{{ cartStore.positionsCount ? ` (${cartStore.positionsCount})` : '' }}
+
+  //- Сначала закрываемая инфо-подсказка (PageHint, ×), под ней — незакрываемый
+  //- бар пункта выдачи (КУ всегда на виду, не прячется).
   PageHint(storage-key="mp:catalog:banner-dismissed")
-    | Предложения поставщиков кооператива. Выберите товар или оформите заказ на ваш пункт выдачи.
+    | Предложения поставщиков кооператива. Выберите пункт выдачи (КУ), чтобы заказывать и видеть только доставимое на него.
+
+  KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
+
+  //- КУ не выбран — режим просмотра витрины целиком (гость). Поясняем, что для
+  //- заказа нужно выбрать пункт выдачи (кнопка «Выбрать пункт» в шапке выше).
+  .catalog__guest-note(v-if="needsKU")
+    q-icon(name="info", size="18px")
+    span Показаны все товары кооператива. Чтобы заказывать и отфильтровать витрину под себя — выберите пункт выдачи в шапке.
 
   PageTabs.catalog__tabs(
     :tabs="categoryTabs",
@@ -225,31 +285,32 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
         CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
+          template(v-if="needsKU && offerKUNames(o).length", #details)
+            .catalog__offer-ku
+              q-icon(name="location_on", size="14px")
+              span Доступно в: {{ offerKUNames(o).join(', ') }}
           template(#actions)
             BaseButton(
               variant="primary",
               size="sm",
-              :disabled="!canOrder(o)",
+              :disabled="!canOrder(o) || needsKU",
               @click.stop="onSelectOffer(o)"
-            ) Заказать
+            ) В корзину
     template(#loading)
       .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")
 
-  OrderCreateDialog(
-    v-model="orderDialogOpen",
-    :coopname="coopname",
-    :offer="orderDialogOffer",
-    @created="onOrderCreated"
+  AddToCartDialog(
+    v-model="cartDialogOpen",
+    :offer="cartDialogOffer"
   )
 </template>
 
 <style scoped lang="scss">
 .catalog {
-  // Меню категорий (PageTabs) — первый блок страницы и должно прижиматься к
-  // топбару как саб-навигация: верхний отступ страницы гасим (иначе лишний
-  // зазор «висит» над меню). Контент ниже разводит flex-gap.
-  padding: 0 var(--p-6, 24px) var(--p-6, 24px);
+  // Воздух сверху как на столе поставщика — единый канон столов: контент
+  // (меню/баннер) отделяется от топбара. Контент ниже разводит flex-gap.
+  padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
@@ -267,11 +328,33 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   &__sort {
     min-width: 200px;
   }
+
+  // Заметка режима просмотра без КУ (гость): на info-поверхности, не баннер.
+  &__guest-note {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface-2);
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
+  }
+
+  // Подпись «где это есть» на карточке оффера в режиме просмотра без КУ.
+  &__offer-ku {
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
+  }
 }
 
 @media (max-width: 768px) {
   .catalog {
-    padding: 0 var(--p-4, 16px) var(--p-4, 16px);
+    padding: var(--p-4, 16px);
   }
 }
 </style>

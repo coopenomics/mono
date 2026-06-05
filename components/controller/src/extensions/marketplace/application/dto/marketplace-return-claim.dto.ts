@@ -182,15 +182,6 @@ export class MarketplaceApproveReturnVisitInputDTO {
   @IsString()
   @IsNotEmpty()
   public readonly comment!: string;
-
-  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
-    nullable: true,
-    description: 'Подписанное решение председателя (опционально, in-system запись).',
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceRejectReturnRemoteInput')
@@ -207,15 +198,6 @@ export class MarketplaceRejectReturnRemoteInputDTO {
   @IsString()
   @IsNotEmpty()
   public readonly comment!: string;
-
-  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
-    nullable: true,
-    description: 'Подписанное решение председателя (опционально).',
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceAcceptReturnAtVisitInput')
@@ -256,12 +238,13 @@ export class MarketplaceAcceptReturnAtVisitInputDTO {
 
   @Field(() => MarketplaceReturnStatementSignedInputDTO, {
     nullable: true,
-    description: 'Подписанное решение председателя (опционально).',
+    description:
+      'Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе.',
   })
   @IsOptional()
   @ValidateNested()
   @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
+  public readonly signed_statement?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceRejectReturnAtVisitInput')
@@ -289,15 +272,6 @@ export class MarketplaceRejectReturnAtVisitInputDTO {
   @ValidateNested({ each: true })
   @Type(() => MarketplaceReturnClaimPhotoUploadInputDTO)
   public readonly inspection_photos?: MarketplaceReturnClaimPhotoUploadInputDTO[];
-
-  @Field(() => MarketplaceReturnStatementSignedInputDTO, {
-    nullable: true,
-    description: 'Подписанное решение председателя (опционально).',
-  })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => MarketplaceReturnStatementSignedInputDTO)
-  public readonly signed_decision?: MarketplaceReturnStatementSignedInputDTO;
 }
 
 @InputType('MarketplaceListReturnClaimsByBranameInput')

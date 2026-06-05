@@ -110,6 +110,21 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return this.mapper.toDomain(row);
   }
 
+  async clearLabel(id: string): Promise<MarketplaceInventoryDomainEntity> {
+    await this.repo.update(
+      { id },
+      {
+        barcode_value: null,
+        barcode_format: null,
+        labeled_at: null,
+        labeled_by_operator_account: null,
+        status: MarketplaceInventoryStatuses.RECEIVED,
+      }
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
+  }
+
   async resize(
     id: string,
     quantity_per_label: number,

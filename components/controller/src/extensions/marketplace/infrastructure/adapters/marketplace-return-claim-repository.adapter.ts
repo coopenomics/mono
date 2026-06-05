@@ -48,6 +48,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
       actual_quantity: input.actual_quantity,
       fact_cost: input.fact_cost,
       photos: input.photos,
+      statement: input.statement,
       submretrn_tx_hash: input.submretrn_tx_hash,
       decision_log: [],
       on_site_inspection: null,

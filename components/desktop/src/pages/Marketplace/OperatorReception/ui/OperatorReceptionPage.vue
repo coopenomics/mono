@@ -1,20 +1,21 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { Loading } from 'quasar';
+import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
-import { QrScanner } from 'src/widgets/Marketplace/QrScanner';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   decodeHandoffToken,
   HandoffTokenKind,
   groupAplReceptions,
+  handoffStageRoute,
+  HANDOFF_QUERY,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -52,6 +53,7 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute();
+const router = useRouter();
 const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
@@ -416,7 +418,6 @@ const plannedReceptionsCount = computed(() => {
 // факту» ведут сюда): грузим все единицы имущества поставщика на этом КУ и
 // открываем форму коррекции количества/цены.
 async function openPickupForSupplier(account: string): Promise<void> {
-  Loading.show({ message: 'Загружаю имущество поставщика…' });
   try {
     const orders = await listSupplierPickupOrders({
       braname: braname.value.trim(),
@@ -449,8 +450,6 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить имущество поставщика');
-  } finally {
-    Loading.hide();
   }
 }
 
@@ -468,7 +467,6 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     );
     return;
   }
-  Loading.show({ message: 'Загружаю состав партии…' });
   try {
     const all = await listSupplierPickupOrders({
       braname: braname.value.trim(),
@@ -490,8 +488,6 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить состав партии');
-  } finally {
-    Loading.hide();
   }
 }
 
@@ -516,16 +512,36 @@ async function onQrScanned(code: string): Promise<void> {
     await openPickupForSupplier(token.account);
     return;
   }
-  FailAlert(new Error('Этот код не предназначен для приёмки на ПВЗ.'));
+  // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
+  // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
+  // заказов» с тем же кодом — целевой стол сам откроет выдачу.
+  void router.push({
+    name: handoffStageRoute('issuance'),
+    params: { coopname: coopname.value },
+    query: { [HANDOFF_QUERY]: code },
+  });
+}
+
+// Код передачи мог прийти с универсального сканера (или со стола выдачи) через
+// query `handoff`: подхватываем, запускаем приёмку и стираем параметр, чтобы
+// повторный показ того же кода снова сработал и обновление страницы не зациклило.
+function consumeHandoffQuery(): void {
+  const code = route.query[HANDOFF_QUERY];
+  if (typeof code !== 'string' || !code) return;
+  const rest = { ...route.query };
+  delete rest[HANDOFF_QUERY];
+  void router.replace({ query: rest });
+  void onQrScanned(code);
 }
 
 // Сформировать акты приёмки по выбранному: на каждую партию с выбранными
 // единицами — createAplReception с фактическим кол-вом per-Order (R5; невыбранные
 // единицы партии = 0, потолок = заказано). Не выбранные целиком партии остаются
 // ждать. Добор по акцепту — express-самовывозом.
+const acceptingPickup = ref(false);
+
 async function acceptPickup(): Promise<void> {
-  pickupDialogOpen.value = false;
-  Loading.show({ message: 'Формирую акты приёмки…' });
+  acceptingPickup.value = true;
   let created = 0;
   try {
     // Задекларированные единицы → по партиям (shipment_id); партию без выбранных
@@ -570,7 +586,8 @@ async function acceptPickup(): Promise<void> {
   } catch (e) {
     FailAlert(e, 'Не удалось сформировать часть актов — проверьте ленту и повторите');
   } finally {
-    Loading.hide();
+    acceptingPickup.value = false;
+    pickupDialogOpen.value = false;
     pickupOrders.value = [];
     await load();
   }
@@ -590,9 +607,13 @@ async function onChairmanSigned(): Promise<void> {
 
 watch(braname, () => void load());
 
+// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
+watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
-  void load();
+  await load();
+  consumeHandoffQuery();
 });
 </script>
 
@@ -622,11 +643,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       | «Сканировать QR» в верхней панели. Код подтверждает личность поставщика
       | и состав партии.
 
-    //- Ожидаемые поставки — единый список карточек «что/когда/кому везут».
-    //- Раздел уже назван в шапке стола. Запуск приёмки — только скан QR/ввод
-    //- кода (кнопка в шапке).
+    //- ЕДИНЫЙ список поставок стола ПВЗ. Ожидаемые (ждут приёмки по скану QR) и
+    //- уже принятые акты (ждут подписи) — это одна сущность «поставка от
+    //- поставщика» на разных стадиях. Для оператора нелогично делить их на две
+    //- секции, где одна пишет «поставок нет», а другая требует подписи — поэтому
+    //- один лист карточек. Сначала требующие действия (ждут подписи) — они
+    //- «живые» прямо сейчас; затем ожидаемые (примутся по скану QR в шапке).
     EmptyState(
-      v-if='!expectedDeliveries.length',
+      v-if='!expectedDeliveries.length && !receptionGroups.length',
       title='Поставок пока нет',
       body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
     )
@@ -634,7 +658,37 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         q-icon(name='local_shipping', size='48px')
 
     .reception__grid(v-else)
-      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='d.offerer')
+      //- Акты приёмки, ждущие подписи председателя/поставщика (требуют действия).
+      BaseCard.reception__card(v-for='g in receptionGroups', :key='`sign-${g.key}`')
+        template(#head)
+          .reception__card-who
+            Avatar(:name='g.offererName', size='md', tone='primary')
+            .reception__card-ident
+              span.reception__card-name {{ g.offererName }}
+              AccountBadge(:account-name='g.offererAccount', size='sm')
+        template(#actions)
+          .reception__card-methods
+            BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
+            BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
+
+        .reception__card-when {{ variantLabel(g.variant) }}
+        .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
+        ul.reception__card-items(v-if='g.lines.length')
+          li.reception__card-item(v-for='l in g.lines', :key='l.key')
+            span.reception__card-prod {{ l.productName }}
+            span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+        .reception__card-summary
+          span.reception__card-summary-label Сумма поставки
+          span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
+
+        .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
+          BaseButton(variant='primary', @click='signChairman(g)')
+            template(#icon-left)
+              q-icon(name='draw', size='18px')
+            | Подписать председателем
+
+      //- Ожидаемые поставки — примутся по скану QR поставщика (кнопка в шапке).
+      BaseCard.reception__card(v-for='d in expectedDeliveries', :key='`exp-${d.offerer}`')
         template(#head)
           .reception__card-who
             Avatar(:name='d.supplierName', size='md', tone='primary')
@@ -643,6 +697,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               AccountBadge(:account-name='d.offerer', size='sm')
         template(#actions)
           .reception__card-methods
+            BaseBadge(variant='info') Ожидает приёмки
             BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
 
         .reception__card-when(v-if='d.formedAt') Партия сформирована {{ d.formedAt }}
@@ -656,50 +711,13 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
 
-    //- Акты приёмки, требующие действия (ждут подписи поставщика/председателя).
-    //- Принятые кооперативом уже на складе и здесь не показываются.
-    section.reception__acts(v-if='receptionGroups.length', aria-label='Поставки, требующие подписи')
-      header.reception__acts-head
-        h2.reception__acts-title Требуют подписи
-        BaseBadge(variant='warn') {{ receptionGroups.length }}
-
-      .reception__grid
-        BaseCard.reception__card(v-for='g in receptionGroups', :key='g.key')
-          template(#head)
-            .reception__card-who
-              Avatar(:name='g.offererName', size='md', tone='primary')
-              .reception__card-ident
-                span.reception__card-name {{ g.offererName }}
-                AccountBadge(:account-name='g.offererAccount', size='sm')
-          template(#actions)
-            .reception__card-methods
-              BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
-              BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
-
-          .reception__card-when {{ variantLabel(g.variant) }}
-          .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
-          ul.reception__card-items(v-if='g.lines.length')
-            li.reception__card-item(v-for='l in g.lines', :key='l.key')
-              span.reception__card-prod {{ l.productName }}
-              span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
-          .reception__card-summary
-            span.reception__card-summary-label Сумма поставки
-            span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
-
-          .reception__card-foot(v-if='g.status === "PENDING_CHAIRMAN_RECEPTION_SIGN"')
-            BaseButton(variant='primary', @click='signChairman(g)')
-              template(#icon-left)
-                q-icon(name='draw', size='18px')
-              | Подписать председателем
-
   SignAplReceptionChairmanDialog(
     v-model='signDialogOpen',
     :group='signGroup',
     @signed='onChairmanSigned'
   )
 
-  BaseDialog(v-model='scanDialogOpen', title='Сканирование QR партии', size='sm')
-    QrScanner(@scanned='onQrScanned')
+  ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR партии', @scanned='onQrScanned')
 
   //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
   //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже
@@ -733,7 +751,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model.number='pickupFact[o.id]',
                 type='number',
-                dense,
+                label='Кол-во',
                 :disable='!isSelected(o.id)',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
                 @blur='clampFact(o.id, o.quantity)'
@@ -741,9 +759,8 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model='pickupPrice[o.id]',
                 type='number',
-                dense,
-                :disable='!isSelected(o.id)',
-                label='Цена/ед.'
+                label='Цена/ед.',
+                :disable='!isSelected(o.id)'
               )
 
       template(v-if='addonGroups.length')
@@ -764,7 +781,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model.number='pickupFact[o.id]',
                 type='number',
-                dense,
+                label='Кол-во',
                 :disable='!takeAddon',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
                 @blur='clampFact(o.id, o.quantity)'
@@ -772,14 +789,13 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               BaseInput(
                 v-model='pickupPrice[o.id]',
                 type='number',
-                dense,
-                :disable='!takeAddon',
-                label='Цена/ед.'
+                label='Цена/ед.',
+                :disable='!takeAddon'
               )
 
       .reception__pickup-actions
         BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
-        BaseButton(variant='primary', size='sm', :disabled='!plannedReceptionsCount', @click='acceptPickup')
+        BaseButton(variant='primary', size='sm', :loading='acceptingPickup', :disabled='!plannedReceptionsCount', @click='acceptPickup')
           template(#icon-left)
             q-icon(name='how_to_reg', size='16px')
           | Сформировать акты ({{ plannedReceptionsCount }})
@@ -792,28 +808,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // ── Секция «Требуют подписи» ──
-  &__acts {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
-  }
-
-  &__acts-head {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
-  }
-
-  &__acts-title {
-    margin: 0;
-    font-size: var(--p-fs-h2, 18px);
-    font-weight: 600;
-    letter-spacing: var(--p-ls-h2);
-    color: var(--p-ink);
-  }
-
-  // ── Сетка карточек (ожидаемые поставки + акты на подпись) ──
+  // ── Единая сетка карточек поставок (ожидаемые + акты на подпись) ──
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -1004,7 +999,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
   &__unit {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--p-2, 8px);
     padding-top: var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
@@ -1031,9 +1026,19 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-variant-numeric: tabular-nums;
   }
 
+  //- Кол-во и Цена/ед. — один горизонтальный ряд, оба с label (одинаковая высота,
+  //- выровнены сверху), чтобы инпуты не «прыгали» друг относительно друга.
   &__unit-fact {
     flex: 0 0 auto;
-    width: 120px;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    width: 280px;
+
+    :deep(.base-input) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 }
 

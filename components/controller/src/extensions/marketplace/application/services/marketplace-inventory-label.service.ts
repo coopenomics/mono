@@ -28,6 +28,18 @@ export interface MarketplaceGenerateInventoryLabelInputDto {
   format?: MarketplaceBarcodeFormat;
 }
 
+export interface MarketplaceBindInventoryBarcodeInputDto {
+  coopname: string;
+  /** Account оператора КУ (из core-сессии). */
+  operator_account: string;
+  /** Позиция склада, на которую наклеивается штрих-код. */
+  inventory_id: string;
+  /** Значение штрих-кода с заранее напечатанной этикетки (сканер/ручной ввод). */
+  barcode_value: string;
+  /** Формат штрих-кода. По умолчанию `EAN13`. */
+  format?: MarketplaceBarcodeFormat;
+}
+
 export interface MarketplaceAssignInventoryShelfInputDto {
   coopname: string;
   operator_account: string;
@@ -206,6 +218,66 @@ export class MarketplaceInventoryLabelService {
     this.logger.log(
       `Inventory: позиция ${item.id} промаркирована (${format}, Order ${item.order_id}).`
     );
+    return { inventory: [updated] };
+  }
+
+  /**
+   * Привязать к позиции штрих-код с заранее напечатанной этикетки. В отличие от
+   * `generateLabel` (сервер сам генерирует значение) здесь значение приходит
+   * извне — оператор сканирует наклеенный физический штрих-код. Уникальность
+   * штрих-кода в пределах кооператива проверяется до записи.
+   */
+  async bindLabel(
+    input: MarketplaceBindInventoryBarcodeInputDto
+  ): Promise<MarketplaceInventoryMutationResult> {
+    const barcode_value = input.barcode_value?.trim();
+    if (!barcode_value) {
+      throw new BadRequestException('Не указано значение штрих-кода.');
+    }
+    const item = await this.loadOwned(input.coopname, input.inventory_id);
+    if (item.barcode_value) {
+      throw new ConflictException('Позиция уже промаркирована штрих-кодом.');
+    }
+    if (
+      item.status !== MarketplaceInventoryStatuses.RECEIVED &&
+      item.status !== MarketplaceInventoryStatuses.LABELED
+    ) {
+      throw new ConflictException(
+        `Маркировка недоступна для позиции в статусе «${item.status}».`
+      );
+    }
+    const conflict = await this.inventoryRepo.findByBarcode(item.coopname, barcode_value);
+    if (conflict) {
+      throw new ConflictException('Этот штрих-код уже привязан к другой позиции склада.');
+    }
+    const format = input.format ?? MarketplaceBarcodeFormats.EAN13;
+    const updated = await this.inventoryRepo.applyLabel(item.id, {
+      barcode_value,
+      barcode_format: format,
+      labeled_at: new Date(),
+      labeled_by_operator_account: input.operator_account,
+    });
+    this.logger.log(
+      `Inventory: позиция ${item.id} промаркирована сканированным штрих-кодом (${format}).`
+    );
+    return { inventory: [updated] };
+  }
+
+  /** Снять штрих-код для переклейки (LABELED → RECEIVED, значение и метки маркировки очищаются). */
+  async clearLabel(
+    input: { coopname: string; operator_account: string; inventory_id: string }
+  ): Promise<MarketplaceInventoryMutationResult> {
+    const item = await this.loadOwned(input.coopname, input.inventory_id);
+    if (!item.barcode_value) {
+      throw new ConflictException('У позиции нет штрих-кода — снимать нечего.');
+    }
+    if (item.status !== MarketplaceInventoryStatuses.LABELED) {
+      throw new ConflictException(
+        `Снять штрих-код можно только с промаркированной позиции (статус «${item.status}»).`
+      );
+    }
+    const updated = await this.inventoryRepo.clearLabel(item.id);
+    this.logger.log(`Inventory: штрих-код снят с позиции ${item.id} (переклейка).`);
     return { inventory: [updated] };
   }
 
