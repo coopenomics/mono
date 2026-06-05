@@ -10,6 +10,7 @@ export class MarketplaceCategoryMapper {
       display_name: row.display_name,
       sort_order: row.sort_order,
       mvp_baseline: row.mvp_baseline,
+      coopname: row.coopname ?? null,
     });
   }
 }

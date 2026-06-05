@@ -64,6 +64,14 @@ export * as MarketplaceSignOnboardingOffer from './marketplaceSignOnboardingOffe
 export * as AddAvailableCategories from './addAvailableCategories'
 /** Удалить категории из whitelist кооператива (chairman-only) */
 export * as RemoveAvailableCategories from './removeAvailableCategories'
+/** Эпик 16: заменить весь список доступных категорий кооператива (chairman-only) */
+export * as ReplaceAvailableItems from './replaceAvailableItems'
+/** Эпик 16: очистить whitelist — открыть весь каталог категорий (chairman-only) */
+export * as ClearAvailableCategories from './clearAvailableCategories'
+/** Эпик 16: добавить собственную категорию кооператива (chairman-only) */
+export * as CreateCustomCategory from './createCustomCategory'
+/** Эпик 16: удалить собственную категорию кооператива (chairman-only) */
+export * as DeleteCustomCategory from './deleteCustomCategory'
 /** Эпик 3 / Story 3.6: председатель одобряет offer (PENDING_MODERATION → APPROVED) */
 export * as ApproveOffer from './approveOffer'
 /** Эпик 3 / Story 3.6: председатель отклоняет offer (PENDING_MODERATION → REJECTED) */
