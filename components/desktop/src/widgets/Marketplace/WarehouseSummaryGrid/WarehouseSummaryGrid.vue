@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, type PropType } from 'vue'
-import { BaseInput, EmptyState } from 'src/shared/ui/base'
+import { EmptyState } from 'src/shared/ui/base'
+import { FilterBar } from 'src/shared/ui/domain'
 
 export interface WarehouseRow {
   key: string
@@ -41,13 +42,11 @@ defineExpose({ filteredRows })
 
 <template lang="pug">
 .warehouse-grid
-  .table-toolbar
-    BaseInput.warehouse-grid__search(
-      v-model='filter',
-      type='search',
-      placeholder='Поиск: товар, пункт выдачи, адрес',
-      clearable
-    )
+  FilterBar.warehouse-grid__filter(
+    v-model:search='filter',
+    search-placeholder='Поиск: товар, пункт выдачи, адрес',
+    hide-reset
+  )
 
   .table-wrap(v-if='filteredRows.length')
     .table-scroll
@@ -56,8 +55,8 @@ defineExpose({ filteredRows })
           tr
             th.col-product Позиция
             th.col-pvz Пункт выдачи
-            th.col-num Приход
-            th.col-num Расход
+            th.col-num Принято
+            th.col-num Выдано
             th.col-num Остаток
             th.col-unit Ед.
         tbody
@@ -90,13 +89,8 @@ defineExpose({ filteredRows })
   width: 100%;
 }
 
-.table-toolbar {
+.warehouse-grid__filter {
   margin-bottom: var(--p-3, 12px);
-}
-
-.warehouse-grid__search {
-  max-width: 420px;
-  width: 100%;
 }
 
 .table-scroll {
@@ -143,9 +137,4 @@ defineExpose({ filteredRows })
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 768px) {
-  .warehouse-grid__search {
-    max-width: none;
-  }
-}
 </style>
