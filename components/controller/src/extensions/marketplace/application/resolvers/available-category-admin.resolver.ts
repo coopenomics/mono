@@ -1,10 +1,16 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { Injectable, Inject, UseGuards } from '@nestjs/common';
+import { Injectable, Inject, UseGuards, BadRequestException } from '@nestjs/common';
 import {
   AvailableCategoryDomainService,
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
 } from '../../domain/services/available-category-domain.service';
 import { CategoryTreeDomainService, CATEGORY_TREE_DOMAIN_SERVICE } from '../../domain/services/category-tree-domain.service';
+import {
+  MarketplaceCategoryService,
+  MARKETPLACE_CATEGORY_SERVICE,
+} from '../services/marketplace-category.service';
+import { MarketplaceCategoryDTO } from '../dto/marketplace-offer.dto';
+import { CreateCustomCategoryInput } from '../dto/create-custom-category-input.dto';
 import { CategoryDTO } from '../dto/category-tree.dto';
 import { AvailableCategoryDTO } from '../dto/available-category.dto';
 import { AvailabilityStatsDTO } from '../dto/availability-stats.dto';
@@ -30,8 +36,82 @@ export class AvailableCategoryAdminResolver {
     @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
     private readonly availableCategoryService: AvailableCategoryDomainService,
     @Inject(CATEGORY_TREE_DOMAIN_SERVICE)
-    private readonly categoryTreeService: CategoryTreeDomainService
+    private readonly categoryTreeService: CategoryTreeDomainService,
+    @Inject(MARKETPLACE_CATEGORY_SERVICE)
+    private readonly categoryService: MarketplaceCategoryService
   ) {}
+
+  /**
+   * Полный редактируемый список категорий кооператива: общие baseline-категории
+   * плюс собственные категории, добавленные кооперативом. Используется экраном
+   * управления категориями (включение/выключение и добавление своих).
+   */
+  @Query(() => [MarketplaceCategoryDTO], {
+    name: 'marketplaceListCoopCategories',
+    description: 'Категории кооператива: общие и собственные',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async listCoopCategories(): Promise<MarketplaceCategoryDTO[]> {
+    const cats = await this.categoryService.listForCoop(config.coopname);
+    return cats.map(
+      (c) =>
+        new MarketplaceCategoryDTO({
+          id: c.id,
+          display_name: c.display_name,
+          sort_order: c.sort_order,
+          mvp_baseline: c.mvp_baseline,
+        })
+    );
+  }
+
+  /**
+   * Добавить собственную категорию кооператива.
+   */
+  @Mutation(() => MarketplaceCategoryDTO, {
+    name: 'marketplaceCreateCustomCategory',
+    description: 'Добавить собственную категорию кооператива',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async createCustomCategory(
+    @Args('input', { type: () => CreateCustomCategoryInput })
+    input: CreateCustomCategoryInput
+  ): Promise<MarketplaceCategoryDTO> {
+    try {
+      const c = await this.categoryService.createCustom(config.coopname, input.displayName);
+      return new MarketplaceCategoryDTO({
+        id: c.id,
+        display_name: c.display_name,
+        sort_order: c.sort_order,
+        mvp_baseline: c.mvp_baseline,
+      });
+    } catch (e) {
+      throw new BadRequestException((e as Error).message);
+    }
+  }
+
+  /**
+   * Удалить собственную категорию кооператива. Заодно убирает её из списка
+   * доступных (whitelist), чтобы не осталась «висящая» ссылка на удалённую категорию.
+   */
+  @Mutation(() => Boolean, {
+    name: 'marketplaceDeleteCustomCategory',
+    description: 'Удалить собственную категорию кооператива',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async deleteCustomCategory(
+    @Args('categoryId', { type: () => Int }) categoryId: number
+  ): Promise<boolean> {
+    const deleted = await this.categoryService.deleteCustom(config.coopname, categoryId);
+    if (!deleted) {
+      throw new BadRequestException('Базовую категорию удалить нельзя');
+    }
+    // Снимаем категорию из whitelist (если была там), чтобы не осталась ссылка на удалённую.
+    await this.availableCategoryService.removeAvailableCategory(config.coopname, categoryId);
+    return true;
+  }
 
   /**
    * Получить все доступные категории и типы для текущего кооператива

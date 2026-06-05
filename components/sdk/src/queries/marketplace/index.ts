@@ -72,6 +72,8 @@ export * as ListSupplierOrders from './listSupplierOrders'
 export * as ListMyOffers from './listMyOffers'
 /** Доступные категории и типы товаров для кооператива (admin-настройка whitelist'а) */
 export * as GetAvailableCategories from './getAvailableCategories'
+/** Эпик 16: полный список категорий кооператива — общие baseline + собственные */
+export * as ListCoopCategories from './listCoopCategories'
 /** Статистика доступности категорий: всего/категорий/типов/есть ли ограничения */
 export * as GetAvailabilityStats from './getAvailabilityStats'
 /** Эпик 1 / Story 1.4: состояние L3 онбординга пайщика в Marketplace */
