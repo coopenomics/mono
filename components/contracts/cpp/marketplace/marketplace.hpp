@@ -252,8 +252,7 @@ public:
   [[eosio::action]] void aprretrem(eosio::name coopname,
                                     eosio::name signer,
                                     eosio::name braname,
-                                    checksum256 request_hash,
-                                    document2 decision);
+                                    checksum256 request_hash);
 
   /**
    * @brief Председатель удалённо отказывает (Story 7.2). Авторизация:
@@ -264,12 +263,13 @@ public:
                                     eosio::name signer,
                                     eosio::name braname,
                                     checksum256 request_hash,
-                                    std::string reason,
-                                    document2 decision);
+                                    std::string reason);
 
   /**
    * @brief Председатель принимает возврат на очном осмотре (Story 7.4).
-   * Один шаг: o.mkt.return (compensating forward к o.mkt.consum).
+   * Один шаг: o.mkt.return (compensating forward к o.mkt.consum). Председатель
+   * накладывает вторую подпись на заявление пайщика (`statement` несёт обе
+   * подписи — пайщика и председателя), отдельного документа решения нет.
    * Авторизация: подписант ∈ branches[braname].
    * @ingroup public_marketplace_actions
    */
@@ -277,7 +277,7 @@ public:
                                    eosio::name signer,
                                    eosio::name braname,
                                    checksum256 request_hash,
-                                   document2 decision);
+                                   document2 statement);
 
   /**
    * @brief Председатель отказывает на очном осмотре (Story 7.3).
@@ -288,8 +288,7 @@ public:
                                    eosio::name signer,
                                    eosio::name braname,
                                    checksum256 request_hash,
-                                   std::string reason,
-                                   document2 decision);
+                                   std::string reason);
 
   // ── p.mkt.wroff ──────────────────────────────────────────────────────
 

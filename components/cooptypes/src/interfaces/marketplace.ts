@@ -145,7 +145,6 @@ export interface IAprRetRem {
   signer: IName
   braname: IName
   request_hash: IChecksum256
-  decision: IDocument2
 }
 
 export interface IRejRetRem {
@@ -154,7 +153,6 @@ export interface IRejRetRem {
   braname: IName
   request_hash: IChecksum256
   reason: string
-  decision: IDocument2
 }
 
 export interface IAccRetrn {
@@ -162,7 +160,7 @@ export interface IAccRetrn {
   signer: IName
   braname: IName
   request_hash: IChecksum256
-  decision: IDocument2
+  statement: IDocument2
 }
 
 export interface IRejRetrn {
@@ -171,7 +169,6 @@ export interface IRejRetrn {
   braname: IName
   request_hash: IChecksum256
   reason: string
-  decision: IDocument2
 }
 
 // ── p.mkt.wroff: actions ─────────────────────────────────────────────────

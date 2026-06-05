@@ -15,8 +15,7 @@ void marketplace::rejretrn(eosio::name coopname,
                             eosio::name signer,
                             eosio::name braname,
                             checksum256 request_hash,
-                            std::string reason,
-                            document2 decision) {
+                            std::string reason) {
   require_auth(coopname);
   eosio::check(reason.size() > 0 && reason.size() <= 500,
                "Укажите причину отказа (от 1 до 500 символов)");
@@ -29,13 +28,8 @@ void marketplace::rejretrn(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
                "Заявление не одобрено для очного осмотра");
 
-  if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { signer });
-  }
-
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status         = ReturnStatus::REJECTED_AT_KU;
-    upd.decision_visit = decision;
-    upd.reason_visit   = reason;
+    upd.status       = ReturnStatus::REJECTED_AT_KU;
+    upd.reason_visit = reason;
   });
 }
