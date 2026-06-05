@@ -67,6 +67,7 @@ describe('mapParserDeltaToIDelta', () => {
       chain_id: 'chain-aaa',
       block_num: 100,
       block_id: '0123456789abcdef0000',
+      block_time: '2026-05-25T00:00:00.000Z',
       present: true,
       code: 'eosio.token',
       scope: 'voskhod',
@@ -78,6 +79,10 @@ describe('mapParserDeltaToIDelta', () => {
 
   it('пробрасывает present=false (удаление строки)', () => {
     expect(mapParserDeltaToIDelta(deltaEvent({ present: false })).present).toBe(false);
+  });
+
+  it('пробрасывает block_time из SHiP-трейса (parser1 этого поля не давал)', () => {
+    expect(mapParserDeltaToIDelta(deltaEvent()).block_time).toBe('2026-05-25T00:00:00.000Z');
   });
 });
 
@@ -120,6 +125,11 @@ describe('mapParserActionToIAction', () => {
     expect(a.elapsed).toBe(42);
     expect(a.context_free).toBe(false);
     expect(a.account_ram_deltas).toEqual([{ account: 'voskhod', delta: 128 }]);
+  });
+
+  it('пробрасывает block_time из SHiP-трейса (parser1 этого поля не давал)', () => {
+    const a = mapParserActionToIAction(actionEvent());
+    expect(a.block_time).toBe('2026-05-25T00:00:00.000Z');
   });
 
   it('при отсутствии receipt (null) собирает дефолтный receipt, не падает', () => {
