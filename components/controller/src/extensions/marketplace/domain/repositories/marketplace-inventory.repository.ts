@@ -70,6 +70,9 @@ export interface MarketplaceInventoryDomainRepository {
     patch: MarketplaceInventoryLabelPatch
   ): Promise<MarketplaceInventoryDomainEntity>;
 
+  /** Снять штрих-код и вернуть позицию в RECEIVED (для переклейки). */
+  clearLabel(id: string): Promise<MarketplaceInventoryDomainEntity>;
+
   /** Изменить количество и полку позиции (используется при раскладке-split). */
   resize(
     id: string,

@@ -20,6 +20,12 @@ export interface OfferListFilter {
   status?: MarketplaceOfferStatus | MarketplaceOfferStatus[];
   category_id?: number;
   available_only?: boolean;
+  /**
+   * Эпик 16 (Story 16.3): КУ доставки. Если задан — в каталоге остаются
+   * только офферы, чей `delivery_points` содержит этот braname (поставщик
+   * возит на этот пункт выдачи).
+   */
+  delivery_braname?: string;
 }
 
 export interface OfferCreateInput {

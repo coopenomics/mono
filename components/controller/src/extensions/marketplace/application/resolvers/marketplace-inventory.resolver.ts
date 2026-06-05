@@ -12,9 +12,12 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
+import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAssignInventoryShelfInputDTO,
+  MarketplaceBindInventoryBarcodeInputDTO,
+  MarketplaceClearInventoryLabelInputDTO,
   MarketplaceGenerateInventoryLabelInputDTO,
   MarketplaceInventoryItemDTO,
   MarketplaceInventoryMutationResultDTO,
@@ -45,7 +48,8 @@ export class MarketplaceInventoryResolver {
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
   @Mutation(() => MarketplaceInventoryMutationResultDTO, {
@@ -113,6 +117,50 @@ export class MarketplaceInventoryResolver {
     return dto;
   }
 
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceBindInventoryBarcode',
+    description:
+      'Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceBindInventoryBarcode(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.bindLabel({
+      coopname: config.coopname,
+      operator_account: member.username,
+      inventory_id: data.inventory_id,
+      barcode_value: data.barcode_value,
+      format: data.format as unknown as MarketplaceBarcodeFormat | undefined,
+    });
+    const dto = new MarketplaceInventoryMutationResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    return dto;
+  }
+
+  @Mutation(() => MarketplaceInventoryMutationResultDTO, {
+    name: 'marketplaceClearInventoryLabel',
+    description:
+      'Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Inventory', 'label')
+  async marketplaceClearInventoryLabel(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceClearInventoryLabelInputDTO
+  ): Promise<MarketplaceInventoryMutationResultDTO> {
+    const result = await this.labelService.clearLabel({
+      coopname: config.coopname,
+      operator_account: member.username,
+      inventory_id: data.inventory_id,
+    });
+    const dto = new MarketplaceInventoryMutationResultDTO();
+    dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
+    return dto;
+  }
+
   @Query(() => [MarketplaceInventoryItemDTO], {
     name: 'marketplaceListInventory',
     description: 'Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.',
@@ -161,6 +209,15 @@ export class MarketplaceInventoryResolver {
         : undefined,
     };
     const list = await this.inventoryRepo.list(filter);
-    return list.map(toMarketplaceInventoryItemDTO);
+    // ФИО заказчиков добираем батчем на read-path (как лента заказов), чтобы в
+    // списке склада показывать человеческое имя, а не служебный аккаунт.
+    const nameByAccount = await this.orderDisplay.resolveAccountNames(
+      list.map((i) => i.orderer_account_snapshot)
+    );
+    return list.map((item) => {
+      const dto = toMarketplaceInventoryItemDTO(item);
+      dto.orderer_name = nameByAccount.get(item.orderer_account_snapshot) ?? null;
+      return dto;
+    });
   }
 }

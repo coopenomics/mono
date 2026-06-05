@@ -41,6 +41,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       price_per_unit: input.price_per_unit,
       total_cost: input.total_cost,
       cycle_id: input.cycle_id,
+      checkout_id: input.checkout_id ?? null,
       warranty_period_secs: input.warranty_period_secs,
       warranty_until: input.warranty_until,
       status: input.status,
@@ -89,6 +90,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     if (filter.supplier_account) qb.andWhere('o.supplier_account = :sup', { sup: filter.supplier_account });
     if (filter.offer_id) qb.andWhere('o.offer_id = :off', { off: filter.offer_id });
     if (filter.cycle_id) qb.andWhere('o.cycle_id = :cid', { cid: filter.cycle_id });
+    if (filter.checkout_id) qb.andWhere('o.checkout_id = :chid', { chid: filter.checkout_id });
     if (filter.delivery_braname) qb.andWhere('o.delivery_braname = :br', { br: filter.delivery_braname });
     if (filter.status) {
       const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];

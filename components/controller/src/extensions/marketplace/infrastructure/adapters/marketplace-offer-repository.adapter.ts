@@ -64,6 +64,14 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       qb.andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
     }
 
+    // Story 16.3: КУ-доступность — оффер виден на КУ, если его delivery_points
+    // содержит объект с этим braname (jsonb containment @>).
+    if (filter.delivery_braname) {
+      qb.andWhere('o.delivery_points @> :dp', {
+        dp: JSON.stringify([{ braname: filter.delivery_braname }]),
+      });
+    }
+
     const sortColumn = MarketplaceOfferRepositoryAdapter.resolveSortColumn(pagination.sortBy);
     qb.orderBy(sortColumn, pagination.sortOrder);
     if (sortColumn !== 'o.created_at') {

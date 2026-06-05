@@ -10,7 +10,6 @@ import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
-import { formatShortFio } from 'src/shared/lib/utils/getNameFromCertificate';
 import {
   acceptOrdersBatch,
   declineOrdersBatch,
@@ -204,16 +203,10 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
-// Состав партии строками для общего виджета SupplyPartyCard. Поставщику важен
-// общий объём, не кто заказал — имена показываем справочно, без дробления.
-function memberRows(p: SupplierParty): Array<{ id: string; who: string; qty: string; cost: string }> {
-  return p.orders.map((o) => ({
-    id: o.id,
-    who: o.orderer_name ? formatShortFio(o.orderer_name) : o.orderer_account,
-    qty: `${o.quantity} ${p.unitLabel}`,
-    cost: formatCost(parseFloat(o.total_cost) || 0),
-  }));
-}
+// Состав партии поставщику НЕ показываем: ФИО заказчиков скрыты ради приватности
+// (коллективный заказ без фамилий), а без имён строки «объём · сумма» лишь
+// дублируют «Итого партии». Поставщику важен агрегат партии, не кто заказал —
+// поэтому состав не передаём в SupplyPartyCard вовсе (блок в карточке скрыт).
 
 async function load(page: number, append: boolean): Promise<void> {
   loading.value = true;
@@ -345,7 +338,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :target-label='hasTarget(p) ? `цель — от ${p.minVolume} ${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
-        :members='memberRows(p)',
+        :members='[]',
         total-label='Итого партии',
         :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
@@ -372,7 +365,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
 
 <style scoped lang="scss">
 .incoming-orders {
-  padding: 0 var(--p-4, 16px) var(--p-6, 24px);
+  // Воздух сверху как на остальных столах поставщика (OffererMyOffers).
+  padding: var(--p-6, 24px) var(--p-4, 16px);
 
   &__col {
     max-width: 1120px;
@@ -395,7 +389,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
   &__skel-list {
     display: flex;
     flex-direction: column;
-    gap: var(--p-4, 16px);
+    gap: var(--p-5, 20px);
   }
 
   &__skel {

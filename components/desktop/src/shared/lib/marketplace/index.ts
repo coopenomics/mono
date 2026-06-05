@@ -10,3 +10,10 @@ export {
   type ReceptionGroup,
   type ReceptionGroupLine,
 } from './reception-grouping';
+export {
+  resolveHandoffTarget,
+  handoffStageRoute,
+  HANDOFF_QUERY,
+  type HandoffStage,
+  type HandoffRouteTarget,
+} from './handoff-routing';

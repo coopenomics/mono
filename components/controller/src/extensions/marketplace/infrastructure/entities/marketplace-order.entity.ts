@@ -36,6 +36,7 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 @Index(['coopname', 'status', 'created_at'])
 @Index(['offer_id', 'status'])
 @Index(['coopname', 'shipment_id'])
+@Index(['coopname', 'orderer_account', 'checkout_id'])
 export class MarketplaceOrderEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -81,6 +82,16 @@ export class MarketplaceOrderEntity {
    */
   @Column({ type: 'uuid', nullable: true })
   public cycle_id!: string | null;
+
+  /**
+   * Грань «заказ заказчика» (Эпик 16): общий идентификатор всех строк
+   * одного оформления корзины на один КУ. Штампуется при checkout'е; до
+   * перехода на корзину (legacy покарточный заказ) — null. Один checkout_id
+   * = один `delivery_braname` (инвариант «один заказ — один КУ» enforced
+   * на уровне сервиса оформления).
+   */
+  @Column({ type: 'uuid', nullable: true })
+  public checkout_id!: string | null;
 
   /**
    * Backend-only: партия (`marketplace_shipment.id`), в которую заказ включён

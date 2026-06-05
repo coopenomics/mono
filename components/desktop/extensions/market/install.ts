@@ -1,6 +1,8 @@
 import { markRaw } from 'vue'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
+import { CartPage } from 'src/pages/Marketplace/Cart'
+import { OrderConfirmationPage } from 'src/pages/Marketplace/OrderConfirmation'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
@@ -25,7 +27,6 @@ import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoo
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
-import { BranchChairmanBranchOrdersPage } from 'src/pages/Marketplace/BranchChairmanBranchOrders'
 import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
@@ -143,6 +144,41 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Предложение',
                 icon: 'fa-solid fa-box',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+              },
+              children: [],
+            },
+            {
+              // Эпик 16 / Story 16.1-16.2: корзина заказчика и оформление.
+              // Точка оформления: позиции (одна корзина — один КУ), правка
+              // количества, «Оформить заказ» → заказ-агрегат под общим
+              // checkout_id на текущий КУ. Требует orderer-грант Order:create.
+              path: 'cart',
+              name: 'marketplace-cart',
+              component: markRaw(CartPage),
+              meta: {
+                title: 'Корзина',
+                icon: 'shopping_cart',
+                requires: 'Order:create',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Финальный экран после оформления: сводка заказа-агрегата
+              // (созданные заказы + непрошедший остаток). Отдельная страница,
+              // чтобы не показывать итог в опустевшей корзине. Скрыт из меню —
+              // открывается редиректом после «Оформить заказ».
+              path: 'order-confirmation',
+              name: 'marketplace-order-confirmation',
+              component: markRaw(OrderConfirmationPage),
+              meta: {
+                title: 'Заказ оформлен',
+                icon: 'task_alt',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -446,6 +482,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ». Идёт сразу
+              // после раскладки/маркировки — принятое имущество разложено и
+              // видно на складе перед выдачей.
+              path: 'warehouse',
+              name: 'marketplace-pvz-warehouse',
+              component: markRaw(OperatorOwnWarehousePage),
+              meta: {
+                title: 'Склад моего КУ',
+                icon: 'fa-solid fa-boxes-stacked',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // Эпик 6 / Story 6.6: operator-стол выдачи имущества пайщику на ПВЗ.
               path: 'issuance',
               name: 'marketplace-issuance',
@@ -472,33 +523,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
-              // Эпик 6 / Story 6.x: «Сводный стол КУ» — приёмки/выдачи/возвраты
-              // в одном экране с табами и счётчиками для председателя КУ.
-              path: 'branch-orders',
-              name: 'marketplace-pvz-branch-orders',
-              component: markRaw(BranchChairmanBranchOrdersPage),
-              meta: {
-                title: 'Сводный стол КУ',
-                icon: 'fa-solid fa-list-check',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ».
-              path: 'warehouse',
-              name: 'marketplace-pvz-warehouse',
-              component: markRaw(OperatorOwnWarehousePage),
-              meta: {
-                title: 'Склад моего КУ',
-                icon: 'fa-solid fa-boxes-stacked',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
               // Управление доверенными лицами КУ: председатель участка (trustee)
               // добавляет/снимает доверенных (core addTrustedAccount/
               // deleteTrustedAccount) — они получают те же операционные права
@@ -514,6 +538,26 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
+            },
+            {
+              // «Сканировать QR» — сквозной универсальный считыватель. Пункт меню
+              // НЕ открывает страницу (нет component), а вызывает действие
+              // `marketplaceUniversalScan` (всплывающий сканер, как кнопка
+              // «Поддержка»; держатель — UniversalScannerHost в layout). Оператор
+              // сканирует ЛЮБОЙ код, и система по его виду ведёт на нужный стол:
+              // код поставщика/ТТН → приёмка, код заказчика → выдача. Стоит
+              // последним — это сквозное действие, а не раздел.
+              path: 'scan',
+              name: 'marketplace-pvz-scan',
+              meta: {
+                title: 'Сканировать QR',
+                icon: 'qr_code_scanner',
+                action: 'marketplaceUniversalScan',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
             },
           ],
         },

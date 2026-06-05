@@ -1,5 +1,9 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+
+// Мутации модерации (approveOffer/rejectOffer) вынесены в feature
+// `Marketplace/OfferModeration` — используются и в ленте, и на полной странице
+// предложения (DRY). Импортируй их оттуда.
 
 /**
  * Эпик 3 / модерация offer'ов: типизированные запросы через SDK Zeus.
@@ -36,31 +40,6 @@ export async function fetchPendingOffers(
     { variables: { input } },
   );
   return page;
-}
-
-export async function approveOffer(offer_id: string): Promise<MarketplacePendingOfferView> {
-  const { [Mutations.Marketplace.ApproveOffer.name]: result } = await client.Mutation(
-    Mutations.Marketplace.ApproveOffer.mutation,
-    { variables: { input: { offer_id } } },
-  );
-  return result;
-}
-
-/**
- * Председатель отклоняет предложение с обязательной причиной (≤1000).
- * Backend: marketplace-moderation.resolver.ts → marketplaceRejectOffer
- * (статус → REJECTED, причина сохраняется в reject_reason и видна поставщику
- * в «Мои предложения»).
- */
-export async function rejectOffer(
-  offer_id: string,
-  reason: string,
-): Promise<MarketplacePendingOfferView> {
-  const { [Mutations.Marketplace.RejectOffer.name]: result } = await client.Mutation(
-    Mutations.Marketplace.RejectOffer.mutation,
-    { variables: { input: { offer_id, reason } } },
-  );
-  return result;
 }
 
 export async function fetchModerationLog(

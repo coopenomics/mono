@@ -11,6 +11,8 @@ export type IListInventoryInput = Queries.Marketplace.ListInventory.IInput['data
 export type IAssignShelfInput = Mutations.Marketplace.AssignInventoryShelf.IInput['data']
 export type ISplitInventoryInput = Mutations.Marketplace.SplitInventory.IInput['data']
 export type IGenerateLabelInput = Mutations.Marketplace.GenerateInventoryLabel.IInput['data']
+export type IBindBarcodeInput = Mutations.Marketplace.BindInventoryBarcode.IInput['data']
+export type IClearLabelInput = Mutations.Marketplace.ClearInventoryLabel.IInput['data']
 
 export async function fetchInventoryByBraname(braname: string): Promise<MarketplaceInventoryItemView[]> {
   const { [Queries.Marketplace.ListInventory.name]: result } = await client.Query(
@@ -46,6 +48,26 @@ export async function generateInventoryLabel(
 ): Promise<MarketplaceInventoryItemView[]> {
   const { [Mutations.Marketplace.GenerateInventoryLabel.name]: result } = await client.Mutation(
     Mutations.Marketplace.GenerateInventoryLabel.mutation,
+    { variables: { data } },
+  )
+  return result.inventory as MarketplaceInventoryItemView[]
+}
+
+export async function bindInventoryBarcode(
+  data: IBindBarcodeInput,
+): Promise<MarketplaceInventoryItemView[]> {
+  const { [Mutations.Marketplace.BindInventoryBarcode.name]: result } = await client.Mutation(
+    Mutations.Marketplace.BindInventoryBarcode.mutation,
+    { variables: { data } },
+  )
+  return result.inventory as MarketplaceInventoryItemView[]
+}
+
+export async function clearInventoryLabel(
+  data: IClearLabelInput,
+): Promise<MarketplaceInventoryItemView[]> {
+  const { [Mutations.Marketplace.ClearInventoryLabel.name]: result } = await client.Mutation(
+    Mutations.Marketplace.ClearInventoryLabel.mutation,
     { variables: { data } },
   )
   return result.inventory as MarketplaceInventoryItemView[]

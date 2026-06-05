@@ -6,6 +6,8 @@ import { useSessionStore } from 'src/entities/Session';
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
+import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
@@ -36,6 +38,24 @@ const route = useRoute();
 const session = useSessionStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
+// КУ-детали стола — для человекочитаемой колонки «КУ» (наименование + адрес)
+// вместо технического braname; резолвим по braname на фронте (партия несёт
+// только braname).
+const kuStore = useMarketplaceKUDetailsStore();
+const kuByBraname = computed(() => {
+  const m = new Map<string, { name: string; address: string }>();
+  for (const k of kuStore.details) {
+    m.set(k.coreBraname, { name: k.name || k.coreBraname, address: k.addressFull ?? '' });
+  }
+  return m;
+});
+function kuName(braname: string): string {
+  return kuByBraname.value.get(braname)?.name ?? braname;
+}
+function kuAddr(braname: string): string {
+  return kuByBraname.value.get(braname)?.address ?? '';
+}
+
 const shipments = ref<MarketplaceShipmentView[]>([]);
 const acceptedOrders = ref<MarketplaceOrderView[]>([]);
 // Заказы сформированных партий (статус SUPPLY_PREPARED) — источник состава ТТН.
@@ -46,8 +66,22 @@ const loading = ref(false);
 // сформировать партию — управляет доступностью глобальной кнопки.
 const hasFormable = computed(() => acceptedOrders.value.some((o) => o.cycle_id));
 
-const isEmpty = computed(
-  () => !loading.value && !hasFormable.value && shipments.value.length === 0,
+// Центр страницы держит placeholder всегда, когда сформированных партий ещё нет
+// (как на остальных столах). Текст зависит от того, есть ли уже принятые заказы,
+// готовые к формированию: если есть — зовём нажать «Сформировать партию»,
+// если нет — отправляем принимать заказы во «Входящих».
+const showEmpty = computed(() => !loading.value && shipments.value.length === 0);
+
+const emptyState = computed(() =>
+  hasFormable.value
+    ? {
+        title: 'Партии ещё не сформированы',
+        body: 'Принятые заказы готовы к отгрузке. Нажмите «Сформировать партию» в шапке — выберите способ доставки и КУ, и партия появится здесь.',
+      }
+    : {
+        title: 'Партий пока нет',
+        body: 'Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку. Сформированные партии появятся здесь.',
+      },
 );
 
 // Диалог формирования партии — глобальный, открывается из шапки.
@@ -140,6 +174,7 @@ async function load(): Promise<void> {
       listShipments(),
       fetchSupplierOrders({ statuses: ['ACCEPTED'], limit: PAGE_SIZE }),
       fetchSupplierOrders({ statuses: ['SUPPLY_PREPARED'], limit: PAGE_SIZE }),
+      kuStore.load({ coopname: coopname.value, onlyActive: false }),
     ]);
     shipments.value = shipmentsResult;
     acceptedOrders.value = ordersResult.items;
@@ -185,7 +220,7 @@ q-page.offerer-supply
     v-if='loading && !shipments.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width="970px"
+    min-width="1040px"
   )
 
   //- Сформированные партии — основной список стола.
@@ -204,8 +239,18 @@ q-page.offerer-supply
               th.col-ttn ТТН
           tbody
             tr(v-for='row in shipments', :key='row.id')
-              td.col-id {{ row.cycle_id }}
-              td {{ row.braname }}
+              td.col-id
+                EntityIdBadge(
+                  v-if='row.cycle_id',
+                  :raw-id='String(row.cycle_id).slice(0, 8)',
+                  :copy-value='row.cycle_id',
+                  copy-on-click
+                )
+                span(v-else) —
+              td
+                .offerer-supply__ku-text
+                  .offerer-supply__ku-name {{ kuName(row.braname) }}
+                  .offerer-supply__ku-addr(v-if='kuAddr(row.braname)') {{ kuAddr(row.braname) }}
               td.col-variant {{ deliveryVariantLabel(row.delivery_variant) }}
               td.col-status
                 BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
@@ -220,13 +265,14 @@ q-page.offerer-supply
                     | ТТН
                 span(v-else) {{ row.ttn_number || '—' }}
 
-  EmptyState(
-    v-if='isEmpty',
-    title='Партий пока нет',
-    body='Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку.'
-  )
-    template(#icon)
-      q-icon(name='local_shipping', size='48px')
+  //- Placeholder держит центр пустой области (flex-grow), как на других столах.
+  .offerer-supply__empty(v-if='showEmpty')
+    EmptyState(
+      :title='emptyState.title',
+      :body='emptyState.body'
+    )
+      template(#icon)
+        q-icon(name='local_shipping', size='48px')
 
   CreateShipmentDialog(
     v-model='dialogOpen',
@@ -246,6 +292,17 @@ q-page.offerer-supply
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+  // Тянем на высоту вьюпорта за вычетом шапки — чтобы placeholder встал в центр.
+  min-height: calc(100vh - 64px);
+
+  // Контейнер пустого состояния занимает оставшуюся высоту и центрирует EmptyState.
+  &__empty {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+  }
 
   &__toolbar {
     display: flex;
@@ -360,7 +417,7 @@ q-page.offerer-supply
 }
 .table {
   table-layout: fixed;
-  min-width: 970px;
+  min-width: 1040px;
 }
 .col-id {
   width: 150px;

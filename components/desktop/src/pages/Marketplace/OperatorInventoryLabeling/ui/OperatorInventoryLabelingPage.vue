@@ -1,18 +1,19 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Loading } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
+import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
 import {
   assignInventoryShelf,
+  bindInventoryBarcode,
+  clearInventoryLabel,
   fetchInventoryByBraname,
-  generateInventoryLabel,
   splitInventory,
   type MarketplaceInventoryItemView,
 } from '../api'
@@ -25,8 +26,11 @@ import {
  *   - колонки-полки — что лежит на каждой полке;
  *   - раскладка = перетащить карточку на полку (DnD) или через меню «⋮»;
  *   - «Разложить» дробит позицию по количеству на несколько полок;
- *   - «Этикетка» наклеивает штрих-код для поиска сканером (по желанию).
+ *   - маркировка = наклеить заранее напечатанный штрих-код и привязать его
+ *     к позиции сканером (кнопка-штрихкод на карточке).
  *
+ * «Печать этикеток» (в шапке) печатает лист произвольных штрих-кодов — оператор
+ * режет и наклеивает их на имущество, затем сканирует, чтобы привязать к позиции.
  * Цель — при выдаче заказчику за секунды найти, на какой полке лежит заказ.
  */
 
@@ -45,7 +49,6 @@ const LABELED = Zeus.MarketplaceInventoryStatus.LABELED
 const boardItems = computed(() =>
   items.value.filter((i) => i.status === RECEIVED || i.status === LABELED),
 )
-const labeledItems = computed(() => items.value.filter((i) => !!i.barcode_value))
 
 // Полки-плейсхолдеры, созданные оператором, но пока пустые (нет позиций).
 // Живут до перезагрузки — после reload остаются лишь полки с позициями.
@@ -131,6 +134,17 @@ async function moveToShelf(item: MarketplaceInventoryItemView, shelf: string | n
   }
 }
 
+// ── Снять штрих-код для переклейки (LABELED → RECEIVED) ──
+async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
+  try {
+    await clearInventoryLabel({ inventory_id: item.id })
+    SuccessAlert('Штрих-код снят — позицию можно переклеить')
+    await load()
+  } catch (e) {
+    FailAlert(e, 'Не удалось снять штрих-код')
+  }
+}
+
 // ── Drag & drop карточек между колонками ──
 const dragId = ref<string | null>(null)
 const dragOverKey = ref<string | null>(null)
@@ -165,17 +179,109 @@ function createShelf(): void {
   newShelfOpen.value = false
 }
 
-// ── Маркировка штрих-кодом ──
-async function makeLabel(item: MarketplaceInventoryItemView): Promise<void> {
-  Loading.show({ message: 'Генерирую этикетку…' })
+// ── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
+function randomEAN13(): string {
+  let base = ''
+  for (let i = 0; i < 12; i++) base += Math.floor(Math.random() * 10).toString()
+  let sum = 0
+  for (let i = 0; i < 12; i++) sum += Number(base[i]) * (i % 2 === 0 ? 1 : 3)
+  const check = (10 - (sum % 10)) % 10
+  return `${base}${check}`
+}
+
+// ── Печать листа произвольных штрих-кодов (для нарезки и наклейки) ──
+const printDialogOpen = ref(false)
+const printCount = ref<number | null>(24)
+
+function openPrintDialog(): void {
+  printDialogOpen.value = true
+}
+
+// SVG-полосы штрих-кода (тот же псевдо-рендер, что и в BarcodeDisplay) — строкой,
+// чтобы печатать изолированный лист в скрытом iframe, а не весь UI приложения.
+function barcodeSvg(code: string): string {
+  const rects: { x: number; w: number }[] = []
+  let x = 4
+  for (let i = 0; i < code.length; i++) {
+    const ch = code.charCodeAt(i)
+    const blackW = ((ch * 7) % 4) + 1
+    const gapW = ((ch * 11) % 3) + 1
+    rects.push({ x, w: blackW })
+    x += blackW + gapW
+    if (i % 2 === 0) {
+      rects.push({ x, w: 1 })
+      x += 2
+    }
+  }
+  const last = rects[rects.length - 1]
+  const total = (last ? last.x + last.w : 100) + 8
+  const bars = rects
+    .map((b) => `<rect x="${b.x}" y="0" width="${b.w}" height="64" fill="#111"/>`)
+    .join('')
+  return `<svg viewBox="0 0 ${total} 64" width="${total}" height="64" role="img" aria-label="Штрих-код ${code}">${bars}</svg>`
+}
+
+function doPrint(): void {
+  const n = Math.trunc(Number(printCount.value) || 0)
+  if (n < 1) return
+  const codes = Array.from({ length: n }, () => randomEAN13())
+  printDialogOpen.value = false
+
+  const labels = codes
+    .map((code) => `<div class="lbl">${barcodeSvg(code)}<div class="code">${code}</div></div>`)
+    .join('')
+  const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Этикетки</title><style>
+    @page { size: A4; margin: 8mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: monospace; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+    .lbl { border: 1px solid #ddd; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; align-items: center; break-inside: avoid; }
+    .lbl svg { display: block; max-width: 100%; }
+    .code { margin-top: 4px; letter-spacing: 2px; font-size: 13px; color: #111; }
+  </style></head><body><div class="grid">${labels}</div></body></html>`
+
+  const iframe = document.createElement('iframe')
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;'
+  iframe.srcdoc = html
+  iframe.onload = () => {
+    const win = iframe.contentWindow
+    if (!win) return
+    win.focus()
+    win.print()
+    win.addEventListener('afterprint', () => iframe.remove())
+    window.setTimeout(() => iframe.remove(), 60000)
+  }
+  document.body.appendChild(iframe)
+}
+
+// ── Привязка штрих-кода к позиции ──
+// Сканируем камерой устройства (CodeScanner), либо ручной ввод/USB-сканер в
+// запасном поле виджета. Считанный код привязывается сразу — без отдельной кнопки.
+const scanDialogOpen = ref(false)
+const scanTarget = ref<MarketplaceInventoryItemView | null>(null)
+const binding = ref(false)
+
+function openScan(item: MarketplaceInventoryItemView): void {
+  scanTarget.value = item
+  scanDialogOpen.value = true
+}
+
+async function submitScan(raw: string): Promise<void> {
+  const item = scanTarget.value
+  const code = raw.trim()
+  if (!item || !code || binding.value) return
+  binding.value = true
   try {
-    await generateInventoryLabel({ inventory_id: item.id })
-    SuccessAlert('Этикетка сгенерирована — можно печатать')
+    await bindInventoryBarcode({ inventory_id: item.id, barcode_value: code })
+    SuccessAlert(`Штрих-код ${code} привязан к позиции`)
+    scanDialogOpen.value = false
+    scanTarget.value = null
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось сгенерировать этикетку')
+    FailAlert(e, 'Не удалось привязать штрих-код')
   } finally {
-    Loading.hide()
+    binding.value = false
   }
 }
 
@@ -216,11 +322,12 @@ function removeSplitRow(idx: number): void {
   splitRows.value.splice(idx, 1)
 }
 
+const splitting = ref(false)
+
 async function applySplit(): Promise<void> {
   if (!splitTarget.value || !splitValid.value) return
   const target = splitTarget.value
-  splitDialogOpen.value = false
-  Loading.show({ message: 'Раскладываю по полкам…' })
+  splitting.value = true
   try {
     await splitInventory({
       inventory_id: target.id,
@@ -234,16 +341,13 @@ async function applySplit(): Promise<void> {
         ? `Заказ разложен на ${splitRows.value.length} полок(и)`
         : 'Заказ собран на одной полке',
     )
+    splitDialogOpen.value = false
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось разложить позицию')
   } finally {
-    Loading.hide()
+    splitting.value = false
   }
-}
-
-function openPrintWindow(): void {
-  window.print()
 }
 
 watch(braname, () => void load())
@@ -268,7 +372,7 @@ q-page.place(role='region', aria-label='Склад участка')
 
   template(v-else)
     Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='secondary', size='sm', :disabled='!labeledItems.length', @click='openPrintWindow')
+      BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
         template(#icon-left)
           q-icon(name='print', size='16px')
         | Печать этикеток
@@ -320,54 +424,66 @@ q-page.place(role='region', aria-label='Склад участка')
               .place__card-info
                 .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
                 .place__card-meta {{ item.quantity_per_label }} ед. · {{ item.orderer_account_snapshot }}
-              BaseButton.place__card-menu-btn(variant='ghost', size='sm', icon-only, aria-label='Действия')
-                template(#icon-left)
-                  q-icon(name='more_vert', size='18px')
-                  q-menu(anchor='bottom right', self='top right')
-                    q-list(dense, style='min-width: 220px')
-                      q-item-label(header) Переложить на полку
-                      q-item(
-                        v-for='name in shelfNames.filter((n) => n !== item.shelf)',
-                        :key='name',
-                        clickable,
-                        v-close-popup,
-                        @click='moveToShelf(item, name)'
-                      )
-                        q-item-section(avatar)
-                          q-icon(name='shelves', size='18px')
-                        q-item-section {{ name }}
-                      q-item(clickable, v-close-popup, @click='openNewShelf')
-                        q-item-section(avatar)
-                          q-icon(name='add', size='18px')
-                        q-item-section На новую полку…
-                      q-item(
-                        v-if='item.shelf',
-                        clickable,
-                        v-close-popup,
-                        @click='moveToShelf(item, null)'
-                      )
-                        q-item-section(avatar)
-                          q-icon(name='inbox', size='18px')
-                        q-item-section Снять с полки
-                      q-separator
-                      q-item(
-                        v-if='canRedistribute(item)',
-                        clickable,
-                        v-close-popup,
-                        @click='openSplit(item)'
-                      )
-                        q-item-section(avatar)
-                          q-icon(name='call_split', size='18px')
-                        q-item-section Разложить по количеству
-                      q-item(
-                        v-if='!item.barcode_value',
-                        clickable,
-                        v-close-popup,
-                        @click='makeLabel(item)'
-                      )
-                        q-item-section(avatar)
-                          q-icon(name='qr_code_2', size='18px')
-                        q-item-section Наклеить этикетку
+              .place__card-actions
+                BaseButton(
+                  v-if='!item.barcode_value',
+                  variant='ghost',
+                  size='sm',
+                  icon-only,
+                  aria-label='Привязать штрих-код сканером',
+                  @click='openScan(item)'
+                )
+                  template(#icon-left)
+                    q-icon(name='qr_code_scanner', size='18px')
+                    q-tooltip Привязать штрих-код сканером
+                BaseButton.place__card-menu-btn(variant='ghost', size='sm', icon-only, aria-label='Действия')
+                  template(#icon-left)
+                    q-icon(name='more_vert', size='18px')
+                    q-menu(anchor='bottom right', self='top right')
+                      q-list(dense, style='min-width: 220px')
+                        q-item-label(header) Переложить на полку
+                        q-item(
+                          v-for='name in shelfNames.filter((n) => n !== item.shelf)',
+                          :key='name',
+                          clickable,
+                          v-close-popup,
+                          @click='moveToShelf(item, name)'
+                        )
+                          q-item-section(avatar)
+                            q-icon(name='shelves', size='18px')
+                          q-item-section {{ name }}
+                        q-item(clickable, v-close-popup, @click='openNewShelf')
+                          q-item-section(avatar)
+                            q-icon(name='add', size='18px')
+                          q-item-section На новую полку…
+                        q-item(
+                          v-if='item.shelf',
+                          clickable,
+                          v-close-popup,
+                          @click='moveToShelf(item, null)'
+                        )
+                          q-item-section(avatar)
+                            q-icon(name='inbox', size='18px')
+                          q-item-section Снять с полки
+                        q-separator
+                        q-item(
+                          v-if='canRedistribute(item)',
+                          clickable,
+                          v-close-popup,
+                          @click='openSplit(item)'
+                        )
+                          q-item-section(avatar)
+                            q-icon(name='call_split', size='18px')
+                          q-item-section Разложить по количеству
+                        q-item(
+                          v-if='item.barcode_value',
+                          clickable,
+                          v-close-popup,
+                          @click='removeLabel(item)'
+                        )
+                          q-item-section(avatar)
+                            q-icon(name='label_off', size='18px')
+                          q-item-section Снять штрих-код
 
             .place__card-badges
               BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
@@ -381,15 +497,6 @@ q-page.place(role='region', aria-label='Склад участка')
           template(#icon-left)
             q-icon(name='add', size='18px')
           | Полка
-
-    //- Печатный лист этикеток (только при печати; на экране штрих-код в карточке).
-    .place__grid.print-only(v-if='labeledItems.length')
-      .place__label(v-for='item in labeledItems', :key='item.id')
-        .place__label-name.ellipsis {{ item.product_name_snapshot }}
-        .place__label-meta.ellipsis
-          | Пайщик: {{ item.orderer_account_snapshot }} · Кол-во: {{ item.quantity_per_label }}
-          template(v-if='item.shelf')  · Полка: {{ item.shelf }}
-        BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='md')
 
   //- Новая полка.
   BaseDialog(v-model='newShelfOpen', title='Новая полка', size='sm')
@@ -445,7 +552,46 @@ q-page.place(role='region', aria-label='Склад участка')
           | Сумма: {{ splitTotal }} / {{ splitPoolTotal }}
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :disabled='!splitValid', @click='applySplit') Разложить
+      BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') Разложить
+
+  //- Печать листа произвольных штрих-кодов.
+  BaseDialog(v-model='printDialogOpen', title='Печать этикеток', size='sm')
+    .place__print-dialog
+      .place__print-note
+        | Сколько штрих-кодов напечатать? Распечатайте лист, разрежьте и наклейте
+        | этикетки на имущество — затем привяжите их к позициям сканером.
+      BaseInput(
+        v-model.number='printCount',
+        type='number',
+        label='Количество этикеток',
+        min='1',
+        autofocus,
+        @keydown.enter='doPrint'
+      )
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') Отмена
+      BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') Печать
+
+  //- Привязка штрих-кода: сканируем камерой телефона (или USB-сканер/ручной ввод
+  //- в запасном поле) — единый виджет CodeScanner, как QR на приёмке/выдаче.
+  //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
+  BaseDialog(v-model='scanDialogOpen', title='Привязать штрих-код', size='sm')
+    .place__scan
+      .place__scan-note(v-if='scanTarget')
+        | {{ scanTarget.product_name_snapshot || 'Товар' }} — наведите камеру на
+        | наклеенный штрих-код, либо введите его номер вручную. Код привяжется сразу.
+      CodeScanner(
+        :formats='BARCODE_FORMATS',
+        idle-caption='Наведите камеру на штрих-код имущества',
+        frame-hint='Поместите штрих-код в рамку',
+        start-label='Включить камеру',
+        manual-label='Или введите штрих-код',
+        manual-placeholder='4600000000000',
+        manual-button='Привязать',
+        @scanned='submitScan'
+      )
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') Закрыть
 </template>
 
 <style scoped lang="scss">
@@ -575,10 +721,31 @@ q-page.place(role='region', aria-label='Склад участка')
     font-variant-numeric: tabular-nums;
   }
 
+  &__card-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    flex: 0 0 auto;
+  }
+
   &__card-badges {
     display: flex;
     flex-wrap: wrap;
     gap: var(--p-1, 4px);
+  }
+
+  &__print-dialog,
+  &__scan {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    padding-top: var(--p-2, 8px);
+  }
+
+  &__print-note,
+  &__scan-note {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
   }
 
   &__new-shelf {
@@ -632,31 +799,6 @@ q-page.place(role='region', aria-label='Склад участка')
       font-weight: 600;
     }
   }
-
-  // Печатный лист этикеток — скрыт на экране, разворачивается только при печати.
-  &__grid {
-    display: none;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
-  }
-
-  &__label {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-sm, 8px);
-    padding: var(--p-3, 12px);
-    background: var(--p-surface);
-    break-inside: avoid;
-  }
-
-  &__label-name {
-    font-weight: 600;
-  }
-
-  &__label-meta {
-    color: var(--p-ink-3);
-    font-size: var(--p-fs-body-sm);
-    margin-bottom: var(--p-1, 4px);
-  }
 }
 
 @media (max-width: 768px) {
@@ -666,28 +808,6 @@ q-page.place(role='region', aria-label='Склад участка')
     &__col {
       flex-basis: 240px;
     }
-  }
-}
-
-@media print {
-  .no-print {
-    display: none !important;
-  }
-  .place {
-    padding: 0;
-  }
-  .place__grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4mm;
-  }
-  .place__label {
-    page-break-inside: avoid;
-    width: 100%;
-  }
-  @page {
-    size: A4;
-    margin: 8mm;
   }
 }
 </style>

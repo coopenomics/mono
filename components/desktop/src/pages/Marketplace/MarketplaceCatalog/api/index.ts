@@ -1,12 +1,10 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type {
-  BranchOption,
   CatalogSort,
   MarketplaceCategoryOfferCount,
   MarketplaceCategoryView,
   MarketplaceOfferPage,
-  MarketplaceOrderCreated,
 } from '../types';
 
 /**
@@ -20,6 +18,9 @@ export interface ListCatalogVariables {
   page?: number;
   limit?: number;
   sort?: CatalogSort;
+  // Эпик 16 / Story 16.3: пункт выдачи (КУ). Если задан — каталог показывает
+  // только товары, доставимые на этот КУ. null/undefined — без КУ-фильтра.
+  delivery_braname?: string | null;
 }
 
 function mapSortToBackend(sort: CatalogSort | undefined): {
@@ -47,6 +48,7 @@ export async function fetchCatalog(
     limit: variables.limit ?? 24,
     sortBy,
     sortOrder,
+    delivery_braname: variables.delivery_braname ?? null,
   };
   const { [Queries.Marketplace.ListCatalog.name]: page } = await client.Query(
     Queries.Marketplace.ListCatalog.query,
@@ -67,28 +69,4 @@ export async function fetchCategoryOfferCounts(): Promise<MarketplaceCategoryOff
     Queries.Marketplace.CategoryOfferCounts.query,
   );
   return list;
-}
-
-export async function fetchBranchOptions(coopname: string): Promise<BranchOption[]> {
-  const { [Queries.Marketplace.ListKUDetails.name]: list } = await client.Query(
-    Queries.Marketplace.ListKUDetails.query,
-    { variables: { data: { coopname, onlyActive: true } } },
-  );
-  return (list ?? []).map((d) => ({
-    braname: d.coreBraname,
-    short_name: d.addressFull || d.coreBraname,
-    city: null,
-  }));
-}
-
-export async function submitCreateOrder(input: {
-  offer_id: string;
-  quantity: number;
-  delivery_braname: string;
-}): Promise<MarketplaceOrderCreated> {
-  const { [Mutations.Marketplace.CreateOrder.name]: result } = await client.Mutation(
-    Mutations.Marketplace.CreateOrder.mutation,
-    { variables: { input } },
-  );
-  return result;
 }

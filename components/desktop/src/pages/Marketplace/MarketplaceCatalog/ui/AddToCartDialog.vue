@@ -2,21 +2,38 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { BaseDialog, BaseInput, BaseSelect, BaseButton } from 'src/shared/ui/base';
-import { fetchBranchOptions, submitCreateOrder } from '../api';
-import type { BranchOption, MarketplaceOfferView } from '../types';
+import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
+import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
+import type { MarketplaceOfferView } from '../types';
 
+// Минимально необходимый набор полей оффера для добавления в корзину —
+// структурно совместим и с каталожным (MarketplaceOfferView), и с детальным
+// (MarketplaceOfferDetailView) представлением, чтобы диалог переиспользовался.
+type CartOffer = Pick<
+  MarketplaceOfferView,
+  'id' | 'product_name' | 'unit_of_measure' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
+>;
+
+/**
+ * Эпик 16 / Story 16.1: добавление позиции в корзину из каталога.
+ *
+ * КУ здесь НЕ выбирается — он глобальный (выбран при присоединении, виден в
+ * шапке стола). Каталог уже отфильтрован под текущий КУ, поэтому всё, что
+ * видно, на этот КУ доставимо. Диалог спрашивает только количество и кладёт
+ * позицию в корзину (`addToCart` с текущим delivery_braname). Оформление —
+ * отдельным шагом на странице корзины (checkout).
+ */
 const system = useSystemStore();
+const cartStore = useMarketplaceCartStore();
 
 const props = defineProps<{
   modelValue: boolean;
-  coopname: string;
-  offer: MarketplaceOfferView | null;
+  offer: CartOffer | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'created'): void;
+  (e: 'added'): void;
 }>();
 
 const open = computed({
@@ -32,9 +49,6 @@ const UNIT_LABEL: Record<MarketplaceOfferView['unit_of_measure'], string> = {
 };
 
 const quantity = ref<number>(1);
-const branch = ref<string | null>(null);
-const branches = ref<BranchOption[]>([]);
-const loadingBranches = ref<boolean>(false);
 const submitting = ref<boolean>(false);
 
 const unitLabel = computed(() =>
@@ -53,15 +67,14 @@ const totalSum = computed(() => {
   return q * Number(props.offer.price_per_unit);
 });
 
-const branchOptions = computed(() =>
-  branches.value.map((b) => ({
-    label: b.city ? `${b.short_name} — ${b.city}` : b.short_name,
-    value: b.braname,
-  })),
-);
+// Сколько этой позиции уже в корзине — подсказка, чтобы заказчик не дублировал.
+const alreadyInCart = computed(() => {
+  if (!props.offer) return 0;
+  return cartStore.itemByOffer(props.offer.id)?.quantity ?? 0;
+});
 
 const canSubmit = computed(() => {
-  if (!props.offer || !branch.value) return false;
+  if (!props.offer) return false;
   const q = Number(quantity.value);
   if (!Number.isInteger(q) || q < 1) return false;
   if (maxQuantity.value !== null && q > maxQuantity.value) return false;
@@ -73,45 +86,24 @@ function onQuantityInput(value: string | number | null): void {
   quantity.value = Number.isNaN(n) ? 0 : n;
 }
 
-function onBranchSelect(value: string | number | null): void {
-  branch.value = value == null ? null : String(value);
-}
-
 watch(
   () => props.modelValue,
-  async (v) => {
-    if (!v) return;
-    quantity.value = 1;
-    branch.value = null;
-    if (branches.value.length === 0) {
-      loadingBranches.value = true;
-      try {
-        branches.value = await fetchBranchOptions(props.coopname);
-        if (branches.value.length === 1) {
-          branch.value = branches.value[0]!.braname;
-        }
-      } catch (e) {
-        FailAlert(e, 'Не удалось загрузить ПВЗ');
-      } finally {
-        loadingBranches.value = false;
-      }
-    } else if (branches.value.length === 1) {
-      branch.value = branches.value[0]!.braname;
-    }
+  (v) => {
+    if (v) quantity.value = 1;
   },
 );
 
 async function onSubmit(): Promise<void> {
-  if (!props.offer || !branch.value) return;
+  if (!props.offer) return;
   submitting.value = true;
   try {
-    await submitCreateOrder({
-      offer_id: props.offer.id,
-      quantity: Number(quantity.value),
-      delivery_braname: branch.value,
-    });
-    SuccessAlert('Заказ создан');
-    emit('created');
+    await cartStore.addItem(
+      props.offer.id,
+      Number(quantity.value),
+      cartStore.currentBraname,
+    );
+    SuccessAlert('Добавлено в корзину');
+    emit('added');
     open.value = false;
   } catch (e) {
     FailAlert(e);
@@ -124,14 +116,14 @@ async function onSubmit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="open",
-  title="Оформление заказа",
+  title="В корзину",
   size="sm",
   :close-on-backdrop="!submitting",
   @update:model-value="(v) => open = v"
 )
   template(#default)
-    .order-create
-      .order-create__offer(v-if="offer") {{ offer.product_name }}
+    .add-to-cart
+      .add-to-cart__offer(v-if="offer") {{ offer.product_name }}
       BaseInput(
         :model-value="quantity",
         type="number",
@@ -139,17 +131,11 @@ BaseDialog(
         :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${unitLabel}` : 'Без ограничения остатка'",
         @update:model-value="onQuantityInput"
       )
-      BaseSelect(
-        :model-value="branch",
-        :options="branchOptions",
-        label="ПВЗ доставки",
-        :disabled="branchOptions.length === 0",
-        :hint="loadingBranches ? 'Загружаю пункты выдачи…' : undefined",
-        @update:model-value="onBranchSelect"
-      )
-      .order-create__price(v-if="offer")
+      .add-to-cart__note(v-if="alreadyInCart > 0")
+        | Уже в корзине: {{ alreadyInCart }} {{ unitLabel }} — добавление суммируется.
+      .add-to-cart__price(v-if="offer")
         | Цена: {{ Number(offer.price_per_unit).toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
-      .order-create__total(v-if="offer")
+      .add-to-cart__total(v-if="offer")
         | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
   template(#footer)
     BaseButton(variant="ghost", :disabled="submitting", @click="open = false") Отмена
@@ -158,11 +144,11 @@ BaseDialog(
       :disabled="!canSubmit",
       :loading="submitting",
       @click="onSubmit"
-    ) Подтвердить заказ
+    ) Добавить в корзину
 </template>
 
 <style scoped lang="scss">
-.order-create {
+.add-to-cart {
   display: flex;
   flex-direction: column;
   gap: var(--p-3, 12px);
@@ -170,6 +156,11 @@ BaseDialog(
   &__offer {
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm);
+  }
+
+  &__note {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
   }
 
   &__price {

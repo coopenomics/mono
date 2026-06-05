@@ -5,9 +5,10 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { useManageTrusted } from 'src/features/Branch/ManageTrusted'
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
+import { UserSearchSelector } from 'src/shared/ui'
 
 /**
  * Стол ПВЗ → «Доверенные лица». Председатель кооперативного участка (trustee)
@@ -61,9 +62,12 @@ function roleBadge(row: PersonRow): { label: string; variant: BaseBadgeVariant }
 }
 
 // ─── Добавление ───
-const newUsername = ref('')
+// Аккаунт выбирается поиском по ФИО (UserSearchSelector) — как при выборе
+// председателя/секретаря собрания; в модели остаётся username выбранного пайщика.
+// Селектор может обнулить значение (undefined) при очистке — отсюда `?.`.
+const newUsername = ref<string | undefined>('')
 const adding = ref(false)
-const canAdd = computed(() => !!newUsername.value.trim() && !!store.activeBraname && canManage.value)
+const canAdd = computed(() => !!newUsername.value?.trim() && !!store.activeBraname && canManage.value)
 
 async function onAdd(): Promise<void> {
   if (!canAdd.value || !store.activeBraname) return
@@ -72,7 +76,7 @@ async function onAdd(): Promise<void> {
     await addTrusted({
       coopname: coopname.value,
       braname: store.activeBraname,
-      trusted: newUsername.value.trim(),
+      trusted: newUsername.value!.trim(),
     })
     SuccessAlert('Доверенное лицо добавлено')
     newUsername.value = ''
@@ -140,11 +144,11 @@ q-page.trusted
       | доверяете операции от имени участка.
 
     .trusted__add(v-if='canManage')
-      BaseInput.trusted__add-input(
+      UserSearchSelector.trusted__add-input(
         v-model='newUsername',
-        label='Аккаунт пайщика',
-        placeholder='например, ivanov',
-        mono
+        label='Пайщик (поиск по ФИО)',
+        outlined,
+        dense
       )
       BaseButton(
         variant='primary',
@@ -226,12 +230,12 @@ q-page.trusted
 
   &__add {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: var(--p-3, 12px);
   }
 
   &__add-input {
-    max-width: 320px;
+    max-width: 280px;
     width: 100%;
   }
 

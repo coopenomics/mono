@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -14,26 +15,29 @@ import {
 } from '../api';
 
 /**
- * Story 6.1 / FR21: full-screen takeover для открытия выдачи на ПВЗ.
+ * Story 6.1 / FR21: full-screen takeover для открытия выдачи на ПВЗ —
+ * СГРУППИРОВАННОЙ ПО ПАЙЩИКУ. Пайщик приходит за всем, что ему причитается;
+ * оператор открывает выдачу ОДНОЙ операцией по всем позициям заказчика.
  *
- * Открытие выдачи делает оператор КУ. Именно здесь фиксируется факт: оператор
- * сверяет привезённое имущество с заказом, взвешивает/пересчитывает и
- * корректирует фактически выдаваемое количество. Это количество зашивается в
- * подписываемый председателем акт и сохраняется на заказе — финальная подпись
- * заказчика факт уже не редактирует.
+ * Открытие выдачи делает оператор КУ. Здесь фиксируется факт: оператор сверяет
+ * привезённое имущество с каждым заказом и корректирует фактически выдаваемое
+ * количество — оно зашивается в подписываемый председателем акт ПО КАЖДОЙ
+ * позиции и сохраняется на заказе. Финальная подпись заказчика факт не
+ * редактирует.
  *
  * Поток:
- *  1. Оператор корректирует количество в таблице сверки (предзаполнено заказом).
- *  2. По кнопке «Показать акт» можно посмотреть сформированный документ.
- *  3. «Открыть выдачу» — UI берёт акт на фактическое количество, подписывает
- *     его ключом председателя текущей сессии (signatureId=1) и отправляет в
- *     `openIssuance`. Заказ переходит в «Готово к получению», заказчику —
- *     уведомление; финальную подпись он поставит сам в своём кабинете.
+ *  1. Оператор корректирует количество/цену в сводной таблице сверки (строка на
+ *     позицию, предзаполнена заказом).
+ *  2. «Открыть выдачу» — UI ЦИКЛОМ по всем позициям: формирует акт на
+ *     фактическое количество, подписывает ключом председателя сессии
+ *     (signatureId=1) и отправляет в `openIssuance`. Каждая позиция = свой акт
+ *     (результаты могут различаться). Заказы переходят в «Готово к получению»,
+ *     заказчику — уведомление; финальную подпись он поставит сам.
  */
 
 const props = defineProps<{
   modelValue: boolean;
-  order: MarketplaceOrderIssuanceView | null;
+  orders: MarketplaceOrderIssuanceView[];
 }>();
 
 const emit = defineEmits<{
@@ -43,58 +47,80 @@ const emit = defineEmits<{
 
 const globalStore = useGlobalStore();
 
-const actualQuantity = ref<number>(0);
-const actualUnitPrice = ref<number>(0);
+// Редактируемый факт по каждой позиции, ключ — id заказа.
+interface FactState {
+  qty: number;
+  price: number;
+}
+const facts = ref<Record<string, FactState>>({});
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 const signing = ref(false);
 
-const unitShort = computed(() =>
-  props.order ? marketplaceUnitShort(props.order.unit_of_measure) : 'ед.',
+// sku (короткий, отображается в таблице) → id заказа, для onChange-маппинга.
+const skuToId = computed<Record<string, string>>(() => {
+  const m: Record<string, string> = {};
+  for (const o of props.orders) m[o.id.slice(0, 8)] = o.id;
+  return m;
+});
+
+function initFacts(): void {
+  const next: Record<string, FactState> = {};
+  for (const o of props.orders) {
+    next[o.id] = { qty: o.quantity, price: Number.parseFloat(o.price_per_unit) };
+  }
+  facts.value = next;
+}
+
+const correctionRows = computed<CorrectionRow[]>(() =>
+  props.orders.map((o) => {
+    const f = facts.value[o.id];
+    return {
+      sku: o.id.slice(0, 8),
+      title: o.product_name || 'Товар по предложению',
+      unit: marketplaceUnitShort(o.unit_of_measure),
+      expected: o.quantity,
+      fact: f?.qty ?? o.quantity,
+      expectedPrice: Number.parseFloat(o.price_per_unit),
+      factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
+    };
+  }),
 );
 
-const factCost = computed<string>(() => {
-  if (!props.order) return '0';
-  return (actualQuantity.value * actualUnitPrice.value).toFixed(4);
+// Итоговая сумма к выдаче по всем позициям.
+const totalFactCost = computed<string>(() => {
+  let sum = 0;
+  for (const o of props.orders) {
+    const f = facts.value[o.id];
+    if (f) sum += f.qty * f.price;
+  }
+  return sum.toFixed(4);
 });
 
-const diffState = computed<'equal' | 'less' | 'more'>(() => {
-  if (!props.order) return 'equal';
-  if (actualQuantity.value === props.order.quantity) return 'equal';
-  if (actualQuantity.value < props.order.quantity) return 'less';
-  return 'more';
-});
+const positionsCount = computed(() => props.orders.length);
 
-const diffHint = computed<string>(() => {
-  if (!props.order) return '';
-  if (diffState.value === 'equal') return 'Факт совпадает с заказом.';
-  if (diffState.value === 'less')
-    return `Выдаётся меньше заказа на ${props.order.quantity - actualQuantity.value} ${unitShort.value} — разница вернётся заказчику.`;
-  return `Выдаётся больше заказа на ${actualQuantity.value - props.order.quantity} ${unitShort.value} — потребуется доплата с паевого заказчика.`;
-});
+const recipientName = computed(
+  () => props.orders.find((o) => o.orderer_name)?.orderer_name || props.orders[0]?.orderer_account || '',
+);
 
-const correctionRows = computed<CorrectionRow[]>(() => {
-  if (!props.order) return [];
-  const orderedPrice = Number.parseFloat(props.order.price_per_unit);
-  return [
-    {
-      sku: props.order.id.slice(0, 8),
-      title: props.order.product_name || 'Товар по предложению',
-      unit: unitShort.value,
-      expected: props.order.quantity,
-      fact: actualQuantity.value,
-      expectedPrice: orderedPrice,
-      factPrice: actualUnitPrice.value,
-    },
-  ];
-});
+// Хотя бы одна позиция вышла за пределы заказа — окрашиваем takeover в warning.
+const anyOver = computed(() =>
+  props.orders.some((o) => (facts.value[o.id]?.qty ?? o.quantity) > o.quantity),
+);
+
+const allValid = computed(() =>
+  props.orders.length > 0 &&
+  props.orders.every((o) => {
+    const f = facts.value[o.id];
+    return f && f.qty > 0 && f.price > 0;
+  }),
+);
 
 watch(
-  () => [props.modelValue, props.order?.id],
+  () => [props.modelValue, props.orders.map((o) => o.id).join(',')],
   ([visible]) => {
-    if (visible && props.order) {
-      actualQuantity.value = props.order.quantity;
-      actualUnitPrice.value = Number.parseFloat(props.order.price_per_unit);
+    if (visible && props.orders.length) {
+      initFacts();
       previewHtml.value = '';
     }
   },
@@ -102,42 +128,47 @@ watch(
 );
 
 function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: number }): void {
-  actualQuantity.value = Math.max(0, payload.fact);
-  if (payload.factPrice !== undefined) {
-    actualUnitPrice.value = Math.max(0, payload.factPrice);
-  }
-  // Документ зависит от факта — сбрасываем устаревший превью.
+  const id = skuToId.value[payload.sku];
+  if (!id) return;
+  const f = facts.value[id] ?? { qty: 0, price: 0 };
+  f.qty = Math.max(0, payload.fact);
+  if (payload.factPrice !== undefined) f.price = Math.max(0, payload.factPrice);
+  facts.value = { ...facts.value, [id]: f };
+  // Акты зависят от факта — сбрасываем устаревший превью.
   previewHtml.value = '';
 }
 
 async function loadPreview(): Promise<void> {
-  if (!props.order || actualQuantity.value <= 0 || actualUnitPrice.value <= 0) {
-    FailAlert(new Error('Сначала укажите фактическое количество и цену больше нуля.'));
+  if (!allValid.value) {
+    FailAlert(new Error('Укажите фактическое количество и цену больше нуля по всем позициям.'));
     return;
   }
   previewLoading.value = true;
   try {
-    const doc = await getChairmanSignablePayload({
-      order_id: props.order.id,
-      actual_quantity: actualQuantity.value,
-      actual_unit_price: String(actualUnitPrice.value),
-    });
-    previewHtml.value = doc.html;
+    // Превью всех актов пайщика на одной странице — предварительное ознакомление.
+    const parts: string[] = [];
+    for (const o of props.orders) {
+      const f = facts.value[o.id];
+      const doc = await getChairmanSignablePayload({
+        order_id: o.id,
+        actual_quantity: f.qty,
+        actual_unit_price: String(f.price),
+      });
+      const title = o.product_name || 'Товар по предложению';
+      parts.push(`<h4 class="mp-issue-open-dialog__act-head">${title}</h4>${doc.html}`);
+    }
+    previewHtml.value = parts.join('<hr class="mp-issue-open-dialog__act-sep" />');
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать акт выдачи');
+    FailAlert(e, 'Не удалось сформировать акты выдачи');
   } finally {
     previewLoading.value = false;
   }
 }
 
 async function confirm(): Promise<void> {
-  if (!props.order) return;
-  if (actualQuantity.value <= 0) {
-    FailAlert(new Error('Фактическое количество должно быть больше нуля.'));
-    return;
-  }
-  if (actualUnitPrice.value <= 0) {
-    FailAlert(new Error('Фактическая цена за единицу должна быть больше нуля.'));
+  if (!props.orders.length) return;
+  if (!allValid.value) {
+    FailAlert(new Error('Фактическое количество и цена должны быть больше нуля по всем позициям.'));
     return;
   }
   const wifKey = globalStore.wif?.toString();
@@ -146,28 +177,47 @@ async function confirm(): Promise<void> {
     return;
   }
   signing.value = true;
-  try {
-    const unitPriceStr = String(actualUnitPrice.value);
-    const generated = await getChairmanSignablePayload({
-      order_id: props.order.id,
-      actual_quantity: actualQuantity.value,
-      actual_unit_price: unitPriceStr,
-    });
-    const docSigner = new Classes.Document(wifKey);
-    const signed = await docSigner.signDocument(generated, globalStore.username, 1);
-    await openIssuance({
-      order_id: props.order.id,
-      actual_quantity: actualQuantity.value,
-      actual_unit_price: unitPriceStr,
-      signed_document: signed,
-    });
-    SuccessAlert('Выдача открыта. Ждём подпись заказчика — он подтвердит получение в своём кабинете.');
-    emit('opened');
+  const docSigner = new Classes.Document(wifKey);
+  const failed: string[] = [];
+  let ok = 0;
+  // Цикл по позициям: каждая — отдельный акт (председатель → openIssuance).
+  // Последовательно, чтобы не ловить гонки on-chain подписей.
+  for (const o of props.orders) {
+    const f = facts.value[o.id];
+    const priceStr = String(f.price);
+    try {
+      const generated = await getChairmanSignablePayload({
+        order_id: o.id,
+        actual_quantity: f.qty,
+        actual_unit_price: priceStr,
+      });
+      const signed = await docSigner.signDocument(generated, globalStore.username, 1);
+      await openIssuance({
+        order_id: o.id,
+        actual_quantity: f.qty,
+        actual_unit_price: priceStr,
+        signed_document: signed,
+      });
+      ok += 1;
+    } catch (e) {
+      console.error('openIssuance failed for order', o.id, e);
+      failed.push(o.product_name || o.id.slice(0, 8));
+    }
+  }
+  signing.value = false;
+
+  if (ok > 0) emit('opened');
+  if (failed.length === 0) {
+    SuccessAlert(
+      `Выдача открыта по ${ok} позиц. — ждём подтверждение заказчика в его кабинете.`,
+    );
     emit('update:modelValue', false);
-  } catch (e) {
-    FailAlert(e, 'Не удалось открыть выдачу');
-  } finally {
-    signing.value = false;
+  } else {
+    FailAlert(
+      new Error(
+        `Открыто ${ok} из ${props.orders.length}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
+      ),
+    );
   }
 }
 
@@ -179,36 +229,53 @@ function cancel(): void {
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  title="Открытие выдачи заказа"
-  :lead-text="order ? `Заказ ${order.id.slice(0, 8)} · к выдаче ${formatAsset2Digits(factCost)} ₽` : ''"
-  :kind="diffState === 'more' ? 'warning' : 'info'"
-  confirm-label="Подписать и открыть выдачу"
-  cancel-label="Закрыть"
+  wide
+  title="Открытие выдачи пайщику"
+  :lead-text="recipientName ? `${recipientName} · позиций: ${positionsCount} · к выдаче ${formatAsset2Digits(totalFactCost)} ₽` : ''"
+  :kind="anyOver ? 'warning' : 'info'"
   :loading="signing"
-  :disable-confirm="actualQuantity <= 0 || actualUnitPrice <= 0 || signing"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   @confirm="confirm"
   @cancel="cancel"
 )
   template(#default)
     .mp-issue-open-dialog
-      .mp-issue-open-dialog__intro.text-body2.text-grey
-        | Сверьте привезённое имущество с заказом и укажите фактически выдаваемое количество — оно войдёт в акт.
+      .mp-issue-open-dialog__intro
+        | Сверьте привезённое имущество с заказами пайщика и укажите фактически
+        | выдаваемое количество по каждой позиции — оно войдёт в соответствующий
+        | акт. Открытие выдачи сформирует и подпишет акты сразу по всем позициям.
 
       CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
 
-      q-banner.mp-issue-open-dialog__hint(rounded :class="diffState === 'more' ? 'bg-warning text-dark' : (diffState === 'less' ? 'bg-info text-white' : 'bg-positive text-white')")
-        | {{ diffHint }}
-
-      .mp-issue-open-dialog__sum.text-body2
-        | К выдаче: {{ formatAsset2Digits(factCost) }} ₽ ({{ actualQuantity }} {{ unitShort }})
+      .mp-issue-open-dialog__sum
+        span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
+        span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
 
       .mp-issue-open-dialog__preview-actions
-        q-btn(flat no-caps icon="description" label="Показать акт" :loading="previewLoading" @click="loadPreview")
+        BaseButton(
+          variant="ghost"
+          size="sm"
+          :loading="previewLoading"
+          @click="loadPreview"
+        )
+          template(#icon-left)
+            q-icon(name="description" size="16px")
+          | Показать акты
 
-      q-card(v-if="previewHtml" flat bordered).mp-issue-open-dialog__preview
-        q-card-section.q-pa-md
-          div(v-html="previewHtml")
+      .mp-issue-open-dialog__preview(v-if="previewHtml")
+        div(v-html="previewHtml")
+
+  template(#actions="{ cancel: onCancel, confirm: onConfirm }")
+    BaseButton(variant="ghost" @click="onCancel") Закрыть
+    BaseButton(
+      variant="primary"
+      :loading="signing"
+      :disabled="!allValid || signing"
+      @click="onConfirm"
+    )
+      template(#icon-left)
+        q-icon(name="draw" size="16px")
+      | Подписать и открыть выдачу
 </template>
 
 <style scoped lang="scss">
@@ -217,7 +284,29 @@ TakeoverDialog(
   flex-direction: column;
   gap: var(--p-4, 16px);
 
+  &__intro {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    line-height: 1.4;
+  }
+
   &__sum {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: var(--p-3, 12px);
+  }
+
+  &__sum-label {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__sum-value {
+    font-family: var(--p-mono);
+    font-weight: 600;
+    font-size: var(--p-fs-h3, 15px);
+    color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
 
@@ -229,6 +318,24 @@ TakeoverDialog(
   &__preview {
     max-height: 60vh;
     overflow: auto;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    background: var(--p-surface);
+  }
+
+  // Заголовок акта и разделитель в сводном превью.
+  :deep(.mp-issue-open-dialog__act-head) {
+    font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
+    color: var(--p-ink);
+    margin: 0 0 var(--p-2, 8px);
+  }
+
+  :deep(.mp-issue-open-dialog__act-sep) {
+    border: none;
+    border-top: 1px solid var(--p-line);
+    margin: var(--p-4, 16px) 0;
   }
 }
 </style>
