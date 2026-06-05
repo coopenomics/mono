@@ -1,107 +1,143 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Dialog } from 'quasar';
+import { Dialog, Notify } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { BaseButton, BaseCard, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
-  addAvailableCategories,
-  fetchAvailabilityStats,
+  clearAvailableCategories,
+  createCustomCategory,
+  deleteCustomCategory,
   fetchAvailableCategories,
-  fetchCategories,
-  removeAvailableCategories,
-  type MarketplaceAvailabilityStatsView,
+  fetchCoopCategories,
+  replaceAvailableItems,
   type MarketplaceAvailableCategoryView,
-  type MarketplaceCategoryView,
+  type MarketplaceCoopCategoryView,
 } from '../api';
 
 /**
- * Эпик 3 / Story 3.x: «Доступные категории» — настройка whitelist'а
- * категорий товаров для кооператива (chairman-only).
+ * Эпик 16: «Категории кооператива».
  *
- * MVP: список разрешённых категорий (entire / specific type), статистика
- * и удаление. Добавление — через диалог с выбором категорий по названию
- * (marketplaceListCategories), уже добавленные исключаются из списка.
- *
- * Без whitelist'а — кооператив видит весь глобальный каталог.
- * С whitelist'ом — только перечисленные категории доступны для
- * публикации Offer'ов.
+ * Список = общие baseline-категории + собственные категории кооператива.
+ * Доступность для публикации предложений задаётся whitelist'ом: пустой whitelist
+ * = открыт весь каталог (все категории включены). Выключение категории строит
+ * whitelist из оставшихся включённых; включение всех обратно = очистка whitelist'а
+ * (снова открытый каталог). Собственные категории (mvp_baseline=false) можно
+ * добавлять и удалять; baseline удалить нельзя, только выключить.
  */
 
-const items = ref<MarketplaceAvailableCategoryView[]>([]);
-const stats = ref<MarketplaceAvailabilityStatsView | null>(null);
-const allCategories = ref<MarketplaceCategoryView[]>([]);
+const categories = ref<MarketplaceCoopCategoryView[]>([]);
+const available = ref<MarketplaceAvailableCategoryView[]>([]);
 const loading = ref(false);
+const savingId = ref<number | null>(null);
 
 const addDialogOpen = ref(false);
-const selectedToAdd = ref<number[]>([]);
-const adding = ref(false);
+const newName = ref('');
+const creating = ref(false);
 
-const addableCategoryOptions = computed(() => {
-  const whitelisted = new Set(items.value.map((i) => i.categoryId));
-  return allCategories.value
-    .filter((c) => !whitelisted.has(c.id))
-    .map((c) => ({ label: c.display_name, value: c.id }));
-});
-
-const entireCategories = computed(() =>
-  items.value.filter((i) => i.isForEntireCategory),
+// Множество включённых категорий по whitelist'у. Пустой whitelist = открытый
+// каталог: тогда включены все категории.
+const availableIds = computed(
+  () => new Set(available.value.filter((a) => a.isForEntireCategory).map((a) => a.categoryId)),
 );
-const specificTypes = computed(() => items.value.filter((i) => i.isForSpecificType));
+const isOpenCatalog = computed(() => availableIds.value.size === 0);
+
+function isEnabled(cat: MarketplaceCoopCategoryView): boolean {
+  return isOpenCatalog.value || availableIds.value.has(cat.id);
+}
+
+const enabledCount = computed(() => categories.value.filter((c) => isEnabled(c)).length);
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Категория', cell: 'text' },
+  { label: 'Вид', class: 'col-kind', cell: 'badge' },
+  { label: 'Доступна', class: 'col-toggle', cell: 'text', cellWidth: '64px' },
+  { label: '', class: 'col-actions', cell: 'text', cellWidth: '48px' },
+];
 
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [list, st, cats] = await Promise.all([
-      fetchAvailableCategories(),
-      fetchAvailabilityStats(),
-      fetchCategories(),
-    ]);
-    items.value = list;
-    stats.value = st;
-    allCategories.value = cats;
+    const [cats, avail] = await Promise.all([fetchCoopCategories(), fetchAvailableCategories()]);
+    categories.value = [...cats].sort((a, b) => a.sort_order - b.sort_order);
+    available.value = avail;
   } catch (e) {
-    FailAlert(e);
+    FailAlert(e, 'Не удалось загрузить категории');
   } finally {
     loading.value = false;
   }
 }
 
+// Включение/выключение категории. Считаем целевой набор включённых id и
+// сохраняем его: если включены все — очищаем whitelist (открытый каталог),
+// иначе заменяем whitelist оставшимся набором.
+async function toggle(cat: MarketplaceCoopCategoryView, value: boolean): Promise<void> {
+  const enabledIds = new Set(categories.value.filter((c) => isEnabled(c)).map((c) => c.id));
+  if (value) enabledIds.add(cat.id);
+  else enabledIds.delete(cat.id);
+
+  if (enabledIds.size === 0) {
+    Notify.create({
+      type: 'warning',
+      message: 'Должна остаться хотя бы одна доступная категория',
+      timeout: 2200,
+      position: 'top',
+    });
+    return;
+  }
+
+  savingId.value = cat.id;
+  try {
+    if (enabledIds.size === categories.value.length) {
+      await clearAvailableCategories();
+    } else {
+      await replaceAvailableItems({ categoryIds: [...enabledIds], categoryTypes: [] });
+    }
+    available.value = await fetchAvailableCategories();
+    SuccessAlert(value ? 'Категория включена' : 'Категория выключена');
+  } catch (e) {
+    FailAlert(e, 'Не удалось изменить доступность');
+  } finally {
+    savingId.value = null;
+  }
+}
+
 function onAdd(): void {
-  selectedToAdd.value = [];
+  newName.value = '';
   addDialogOpen.value = true;
 }
 
 async function confirmAdd(): Promise<void> {
-  const ids = selectedToAdd.value;
-  if (ids.length === 0) return;
-  adding.value = true;
+  const name = newName.value.trim();
+  if (!name) return;
+  creating.value = true;
   try {
-    await addAvailableCategories(ids);
-    SuccessAlert(`Добавлено категорий: ${ids.length}`);
+    await createCustomCategory({ displayName: name });
+    SuccessAlert('Категория добавлена');
     addDialogOpen.value = false;
     await load();
   } catch (e) {
-    FailAlert(e);
+    FailAlert(e, 'Не удалось добавить категорию');
   } finally {
-    adding.value = false;
+    creating.value = false;
   }
 }
 
-function onRemove(item: MarketplaceAvailableCategoryView): void {
+function onRemove(cat: MarketplaceCoopCategoryView): void {
   Dialog.create({
-    title: 'Удалить из whitelist?',
-    message: `Категория ID ${item.categoryId} будет удалена из доступных. Существующие Offer'ы не пропадут, но новые публиковать в этой категории станет нельзя.`,
+    title: 'Удалить категорию?',
+    message: `Категория «${cat.display_name}» будет удалена. Опубликованные в ней предложения не пропадут, но публиковать новые станет нельзя.`,
     cancel: { label: 'Отмена', flat: true },
     ok: { label: 'Удалить', color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
     try {
-      await removeAvailableCategories([item.categoryId]);
-      SuccessAlert('Категория удалена из whitelist');
+      await deleteCustomCategory(cat.id);
+      SuccessAlert('Категория удалена');
       await load();
     } catch (e) {
-      FailAlert(e);
+      FailAlert(e, 'Не удалось удалить категорию');
     }
   });
 }
@@ -110,119 +146,143 @@ onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.whitelist(role="region", aria-label="Доступные категории кооператива")
-  PageHint(storage-key="mp:category-whitelist:banner-dismissed")
-    | Whitelist категорий товаров, которые пайщики могут публиковать как предложения. Пустой whitelist означает, что доступен весь глобальный каталог.
+q-page.categories(role='region', aria-label='Категории кооператива')
+  PageHint(storage-key='mp:category-whitelist:banner-dismissed')
+    | Категории, в которых пайщики могут публиковать предложения. По умолчанию
+    | доступны все. Выключите ненужные, чтобы ограничить список, — или добавьте
+    | собственную категорию кооператива. Базовые категории нельзя удалить, только
+    | выключить.
 
-  .whitelist__toolbar
-    q-space
-    BaseButton(variant="primary", @click="onAdd")
+  //- Действия страницы — в шапке (канон): добавить свою категорию + обновить.
+  Teleport(to='#header-actions-host', defer)
+    BaseButton(variant='primary', @click='onAdd')
       template(#icon-left)
-        q-icon(name="add", size="18px")
-      | Добавить
-    BaseButton(variant="ghost", iconOnly, ariaLabel="Обновить", :loading="loading", @click="load")
+        q-icon(name='add', size='18px')
+      | Добавить категорию
+    BaseButton(
+      variant='ghost',
+      icon-only,
+      aria-label='Обновить',
+      :loading='loading',
+      @click='load'
+    )
       template(#icon-left)
-        q-icon(name="refresh", size="18px")
+        q-icon(name='refresh', size='20px')
 
-  .whitelist__stats(v-if="stats")
-    .kpi
-      .kpi__head
-        span.kpi__eyebrow Всего записей
-      .kpi__val {{ stats.totalAvailable }}
-    .kpi
-      .kpi__head
-        span.kpi__eyebrow Категорий
-      .kpi__val {{ stats.categoriesCount }}
-    .kpi
-      .kpi__head
-        span.kpi__eyebrow Типов товаров
-      .kpi__val {{ stats.typesCount }}
-    .kpi
-      .kpi__head
-        span.kpi__eyebrow Whitelist активен
-      .kpi__val
-        span(v-if="stats.hasRestrictions") Да
-        span.t-muted(v-else) Нет (открыт каталог)
+  .categories__summary(v-if='!loading || categories.length')
+    span(v-if='isOpenCatalog') Открыт весь каталог — доступны все категории ({{ categories.length }})
+    span(v-else) Доступно категорий: {{ enabledCount }} из {{ categories.length }}
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+  TableSkeleton(
+    v-if='loading && !categories.length',
+    :columns='skeletonColumns',
+    :rows='6',
+    min-width='560px'
+  )
+
+  .table-wrap(v-else-if='categories.length')
+    .table-scroll
+      table.table
+        thead
+          tr
+            th.col-name Категория
+            th.col-kind Вид
+            th.col-toggle Доступна
+            th.col-actions
+        tbody
+          tr(v-for='cat in categories', :key='cat.id')
+            td.col-name.categories__name {{ cat.display_name }}
+            td.col-kind
+              BaseBadge(:variant='cat.mvp_baseline ? "neutral" : "info"')
+                | {{ cat.mvp_baseline ? 'Базовая' : 'Своя' }}
+            td.col-toggle
+              q-toggle(
+                :model-value='isEnabled(cat)',
+                color='primary',
+                :disable='savingId === cat.id',
+                @update:model-value='(v) => toggle(cat, v)'
+              )
+            td.col-actions
+              //- Удалить можно только собственную категорию; базовая — без действия.
+              button.icon-btn(
+                v-if='!cat.mvp_baseline',
+                type='button',
+                aria-label='Удалить категорию',
+                @click='onRemove(cat)'
+              )
+                q-icon(name='delete', size='18px')
+
+    .table-foot
+      span Категорий: {{ categories.length }}
 
   EmptyState(
-    v-if="!loading && items.length === 0",
-    title="Whitelist пуст",
-    body="Пайщикам доступен весь глобальный каталог. Чтобы ограничить — нажмите «Добавить»."
+    v-else-if='!loading',
+    title='Категорий нет',
+    body='Базовые категории не загрузились. Обновите страницу или добавьте собственную.'
   )
     template(#icon)
-      q-icon(name="folder_open", size="48px")
+      q-icon(name='category', size='48px')
 
-  BaseCard(v-if="entireCategories.length > 0", title="Целые категории")
-    q-list(separator)
-      q-item(v-for="c in entireCategories", :key="c.id")
-        q-item-section
-          q-item-label Категория № {{ c.categoryId }}
-          q-item-label(caption) Добавлено: {{ c.addedBy }}, активна: {{ c.isActive ? 'да' : 'нет' }}
-        q-item-section(side)
-          BaseButton(variant="danger", size="sm", @click="onRemove(c)")
-            template(#icon-left)
-              q-icon(name="delete", size="16px")
-            | Убрать
-
-  BaseCard(v-if="specificTypes.length > 0", title="Конкретные типы товаров")
-    q-list(separator)
-      q-item(v-for="t in specificTypes", :key="t.id")
-        q-item-section
-          q-item-label Категория № {{ t.categoryId }} → тип № {{ t.typeId ?? '—' }}
-          q-item-label(caption) Добавлено: {{ t.addedBy }}, активна: {{ t.isActive ? 'да' : 'нет' }}
-
-  BaseDialog(v-model="addDialogOpen", title="Добавить категории в whitelist", size="md")
-    .t-muted.q-mb-md Выберите категории по названию. Уже добавленные в список не показываются.
-    //- Множественный выбор: BaseSelect отдаёт single value, обёртки для multiple
-    //- нет — берём q-select напрямую (поле канонизирует quasar-canon.css).
-    q-select(
-      v-model="selectedToAdd",
-      :options="addableCategoryOptions",
-      emit-value,
-      map-options,
-      multiple,
-      use-chips,
-      outlined,
-      label="Категории",
-      :loading="loading"
+  BaseDialog(v-model='addDialogOpen', title='Новая категория', size='sm')
+    BaseInput(
+      v-model='newName',
+      label='Название категории',
+      placeholder='Например: Бытовая химия',
+      @keyup.enter='confirmAdd'
     )
-    .t-muted.q-mt-sm(v-if="addableCategoryOptions.length === 0")
-      | Все доступные категории уже в whitelist.
     template(#footer)
-      BaseButton(variant="ghost", @click="addDialogOpen = false") Отмена
+      BaseButton(variant='ghost', @click='addDialogOpen = false') Отмена
       BaseButton(
-        variant="primary",
-        :loading="adding",
-        :disabled="selectedToAdd.length === 0",
-        @click="confirmAdd"
+        variant='primary',
+        :loading='creating',
+        :disabled='!newName.trim()',
+        @click='confirmAdd'
       ) Добавить
 </template>
 
 <style scoped lang="scss">
-.whitelist {
+.categories {
   padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__toolbar {
-    display: flex;
-    align-items: center;
-    gap: var(--p-2, 8px);
+  &__summary {
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm);
   }
 
-  &__stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: var(--p-3, 12px);
+  &__name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
   }
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+.table {
+  table-layout: fixed;
+  min-width: 560px;
+}
+
+.col-name {
+  width: 320px;
+}
+.col-kind {
+  width: 120px;
+}
+.col-toggle {
+  width: 96px;
+  text-align: center;
+}
+.col-actions {
+  width: 64px;
+  text-align: right;
+}
+
 @media (max-width: 768px) {
-  .whitelist {
+  .categories {
     padding: var(--p-4, 16px);
   }
 }

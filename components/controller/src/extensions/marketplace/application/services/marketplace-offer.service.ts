@@ -36,10 +36,15 @@ import {
   MarketplaceBarcodeStrategies,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
+import {
+  AVAILABLE_CATEGORY_DOMAIN_SERVICE,
+  type AvailableCategoryDomainService,
+} from '../../domain/services/available-category-domain.service';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import config from '~/config/config';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
@@ -103,7 +108,6 @@ export class MarketplaceOfferService {
   public static readonly RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
   public static readonly MAX_PRODUCT_NAME_LEN = 200;
   public static readonly MAX_DESCRIPTION_LEN = 2000;
-  public static readonly BASELINE_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   /** Технический лимит — защита от опечатки в pack_size (Story 5.5 / 598-22). */
   public static readonly MAX_PACK_SIZE = 1000;
 
@@ -114,6 +118,8 @@ export class MarketplaceOfferService {
     private readonly categoryRepo: MarketplaceCategoryDomainRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
+    private readonly availableCategoryService: AvailableCategoryDomainService,
     private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
@@ -465,15 +471,24 @@ export class MarketplaceOfferService {
   }
 
   private async ensureCategoryExists(category_id: number): Promise<void> {
-    if (!MarketplaceOfferService.BASELINE_CATEGORY_IDS.includes(category_id)) {
-      throw new BadRequestException(
-        `Выбрана недопустимая категория (${category_id}). Допустимы значения от 1 до 9.`
-      );
-    }
-    const category = await this.categoryRepo.findById(category_id);
+    // Категория должна принадлежать списку кооператива (общая baseline ИЛИ
+    // собственная категория этого кооператива) — кастомные имеют id > 9.
+    const coopCategories = await this.categoryRepo.listForCoop(config.coopname);
+    const category = coopCategories.find((c) => c.id === category_id);
     if (!category) {
       throw new BadRequestException(
-        `Категория с номером ${category_id} не найдена в справочнике. Обратитесь к администратору.`
+        `Категория с номером ${category_id} не найдена в справочнике кооператива. Обновите страницу или обратитесь к администратору.`
+      );
+    }
+    // Категория должна быть доступна для публикации (включена в whitelist).
+    // Пустой whitelist = открытый каталог: доступны все категории.
+    const isAvailable = await this.availableCategoryService.isCategoryAvailable(
+      config.coopname,
+      category_id
+    );
+    if (!isAvailable) {
+      throw new BadRequestException(
+        `Категория «${category.display_name}» сейчас недоступна для публикации в этом кооперативе.`
       );
     }
   }

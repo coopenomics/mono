@@ -80,7 +80,6 @@ export class MarketplaceCreateOfferInputDTO {
   @Field(() => Int)
   @IsInt()
   @Min(1)
-  @Max(9)
   public category_id!: number;
 
   @Field(() => String, { description: 'Цена за единицу (numeric как string, до 4 знаков)' })
@@ -169,7 +168,6 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(9)
   public category_id?: number;
 
   @Field(() => String, { nullable: true })

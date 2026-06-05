@@ -1,14 +1,13 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 @InputType('MarketplaceListCatalogInput')
 export class MarketplaceListCatalogInputDTO extends PaginationInputDTO {
-  @Field(() => Int, { nullable: true, description: 'category_id 1..9; null = «Все»' })
+  @Field(() => Int, { nullable: true, description: 'Идентификатор категории; null = «Все»' })
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(9)
   public category_id?: number | null;
 
   @Field(() => String, {

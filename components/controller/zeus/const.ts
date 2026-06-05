@@ -640,7 +640,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceAcceptReturnAtVisitInput:{
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAddToCartInput:{
 
@@ -667,7 +667,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceApproveReturnVisitInput:{
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+
 	},
 	MarketplaceAssignInventoryShelfInput:{
 
@@ -809,11 +809,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceRejectReturnAtVisitInput:{
-		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput"
 	},
 	MarketplaceRejectReturnRemoteInput:{
-		signed_decision:"MarketplaceReturnStatementSignedInput"
+
 	},
 	MarketplaceRemoveFromCartInput:{
 
@@ -2092,6 +2091,9 @@ export const AllTypesProps: Record<string,any> = {
 			data:"GetRequiredAttributesInput"
 		},
 		marketplaceReturnClaim:{
+
+		},
+		marketplaceReturnClaimChairmanSignablePayload:{
 
 		},
 		marketplaceReturnClaimSignablePayload:{
@@ -4171,6 +4173,8 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		delivery_point_address:"String",
+		delivery_point_name:"String",
 		id:"ID",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
@@ -4184,6 +4188,7 @@ export const ReturnTypes: Record<string,any> = {
 		shelf:"String",
 		shipment_id:"ID",
 		status:"MarketplaceInventoryStatus",
+		unit_of_measure:"String",
 		updated_at:"DateTime"
 	},
 	MarketplaceInventoryMutationResult:{
@@ -5548,6 +5553,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRegistrationOfferStatus:"MarketplaceRegistrationOfferStatus",
 		marketplaceRequiredAttributes:"MarketplaceAttribute",
 		marketplaceReturnClaim:"MarketplaceReturnClaim",
+		marketplaceReturnClaimChairmanSignablePayload:"DocumentAggregate",
 		marketplaceReturnClaimSignablePayload:"GeneratedDocument",
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
