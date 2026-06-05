@@ -67,7 +67,7 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 export * as SosediAgreement from './699.SosediAgreement'
 
 // Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
-export * as MarketplaceProgramTemplate from './1107.MarketplaceProgramTemplate'
+export * as MarketplaceProgramTemplate from './1099.MarketplaceProgramTemplate'
 export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
 export * as MarketplaceOffer from './1101.MarketplaceOffer'
 

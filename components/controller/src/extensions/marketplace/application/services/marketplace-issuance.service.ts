@@ -30,6 +30,7 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import { computeActNumber } from '../shared/act-number.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -390,7 +391,7 @@ export class MarketplaceIssuanceService {
       order_id: input.order.id,
       order_hash: input.order.order_hash,
       reception_id: input.order.id,
-      act_id: this.formatActId(input.order.id),
+      act_id: computeActNumber(input.order.order_hash),
       transmitter: input.transmitter,
       braname: input.order.delivery_braname,
       accept_braname: input.order.delivery_braname,
@@ -403,11 +404,6 @@ export class MarketplaceIssuanceService {
       skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
-  }
-
-  private formatActId(order_id: string): string {
-    const orderShort = order_id.replace(/-/g, '').slice(0, 8).toUpperCase();
-    return `ISS-${orderShort}`;
   }
 
   private buildIssuanceFactSnapshot(
