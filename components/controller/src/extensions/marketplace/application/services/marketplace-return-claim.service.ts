@@ -15,6 +15,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -213,6 +214,37 @@ export class MarketplaceReturnClaimService {
     });
   }
 
+  /**
+   * Агрегат для со-подписи председателя на очном осмотре: исходное заявление
+   * пайщика (1104) с его подписью + тело документа для ознакомления. Фронт
+   * накладывает вторую подпись (`signDocument(rawDocument, chairman, 2,
+   * [document])`) и отправляет в `acceptReturnAtVisit`. Ownership-проверка КУ —
+   * на резолвере (как в АПП-приёмке).
+   */
+  async getChairmanReturnSignablePayload(
+    coopname: string,
+    claim_id: string
+  ): Promise<DocumentDomainAggregate> {
+    const claim = await this.findById(coopname, claim_id);
+    if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
+      throw new ConflictException(
+        `Заявление в статусе «${claim.status}»: со-подпись председателя доступна только после одобрения очного визита.`
+      );
+    }
+    if (!claim.statement) {
+      throw new ConflictException(
+        `Заявление ${claim.id}: подписанное пайщиком заявление не сохранено — со-подпись невозможна.`
+      );
+    }
+    const aggregate = await this.documentDomainService.buildDocumentAggregate(claim.statement);
+    if (!aggregate) {
+      throw new ConflictException(
+        `Заявление ${claim.id}: тело документа по doc_hash ${claim.statement.doc_hash} не найдено в сторе.`
+      );
+    }
+    return aggregate;
+  }
+
   // ── Story 7.1: пайщик подаёт заявление ───────────────────────────────
 
   async submitReturnClaim(
@@ -309,6 +341,7 @@ export class MarketplaceReturnClaimService {
       actual_quantity,
       fact_cost,
       photos,
+      statement: input.signed_statement as ISignedDocumentDomainInterface,
       submretrn_tx_hash: txHash,
       status: MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW,
     });

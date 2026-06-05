@@ -8,6 +8,7 @@ import type {
   MarketplaceReturnClaimPhoto,
   MarketplaceReturnClaimStatus,
 } from '../entities/marketplace-return-claim.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 export const MARKETPLACE_RETURN_CLAIM_REPOSITORY = Symbol('MARKETPLACE_RETURN_CLAIM_REPOSITORY');
 
@@ -26,6 +27,8 @@ export interface MarketplaceReturnClaimCreateInput {
   actual_quantity: number;
   fact_cost: string;
   photos: MarketplaceReturnClaimPhoto[];
+  /** Подписанное пайщиком заявление (1104) — для последующей со-подписи председателем. */
+  statement: ISignedDocumentDomainInterface | null;
   submretrn_tx_hash: string;
   status: MarketplaceReturnClaimStatus;
 }

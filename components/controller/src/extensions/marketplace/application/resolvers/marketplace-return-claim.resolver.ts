@@ -30,6 +30,7 @@ import {
   MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
   MarketplaceBranchOwnershipService,
 } from '../services/marketplace-branch-ownership.service';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
@@ -267,6 +268,35 @@ export class MarketplaceReturnClaimResolver {
       throw new ForbiddenException('Это чужое заявление на возврат.');
     }
     return this.toClaimDTO(claim);
+  }
+
+  @Query(() => DocumentAggregateDTO, {
+    name: 'marketplaceReturnClaimChairmanSignablePayload',
+    description:
+      'Заявление пайщика на гарантийный возврат, подписанное пайщиком, для со-подписи председателя при принятии на очном осмотре. Содержит тело документа для ознакомления и подпись пайщика; председатель накладывает свою подпись поверх.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('ReturnClaim', 'decide:on-site')
+  async marketplaceReturnClaimChairmanSignablePayload(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('claim_id') claim_id: string
+  ): Promise<DocumentAggregateDTO> {
+    const claim = await this.service.findById(config.coopname, claim_id);
+    const isMember = await this.kuChairmanService.isMemberOfBranch(
+      config.coopname,
+      claim.delivery_braname,
+      member.username
+    );
+    if (!isMember) {
+      throw new ForbiddenException(
+        'Со-подпись возможна только для участка, на котором вы являетесь председателем или доверенным лицом.'
+      );
+    }
+    const aggregate = await this.service.getChairmanReturnSignablePayload(
+      config.coopname,
+      claim_id
+    );
+    return new DocumentAggregateDTO(aggregate);
   }
 
   // ── helpers ──────────────────────────────────────────────────────────

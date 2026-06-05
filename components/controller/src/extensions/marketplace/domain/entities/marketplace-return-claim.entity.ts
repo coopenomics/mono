@@ -9,6 +9,7 @@ import {
   type MarketplaceReturnClaimProps,
   type MarketplaceReturnClaimStatus,
 } from './marketplace-return-claim.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
  * Эпик 7: домен заявления на гарантийный возврат. Backend ведёт state
@@ -32,6 +33,7 @@ export class MarketplaceReturnClaimDomainEntity {
   public readonly actual_quantity: number;
   public readonly fact_cost: string;
   public readonly photos: MarketplaceReturnClaimPhoto[];
+  public readonly statement: ISignedDocumentDomainInterface | null;
   public readonly submretrn_tx_hash: string;
   public decision_log: MarketplaceReturnClaimDecisionLogEntry[];
   public on_site_inspection: MarketplaceReturnClaimOnSiteInspection | null;
@@ -58,6 +60,7 @@ export class MarketplaceReturnClaimDomainEntity {
     this.actual_quantity = props.actual_quantity;
     this.fact_cost = props.fact_cost;
     this.photos = props.photos;
+    this.statement = props.statement;
     this.submretrn_tx_hash = props.submretrn_tx_hash;
     this.decision_log = props.decision_log;
     this.on_site_inspection = props.on_site_inspection;
