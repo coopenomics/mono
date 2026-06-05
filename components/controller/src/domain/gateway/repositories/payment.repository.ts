@@ -11,6 +11,7 @@ export interface PaymentRepository {
   // Общие методы
   findById(id: string): Promise<PaymentDomainInterface | null>;
   findByHash(hash: string): Promise<PaymentDomainInterface | null>;
+  delete(id: string): Promise<boolean>;
   create(data: PaymentDomainInterface): Promise<PaymentDomainInterface>;
   update(id: string, data: Partial<PaymentDomainInterface>): Promise<PaymentDomainInterface | null>;
 

@@ -30,6 +30,12 @@ export class AccountService {
     return new AccountDTO(account);
   }
 
+  public async resetRegistration(username: string): Promise<AccountDTO> {
+    const account = await this.accountInteractor.resetRegistration(username);
+
+    return new AccountDTO(account);
+  }
+
   public async getAccounts(
     data?: GetAccountsInputDTO,
     options?: PaginationInputDTO

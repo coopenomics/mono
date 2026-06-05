@@ -14,6 +14,8 @@ import { RegisteredAccountDTO } from '../dto/registered-account.dto';
 import { UpdateAccountInputDTO } from '../dto/update-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Accounts');
 
@@ -83,6 +85,16 @@ export class AccountResolver {
 
   //   return true;
   // }
+
+  @Mutation(() => AccountDTO, {
+    name: 'resetRegistration',
+    description:
+      'Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств.',
+  })
+  @UseGuards(GqlJwtAuthGuard)
+  async resetRegistration(@CurrentUser() currentUser: MonoAccountDomainInterface): Promise<AccountDTO> {
+    return await this.accountService.resetRegistration(currentUser.username);
+  }
 
   @Mutation(() => AccountDTO, {
     name: 'updateAccount',

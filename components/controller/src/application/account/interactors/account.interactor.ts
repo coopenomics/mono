@@ -39,6 +39,7 @@ import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repo
 import { userStatus } from '~/types/user.types';
 import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { CandidateStatus } from '~/domain/registration/enum';
 import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
@@ -375,6 +376,87 @@ export class AccountInteractor {
       this.logger.error(`Ошибка при регистрации аккаунта ${username} в блокчейне: ${error.message}`, error.stack);
       throw new HttpApiError(HttpStatus.INTERNAL_SERVER_ERROR, `Ошибка при регистрации в блокчейне: ${error.message}`);
     }
+  }
+
+  /**
+   * Откат регистрации к редактированию данных (recovery drift/decline).
+   *
+   * Применим ТОЛЬКО до создания аккаунта в блокчейне: после reguser username
+   * необратимо занят, и нужна перерегистрация — это отдельная ветка. Здесь же,
+   * пока аккаунта в цепи нет, безопасно вернуть пайщика к началу:
+   *  - снимаем заморозку профиля и e-mail (users.status → created);
+   *  - сбрасываем кандидата (документы и отпечаток заявления), чтобы заявление
+   *    пришлось переподписать под актуальные данные;
+   *  - удаляем непринятую попытку регистрационного платежа, чтобы экран
+   *    ожидания не показывал старый отказ.
+   *
+   * Если средства уже приняты (PAID/COMPLETED) — откат запрещён: нужен возврат
+   * средств (отдельная ветка refund).
+   */
+  async resetRegistration(username: string): Promise<AccountDomainEntity> {
+    const user = await this.userDomainService.getUserByUsername(username);
+    if (!user) {
+      throw new HttpApiError(HttpStatus.NOT_FOUND, `Пользователь ${username} не найден`);
+    }
+
+    // Аккаунт уже в блокчейне → откат к редактированию невозможен (username
+    // занят необратимо).
+    const blockchainAccount = await this.accountDomainService.getBlockchainAccount(username);
+    if (
+      blockchainAccount ||
+      user.status === userStatus['4_Registered'] ||
+      user.status === userStatus['5_Active']
+    ) {
+      throw new HttpApiError(
+        HttpStatus.BAD_REQUEST,
+        'Регистрация уже отправлена в блокчейн — откат к редактированию невозможен, требуется перерегистрация.'
+      );
+    }
+
+    // Регистрационный платёж: принятые средства откатывать нельзя (нужен возврат).
+    const payment = await this.paymentRepository.findLatestByUsernameAndType(
+      username,
+      PaymentTypeEnum.REGISTRATION
+    );
+    if (payment) {
+      if (payment.status === PaymentStatusEnum.PAID || payment.status === PaymentStatusEnum.COMPLETED) {
+        throw new HttpApiError(
+          HttpStatus.BAD_REQUEST,
+          'Вступительный взнос уже принят — для отката требуется возврат средств.'
+        );
+      }
+      if (payment.id) {
+        await this.paymentRepository.delete(payment.id);
+      }
+    }
+
+    // Кандидат: чистим документы и отпечаток заявления (потребуется переподпись).
+    const candidate = await this.candidateRepository.findByUsername(username);
+    if (candidate) {
+      let candidateMeta: Record<string, any> = {};
+      try {
+        candidateMeta = candidate.meta ? JSON.parse(candidate.meta) : {};
+      } catch {
+        candidateMeta = {};
+      }
+      delete candidateMeta.registration_profile_fingerprint;
+      await this.candidateRepository.update(username, {
+        status: CandidateStatus.PENDING,
+        documents: {},
+        meta: JSON.stringify(candidateMeta),
+      });
+    }
+
+    // Снимаем заморозку: профиль и e-mail снова можно менять.
+    await this.userDomainService.updateUserByUsername(username, {
+      status: userStatus['1_Created'],
+      is_registered: false,
+      has_account: false,
+    });
+
+    this.logger.log(`Регистрация ${username} откатана к редактированию данных`);
+
+    return await this.accountDomainService.getAccount(username);
   }
 
   /**

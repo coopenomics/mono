@@ -3667,6 +3667,7 @@ export const ReturnTypes: Record<string,any> = {
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
 		resetKey:"Boolean",
+		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",

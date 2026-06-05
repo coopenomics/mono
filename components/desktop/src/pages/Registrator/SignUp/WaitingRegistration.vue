@@ -13,8 +13,8 @@ div
         p.q-mt-xs.q-mb-none(v-if='declineMessage') Причина: {{ declineMessage }}
         p.q-mt-xs.q-mb-none(v-else) Председатель отклонил поступление взноса. Вы можете повторить оплату или поправить данные и подать заявку снова.
       .row.q-gutter-sm
-        BaseButton(variant='primary', @click='retryPayment') Повторить оплату
-        BaseButton(variant='secondary', @click='fixData') Исправить данные
+        BaseButton(variant='primary', @click='retryPayment', :disable='isResetting') Повторить оплату
+        BaseButton(variant='secondary', @click='fixData', :loading='isResetting') Исправить данные
     //- Техническая ошибка обработки — направляем в поддержку.
     template(v-else-if='isFailed')
       p Произошла ошибка при регистрации. Пожалуйста, обратитесь в поддержку для устранения проблемы.
@@ -33,10 +33,14 @@ import { Loader } from 'src/shared/ui/Loader';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { Zeus } from '@coopenomics/sdk';
+import { useResetRegistration } from 'src/features/Account/ResetRegistration';
+import { FailAlert } from 'src/shared/api';
 
 const store = useRegistratorStore();
 const session = useSessionStore();
 const accountStore = useAccountStore();
+const { resetRegistration } = useResetRegistration();
+const isResetting = ref(false);
 
 const currentStep = store.steps.WaitingRegistration;
 const step = computed(() => store.state.step);
@@ -67,10 +71,24 @@ const retryPayment = () => {
   store.goTo('PayInitial');
 };
 
-const fixData = () => {
-  store.state.is_paid = false;
-  store.state.payment = null;
-  store.goTo('SetUserData');
+// «Исправить данные» = откат регистрации на бэкенде: после подписи заявления
+// профиль и e-mail заморожены (users.status=joined), локального возврата мало —
+// сервер снимает заморозку, сбрасывает заявление и непринятый платёж. Только
+// после этого возвращаем пайщика к редактированию данных.
+const fixData = async () => {
+  isResetting.value = true;
+  try {
+    const account = await resetRegistration();
+    session.setCurrentUserAccount(account);
+    store.state.is_paid = false;
+    store.state.payment = null;
+    store.state.signature = '';
+    store.goTo('SetUserData');
+  } catch (e: any) {
+    FailAlert(`Не удалось вернуться к редактированию: ${e.message}`);
+  } finally {
+    isResetting.value = false;
+  }
 };
 
 // Опрос аккаунта: пока пайщик ждёт, подтягиваем актуальный статус платежа и

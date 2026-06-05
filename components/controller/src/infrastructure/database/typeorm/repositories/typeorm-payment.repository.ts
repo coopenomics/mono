@@ -31,6 +31,11 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return this.mapToDomainEntity(payment);
   }
 
+  async delete(id: string): Promise<boolean> {
+    const result = await this.paymentRepository.delete({ id });
+    return (result.affected ?? 0) > 0;
+  }
+
   async create(data: PaymentDomainInterface): Promise<PaymentDomainInterface> {
     const payment = new PaymentEntity();
     payment.hash = data.hash;
