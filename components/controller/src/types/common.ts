@@ -19,6 +19,8 @@ export interface IDelta {
   chain_id: string;
   block_num: number;
   block_id: string;
+  /** ISO-8601 время блока (UTC) из SHiP-трейса. parser2 отдаёт, parser1 не отдавал. */
+  block_time?: string;
   present: boolean;
   code: string;
   scope: string;
@@ -32,6 +34,8 @@ export interface IAction {
   account: string;
   block_num: number;
   block_id: string;
+  /** ISO-8601 время блока (UTC) из SHiP-трейса. parser2 отдаёт, parser1 не отдавал. */
+  block_time?: string;
   chain_id: string;
   name: string;
   receiver: string;
