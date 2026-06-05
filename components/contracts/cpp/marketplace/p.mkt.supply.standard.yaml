@@ -111,7 +111,7 @@ actions:
       средств — заказчик снова свободно ими распоряжается в рамках
       программы.
 
-  - name: marketplace::expirecycle
+  - name: marketplace::expireorder
     human: Закрыть цикл отсечки заявок
     actor: backend
     role: progress
@@ -334,7 +334,7 @@ transitions:
 
   - from: active
     to: cancelled
-    action: marketplace::expirecycle
+    action: marketplace::expireorder
     actor: backend
     ledger_code: p.mkt.supply
     operations:
@@ -464,7 +464,7 @@ scenario:
     - step: 2
       title: Закрытие цикла отсечки заявок
       actor: backend
-      action: marketplace::expirecycle
+      action: marketplace::expireorder
       description: >
         Цикл отсечки заявок завершается. Кооператив сверяет количество
         собранных заказов с минимальным порогом поставки, заданным
@@ -629,7 +629,7 @@ scenario:
 
     - branch: Цикл закрыт без достижения порога
       at_step: 2
-      action: marketplace::expirecycle
+      action: marketplace::expireorder
       actor: backend
       description: >
         Цикл отсечки заявок завершился, но минимальный порог поставки
@@ -788,7 +788,7 @@ operations:
         available_delta: +order.total_cost
         blocked_delta: null
     amount_ref: order.total_cost
-    triggered_by: marketplace::cancelorder | marketplace::expirecycle | marketplace::declinebatch
+    triggered_by: marketplace::cancelorder | marketplace::expireorder | marketplace::declinebatch
     description: >
       При отмене заказа (заказчиком до акцепта, при закрытии цикла без
       достижения порога, при отказе поставщика) или при недовыдаче
