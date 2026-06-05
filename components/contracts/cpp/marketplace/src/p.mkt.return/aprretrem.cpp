@@ -1,9 +1,10 @@
 /**
  * @brief Председатель удалённо одобряет очный визит (Story 7.2, p.mkt.return).
  *
- * Без ledger2-операций. Статус return_request: pending_review → approved_for_visit.
- * decision document сохраняется (опциональный — может быть пустой, тогда решение
- * фиксируется только статусом + actor + blockchain_actions[at]).
+ * Без ledger2-операций и без документов. Процедурное действие: статус
+ * return_request pending_review → approved_for_visit фиксируется вместе с
+ * actor + blockchain_actions[at]. Подпись на документе на удалённом этапе не
+ * требуется — она нужна только при принятии возврата (accretrn).
  *
  * Guards:
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`):
@@ -15,8 +16,7 @@
 void marketplace::aprretrem(eosio::name coopname,
                              eosio::name signer,
                              eosio::name braname,
-                             checksum256 request_hash,
-                             document2 decision) {
+                             checksum256 request_hash) {
   require_auth(coopname);
 
   auto branch = get_branch_or_fail(coopname, braname);
@@ -27,12 +27,7 @@ void marketplace::aprretrem(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
                "Заявление не находится на рассмотрении");
 
-  if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { signer });
-  }
-
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status          = ReturnStatus::APPROVED_FOR_VISIT;
-    upd.decision_remote = decision;
+    upd.status = ReturnStatus::APPROVED_FOR_VISIT;
   });
 }

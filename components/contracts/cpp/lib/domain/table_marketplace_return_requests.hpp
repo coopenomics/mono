@@ -54,10 +54,16 @@ namespace ReturnStatus {
  * (Story 7.1, AR32). Реальные изображения off-chain в file-storage (PR #359);
  * on-chain — только ссылки (hash для дедупликации + URL восстанавливает backend).
  *
- * `decision_remote` / `decision_visit` — декларативные документы решений
- * председателя (rejretrem / accretrn / rejretrn). reason_remote / reason_visit
- * — текстовые причины отказа для пользовательского UI (заполняются в
- * rejretrem / rejretrn соответственно).
+ * `statement` — заявление пайщика на возврат. При подаче (submretrn) несёт
+ * подпись пайщика; при принятии возврата (accretrn) председатель накладывает
+ * на тот же документ вторую подпись (канон двухподписных актов — без
+ * регенерации), и поле перезаписывается версией с обеими подписями. Отдельных
+ * документов решения председателя нет: удалённое рассмотрение и отказы —
+ * процедурные действия (статус + текстовая причина), подпись на документе
+ * нужна только в точке принятия возврата.
+ *
+ * `reason_remote` / `reason_visit` — текстовые причины отказа для
+ * пользовательского UI (заполняются в rejretrem / rejretrn соответственно).
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   uint64_t id;
@@ -76,9 +82,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
-  document2 statement;                                        ///< заявление пайщика (опционально подписанное)
-  document2 decision_remote;                                  ///< решение председателя удалённо (aprretrem | rejretrem)
-  document2 decision_visit;                                   ///< решение председателя по итогам очного осмотра (accretrn | rejretrn)
+  document2 statement;                                        ///< заявление пайщика; при accretrn перезаписывается версией с со-подписью председателя
   std::string reason_remote;                                  ///< причина отказа удалённо (для rejretrem)
   std::string reason_visit;                                   ///< причина отказа на очном осмотре (для rejretrn)
 

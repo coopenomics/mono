@@ -125,7 +125,6 @@ export class MarketplaceReturnClaimResolver {
       braname: data.braname,
       claim_id: data.claim_id,
       comment: data.comment,
-      signed_decision: data.signed_decision,
     });
     return this.toResultDTO(result);
   }
@@ -147,7 +146,6 @@ export class MarketplaceReturnClaimResolver {
       braname: data.braname,
       claim_id: data.claim_id,
       comment: data.comment,
-      signed_decision: data.signed_decision,
     });
     return this.toResultDTO(result);
   }
@@ -171,7 +169,7 @@ export class MarketplaceReturnClaimResolver {
       inspection_result: data.inspection_result,
       scanned_barcode: data.scanned_barcode ?? null,
       inspection_photos: data.inspection_photos?.map((p) => ({ base64: p.base64, mime_type: p.mime_type })),
-      signed_decision: data.signed_decision,
+      signed_statement: data.signed_statement,
     });
     return this.toResultDTO(result);
   }
@@ -194,7 +192,6 @@ export class MarketplaceReturnClaimResolver {
       claim_id: data.claim_id,
       inspection_result: data.inspection_result,
       inspection_photos: data.inspection_photos?.map((p) => ({ base64: p.base64, mime_type: p.mime_type })),
-      signed_decision: data.signed_decision,
     });
     return this.toResultDTO(result);
   }

@@ -15,8 +15,7 @@ void marketplace::rejretrem(eosio::name coopname,
                              eosio::name signer,
                              eosio::name braname,
                              checksum256 request_hash,
-                             std::string reason,
-                             document2 decision) {
+                             std::string reason) {
   require_auth(coopname);
   eosio::check(reason.size() > 0 && reason.size() <= 500,
                "Укажите причину отказа (от 1 до 500 символов)");
@@ -29,13 +28,8 @@ void marketplace::rejretrem(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
                "Заявление не находится на рассмотрении");
 
-  if (!is_empty_document(decision)) {
-    verify_document_or_fail(decision, { signer });
-  }
-
   Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status          = ReturnStatus::REJECTED_REMOTE;
-    upd.decision_remote = decision;
-    upd.reason_remote   = reason;
+    upd.status        = ReturnStatus::REJECTED_REMOTE;
+    upd.reason_remote = reason;
   });
 }
