@@ -30,6 +30,10 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
@@ -97,6 +101,8 @@ export class MarketplaceIssuanceService {
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -353,6 +359,22 @@ export class MarketplaceIssuanceService {
       issuance_fact: factSnapshot,
       warranty_until: warrantyUntil,
     });
+
+    // Выдача завершена — имущество ушло пайщику: переводим позиции склада
+    // этого заказа RECEIVED/LABELED → ISSUED, чтобы учёт расхода/остатка на
+    // складе КУ отражал выдачу (иначе расход на сводном складе всегда 0).
+    // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
+    try {
+      const issued = await this.inventoryRepo.markIssuedByOrder(order.coopname, order.id);
+      this.logger.log(
+        `Выдача order ${order.id}: переведено в ISSUED позиций склада: ${issued}.`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Выдача order ${order.id}: не удалось перевести позиции склада в ISSUED (${message}); склад покажет их как остаток до ручной сверки.`
+      );
+    }
 
     this.logger.log(
       `Выдача order ${order.id} завершена: actual_quantity=${actual_quantity}, diff=${factSnapshot.diff_state}, fact_cost=${factSnapshot.fact_cost} (tx=${txHash}).`

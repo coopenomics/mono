@@ -86,6 +86,21 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return this.mapper.toDomain(row);
   }
 
+  async markIssuedByOrder(coopname: string, order_id: string): Promise<number> {
+    const res = await this.repo.update(
+      {
+        coopname,
+        order_id,
+        status: In([
+          MarketplaceInventoryStatuses.RECEIVED,
+          MarketplaceInventoryStatuses.LABELED,
+        ]),
+      },
+      { status: MarketplaceInventoryStatuses.ISSUED }
+    );
+    return res.affected ?? 0;
+  }
+
   async assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity> {
     await this.repo.update({ id }, { shelf });
     const row = await this.repo.findOneOrFail({ where: { id } });

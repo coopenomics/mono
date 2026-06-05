@@ -61,6 +61,14 @@ export interface MarketplaceInventoryDomainRepository {
     newStatus: MarketplaceInventoryStatus
   ): Promise<MarketplaceInventoryDomainEntity>;
 
+  /**
+   * Перевести все позиции склада заказа из «на складе» (RECEIVED/LABELED) в
+   * ISSUED при завершении выдачи имущества пайщику. Возвращает число
+   * затронутых позиций. Идемпотентно: уже выданные/возвращённые/списанные
+   * позиции не трогает.
+   */
+  markIssuedByOrder(coopname: string, order_id: string): Promise<number>;
+
   /** Назначить/сменить/очистить полку склада для позиции. */
   assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity>;
 

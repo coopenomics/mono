@@ -209,14 +209,22 @@ export class MarketplaceInventoryResolver {
         : undefined,
     };
     const list = await this.inventoryRepo.list(filter);
-    // ФИО заказчиков добираем батчем на read-path (как лента заказов), чтобы в
-    // списке склада показывать человеческое имя, а не служебный аккаунт.
-    const nameByAccount = await this.orderDisplay.resolveAccountNames(
-      list.map((i) => i.orderer_account_snapshot)
-    );
+    // ФИО заказчиков, единицу измерения и реквизиты ПВЗ добираем батчем на
+    // read-path (как лента заказов): по аккаунтам — имена заказчиков, по
+    // заказам — наименование/адрес КУ и единица измерения из предложения.
+    // Так в списке склада показываем человеческие имена, а не служебные
+    // аккаунты/branames.
+    const [nameByAccount, displayByOrderId] = await Promise.all([
+      this.orderDisplay.resolveAccountNames(list.map((i) => i.orderer_account_snapshot)),
+      this.orderDisplay.enrichByOrderIds(list.map((i) => i.order_id)),
+    ]);
     return list.map((item) => {
       const dto = toMarketplaceInventoryItemDTO(item);
       dto.orderer_name = nameByAccount.get(item.orderer_account_snapshot) ?? null;
+      const display = displayByOrderId.get(item.order_id);
+      dto.unit_of_measure = display?.unit_of_measure ?? null;
+      dto.delivery_point_name = display?.delivery_point_name ?? null;
+      dto.delivery_point_address = display?.delivery_point_address ?? null;
       return dto;
     });
   }
