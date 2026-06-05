@@ -31,9 +31,11 @@ export async function updateOffer(
   return result[Mutations.Marketplace.UpdateOffer.name] as MarketplaceCreateOfferResult;
 }
 
+// Форма публикации показывает только доступные категории (с учётом whitelist'а
+// кооператива): общие baseline + собственные категории, минус выключенные.
 export async function fetchCategories(): Promise<MarketplaceCategoryView[]> {
-  const result = await client.Query(Queries.Marketplace.ListCategories.query);
-  return (result[Queries.Marketplace.ListCategories.name] ?? []) as MarketplaceCategoryView[];
+  const result = await client.Query(Queries.Marketplace.ListAvailableCategories.query);
+  return (result[Queries.Marketplace.ListAvailableCategories.name] ?? []) as MarketplaceCategoryView[];
 }
 
 /**

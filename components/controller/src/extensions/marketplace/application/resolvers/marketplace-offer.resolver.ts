@@ -30,6 +30,10 @@ import {
   MARKETPLACE_CATEGORY_SERVICE,
   MarketplaceCategoryService,
 } from '../services/marketplace-category.service';
+import {
+  AVAILABLE_CATEGORY_DOMAIN_SERVICE,
+  type AvailableCategoryDomainService,
+} from '../../domain/services/available-category-domain.service';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 
 const toDTO = toMarketplaceOfferDTO;
@@ -51,18 +55,56 @@ export class MarketplaceOfferResolver {
     @Inject(MARKETPLACE_OFFER_SERVICE)
     private readonly offerService: MarketplaceOfferService,
     @Inject(MARKETPLACE_CATEGORY_SERVICE)
-    private readonly categoryService: MarketplaceCategoryService
+    private readonly categoryService: MarketplaceCategoryService,
+    @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
+    private readonly availableCategoryService: AvailableCategoryDomainService
   ) {}
 
   @Query(() => [MarketplaceCategoryDTO], {
     name: 'marketplaceListCategories',
-    description: 'Baseline-категории Стола заказов (Story 3.2/3.5) — 8 продовольственных + «Прочее»',
+    description: 'Категории кооператива (общие и собственные) — справочник для каталога и карточек',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'read')
   async marketplaceListCategories(): Promise<MarketplaceCategoryDTO[]> {
-    const cats = await this.categoryService.listBaseline();
+    // Полный справочник категорий кооператива: общие baseline + собственные.
+    // Не фильтруется по доступности — нужен и для резолва имени категории у
+    // уже опубликованных Offer'ов (в т.ч. если категорию позже выключили).
+    const cats = await this.categoryService.listForCoop(config.coopname);
     return cats.map(
+      (c) =>
+        new MarketplaceCategoryDTO({
+          id: c.id,
+          display_name: c.display_name,
+          sort_order: c.sort_order,
+          mvp_baseline: c.mvp_baseline,
+        })
+    );
+  }
+
+  @Query(() => [MarketplaceCategoryDTO], {
+    name: 'marketplaceListAvailableCategories',
+    description: 'Категории, доступные для публикации предложений (с учётом whitelist)',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'read')
+  async marketplaceListAvailableCategories(): Promise<MarketplaceCategoryDTO[]> {
+    // Категории, в которых поставщик может публиковать: список кооператива,
+    // отфильтрованный по whitelist'у. Пустой whitelist = открытый каталог
+    // (доступны все). Используется формой создания предложения.
+    const cats = await this.categoryService.listForCoop(config.coopname);
+    const hasRestrictions = await this.availableCategoryService.hasAvailabilityRestrictions(
+      config.coopname
+    );
+    const filtered = hasRestrictions
+      ? await (async () => {
+          const ids = new Set(
+            await this.availableCategoryService.getAvailableCategoryIds(config.coopname)
+          );
+          return cats.filter((c) => ids.has(c.id));
+        })()
+      : cats;
+    return filtered.map(
       (c) =>
         new MarketplaceCategoryDTO({
           id: c.id,
