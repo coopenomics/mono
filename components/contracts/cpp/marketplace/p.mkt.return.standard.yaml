@@ -284,10 +284,10 @@ scenario:
 documents:
   - action: marketplace::submretrn
     title: Заявление пайщика на гарантийный возврат имущества
-    registry_id: 800
+    registry_id: 1104
     signed_by: [orderer]
     stored_in: return_requests.statement
-    note: "Используется существующий шаблон 800.ReturnByAssetStatement из cooptypes/cooperative/registry/. Оригинально создан под клиринговую модель donor'а («Заявление на возврат паевого взноса имуществом»); форма заявления пайщика на возврат структурно подходит и для членской модели гарантийного возврата. При необходимости методолог может создать специализированный шаблон в новой серии (1100+) — тогда registry_id обновится."
+    note: "Шаблон членской модели 1104.MarketplaceReturnStatement (серия 1100+ «Стола заказов», рядом с актами/ТТН). Заменил старый донорский 800.ReturnByAssetStatement (клиринговая модель — не используется в членской)."
 
   - action: marketplace::accretrn
     title: Решение председателя КУ о принятии гарантийного возврата
