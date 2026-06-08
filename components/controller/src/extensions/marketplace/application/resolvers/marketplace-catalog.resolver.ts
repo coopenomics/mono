@@ -94,12 +94,21 @@ export class MarketplaceCatalogResolver {
 
   @Query(() => [MarketplaceCategoryOfferCountDTO], {
     name: 'marketplaceCategoryOfferCounts',
-    description: 'Счётчики активных Offer\'ов per category — для фильтр-чипов Story 3.5',
+    description:
+      'Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'read')
-  async marketplaceCategoryOfferCounts(): Promise<MarketplaceCategoryOfferCountDTO[]> {
-    const map = await this.offerRepo.countByCategory(config.coopname);
+  async marketplaceCategoryOfferCounts(
+    @Args('delivery_braname', {
+      type: () => String,
+      nullable: true,
+      description:
+        'Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу.',
+    })
+    delivery_braname?: string | null
+  ): Promise<MarketplaceCategoryOfferCountDTO[]> {
+    const map = await this.offerRepo.countByCategory(config.coopname, delivery_braname);
     return MARKETPLACE_FOOD_CATEGORIES.map(
       (c) =>
         new MarketplaceCategoryOfferCountDTO({

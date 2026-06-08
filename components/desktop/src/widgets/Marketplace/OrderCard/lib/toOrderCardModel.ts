@@ -43,6 +43,8 @@ export interface OrderCardSource {
   delivery_braname: string;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
+  delivery_point_lat?: number | null;
+  delivery_point_lng?: number | null;
 }
 
 export function toOrderCardModel(o: OrderCardSource): Order {
@@ -72,5 +74,9 @@ export function toOrderCardModel(o: OrderCardSource): Order {
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.
     pvzName: name ?? (address ? undefined : o.delivery_braname),
     pvz: address,
+    // Координаты ПВЗ для карты «куда ехать» (живой геокод КУ). Может не быть,
+    // если участок ещё не геокодирован — тогда карта на карточке не предлагается.
+    pvzLat: o.delivery_point_lat ?? undefined,
+    pvzLng: o.delivery_point_lng ?? undefined,
   };
 }

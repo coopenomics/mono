@@ -99,7 +99,10 @@ export interface MarketplaceOfferDomainRepository {
     filter: OfferListFilter,
     pagination: PaginationInputDomainInterface
   ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>>;
-  countByCategory(coopname: string): Promise<Map<number, number>>;
+  countByCategory(
+    coopname: string,
+    delivery_braname?: string | null
+  ): Promise<Map<number, number>>;
   countRecentCreatedBy(supplier_account: string, sinceMs: number): Promise<number>;
   create(input: OfferCreateInput): Promise<MarketplaceOfferDomainEntity>;
   applyUpdate(

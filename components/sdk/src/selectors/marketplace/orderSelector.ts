@@ -45,6 +45,8 @@ export const rawOrderSelector = {
   delivery_braname: true,
   delivery_point_name: true,
   delivery_point_address: true,
+  delivery_point_lat: true,
+  delivery_point_lng: true,
   quantity: true,
   group_accumulated_quantity: true,
   group_min_volume: true,

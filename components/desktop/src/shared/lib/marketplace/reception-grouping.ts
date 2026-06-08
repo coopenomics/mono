@@ -24,6 +24,8 @@ export interface GroupableReception {
   status: string;
   ttn_number?: string | null;
   total_amount: string;
+  created_at?: string | null;
+  supplier_signed_at?: string | null;
   fact_quantity_per_order: ReadonlyArray<{
     product_name?: string | null;
     fact_quantity: number | string;
@@ -53,6 +55,11 @@ export interface ReceptionGroup<T extends GroupableReception = GroupableReceptio
   receptions: T[];
   lines: ReceptionGroupLine[];
   totalAmount: string;
+  // Метки времени сводной поставки (для различения карточек по датам):
+  //   createdAt — когда акт(ы) приёмки сформированы (поставка принята на ПВЗ);
+  //   supplierSignedAt — когда поставщик подписал (если уже подписал).
+  createdAt: string | null;
+  supplierSignedAt: string | null;
 }
 
 export function groupAplReceptions<T extends GroupableReception>(
@@ -77,11 +84,18 @@ export function groupAplReceptions<T extends GroupableReception>(
         receptions: [],
         lines: [],
         totalAmount: '0',
+        createdAt: null,
+        supplierSignedAt: null,
       };
       map.set(key, g);
     }
     g.receptions.push(r);
     if (r.ttn_number && !g.ttnNumbers.includes(r.ttn_number)) g.ttnNumbers.push(r.ttn_number);
+    // Поставка принята = самый ранний акт; поставщик подписал = самая поздняя
+    // подпись по группе (вся поставка считается подписанной по последней).
+    if (r.created_at && (!g.createdAt || r.created_at < g.createdAt)) g.createdAt = r.created_at;
+    if (r.supplier_signed_at && (!g.supplierSignedAt || r.supplier_signed_at > g.supplierSignedAt))
+      g.supplierSignedAt = r.supplier_signed_at;
   }
   // Агрегация строк по товару + сумма — после сбора всех receptions группы.
   for (const g of map.values()) {

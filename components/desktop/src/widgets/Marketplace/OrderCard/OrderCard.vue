@@ -31,12 +31,18 @@
       </div>
     </div>
 
-    <div v-if="order.pvzName || order.pvz" class="order-card__pvz">
+    <div
+      v-if="order.pvzName || order.pvz"
+      class="order-card__pvz"
+      :class="{ 'order-card__pvz--mappable': hasMap }"
+      @click.stop="hasMap && emit('map', order)"
+    >
       <q-icon name="place" size="18px" class="order-card__pvz-icon" />
       <div class="order-card__pvz-text">
         <div v-if="order.pvzName" class="order-card__pvz-name">{{ order.pvzName }}</div>
         <div v-if="order.pvz" class="order-card__pvz-addr">{{ order.pvz }}</div>
       </div>
+      <q-icon v-if="hasMap" name="map" size="16px" class="order-card__pvz-map" />
     </div>
 
     <div v-if="actionsForRole.length || $slots.actions" class="order-card__foot" @click.stop>
@@ -96,6 +102,10 @@ export interface Order {
   pvzName?: string
   /** Адрес пункта выдачи — вторичная строка под наименованием. */
   pvz?: string
+  /** Широта ПВЗ — если задана вместе с pvzLng, блок адреса открывает карту. */
+  pvzLat?: number
+  /** Долгота ПВЗ. */
+  pvzLng?: number
 }
 
 interface OrderAction {
@@ -117,7 +127,13 @@ const props = defineProps({
 const emit = defineEmits<{
   (e: 'action', payload: { key: string; order: Order }): void
   (e: 'open', order: Order): void
+  (e: 'map', order: Order): void
 }>()
+
+// ПВЗ кликабелен (открывает карту «куда ехать»), только когда есть координаты.
+const hasMap = computed(
+  () => typeof props.order.pvzLat === 'number' && typeof props.order.pvzLng === 'number',
+)
 
 function onCardClick(): void {
   if (props.openable) emit('open', props.order)
@@ -303,6 +319,32 @@ function formatPrice(v: number) {
     align-items: flex-start;
     gap: var(--p-2, 8px);
     margin-top: var(--p-4, 16px);
+
+    // С координатами — кликабельный: открывает карту «куда ехать».
+    &--mappable {
+      cursor: pointer;
+      border-radius: var(--p-r-sm, 8px);
+      margin-left: calc(-1 * var(--p-2, 8px));
+      margin-right: calc(-1 * var(--p-2, 8px));
+      padding: var(--p-2, 8px);
+      margin-top: var(--p-2, 8px);
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: var(--p-surface-2);
+      }
+
+      .order-card__pvz-addr {
+        color: var(--p-primary);
+      }
+    }
+  }
+
+  &__pvz-map {
+    margin-left: auto;
+    color: var(--p-primary);
+    flex-shrink: 0;
+    align-self: center;
   }
 
   &__pvz-icon {

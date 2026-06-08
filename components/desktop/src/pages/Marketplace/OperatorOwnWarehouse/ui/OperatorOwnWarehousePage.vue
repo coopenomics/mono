@@ -8,6 +8,7 @@ import { BaseBadge, BaseButton, BaseInput, EmptyState, TableSkeleton } from 'src
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import {
   listInventory,
   assignInventoryShelf,
@@ -96,6 +97,7 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Ед.', class: 'col-qty', cell: 'text', cellWidth: '40px' },
   { label: 'Штрих-код', class: 'col-barcode', cell: 'text' },
   { label: 'Состояние', class: 'col-status', cell: 'badge' },
+  { label: 'Годен до', class: 'col-expiry', cell: 'text', cellWidth: '120px' },
   { label: 'Принято', class: 'col-date', cell: 'text', cellWidth: '120px' },
 ]
 
@@ -212,11 +214,23 @@ function statusVariant(status: string): BaseBadgeVariant {
   }
 }
 
+// Время с бэкенда в UTC — показываем в локальном поясе оператора (env.TIMEZONE).
 function formatDateTime(value: unknown): string {
-  if (value === null || value === undefined) return '—'
-  const parsed = new Date(String(value))
-  if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleString('ru-RU')
+  const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm')
+  return out || '—'
+}
+
+// Срок годности — без времени (только дата). По нему идёт списание просрочки,
+// поэтому истёкший срок подсвечиваем красным.
+function formatDate(value: unknown): string {
+  const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY')
+  return out || '—'
+}
+
+function isExpired(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  const t = new Date(String(value)).getTime()
+  return Number.isFinite(t) && t < Date.now()
 }
 </script>
 
@@ -288,6 +302,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
               th.col-qty Ед.
               th.col-barcode Штрих-код
               th.col-status Состояние
+              th.col-expiry Годен до
               th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
           tbody
             tr(v-for='row in sortedRows', :key='row.id')
@@ -329,6 +344,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 
               td.col-status
                 BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
+
+              td.col-expiry(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
 
               td.col-date {{ formatDateTime(row.received_at) }}
 
@@ -391,6 +408,12 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   &__product {
     overflow-wrap: anywhere;
   }
+
+  // Просроченный срок годности — красным: оператору видно, что пора списывать.
+  &__expired {
+    color: var(--p-neg);
+    font-weight: 600;
+  }
 }
 
 .table-scroll {
@@ -401,7 +424,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 // скролл вместо наезжающих друг на друга колонок.
 .table {
   table-layout: fixed;
-  min-width: 1146px;
+  min-width: 1306px;
 }
 
 .col-shelf {
@@ -422,6 +445,10 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 }
 .col-status {
   width: 140px;
+}
+.col-expiry {
+  width: 120px;
+  white-space: nowrap;
 }
 .col-date {
   width: 160px;

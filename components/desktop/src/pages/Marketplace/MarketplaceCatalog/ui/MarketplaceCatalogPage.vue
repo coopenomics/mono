@@ -64,14 +64,19 @@ const totalActiveCount = computed(() =>
 );
 
 // Категории как канон-вкладки (`PageTabs` со счётчиком). `key` — строковый id
-// категории (или 'all'), счётчик — число активных предложений в категории.
+// категории (или 'all'), счётчик — число доступных к заказу товаров. Пустые
+// категории (count == 0) НЕ показываем — заказчику ни к чему категории, в
+// которых под его пунктом выдачи ничего нет. Счётчики КУ-скоупные (бэкенд),
+// поэтому фильтр следует за выбранным пунктом.
 const categoryTabs = computed<PageTab[]>(() => [
   { key: 'all', label: 'Все', count: totalActiveCount.value },
-  ...categories.value.map((cat) => ({
-    key: String(cat.id),
-    label: cat.display_name,
-    count: counts.value.get(cat.id) ?? 0,
-  })),
+  ...categories.value
+    .filter((cat) => (counts.value.get(cat.id) ?? 0) > 0)
+    .map((cat) => ({
+      key: String(cat.id),
+      label: cat.display_name,
+      count: counts.value.get(cat.id) ?? 0,
+    })),
 ]);
 
 const activeCategoryKey = computed(() =>
@@ -127,7 +132,12 @@ function canOrder(offer: MarketplaceOfferView): boolean {
 }
 
 async function loadCategories(): Promise<void> {
-  const [cats, cc] = await Promise.all([fetchCategories(), fetchCategoryOfferCounts()]);
+  // Счётчики КУ-скоупим текущим пунктом выдачи — пустые на нём категории уйдут
+  // из вкладок (categoryTabs фильтрует count==0). Без КУ (гость) — глобально.
+  const [cats, cc] = await Promise.all([
+    fetchCategories(),
+    fetchCategoryOfferCounts(cartStore.currentBraname),
+  ]);
   categories.value = cats;
   const map = new Map<number, number>();
   for (const c of cc) map.set(c.category_id, c.count);
@@ -215,9 +225,19 @@ function goToDetail(offer: MarketplaceOfferView): void {
 }
 
 // Перезагрузка витрины под текущий КУ (категории зависят от КУ-фильтра).
+// Категории грузим первыми: если выбранная категория опустела на новом пункте
+// (её вкладка исчезнет), сбрасываемся на «Все», иначе подсветка повиснет на
+// несуществующей вкладке, а витрина покажет пустой EmptyState.
 async function reloadCatalog(): Promise<void> {
   currentPage.value = 1;
-  await Promise.all([loadCategories(), loadPage(false)]);
+  await loadCategories();
+  if (
+    selectedCategoryId.value !== ALL_KEY &&
+    (counts.value.get(selectedCategoryId.value) ?? 0) === 0
+  ) {
+    selectedCategoryId.value = ALL_KEY;
+  }
+  await loadPage(false);
 }
 
 // КУ сменили в шапке — перегружаем витрину под новый пункт выдачи.

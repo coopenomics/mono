@@ -1981,6 +1981,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCategoryAttributesGrouped:{
 			input:"GetCategoryAttributesInput"
 		},
+		marketplaceCategoryOfferCounts:{
+
+		},
 		marketplaceFindPotentialMatches:{
 			data:"FindPotentialMatchesInput"
 		},
@@ -4178,6 +4181,7 @@ export const ReturnTypes: Record<string,any> = {
 		created_at:"DateTime",
 		delivery_point_address:"String",
 		delivery_point_name:"String",
+		expiry_date:"DateTime",
 		id:"ID",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
@@ -4303,6 +4307,8 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		delivery_braname:"String",
 		delivery_point_address:"String",
+		delivery_point_lat:"Float",
+		delivery_point_lng:"Float",
 		delivery_point_name:"String",
 		delivery_signer_account:"String",
 		group_accumulated_quantity:"Int",

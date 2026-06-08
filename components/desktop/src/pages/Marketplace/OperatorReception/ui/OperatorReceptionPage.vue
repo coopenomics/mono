@@ -10,6 +10,7 @@ import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
   decodeHandoffToken,
   HandoffTokenKind,
@@ -121,17 +122,11 @@ function statusVariant(v: string): BaseBadgeVariant {
 }
 
 // Когда сформирована партия — оператор видит дату/время, чтобы прикинуть приёмку
-// и заранее подготовить место на складе под скоропорт.
+// и заранее подготовить место на складе под скоропорт. Время с бэкенда в UTC —
+// показываем в локальном поясе оператора (env.TIMEZONE), не в UTC/поясе браузера.
 function formatDate(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  const parsed = new Date(String(value));
-  if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const out = formatDateToLocalTimezone(value, 'DD.MM HH:mm');
+  return out || '—';
 }
 
 function variantLabel(v: string): string {
@@ -694,15 +689,21 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             .reception__card-ident
               span.reception__card-name {{ g.offererName }}
               AccountBadge(:account-name='g.offererAccount', size='sm')
-        template(#actions)
-          .reception__card-methods
-            BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
 
-        .reception__card-when {{ variantLabel(g.variant) }}
+        .reception__card-badges
+          BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
+          BaseBadge(variant='neutral') {{ variantLabel(g.variant) }}
         ul.reception__card-items(v-if='g.lines.length')
           li.reception__card-item(v-for='l in g.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
             span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+        .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
+          .reception__card-stamp(v-if='g.createdAt')
+            q-icon(name='inventory_2', size='14px')
+            span Принята {{ formatDate(g.createdAt) }}
+          .reception__card-stamp(v-if='g.supplierSignedAt')
+            q-icon(name='draw', size='14px')
+            span Поставщик подписал {{ formatDate(g.supplierSignedAt) }}
         .reception__card-summary
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(g.totalAmount) }} ₽
@@ -721,19 +722,23 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             .reception__card-ident
               span.reception__card-name {{ d.supplierName }}
               AccountBadge(:account-name='d.offerer', size='sm')
-        template(#actions)
-          .reception__card-methods
-            BaseBadge(variant='info') Ожидает приёмки
-            BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
 
-        .reception__card-when(v-if='d.formedAt') Партия сформирована {{ d.formedAt }}
-        .reception__card-when(v-else) Привезёт по факту
+        .reception__card-badges
+          BaseBadge(variant='info') Ожидает приёмки
+          BaseBadge(v-for='m in d.deliveryLabels', :key='m', variant='neutral') {{ m }}
         ul.reception__card-items(v-if='d.lines.length')
           li.reception__card-item(v-for='l in d.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
             span.reception__card-qty
               | {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
               span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
+        .reception__card-stamps
+          .reception__card-stamp(v-if='d.formedAt')
+            q-icon(name='inventory_2', size='14px')
+            span Сформирована {{ d.formedAt }}
+          .reception__card-stamp(v-else)
+            q-icon(name='schedule', size='14px')
+            span Привезёт по факту
         .reception__card-summary
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
@@ -873,9 +878,24 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     overflow-wrap: anywhere;
   }
 
-  &__card-when {
+  // Метки времени поставки: компактные строки с иконкой этапа, приглушённые —
+  // чтобы оператор различал карточки по датам, не перетягивая на себя акцент.
+  &__card-stamps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__card-stamp {
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
     font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    color: var(--p-ink-3);
+
+    .q-icon {
+      color: var(--p-ink-3);
+    }
   }
 
   &__card-summary {
@@ -919,11 +939,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-size: var(--p-fs-body-sm, 13px);
   }
 
-  &__card-methods {
+  // Бейджи статуса/способа доставки — отдельной строкой под именем (раньше
+  // сидели в #actions справа от шапки и зажимали ФИО в узкую колонку, имя
+  // ломалось на 3 строки). Слева, с переносом.
+  &__card-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--p-1, 4px);
-    justify-content: flex-end;
+    align-items: center;
+    gap: var(--p-2, 8px);
   }
 
   &__card-prod {

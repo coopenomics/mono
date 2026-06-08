@@ -119,6 +119,12 @@ export class MarketplaceInventoryItemDTO {
   @Field(() => Date, { description: 'Момент приёмки имущества кооперативом по акту.' })
   received_at!: Date;
 
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан.',
+  })
+  expiry_date!: Date | null;
+
   @Field(() => String, { description: 'Оператор КУ, оформивший приёмку.' })
   received_by_operator_account!: string;
 
@@ -291,6 +297,7 @@ export function toMarketplaceInventoryItemDTO(
   dto.delivery_point_address = null;
   dto.shelf = e.shelf;
   dto.received_at = e.received_at;
+  dto.expiry_date = e.expiry_date;
   dto.received_by_operator_account = e.received_by_operator_account;
   dto.labeled_at = e.labeled_at;
   dto.labeled_by_operator_account = e.labeled_by_operator_account;

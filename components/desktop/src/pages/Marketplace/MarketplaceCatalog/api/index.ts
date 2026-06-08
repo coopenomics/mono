@@ -64,9 +64,12 @@ export async function fetchCategories(): Promise<MarketplaceCategoryView[]> {
   return list;
 }
 
-export async function fetchCategoryOfferCounts(): Promise<MarketplaceCategoryOfferCount[]> {
+export async function fetchCategoryOfferCounts(
+  delivery_braname?: string | null,
+): Promise<MarketplaceCategoryOfferCount[]> {
   const { [Queries.Marketplace.CategoryOfferCounts.name]: list } = await client.Query(
     Queries.Marketplace.CategoryOfferCounts.query,
+    { variables: { delivery_braname: delivery_braname ?? null } },
   );
   return list;
 }

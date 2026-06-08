@@ -6800,6 +6800,8 @@ export type ValueTypes = {
 	delivery_point_address?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?:boolean | `@${string}`,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?:boolean | `@${string}`,
@@ -7232,6 +7234,10 @@ export type ValueTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?:boolean | `@${string}`,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -9829,8 +9835,8 @@ marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] 
 	marketplaceAttributeStats?:ValueTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
-	marketplaceCategoryOfferCounts?:ValueTypes["MarketplaceCategoryOfferCount"],
+marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
+	delivery_braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryOfferCount"]],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ValueTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -17057,6 +17063,8 @@ export type ResolverInputTypes = {
 	delivery_point_address?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?:boolean | `@${string}`,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?:boolean | `@${string}`,
@@ -17478,6 +17486,10 @@ export type ResolverInputTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?:boolean | `@${string}`,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -19982,8 +19994,8 @@ marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributes
 	marketplaceAttributeStats?:ResolverInputTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
-	marketplaceCategoryOfferCounts?:ResolverInputTypes["MarketplaceCategoryOfferCount"],
+marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
+	delivery_braname?: string | undefined | null},ResolverInputTypes["MarketplaceCategoryOfferCount"]],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ResolverInputTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -26983,6 +26995,8 @@ export type ModelTypes = {
 	delivery_point_address?: string | undefined | null,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?: string | undefined | null,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?: ModelTypes["DateTime"] | undefined | null,
 	id: ModelTypes["ID"],
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?: ModelTypes["DateTime"] | undefined | null,
@@ -27390,6 +27404,10 @@ export type ModelTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?: number | undefined | null,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?: number | undefined | null,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -30495,7 +30513,7 @@ export type ModelTypes = {
 	marketplaceCategoryAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: ModelTypes["MarketplaceCppStatus"],
@@ -37843,6 +37861,8 @@ export type GraphQLTypes = {
 	delivery_point_address?: string | undefined | null,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?: string | undefined | null,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?: GraphQLTypes["DateTime"] | undefined | null,
 	id: GraphQLTypes["ID"],
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?: GraphQLTypes["DateTime"] | undefined | null,
@@ -38275,6 +38295,10 @@ export type GraphQLTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?: number | undefined | null,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?: number | undefined | null,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -41597,7 +41621,7 @@ export type GraphQLTypes = {
 	marketplaceCategoryAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: GraphQLTypes["MarketplaceCppStatus"],

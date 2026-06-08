@@ -19,6 +19,7 @@ const rawInventorySelector = {
   delivery_point_address: true,
   shelf: true,
   received_at: true,
+  expiry_date: true,
   received_by_operator_account: true,
   labeled_at: true,
   labeled_by_operator_account: true,
