@@ -26,14 +26,31 @@ export class Factory extends DocFactory<MarketplaceAplReception.Action> {
     const coop = await this.getCooperative(data.coopname, data.block_num)
     const vars = await this.getVars(data.coopname, data.block_num)
 
-    // `user` = пайщик-получатель имущества (USERNAME = data.username).
+    // `user` = ПОСТАВЩИК (передающая сторона, «Передал»; USERNAME = data.username).
     const user = await this.getUser(data.username, data.block_num)
 
-    // `transmitter` = USERNAME председателя КУ или доверенного им лицa —
-    // тот, кто передаёт имущество пайщику.
+    // `transmitter` = USERNAME оператора КУ (председатель КУ или доверенное им
+    // лицо) — принимающая сторона от лица Кооператива («Получил»).
     const transmitter = await this.getUser(data.transmitter, data.block_num)
 
-    const request = await this.getRequest(Number(data.order_id), data.block_num)
+    // request строится напрямую из данных заказа в Action (а не из заглушки
+    // getRequest): АПП несёт ИМЕННО переданное имущество — артикул (СКУ),
+    // наименование, фактическое количество и его стоимость, а не агрегат партии.
+    const cleanNum = (s: string): string => {
+      const n = Number.parseFloat(s)
+      return Number.isFinite(n) ? String(n) : s
+    }
+    const request: MarketplaceAplReception.Model['request'] = {
+      hash: data.sku,
+      title: data.product_title,
+      unit_of_measurement: data.unit_of_measurement,
+      units: data.fact_quantity,
+      unit_cost: cleanNum(data.unit_cost),
+      total_cost: cleanNum(data.total_amount),
+      currency: data.currency,
+      type: 'receive',
+      program_id: 0,
+    }
 
     const commonUser = this.getCommonUser(user)
 
@@ -44,12 +61,13 @@ export class Factory extends DocFactory<MarketplaceAplReception.Action> {
     if (data.braname)
       branch = await this.getOrganization(data.braname, data.block_num)
 
-    const program = await this.getProgram(request.program_id)
+    // Имя ЦПП фиксировано для членского стола заказов (не из реестра программ —
+    // там может стоять пилотное имя кооператива). Согласовано с пользователем.
+    const program: MarketplaceAplReception.Model['program'] = { name: 'Членский стол заказов' }
 
-    // АПП выдачи пайщику в Marketplace не сопровождается отдельным
-    // протоколом совета — поле `decision` заполняем заглушкой для
-    // совместимости с шаблоном 802. Реальное основание выдачи —
-    // консолидированная заявка cycle_id, она попадает в meta.
+    // АПП приёмки не сопровождается протоколом совета — поле `decision`
+    // заполняем заглушкой для совместимости с общей моделью (в тексте акта
+    // приёмки decision не используется).
     const decision = {
       id: 0,
       date: meta.created_at.split(' ')[0] ?? '',

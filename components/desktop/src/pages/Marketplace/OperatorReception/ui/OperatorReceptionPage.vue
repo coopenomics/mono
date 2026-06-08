@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
@@ -227,21 +227,42 @@ interface DeliveryLine {
   productName: string;
   unit: string;
   quantity: number;
+  // Экспедиторская упаковка: сколько коробок суммарно по товару (если поставка
+  // идёт по ТТН и упаковка задана). 0 — упаковка неизвестна, коробки не показываем.
+  boxes: number;
 }
+
+// Упаковка экспедитора по заказам: order_id → штук в коробке (из ttn_data
+// ожидаемой партии). По ней оператор заранее представляет объём в коробках.
+const unitsPerBoxByOrder = computed(() => {
+  const m = new Map<string, number>();
+  for (const s of pendingShipments.value) {
+    for (const p of s.ttn_data?.packaging ?? []) {
+      const per = Number(p.units_per_box);
+      if (Number.isFinite(per) && per > 0) m.set(String(p.order_id), per);
+    }
+  }
+  return m;
+});
 
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
     const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
     const qty = Number(o.quantity) || 0;
+    const per = unitsPerBoxByOrder.value.get(o.id);
+    const boxes = per && per > 0 ? Math.ceil(qty / per) : 0;
     const ex = map.get(key);
-    if (ex) ex.quantity += qty;
-    else
+    if (ex) {
+      ex.quantity += qty;
+      ex.boxes += boxes;
+    } else
       map.set(key, {
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure,
         quantity: qty,
+        boxes,
       });
   }
   return [...map.values()];
@@ -649,8 +670,15 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     //- секции, где одна пишет «поставок нет», а другая требует подписи — поэтому
     //- один лист карточек. Сначала требующие действия (ждут подписи) — они
     //- «живые» прямо сейчас; затем ожидаемые (примутся по скану QR в шапке).
+    //- Канон загрузки: пока грузим и данных ещё нет — скелетон, НЕ мелькающая
+    //- заглушка «Поставок пока нет» (она и появлялась на полсекунды раньше карточек).
+    CardListSkeleton(
+      v-if='loading && !expectedDeliveries.length && !receptionGroups.length',
+      :count='2'
+    )
+
     EmptyState(
-      v-if='!expectedDeliveries.length && !receptionGroups.length',
+      v-else-if='!expectedDeliveries.length && !receptionGroups.length',
       title='Поставок пока нет',
       body='Поставки появятся здесь, как только поставщики направят их на ваш пункт.'
     )
@@ -669,10 +697,8 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         template(#actions)
           .reception__card-methods
             BaseBadge(:variant='statusVariant(g.status)') {{ statusLabel(g.status) }}
-            BaseBadge(v-if='g.receptions.length > 1', variant='info') Доставок: {{ g.receptions.length }}
 
         .reception__card-when {{ variantLabel(g.variant) }}
-        .reception__card-ttn(v-if='g.ttnNumbers.length') ТТН {{ g.ttnNumbers.join(', ') }}
         ul.reception__card-items(v-if='g.lines.length')
           li.reception__card-item(v-for='l in g.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
@@ -702,11 +728,12 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
         .reception__card-when(v-if='d.formedAt') Партия сформирована {{ d.formedAt }}
         .reception__card-when(v-else) Привезёт по факту
-        .reception__card-ttn(v-if='d.ttnNumbers.length') ТТН {{ d.ttnNumbers.join(', ') }}
         ul.reception__card-items(v-if='d.lines.length')
           li.reception__card-item(v-for='l in d.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+            span.reception__card-qty
+              | {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+              span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
         .reception__card-summary
           span.reception__card-summary-label Сумма поставки
           span.reception__card-amount {{ formatAsset2Digits(d.amount) }} ₽
@@ -873,12 +900,6 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-variant-numeric: tabular-nums;
   }
 
-  &__card-ttn {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
-  }
-
   &__card-items {
     margin: 0;
     padding: var(--p-3, 12px);
@@ -915,6 +936,11 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     color: var(--p-ink);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
+  }
+
+  &__card-boxes {
+    color: var(--p-ink-3);
+    font-weight: 400;
   }
 
   &__card-foot {

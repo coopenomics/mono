@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { AccountBadge } from 'src/shared/ui/domain';
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
-import type { ReceptionGroup } from 'src/shared/lib/marketplace';
+import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchChairmanSignablePayloads,
   signAsChairman,
@@ -37,10 +38,24 @@ const emit = defineEmits<{
 }>();
 
 const globalStore = useGlobalStore();
+const branchStore = useOperatorBranchStore();
 const signing = ref(false);
 const done = ref(0);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
+// Единый паттерн «Показать / Скрыть акты»: таблица прячется, показываются акты.
+const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
+
+// Человекочитаемое имя КУ-получателя вместо служебного braname. Оператор
+// привязан к своему КУ — резолвим имя из стола оператора.
+const kuName = computed(() => {
+  const b = props.group?.braname ?? '';
+  return branchStore.branches.find((x) => x.braname === b)?.name || b;
+});
+
+// Сброс режима просмотра при открытии/смене поставки — каждая поставка
+// начинается с таблицы состава, без подтянутых от прошлой документов.
+watch(() => [props.modelValue, props.group?.key], resetActs);
 
 const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -153,13 +168,12 @@ BaseDialog(
           AccountBadge(:account-name="group.offererAccount", size="sm")
       .mp-sign-apl-chairman__meta
         BaseBadge(variant="neutral") {{ variantLabel }}
-        BaseBadge(v-if="deliveriesCount > 1", variant="info") Доставок: {{ deliveriesCount }}
 
     .mp-sign-apl-chairman__sub
-      | КУ {{ group.braname }}
+      | КУ {{ kuName }}
       template(v-if="group.ttnNumbers.length")  · ТТН {{ group.ttnNumbers.join(', ') }}
 
-    table.mp-sign-apl-chairman__table
+    table.mp-sign-apl-chairman__table(v-if="!showActs")
       thead
         tr
           th Товар
@@ -176,22 +190,18 @@ BaseDialog(
           td.num
           td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
 
-    .mp-sign-apl-chairman__preview-actions
-      BaseButton(variant="ghost", size="sm", :loading="previewLoading", @click="loadPreview")
-        template(#icon-left)
-          q-icon(name="description", size="16px")
-        | Показать акты
-
-    q-card(v-if="previewHtml", flat, bordered).mp-sign-apl-chairman__preview
-      q-card-section.q-pa-md
+    q-card(v-if="showActs", flat, bordered).mp-sign-apl-chairman__preview
+      q-inner-loading(:showing="previewLoading")
+        q-spinner(size="28px")
+      q-card-section.q-pa-md(v-if="previewHtml")
         div(v-html="previewHtml")
-
-    .mp-sign-apl-chairman__note
-      | После подписи каждая партия принимается в кооператив. Под капотом по
-      | каждому акту приёма-передачи уходит отдельная транзакция в блокчейн.
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
+      template(#icon-left)
+        q-icon(name="description", size="16px")
+      | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="16px")
@@ -274,19 +284,11 @@ BaseDialog(
     }
   }
 
-  &__preview-actions {
-    display: flex;
-    justify-content: flex-start;
-  }
-
   &__preview {
+    position: relative;
+    min-height: 80px;
     max-height: 60vh;
     overflow: auto;
-  }
-
-  &__note {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
   }
 }
 </style>

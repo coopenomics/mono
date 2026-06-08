@@ -6,7 +6,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
@@ -63,7 +62,7 @@ const showSkeleton = computed(() => loading.value && items.value.length === 0);
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
   { key: 'pending-accept', label: 'Ждут акцепта', statuses: ['ACTIVE'] },
   { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
-  { key: 'supply-prepared', label: 'Поставка готова', statuses: ['SUPPLY_PREPARED'] },
+  { key: 'supply-prepared', label: 'Собраны к отгрузке', statuses: ['SUPPLY_PREPARED'] },
   {
     key: 'accepted-to-coop',
     label: 'У кооператива',
@@ -238,7 +237,7 @@ async function onAcceptParty(p: SupplierParty): Promise<void> {
     // Эпик 15: принять партию целиком одним массивом order_id. min — цель сбора,
     // не порог: принять можно и меньшего объёма (кнопка доступна всегда).
     await acceptOrdersBatch(p.orders.map((o) => o.id));
-    SuccessAlert(`Партия принята к поставке (${p.orders.length} зак.)`);
+    SuccessAlert('Заказ принят к поставке.');
     await load(1, false);
   } catch (e) {
     FailAlert(e);
@@ -249,8 +248,8 @@ async function onAcceptParty(p: SupplierParty): Promise<void> {
 
 function onDeclineParty(p: SupplierParty): void {
   Dialog.create({
-    title: 'Отказ от партии',
-    message: `Отказ по ${p.orders.length} заказ(ам) на КУ «${p.pvzName}». Укажите причину — она будет показана пайщикам.`,
+    title: 'Отказ от заказа',
+    message: `Отказ от заказа на КУ «${p.pvzName}». Укажите причину — она будет показана пайщикам.`,
     prompt: { model: '', type: 'textarea', isValid: (val: string) => val.trim().length > 0 },
     cancel: { label: 'Отмена', flat: true, noCaps: true },
     ok: { label: 'Отказать', color: 'negative', noCaps: true },
@@ -334,12 +333,13 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :pvz-name='p.pvzName',
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
+        hide-order-count,
         :volume-label='`Объём партии: ${p.totalUnits} ${p.unitLabel}`',
         :target-label='hasTarget(p) ? `цель — от ${p.minVolume} ${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
         :members='[]',
-        total-label='Итого партии',
+        total-label='Итого',
         :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
         template(#hint)
@@ -350,14 +350,12 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
             span Можно принять и сейчас — минимум лишь ориентир сбора.
           template(v-else-if='p.kind === "collecting"')
             span Поштучный приём — каждый заказ можно принять сразу.
-          template(v-else)
-            q-icon(name='local_shipping', size='14px')
-            span Партия принята. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
+          //- Принятая партия: этап уже в бейдже справа-вверху — hint не дублируем.
         template(#actions)
           template(v-if='p.kind === "collecting"')
             BaseButton(variant='ghost', size='sm', @click='onDeclineParty(p)') Отклонить
             BaseButton(variant='primary', size='sm', :loading='loading', @click='onAcceptParty(p)')
-              | Принять партию ({{ p.orders.length }})
+              | Принять заказ
 
       .incoming-orders__more(v-if='hasMore')
         BaseButton(variant='ghost', :loading='loading', @click='loadMore') Показать ещё

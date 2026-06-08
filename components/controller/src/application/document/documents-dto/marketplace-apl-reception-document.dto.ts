@@ -39,6 +39,26 @@ class BaseMarketplaceAplReceptionMetaDocumentInputDTO implements ExcludeCommonPr
   @IsString()
   supplier_account!: string;
 
+  @Field({ description: 'Артикул (СКУ) товара по заказу.' })
+  @IsString()
+  sku!: string;
+
+  @Field({ description: 'Наименование товара по заказу.' })
+  @IsString()
+  product_title!: string;
+
+  @Field({ description: 'Единица измерения товара (человекочитаемая).' })
+  @IsString()
+  unit_of_measurement!: string;
+
+  @Field({ description: 'Цена за единицу товара по заказу.' })
+  @IsString()
+  unit_cost!: string;
+
+  @Field({ description: 'Символ валюты для сумм в акте.' })
+  @IsString()
+  currency!: string;
+
   @Field({ description: 'Номер акта для шапки документа.' })
   @IsString()
   act_id!: string;

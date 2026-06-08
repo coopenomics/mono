@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
+import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
-import type { ReceptionGroup } from 'src/shared/lib/marketplace';
+import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
   signAsSupplier,
@@ -39,6 +40,10 @@ const signing = ref(false);
 const done = ref(0);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
+// Единый паттерн «Показать / Скрыть акты»: таблица состава прячется при показе.
+const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
+// Каждая поставка открывается с таблицы состава, без актов от прошлой записи.
+watch(() => [props.modelValue, props.group?.key], resetActs);
 
 const VARIANT_LABEL: Record<string, string> = {
   IN_PERSON: 'Очная приёмка',
@@ -51,6 +56,19 @@ const variantLabel = computed(() =>
 );
 
 const deliveriesCount = computed(() => props.group?.receptions.length ?? 0);
+
+// Человекочитаемое имя КУ-получателя + адрес вместо служебного braname —
+// стор уже наполнен родительской страницей (singleton-pinia).
+const kuStore = useMarketplaceKUDetailsStore();
+const kuName = computed(() => {
+  const b = props.group?.braname ?? '';
+  const k = kuStore.details.find((d) => d.coreBraname === b);
+  return k?.name || b;
+});
+const kuAddr = computed(() => {
+  const b = props.group?.braname ?? '';
+  return kuStore.details.find((d) => d.coreBraname === b)?.addressFull ?? '';
+});
 
 async function loadPreview(): Promise<void> {
   if (!props.group) return;
@@ -140,13 +158,19 @@ BaseDialog(
     .sign-apl__head
       q-icon(name="local_shipping", size="28px")
       .sign-apl__ident
-        span.sign-apl__name Поставка на {{ group.braname }}
+        span.sign-apl__name Поставка на {{ kuName }}
+        span.sign-apl__addr(v-if="kuAddr")
+          q-icon(name="place", size="14px")
+          | {{ kuAddr }}
         span.sign-apl__sub {{ variantLabel }}
-      .sign-apl__meta
-        BaseBadge(v-if="deliveriesCount > 1", variant="info") Доставок: {{ deliveriesCount }}
-        BaseBadge(v-if="group.ttnNumbers.length", variant="neutral") ТТН {{ group.ttnNumbers.join(', ') }}
+      .sign-apl__meta(v-if="group.ttnNumbers.length")
+        span.sign-apl__ttn-label
+          q-icon(name="description", size="14px")
+          | {{ group.ttnNumbers.length > 1 ? 'Товарно-транспортные накладные' : 'Товарно-транспортная накладная' }}
+        .sign-apl__ttn-list
+          BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
 
-    table.sign-apl__table
+    table.sign-apl__table(v-if="!showActs")
       thead
         tr
           th Товар
@@ -163,23 +187,18 @@ BaseDialog(
           td.num
           td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
 
-    .sign-apl__preview-actions
-      BaseButton(variant="ghost", size="sm", :loading="previewLoading", @click="loadPreview")
-        template(#icon-left)
-          q-icon(name="description", size="16px")
-        | Показать акты
-
-    q-card(v-if="previewHtml", flat, bordered).sign-apl__preview
-      q-card-section.q-pa-md
+    q-card(v-if="showActs", flat, bordered).sign-apl__preview
+      q-inner-loading(:showing="previewLoading")
+        q-spinner(size="28px")
+      q-card-section.q-pa-md(v-if="previewHtml")
         div(v-html="previewHtml")
-
-    .sign-apl__note
-      | Подписывая, вы подтверждаете факт приёмки. Затем поставка уходит на
-      | закрывающую подпись председателя КУ. Под капотом по каждому акту
-      | приёма-передачи уходит отдельная транзакция в блокчейн.
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
+      template(#icon-left)
+        q-icon(name="description", size="16px")
+      | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="16px")
@@ -214,16 +233,54 @@ BaseDialog(
     overflow-wrap: anywhere;
   }
 
-  &__sub {
+  &__addr {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
+    overflow-wrap: anywhere;
+
+    .q-icon {
+      flex: 0 0 auto;
+      color: var(--p-ink-3);
+    }
+  }
+
+  &__sub {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
   }
 
   &__meta {
     display: flex;
-    gap: var(--p-1, 4px);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
     margin-left: auto;
+    align-items: flex-end;
+  }
+
+  &__ttn-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-meta, 12px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+
+    .q-icon {
+      color: var(--p-ink-3);
+    }
+  }
+
+  &__ttn-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-1, 4px);
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
   }
 
   &__table {
@@ -255,19 +312,11 @@ BaseDialog(
     }
   }
 
-  &__preview-actions {
-    display: flex;
-    justify-content: flex-start;
-  }
-
   &__preview {
+    position: relative;
+    min-height: 80px;
     max-height: 60vh;
     overflow: auto;
-  }
-
-  &__note {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
   }
 }
 </style>

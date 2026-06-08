@@ -79,6 +79,7 @@ import { computeActNumber } from '../shared/act-number.util';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
+import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -283,20 +284,26 @@ export class MarketplaceAplReceptionService {
     const fact = input.reception.fact_quantity_per_order.find(
       (f) => f.order_id === input.order.id
     );
-    // `user` шаблона 1102 = пайщик-получатель имущества (orderer_account).
-    // `transmitter` = передающая сторона — председатель КУ или доверенное
-    // им лицо (известен по chairman_account на этапе закрывающей подписи;
-    // на этапе превью используется оператор, создавший АПП).
+    // АПП приёмки (registry 1104, поставщик → кооператив):
+    //   `user` = ПОСТАВЩИК (передающая сторона, «Передал»);
+    //   `transmitter` = оператор КУ (председатель или доверенное им лицо) —
+    //   принимающая сторона от лица Кооператива («Получил»). Известен по
+    //   chairman_account на закрывающей подписи; на превью — оператор, создавший АПП.
+    // Заказчик стороной этого акта не является.
     const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
     const fact_quantity = fact?.fact_quantity ?? input.order.quantity;
     const fact_unit_price = fact?.fact_unit_price ?? input.order.price_per_unit;
     const total_amount = (
       fact_quantity * Number.parseFloat(fact_unit_price)
     ).toFixed(4);
+    // Артикул/наименование/единица — из оферты заказа: акт несёт реальный СКУ и
+    // данные товара, а не заглушку фабрики. Оферта могла быть снята — тогда
+    // подставляем безопасные значения по самому заказу.
+    const offer = await this.offerRepo.findById(input.order.offer_id);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
-      username: input.order.orderer_account,
+      username: input.reception.offerer_account,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
       act_id: computeActNumber(input.order.order_hash, input.reception.id),
@@ -307,6 +314,11 @@ export class MarketplaceAplReceptionService {
       fact_quantity,
       total_amount,
       supplier_account: input.reception.offerer_account,
+      sku: input.order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
+      unit_cost: fact_unit_price,
+      currency: this.assetConfig.symbol,
       // Тело документа сохраняется в стор: председателю при закрывающей
       // подписи нужен ИСХОДНЫЙ документ (оригинальный порядок ключей meta)
       // по doc_hash через buildDocumentAggregate — как приём РИД в Capital.

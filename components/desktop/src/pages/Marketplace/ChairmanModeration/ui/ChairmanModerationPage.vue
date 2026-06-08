@@ -5,7 +5,7 @@ import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
   CatalogOfferCard,
@@ -136,8 +136,8 @@ q-page.moderation(role="region", aria-label="Модерация предложе
       q-icon(name="hourglass_empty", size="14px")
       | На модерации: {{ total }}
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+  //- Канон загрузки: скелетон, а не спиннер поверх.
+  CardListSkeleton(v-if="loading && items.length === 0", :count="3")
 
   EmptyState(
     v-if="!loading && items.length === 0",

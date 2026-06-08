@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
   listReturnClaimsByBraname,
@@ -132,6 +132,12 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     PageHint(storage-key='mp:operator-returns:banner-dismissed')
       | Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи.
 
+    //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
+    CardListSkeleton(
+      v-if='loading && !pendingClaims.length && !approvedClaims.length && !archiveClaims.length',
+      :count='2'
+    )
+
     section.returns__section
       .t-h3 Ждут удалённого рассмотрения ({{ pendingClaims.length }})
       q-list.returns__list(v-if='pendingClaims.length > 0', bordered, separator)
@@ -156,7 +162,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
               template(#icon-left)
                 q-icon(name='gavel', size='16px')
               | Принять решение
-      .returns__empty(v-else) Нет заявлений, ожидающих удалённого рассмотрения.
+      .returns__empty(v-if='pendingClaims.length === 0 && !loading') Нет заявлений, ожидающих удалённого рассмотрения.
 
     section.returns__section
       .t-h3 Ожидают очного визита ({{ approvedClaims.length }})
@@ -171,7 +177,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
               template(#icon-left)
                 q-icon(name='fact_check', size='16px')
               | Очный осмотр
-      .returns__empty(v-else) Нет заявлений, по которым ожидается очный визит.
+      .returns__empty(v-if='approvedClaims.length === 0 && !loading') Нет заявлений, по которым ожидается очный визит.
 
     section.returns__section
       .t-h3 Архив ({{ archiveClaims.length }})
@@ -180,7 +186,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
           q-item-section
             q-item-label Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
             q-item-label(caption) {{ humanStatus(c.status) }}{{ c.ledger_snapshot ? ` · ${c.ledger_snapshot.amount} ₽ восстановлено` : '' }}
-      .returns__empty(v-else) Архив пуст.
+      .returns__empty(v-if='archiveClaims.length === 0 && !loading') Архив пуст.
 
   RemoteDecisionDialog(
     v-model='remoteDialog',

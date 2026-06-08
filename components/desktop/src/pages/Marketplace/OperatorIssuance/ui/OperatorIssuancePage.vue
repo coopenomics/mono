@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { Avatar, BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
@@ -255,8 +255,8 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
           q-icon(name='qr_code_scanner', size='16px')
         | Сканировать QR заказа
 
-    .issuance__loading(v-if='loading && !items.length')
-      q-spinner(size='28px', color='primary')
+    //- Канон загрузки: скелетон, а не спиннер.
+    CardListSkeleton(v-if='loading && !items.length', :count='3')
 
     .issuance__grid(v-else-if='groups.length')
       BaseCard.issuance__card(v-for='g in groups', :key='g.account')
@@ -335,12 +335,6 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__loading {
-    display: flex;
-    justify-content: center;
-    padding: var(--p-6, 24px);
-  }
 
   &__grid {
     display: grid;

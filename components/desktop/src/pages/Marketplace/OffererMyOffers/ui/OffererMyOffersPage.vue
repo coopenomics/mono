@@ -6,15 +6,18 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { BaseButton, BaseCard, BaseInput, EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { FilterBar, PageHint } from 'src/shared/ui/domain';
 import CreateOfferHeaderButton from './CreateOfferHeaderButton.vue';
 import {
   CatalogOfferCard,
+  CatalogOfferCardSkeleton,
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import { fetchMyOffers, republishOffer } from '../api';
+import { Zeus } from '@coopenomics/sdk';
+import { republishOffer } from 'src/entities/MarketplaceOffer';
+import { fetchMyOffers } from '../api';
 import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types';
 
 /**
@@ -29,10 +32,10 @@ import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types'
  * редактирования (`marketplace-edit-offer`) — там же статус, кнопки «Снять с
  * публикации» и «Запустить поставку». Отдельного диалога-просмотра больше нет.
  *
- * Вёрстка по канону MONO Platform v2: инфо-баннер (`.banner`), дашборд-метрики
- * (BaseCard), полноширинный поиск и канон-меню фильтра статусов (`.tabbar`).
- * Фильтр deep-linkable через query `?status=` — на «На модерации» и т.п. можно
- * перейти прямой ссылкой.
+ * Вёрстка по канону MONO Platform v2: инфо-баннер (`.banner`), канон-поиск
+ * (`FilterBar`) и канон-меню фильтра статусов (`.tabbar`) — без KPI-плиток,
+ * счётчики дублировали вкладки. Фильтр deep-linkable через query `?status=` —
+ * на «На модерации» и т.п. можно перейти прямой ссылкой.
  *
  * Polling 30s — Offer'ы меняют статус через модерацию председателя.
  * Подписанные URL картинок стабилизированы на бэкенде (окно getReadUrl),
@@ -45,14 +48,15 @@ const POLL_INTERVAL_MS = 30_000;
 // Кол-во скелетон-карточек на время первичной загрузки.
 const SKELETON_COUNT = 8;
 
-// Открыть форму редактирования можно для активной, ожидающей модерации и
-// отклонённой оферты. Отклонённую правят, чтобы устранить причину и
-// переотправить на модерацию. Снятую (WITHDRAWN) backend на edit не пускает —
-// её сначала возвращают на публикацию кнопкой «Опубликовать снова».
+// Карточку любого статуса можно открыть в редакторе. Отклонённую правят, чтобы
+// устранить причину и переотправить; снятую (WITHDRAWN) — дорабатывают перед
+// возвратом на публикацию (в редакторе кнопка «Опубликовать снова»). Открытым
+// остаётся весь набор — недоступных к просмотру статусов нет.
 const EDITABLE_STATUSES: ReadonlyArray<MarketplaceOfferStatusView> = [
   'PENDING_MODERATION',
   'ACTIVE',
   'REJECTED',
+  'WITHDRAWN',
 ];
 
 const router = useRouter();
@@ -103,7 +107,7 @@ const STATUS_TO_CARD: Record<MarketplaceOfferStatusView, CatalogOfferStatus> = {
   PENDING_MODERATION: 'moderation',
   ACTIVE: 'published',
   REJECTED: 'paused',
-  WITHDRAWN: 'completed',
+  WITHDRAWN: 'withdrawn',
 };
 
 const filtered = computed(() => {
@@ -142,19 +146,6 @@ const cards = computed<OfferCard[]>(() =>
   })),
 );
 
-const counters = computed(() => {
-  const total = items.value.length;
-  const active = items.value.filter((o) => o.status === 'ACTIVE').length;
-  const pending = items.value.filter((o) => o.status === 'PENDING_MODERATION').length;
-  const rejected = items.value.filter((o) => o.status === 'REJECTED').length;
-  return [
-    { label: 'Всего', value: total, cls: '' },
-    { label: 'Опубликовано', value: active, cls: 'text-positive' },
-    { label: 'На модерации', value: pending, cls: 'text-warning' },
-    { label: 'Отклонено', value: rejected, cls: 'text-negative' },
-  ];
-});
-
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 function goCard(card: OfferCard): void {
@@ -167,13 +158,18 @@ function goCard(card: OfferCard): void {
 
 const republishing = ref<string | null>(null);
 
-// Снятое предложение возвращается на публикацию без пересоздания — backend
-// просто меняет статус на PENDING_MODERATION, данные оферты сохранены.
+// Снятое предложение возвращается на публикацию без пересоздания. Уже
+// одобренное публикуется сразу (контент не менялся — модерировать нечего),
+// ещё не одобренное уходит на модерацию; уведомление — по фактическому статусу.
 async function onRepublish(card: OfferCard): Promise<void> {
   republishing.value = String(card.id);
   try {
-    await republishOffer(String(card.id));
-    SuccessAlert('Предложение возвращено на модерацию.');
+    const status = await republishOffer(String(card.id));
+    SuccessAlert(
+      status === Zeus.MarketplaceOfferStatus.ACTIVE
+        ? 'Предложение снова опубликовано.'
+        : 'Предложение отправлено на модерацию.',
+    );
     await load(1, false);
   } catch (e) {
     FailAlert(e);
@@ -239,15 +235,11 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
       | описание или снять с публикации. Цена и количество меняются без
       | повторной модерации.
 
-    .row.q-col-gutter-md
-      .col-6.col-md-3(v-for="kpi in counters", :key="kpi.label")
-        BaseCard
-          .text-caption.text-grey-7 {{ kpi.label }}
-          .text-h5(:class="kpi.cls") {{ kpi.value }}
-
-    BaseInput(v-model="search", placeholder="Поиск по названию", clearable)
-      template(#prepend)
-        q-icon(name="search")
+    FilterBar(
+      v-model:search="search",
+      search-placeholder="Поиск по названию",
+      hide-reset
+    )
 
     nav.tabbar.my-offers__tabs
       .tabbar__tabs
@@ -262,6 +254,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
       .tabbar__actions
         BaseButton(
           variant="ghost",
+          size="sm",
           icon-only,
           aria-label="Обновить",
           :loading="loading",
@@ -274,11 +267,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
     //- дёргания. Только на первичной загрузке — polling обновляет молча.
     .row.q-col-gutter-md(v-if="showSkeleton")
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
-        .my-offers__skel
-          .skel.my-offers__skel-media
-          .skel.skel--title.my-offers__skel-line.my-offers__skel-line--title
-          .skel.skel--num.my-offers__skel-line.my-offers__skel-line--price
-          .skel.skel--text.my-offers__skel-line.my-offers__skel-line--cat
+        CatalogOfferCardSkeleton
 
     EmptyState(
       v-if="!loading && filtered.length === 0",
@@ -332,31 +321,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
       padding-right: 0;
     }
   }
-
-  // Скелетон-карточка повторяет форму CatalogOfferCard: медиа сверху,
-  // под ней — название, цена и категория.
-  &__skel {
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    overflow: hidden;
-    padding-bottom: var(--p-3, 12px);
-  }
-
-  &__skel-media {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    border-radius: 0;
-  }
-
-  &__skel-line {
-    margin-top: var(--p-3, 12px);
-    margin-left: var(--p-3, 12px);
-    margin-right: var(--p-3, 12px);
-  }
-
-  &__skel-line--title { width: 70%; }
-  &__skel-line--price { width: 40%; }
-  &__skel-line--cat { width: 85%; }
 
   &__reason {
     display: flex;

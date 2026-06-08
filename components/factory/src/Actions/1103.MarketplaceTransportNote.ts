@@ -26,9 +26,10 @@ export class Factory extends DocFactory<MarketplaceTransportNote.Action> {
     const coop = await this.getCooperative(data.coopname, data.block_num)
     const vars = await this.getVars(data.coopname, data.block_num)
 
-    // ФИО поставщика — резолвим по supplier_account.
+    // Поставщик — резолвим по supplier_account в орг-или-ФИО
+    // (full_name_or_short_name): физлицо/ИП → ФИО, организация → краткое имя.
     const supplierUser = await this.getUser(data.supplier_account, data.block_num)
-    const supplier = this.getFirstLastMiddleName(supplierUser.data)
+    const supplier = this.getCommonUser(supplierUser)
 
     // Карточка КУ-приёмника по braname (если кооператив бранчевый).
     let branch: ExternalOrganizationData | undefined
@@ -60,7 +61,7 @@ export class Factory extends DocFactory<MarketplaceTransportNote.Action> {
 
     await this.validate(combinedData, template.model)
     const translation = template.translations[meta.lang]
-    const document: IGeneratedDocument = await this.generatePDF(`TTN-${data.ttn_number}`, template.context, combinedData, translation, meta, options?.skip_save)
+    const document: IGeneratedDocument = await this.generatePDF(supplier.full_name_or_short_name, template.context, combinedData, translation, meta, options?.skip_save)
 
     return document
   }

@@ -67,14 +67,15 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 
 // Marketplace — ЦПП «Стол заказов» (Story 1.7)
 // Положение ЦПП «Стол заказов» (онбординг — первый документ, утверждаемый Советом)
-export * as MarketplaceProgramTemplate from './1099.MarketplaceProgramTemplate'
-export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
-export * as MarketplaceOffer from './1101.MarketplaceOffer'
-export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
+export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
+export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+export * as MarketplaceOffer from './1102.MarketplaceOffer'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
-export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
-export * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
-export * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
+export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
+export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
+export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
+export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
 
 export * as SosediAgreement from './699.SosediAgreement'
 

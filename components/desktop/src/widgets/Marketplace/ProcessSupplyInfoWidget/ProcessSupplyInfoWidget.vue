@@ -58,11 +58,11 @@ function field(name: string): string {
 
 // Подписи статусов заказа — канон стола «Мои заказы» (MyOrdersPage STATUS_LABEL).
 const ORDER_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Ждёт цикла / решения',
+  ACTIVE: 'Ожидает сборки партии',
   ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
   ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
   ACCEPTED: 'Принят поставщиком',
-  SUPPLY_PREPARED: 'Поставка готовится',
+  SUPPLY_PREPARED: 'Собрана к отгрузке',
   ACCEPTED_TO_COOP: 'Принят кооперативом',
   READY_TO_RECEIVE: 'Готов к выдаче',
   RECEIVED: 'Получен',

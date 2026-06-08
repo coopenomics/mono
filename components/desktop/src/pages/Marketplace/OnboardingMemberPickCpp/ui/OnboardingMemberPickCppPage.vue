@@ -7,9 +7,12 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { BaseCard, BaseButton, BaseCheckbox, BaseChip, EmptyState } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseCheckbox, BaseChip, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { Loader } from 'src/shared/ui/Loader';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
+import type { DigitalDocument } from 'src/shared/lib/document';
 import {
+  buildOnboardingOfferDocument,
   fetchOnboardingState,
   signOnboardingOffer,
   type MarketplaceOnboardingStateView,
@@ -24,7 +27,7 @@ import {
  * и без согласия заблокирована. Persist КУ в корзину (`setCartDeliveryPoint`)
  * делаем СРАЗУ после синка подписи — до неё нет orderer-прав на Cart.
  *
- * Подпись: mutation `marketplaceSignOnboardingOffer` (оферта registry_id=1101,
+ * Подпись: mutation `marketplaceSignOnboardingOffer` (оферта registry_id=1102,
  * подписывается локальным WIF, backend выполняет on-chain `wallet::signagree`).
  */
 
@@ -44,6 +47,37 @@ const kuStore = useMarketplaceKUDetailsStore();
 const selectedBraname = ref<string | null>(null);
 const agreed = ref(false);
 const coopname = computed(() => system.info?.coopname ?? '');
+
+// Предпросмотр оферты для ознакомления (как в SignUp/ReadStatement): по клику на
+// ссылку лениво генерим инстанс оферты (registry 1101) без подписи и показываем
+// HTML в диалоге. Тот же инстанс затем подписываем — документ совпадает с
+// прочитанным. На «Подтвердить» в диалоге галочка согласия проставляется сама.
+const offerDialogOpen = ref(false);
+const offerLoading = ref(false);
+const offerHtml = ref('');
+const offerDoc = ref<DigitalDocument | null>(null);
+
+async function openOffer(): Promise<void> {
+  offerDialogOpen.value = true;
+  if (offerDoc.value) return;
+  offerLoading.value = true;
+  try {
+    const doc = await buildOnboardingOfferDocument();
+    offerDoc.value = doc;
+    offerHtml.value = doc.data?.html ?? '';
+  } catch (e) {
+    offerDialogOpen.value = false;
+    FailAlert(e);
+  } finally {
+    offerLoading.value = false;
+  }
+}
+
+// Прочитал и подтвердил в диалоге — равнозначно простановке галочки согласия.
+function confirmOfferRead(): void {
+  agreed.value = true;
+  offerDialogOpen.value = false;
+}
 
 // Человеческое имя выбранного КУ для чипа-подтверждения (braname не показываем).
 const selectedName = computed<string>(() => {
@@ -89,7 +123,9 @@ async function onSign(): Promise<void> {
   // full-screen оверлея. Форма остаётся видимой, пока идёт подпись.
   loading.value = true;
   try {
-    state.value = await signOnboardingOffer();
+    // Передаём уже прочитанный инстанс оферты (если был сгенерирован при
+    // ознакомлении), иначе signOnboardingOffer сгенерирует свежий.
+    state.value = await signOnboardingOffer(offerDoc.value ?? undefined);
     // requires_gate=false сразу — редкий случай (PG уже синхронен); иначе ждём
     // синк подписи в PG коротким поллингом.
     const confirmed =
@@ -164,19 +200,12 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   //- липкий нижний бар (согласие + подпись). Пока идёт подписание (redirecting)
   //- — скрыто (один спиннер на кнопке).
   template(v-if="state && state.requires_gate && !redirecting")
-    //- Канон-подсказка с заголовком и пояснением (не одна серая строка).
-    .banner.banner--info
-      q-icon.banner__icon(name="storefront", size="20px")
-      .banner__body
-        .text-weight-medium Подключение к Столу заказов
-        .text-body2.text-grey-7 Выберите кооперативный участок и подпишите оферту — после этого откроется каталог с товарами, которые возят на ваш участок.
-
     BaseCard.mp-member-cpp__card
       header.mp-member-cpp__head
         .mp-member-cpp__head-icon
           q-icon(name="location_on", size="22px")
         .mp-member-cpp__head-text
-          .text-subtitle1.text-weight-medium Пункт выдачи
+          .text-subtitle1.text-weight-medium Выберите пункт выдачи
           .text-body2.text-grey-7 Где будете забирать заказы. Каталог отфильтруется под выбранный участок.
         BaseChip.mp-member-cpp__picked(v-if="selectedName", variant="pos", size="sm")
           q-icon(name="check", size="14px")
@@ -184,7 +213,8 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
       .mp-member-cpp__selector(:class="{ 'mp-member-cpp__selector--busy': loading }")
         KUSelector(v-model="selectedBraname", :coopname="coopname")
 
-    //- Липкий нижний бар: согласие + подпись (канон — навигация формы у низа).
+    //- Липкий нижний бар: согласие + продолжение (канон — навигация формы у низа).
+    //- Ссылка в подписи генерит оферту для ознакомления (как ReadStatement в SignUp).
     .mp-member-cpp__bar
       BaseCheckbox.mp-member-cpp__consent(
         :model-value="agreed",
@@ -192,13 +222,34 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         :disabled="loading",
         @update:model-value="(v) => (agreed = v)"
       )
-        | Я ознакомлен(а) с офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП и согласен(на) с условиями участия.
-      BaseButton.mp-member-cpp__sign(
-        variant="primary",
-        :loading="loading",
-        :disabled="!canSign",
-        @click="onSign"
-      ) Подписать оферту
+        | Я ознакомлен(а) с&nbsp;
+        span.mp-member-cpp__offer-link(@click.stop="openOffer") офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП
+        |  и согласен(на) с условиями участия.
+      .mp-member-cpp__action
+        BaseButton.mp-member-cpp__sign(
+          variant="primary",
+          :loading="loading",
+          :disabled="!canSign",
+          @click="onSign"
+        ) Продолжить
+        //- Подсказка-зачем кнопка неактивна: согласие есть, но ПВЗ не выбран.
+        .mp-member-cpp__why(v-if="agreed && !selectedBraname")
+          q-icon(name="info", size="14px")
+          span Чтобы продолжить, выберите пункт выдачи — щёлкните по его названию или адресу в списке либо отметьте точку на карте.
+
+  //- Диалог ознакомления: сгенерированный HTML оферты. «Подтвердить» = согласие.
+  BaseDialog(
+    v-model="offerDialogOpen",
+    title="Оферта на присоединение к ЦПП «Стол заказов»",
+    :maximized="true"
+  )
+    .mp-member-cpp__offer-body
+      Loader(v-if="offerLoading", text="Генерируем оферту…")
+      //- eslint-disable-next-line vue/no-v-html
+      div(v-else, v-html="offerHtml").statement
+    template(#footer)
+      BaseButton(variant="ghost", @click="offerDialogOpen = false") Закрыть
+      BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") Прочитал(а), согласен(на)
 
   //- Редкий рассинхрон: gate не требуется, но подпись не зафиксирована.
   BaseCard.mp-member-cpp__card(
@@ -278,7 +329,7 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     bottom: 0;
     z-index: 5;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--p-4, 16px);
     margin: 0 calc(-1 * var(--p-6, 24px)) calc(-1 * var(--p-10, 72px));
     padding: var(--p-4, 16px) var(--p-6, 24px);
@@ -286,13 +337,99 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     border-top: 1px solid var(--p-line);
   }
 
+  // Правая колонка бара: кнопка «Продолжить» + подсказка-зачем под ней.
+  &__action {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--p-2, 8px);
+    max-width: 320px;
+  }
+
+  // Подсказка, почему «Продолжить» недоступно (нет выбранного ПВЗ).
+  &__why {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: 1.4;
+    text-align: right;
+
+    .q-icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--p-info, var(--p-primary));
+    }
+  }
+
+  // Тело оферты в диалоге — читаемая колонка по центру, не во всю ширину экрана.
+  &__offer-body {
+    max-width: 840px;
+    margin: 0 auto;
+  }
+
   &__consent {
     flex: 1;
     min-width: 0;
   }
 
+  // Ссылка «офертой… Положением ЦПП» в подписи согласия — открывает диалог
+  // ознакомления. Акцентная, как ссылки-идентификаторы в каноне.
+  &__offer-link {
+    color: var(--p-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--p-primary);
+    }
+  }
+
   &__sign {
     flex-shrink: 0;
+  }
+
+  // HTML оферты в диалоге приходит сгенерированным с backend (inline-стили,
+  // Quasar text-h*); подгоняем под канон-типографику.
+  .statement {
+    color: var(--p-ink);
+    font-size: var(--p-fs-body, 14px);
+    line-height: var(--p-lh-body, 1.55);
+
+    :deep(h1),
+    :deep(h2),
+    :deep(h3),
+    :deep(.text-h1),
+    :deep(.text-h2),
+    :deep(.text-h3),
+    :deep(.text-h4) {
+      font-weight: 600 !important;
+      color: var(--p-ink) !important;
+      letter-spacing: 0 !important;
+    }
+    :deep(p) {
+      margin: 0 0 var(--p-3, 12px) !important;
+      color: var(--p-ink) !important;
+    }
+    :deep(a) {
+      color: var(--p-primary);
+      text-decoration: none;
+    }
+    :deep(table) {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--p-3, 12px) 0;
+      font-size: var(--p-fs-body-sm, 13px);
+    }
+    :deep(td),
+    :deep(th) {
+      padding: var(--p-2, 8px) var(--p-3, 12px);
+      border-bottom: 1px solid var(--p-line);
+      vertical-align: top;
+    }
   }
 
   @media (max-width: 768px) {
@@ -302,8 +439,17 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
       gap: var(--p-3, 12px);
     }
 
+    &__action {
+      max-width: none;
+      align-items: stretch;
+    }
+
     &__sign {
       width: 100%;
+    }
+
+    &__why {
+      text-align: left;
     }
   }
 }

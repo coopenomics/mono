@@ -68,14 +68,15 @@ import * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'
 import * as GeneratorOffer from './996.GeneratorOffer'
 import * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 import * as BlagorostOffer from './1000.BlagorostOffer'
-import * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
-import * as MarketplaceOffer from './1101.MarketplaceOffer'
-import * as MarketplaceAplReception from './1102.MarketplaceAplReception'
+import * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+import * as MarketplaceOffer from './1102.MarketplaceOffer'
 import * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
-import * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
-import * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
-import * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
-import * as MarketplaceProgramTemplate from './1099.MarketplaceProgramTemplate'
+import * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+import * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
+import * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
+import * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
+import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
+import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 
 export const Registry = {
   1: WalletAgreement,
@@ -135,12 +136,13 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
-  1100: MarketplaceOfferTemplate,
-  1101: MarketplaceOffer,
-  1102: MarketplaceAplReception,
+  1100: MarketplaceProgramTemplate,
+  1101: MarketplaceOfferTemplate,
+  1102: MarketplaceOffer,
   1103: MarketplaceTransportNote,
-  1104: MarketplaceReturnStatement,
-  1105: MarketplaceWriteoffProtocol,
-  1106: MarketplaceWriteoffStatement,
-  1099: MarketplaceProgramTemplate,
+  1104: MarketplaceAplReception,
+  1105: MarketplaceAplIssuance,
+  1106: MarketplaceReturnStatement,
+  1107: MarketplaceWriteoffProtocol,
+  1108: MarketplaceWriteoffStatement,
 }

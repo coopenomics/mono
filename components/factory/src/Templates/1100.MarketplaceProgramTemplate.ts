@@ -9,7 +9,7 @@ export const registry_id = Cooperative.Registry.MarketplaceProgramTemplate.regis
 
 // Положение о ЦПП «Стол заказов».
 // Эпик 1 — первый документ онбординга, утверждается Советом до шаблона оферты
-// (1100.MarketplaceOfferTemplate). Аналог 998.BlagorostProgramTemplate в Капитале.
+// (1101.MarketplaceOfferTemplate). Аналог 998.BlagorostProgramTemplate в Капитале.
 export type Action = Cooperative.Registry.MarketplaceProgramTemplate.Action
 
 export type Model = Cooperative.Registry.MarketplaceProgramTemplate.Model

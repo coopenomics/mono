@@ -102,6 +102,7 @@ function buildMocks() {
 
   const offerRepo = {
     findByIds: jest.fn().mockResolvedValue([]),
+    findById: jest.fn().mockResolvedValue(null),
   } as any;
 
   const inventoryRepo = {

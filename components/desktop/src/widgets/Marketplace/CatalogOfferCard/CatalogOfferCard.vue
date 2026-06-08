@@ -63,7 +63,7 @@
 import { computed, type PropType } from 'vue'
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
 
-export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation'
+export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation' | 'withdrawn'
 
 export interface CatalogOffer {
   id?: string | number
@@ -109,6 +109,7 @@ const STATUS_MAP: Record<CatalogOfferStatus, { label: string; kind: StatusKind }
   paused:     { label: 'Приостановлено', kind: 'warning' },
   'sold-out': { label: 'Закончилось',   kind: 'neutral' },
   completed:  { label: 'Завершено',     kind: 'neutral' },
+  withdrawn:  { label: 'Снято с публикации', kind: 'neutral' },
 }
 
 const statusLabel = computed(() => (status.value ? STATUS_MAP[status.value].label : ''))

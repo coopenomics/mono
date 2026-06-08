@@ -67,20 +67,21 @@ export * as CapitalizationToMainWalletConvertStatement from './1090.Capitalizati
 export * as SosediAgreement from './699.SosediAgreement'
 
 // Marketplace (Стол заказов) — Эпик 1 (онбординг ЦПП)
-export * as MarketplaceProgramTemplate from './1099.MarketplaceProgramTemplate'
-export * as MarketplaceOfferTemplate from './1100.MarketplaceOfferTemplate'
-export * as MarketplaceOffer from './1101.MarketplaceOffer'
+export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
+export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+export * as MarketplaceOffer from './1102.MarketplaceOffer'
 
 // Marketplace (Стол заказов) — Эпик 5
-export * as MarketplaceAplReception from './1102.MarketplaceAplReception'
 export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
 
 // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
-export * as MarketplaceReturnStatement from './1104.MarketplaceReturnStatement'
+export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 
 // Marketplace (Стол заказов) — Эпик 8: списание скоропорта (заявление + протокол)
-export * as MarketplaceWriteoffStatement from './1106.MarketplaceWriteoffStatement'
-export * as MarketplaceWriteoffProtocol from './1105.MarketplaceWriteoffProtocol'
+export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
+export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
 
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'

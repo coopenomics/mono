@@ -5,6 +5,7 @@ import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
+import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
@@ -33,6 +34,18 @@ const offerId = computed(() => String(route.params.offerId ?? ''));
 // Режим просмотра модератором (стол администратора): страница только для
 // чтения — кнопки «Заказать» нет, «назад» ведёт в «Модерацию», а не в каталог.
 const readonly = computed(() => route.meta?.readonly === true);
+
+// Откуда пришли (query `from`) — чтобы «назад» называлась и вела туда же, где
+// заказчик был: из корзины → «В корзину», из модерации → «К модерации», иначе
+// дефолт «К каталогу». Реальный переход — router.back() (история совпадает с
+// реферрером), это лишь корректные подпись и fallback-маршрут.
+const backTarget = computed<{ label: string; name: string }>(() => {
+  if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
+  if (route.query.from === 'consolidated')
+    return { label: 'К коллективному заказу', name: 'marketplace-consolidated' };
+  if (readonly.value) return { label: 'К модерации', name: 'marketplace-moderation' };
+  return { label: 'К каталогу', name: 'marketplace-catalog' };
+});
 
 // Модерация прямо на странице: показываем «Одобрить»/«Отклонить», только если
 // открыто на столе администратора и предложение ещё ждёт решения.
@@ -116,8 +129,7 @@ async function load(): Promise<void> {
 function goBack(): void {
   if (window.history.length > 1) router.back();
   else {
-    const name = readonly.value ? 'marketplace-moderation' : 'marketplace-catalog';
-    void router.push({ name, params: { coopname: coopname.value } });
+    void router.push({ name: backTarget.value.name, params: { coopname: coopname.value } });
   }
 }
 
@@ -136,11 +148,14 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.offer-detail(role="region", aria-label="Описание предложения")
+  //- Корзина в шапке — тот же header-виджет, что в каталоге (вне режима модерации).
+  CartHeaderButton(v-if="!readonly", :coopname="coopname")
+
   .offer-detail__back
     BaseButton(variant="ghost", size="sm", @click="goBack")
       template(#icon-left)
         q-icon(name="arrow_back", size="16px")
-      | {{ readonly ? 'К модерации' : 'К каталогу' }}
+      | {{ backTarget.label }}
 
   q-inner-loading(:showing="loading")
     q-spinner(color="primary", size="2em")

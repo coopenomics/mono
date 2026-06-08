@@ -6,6 +6,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
+import { useActsPreview } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -56,6 +57,8 @@ const facts = ref<Record<string, FactState>>({});
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 const signing = ref(false);
+// Единый паттерн «Показать / Скрыть акты»: таблица сверки прячется при показе.
+const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
 
 // sku (короткий, отображается в таблице) → id заказа, для onChange-маппинга.
 const skuToId = computed<Record<string, string>>(() => {
@@ -121,7 +124,7 @@ watch(
   ([visible]) => {
     if (visible && props.orders.length) {
       initFacts();
-      previewHtml.value = '';
+      resetActs();
     }
   },
   { immediate: false },
@@ -245,28 +248,26 @@ TakeoverDialog(
         | выдаваемое количество по каждой позиции — оно войдёт в соответствующий
         | акт. Открытие выдачи сформирует и подпишет акты сразу по всем позициям.
 
-      CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
+      template(v-if="!showActs")
+        CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
 
-      .mp-issue-open-dialog__sum
-        span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
-        span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+        .mp-issue-open-dialog__sum
+          span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
+          span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
 
-      .mp-issue-open-dialog__preview-actions
-        BaseButton(
-          variant="ghost"
-          size="sm"
-          :loading="previewLoading"
-          @click="loadPreview"
-        )
-          template(#icon-left)
-            q-icon(name="description" size="16px")
-          | Показать акты
-
-      .mp-issue-open-dialog__preview(v-if="previewHtml")
-        div(v-html="previewHtml")
+      .mp-issue-open-dialog__preview(v-if="showActs", v-html="previewHtml")
 
   template(#actions="{ cancel: onCancel, confirm: onConfirm }")
     BaseButton(variant="ghost" @click="onCancel") Закрыть
+    BaseButton(
+      variant="ghost"
+      :loading="previewLoading"
+      :disabled="!allValid"
+      @click="toggleActs"
+    )
+      template(#icon-left)
+        q-icon(name="description" size="16px")
+      | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(
       variant="primary"
       :loading="signing"
@@ -308,11 +309,6 @@ TakeoverDialog(
     font-size: var(--p-fs-h3, 15px);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
-  }
-
-  &__preview-actions {
-    display: flex;
-    justify-content: flex-start;
   }
 
   &__preview {

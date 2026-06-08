@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -26,7 +26,7 @@ import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
  *
  * Раздел 2 — активные проекты на повестке совета (ON_AGENDA /
  * AUTHORIZED / EXECUTING). Здесь только наблюдение — действующие
- * процедуры голосования и подписания Протокола 1105 идут через
+ * процедуры голосования и подписания Протокола 1107 идут через
  * стандартный sov.decision-flow повестки совета.
  *
  * Раздел 3 — архив (EXECUTED / REJECTED).
@@ -141,9 +141,9 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
     | Сначала собирается черновик списания — вручную председателем или автоматически по сроку годности. Затем председатель подписывает заявление и выносит проект на повестку совета. Совет утверждает списание протоколом, после чего имущество списывается со склада.
 
-  .writeoffs__toolbar
-    q-space
-    BaseButton(v-if="!draft", variant="primary", @click="draftEditorOpen = true")
+  //- Главное действие страницы — в шапку (канон: CTA в топбаре, dense/primary).
+  Teleport(to="#header-actions-host", defer)
+    BaseButton(v-if="!draft", variant="primary", size="sm", @click="draftEditorOpen = true")
       template(#icon-left)
         q-icon(name="add", size="18px")
       | Новый черновик
@@ -166,14 +166,16 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
 
   BaseCard
     .writeoffs__council
-      q-spinner(v-if="loading", color="primary", size="1.5em")
       div
         .t-h3 В работе совета
         .t-muted {{ inCouncil.length }} проект(ов) на сумму {{ formatAsset2Digits(totalActiveAmount) }} ₽
 
-  .writeoffs__empty(v-if="inCouncil.length === 0")
+  //- Канон загрузки: скелетон вместо спиннера и вместо мелькающих заглушек «пусто».
+  CardListSkeleton(v-if="loading && !inCouncil.length && !archive.length", :count="3")
+
+  .writeoffs__empty(v-if="inCouncil.length === 0 && !loading")
     | Нет проектов на повестке. Откройте новый черновик или дождитесь, пока крон-сервис подберёт скоропорт.
-  q-list(v-else, bordered, separator)
+  q-list(v-if="inCouncil.length > 0", bordered, separator)
     q-item(v-for="p in inCouncil", :key="p.id", clickable, @click="openDetails(p)")
       q-item-section
         q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
@@ -182,8 +184,8 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
         BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
 
   .t-h3 Архив
-  .writeoffs__empty(v-if="archive.length === 0") Архив пуст.
-  q-list(v-else, bordered, separator)
+  .writeoffs__empty(v-if="archive.length === 0 && !loading") Архив пуст.
+  q-list(v-if="archive.length > 0", bordered, separator)
     q-item(v-for="p in archive", :key="p.id", clickable, @click="openDetails(p)")
       q-item-section
         q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}

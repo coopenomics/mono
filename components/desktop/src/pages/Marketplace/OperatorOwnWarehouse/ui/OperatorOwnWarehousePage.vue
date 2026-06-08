@@ -242,6 +242,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     Teleport(to="#header-actions-host", defer)
       BaseButton(
         variant='ghost',
+        size='sm',
         icon-only,
         aria-label='Обновить склад',
         :loading='loading',

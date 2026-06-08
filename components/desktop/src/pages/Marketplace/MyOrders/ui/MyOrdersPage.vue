@@ -6,7 +6,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
@@ -273,6 +273,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
     | прямо в карточке. Откройте карточку, чтобы увидеть подробности.
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
+
+  //- Канон загрузки: скелетон на первичной загрузке, не пустой экран.
+  CardListSkeleton(v-if="loading && !items.length", :count="3")
 
   EmptyState(
     v-if="!items.length && !loading",

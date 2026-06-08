@@ -167,20 +167,21 @@ export class Generator implements IGenerator {
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
 
       // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
-      [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1099 — Положение ЦПП
-      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1100
-      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1101
+      [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
+      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1101
+      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
 
       // Marketplace (Стол заказов) — Эпик 5
-      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1102
       [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
+      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
+      [Actions.MarketplaceAplIssuance.Template.registry_id]: new Actions.MarketplaceAplIssuance.Factory(this.storage), // 1105 — выдача (кооператив → заказчик)
 
       // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
-      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1104
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106
 
       // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
-      [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1106
-      [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1105
+      [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
+      [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
     }
     await this.storage.connect()
   }

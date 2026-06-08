@@ -125,6 +125,16 @@ function goToCatalog(): void {
   void router.push({ name: 'marketplace-catalog', params: { coopname: coopname.value } });
 }
 
+// Клик по позиции ведёт на полную карточку предложения (как из каталога).
+// `from=cart` — чтобы кнопка «назад» на карточке называлась «В корзину».
+function goToDetail(offerId: string): void {
+  void router.push({
+    name: 'marketplace-offer-detail',
+    params: { coopname: coopname.value, offerId },
+    query: { from: 'cart' },
+  });
+}
+
 onMounted(async () => {
   try {
     await cartStore.load();
@@ -138,12 +148,18 @@ onMounted(async () => {
 q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Стола заказов")
   KUHeaderBar(:coopname="coopname")
 
-  q-inner-loading(:showing="cartStore.loading && !cartStore.cart")
-    q-spinner(color="primary", size="2em")
+  //- Канон: первичная загрузка — скелетон-строки позиций, не перекрывающий спиннер.
+  BaseCard.mp-cart__skel(v-if="cartStore.loading && !cartStore.cart")
+    .mp-cart__skel-line(v-for="n in 4", :key="`skel-${n}`")
+      .skel.mp-cart__skel-thumb
+      .mp-cart__skel-text
+        .skel.skel--title.mp-cart__skel-l1
+        .skel.skel--text.mp-cart__skel-l2
+      .skel.skel--num.mp-cart__skel-sum
 
   //- Пустая корзина — ведём в каталог.
   EmptyState(
-    v-if="!cartStore.loading && !cartStore.hasItems",
+    v-else-if="!cartStore.hasItems",
     title="Корзина пуста",
     body="Добавьте товары из каталога — они появятся здесь для оформления одним заказом."
   )
@@ -157,12 +173,12 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     .col-12.col-md-8
       BaseCard.mp-cart__items
         .mp-cart__line(v-for="it in cartStore.items", :key="it.offer_id")
-          .mp-cart__thumb
+          .mp-cart__thumb(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)")
             q-img(v-if="it.image_url", :src="it.image_url", ratio="1")
             .mp-cart__thumb-empty(v-else)
               q-icon(name="image", size="22px")
           .mp-cart__info
-            .mp-cart__name {{ it.product_name }}
+            .mp-cart__name(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)") {{ it.product_name }}
             .mp-cart__unit {{ money(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
             BaseChip.mp-cart__warn(
               v-if="it.available_on_current_ku === false",
@@ -249,6 +265,41 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   flex-direction: column;
   gap: var(--p-4, 16px);
 
+  // ── Скелетон первичной загрузки (повторяет форму строки позиции) ──────
+  &__skel-line {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    padding: var(--p-3, 12px) 0;
+
+    &:not(:first-child) {
+      border-top: 1px solid var(--p-line);
+    }
+  }
+  &__skel-thumb {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: var(--p-r-md, 12px);
+  }
+  &__skel-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+  }
+  &__skel-l1 {
+    width: 60%;
+  }
+  &__skel-l2 {
+    width: 35%;
+  }
+  &__skel-sum {
+    width: 90px;
+    flex-shrink: 0;
+  }
+
   // ── Позиции ─────────────────────────────────────────────────────────
   &__line {
     display: flex;
@@ -268,6 +319,12 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     border-radius: var(--p-r-md, 12px);
     overflow: hidden;
     background: var(--p-surface-2);
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--p-primary);
+      outline-offset: 2px;
+    }
   }
 
   &__thumb-empty {
@@ -291,6 +348,18 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     color: var(--p-ink);
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    width: fit-content;
+
+    &:hover {
+      color: var(--p-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--p-primary);
+      outline-offset: 2px;
+      border-radius: var(--p-r-sm, 8px);
+    }
   }
 
   &__unit {

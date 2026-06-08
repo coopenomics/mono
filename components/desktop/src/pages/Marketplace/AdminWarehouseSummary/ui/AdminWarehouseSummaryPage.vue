@@ -2,7 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
-import { BaseButton, EmptyState } from 'src/shared/ui/base'
+import { BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units'
 import {
@@ -106,6 +107,14 @@ const topRows = computed(() =>
     .sort((a, b) => b.turnover - a.turnover)
     .slice(0, 10),
 )
+
+// Колонки скелетона вкладки «Топ позиций» — повторяют шапку реальной таблицы.
+const topSkeletonColumns: TableSkeletonColumn[] = [
+  { label: '№', class: 'col-rank' },
+  { label: 'Позиция', class: 'col-product' },
+  { label: 'Пункт выдачи', class: 'col-pvz' },
+  { label: 'Оборот, ед.', class: 'col-num' },
+]
 </script>
 
 <template lang="pug">
@@ -118,6 +127,7 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
   Teleport(to='#header-actions-host', defer)
     BaseButton(
       variant='ghost',
+      size='sm',
       icon-only,
       aria-label='Обновить',
       :loading='loading',
@@ -142,10 +152,12 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
 
   q-tab-panels.warehouse-summary__panels(v-model='tab', animated, keep-alive)
     q-tab-panel.q-px-none(name='warehouse')
-      WarehouseSummaryGrid(:rows='warehouseRows')
+      WarehouseSummaryGrid(:rows='warehouseRows', :loading='loading')
 
     q-tab-panel.q-px-none(name='flow')
-      .table-wrap(v-if='topRows.length')
+      TableSkeleton(v-if='loading && !topRows.length', :columns='topSkeletonColumns')
+
+      .table-wrap(v-else-if='topRows.length')
         .table-scroll
           table.table.warehouse-summary__top
             thead
