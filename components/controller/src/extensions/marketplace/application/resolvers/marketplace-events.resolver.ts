@@ -47,9 +47,7 @@ export class MarketplaceEventsResolver {
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
     const topic = marketplaceMemberTopic(config.coopname, username);
-    logger.info(
-      `[mp-ws] ПОДПИСКА открыта: sub=${user.sub} → username=${username} → topic=${topic}`
-    );
+    logger.info(`[mp-ws] подписка открыта: ${topic}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topic);
   }
 
