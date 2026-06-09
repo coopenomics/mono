@@ -64,6 +64,10 @@ export * as CapitalizationPropertyInvestAct from './1072.CapitalizationPropertyI
 export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
+
+export * as CooperativeInvestStatement from './1200.CooperativeInvestStatement'
+export * as CooperativeInvestDecision from './1201.CooperativeInvestDecision'
+
 export * as SosediAgreement from './699.SosediAgreement'
 
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'

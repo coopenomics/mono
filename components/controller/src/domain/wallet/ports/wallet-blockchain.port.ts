@@ -14,6 +14,13 @@ export interface CreateWithdrawDomainInterface {
   statement: ISignedDocumentDomainInterface;
 }
 
+export interface CreateInvestmentDomainInterface {
+  coopname: string;
+  invest_hash: string;
+  quantity: string;
+  statement: ISignedDocumentDomainInterface;
+}
+
 export interface SignProgramAgreementDomainInterface {
   coopname: string;
   username: string;
@@ -37,6 +44,9 @@ export interface GenerateReturnStatementDomainInterface {
 export interface WalletBlockchainPort {
   // Создание заявки на вывод средств в wallet контракте
   createWithdraw(data: CreateWithdrawDomainInterface): Promise<TransactionResult>;
+
+  // Создание заявки кооператива на инвестирование средств в ЦПП оператора платформы
+  createInvestment(data: CreateInvestmentDomainInterface): Promise<TransactionResult>;
 
   // Подписание программного соглашения через wallet::signagree (Эпик 2)
   signProgramAgreement(data: SignProgramAgreementDomainInterface): Promise<TransactionResult>;

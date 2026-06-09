@@ -43,6 +43,7 @@ namespace processes {
   namespace wallet {
     inline constexpr eosio::name DEPOSIT   = "p.wal.depo"_n;     ///< Внесение паевого взноса деньгами.
     inline constexpr eosio::name WITHDRAW  = "p.wal.wthdrw"_n;   ///< Возврат паевого взноса пайщику.
+    inline constexpr eosio::name INVEST    = "p.wal.invest"_n;   ///< Инвестирование средств кооператива в ЦПП оператора платформы (одноактовый, anchor = invest_hash).
   }
 
   // capital

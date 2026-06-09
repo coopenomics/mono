@@ -27,6 +27,7 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   // wallet
   { type: 'p.wal.depo',     contract: 'wallet',       name: 'DEPOSIT',     human_name: 'Внесение паевого взноса' },
   { type: 'p.wal.wthdrw',   contract: 'wallet',       name: 'WITHDRAW',    human_name: 'Возврат паевого взноса' },
+  { type: 'p.wal.invest',   contract: 'wallet',       name: 'INVEST',      human_name: 'Инвестирование средств кооператива в ЦПП оператора платформы' },
 
   // capital
   { type: 'p.cap.import',   contract: 'capital',      name: 'IMPORT',      human_name: 'Импорт пайщика Благорост (offline)' },

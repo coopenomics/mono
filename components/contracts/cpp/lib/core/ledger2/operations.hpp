@@ -69,6 +69,7 @@ namespace operations {
     inline constexpr eosio::name COMPLETE_WITHDRAW = "o.wal.wthcpl"_n;  ///< Завершение возврата паевого взноса (Dr 80 / Cr 51, BURN с WITHDRAW_PENDING — деньги уходят из системы, без wallet_to).
     inline constexpr eosio::name REQUEST_WITHDRAW  = "o.wal.wthreq"_n;  ///< Запрос на возврат паевого: TRANSFER SHARE_FUND_PAY → WITHDRAW_PENDING (резерв, без Dr/Cr).
     inline constexpr eosio::name DECLINE_WITHDRAW  = "o.wal.wthdec"_n;  ///< Отклонение запроса на возврат: TRANSFER WITHDRAW_PENDING → SHARE_FUND_PAY (снятие резерва, без Dr/Cr).
+    inline constexpr eosio::name COMPLETE_INVEST   = "o.wal.invcpl"_n;  ///< Завершение инвестирования средств кооператива в ЦПП оператора (Dr 58 / Cr 51, ISSUE OPERATOR_INVESTMENTS — деньги ушли с расчётного счёта банковским переводом оператору).
   }
 
   // capital
@@ -327,6 +328,17 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::WITHDRAW_PENDING, ledger2_wallets::SHARE_FUND_PAY,
     0, 0,
     "Снятие резерва паевого после отклонения запроса на возврат" },
+
+  // 16a. Инвестирование средств кооператива в ЦПП оператора платформы:
+  // Dr 58 / Cr 51, ISSUE OPERATOR_INVESTMENTS. Источник — расчётный счёт (51,
+  // без wallet-зеркала), поэтому фаза заявки/отклонения проходит без ledger2;
+  // единственная операция — финальная, после подтверждения исходящего платежа
+  // кассиром (gateway::outcomplete → wallet::completeinv). Прецедент пары
+  // Dr 58 / Cr 51 — выдача займа o.cap.lend.
+  { operations::wallet::COMPLETE_INVEST, processes::wallet::INVEST, WalletOp::ISSUE,
+    eosio::name{}, ledger2_wallets::OPERATOR_INVESTMENTS,
+    ledger2_accounts::FINANCIAL_INVESTMENTS, ledger2_accounts::BANK_ACCOUNT,
+    "Инвестирование средств кооператива в ЦПП оператора платформы" },
 
   // 17. Возврат из ЦПП «Благорост» в Цифровой Кошелёк: TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY (без Dr/Cr — оба счёта 80, зеркало INVEST).
   { operations::capital::WITHDRAW_FROM_CAPITAL, processes::capital::WTHCAP, WalletOp::TRANSFER,

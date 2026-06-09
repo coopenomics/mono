@@ -53,6 +53,9 @@ import * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 import * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 
+import * as CooperativeInvestStatement from './1200.CooperativeInvestStatement'
+import * as CooperativeInvestDecision from './1201.CooperativeInvestDecision'
+
 import * as SosediAgreement from './699.SosediAgreement'
 
 import * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
@@ -127,4 +130,6 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  1200: CooperativeInvestStatement,
+  1201: CooperativeInvestDecision,
 }

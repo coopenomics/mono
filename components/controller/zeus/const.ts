@@ -259,6 +259,19 @@ export const AllTypesProps: Record<string,any> = {
 	ConvertToAxonStatementSignedMetaDocumentInput:{
 
 	},
+	CooperativeInvestDecisionGenerateDocumentInput:{
+
+	},
+	CooperativeInvestStatementGenerateDocumentInput:{
+
+	},
+	CooperativeInvestStatementSignedDocumentInput:{
+		meta:"CooperativeInvestStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	CooperativeInvestStatementSignedMetaDocumentInput:{
+
+	},
 	Country: "enum" as const,
 	CreateAnnualGeneralMeetInput:{
 		agenda:"AgendaGeneralMeetPointInput",
@@ -278,6 +291,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateCommitInput:{
 		data:"JSON"
+	},
+	CreateCooperativeInvestmentInput:{
+		statement:"CooperativeInvestStatementSignedDocumentInput"
 	},
 	CreateCycleInput:{
 		status:"CycleStatus"
@@ -963,6 +979,9 @@ export const AllTypesProps: Record<string,any> = {
 		createChildOrder:{
 			data:"CreateChildOrderInput"
 		},
+		createCooperativeInvestment:{
+			data:"CreateCooperativeInvestmentInput"
+		},
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
@@ -1047,6 +1066,14 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateConvertToAxonStatement:{
 			data:"ConvertToAxonStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateCooperativeInvestDecisionDocument:{
+			data:"CooperativeInvestDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateCooperativeInvestStatementDocument:{
+			data:"CooperativeInvestStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDocument:{
@@ -2116,7 +2143,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	BankAccountDetails:{
 		bik:"String",
-		corr:"String"
+		corr:"String",
+		kpp:"String"
 	},
 	BankPaymentMethod:{
 		created_at:"DateTime",
@@ -3063,6 +3091,9 @@ export const ReturnTypes: Record<string,any> = {
 		is_active:"Boolean",
 		program_type:"String"
 	},
+	CreateCooperativeInvestmentResponse:{
+		invest_hash:"String"
+	},
 	CreateSubscriptionResponse:{
 		message:"String",
 		subscription:"WebPushSubscriptionDto",
@@ -3667,6 +3698,7 @@ export const ReturnTypes: Record<string,any> = {
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
 		createChildOrder:"Transaction",
+		createCooperativeInvestment:"CreateCooperativeInvestmentResponse",
 		createDepositPayment:"GatewayPayment",
 		createInitialPayment:"GatewayPayment",
 		createParentOffer:"Transaction",
@@ -3693,6 +3725,8 @@ export const ReturnTypes: Record<string,any> = {
 		generateAssetContributionStatement:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
 		generateConvertToAxonStatement:"GeneratedDocument",
+		generateCooperativeInvestDecisionDocument:"GeneratedDocument",
+		generateCooperativeInvestStatementDocument:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
 		generateParticipantApplication:"GeneratedDocument",
@@ -3811,6 +3845,13 @@ export const ReturnTypes: Record<string,any> = {
 		max_block_num:"Int",
 		total_count:"Int",
 		total_pages:"Int"
+	},
+	OperatorWallet:{
+		available:"String",
+		blocked:"String",
+		membership_contribution:"String",
+		program_id:"ID",
+		program_type:"String"
 	},
 	Organization:{
 		city:"String",
@@ -4306,6 +4347,7 @@ export const ReturnTypes: Record<string,any> = {
 		getMeets:"MeetAggregate",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
+		getOperatorWallets:"OperatorWallet",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProgramWallet:"ProgramWallet",

@@ -16,6 +16,8 @@ import type { UserWalletDomainEntity } from '~/domain/wallet/entities/user-walle
 import type { UserAgreementDomainEntity } from '~/domain/wallet/entities/user-agreement-domain.entity';
 import { ProgramWalletDomainEntity } from '~/domain/wallet/entities/program-wallet-domain.entity';
 import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
+import type { CreateCooperativeInvestmentInputDomainInterface } from '~/domain/wallet/interfaces/create-cooperative-investment-input-domain.interface';
+import { HubClientService, type HubProgramWalletDomainInterface } from '~/infrastructure/hub/hub-client.service';
 import { GATEWAY_INTERACTOR_PORT, GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
@@ -42,7 +44,8 @@ export class WalletInteractor {
     @Inject(USER_AGREEMENT_REPOSITORY)
     private readonly userAgreementRepository: UserAgreementRepository,
     @Inject(GATEWAY_INTERACTOR_PORT)
-    private readonly gatewayInteractorPort: GatewayInteractorPort
+    private readonly gatewayInteractorPort: GatewayInteractorPort,
+    private readonly hubClientService: HubClientService
   ) {}
 
   /**
@@ -74,6 +77,114 @@ export class WalletInteractor {
     // Устанавливаем registry_id для документа решения
     data.registry_id = Cooperative.Registry.ReturnByMoneyDecision.registry_id;
     return await this.generatorInfrastructureService.generateDocument({ data, options });
+  }
+
+  /**
+   * Генерация документа заявления об инвестировании средств кооператива
+   * в ЦПП оператора платформы (1200). Сведения об операторе (наименование,
+   * реквизиты, назначение платежа) бэкенд извлекает из бэкенда оператора.
+   */
+  async generateCooperativeInvestStatementDocument(
+    data: Omit<Cooperative.Registry.CooperativeInvestStatement.Action, 'target_coop_fullname' | 'program_name' | 'payment_details'>,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    const hubInfo = await this.hubClientService.getPublicInfo();
+
+    // IGenerate содержит index-сигнатуру, из-за которой Omit теряет конкретные
+    // ключи — восстанавливаем тип каста после слияния с данными оператора.
+    const fullData: Cooperative.Registry.CooperativeInvestStatement.Action = {
+      ...(data as Cooperative.Registry.CooperativeInvestStatement.Action),
+      registry_id: Cooperative.Registry.CooperativeInvestStatement.registry_id,
+      target_coop_fullname: hubInfo.full_name,
+      program_name: config.hub.program_name,
+      payment_details: `${hubInfo.details_text}\nНазначение платежа: Паевой взнос по ЦПП «Цифровой Кошелёк» (счёт выставляется оператором после решения совета)`,
+    };
+    return await this.generatorInfrastructureService.generateDocument({ data: fullData, options });
+  }
+
+  /**
+   * Генерация документа решения совета об инвестировании средств кооператива
+   * в ЦПП оператора платформы (1201)
+   */
+  async generateCooperativeInvestDecisionDocument(
+    data: Omit<Cooperative.Registry.CooperativeInvestDecision.Action, 'target_coop_fullname' | 'program_name'>,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    const hubInfo = await this.hubClientService.getPublicInfo();
+
+    const fullData: Cooperative.Registry.CooperativeInvestDecision.Action = {
+      ...(data as Cooperative.Registry.CooperativeInvestDecision.Action),
+      registry_id: Cooperative.Registry.CooperativeInvestDecision.registry_id,
+      target_coop_fullname: hubInfo.full_name,
+      program_name: config.hub.program_name,
+    };
+    return await this.generatorInfrastructureService.generateDocument({ data: fullData, options });
+  }
+
+  /**
+   * Создание заявки кооператива на инвестирование собственных средств в ЦПП
+   * оператора платформы. Паттерн повторяет createWithdraw: подготовка платежа
+   * без записи в БД → on-chain wallet::createinv (повестка совета) → фиксация
+   * платежа в БД со статусом AWAITING_AUTHORIZATION.
+   */
+  async createCooperativeInvestment(
+    data: CreateCooperativeInvestmentInputDomainInterface
+  ): Promise<{ invest_hash: string }> {
+    const invest_hash = data.payment_hash;
+
+    // Реквизиты получателя для кассира: статическая часть из заявления.
+    // Полный счёт с банковскими реквизитами и назначением платежа будет
+    // получен с бэкенда оператора после решения совета
+    // (InvestmentAuthorizationListener → createDepositInvoice).
+    const statementMeta = data.statement.meta as unknown as {
+      payment_details?: string;
+    };
+    const detailsFromStatement = statementMeta?.payment_details ?? '';
+
+    const preparedPayment = await this.gatewayInteractorPort.prepareInvestment({
+      coopname: data.coopname,
+      quantity: data.quantity,
+      symbol: data.symbol,
+      payment_hash: data.payment_hash,
+      payment_details_data: detailsFromStatement,
+      memo: `Инвестирование средств кооператива в ЦПП «${config.hub.program_name}» оператора №${invest_hash.slice(0, 8)}`,
+    });
+
+    try {
+      await this.walletBlockchainPort.createInvestment({
+        coopname: data.coopname,
+        invest_hash,
+        quantity: `${data.quantity} ${data.symbol}`,
+        statement: data.statement,
+      });
+    } catch (error: any) {
+      this.logger.error(
+        `Ошибка при создании заявки на инвестирование в блокчейне (платёж не зафиксирован): ${error.message}`,
+        error
+      );
+      throw error;
+    }
+
+    try {
+      await this.gatewayInteractorPort.persistWithdraw(preparedPayment);
+    } catch (error: any) {
+      this.logger.error(
+        `КРИТИЧНО: on-chain заявка на инвестирование ${invest_hash} создана, но не удалось зафиксировать платёж в БД: ${error.message}`,
+        error
+      );
+      throw error;
+    }
+
+    this.logger.log(`Создана заявка на инвестирование: ${invest_hash}, платёж зафиксирован в gateway`);
+
+    return { invest_hash };
+  }
+
+  /**
+   * Балансы кошельков организации на бэкенде кооператива-оператора платформы.
+   */
+  async getOperatorWallets(): Promise<HubProgramWalletDomainInterface[]> {
+    return await this.hubClientService.getProgramWallets();
   }
 
   /**

@@ -157,6 +157,20 @@ const envVarsSchema = z.object({
   // Параметры GitHub
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
 
+  // Параметры кооператива-оператора платформы (хаба), к которому подключён
+  // данный кооператив как пайщик-юрлицо. Пусто = функции инвестирования в ЦПП
+  // оператора отключены (graceful no-op).
+  HUB_BACKEND_URL: z
+    .string()
+    .optional()
+    .describe('Базовый URL бэкенда кооператива-оператора (хаба), без завершающего слэша; пусто — связь с оператором отключена'),
+  HUB_COOPNAME: z.string().default('voskhod').describe('Имя аккаунта кооператива-оператора (хаба) в блокчейне'),
+  HUB_LOGIN_EMAIL: z
+    .string()
+    .optional()
+    .describe('Email организации для логина на бэкенде оператора; пусто — берётся email собственной организации'),
+  HUB_PROGRAM_NAME: z.string().default('Благорост').describe('Наименование ЦПП оператора для инвестирования'),
+
   // Параметры LiveKit для секретаря-агента
   LIVEKIT_URL: z.string().optional().describe('LiveKit server URL (ws://livekit:7880)'),
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
@@ -297,6 +311,12 @@ export default {
   },
   github: {
     token: envVars.data.GITHUB_TOKEN,
+  },
+  hub: {
+    backend_url: envVars.data.HUB_BACKEND_URL,
+    coopname: envVars.data.HUB_COOPNAME,
+    login_email: envVars.data.HUB_LOGIN_EMAIL,
+    program_name: envVars.data.HUB_PROGRAM_NAME,
   },
   livekit: {
     url: envVars.data.LIVEKIT_URL,

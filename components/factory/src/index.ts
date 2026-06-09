@@ -149,6 +149,9 @@ export class Generator implements IGenerator {
       [Actions.GenerationConvertStatement.Template.registry_id]: new Actions.GenerationConvertStatement.Factory(this.storage), // 1080
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
+
+      [Actions.CooperativeInvestStatement.Template.registry_id]: new Actions.CooperativeInvestStatement.Factory(this.storage), // 1200
+      [Actions.CooperativeInvestDecision.Template.registry_id]: new Actions.CooperativeInvestDecision.Factory(this.storage), // 1201
     }
     await this.storage.connect()
   }

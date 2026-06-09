@@ -109,6 +109,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 80, credit: 51,
     human_name: 'Возврат паевого взноса пайщику' },
 
+  // Инвестирование средств кооператива в ЦПП оператора платформы.
+  // Источник — расчётный счёт (51, без wallet-зеркала), поэтому фазы
+  // заявки/отклонения проходят без ledger2; единственная операция —
+  // финальная, после подтверждения исходящего платежа кассиром.
+  { code: 'o.wal.invcpl',  process_type: 'p.wal.invest',  contract: 'wallet',
+    name: 'COMPLETE_INVEST',   wallet_op: 'ISSUE',     wallet_from: null, wallet_to: 'w.wal.invest',
+    debit: 58, credit: 51,
+    human_name: 'Инвестирование средств кооператива в ЦПП оператора платформы' },
+
   // capital (ADR-009: единые программные кошельки `w.cap.blago`/`w.cap.gen`)
   // IMPORT и ACCEPT_PROPERTY — Dr 04 (НМА), не Dr 51: импорт/акт-2 фиксируют
   // имущественный вклад как РИД, не деньги. Денежные взносы в Благорост — INVEST.

@@ -58,6 +58,9 @@ export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 
+export * as CooperativeInvestStatement from './1200.CooperativeInvestStatement'
+export * as CooperativeInvestDecision from './1201.CooperativeInvestDecision'
+
 // общие собрания
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'

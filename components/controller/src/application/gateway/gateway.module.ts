@@ -3,6 +3,8 @@ import { GatewayResolver } from './resolvers/gateway.resolver';
 import { GatewayService } from './services/gateway.service';
 import { PaymentNotificationService } from './services/payment-notification.service';
 import { WithdrawAuthorizationListener } from './services/withdraw-authorization.listener';
+import { InvestmentAuthorizationListener } from './services/investment-authorization.listener';
+import { HubInfrastructureModule } from '~/infrastructure/hub/hub-infrastructure.module';
 import { PaymentController } from './controllers/payment.controller';
 import { GatewayInteractor } from './interactors/gateway.interactor';
 import { GatewayNotificationHandler } from './handlers/gateway-notification.handler';
@@ -24,6 +26,7 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
     AccountInfrastructureModule,
     SystemModule,
     RedisModule,
+    HubInfrastructureModule,
   ],
   controllers: [PaymentController],
   providers: [
@@ -33,6 +36,7 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
     GatewayInteractor,
     GatewayNotificationHandler,
     WithdrawAuthorizationListener,
+    InvestmentAuthorizationListener,
   ],
   exports: [GatewayService, PaymentNotificationService, GatewayInteractor],
 })

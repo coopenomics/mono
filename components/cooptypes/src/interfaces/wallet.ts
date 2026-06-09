@@ -46,6 +46,42 @@ export interface ICreatewthd {
   statement: IDocument2
 }
 
+export interface ICreateinv {
+  coopname: IName
+  invest_hash: IChecksum256
+  quantity: IAsset
+  statement: IDocument2
+}
+
+export interface IAuthinv {
+  coopname: IName
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface ICompleteinv {
+  coopname: IName
+  invest_hash: IChecksum256
+}
+
+export interface IDeclineinv {
+  coopname: IName
+  invest_hash: IChecksum256
+  reason: string
+}
+
+export interface IInvestment {
+  id: IUint64
+  coopname: IName
+  invest_hash: IChecksum256
+  status: IName
+  quantity: IAsset
+  statement: IDocument2
+  approved_statement: IDocument2
+  authorization: IDocument2
+  created_at: ITimePointSec
+}
+
 export interface IDeclinedpst {
   coopname: IName
   deposit_hash: IChecksum256

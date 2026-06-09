@@ -22,18 +22,32 @@ using declinewthd_interface = void(DECLINEWTHD_SIGNATURE);
 #define AUTHWTHD_SIGNATURE AUTHORIZE_CALLBACK_SIGNATURE
 using authwthd_interface = void(AUTHWTHD_SIGNATURE);
 
+#define COMPLETEINV_SIGNATURE name coopname, checksum256 invest_hash
+#define DECLINEINV_SIGNATURE name coopname, checksum256 invest_hash, std::string reason
+
+using completeinv_interface = void(COMPLETEINV_SIGNATURE);
+using declineinv_interface = void(DECLINEINV_SIGNATURE);
+
+#define AUTHINV_SIGNATURE AUTHORIZE_CALLBACK_SIGNATURE
+using authinv_interface = void(AUTHINV_SIGNATURE);
+
 static const std::set<eosio::name> wallet_callback_actions = {
     "authwthd"_n,
     "declinewthd"_n,
     "completewthd"_n,
+    "authinv"_n,
+    "declineinv"_n,
+    "completeinv"_n,
 };
 
 class Wallet {
 public:
   using deposit = WalletTables::deposit;
   using withdraw = WalletTables::withdraw;
+  using investment = WalletTables::investment;
   using deposits_index = WalletTables::deposits_index;
   using withdraws_index = WalletTables::withdraws_index;
+  using investments_index = WalletTables::investments_index;
   using program_agreement = WalletTables::program_agreement;
   using user = WalletTables::user;
   using users_index = WalletTables::users_index;
@@ -149,6 +163,18 @@ public:
 
   static std::optional<withdraw> get_withdraw(eosio::name coopname, const checksum256 &hash) {
     withdraws_index primary_index(_wallet, coopname.value);
+    auto secondary_index = primary_index.get_index<"byhash"_n>();
+
+    auto itr = secondary_index.find(hash);
+    if (itr == secondary_index.end()) {
+      return std::nullopt;
+    }
+
+    return *itr;
+  }
+
+  static std::optional<investment> get_investment(eosio::name coopname, const checksum256 &hash) {
+    investments_index primary_index(_wallet, coopname.value);
     auto secondary_index = primary_index.get_index<"byhash"_n>();
 
     auto itr = secondary_index.find(hash);

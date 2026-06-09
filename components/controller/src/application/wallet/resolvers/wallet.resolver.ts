@@ -12,6 +12,11 @@ import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/do
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
 import { CreateWithdrawInputDTO } from '../dto/create-withdraw-input.dto';
 import { CreateWithdrawResponseDTO } from '../dto/create-withdraw-response.dto';
+import { CooperativeInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/cooperative-invest-statement.dto';
+import { CooperativeInvestDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/cooperative-invest-decision.dto';
+import { CreateCooperativeInvestmentInputDTO } from '../dto/create-cooperative-investment-input.dto';
+import { CreateCooperativeInvestmentResponseDTO } from '../dto/create-cooperative-investment-response.dto';
+import { OperatorWalletDTO } from '../dto/operator-wallet.dto';
 import { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-payment-input.dto';
 import { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
@@ -65,6 +70,76 @@ export class WalletResolver {
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return this.walletService.generateReturnByMoneyDecisionDocument(data, options);
+  }
+
+  /**
+   * Mutation: Генерация документа заявления об инвестировании средств кооператива в ЦПП оператора (1200)
+   */
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateCooperativeInvestStatementDocument',
+    description:
+      'Сгенерировать документ заявления об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async generateCooperativeInvestStatementDocument(
+    @Args('data', { type: () => CooperativeInvestStatementGenerateDocumentInputDTO })
+    data: CooperativeInvestStatementGenerateDocumentInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.walletService.generateCooperativeInvestStatementDocument(data, options);
+  }
+
+  /**
+   * Mutation: Генерация документа решения совета об инвестировании средств кооператива в ЦПП оператора (1201)
+   */
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'generateCooperativeInvestDecisionDocument',
+    description:
+      'Сгенерировать документ решения совета об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async generateCooperativeInvestDecisionDocument(
+    @Args('data', { type: () => CooperativeInvestDecisionGenerateDocumentInputDTO })
+    data: CooperativeInvestDecisionGenerateDocumentInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.walletService.generateCooperativeInvestDecisionDocument(data, options);
+  }
+
+  /**
+   * Mutation: Создание заявки кооператива на инвестирование средств в ЦПП оператора
+   */
+  @Mutation(() => CreateCooperativeInvestmentResponseDTO, {
+    name: 'createCooperativeInvestment',
+    description:
+      'Создать заявку кооператива на инвестирование собственных средств в целевую потребительскую программу кооператива-оператора: вопрос ставится на повестку совета, после одобрения кассир получает исходящий платёж на реквизиты оператора',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async createCooperativeInvestment(
+    @Args('data') input: CreateCooperativeInvestmentInputDTO
+  ): Promise<CreateCooperativeInvestmentResponseDTO> {
+    return this.walletService.createCooperativeInvestment(input);
+  }
+
+  /**
+   * Query: Балансы кошельков организации на бэкенде кооператива-оператора
+   */
+  @Query(() => [OperatorWalletDTO], {
+    name: 'getOperatorWallets',
+    description:
+      'Получить балансы кошельков кооператива как пайщика-организации на бэкенде кооператива-оператора (главный кошелёк и программные кошельки)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async getOperatorWallets(): Promise<OperatorWalletDTO[]> {
+    return await this.walletService.getOperatorWallets();
   }
 
   /**

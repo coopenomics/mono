@@ -114,6 +114,11 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.wal.depo':   [{ code: 'wallet', table: 'deposits',  field: 'deposit_hash' }],
   'p.wal.wthdrw': [{ code: 'wallet', table: 'withdraws', field: 'withdraw_hash' }],
 
+  // p.wal.invest — инвестирование средств кооператива в ЦПП оператора.
+  // Жизнь заявки: createinv → authinv / declineinv → completeinv.
+  // Сущностная таблица — `wallet::investments.invest_hash`.
+  'p.wal.invest': [{ code: 'wallet', table: 'investments', field: 'invest_hash' }],
+
   // p.cap.wthcap — возврат паевого из ЦПП Благорост в ЦК.
   // Жизнь запроса: createwthd3 → capauthwthd3 / capdeclwthd3 → approvewthd3.
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.

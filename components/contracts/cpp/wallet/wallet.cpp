@@ -11,6 +11,11 @@
 #include "src/withdraw/createwthd.cpp"
 #include "src/withdraw/declinewthd.cpp"
 
+#include "src/invest/authinv.cpp"
+#include "src/invest/completeinv.cpp"
+#include "src/invest/createinv.cpp"
+#include "src/invest/declineinv.cpp"
+
 #include "src/agreement/signagree.cpp"
 #include "src/agreement/revokeagree.cpp"
 #include "src/agreement/migrate3.cpp"

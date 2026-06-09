@@ -1983,6 +1983,8 @@ export type ValueTypes = {
 	bik?:boolean | `@${string}`,
 	/** Корреспондентский счет */
 	corr?:boolean | `@${string}`,
+	/** КПП (устар.) */
+	kpp?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on BankAccountDetails']?: Omit<ValueTypes["BankAccountDetails"], "...on BankAccountDetails">
 }>;
@@ -4211,6 +4213,114 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CoopAgreement']?: Omit<ValueTypes["CoopAgreement"], "...on CoopAgreement">
 }>;
+	["CooperativeInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Валюта */
+	currency: string | Variable<any, string>,
+	/** ID решения совета */
+	decision_id: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Хэш платежа */
+	payment_hash: string | Variable<any, string>,
+	/** Сумма инвестирования */
+	quantity: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["CooperativeInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Валюта */
+	currency: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string | Variable<any, string>,
+	/** Сумма инвестирования */
+	quantity: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["CooperativeInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация для документа заявления об инвестировании средств кооператива в ЦПП оператора */
+	meta: ValueTypes["CooperativeInvestStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["CooperativeInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Валюта */
+	currency: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Реквизиты оператора и назначение платежа */
+	payment_details: string | Variable<any, string>,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string | Variable<any, string>,
+	/** Наименование целевой потребительской программы оператора */
+	program_name: string | Variable<any, string>,
+	/** Сумма инвестирования */
+	quantity: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Полное наименование кооператива-оператора (получателя инвестиции) */
+	target_coop_fullname: string | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["CooperativeOperatorAccount"]: AliasType<{
 	/** Количество активных участников */
 	active_participants_count?:boolean | `@${string}`,
@@ -4366,6 +4476,24 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	["CreateCooperativeInvestmentInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string | Variable<any, string>,
+	/** Сумма инвестирования */
+	quantity: number | Variable<any, string>,
+	/** Подписанное заявление об инвестировании средств кооператива */
+	statement: ValueTypes["CooperativeInvestStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Символ валюты */
+	symbol: string | Variable<any, string>
+};
+	["CreateCooperativeInvestmentResponse"]: AliasType<{
+	/** Хеш созданной заявки на инвестирование */
+	invest_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CreateCooperativeInvestmentResponse']?: Omit<ValueTypes["CreateCooperativeInvestmentResponse"], "...on CreateCooperativeInvestmentResponse">
+}>;
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
 	end_date: string | Variable<any, string>,
@@ -6571,6 +6699,7 @@ confirmSupplyOnRequest?: [{	data: ValueTypes["ConfirmSupplyOnRequestInput"] | Va
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createChildOrder?: [{	data: ValueTypes["CreateChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+createCooperativeInvestment?: [{	data: ValueTypes["CreateCooperativeInvestmentInput"] | Variable<any, string>},ValueTypes["CreateCooperativeInvestmentResponse"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ValueTypes["CreateParentOfferInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -6597,6 +6726,8 @@ generateAssetContributionDecision?: [{	data: ValueTypes["AssetContributionDecisi
 generateAssetContributionStatement?: [{	data: ValueTypes["AssetContributionStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateCooperativeInvestDecisionDocument?: [{	data: ValueTypes["CooperativeInvestDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateCooperativeInvestStatementDocument?: [{	data: ValueTypes["CooperativeInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ValueTypes["FreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateParticipantApplication?: [{	data: ValueTypes["ParticipantApplicationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -6810,6 +6941,20 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	/** Хэш проекта */
 	project_hash: string | Variable<any, string>
 };
+	["OperatorWallet"]: AliasType<{
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Заблокированный баланс (формат: "100.0000 RUB") */
+	blocked?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы у оператора */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on OperatorWallet']?: Omit<ValueTypes["OperatorWallet"], "...on OperatorWallet">
+}>;
 	["Organization"]: AliasType<{
 	/** Город */
 	city?:boolean | `@${string}`,
@@ -8033,6 +8178,10 @@ getMeet?: [{	data: ValueTypes["GetMeetInput"] | Variable<any, string>},ValueType
 getMeets?: [{	data: ValueTypes["GetMeetsInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 getNotification?: [{	id: string | Variable<any, string>},ValueTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ValueTypes["NotificationsFilterInput"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["NotificationPaginationResult"]],
+	/** Получить балансы кошельков кооператива как пайщика-организации на бэкенде кооператива-оператора (главный кошелёк и программные кошельки)
+
+Требуемые роли: chairman, member.  */
+	getOperatorWallets?:ValueTypes["OperatorWallet"],
 getPaymentMethods?: [{	data?: ValueTypes["GetPaymentMethodsInput"] | undefined | null | Variable<any, string>},ValueTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
@@ -10622,6 +10771,8 @@ export type ResolverInputTypes = {
 	bik?:boolean | `@${string}`,
 	/** Корреспондентский счет */
 	corr?:boolean | `@${string}`,
+	/** КПП (устар.) */
+	kpp?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["BankAccountDetailsInput"]: {
@@ -12787,6 +12938,114 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CooperativeInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** ID решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хэш платежа */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация для документа заявления об инвестировании средств кооператива в ЦПП оператора */
+	meta: ResolverInputTypes["CooperativeInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CooperativeInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Реквизиты оператора и назначение платежа */
+	payment_details: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Наименование целевой потребительской программы оператора */
+	program_name: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Полное наименование кооператива-оператора (получателя инвестиции) */
+	target_coop_fullname: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["CooperativeOperatorAccount"]: AliasType<{
 	/** Количество активных участников */
 	active_participants_count?:boolean | `@${string}`,
@@ -12940,6 +13199,23 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreateCooperativeInvestmentInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: number,
+	/** Подписанное заявление об инвестировании средств кооператива */
+	statement: ResolverInputTypes["CooperativeInvestStatementSignedDocumentInput"],
+	/** Символ валюты */
+	symbol: string
+};
+	["CreateCooperativeInvestmentResponse"]: AliasType<{
+	/** Хеш созданной заявки на инвестирование */
+	invest_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
 	end_date: string,
@@ -15090,6 +15366,7 @@ confirmSupplyOnRequest?: [{	data: ResolverInputTypes["ConfirmSupplyOnRequestInpu
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createChildOrder?: [{	data: ResolverInputTypes["CreateChildOrderInput"]},ResolverInputTypes["Transaction"]],
+createCooperativeInvestment?: [{	data: ResolverInputTypes["CreateCooperativeInvestmentInput"]},ResolverInputTypes["CreateCooperativeInvestmentResponse"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createParentOffer?: [{	data: ResolverInputTypes["CreateParentOfferInput"]},ResolverInputTypes["Transaction"]],
@@ -15116,6 +15393,8 @@ generateAssetContributionDecision?: [{	data: ResolverInputTypes["AssetContributi
 generateAssetContributionStatement?: [{	data: ResolverInputTypes["AssetContributionStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ResolverInputTypes["ConvertToAxonStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateCooperativeInvestDecisionDocument?: [{	data: ResolverInputTypes["CooperativeInvestDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateCooperativeInvestStatementDocument?: [{	data: ResolverInputTypes["CooperativeInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ResolverInputTypes["FreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateParticipantApplication?: [{	data: ResolverInputTypes["ParticipantApplicationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -15322,6 +15601,19 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	/** Хэш проекта */
 	project_hash: string
 };
+	["OperatorWallet"]: AliasType<{
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Заблокированный баланс (формат: "100.0000 RUB") */
+	blocked?:boolean | `@${string}`,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution?:boolean | `@${string}`,
+	/** Идентификатор программы у оператора */
+	program_id?:boolean | `@${string}`,
+	/** Тип программы */
+	program_type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["Organization"]: AliasType<{
 	/** Город */
 	city?:boolean | `@${string}`,
@@ -16493,6 +16785,10 @@ getMeet?: [{	data: ResolverInputTypes["GetMeetInput"]},ResolverInputTypes["MeetA
 getMeets?: [{	data: ResolverInputTypes["GetMeetsInput"]},ResolverInputTypes["MeetAggregate"]],
 getNotification?: [{	id: string},ResolverInputTypes["NotificationDetail"]],
 getNotifications?: [{	filter: ResolverInputTypes["NotificationsFilterInput"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["NotificationPaginationResult"]],
+	/** Получить балансы кошельков кооператива как пайщика-организации на бэкенде кооператива-оператора (главный кошелёк и программные кошельки)
+
+Требуемые роли: chairman, member.  */
+	getOperatorWallets?:ResolverInputTypes["OperatorWallet"],
 getPaymentMethods?: [{	data?: ResolverInputTypes["GetPaymentMethodsInput"] | undefined | null},ResolverInputTypes["PaymentMethodPaginationResult"]],
 getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedGatewayPaymentsPaginationResult"]],
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
@@ -19019,7 +19315,9 @@ export type ModelTypes = {
 		/** БИК банка */
 	bik: string,
 	/** Корреспондентский счет */
-	corr: string
+	corr: string,
+	/** КПП (устар.) */
+	kpp?: string | undefined | null
 };
 	["BankAccountDetailsInput"]: {
 	/** БИК банка */
@@ -21117,6 +21415,114 @@ export type ModelTypes = {
 	/** Тип соглашения (wallet, privacy, signature, user, blagorost, generator, marketplace) */
 	type: string
 };
+	["CooperativeInvestDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** ID решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хэш платежа */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация для документа заявления об инвестировании средств кооператива в ЦПП оператора */
+	meta: ModelTypes["CooperativeInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CooperativeInvestStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Реквизиты оператора и назначение платежа */
+	payment_details: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Наименование целевой потребительской программы оператора */
+	program_name: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Полное наименование кооператива-оператора (получателя инвестиции) */
+	target_coop_fullname: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["CooperativeOperatorAccount"]: {
 		/** Количество активных участников */
 	active_participants_count: number,
@@ -21266,6 +21672,22 @@ export type ModelTypes = {
 	project_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateCooperativeInvestmentInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: number,
+	/** Подписанное заявление об инвестировании средств кооператива */
+	statement: ModelTypes["CooperativeInvestStatementSignedDocumentInput"],
+	/** Символ валюты */
+	symbol: string
+};
+	["CreateCooperativeInvestmentResponse"]: {
+		/** Хеш созданной заявки на инвестирование */
+	invest_hash: string
 };
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
@@ -23632,6 +24054,10 @@ export type ModelTypes = {
 	createBranch: ModelTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: ModelTypes["Transaction"],
+	/** Создать заявку кооператива на инвестирование собственных средств в целевую потребительскую программу кооператива-оператора: вопрос ставится на повестку совета, после одобрения кассир получает исходящий платёж на реквизиты оператора
+
+Требуемые роли: chairman.  */
+	createCooperativeInvestment: ModelTypes["CreateCooperativeInvestmentResponse"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -23726,6 +24152,14 @@ export type ModelTypes = {
 
 Требуемые роли: member, chairman.  */
 	generateConvertToAxonStatement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать документ решения совета об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора
+
+Требуемые роли: chairman, member.  */
+	generateCooperativeInvestDecisionDocument: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать документ заявления об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора
+
+Требуемые роли: chairman.  */
+	generateCooperativeInvestStatementDocument: ModelTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения по предложенной повестке
@@ -24064,6 +24498,18 @@ export type ModelTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["OperatorWallet"]: {
+		/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Заблокированный баланс (формат: "100.0000 RUB") */
+	blocked: string,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы у оператора */
+	program_id: ModelTypes["ID"],
+	/** Тип программы */
+	program_type?: string | undefined | null
 };
 	["Organization"]: {
 		/** Город */
@@ -25321,6 +25767,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	getNotifications: ModelTypes["NotificationPaginationResult"],
+	/** Получить балансы кошельков кооператива как пайщика-организации на бэкенде кооператива-оператора (главный кошелёк и программные кошельки)
+
+Требуемые роли: chairman, member.  */
+	getOperatorWallets: Array<ModelTypes["OperatorWallet"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -27884,6 +28334,8 @@ export type GraphQLTypes = {
 	bik: string,
 	/** Корреспондентский счет */
 	corr: string,
+	/** КПП (устар.) */
+	kpp?: string | undefined | null,
 	['...on BankAccountDetails']: Omit<GraphQLTypes["BankAccountDetails"], "...on BankAccountDetails">
 };
 	["BankAccountDetailsInput"]: {
@@ -30111,6 +30563,114 @@ export type GraphQLTypes = {
 	type: string,
 	['...on CoopAgreement']: Omit<GraphQLTypes["CoopAgreement"], "...on CoopAgreement">
 };
+	["CooperativeInvestDecisionGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** ID решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хэш платежа */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["CooperativeInvestStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация для документа заявления об инвестировании средств кооператива в ЦПП оператора */
+	meta: GraphQLTypes["CooperativeInvestStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["CooperativeInvestStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Валюта */
+	currency: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Реквизиты оператора и назначение платежа */
+	payment_details: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Наименование целевой потребительской программы оператора */
+	program_name: string,
+	/** Сумма инвестирования */
+	quantity: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Полное наименование кооператива-оператора (получателя инвестиции) */
+	target_coop_fullname: string,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["CooperativeOperatorAccount"]: {
 	__typename: "CooperativeOperatorAccount",
 	/** Количество активных участников */
@@ -30265,6 +30825,24 @@ export type GraphQLTypes = {
 	project_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateCooperativeInvestmentInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш платежа для связи с заявкой на инвестирование */
+	payment_hash: string,
+	/** Сумма инвестирования */
+	quantity: number,
+	/** Подписанное заявление об инвестировании средств кооператива */
+	statement: GraphQLTypes["CooperativeInvestStatementSignedDocumentInput"],
+	/** Символ валюты */
+	symbol: string
+};
+	["CreateCooperativeInvestmentResponse"]: {
+	__typename: "CreateCooperativeInvestmentResponse",
+	/** Хеш созданной заявки на инвестирование */
+	invest_hash: string,
+	['...on CreateCooperativeInvestmentResponse']: Omit<GraphQLTypes["CreateCooperativeInvestmentResponse"], "...on CreateCooperativeInvestmentResponse">
 };
 	["CreateCycleInput"]: {
 		/** Дата окончания цикла (ISO 8601) */
@@ -32754,6 +33332,10 @@ export type GraphQLTypes = {
 	createBranch: GraphQLTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: GraphQLTypes["Transaction"],
+	/** Создать заявку кооператива на инвестирование собственных средств в целевую потребительскую программу кооператива-оператора: вопрос ставится на повестку совета, после одобрения кассир получает исходящий платёж на реквизиты оператора
+
+Требуемые роли: chairman.  */
+	createCooperativeInvestment: GraphQLTypes["CreateCooperativeInvestmentResponse"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -32848,6 +33430,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: member, chairman.  */
 	generateConvertToAxonStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать документ решения совета об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора
+
+Требуемые роли: chairman, member.  */
+	generateCooperativeInvestDecisionDocument: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать документ заявления об инвестировании средств кооператива в целевую потребительскую программу кооператива-оператора
+
+Требуемые роли: chairman.  */
+	generateCooperativeInvestStatementDocument: GraphQLTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать протокол решения по предложенной повестке
@@ -33203,6 +33793,20 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["OperatorWallet"]: {
+	__typename: "OperatorWallet",
+	/** Доступный баланс (формат: "100.0000 RUB") */
+	available: string,
+	/** Заблокированный баланс (формат: "100.0000 RUB") */
+	blocked: string,
+	/** Паевой взнос (формат: "100.0000 RUB") */
+	membership_contribution: string,
+	/** Идентификатор программы у оператора */
+	program_id: GraphQLTypes["ID"],
+	/** Тип программы */
+	program_type?: string | undefined | null,
+	['...on OperatorWallet']: Omit<GraphQLTypes["OperatorWallet"], "...on OperatorWallet">
 };
 	["Organization"]: {
 	__typename: "Organization",
@@ -34585,6 +35189,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	getNotifications: GraphQLTypes["NotificationPaginationResult"],
+	/** Получить балансы кошельков кооператива как пайщика-организации на бэкенде кооператива-оператора (главный кошелёк и программные кошельки)
+
+Требуемые роли: chairman, member.  */
+	getOperatorWallets: Array<GraphQLTypes["OperatorWallet"]>,
 	/** Получить список методов оплаты
 
 Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
@@ -36647,6 +37255,7 @@ export enum PaymentStatus {
 }
 /** Тип платежа по назначению */
 export enum PaymentType {
+	COOPERATIVE_INVESTMENT = "COOPERATIVE_INVESTMENT",
 	DEPOSIT = "DEPOSIT",
 	REGISTRATION = "REGISTRATION",
 	REGISTRATION_REFUND = "REGISTRATION_REFUND",
@@ -36768,6 +37377,7 @@ export enum UserStatus {
 	Joined = "Joined",
 	Payed = "Payed",
 	Refunded = "Refunded",
+	Refunding = "Refunding",
 	Registered = "Registered"
 }
 /** Тип подписанта для нулевых форм: руководитель или представитель */
@@ -36862,12 +37472,17 @@ type ZEUS_VARIABLES = {
 	["ConvertToAxonStatementGenerateDocumentInput"]: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"];
 	["ConvertToAxonStatementSignedDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedDocumentInput"];
 	["ConvertToAxonStatementSignedMetaDocumentInput"]: ValueTypes["ConvertToAxonStatementSignedMetaDocumentInput"];
+	["CooperativeInvestDecisionGenerateDocumentInput"]: ValueTypes["CooperativeInvestDecisionGenerateDocumentInput"];
+	["CooperativeInvestStatementGenerateDocumentInput"]: ValueTypes["CooperativeInvestStatementGenerateDocumentInput"];
+	["CooperativeInvestStatementSignedDocumentInput"]: ValueTypes["CooperativeInvestStatementSignedDocumentInput"];
+	["CooperativeInvestStatementSignedMetaDocumentInput"]: ValueTypes["CooperativeInvestStatementSignedMetaDocumentInput"];
 	["Country"]: ValueTypes["Country"];
 	["CreateAnnualGeneralMeetInput"]: ValueTypes["CreateAnnualGeneralMeetInput"];
 	["CreateBranchInput"]: ValueTypes["CreateBranchInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateChildOrderInput"]: ValueTypes["CreateChildOrderInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
+	["CreateCooperativeInvestmentInput"]: ValueTypes["CreateCooperativeInvestmentInput"];
 	["CreateCycleInput"]: ValueTypes["CreateCycleInput"];
 	["CreateDebtInput"]: ValueTypes["CreateDebtInput"];
 	["CreateDepositPaymentInput"]: ValueTypes["CreateDepositPaymentInput"];

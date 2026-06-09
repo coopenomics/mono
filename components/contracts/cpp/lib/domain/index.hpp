@@ -50,6 +50,7 @@
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"
+#include "table_wallet_investments.hpp"
 #include "table_wallet_users.hpp"
 #include "table_wallet_withdraws.hpp"
 #include "table_gateway_incomes.hpp"

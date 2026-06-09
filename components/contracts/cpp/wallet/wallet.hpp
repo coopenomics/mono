@@ -29,6 +29,12 @@ public:
     [[eosio::action]] void declinewthd(DECLINEWTHD_SIGNATURE);
     [[eosio::action]] void authwthd(AUTHWTHD_SIGNATURE);
 
+    //инвестирование средств кооператива в ЦПП оператора платформы
+    [[eosio::action]] void createinv(eosio::name coopname, checksum256 invest_hash, eosio::asset quantity, document2 statement);
+    [[eosio::action]] void completeinv(COMPLETEINV_SIGNATURE);
+    [[eosio::action]] void declineinv(DECLINEINV_SIGNATURE);
+    [[eosio::action]] void authinv(AUTHINV_SIGNATURE);
+
     // программные соглашения (Эпик 2 компонента 48; ADR-008)
     [[eosio::action]] void signagree(eosio::name coopname, eosio::name username, uint64_t program_id, document2 document, uint64_t draft_id);
     [[eosio::action]] void revokeagree(eosio::name coopname, eosio::name username, uint64_t program_id);

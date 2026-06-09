@@ -1,6 +1,7 @@
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
+import type { PrepareInvestmentInputDomainInterface } from '~/domain/gateway/interfaces/prepare-investment-input-domain.interface';
 import type { SetPaymentStatusInputDomainInterface } from '~/domain/gateway/interfaces/set-payment-status-domain-input.interface';
 import type { InternalPaymentFiltersDomainInterface } from '~/domain/gateway/interfaces/payment-filters-domain.interface';
 import type {
@@ -26,6 +27,13 @@ export interface GatewayInteractorPort {
    * транзакцию между валидацией и фиксацией платежа.
    */
   prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface>;
+
+  /**
+   * Подготовить (с валидацией) исходящий платеж по инвестированию средств
+   * кооператива в ЦПП оператора платформы БЕЗ записи в БД.
+   * Реквизиты получателя — кооператив-оператор, не платёжный метод пайщика.
+   */
+  prepareInvestment(data: PrepareInvestmentInputDomainInterface): Promise<PaymentDomainInterface>;
 
   /**
    * Зафиксировать в БД ранее подготовленный исходящий платеж.

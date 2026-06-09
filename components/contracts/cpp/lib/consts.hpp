@@ -102,7 +102,8 @@ static const std::set<eosio::name> soviet_actions = {
 
     //WALLET
     "createwthd"_n, //создать заявление на возврат паевого взноса
-    
+    "createinv"_n, //создать заявление об инвестировании средств кооператива в ЦПП оператора
+
     //LEDGER
     "ledgerwthd"_n, //заявление на списание со счета через ledger
     

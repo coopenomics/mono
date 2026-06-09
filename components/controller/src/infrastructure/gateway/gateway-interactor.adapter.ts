@@ -4,6 +4,7 @@ import { GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
+import type { PrepareInvestmentInputDomainInterface } from '~/domain/gateway/interfaces/prepare-investment-input-domain.interface';
 import type { SetPaymentStatusInputDomainInterface } from '~/domain/gateway/interfaces/set-payment-status-domain-input.interface';
 import type { InternalPaymentFiltersDomainInterface } from '~/domain/gateway/interfaces/payment-filters-domain.interface';
 import type {
@@ -39,6 +40,10 @@ export class GatewayInteractorAdapter implements GatewayInteractorPort {
 
   async prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface> {
     return await this.gatewayInteractor.prepareWithdraw(data);
+  }
+
+  async prepareInvestment(data: PrepareInvestmentInputDomainInterface): Promise<PaymentDomainInterface> {
+    return await this.gatewayInteractor.prepareInvestment(data);
   }
 
   async persistWithdraw(paymentData: PaymentDomainInterface): Promise<PaymentDomainEntity> {

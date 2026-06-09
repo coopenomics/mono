@@ -6,3 +6,9 @@ export * as CreateDepositPayment from './createDepositPayment'
 export * as GenerateReturnByMoneyStatementDocument from './generateReturnByMoneyStatementDocument'
 /** Сгенерировать документ решения совета о возврате паевого взноса */
 export * as GenerateReturnByMoneyDecisionDocument from './generateReturnByMoneyDecisionDocument'
+/** Создать заявку кооператива на инвестирование средств в ЦПП оператора */
+export * as CreateCooperativeInvestment from './createCooperativeInvestment'
+/** Сгенерировать документ заявления об инвестировании средств кооператива в ЦПП оператора */
+export * as GenerateCooperativeInvestStatementDocument from './generateCooperativeInvestStatementDocument'
+/** Сгенерировать документ решения совета об инвестировании средств кооператива в ЦПП оператора */
+export * as GenerateCooperativeInvestDecisionDocument from './generateCooperativeInvestDecisionDocument'

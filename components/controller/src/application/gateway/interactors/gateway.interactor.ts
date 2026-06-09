@@ -14,6 +14,7 @@ import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import type { CreateWithdrawPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-withdraw-payment-input-domain.interface';
+import type { PrepareInvestmentInputDomainInterface } from '~/domain/gateway/interfaces/prepare-investment-input-domain.interface';
 import config from '~/config/config';
 import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/complete-income-domain.interface';
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
@@ -606,6 +607,66 @@ export class GatewayInteractor {
     );
 
     return new PaymentDomainEntity(createdPayment);
+  }
+
+  /**
+   * Подготовить исходящий платеж по инвестированию средств кооператива в ЦПП
+   * оператора платформы БЕЗ записи в БД (пара к persistWithdraw — см.
+   * WalletInteractor.createCooperativeInvestment).
+   *
+   * Отличия от prepareWithdraw: получатель — кооператив-оператор (реквизиты
+   * передаются текстом, платёжный метод пайщика не используется), плательщик —
+   * сам кооператив (username = coopname).
+   */
+  async prepareInvestment(data: PrepareInvestmentInputDomainInterface): Promise<PaymentDomainInterface> {
+    await this.paymentRepository.expireOutdatedPayments();
+
+    QuantityUtils.validateSymbol(data.symbol);
+
+    const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
+    if (existingPayment) {
+      throw new Error(`Платеж с хешем ${data.payment_hash} уже существует. Возможно, заявка была создана ранее.`);
+    }
+
+    const settings = await this.systemDomainPort.getSettings();
+    const provider = settings.provider_name;
+
+    const now = new Date();
+    const expiredAt = this.createPaymentExpirationDate(-1); // Бессрочный платеж для исходящих платежей
+
+    const paymentDetails: PaymentDetailsDomainInterface = {
+      data: data.payment_details_data,
+      amount_plus_fee: data.quantity.toString(),
+      amount_without_fee: data.quantity.toString(),
+      fee_amount: '0',
+      fee_percent: 0,
+      fact_fee_percent: 0,
+      tolerance_percent: 0,
+    };
+
+    const paymentData: PaymentDomainInterface = {
+      id: '', // будет установлен в репозитории
+      coopname: data.coopname,
+      username: data.coopname,
+      quantity: data.quantity,
+      symbol: data.symbol,
+      type: PaymentTypeEnum.COOPERATIVE_INVESTMENT,
+      direction: PaymentDirectionEnum.OUTGOING,
+      provider: provider,
+      // Платёж создаётся до решения совета и не должен видеться кассиром как
+      // готовый к выплате. Переход AWAITING_AUTHORIZATION → PENDING происходит
+      // в InvestmentAuthorizationListener при on-chain action wallet::authinv.
+      status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
+      memo: data.memo,
+      secret: generateUniqueHash(),
+      payment_details: paymentDetails,
+      expired_at: expiredAt,
+      created_at: now,
+      updated_at: now,
+      hash: data.payment_hash,
+    };
+
+    return paymentData;
   }
 
   /**

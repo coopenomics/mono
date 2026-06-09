@@ -25,7 +25,9 @@ export class WithdrawAuthorizationListener {
 
   @OnEvent('action::wallet::authwthd')
   async onAuthWithdraw(action: ActionDomainInterface): Promise<void> {
-    const withdraw_hash = action?.data?.withdraw_hash as string | undefined;
+    // Сигнатура authwthd — AUTHORIZE_CALLBACK_SIGNATURE: в ABI поле называется
+    // `hash`, не `withdraw_hash` (см. lib/core/soviet/soviet.hpp).
+    const withdraw_hash = (action?.data?.withdraw_hash ?? action?.data?.hash) as string | undefined;
     if (!withdraw_hash) return;
 
     const payment = await this.paymentRepository.findByHash(withdraw_hash);

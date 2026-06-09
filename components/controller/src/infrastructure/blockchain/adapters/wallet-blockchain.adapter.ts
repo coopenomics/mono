@@ -10,6 +10,7 @@ import type { TransactionResult } from '~/domain/blockchain/types/transaction-re
 import type {
   WalletBlockchainPort,
   CreateWithdrawDomainInterface,
+  CreateInvestmentDomainInterface,
   GenerateReturnStatementDomainInterface,
   SignProgramAgreementDomainInterface,
 } from '~/domain/wallet/ports/wallet-blockchain.port';
@@ -60,6 +61,36 @@ export class WalletBlockchainAdapter implements WalletBlockchainPort {
     })) as TransactResult;
 
     this.logger.log(`Создана заявка на вывод средств: ${data.withdraw_hash}`);
+    return result;
+  }
+
+  /**
+   * Создание заявки кооператива на инвестирование средств в ЦПП оператора
+   * платформы в контракте wallet (wallet::createinv)
+   */
+  async createInvestment(data: CreateInvestmentDomainInterface): Promise<TransactionResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    const formattedQuantity = this.domainToBlockchainUtils.formatQuantityWithPrecision(data.quantity);
+
+    const blockchainData: WalletContract.Actions.CreateInvest.ICreateInvest = {
+      coopname: data.coopname,
+      invest_hash: data.invest_hash,
+      quantity: formattedQuantity,
+      statement: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.statement),
+    };
+
+    const result = (await this.blockchainService.transact({
+      account: WalletContract.contractName.production,
+      name: WalletContract.Actions.CreateInvest.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data: blockchainData,
+    })) as TransactResult;
+
+    this.logger.log(`Создана заявка на инвестирование средств кооператива: ${data.invest_hash}`);
     return result;
   }
 
