@@ -113,7 +113,10 @@ export class ChairmanOnboardingService {
     }
 
     if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config });
+      await this.extensionRepository.patchConfig('chairman', {
+        onboarding_init_at: config.onboarding_init_at,
+        onboarding_expire_at: config.onboarding_expire_at,
+      });
       return { ...plugin, config };
     }
 
@@ -198,12 +201,11 @@ export class ChairmanOnboardingService {
       document: documentForPublish,
     });
 
-    // Сохраняем hash в конфиге для отображения на фронтенде
-    const updatedConfig: IConfig = {
-      ...plugin.config,
+    // Сохраняем hash в конфиге для отображения на фронтенде. Атомарный merge:
+    // не затираем соседние шаги/флаги при параллельных completeAgendaStep.
+    const merged = await this.extensionRepository.patchConfig('chairman', {
       [hashKey]: generatedDoc.hash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    });
 
     // Регистрируем правило отслеживания в фабрике
     const varsField = this.mapStepToVarsField(data.step);
@@ -219,7 +221,7 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(merged.config);
   }
 
   // Сохраняем hash общего собрания, флаг закроется после newresolved
@@ -233,8 +235,10 @@ export class ChairmanOnboardingService {
     // Если hash не пришёл (не должно быть), не затираем существующее значение
     const meetHash = proposal_hash || plugin.config.onboarding_general_meet_hash || '';
 
-    const updatedConfig: IConfig = { ...plugin.config, onboarding_general_meet_hash: meetHash };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    // Атомарный merge только своего ключа.
+    const merged = await this.extensionRepository.patchConfig('chairman', {
+      onboarding_general_meet_hash: meetHash,
+    });
 
     // Регистрируем правило отслеживания общего собрания
     await this.decisionTrackingPort.registerTrackingRule({
@@ -247,6 +251,6 @@ export class ChairmanOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(merged.config);
   }
 }

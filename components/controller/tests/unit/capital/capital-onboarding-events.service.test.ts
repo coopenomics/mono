@@ -27,6 +27,11 @@ function makeRepoStub(cfg: Record<string, any>) {
     update: jest.fn(async (next: any) => {
       Object.assign(plugin.config, next.config);
     }),
+    // patchConfig — атомарный shallow-merge; возвращает свежий слитый config.
+    patchConfig: jest.fn(async (_name: string, patch: any) => {
+      Object.assign(plugin.config, patch);
+      return plugin;
+    }),
   };
 }
 

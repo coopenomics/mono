@@ -118,13 +118,12 @@ export class MarketplaceCoopAcceptanceService {
       accepted_by_board_decision_id: input.accepted_by_board_decision_id,
     };
 
-    const nextConfig: IConfig = {
-      ...defaultConfig,
-      ...(extension.config ?? {}),
+    // Атомарный merge только своего ключа: не затираем соседние поля config
+    // (onboarding_*_done и т.п.), которые мог проставить generic-слушатель
+    // решений совета параллельно.
+    await this.extensionRepository.patchConfig(MARKETPLACE_EXTENSION_NAME, {
       coopAcceptance: acceptance,
-    };
-
-    await this.extensionRepository.update({ name: MARKETPLACE_EXTENSION_NAME, config: nextConfig });
+    });
 
     this.logger.info(
       `[MARKETPLACE.L1] Положение ЦПП принято: document_registry_id=${input.document_registry_id}, board_decision_id=${input.accepted_by_board_decision_id}, accepted_at=${accepted_at}`

@@ -76,17 +76,19 @@ export class ExtensionOnboardingEventsService {
       const wasAlreadyDone = Boolean(plugin.config[flagKey]);
       if (wasAlreadyDone) return;
 
-      const updatedConfig: Record<string, unknown> = {
-        ...plugin.config,
+      // Атомарный merge одного флага: два решения совета по РАЗНЫМ шагам,
+      // утверждённые почти одновременно, иначе теряли бы друг друга (оба
+      // читают config без обоих флагов и пишут весь блоб назад). merged —
+      // свежий слитый config (под локом), поэтому allDone видит оба флага.
+      const merged = await this.extensionRepository.patchConfig(extension_name, {
         [flagKey]: true,
-      };
-      await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+      });
       this.logger.info(`Онбординг ${extension_name}: ${flagKey} = true`);
 
       const specs = this.stepsRegistry.getStepsByExtension(extension_name);
       const allDone =
         specs.length > 0 &&
-        specs.every((s) => Boolean(updatedConfig[doneKey(s.step_key)]));
+        specs.every((s) => Boolean(merged.config[doneKey(s.step_key)]));
       if (allDone) {
         this.logger.info(
           `[ONBOARDING_COMPLETED] ${extension_name}: все шаги завершены`

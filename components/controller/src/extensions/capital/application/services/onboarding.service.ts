@@ -106,7 +106,10 @@ export class CapitalOnboardingService {
     }
 
     if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config: pluginConfig });
+      await this.extensionRepository.patchConfig('capital', {
+        onboarding_init_at: pluginConfig.onboarding_init_at,
+        onboarding_expire_at: pluginConfig.onboarding_expire_at,
+      });
       return { ...plugin, config: pluginConfig };
     }
 
@@ -183,12 +186,11 @@ export class CapitalOnboardingService {
       document: documentForPublish,
     });
 
-    // Сохраняем hash в конфиге для отображения на фронтенде
-    const updatedConfig = {
-      ...plugin.config,
+    // Сохраняем hash в конфиге для отображения на фронтенде. Атомарный merge:
+    // не затираем соседние шаги/флаги при параллельных completeStep.
+    const merged = await this.extensionRepository.patchConfig('capital', {
       [hashKey]: generatedDoc.hash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    });
 
     // Регистрируем правило отслеживания в фабрике
     const varsField = this.mapStepToVarsField(data.step);
@@ -204,6 +206,6 @@ export class CapitalOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(merged.config);
   }
 }

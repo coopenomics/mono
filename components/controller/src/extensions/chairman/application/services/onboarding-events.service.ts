@@ -86,14 +86,13 @@ export class ChairmanOnboardingEventsService {
 
       const wasAlreadyDone = !!(cfg as any)[flagKey];
 
-      // Обновляем флаг выполнения шага
-      const patch: Partial<IConfig> = {
+      // Атомарный merge одного флага: два решения совета по разным шагам,
+      // утверждённые почти одновременно, иначе теряли бы друг друга. merged —
+      // свежий слитый config (под локом), поэтому isL1Complete видит все флаги.
+      const merged = await this.extensionRepository.patchConfig('chairman', {
         [flagKey]: true,
-      };
-
-      const updatedConfig = { ...cfg, ...patch };
-      const updated: ExtensionDomainEntity<IConfig> = { ...plugin, config: updatedConfig };
-      await this.extensionRepository.update(updated);
+      });
+      const updatedConfig = merged.config;
 
       this.logger.info(`Онбординг обновлён: ${flagKey} = true (решение ${result.decision_id})`);
 

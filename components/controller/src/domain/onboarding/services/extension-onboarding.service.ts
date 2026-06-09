@@ -98,7 +98,10 @@ export class ExtensionOnboardingService {
       needUpdate = true;
     }
     if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config: pluginConfig });
+      await this.extensionRepository.patchConfig(extension_name, {
+        onboarding_init_at: pluginConfig.onboarding_init_at,
+        onboarding_expire_at: pluginConfig.onboarding_expire_at,
+      });
     }
     return { ...plugin, config: pluginConfig };
   }
@@ -150,11 +153,9 @@ export class ExtensionOnboardingService {
 
     const storedHash = await this.runGenerator(spec, input, username);
 
-    const updatedConfig: Record<string, unknown> = {
-      ...plugin.config,
+    await this.extensionRepository.patchConfig(input.extension_name, {
       [hashKey(spec.step_key)]: storedHash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    });
 
     return this.getState(input.extension_name);
   }
