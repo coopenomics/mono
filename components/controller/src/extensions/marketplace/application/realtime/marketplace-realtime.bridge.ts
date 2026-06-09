@@ -44,7 +44,7 @@ export class MarketplaceRealtimeBridge {
 
   // Только очная приёмка (Вариант А): поставщик у стойки, экран перекрывается
   // гейтом по этому ws-сигналу. Вариант Б (экспедитор) сюда НЕ приходит —
-  // там бумажная ТТН и асинхронный Novu, overlay не нужен.
+  // там бумажная ТТН, передача подтверждена, overlay не нужен.
   @OnEvent(MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT)
   async onSupplierOnsiteSignRequest(
     event: MarketplaceAplSupplierOnsiteSignRequestEvent
