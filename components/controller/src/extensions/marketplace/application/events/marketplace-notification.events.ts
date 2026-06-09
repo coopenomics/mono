@@ -6,6 +6,17 @@
 export const MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT =
   'marketplace.aplReception.b.supplier.signRequested';
 
+/**
+ * Очная приёмка (Вариант А): поставщик ЛИЧНО стоит у стойки оператора, и
+ * других документов о передаче имущества (бумажной ТТН, как у экспедитора)
+ * нет — подпись нужна немедленно, пока поставщик здесь. Это сигнал realtime-
+ * каналу, чтобы у поставщика моментально всплыл перекрывающий гейт «Подпишите
+ * документ». Novu тут НЕ участвует (поставщик у стойки — уведомлять некуда и
+ * незачем); это чисто ws-сигнал для overlay.
+ */
+export const MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT =
+  'marketplace.aplReception.a.supplier.onsiteSignRequested';
+
 export const MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT =
   'marketplace.outgoingPayment.cashier.newTask';
 
@@ -30,6 +41,13 @@ export interface MarketplaceAplSupplierSignRequestEvent {
   ku_name: string;
   ttn_number: string;
   expeditor_name: string;
+}
+
+export interface MarketplaceAplSupplierOnsiteSignRequestEvent {
+  coopname: string;
+  apl_reception_id: string;
+  supplier_account: string;
+  ku_name: string;
 }
 
 export interface MarketplaceCashierNewPaymentEvent {
