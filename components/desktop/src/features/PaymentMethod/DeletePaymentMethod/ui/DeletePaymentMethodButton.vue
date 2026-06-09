@@ -30,6 +30,7 @@ import { computed, ref } from 'vue';
 import { useDeletePaymentMethod } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import type { BaseButtonSize } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 
@@ -43,7 +44,7 @@ const props = defineProps({
     required: true,
   },
   size: {
-    type: String,
+    type: String as () => BaseButtonSize,
     required: false,
     default: 'md'
   }

@@ -90,7 +90,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in payments" :key="row.id ?? row.hash">
+            <tr v-for="row in payments" :key="String(row.hash ?? row.id ?? '')">
               <td>{{ formatDate(row.created_at) }}</td>
               <td class="t-mono">{{ row.formatted_amount }}</td>
               <td>
@@ -176,7 +176,7 @@ const getStatusVariant = (status?: string | null): BaseBadgeVariant => {
   return statusVariants[status] || 'neutral';
 };
 
-function formatDate(value?: string | Date | null): string {
+function formatDate(value: unknown): string {
   if (!value) return '—';
   return new Date(String(value)).toLocaleDateString('ru-RU');
 }
