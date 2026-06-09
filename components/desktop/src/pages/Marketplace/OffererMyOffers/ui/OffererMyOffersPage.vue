@@ -261,17 +261,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
           @click="setFilter(opt)"
         )
           span {{ opt.label }}
-      .tabbar__actions
-        BaseButton(
-          variant="ghost",
-          size="sm",
-          icon-only,
-          aria-label="Обновить",
-          :loading="loading",
-          @click="load(1, false)"
-        )
-          template(#icon-left)
-            q-icon(name="refresh", size="20px")
 
     //- Скелетон вместо спиннера: каркас карточек проявляется сразу, без
     //- дёргания. Только на первичной загрузке — polling обновляет молча.
@@ -326,9 +315,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
   &__tabs {
     :deep(.tabbar__tabs) {
       padding: 0;
-    }
-    :deep(.tabbar__actions) {
-      padding-right: 0;
     }
   }
 

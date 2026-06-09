@@ -7,7 +7,6 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
@@ -308,8 +307,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | «Подготовка отгрузки».
 
     PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
-      template(#actions)
-        RefreshButton(:loading='loading', @refresh='load(1, false)')
 
     //- Скелетон вместо спиннера на первичной загрузке.
     .incoming-orders__skel-list(v-if='showSkeleton')

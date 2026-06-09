@@ -9,7 +9,6 @@ import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
@@ -229,7 +228,6 @@ q-page.offerer-supply
       template(#icon-left)
         q-icon(name='qr_code_2', size='16px')
       | Мой код для ПВЗ
-    RefreshButton(:loading='loading', @refresh='load')
 
   PageHint(storage-key='mp:offerer-supply:banner-dismissed')
     | Нажмите «Сформировать партию» в шапке: выберите способ доставки (самовывоз

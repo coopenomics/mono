@@ -7,7 +7,6 @@ import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
@@ -179,7 +178,6 @@ q-page.order-detail(role="region", aria-label="Заказ")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
       | Получить заказ
-    RefreshButton(:loading="loading", @refresh="load")
 
   .order-detail__col
     BaseButton.order-detail__back(variant="ghost", size="sm", @click="goBack")

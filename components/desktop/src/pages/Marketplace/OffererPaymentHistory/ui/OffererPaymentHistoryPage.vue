@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
@@ -83,16 +83,6 @@ q-page.offerer-payments
     | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
     | она уходит в банк — статус обновляется здесь по мере обработки.
 
-  .offerer-payments__toolbar
-    BaseButton(
-      variant='ghost',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   TableSkeleton(
     v-if='loading && !items.length',
@@ -135,10 +125,6 @@ q-page.offerer-payments
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__toolbar {
-    display: flex;
-    justify-content: flex-end;
-  }
 }
 
 .table-scroll {

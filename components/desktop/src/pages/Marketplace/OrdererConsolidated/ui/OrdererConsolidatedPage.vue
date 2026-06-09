@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -212,10 +211,6 @@ useMarketplaceRealtime(
 
 <template lang="pug">
 q-page.collective(role="region", aria-label="Коллективный заказ")
-  //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
-  Teleport(to="#header-actions-host", defer)
-    RefreshButton(:loading="loading", @refresh="load")
-
   .collective__col
     PageHint(storage-key="mp:collective:banner-dismissed")
       | Отслеживание коллективных заказов, в которых вы участвуете. Заказы

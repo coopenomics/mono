@@ -142,16 +142,6 @@ q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
     | подтверждаете факт приёмки — затем она уходит на закрывающую подпись
     | председателя КУ.
 
-  .offerer-apl__toolbar
-    BaseButton(
-      variant='ghost',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   //- Канон загрузки: скелетон, а не спиннер.
   CardListSkeleton(v-if='showLoader', :count='3')
@@ -212,11 +202,6 @@ q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    justify-content: flex-end;
-  }
 
   &__grid {
     display: grid;

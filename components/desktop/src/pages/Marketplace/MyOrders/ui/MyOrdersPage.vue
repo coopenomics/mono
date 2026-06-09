@@ -5,7 +5,6 @@ import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
@@ -373,7 +372,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
       | Получить заказ
-    RefreshButton(:loading="loading", @refresh="() => load(1, false)")
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
     | Все ваши заказы и их движение до выдачи на пункте. Заказ можно отменить
