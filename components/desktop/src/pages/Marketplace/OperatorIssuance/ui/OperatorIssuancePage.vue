@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -14,6 +15,7 @@ import {
   HandoffTokenKind,
   handoffStageRoute,
   HANDOFF_QUERY,
+  useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
 import {
   listIssuancesByBraname,
@@ -220,6 +222,18 @@ watch(braname, () => void load());
 
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
 watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+
+// Realtime: заказчик подтвердил получение в своём кабинете (READY_TO_RECEIVE →
+// RECEIVED) — карточка уходит со стола сама; оператор у стойки видит подпись
+// сразу и отпускает заказчика. Сигнал — служебный канал персонала КУ.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() }
+);
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
