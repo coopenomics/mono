@@ -10071,6 +10071,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	braname?: string | undefined | null | Variable<any, string>,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Ключ выбранной программы регистрации */
@@ -20259,6 +20261,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -30870,6 +30874,8 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ModelTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -42017,6 +42023,8 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -43944,6 +43952,7 @@ export enum ProductCardType {
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
 	GENERATION = "GENERATION",
+	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
 }
 /** Тип целевой потребительской программы */

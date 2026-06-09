@@ -21,6 +21,7 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       const coopname = useSystemStore().info.coopname;
       const gate = useOnsiteSignatureGate();
 
+      console.info('%c[OnsiteGate] ПОДПИСКА: открываю ws-канал marketplace…', 'color:#0f766e');
       const stream = client.Subscription('subscription')(
         Subscriptions.Marketplace.Events.subscription,
         { variables: { input: { coopname } } },
@@ -28,7 +29,11 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
 
       // Сигнал пришёл → дочитываем состояние (catch-up из БД).
       stream.on(() => {
-        void gate.refresh();
+        console.info(
+          '%c[OnsiteGate] ✅ ПОДПИСКА СРАБОТАЛА: пришёл ws-сигнал → дочитываю состояние',
+          'color:#16a34a;font-weight:bold',
+        );
+        void gate.refresh('ПОДПИСКА (ws-сигнал)');
       });
 
       // graphql-ws сам реконнектит; на каждый (ре)коннект — catch-up, чтобы
@@ -37,16 +42,20 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       // ('opened'-событие ws) — приводим к фактической сигнатуре.
       const onReopen = stream.open as unknown as (listener: () => void) => void;
       onReopen(() => {
-        void gate.refresh();
+        console.info('%c[OnsiteGate] 🔌 ПОДПИСКА: ws (ре)коннект → catch-up', 'color:#0f766e');
+        void gate.refresh('ПОДПИСКА (ws-реконнект)');
       });
 
-      // Транзиентная ошибка ws — реконнект отрабатывает сам, гасить не нужно.
-      stream.error(() => undefined);
+      // Транзиентная ошибка ws — реконнект отрабатывает сам, гасить не нужно,
+      // но логируем: если сыпется ошибками — подписка по факту НЕ работает.
+      stream.error((err: unknown) => {
+        console.warn('[OnsiteGate] ⚠ ПОДПИСКА: ws-ошибка (реконнект сам)', err);
+      });
 
       return { close: () => stream.ws.close() };
     },
-    resync() {
-      return useOnsiteSignatureGate().refresh();
+    resync(reason?: string) {
+      return useOnsiteSignatureGate().refresh(reason ?? 'POLL (resync)');
     },
   };
 }

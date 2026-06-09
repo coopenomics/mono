@@ -19,7 +19,7 @@
           slot(name="cardAction" :pvz="pvz")
     q-skeleton(v-else type="rect" height="200px")
 
-  .ku-map-with-list__map(ref="mapContainer" v-if="apiKey")
+  .ku-map-with-list__map(ref="mapContainer" v-if="apiKey" :style="mapMinHeight ? { minHeight: mapMinHeight } : undefined")
   q-banner.bg-warning.text-white(v-else)
     | Карта недоступна: не задан YANDEX_MAPS_API_KEY.
 </template>
@@ -36,11 +36,16 @@ const props = withDefaults(
     loading?: boolean
     selectedBraname?: string | null
     ariaLabel?: string
+    // Переопределение min-height карты. По умолчанию (undefined) высота берётся
+    // из scss (480px десктоп / 320px мобайл). Передаётся, когда карта должна
+    // занять больше места — напр. в развёрнутом на весь экран диалоге смены КУ.
+    mapMinHeight?: string
   }>(),
   {
     loading: false,
     selectedBraname: null,
     ariaLabel: 'Список пунктов выдачи Стола заказов',
+    mapMinHeight: undefined,
   }
 )
 

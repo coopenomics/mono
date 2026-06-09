@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import config from '~/config/config';
+import logger from '~/config/logger';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
@@ -46,6 +47,7 @@ export class MarketplaceEventsResolver {
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
     const topic = marketplaceMemberTopic(config.coopname, username);
+    logger.info(`[mp-ws] подписка открыта: ${topic}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topic);
   }
 

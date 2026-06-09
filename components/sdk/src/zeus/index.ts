@@ -10,9 +10,45 @@ export const HEADERS = {}
 import { createClient, type Sink } from 'graphql-ws'; // keep
 
 export const apiSubscription = (options: chainOptions) => {
+  // keep: keepAlive + детекция мёртвого соединения (canonical graphql-ws recipe).
+  // Без этого «зомби-сокет» — TCP тихо рвётся промежуточным таймаутом при
+  // простое, graphql-ws этого не замечает (ни close, ни reconnect), и publish
+  // с сервера теряется до OS-таймаута (минуты). Клиент пингует сервер каждые
+  // 12с; если pong не пришёл за 5с — принудительно закрываем сокет, что
+  // запускает авто-reconnect graphql-ws (retry). Держит канал тёплым и живым.
+  let activeSocket: any = null;
+  let pongTimer: ReturnType<typeof setTimeout> | undefined;
   const client = createClient({
     url: String(options[0]),
     connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
+    keepAlive: 12_000,
+    retryAttempts: Infinity,
+    shouldRetry: () => true,
+    on: {
+      connected: (socket) => {
+        activeSocket = socket;
+        try { console.info('%c[ws keepAlive] ✅ соединение установлено, ping каждые 12с', 'color:#0f766e'); } catch {}
+      },
+      ping: (received) => {
+        // received=false → пинг отправлен нами; ждём pong не дольше 5с.
+        if (!received) {
+          try { console.debug('[ws keepAlive] ping → сервер'); } catch {}
+          pongTimer = setTimeout(() => {
+            if (activeSocket && activeSocket.readyState === 1) {
+              try { console.warn('[ws keepAlive] ⚠ pong не пришёл за 5с — закрываю мёртвый сокет, reconnect'); } catch {}
+              activeSocket.close(4408, 'Keep-alive timeout');
+            }
+          }, 5_000);
+        }
+      },
+      pong: (received) => {
+        if (received && pongTimer) {
+          clearTimeout(pongTimer);
+          pongTimer = undefined;
+          try { console.debug('[ws keepAlive] ← pong ✓ (сокет живой)'); } catch {}
+        }
+      },
+    },
   });
 
   const ws = new Proxy(
@@ -27,13 +63,17 @@ export const apiSubscription = (options: chainOptions) => {
     },
   );
 
-  return (query: string) => {
+  return (query: string, variables?: Record<string, unknown>) => {
     let onMessage: ((event: any) => void) | undefined;
     let onError: Sink['error'] | undefined;
     let onClose: Sink['complete'] | undefined;
 
+    // keep: ОБЯЗАТЕЛЬНО прокидываем variables в subscribe. Zeus строит запрос с
+    // объявлением переменных ($input: Type!), а не инлайнит значения; без передачи
+    // variables сервер падает на коэрции «переменная не предоставлена» ещё до
+    // резолвера — подписка молча не работает (был баг: гейт жил только на POLL).
     client.subscribe(
-      { query },
+      { query, variables },
       {
         next({ data }) {
           onMessage && onMessage(data);
@@ -365,6 +405,9 @@ export const SubscriptionThunder =
         operationOptions: ops,
         scalars: options?.scalars,
       }),
+      // keep: передаём значения переменных в транспорт подписки — без этого
+      // ws-subscribe уходит с $input без значения и падает на коэрции (см. apiSubscription).
+      ops?.variables,
     ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
     if (returnedFunction?.on && options?.scalars) {
       const wrapped = returnedFunction.on;
@@ -10071,6 +10114,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	braname?: string | undefined | null | Variable<any, string>,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ValueTypes["SignedDigitalDocumentInput"] | undefined | null | Variable<any, string>,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Ключ выбранной программы регистрации */
@@ -20259,6 +20304,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ResolverInputTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -30870,6 +30917,8 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: ModelTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: ModelTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -42017,6 +42066,8 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Подписанный документ оферты по программе "Генератор" (опционально, только для программы generation) */
 	generator_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
+	/** Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace) */
+	marketplace_offer?: GraphQLTypes["SignedDigitalDocumentInput"] | undefined | null,
 	/** Подписанный документ политики конфиденциальности от пайщика */
 	privacy_agreement: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Ключ выбранной программы регистрации */
@@ -43944,6 +43995,7 @@ export enum ProductCardType {
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
 	GENERATION = "GENERATION",
+	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
 }
 /** Тип целевой потребительской программы */

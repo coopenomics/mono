@@ -2,10 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PubSub } from 'graphql-subscriptions';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import logger from '~/config/logger';
 import {
-  MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
-  MarketplaceAplSupplierSignRequestEvent,
+  MarketplaceAplSupplierOnsiteSignRequestEvent,
   MarketplaceOrderReadyToReceiveEvent,
 } from '../events/marketplace-notification.events';
 import {
@@ -36,22 +37,29 @@ export class MarketplaceRealtimeBridge {
       order_hash: event.order_hash,
       braname: event.braname,
     };
-    await this.pubSub.publish(
-      marketplaceMemberTopic(event.coopname, event.orderer_account),
-      payload
+    const topic = marketplaceMemberTopic(event.coopname, event.orderer_account);
+    logger.info(
+      `[mp-ws] PUBLISH ORDER_READY_TO_RECEIVE → topic=${topic} order=${event.order_id}`
     );
+    await this.pubSub.publish(topic, payload);
   }
 
-  @OnEvent(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT)
-  async onSupplierSignRequest(event: MarketplaceAplSupplierSignRequestEvent): Promise<void> {
+  // Только очная приёмка (Вариант А): поставщик у стойки, экран перекрывается
+  // гейтом по этому ws-сигналу. Вариант Б (экспедитор) сюда НЕ приходит —
+  // там бумажная ТТН, передача подтверждена, overlay не нужен.
+  @OnEvent(MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT)
+  async onSupplierOnsiteSignRequest(
+    event: MarketplaceAplSupplierOnsiteSignRequestEvent
+  ): Promise<void> {
     const payload: MarketplaceReceptionPendingSignEventDTO = {
       eventType: MarketplaceEventType.RECEPTION_PENDING_SIGN,
       reception_id: event.apl_reception_id,
       ku_name: event.ku_name,
     };
-    await this.pubSub.publish(
-      marketplaceMemberTopic(event.coopname, event.supplier_account),
-      payload
+    const topic = marketplaceMemberTopic(event.coopname, event.supplier_account);
+    logger.info(
+      `[mp-ws] PUBLISH RECEPTION_PENDING_SIGN (очно) → topic=${topic} reception=${event.apl_reception_id} supplier_account=${event.supplier_account}`
     );
+    await this.pubSub.publish(topic, payload);
   }
 }

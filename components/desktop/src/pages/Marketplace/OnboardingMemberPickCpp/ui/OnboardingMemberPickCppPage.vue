@@ -7,7 +7,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { BaseCard, BaseButton, BaseCheckbox, BaseChip, BaseDialog, EmptyState } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseCheckbox, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { Loader } from 'src/shared/ui/Loader';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import type { DigitalDocument } from 'src/shared/lib/document';
@@ -49,9 +49,9 @@ const agreed = ref(false);
 const coopname = computed(() => system.info?.coopname ?? '');
 
 // Предпросмотр оферты для ознакомления (как в SignUp/ReadStatement): по клику на
-// ссылку лениво генерим инстанс оферты (registry 1101) без подписи и показываем
-// HTML в диалоге. Тот же инстанс затем подписываем — документ совпадает с
-// прочитанным. На «Подтвердить» в диалоге галочка согласия проставляется сама.
+// ссылку лениво генерим персональный инстанс оферты (registry 1102) без подписи и
+// показываем HTML в диалоге. Тот же инстанс затем подписываем — документ совпадает
+// с прочитанным. На «Подтвердить» в диалоге галочка согласия проставляется сама.
 const offerDialogOpen = ref(false);
 const offerLoading = ref(false);
 const offerHtml = ref('');
@@ -86,8 +86,17 @@ const selectedName = computed<string>(() => {
   return d?.name || d?.addressFull || '';
 });
 
-const canSign = computed(() => Boolean(selectedBraname.value) && agreed.value);
-const alreadyDone = computed(() => state.value && !state.value.requires_gate);
+// Нужна ли подпись оферты. Если пайщик подписал её при регистрации (выбрал ЦПП
+// «Стол заказов» как программу) — backend вернёт requires_gate=false, и здесь
+// подпись/чекбокс НЕ показываем: пайщик уже всё подписал, нужен лишь выбор КУ.
+// Председателю/тому, кто регистрировался без этой ЦПП — requires_gate=true,
+// показываем согласие + подпись (тот же документ и хранилище, что при регистрации).
+const requiresGate = computed(() => Boolean(state.value?.requires_gate));
+// «Продолжить» доступно: КУ выбран всегда обязателен; согласие — только если
+// требуется гейт (подпись).
+const canContinue = computed(
+  () => Boolean(selectedBraname.value) && (!requiresGate.value || agreed.value)
+);
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -117,8 +126,61 @@ async function waitForSignatureSynced(): Promise<boolean> {
   return false;
 }
 
+/**
+ * Общий финал: пайщик подключён (подпись либо есть, либо только что прошла) —
+ * перечитываем гранты/маршруты, фиксируем выбранный КУ как пункт выдачи и уходим
+ * на стол заказчика. Скрываем форму (redirecting), чтобы не мелькнул промежуток.
+ */
+async function proceedToDesk(): Promise<void> {
+  redirecting.value = true;
+  await desktop.loadDesktop();
+  await loadExtensionRoutes('market', router);
+  // Фиксируем выбранный КУ как пункт выдачи корзины. Если упадёт — не блокируем
+  // переход: КУ можно сменить в шапке стола.
+  if (selectedBraname.value) {
+    try {
+      await cartStore.changeDeliveryPoint(selectedBraname.value);
+    } catch (e) {
+      console.warn('[OnboardingMemberPickCpp] setCartDeliveryPoint упал:', e);
+    }
+  }
+  const target = desktop.firstAccessibleRoute('market');
+  void router.push(
+    target
+      ? coopname.value
+        ? { name: target.name, params: { coopname: coopname.value } }
+        : { name: target.name }
+      : { name: 'marketplace-catalog' },
+  );
+}
+
+/**
+ * «Продолжить». Две равнозначные ветки одного гейта:
+ *  - requires_gate=true  → пайщик ещё не подписывал оферту (напр. председатель,
+ *    регистрировавшийся без этой ЦПП): подписываем здесь (тот же документ 1102 и
+ *    то же ончейн-хранилище wallet::users.programs, что и при регистрации);
+ *  - requires_gate=false → подписал при регистрации: подпись не нужна, лишь
+ *    фиксируем выбранный КУ и уходим на стол.
+ */
+async function onContinue(): Promise<void> {
+  if (!canContinue.value) return;
+  if (requiresGate.value) {
+    await onSign();
+    return;
+  }
+  loading.value = true;
+  try {
+    await proceedToDesk();
+  } catch (e) {
+    redirecting.value = false;
+    FailAlert(e);
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function onSign(): Promise<void> {
-  if (!canSign.value) return;
+  if (!selectedBraname.value || !agreed.value) return;
   // Только loading: спиннер на кнопке + блокировка формы (см. шаблон), без
   // full-screen оверлея. Форма остаётся видимой, пока идёт подпись.
   loading.value = true;
@@ -131,31 +193,7 @@ async function onSign(): Promise<void> {
     const confirmed =
       (!!state.value && !state.value.requires_gate) || (await waitForSignatureSynced());
     if (confirmed) {
-      // Подписано и синхронизировано — прячем форму перед редиректом, чтобы не
-      // мелькнул промежуточный экран-поздравление.
-      redirecting.value = true;
-      // Подпись синхронизирована: backend теперь выдаёт полные orderer-права.
-      // Перечитываем десктоп (гранты) и переустанавливаем маршруты.
-      await desktop.loadDesktop();
-      await loadExtensionRoutes('market', router);
-      // Теперь у пайщика есть orderer-права на Cart — фиксируем выбранный КУ как
-      // пункт выдачи корзины. Каталог откроется уже отфильтрованным под него.
-      // Если шаг упадёт — не блокируем переход: КУ можно сменить в шапке стола.
-      if (selectedBraname.value) {
-        try {
-          await cartStore.changeDeliveryPoint(selectedBraname.value);
-        } catch (e) {
-          console.warn('[OnboardingMemberPickCpp] setCartDeliveryPoint упал:', e);
-        }
-      }
-      const target = desktop.firstAccessibleRoute('market');
-      void router.push(
-        target
-          ? coopname.value
-            ? { name: target.name, params: { coopname: coopname.value } }
-            : { name: target.name }
-          : { name: 'marketplace-catalog' },
-      );
+      await proceedToDesk();
     } else {
       // Синк не успел за отведённое окно — крайне редко; даём пользователю
       // явный сигнал перезагрузить страницу.
@@ -170,10 +208,6 @@ async function onSign(): Promise<void> {
   }
 }
 
-function goToCatalog(): void {
-  void router.push({ name: 'marketplace-catalog' });
-}
-
 onMounted(load);
 </script>
 
@@ -185,21 +219,12 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
   q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 
-  //- Уже подключён — поздравление-состояние (канон EmptyState), без формы.
-  EmptyState(
-    v-if="alreadyDone && !redirecting",
-    title="Вы уже подключены к Столу заказов",
-    body="Подпись ЦПП «Стол заказов» уже выполнена. Можно переходить на стол заказчика."
-  )
-    template(#icon)
-      q-icon(name="check_circle", color="positive", size="48px")
-    template(#actions)
-      BaseButton(variant="primary", @click="goToCatalog") К каталогу
-
-  //- Присоединение: интро-подсказка, карточка выбора пункта выдачи (с картой) и
-  //- липкий нижний бар (согласие + подпись). Пока идёт подписание (redirecting)
-  //- — скрыто (один спиннер на кнопке).
-  template(v-if="state && state.requires_gate && !redirecting")
+  //- Подключение к столу: карточка выбора пункта выдачи (с картой) показывается
+  //- ВСЕГДА. Липкий нижний бар: согласие+подпись — только если requires_gate
+  //- (пайщик ещё не подписывал оферту). Если подписал при регистрации —
+  //- requires_gate=false: только выбор КУ, без подписи. Пока идёт переход
+  //- (redirecting) — скрыто (один спиннер).
+  template(v-if="state && !redirecting")
     BaseCard.mp-member-cpp__card
       header.mp-member-cpp__head
         .mp-member-cpp__head-icon
@@ -213,10 +238,11 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
       .mp-member-cpp__selector(:class="{ 'mp-member-cpp__selector--busy': loading }")
         KUSelector(v-model="selectedBraname", :coopname="coopname")
 
-    //- Липкий нижний бар: согласие + продолжение (канон — навигация формы у низа).
+    //- Липкий нижний бар: согласие (только при requires_gate) + продолжение.
     //- Ссылка в подписи генерит оферту для ознакомления (как ReadStatement в SignUp).
     .mp-member-cpp__bar
       BaseCheckbox.mp-member-cpp__consent(
+        v-if="requiresGate",
         :model-value="agreed",
         block,
         :disabled="loading",
@@ -225,15 +251,18 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         | Я ознакомлен(а) с&nbsp;
         span.mp-member-cpp__offer-link(@click.stop="openOffer") офертой на присоединение к ЦПП «Стол заказов» и Положением ЦПП
         |  и согласен(на) с условиями участия.
+      //- Уже подписал при регистрации — подпись не нужна, лишь выбор КУ.
+      .mp-member-cpp__consent.text-body2.text-grey-7(v-else)
+        | Оферта ЦПП «Стол заказов» уже подписана при регистрации — выберите пункт выдачи, чтобы продолжить.
       .mp-member-cpp__action
         BaseButton.mp-member-cpp__sign(
           variant="primary",
           :loading="loading",
-          :disabled="!canSign",
-          @click="onSign"
+          :disabled="!canContinue",
+          @click="onContinue"
         ) Продолжить
-        //- Подсказка-зачем кнопка неактивна: согласие есть, но ПВЗ не выбран.
-        .mp-member-cpp__why(v-if="agreed && !selectedBraname")
+        //- Подсказка-зачем кнопка неактивна: согласие (если нужно) есть, но ПВЗ не выбран.
+        .mp-member-cpp__why(v-if="(!requiresGate || agreed) && !selectedBraname")
           q-icon(name="info", size="14px")
           span Чтобы продолжить, выберите пункт выдачи — щёлкните по его названию или адресу в списке либо отметьте точку на карте.
 
@@ -250,15 +279,6 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
     template(#footer)
       BaseButton(variant="ghost", @click="offerDialogOpen = false") Закрыть
       BaseButton(variant="primary", :disabled="offerLoading", @click="confirmOfferRead") Прочитал(а), согласен(на)
-
-  //- Редкий рассинхрон: gate не требуется, но подпись не зафиксирована.
-  BaseCard.mp-member-cpp__card(
-    v-if="state && !state.requires_gate && !alreadyDone",
-    variant="quiet"
-  )
-    .text-body2.text-grey-7
-      | Состояние онбординга получено, но подпись пока не зафиксирована — возможен
-      | временный рассинхрон. Обновите страницу через несколько секунд.
 </template>
 
 <style scoped lang="scss">

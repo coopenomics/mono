@@ -12,6 +12,7 @@
     :items="details",
     :loading="loading",
     :selected-braname="modelValue",
+    :map-min-height="mapMinHeight",
     aria-label="Выбор кооперативного участка (пункта выдачи)",
     @select="onSelect"
   )
@@ -40,6 +41,8 @@ const props = defineProps<{
   coopname: string
   /** Выбранный braname (v-model). */
   modelValue: string | null
+  /** Переопределение min-height карты (см. KUMapWithList.mapMinHeight). */
+  mapMinHeight?: string
 }>()
 
 const emit = defineEmits<{

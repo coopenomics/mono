@@ -10,8 +10,10 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
+  type MarketplaceAplSupplierOnsiteSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
 } from '../events/marketplace-notification.events';
 import {
@@ -398,9 +400,11 @@ export class MarketplaceAplReceptionService {
       `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.braname}, orders=${groupOrders.length}, total=${total}`
     );
 
-    // Story 598-20: push поставщику для Варианта Б — экспедитор привёз
-    // партию, требуется первая подпись поставщика. Для Варианта А
-    // поставщик подписывает на стойке оператора, push не нужен.
+    // Вариант Б (экспедитор): есть бумажная ТТН, передача подтверждена —
+    // ответ поставщика ждём асинхронно, экран ему НЕ перекрываем.
+    // Вариант А (очно): поставщик ЛИЧНО у стойки, другого документа о передаче
+    // нет — нужен realtime-сигнал, чтобы у него моментально всплыл перекрывающий
+    // гейт «Подпишите документ», и он подписал, не уходя.
     if (variant === MarketplaceAplReceptionVariants.EXPEDITOR) {
       const event: MarketplaceAplSupplierSignRequestEvent = {
         coopname: reception.coopname,
@@ -411,6 +415,14 @@ export class MarketplaceAplReceptionService {
         expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
       };
       this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT, event);
+    } else {
+      const event: MarketplaceAplSupplierOnsiteSignRequestEvent = {
+        coopname: reception.coopname,
+        apl_reception_id: reception.id,
+        supplier_account: reception.offerer_account,
+        ku_name: reception.braname,
+      };
+      this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT, event);
     }
 
     return { apl_reception: reception };
