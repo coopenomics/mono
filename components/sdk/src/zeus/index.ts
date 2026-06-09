@@ -10,9 +10,41 @@ export const HEADERS = {}
 import { createClient, type Sink } from 'graphql-ws'; // keep
 
 export const apiSubscription = (options: chainOptions) => {
+  // keep: keepAlive + детекция мёртвого соединения (canonical graphql-ws recipe).
+  // Без этого «зомби-сокет» — TCP тихо рвётся промежуточным таймаутом при
+  // простое, graphql-ws этого не замечает (ни close, ни reconnect), и publish
+  // с сервера теряется до OS-таймаута (минуты). Клиент пингует сервер каждые
+  // 12с; если pong не пришёл за 5с — принудительно закрываем сокет, что
+  // запускает авто-reconnect graphql-ws (retry). Держит канал тёплым и живым.
+  let activeSocket: any = null;
+  let pongTimer: ReturnType<typeof setTimeout> | undefined;
   const client = createClient({
     url: String(options[0]),
     connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
+    keepAlive: 12_000,
+    retryAttempts: Infinity,
+    shouldRetry: () => true,
+    on: {
+      connected: (socket) => {
+        activeSocket = socket;
+      },
+      ping: (received) => {
+        // received=false → пинг отправлен нами; ждём pong не дольше 5с.
+        if (!received) {
+          pongTimer = setTimeout(() => {
+            if (activeSocket && activeSocket.readyState === 1) {
+              activeSocket.close(4408, 'Keep-alive timeout');
+            }
+          }, 5_000);
+        }
+      },
+      pong: (received) => {
+        if (received && pongTimer) {
+          clearTimeout(pongTimer);
+          pongTimer = undefined;
+        }
+      },
+    },
   });
 
   const ws = new Proxy(
