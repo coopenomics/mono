@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -11,7 +11,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, usePollingRefresh } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
@@ -343,17 +343,16 @@ function onCardAction(payload: { key: string; order: OrderCardModel }): void {
   else if (payload.key === 'receive') startFinalize(found);
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
 onMounted(() => {
   void load(1, false);
-  pollTimer = setInterval(() => {
-    if (!loading.value) void load(currentPage.value, false);
-  }, POLL_INTERVAL_MS);
 });
 
-onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer);
+// Тихий poll: председатель открыл выдачу со своего стола → заказ переходит в
+// READY_TO_RECEIVE, и финальная подпись «Подписать и получить» должна
+// появиться сама, без ручной перезагрузки (техдолг #38 — на websocket).
+usePollingRefresh(() => load(currentPage.value, false), {
+  intervalMs: POLL_INTERVAL_MS,
+  isBusy: loading,
 });
 </script>
 

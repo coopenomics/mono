@@ -8,7 +8,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { groupAplReceptions, usePollingRefresh, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -113,6 +113,11 @@ function sign(group: ReceptionGroup<MarketplaceAplReceptionView>): void {
 onMounted(() => {
   void load();
 });
+
+// Тихий poll: оператор сформировал акт на стойке → акт переходит в
+// PENDING_SUPPLIER_SIGN, и запрос на первую подпись поставщика должен
+// появиться сам, без ручной перезагрузки (техдолг #38 — на websocket).
+usePollingRefresh(() => load(), { intervalMs: 10_000, isBusy: loading });
 
 // Спиннер первичной загрузки — пока список ещё пуст.
 const showLoader = computed(() => loading.value && !items.value.length);

@@ -18,3 +18,4 @@ export {
   type HandoffRouteTarget,
 } from './handoff-routing';
 export { useActsPreview } from './useActsPreview';
+export { usePollingRefresh } from './usePollingRefresh';

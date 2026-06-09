@@ -17,6 +17,7 @@ import {
   groupAplReceptions,
   handoffStageRoute,
   HANDOFF_QUERY,
+  usePollingRefresh,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -625,6 +626,16 @@ watch(braname, () => void load());
 
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
 watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+
+// Тихое авто-обновление: статус акта меняет поставщик со своего устройства
+// (подписал приёмку → акт переходит в PENDING_CHAIRMAN_RECEPTION_SIGN, и на
+// столе должна сама появиться кнопка закрывающей подписи председателя). Без
+// этого экран оператора остаётся старым до ручной перезагрузки. Не дёргаем,
+// пока идёт загрузка/приём — чтобы poll не накладывался на действие.
+usePollingRefresh(() => load(), {
+  intervalMs: 10_000,
+  isBusy: computed(() => loading.value || acceptingPickup.value),
+});
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
