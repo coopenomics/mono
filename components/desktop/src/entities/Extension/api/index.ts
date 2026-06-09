@@ -27,7 +27,24 @@ async function loadExtensionLogs(data?: Queries.Extensions.GetExtensionLogs.IInp
   return output;
 }
 
+async function loadAppsCatalogRemotePackages(
+  page = 1,
+  pageSize = 50,
+): Promise<Queries.Extensions.AppsCatalogRemotePackages.IOutput[typeof Queries.Extensions.AppsCatalogRemotePackages.name]> {
+  const { [Queries.Extensions.AppsCatalogRemotePackages.name]: output } = await client.Query(
+    Queries.Extensions.AppsCatalogRemotePackages.query,
+    {
+      variables: {
+        page,
+        pageSize,
+      },
+    },
+  );
+  return output;
+}
+
 export const api ={
   loadExtensions,
-  loadExtensionLogs
+  loadExtensionLogs,
+  loadAppsCatalogRemotePackages
 }

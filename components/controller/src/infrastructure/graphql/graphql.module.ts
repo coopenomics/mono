@@ -1,8 +1,17 @@
 // infrastructure/graphql/graphql.module.ts
+//
+// Epic 10 / Story 10.1 — coopback переключён с ApolloDriver на
+// ApolloFederationDriver. Локальная core-схема становится первым subgraph'ом
+// федерации; gateway-режим зайдёт отдельным процессом (10.1b / 10.3 orchestrator),
+// когда появится первый внешний subgraph (chatcoop и т.д.).
+//
+// На MVP клиенты не должны заметить переключения: subgraph endpoint на том же
+// `/v1/graphql`, federation v2 добавляет лишь служебные `_service { sdl }` и
+// `_entities` query. Старые desktop-сессии продолжают работать.
 import { Global, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import config from '~/config/config';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { ApolloFederationDriver, ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { docDirectiveTransformer } from './directives/doc.directive';
 import { GraphQLError, GraphQLFormattedError } from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
@@ -11,10 +20,13 @@ import logger from '~/config/logger';
 @Global()
 @Module({
   imports: [
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
+    GraphQLModule.forRoot<ApolloFederationDriverConfig>({
+      driver: ApolloFederationDriver,
       introspection: true,
-      autoSchemaFile: 'schema.gql',
+      autoSchemaFile: {
+        path: 'schema.gql',
+        federation: 2,
+      },
       sortSchema: true,
       debug: config.env !== 'production',
       // context: ({ req }) => req,

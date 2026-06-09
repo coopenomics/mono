@@ -1743,6 +1743,24 @@ export type ValueTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["AppsCatalogRemotePackageDTO"]: AliasType<{
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets?:boolean | `@${string}`,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description?:boolean | `@${string}`,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher?:boolean | `@${string}`,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AppsCatalogRemotePackageDTO']?: Omit<ValueTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+}>;
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string | Variable<any, string>,
@@ -7920,6 +7938,7 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["Query"]: AliasType<{
 agreementTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ValueTypes["AgreementFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedAgreementsPaginationResult"]],
+appsCatalogRemotePackages?: [{	page: number | Variable<any, string>,	pageSize: number | Variable<any, string>},ValueTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -10387,6 +10406,23 @@ export type ResolverInputTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["AppsCatalogRemotePackageDTO"]: AliasType<{
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets?:boolean | `@${string}`,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description?:boolean | `@${string}`,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?:boolean | `@${string}`,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId?:boolean | `@${string}`,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher?:boolean | `@${string}`,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth?:boolean | `@${string}`,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -16380,6 +16416,7 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["Query"]: AliasType<{
 agreementTemplates?: [{	coopname: string},ResolverInputTypes["AgreementTemplate"]],
 agreements?: [{	filter?: ResolverInputTypes["AgreementFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedAgreementsPaginationResult"]],
+appsCatalogRemotePackages?: [{	page: number,	pageSize: number},ResolverInputTypes["AppsCatalogRemotePackageDTO"]],
 buildInitialReportEdits?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["BuildInitialReportEdits"]],
 candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCandidatesPaginationResult"]],
 capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCandidatesPaginationResult"]],
@@ -18790,6 +18827,22 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ApprovalStatus"]:ApprovalStatus;
+	["AppsCatalogRemotePackageDTO"]: {
+		/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets: Array<string>,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description: string,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher: string,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth: number,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -25055,6 +25108,8 @@ export type ModelTypes = {
 	agreementTemplates: Array<ModelTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	appsCatalogRemotePackages: Array<ModelTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
 Требуемые роли: chairman.  */
@@ -27643,6 +27698,24 @@ export type GraphQLTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]: ApprovalStatus;
+	["AppsCatalogRemotePackageDTO"]: {
+	__typename: "AppsCatalogRemotePackageDTO",
+	/** Совместимые subnet (chain_id блокчейна ЦК) */
+	compatibleSubnets: Array<string>,
+	/** Краткое описание (в MVP — заглушка, в будущем из manifest) */
+	description: string,
+	/** Последняя активная версия (semver). null = релизов ещё нет. */
+	lastActiveVersion?: string | undefined | null,
+	/** Идентификатор пакета (например, @voskhod/demoapp) */
+	packageId: string,
+	/** Имя владельца пакета (кооператив-разработчик) */
+	publisher: string,
+	/** Стоимость подписки, RUB/месяц (в MVP — фиксированно из dev-pricing seed) */
+	rubPerMonth: number,
+	/** Заголовок пакета для UI (в MVP — packageId, в будущем из manifest) */
+	title: string,
+	['...on AppsCatalogRemotePackageDTO']: Omit<GraphQLTypes["AppsCatalogRemotePackageDTO"], "...on AppsCatalogRemotePackageDTO">
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 		/** Идентификатор акта */
 	act_id: string,
@@ -34319,6 +34392,8 @@ export type GraphQLTypes = {
 	agreementTemplates: Array<GraphQLTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
+	/** Список remote-пакетов из публичного каталога apps-catalog. Защищён JWT (видят только авторизованные пайщики). Источник — ca-admin /v1/public/packages; controller проксирует. */
+	appsCatalogRemotePackages: Array<GraphQLTypes["AppsCatalogRemotePackageDTO"]>,
 	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
 
 Требуемые роли: chairman.  */

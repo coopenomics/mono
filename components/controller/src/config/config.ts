@@ -189,6 +189,18 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
+
+  // apps-catalog proxy (Story 9.5.b). Витрина remote-пакетов — это HTTP-прокси
+  // через controller → ca-admin /v1/public/packages. Браузер напрямую в каталог
+  // не ходит, admin-secret в SPA не утекает (см. architecture-choice C).
+  APPS_CATALOG_URL: z
+    .string()
+    .optional()
+    .describe('Base URL ca-admin (apps-catalog). Пусто = резолвер вернёт пустой список (degraded mode).'),
+  APPS_CATALOG_API_KEY: z
+    .string()
+    .optional()
+    .describe('Admin API ключ для apps-catalog. Пусто = degraded mode.'),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -316,5 +328,9 @@ export default {
     bucket: envVars.data.MINIO_BUCKET || `coop-${envVars.data.COOPNAME}`,
     signing_secret: envVars.data.FILE_STORAGE_SIGNING_SECRET || envVars.data.SERVER_SECRET,
     public_base_url: envVars.data.FILE_STORAGE_PUBLIC_BASE_URL || envVars.data.BACKEND_URL,
+  },
+  apps_catalog: {
+    url: envVars.data.APPS_CATALOG_URL,
+    api_key: envVars.data.APPS_CATALOG_API_KEY,
   },
 };

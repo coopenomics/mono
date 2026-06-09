@@ -2,6 +2,7 @@ import type { Router } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { extensionsRegistry, getAvailableExtensions } from './extensions-registry';
+import { installRemoteExtensions } from './remote-loader';
 
 export async function useInitExtensionsProcess(router: Router) {
   const store = useDesktopStore();
@@ -44,7 +45,32 @@ export async function useInitExtensionsProcess(router: Router) {
     }
   }
 
-
+  // Epic 9 story 9.4 — remote-loader pass. Тянем пакеты с активной
+  // подпиской из apps-catalog. На V1 — заглушка, возвращает [];
+  // реальный fetch + eval — 9.4.b.
+  try {
+    const coopname = (store as any).currentCoopname ?? '';
+    const remoteConfigs: IWorkspaceConfig[] = await installRemoteExtensions(
+      coopname,
+      router,
+    );
+    for (const config of remoteConfigs) {
+      if (config?.workspace && config?.routes?.length) {
+        store.setRoutes(config.workspace, config.routes as any);
+        const baseRoute = router.getRoutes().find((r) => r.name === 'base');
+        if (baseRoute) {
+          config.routes.forEach((r: any) => {
+            const existing = router.getRoutes().find((x) => x.name === r.name);
+            if (!existing) {
+              router.addRoute('base', r);
+            }
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[init-installed-extensions] remote pass failed:', err);
+  }
 }
 
 // Функция для динамической загрузки маршрутов конкретного расширения

@@ -72,6 +72,7 @@
   ],
   "dependencies": {
     "@a2seven/yoo-checkout": "^1.1.4",
+    "@apollo/subgraph": "^2",
     "@aws-sdk/client-s3": "^3.1035.0",
     "@coopenomics/factory": "workspace:*",
     "@coopenomics/inter": "workspace:*",

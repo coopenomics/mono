@@ -8,6 +8,10 @@ import participantInstall from '../../../extensions/participant/install';
 import powerupInstall from '../../../extensions/powerup/install';
 import sovietInstall from '../../../extensions/soviet/install';
 import reportsInstall from '../../../extensions/reports/install';
+// Epic 9 story 9.3: «Стол разработчика» — виден только chairman'у
+// кооператива-оператора каталога. Видимость регулируется meta.roles
+// в install.ts и (V2) grants от controller'а через DesktopWorkspace.
+import developerInstall from '../../../extensions/developer/install';
 
 /**
  * Единый регистр всех доступных расширений
@@ -21,6 +25,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   powerup: powerupInstall,
   soviet: sovietInstall,
   reports: reportsInstall,
+  developer: developerInstall,
 };
 
 /**
