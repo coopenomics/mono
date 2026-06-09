@@ -23,7 +23,7 @@ type DefectCategory = Zeus.MarketplaceReturnClaimDefectCategory;
  *     UI кодирует содержимое в base64 и отправляет вместе с mutation,
  *     backend кладёт в bucket `stol-zakazov:images` и публикует sha256
  *     хеши on-chain параметром `photos[]` submretrn.
- *  3. Подпись заявления (registry_id=1104, MarketplaceReturnStatement):
+ *  3. Подпись заявления (registry_id=1106, MarketplaceReturnStatement):
  *     backend возвращает preview HTML + hash; пайщик подписывает
  *     приватным ключом из useGlobalStore и шлёт результат вместе с
  *     reason_text + photos.
@@ -313,7 +313,7 @@ TakeoverDialog(
             .q-ml-md Формирую предварительное заявление…
           q-card(v-else-if="previewHtml" flat bordered).mp-return-submit__preview
             q-card-section.q-pa-md
-              .text-caption.text-grey Превью заявления (registry_id=1104)
+              .text-caption.text-grey Превью заявления (registry_id=1106)
             q-separator
             q-card-section.q-pa-md
               div(v-html="previewHtml")

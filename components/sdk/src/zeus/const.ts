@@ -850,9 +850,12 @@ export const AllTypesProps: Record<string,any> = {
 		delivery_variant:"MarketplaceShipmentDeliveryVariant",
 		ttn_data:"MarketplaceShipmentTTNDataInput"
 	},
+	MarketplaceShipmentLinePackagingInput:{
+
+	},
 	MarketplaceShipmentStatus: "enum" as const,
 	MarketplaceShipmentTTNDataInput:{
-
+		packaging:"MarketplaceShipmentLinePackagingInput"
 	},
 	MarketplaceSignAplReceptionInput:{
 		signed_documents:"MarketplaceAplReceptionSignedDocumentInput"
@@ -1977,6 +1980,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCategoryAttributesGrouped:{
 			input:"GetCategoryAttributesInput"
+		},
+		marketplaceCategoryOfferCounts:{
+
 		},
 		marketplaceFindPotentialMatches:{
 			data:"FindPotentialMatchesInput"
@@ -4175,6 +4181,7 @@ export const ReturnTypes: Record<string,any> = {
 		created_at:"DateTime",
 		delivery_point_address:"String",
 		delivery_point_name:"String",
+		expiry_date:"DateTime",
 		id:"ID",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
@@ -4300,6 +4307,8 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		delivery_braname:"String",
 		delivery_point_address:"String",
+		delivery_point_lat:"Float",
+		delivery_point_lng:"Float",
 		delivery_point_name:"String",
 		delivery_signer_account:"String",
 		group_accumulated_quantity:"Int",
@@ -4533,13 +4542,17 @@ export const ReturnTypes: Record<string,any> = {
 		ttn_number:"String",
 		updated_at:"DateTime"
 	},
+	MarketplaceShipmentLinePackaging:{
+		order_id:"ID",
+		units_per_box:"Int"
+	},
 	MarketplaceShipmentTTNData:{
 		delivery_datetime_estimate:"String",
 		expeditor_full_name:"String",
-		expeditor_id_doc:"String",
 		expeditor_phone:"String",
 		loading_address:"String",
 		loading_datetime:"String",
+		packaging:"MarketplaceShipmentLinePackaging",
 		vehicle_number:"String"
 	},
 	MarketplaceSupplierBatchActionResult:{

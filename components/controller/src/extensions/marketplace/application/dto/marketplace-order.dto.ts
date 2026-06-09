@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
@@ -134,6 +134,18 @@ export class MarketplaceOrderDTO {
     description: 'Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ.',
   })
   public readonly delivery_point_address!: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description: 'Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом.',
+  })
+  public readonly delivery_point_lat!: number | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description: 'Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом.',
+  })
+  public readonly delivery_point_lng!: number | null;
 
   @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
@@ -344,6 +356,8 @@ export interface MarketplaceOrderDisplayFields {
   unit_of_measure?: string | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
+  delivery_point_lat?: number | null;
+  delivery_point_lng?: number | null;
   orderer_name?: string | null;
   supplier_name?: string | null;
   group_accumulated_quantity?: number | null;
@@ -369,6 +383,8 @@ export function toMarketplaceOrderDTO(
     delivery_braname: o.delivery_braname,
     delivery_point_name: display?.delivery_point_name ?? null,
     delivery_point_address: display?.delivery_point_address ?? null,
+    delivery_point_lat: display?.delivery_point_lat ?? null,
+    delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
     group_min_volume: display?.group_min_volume ?? null,

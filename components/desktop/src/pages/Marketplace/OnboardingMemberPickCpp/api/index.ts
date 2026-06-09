@@ -10,7 +10,7 @@ import { useSystemStore } from 'src/entities/System/model';
  *
  *  - `fetchOnboardingState`: GET state (Story 1.4), сервер берёт username из JWT.
  *  - `signOnboardingOffer`: фоллоуап, MUT `marketplaceSignOnboardingOffer` —
- *    генерирует оферту (registry_id=1101), подписывает локальным WIF и
+ *    генерирует оферту (registry_id=1102), подписывает локальным WIF и
  *    отправляет в контроллер, который пишет on-chain `wallet::signagree`.
  */
 
@@ -26,19 +26,13 @@ export async function fetchOnboardingState(): Promise<MarketplaceOnboardingState
 }
 
 /**
- * Подписать оферту ЦПП «Стол заказов» прямо со стола.
- *
- * Flow:
- *  1. Сгенерировать инстанс оферты на backend (registry_id=1101) с уникальным
- *     marketplace_agreement_number и текущей датой.
- *  2. Подписать локальным WIF пайщика (signatureId=1, signer=username).
- *  3. Отправить подписанный документ через `marketplaceSignOnboardingOffer`,
- *     контроллер сам выполнит on-chain `wallet::signagree` от лица coopname.
- *
- * Возвращает свежее состояние онбординга — UI решает что показать
- * (`requires_gate=false, source='agreement_signed'` → редирект на /market).
+ * Сгенерировать инстанс оферты ЦПП «Стол заказов» (registry_id=1102) БЕЗ подписи —
+ * для предварительного ознакомления (как `generateStatementWithoutSignature` в
+ * SignUp). Возвращает `DigitalDocument` с готовым `.data.html` для показа в
+ * диалоге. Тот же инстанс затем передаётся в `signOnboardingOffer`, чтобы
+ * подписанный документ совпадал с прочитанным (один marketplace_agreement_number).
  */
-export async function signOnboardingOffer(): Promise<MarketplaceOnboardingStateView> {
+export async function buildOnboardingOfferDocument(): Promise<DigitalDocument> {
   const session = useSessionStore();
   const system = useSystemStore();
   const username = session.username;
@@ -46,13 +40,21 @@ export async function signOnboardingOffer(): Promise<MarketplaceOnboardingStateV
   const coopname = system.info.coopname;
   if (!coopname) throw new Error('Не определён кооператив');
 
+  // Номер соглашения — по канону Благороста (capital
+  // `UdataDocumentParametersService.generateDocumentNumber`): 16 hex-символов в
+  // верхнем регистре, без префиксов и таймстампов. На фронте берём из Web Crypto
+  // 8 случайных байт → ровно 16 hex.
+  const rnd = new Uint8Array(8);
+  crypto.getRandomValues(rnd);
+  const marketplace_agreement_number = Array.from(rnd)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+
   const now = new Date();
-  // Номер соглашения: краткая отметка времени, уникальная в пределах пайщика.
-  // Финальный формат может быть переопределён coopname-конвенцией; пока
-  // используется компактный timestamp + хеш-суффикс для разрешения коллизий.
-  const marketplace_agreement_number = `MA-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`;
   const pad = (n: number) => String(n).padStart(2, '0');
-  const marketplace_agreement_created_at = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  // Дата — DD.MM.YYYY (как `generateDate` в capital), без времени.
+  const marketplace_agreement_created_at = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
 
   const document = new DigitalDocument();
   await document.generate({
@@ -62,6 +64,30 @@ export async function signOnboardingOffer(): Promise<MarketplaceOnboardingStateV
     marketplace_agreement_number,
     marketplace_agreement_created_at,
   });
+  return document;
+}
+
+/**
+ * Подписать оферту ЦПП «Стол заказов» прямо со стола.
+ *
+ * Flow:
+ *  1. Взять заранее сгенерированный для ознакомления инстанс оферты (`prepared`)
+ *     либо сгенерировать новый (registry_id=1102).
+ *  2. Подписать локальным WIF пайщика (signatureId=1, signer=username).
+ *  3. Отправить подписанный документ через `marketplaceSignOnboardingOffer`,
+ *     контроллер сам выполнит on-chain `wallet::signagree` от лица coopname.
+ *
+ * Возвращает свежее состояние онбординга — UI решает что показать
+ * (`requires_gate=false, source='agreement_signed'` → редирект на /market).
+ */
+export async function signOnboardingOffer(
+  prepared?: DigitalDocument,
+): Promise<MarketplaceOnboardingStateView> {
+  const session = useSessionStore();
+  const username = session.username;
+  if (!username) throw new Error('Пайщик не авторизован');
+
+  const document = prepared ?? (await buildOnboardingOfferDocument());
   await document.sign(username);
 
   if (!document.signedDocument) {

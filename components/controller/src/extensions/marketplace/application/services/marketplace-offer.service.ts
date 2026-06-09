@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -16,12 +15,6 @@ import {
   MARKETPLACE_CATEGORY_REPOSITORY,
   type MarketplaceCategoryDomainRepository,
 } from '../../domain/repositories/marketplace-category.repository';
-import {
-  MARKETPLACE_ORDER_REPOSITORY,
-  type MarketplaceOrderDomainRepository,
-} from '../../domain/repositories/marketplace-order.repository';
-import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type {
   MarketplaceBarcodeStrategy,
@@ -34,6 +27,7 @@ import {
   MARKETPLACE_OFFER_MAX_IMAGES,
   MARKETPLACE_UNITS_OF_MEASURE,
   MarketplaceBarcodeStrategies,
+  MarketplaceOfferStatuses,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import {
@@ -92,12 +86,13 @@ export interface OfferCreateRequest {
  *             устраняет причину отклонения и всегда уходит на повторную
  *             модерацию (не пересоздаётся); WITHDRAWN edit → 403 (сначала
  *             republish).
- *   withdraw→ если ACTIVE/PENDING_MODERATION — status=WITHDRAWN;
- *             блокируется при наличии незакрытых Order'ов с понятным
- *             сообщением (заглушка `hasActiveOrders` — реализуется при
- *             merge Story 4.x, в MVP всегда false).
- *   republish→ WITHDRAWN → PENDING_MODERATION. Снятие не удаляет данные, поэтому
- *             вернуть предложение можно без пересоздания — снова на модерацию.
+ *   withdraw→ если ACTIVE/PENDING_MODERATION — status=WITHDRAWN. Снятие лишь
+ *             убирает оффер из каталога (новые заказы не создаются); уже
+ *             принятые/созданные Order'ы независимы и ведутся поставщиком
+ *             отдельно, поэтому НЕ блокируют снятие.
+ *   republish→ WITHDRAWN → ACTIVE, если оффер уже был одобрен (контент при
+ *             снятии не менялся — проверять нечего); ещё не одобренный (снят с
+ *             модерации) → PENDING_MODERATION. Без пересоздания: данные на месте.
  *
  * Owner-проверка (`supplier_account == offer.supplier_account`) на уровне
  * сервиса — guard даёт capability, а не ownership.
@@ -116,28 +111,10 @@ export class MarketplaceOfferService {
     private readonly repo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CATEGORY_REPOSITORY)
     private readonly categoryRepo: MarketplaceCategoryDomainRepository,
-    @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
     private readonly availableCategoryService: AvailableCategoryDomainService,
     private readonly imagesService: MarketplaceOfferImagesService
   ) {}
-
-  /**
-   * Не-терминальные статусы Order'а, при которых нельзя позволить
-   * supplier'у withdraw'нуть Offer — у пайщика-orderer'а либо средства
-   * заблокированы (ACTIVE/ACCEPTED_PENDING_*), либо заказ на КУ ожидает
-   * выдачи (ACCEPTED/READY_TO_RECEIVE). Терминальные RECEIVED, CANCELLED
-   * и EXPIRED — не мешают.
-   */
-  public static readonly WITHDRAW_BLOCKING_STATUSES = [
-    MarketplaceOrderStatuses.ACTIVE,
-    MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER,
-    MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
-    MarketplaceOrderStatuses.ACCEPTED,
-    MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
-    MarketplaceOrderStatuses.READY_TO_RECEIVE,
-  ];
 
   async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
     this.validateCreateInput(input);
@@ -229,12 +206,12 @@ export class MarketplaceOfferService {
     // публикации и не шлёт на повторную модерацию. Любое же изменение
     // «модерационно-значимого» контента (название, описание, категория,
     // фото, единица измерения, условия цикла, гарантия, штрихкод) — то, что
-    // председатель видит и проверяет, — сбрасывает статус в PENDING_MODERATION.
-    // requireOwnedEditable пропускает сюда ACTIVE, PENDING_MODERATION и
-    // REJECTED. Для REJECTED любая правка — это исправление причины отклонения,
-    // поэтому она всегда уходит на повторную модерацию (даже если тронули
-    // только цену/остаток): оффер сейчас невидим в каталоге и должен снова
-    // пройти проверку, чтобы опубликоваться.
+    // председатель видит и проверяет, — сбрасывает статус в PENDING_MODERATION
+    // (кроме WITHDRAWN — см. ниже). requireOwnedEditable пропускает сюда любой
+    // не-удалённый статус. Для REJECTED любая правка — это исправление причины
+    // отклонения, поэтому она всегда уходит на повторную модерацию (даже если
+    // тронули только цену/остаток): оффер сейчас невидим в каталоге и должен
+    // снова пройти проверку, чтобы опубликоваться.
     const NON_MODERATED_FIELDS: ReadonlyArray<keyof OfferUpdateInput> = [
       'price_per_unit',
       'quantity_available',
@@ -244,7 +221,7 @@ export class MarketplaceOfferService {
       (k) => patch[k] !== undefined,
     );
     const moderationSignificantChange =
-      offer.status === 'REJECTED' ||
+      offer.status === MarketplaceOfferStatuses.REJECTED ||
       images !== undefined ||
       touchedKeys.some((k) => !NON_MODERATED_FIELDS.includes(k));
 
@@ -258,15 +235,23 @@ export class MarketplaceOfferService {
     } = { ...patch };
 
     if (moderationSignificantChange) {
-      // edit контента повторно отправляет оффер на модерацию — поля прошлых
-      // решений (approve/reject) не должны утечь в UI как «уже одобрен» /
-      // «отклонён с прошлой причиной».
-      normalizedPatch.status = 'PENDING_MODERATION';
+      // Значимая правка контента аннулирует прошлые решения модератора —
+      // approve/reject не должны утечь в UI как «уже одобрен»/«отклонён с
+      // прошлой причиной». Сброс `approved_at` также гарантирует, что
+      // последующий republish уйдёт на модерацию (контент изменился).
       normalizedPatch.approved_by = null;
       normalizedPatch.approved_at = null;
       normalizedPatch.rejected_by = null;
       normalizedPatch.rejected_at = null;
       normalizedPatch.reject_reason = null;
+      // Снятую (WITHDRAWN) правка В КАТАЛОГ НЕ ВОЗВРАЩАЕТ — статус остаётся
+      // WITHDRAWN до явного republish; на модерацию она попадёт уже при
+      // возврате на публикацию. Остальные статусы при значимой правке уходят
+      // на повторную модерацию сразу (оффер виден/ожидает — должен пройти
+      // проверку перед показом).
+      if (offer.status !== MarketplaceOfferStatuses.WITHDRAWN) {
+        normalizedPatch.status = MarketplaceOfferStatuses.PENDING_MODERATION;
+      }
     }
 
     if (patch.unlimited_flag === true) {
@@ -297,22 +282,30 @@ export class MarketplaceOfferService {
   async withdraw(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.requireOwnedEditable(id, supplier_account, ['withdraw']);
 
-    if (await this.hasActiveOrders(offer.coopname, offer.id)) {
-      throw new ConflictException(
-        'Нельзя снять предложение: по нему есть незакрытые заказы. Сначала отмените или закройте их.'
-      );
-    }
-
-    return this.repo.applyUpdate(offer.id, { status: 'WITHDRAWN' });
+    // Снятие лишь убирает предложение из каталога — новые заказы по нему больше
+    // не создаются. Уже принятые/созданные заказы независимы от статуса оферты:
+    // поставщик продолжает их вести (принять/отклонить партию) отдельно. Поэтому
+    // незакрытые заказы НЕ блокируют снятие — иначе оффер «залипает» в каталоге,
+    // пока висит хоть один незавершённый заказ.
+    return this.repo.applyUpdate(offer.id, {
+      status: MarketplaceOfferStatuses.WITHDRAWN,
+    });
   }
 
   /**
-   * Вернуть ранее снятое предложение на публикацию: WITHDRAWN →
-   * PENDING_MODERATION. Снятие не удаляет данные оферты — все поля и
-   * изображения на месте, поэтому пересоздавать ничего не нужно, достаточно
-   * снова отправить на модерацию. Доступно только владельцу и только для
-   * снятого предложения (REJECTED не возвращаем: его отклонил модератор по
-   * причине — нужна правка, а не повторная отправка тех же данных).
+   * Вернуть ранее снятое предложение на публикацию. Снятие не удаляет данные
+   * оферты и не меняет её контент — все поля и изображения остаются теми же,
+   * что были до снятия, поэтому пересоздавать ничего не нужно. Доступно только
+   * владельцу и только для снятого предложения (REJECTED не возвращаем: его
+   * отклонил модератор по причине — нужна правка, а не повторная отправка тех
+   * же данных).
+   *
+   * Поскольку контент при снятии гарантированно не менялся, повторная модерация
+   * нужна, только если оффер ещё НИ РАЗУ не одобрялся (его сняли прямо с
+   * модерации). Если же председатель его уже одобрял (`approved_at` стоит) —
+   * возвращаем сразу в ACTIVE без повторной проверки: проверять нечего, данные
+   * те же, что председатель уже видел. Это та же поле-зависимая логика, что и в
+   * `update` (контент не тронут → модерация не сбрасывается).
    */
   async republish(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.repo.findById(id);
@@ -322,12 +315,17 @@ export class MarketplaceOfferService {
     if (offer.supplier_account !== supplier_account) {
       throw new ForbiddenException('Можно изменять только свои предложения.');
     }
-    if (offer.status !== 'WITHDRAWN') {
+    if (offer.status !== MarketplaceOfferStatuses.WITHDRAWN) {
       throw new ForbiddenException(
         'Вернуть на публикацию можно только снятое предложение.'
       );
     }
-    return this.repo.applyUpdate(offer.id, { status: 'PENDING_MODERATION' });
+    const wasApproved = offer.approved_at != null;
+    return this.repo.applyUpdate(offer.id, {
+      status: wasApproved
+        ? MarketplaceOfferStatuses.ACTIVE
+        : MarketplaceOfferStatuses.PENDING_MODERATION,
+    });
   }
 
   async listMine(
@@ -520,43 +518,24 @@ export class MarketplaceOfferService {
     if (op[0] === 'withdraw') {
       // Снять можно только опубликованное/ожидающее. Уже снятое или
       // отклонённое снимать нечего.
-      if (offer.status === 'WITHDRAWN' || offer.status === 'REJECTED') {
-        const statusLabel = offer.status === 'WITHDRAWN' ? 'снято' : 'отклонено';
+      if (
+        offer.status === MarketplaceOfferStatuses.WITHDRAWN ||
+        offer.status === MarketplaceOfferStatuses.REJECTED
+      ) {
+        const statusLabel =
+          offer.status === MarketplaceOfferStatuses.WITHDRAWN ? 'снято' : 'отклонено';
         throw new ForbiddenException(
           `Нельзя снять предложение, которое уже ${statusLabel}.`
         );
       }
-    } else {
-      // Редактировать можно ACTIVE / PENDING_MODERATION / REJECTED: отклонённое
-      // правится для устранения причины и переотправки на модерацию (не
-      // пересоздаётся заново). Снятое сначала возвращают на публикацию
-      // (republish), затем редактируют.
-      if (offer.status === 'WITHDRAWN') {
-        throw new ForbiddenException(
-          'Нельзя отредактировать снятое предложение. Сначала верните его на публикацию.'
-        );
-      }
     }
+    // Редактировать можно в любом не-удалённом статусе: ACTIVE/PENDING_MODERATION
+    // правятся как обычно; REJECTED — для устранения причины и переотправки на
+    // модерацию; WITHDRAWN — поставщик дорабатывает снятую карточку перед
+    // возвратом на публикацию (статус остаётся WITHDRAWN, см. `update`).
     return offer;
   }
 
-  /**
-   * Story 3.2: блокировка withdraw'а Offer'а при наличии незавершённых
-   * Order'ов по нему. Проверяет все не-терминальные статусы
-   * (WITHDRAW_BLOCKING_STATUSES) через `MarketplaceOrderDomainRepository.list`
-   * с пагинацией 1×1 — нам нужен только factOfExistence (totalCount > 0).
-   */
-  private async hasActiveOrders(coopname: string, offer_id: string): Promise<boolean> {
-    const probe = await this.orderRepo.list(
-      {
-        coopname,
-        offer_id,
-        status: MarketplaceOfferService.WITHDRAW_BLOCKING_STATUSES,
-      },
-      { page: 1, limit: 1, sortBy: 'created_at', sortOrder: 'DESC' }
-    );
-    return probe.totalCount > 0;
-  }
 
   /**
    * Декодирует base64-файлы и грузит их в bucket `stol-zakazov:images`,

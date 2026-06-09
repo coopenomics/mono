@@ -18,16 +18,20 @@ export interface OrderStatusDisplay {
 }
 
 const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
-  ACTIVE: { label: 'Активен', variant: 'neutral' },
+  // Заказ размещён, партия ещё НАКАПЛИВАЕТСЯ до минимума (поставщик пока не
+  // акцептовал). «Активен» заказчику ничего не говорит, а «Ожидает
+  // подтверждения» дублировало бы ACCEPTED_PENDING_SUPPLIER. Эта стадия — про
+  // СБОР партии (ниже по рангу, чем «Ждёт акцепта»): «Ожидает сборки партии».
+  ACTIVE: { label: 'Ожидает сборки партии', variant: 'neutral' },
   ACCEPTED_PENDING_SUPPLIER: { label: 'Ждёт акцепта', variant: 'info' },
   ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: { label: 'Ждёт акцепта', variant: 'info' },
   ACCEPTED: { label: 'Принят поставщиком', variant: 'info' },
-  // SUPPLY_PREPARED = партия УЖЕ сформирована (вариант доставки выбран, для
-  // экспедитора выпущена ТТН) и готова к отгрузке/приёмке на КУ — это
-  // завершённое состояние, а не «в процессе». Раньше бейдж врал «готовится»,
-  // расходясь со страницей партий («Готова к отгрузке») и вкладкой
-  // «Поставка готова».
-  SUPPLY_PREPARED: { label: 'Поставка готова', variant: 'info' },
+  // SUPPLY_PREPARED = поставщик СОБРАЛ партию (выбран вариант доставки, для
+  // экспедитора выпущена ТТН), но имущество ещё НЕ отгружено и НЕ принято на КУ
+  // (приёмки ПВЗ и подписи председателя ещё не было). Поэтому «Поставка готова»
+  // вводило в заблуждение — на этом этапе принят лишь акцепт поставщика. Канон-
+  // термин: «Собрана к отгрузке».
+  SUPPLY_PREPARED: { label: 'Собрана к отгрузке', variant: 'info' },
   ACCEPTED_TO_COOP: { label: 'Принят кооперативом', variant: 'info' },
   READY_TO_RECEIVE: { label: 'Готов к выдаче', variant: 'warn' },
   RECEIVED: { label: 'Получен', variant: 'pos' },

@@ -1,4 +1,4 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { MarketplaceOfferPage } from '../types';
 
@@ -39,15 +39,3 @@ export async function fetchMyOffers(
   return result;
 }
 
-/**
- * Поставщик возвращает снятое предложение на публикацию (WITHDRAWN →
- * PENDING_MODERATION). Backend: marketplace-offer.resolver.ts →
- * marketplaceRepublishOffer (guard 'Offer' 'update:own'). Снятие не удаляет
- * данные оферты, поэтому пересоздавать ничего не нужно — она снова уходит на
- * модерацию с прежним содержимым.
- */
-export async function republishOffer(id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.RepublishOffer.mutation, {
-    variables: { input: { id } },
-  });
-}

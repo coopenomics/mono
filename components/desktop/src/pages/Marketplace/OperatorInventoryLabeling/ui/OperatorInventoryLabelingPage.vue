@@ -6,7 +6,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, EmptyState } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
 import {
@@ -383,8 +383,8 @@ q-page.place(role='region', aria-label='Склад участка')
       | найти, где что лежит. Перетащите карточку на полку (или меню «⋮ → на полку»).
       | Штрих-код — по желанию, для поиска сканером.
 
-    .place__loading.no-print(v-if='loading && !items.length')
-      q-spinner(size='28px', color='primary')
+    //- Канон загрузки: скелетон, а не спиннер.
+    CardListSkeleton.no-print(v-if='loading && !items.length', :count='3')
 
     EmptyState.no-print(
       v-else-if='!boardItems.length',
@@ -600,12 +600,6 @@ q-page.place(role='region', aria-label='Склад участка')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__loading {
-    display: flex;
-    justify-content: center;
-    padding: var(--p-6, 24px);
-  }
 
   // Доска полок — горизонтальный ряд колонок с прокруткой.
   &__board {

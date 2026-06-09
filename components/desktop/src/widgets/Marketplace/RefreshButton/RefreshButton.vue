@@ -1,6 +1,7 @@
 <template lang="pug">
 BaseButton(
   variant='ghost',
+  size='sm',
   icon-only,
   :aria-label='ariaLabel',
   :loading='loading',

@@ -5,8 +5,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { useManageTrusted } from 'src/features/Branch/ManageTrusted'
-import { BaseBadge, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base'
-import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { UserSearchSelector } from 'src/shared/ui'
 
@@ -28,6 +28,14 @@ const { addTrusted, deleteTrusted } = useManageTrusted()
 
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const canManage = computed(() => session.isChairman ?? false)
+
+// Колонки скелетона повторяют шапку таблицы (колонка действий — только когда есть права).
+const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
+  { label: 'Лицо' },
+  { label: 'Аккаунт', class: 'col-acc' },
+  { label: 'Роль', class: 'col-role', cell: 'badge' },
+  ...(canManage.value ? [{ label: 'Действия', class: 'col-action', cell: 'icon' as const }] : []),
+])
 
 const active = computed(() => store.activeBranch)
 const branch = computed(() => active.value?.branch ?? null)
@@ -164,6 +172,9 @@ q-page.trusted
       q-icon.banner__icon(name='info', size='18px')
       .banner__body
         | Список доверенных лиц участка доступен председателю кооператива.
+
+    //- Канон загрузки: скелетон-таблица на первичной загрузке, не пустой экран.
+    TableSkeleton(v-if='store.loading && !rows.length', :columns='skeletonColumns')
 
     .trusted__counter(v-if='rows.length')
       | Доверенных лиц: {{ trustedCount }}

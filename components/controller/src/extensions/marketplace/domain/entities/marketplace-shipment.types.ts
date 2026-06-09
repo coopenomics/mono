@@ -52,21 +52,38 @@ export const MarketplaceShipmentStatuses = {
  * Данные ТТН для Варианта Б (Story 5.1 form). Хранятся вместе с Shipment
  * jsonb-полем `ttn_data`.
  */
+/**
+ * Экспедиторская упаковка одной строки партии: сколько единиц имущества
+ * поставщик кладёт в одну коробку при отгрузке экспедитору. Задаётся при
+ * формировании партии (не при создании предложения) — упаковка для перевозки
+ * не равна тому, что выдаётся заказчику. Число коробок выводится как
+ * `ceil(quantity / units_per_box)`; нужно экспедитору, поставщику и оператору
+ * ПВЗ при приёмке (печатается в ТТН).
+ */
+export interface MarketplaceShipmentLinePackaging {
+  /** Заказ партии, к которому относится упаковка. */
+  order_id: string;
+  /** Сколько единиц имущества в одной коробке. */
+  units_per_box: number;
+}
+
+// Все поля необязательны: ТТН не подписывается ЭЦП, заполняем что известно о
+// перевозчике, пустое не попадает в документ.
 export interface MarketplaceShipmentTTNData {
   /** ФИО экспедитора. */
-  expeditor_full_name: string;
+  expeditor_full_name?: string;
   /** Контактный телефон. */
-  expeditor_phone: string;
-  /** Документ удостоверения личности (серия/номер). */
-  expeditor_id_doc: string;
+  expeditor_phone?: string;
   /** Госномер транспортного средства. */
-  vehicle_number: string;
+  vehicle_number?: string;
   /** Адрес погрузки (склад поставщика). */
-  loading_address: string;
+  loading_address?: string;
   /** Дата/время погрузки (ISO). */
-  loading_datetime: string;
+  loading_datetime?: string;
   /** Расчётная дата/время доставки на КУ (ISO). */
-  delivery_datetime_estimate: string;
+  delivery_datetime_estimate?: string;
+  /** Экспедиторская упаковка по строкам партии (штук в коробке на каждый заказ). */
+  packaging?: MarketplaceShipmentLinePackaging[];
 }
 
 /**

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, type PropType } from 'vue'
-import { EmptyState } from 'src/shared/ui/base'
+import { EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { FilterBar } from 'src/shared/ui/domain'
 
 export interface WarehouseRow {
@@ -17,9 +18,22 @@ export interface WarehouseRow {
 
 const props = defineProps({
   rows: { type: Array as PropType<WarehouseRow[]>, required: true },
+  // Флаг первичной загрузки от родителя: пока грузим и строк ещё нет — канон
+  // требует скелетон-таблицу, а не мелькающую заглушку «На складе пусто».
+  loading: { type: Boolean, default: false },
 })
 
 const filter = ref('')
+
+// Колонки скелетона повторяют шапку реальной таблицы (форма не дёргается).
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Позиция', width: '260px', class: 'col-product' },
+  { label: 'Пункт выдачи', width: '300px', class: 'col-pvz' },
+  { label: 'Принято', class: 'col-num' },
+  { label: 'Выдано', class: 'col-num' },
+  { label: 'Остаток', class: 'col-num' },
+  { label: 'Ед.', width: '64px', class: 'col-unit' },
+]
 
 const filteredRows = computed(() => {
   const f = filter.value.trim().toLowerCase()
@@ -48,7 +62,13 @@ defineExpose({ filteredRows })
     hide-reset
   )
 
-  .table-wrap(v-if='filteredRows.length')
+  TableSkeleton(
+    v-if='loading && !filteredRows.length',
+    :columns='skeletonColumns',
+    min-width='900px'
+  )
+
+  .table-wrap(v-else-if='filteredRows.length')
     .table-scroll
       table.table
         thead

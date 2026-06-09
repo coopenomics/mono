@@ -56,13 +56,3 @@ export async function fetchMyOfferById(
   return page.items.find((o) => o.id === id) ?? null;
 }
 
-/**
- * Поставщик снимает своё предложение с публикации (статус → WITHDRAWN).
- * Backend: marketplace-offer.resolver.ts → marketplaceWithdrawOffer
- * (guard 'Offer' 'delete:own', ownership проверяется в сервисе).
- */
-export async function withdrawOffer(id: string): Promise<void> {
-  await client.Mutation(Mutations.Marketplace.WithdrawOffer.mutation, {
-    variables: { input: { id } },
-  });
-}

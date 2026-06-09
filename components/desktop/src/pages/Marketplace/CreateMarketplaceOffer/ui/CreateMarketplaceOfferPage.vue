@@ -15,6 +15,14 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
       )
         q-icon(name='visibility_off', size='16px')
         span.q-ml-sm Снять с публикации
+      BaseButton(
+        v-else-if='canRepublish',
+        variant='primary',
+        :loading='republishing',
+        @click='onRepublish'
+      )
+        q-icon(name='publish', size='16px')
+        span.q-ml-sm Опубликовать снова
 
     //- Отклонённая оферта: показываем причину председателя. Поставщик правит
     //- карточку и переотправляет — пересоздавать заново не нужно.
@@ -25,12 +33,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         .q-mt-xs(v-if='rejectReason') Причина: {{ rejectReason }}
         .q-mt-xs Исправьте указанное и нажмите «Отправить на модерацию» — оферта уйдёт на повторную проверку с тем же содержимым.
 
-    //- Канон-карточка информации (одна на страницу): подсказка по заполнению +
+    //- Канон-подсказка (одна на страницу, закрывается крестиком): заполнение +
     //- правила модерации. Для отклонённой показываем баннер причины выше — этот
     //- не дублируем.
-    .banner.banner--info(v-if='currentStatus !== "REJECTED"')
-      q-icon.banner__icon(name='info', size='18px')
-      .banner__body {{ infoText }}
+    PageHint(v-if='currentStatus !== "REJECTED"', storage-key='mp:offer-wizard:banner-dismissed')
+      | {{ infoText }}
 
     //- Скелетон формы на время дозагрузки оферты в режиме редактирования:
     //- степпер монтируем только когда данные готовы, чтобы поля не
@@ -308,6 +315,7 @@ import type { QForm } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
+import { PageHint } from 'src/shared/ui/domain';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { BaseChip } from 'src/shared/ui/base/BaseChip';
@@ -318,12 +326,13 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
+import { Zeus } from '@coopenomics/sdk';
+import { republishOffer, withdrawOffer } from 'src/entities/MarketplaceOffer';
 import {
   createOffer,
   fetchCategories,
   fetchMyOfferById,
   updateOffer,
-  withdrawOffer,
 } from '../api';
 import type {
   MarketplaceCategoryView,
@@ -383,14 +392,18 @@ const isEdit = computed(() => editId.value !== null);
 const prefilling = ref(false);
 const submitting = ref(false);
 
-// Единая карточка-подсказка: при создании — про публикацию и модерацию, при
-// редактировании — что цена/остаток применяются сразу, а контент уходит на
-// повторную модерацию.
-const infoText = computed(() =>
-  isEdit.value
-    ? 'Заполните карточку товара по шагам. Цена и количество применяются сразу. Изменение названия, описания, категории, единицы измерения или фотографий снова отправит предложение на модерацию — до одобрения оно будет недоступно в каталоге.'
-    : 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию председателю — до одобрения оно не появится в каталоге.'
-);
+// Единая карточка-подсказка: при создании — про публикацию и модерацию; при
+// правке снятой — что она остаётся снятой до возврата на публикацию; при правке
+// прочих — что цена/остаток применяются сразу, а контент уходит на модерацию.
+const infoText = computed(() => {
+  if (!isEdit.value) {
+    return 'Заполните карточку товара по шагам. После публикации предложение уходит на модерацию председателю — до одобрения оно не появится в каталоге.';
+  }
+  if (currentStatus.value === 'WITHDRAWN') {
+    return 'Доработайте карточку снятого предложения. Пока вы не вернёте его на публикацию, оно остаётся снятым и в каталоге не показывается. При возврате изменённое содержимое снова пройдёт модерацию, неизменное — опубликуется сразу.';
+  }
+  return 'Заполните карточку товара по шагам. Цена и количество применяются сразу. Изменение названия, описания, категории, единицы измерения или фотографий снова отправит предложение на модерацию — до одобрения оно будет недоступно в каталоге.';
+});
 const submitLabel = computed(() => {
   if (!isEdit.value) return 'Опубликовать на модерацию';
   // Отклонённую правят, чтобы переотправить — подпись честно говорит, что
@@ -421,6 +434,30 @@ const statusVariant = computed(() =>
 const canWithdraw = computed(
   () => currentStatus.value === 'PENDING_MODERATION' || currentStatus.value === 'ACTIVE'
 );
+// Вернуть на публикацию — только снятую. На этих столах кнопки взаимоисключающие:
+// видно либо «Снять с публикации», либо «Опубликовать снова».
+const canRepublish = computed(() => currentStatus.value === 'WITHDRAWN');
+const republishing = ref(false);
+
+function onRepublish(): void {
+  if (!editId.value) return;
+  republishing.value = true;
+  void (async () => {
+    try {
+      const status = await republishOffer(editId.value as string);
+      SuccessAlert(
+        status === Zeus.MarketplaceOfferStatus.ACTIVE
+          ? 'Предложение снова опубликовано.'
+          : 'Предложение отправлено на модерацию.',
+      );
+      void router.push({ name: 'marketplace-my-offers' });
+    } catch (e) {
+      FailAlert(e, 'Не удалось вернуть предложение на публикацию');
+    } finally {
+      republishing.value = false;
+    }
+  })();
+}
 
 function onWithdraw(): void {
   if (!editId.value) return;
@@ -428,7 +465,8 @@ function onWithdraw(): void {
     title: 'Снять предложение с публикации?',
     message:
       'Предложение перестанет показываться в каталоге и не будет принимать новые ' +
-      'заказы. Вернуть его можно будет, только создав заново.',
+      'заказы. Вернуть его на публикацию можно в любой момент кнопкой ' +
+      '«Опубликовать снова» — без повторной модерации, если не менять содержимое.',
     cancel: { label: 'Отмена', flat: true, noCaps: true },
     ok: { label: 'Снять с публикации', color: 'negative', unelevated: true, noCaps: true },
     persistent: true,

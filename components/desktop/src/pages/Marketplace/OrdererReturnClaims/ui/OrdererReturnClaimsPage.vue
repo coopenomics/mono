@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
-import { BaseButton, BaseSelect, BaseBadge, type BaseBadgeVariant } from 'src/shared/ui/base';
+import { BaseButton, BaseSelect, BaseBadge, CardListSkeleton, type BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
@@ -185,10 +185,13 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
         q-icon(name="assignment", size="18px")
       | Подать заявление
 
+  //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
+  CardListSkeleton(v-if="loading && !activeClaims.length && !archiveClaims.length", :count="2")
+
   section.returns__section
     .t-h3 Активные заявления
-    .returns__empty(v-if="activeClaims.length === 0") Нет активных заявлений на возврат.
-    q-list(v-else, bordered, separator)
+    .returns__empty(v-if="activeClaims.length === 0 && !loading") Нет активных заявлений на возврат.
+    q-list(v-if="activeClaims.length > 0", bordered, separator)
       q-item(v-for="c in activeClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
           q-item-label.text-weight-medium {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
@@ -199,8 +202,8 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
 
   section.returns__section
     .t-h3 Архив заявлений
-    .returns__empty(v-if="archiveClaims.length === 0") Архив пуст.
-    q-list(v-else, bordered, separator)
+    .returns__empty(v-if="archiveClaims.length === 0 && !loading") Архив пуст.
+    q-list(v-if="archiveClaims.length > 0", bordered, separator)
       q-item(v-for="c in archiveClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
           q-item-label {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽

@@ -7,18 +7,17 @@ import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed
 import type { ExcludeCommonProps } from '~/application/document/types';
 
 /**
- * Story 6.1 / 6.3: подписываемая форма акта приёмки-передачи имущества
- * (АПП-выдачи) пайщику на ПВЗ. Использует тот же шаблон документа, что и
- * АПП приёмки (registry_id=1102 «Акт приёмки-передачи имущества»), но в
- * другой ролевой раскладке:
+ * Story 6.1 / 6.3: подписываемая форма акта выдачи имущества пайщику на ПВЗ
+ * (кооператив → заказчик). Отдельный реестр документов
+ * `1105.MarketplaceAplIssuance` — НЕ путать с АПП приёмки от поставщика
+ * (`1104.MarketplaceAplReception`). Ролевая раскладка:
  *
  *   - `username` (из IGenerate, дано factory) — пайщик-получатель имущества;
- *   - `transmitter` — учётная запись передающей стороны от кооператива:
- *     председатель КУ выдачи или доверенное им лицо (для `signiss1`
- *     передающая сторона — председатель КУ; для `signiss2` подпись ставят
- *     `delivery_signer` и заказчик).
+ *   - `transmitter` — оператор КУ выдачи (председатель или доверенное им лицо),
+ *     передающая сторона от кооператива, «Выдал» (для `signiss1` подпись ставит
+ *     оператор КУ; для `signiss2` — `delivery_signer` и заказчик).
  */
-type action = Cooperative.Registry.MarketplaceAplReception.Action;
+type action = Cooperative.Registry.MarketplaceAplIssuance.Action;
 
 @InputType('BaseMarketplaceIssueActMetaDocumentInput')
 class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<action> {
@@ -50,6 +49,26 @@ class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<
   @Field({ description: 'Учётная запись поставщика, передавшего партию на кооперативный участок.' })
   @IsString()
   supplier_account!: string;
+
+  @Field({ description: 'Артикул (СКУ) товара по заказу.' })
+  @IsString()
+  sku!: string;
+
+  @Field({ description: 'Наименование товара по заказу.' })
+  @IsString()
+  product_title!: string;
+
+  @Field({ description: 'Единица измерения товара (человекочитаемая).' })
+  @IsString()
+  unit_of_measurement!: string;
+
+  @Field({ description: 'Цена за единицу товара по заказу.' })
+  @IsString()
+  unit_cost!: string;
+
+  @Field({ description: 'Символ валюты для сумм в акте.' })
+  @IsString()
+  currency!: string;
 
   @Field({ description: 'Номер акта для шапки документа.' })
   @IsString()

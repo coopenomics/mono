@@ -25,6 +25,12 @@ const props = defineProps<{
   /** Доменный статус-этап партии (минимальный по рангу среди заказов). */
   stageStatus: DomainOrderStatus | string;
   orderCount: number;
+  /**
+   * Скрыть бейдж «N зак.» (число заказов в партии). У заказчика число других
+   * участников нерелевантно — ему важно лишь наполнение партии; у поставщика
+   * счётчик остаётся.
+   */
+  hideOrderCount?: boolean;
   /** Левая подпись прогресса целиком, напр. «Объём партии: 5 кг». */
   volumeLabel: string;
   /** Правая muted-подпись (цель сбора), напр. «цель — от 10 кг». Пусто — скрыта. */
@@ -41,13 +47,31 @@ const props = defineProps<{
   totalLabel: string;
   /** Значение итога, напр. «1 200 ₽ · 5 кг». */
   totalValue: string;
+  /**
+   * Карточка кликабельна (курсор-указатель + role=button + emit `card-click`).
+   * У заказчика на «Коллективном заказе» клик ведёт в карточку предложения; у
+   * поставщика по умолчанию выключено (карточка — только сводка).
+   */
+  clickable?: boolean;
 }>();
 
+const emit = defineEmits<{ (e: 'card-click'): void }>();
+
 const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
+
+function onCardClick(): void {
+  if (props.clickable) emit('card-click');
+}
 </script>
 
 <template lang="pug">
-.supply-party
+.supply-party(
+  :class="{ 'supply-party--clickable': clickable }",
+  :role="clickable ? 'button' : undefined",
+  :tabindex="clickable ? 0 : undefined",
+  @click="onCardClick",
+  @keyup.enter="onCardClick"
+)
   .supply-party__head
     .row.items-center.q-gutter-sm.no-wrap
       div.col
@@ -56,13 +80,13 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
           q-icon(name="place", size="14px")
           | КУ «{{ pvzName }}»
       BaseBadge(:variant="statusDisplay.variant") {{ statusDisplay.label }}
-      span.chip.chip--accent
+      span.chip.chip--accent(v-if="!hideOrderCount")
         q-icon(name="layers", size="14px")
-        | {{ orderCount }} зак.
+        | {{ orderCount }} заказ
 
   .supply-party__progress
     .supply-party__progress-row
-      span {{ volumeLabel }}
+      span.t-muted {{ volumeLabel }}
       span.t-muted(v-if="targetLabel") {{ targetLabel }}
     q-linear-progress.supply-party__progress-bar(
       :value="progress",
@@ -104,6 +128,16 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
   display: flex;
   flex-direction: column;
   gap: var(--p-5, 20px);
+
+  &--clickable {
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    &:hover {
+      border-color: var(--p-primary-line);
+      background: var(--p-surface-2);
+    }
+  }
 
   &__sub {
     display: inline-flex;

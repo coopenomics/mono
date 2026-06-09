@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseButton, BaseDialog, BaseInput, BaseRadioCard } from 'src/shared/ui/base';
-import { createShipment } from '../api';
+import { createShipment, type CreateShipmentVariables } from '../api';
 import { groupAcceptedByKu, type ShipmentKuBucket } from '../lib/shipmentFormation';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 
@@ -24,10 +24,11 @@ const SELF = Zeus.MarketplaceShipmentDeliveryVariant.SELF;
 const EXPEDITOR = Zeus.MarketplaceShipmentDeliveryVariant.EXPEDITOR;
 type DeliveryVariant = Zeus.MarketplaceShipmentDeliveryVariant;
 
+// Паспорт/удостоверение экспедитора НЕ собираем (минимизация ПДн, требование
+// заказчика). Все поля ниже опциональны и целиком переносятся в документ ТТН.
 interface TtnData {
   expeditor_full_name: string;
   expeditor_phone: string;
-  expeditor_id_doc: string;
   vehicle_number: string;
   loading_address: string;
   loading_datetime: string;
@@ -51,12 +52,15 @@ const selectedKu = ref<string | null>(null);
 // Заказы, перемещённые в партию (id строк). Невыбранное остаётся ACCEPTED.
 const included = ref<Set<string>>(new Set());
 const ttn = ref<TtnData>(emptyTtn());
+// Экспедиторская упаковка по строкам: orderId → «сколько в коробке» (строкой из
+// number-инпута). Число коробок = ceil(quantity / units_per_box). Задаётся ИМЕННО
+// при формировании партии — упаковка для перевозки ≠ упаковка заказчика.
+const packaging = ref<Record<string, string>>({});
 
 function emptyTtn(): TtnData {
   return {
     expeditor_full_name: '',
     expeditor_phone: '',
-    expeditor_id_doc: '',
     vehicle_number: '',
     loading_address: '',
     loading_datetime: '',
@@ -67,7 +71,6 @@ function emptyTtn(): TtnData {
 const TTN_FIELDS: Array<{ key: keyof TtnData; label: string; type?: 'text' | 'tel' | 'date' }> = [
   { key: 'expeditor_full_name', label: 'ФИО экспедитора' },
   { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel' },
-  { key: 'expeditor_id_doc', label: 'Документ (серия/номер)' },
   { key: 'vehicle_number', label: 'Гос. номер ТС' },
   { key: 'loading_address', label: 'Адрес погрузки' },
   { key: 'loading_datetime', label: 'Дата погрузки', type: 'date' },
@@ -99,6 +102,7 @@ watch(
       selectedKu.value = buckets.value.length === 1 ? buckets.value[0].braname : null;
       included.value = new Set();
       ttn.value = emptyTtn();
+      packaging.value = {};
     }
   },
   { immediate: true },
@@ -107,6 +111,7 @@ watch(
 // Смена КУ — заново пустой выбор (заказы у каждого КУ свои).
 watch(selectedKu, () => {
   included.value = new Set();
+  packaging.value = {};
 });
 
 function selectKu(braname: string): void {
@@ -132,18 +137,30 @@ function excludeAll(): void {
 
 const isExpeditor = computed(() => variant.value === EXPEDITOR);
 
-const ttnComplete = computed(() =>
-  TTN_FIELDS.every((f) => String(ttn.value[f.key]).trim().length > 0),
+// Поля ТТН необязательны (правка 2026-06-07): партию можно сформировать с тем,
+// что известно о перевозчике, — даже пусто. Единственное условие сабмита — КУ
+// выбран и есть хотя бы один заказ в партии.
+const canSubmit = computed(
+  () => Boolean(selectedKu.value) && included.value.size > 0,
 );
-
-const canSubmit = computed(() => {
-  if (!selectedKu.value || included.value.size === 0) return false;
-  if (isExpeditor.value && !ttnComplete.value) return false;
-  return true;
-});
 
 function formatPrice(v: number): string {
   return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(v) + ' ₽';
+}
+
+// Число коробок строки = ceil(количество / штук_в_коробке). null — пока упаковка
+// не задана (или некорректна): тогда коробки в ТТН не печатаются.
+function boxesFor(line: { id: string; quantity: number }): number | null {
+  const per = Math.trunc(Number(packaging.value[line.id]));
+  if (!Number.isFinite(per) || per <= 0) return null;
+  return Math.ceil(line.quantity / per);
+}
+
+// Подсказка под полем «В коробке» (живёт в hint BaseInput — место зарезервировано,
+// ряд не прыгает): расчётное число коробок либо призыв заполнить.
+function packHint(line: { id: string; quantity: number }): string {
+  const b = boxesFor(line);
+  return b != null ? `≈ ${b} кор.` : 'укажите упаковку';
 }
 
 function close(): void {
@@ -162,7 +179,23 @@ async function submit(): Promise<void> {
       byCycle.set(line.cycle_id, arr);
     }
 
-    const ttn_data = isExpeditor.value ? { ...ttn.value } : null;
+    // В партию кладём только заполненные поля — пустое не должно попасть ни в
+    // хранилище, ни в документ ТТН (все поля опциональны). Плюс экспедиторская
+    // упаковка по строкам: «штук в коробке» на каждый включённый заказ.
+    type TtnDataInput = NonNullable<CreateShipmentVariables['groups'][number]['ttn_data']>;
+    let ttn_data: TtnDataInput | null = null;
+    if (isExpeditor.value) {
+      const d: TtnDataInput = {};
+      for (const [k, v] of Object.entries(ttn.value)) {
+        const s = String(v).trim();
+        if (s !== '') (d as Record<string, unknown>)[k] = s;
+      }
+      const pack = includedLines.value
+        .map((l) => ({ order_id: l.id, units_per_box: Math.trunc(Number(packaging.value[l.id])) }))
+        .filter((p) => Number.isFinite(p.units_per_box) && p.units_per_box >= 1);
+      if (pack.length) d.packaging = pack;
+      ttn_data = d;
+    }
     let created = 0;
     for (const [cycle_id, order_ids] of byCycle) {
       const result = await createShipment({
@@ -232,7 +265,6 @@ BaseDialog(
           .create-shipment__ku-text
             .create-shipment__ku-name {{ b.kuName }}
             .create-shipment__ku-addr(v-if='b.kuAddress') {{ b.kuAddress }}
-          .create-shipment__ku-meta {{ b.lines.length }} заказ(ов)
 
     //- Шаг 3: dual-list заказов выбранного КУ.
     .create-shipment__step(v-if='activeBucket')
@@ -270,20 +302,30 @@ BaseDialog(
               .create-shipment__line-info
                 .create-shipment__line-title {{ l.title }}
                 .create-shipment__line-meta {{ l.quantity }} {{ l.unit }} · {{ formatPrice(l.sum) }}
+              BaseInput.create-shipment__pack-input(
+                v-if='isExpeditor',
+                v-model='packaging[l.id]',
+                type='number',
+                label='В коробке, шт',
+                :hint='packHint(l)'
+              )
       .create-shipment__total(v-if='includedLines.length')
-        | В партии: {{ includedLines.length }} заказ(ов) · {{ formatPrice(includedSum) }}
+        | Итого партии: {{ formatPrice(includedSum) }}
 
     //- Шаг 4: данные ТТН (только экспедитор).
     .create-shipment__step(v-if='activeBucket && isExpeditor')
       .create-shipment__step-title Данные ТТН
+      .create-shipment__hint
+        | Все поля необязательны — заполните, что известно о перевозчике. ТТН
+        | можно сформировать и с минимумом данных, а незаполненное просто не
+        | попадёт в документ.
       .create-shipment__ttn-grid
         BaseInput(
           v-for='f in TTN_FIELDS',
           :key='f.key',
           v-model='ttn[f.key]',
           :label='f.label',
-          :type='f.type ?? "text"',
-          required
+          :type='f.type ?? "text"'
         )
 
   .create-shipment__nodata(v-else)
@@ -374,14 +416,6 @@ BaseDialog(
     overflow-wrap: anywhere;
   }
 
-  &__ku-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
   &__transfer {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -437,6 +471,7 @@ BaseDialog(
 
     &--in {
       flex-direction: row;
+      align-items: flex-start;
     }
   }
 
@@ -457,6 +492,11 @@ BaseDialog(
     font-variant-numeric: tabular-nums;
   }
 
+  &__pack-input {
+    width: 150px;
+    flex-shrink: 0;
+  }
+
   &__total {
     font-size: var(--p-fs-body-sm, 13px);
     font-weight: 600;
@@ -466,9 +506,18 @@ BaseDialog(
   }
 
   &__ttn-grid {
+    // 6 полей ТТН — фиксированные 3 колонки (2 ровных ряда), без «сироты» в конце,
+    // как давал auto-fit (5+1). 3/2/1 колонки делят 6 нацело на любой ширине.
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--p-3, 12px);
+
+    @media (max-width: 860px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @media (max-width: 520px) {
+      grid-template-columns: 1fr;
+    }
   }
 
   &__nodata {

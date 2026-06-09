@@ -6,7 +6,7 @@ import {
   listWriteoffProposals,
   type MarketplaceWriteoffProposalsPageView,
 } from '../../AdminWriteoffs/api';
-import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -152,8 +152,8 @@ q-page.board-writeoff(role="region", aria-label="Повестка совета �
       template(#icon-left)
         q-icon(name="refresh", size="18px")
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+  //- Канон загрузки: скелетон, а не спиннер поверх.
+  CardListSkeleton(v-if="loading && items.length === 0", :count="3")
 
   EmptyState(
     v-if="!loading && items.length === 0",

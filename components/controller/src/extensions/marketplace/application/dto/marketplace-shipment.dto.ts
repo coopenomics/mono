@@ -1,5 +1,5 @@
-import { Field, ID, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Field, ID, Int, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceShipmentDomainEntity } from '../../domain/entities/marketplace-shipment.entity';
 import {
@@ -31,60 +31,102 @@ registerEnumType(MarketplaceShipmentStatusEnum, {
   description: 'Статус партии поставки.',
 });
 
+// Данные экспедитора необязательны (см. Input-DTO ниже) — поэтому при чтении
+// партии любое из полей может отсутствовать. Все nullable, иначе GraphQL падает
+// на сериализации частично заполненного ttn_data.
+// Экспедиторская упаковка строки партии: сколько единиц в одной коробке.
+// Задаётся при формировании партии; число коробок выводится из количества.
+@ObjectType('MarketplaceShipmentLinePackaging')
+export class MarketplaceShipmentLinePackagingDTO {
+  @Field(() => ID, { description: 'Заказ партии, к которому относится упаковка.' })
+  order_id!: string;
+  @Field(() => Int, { description: 'Сколько единиц имущества в одной коробке.' })
+  units_per_box!: number;
+}
+
 @ObjectType('MarketplaceShipmentTTNData')
 export class MarketplaceShipmentTTNDataDTO {
-  @Field(() => String, { description: 'ФИО экспедитора.' })
-  expeditor_full_name!: string;
-  @Field(() => String, { description: 'Контактный телефон экспедитора.' })
-  expeditor_phone!: string;
-  @Field(() => String, { description: 'Документ удостоверения личности (серия/номер).' })
-  expeditor_id_doc!: string;
-  @Field(() => String, { description: 'Госномер транспортного средства.' })
-  vehicle_number!: string;
-  @Field(() => String, { description: 'Адрес погрузки (склад поставщика).' })
-  loading_address!: string;
-  @Field(() => String, { description: 'Дата и время погрузки (ISO).' })
-  loading_datetime!: string;
-  @Field(() => String, { description: 'Расчётная дата и время доставки на КУ (ISO).' })
-  delivery_datetime_estimate!: string;
+  @Field(() => String, { nullable: true, description: 'ФИО экспедитора.' })
+  expeditor_full_name?: string;
+  @Field(() => String, { nullable: true, description: 'Контактный телефон экспедитора.' })
+  expeditor_phone?: string;
+  @Field(() => String, { nullable: true, description: 'Госномер транспортного средства.' })
+  vehicle_number?: string;
+  @Field(() => String, { nullable: true, description: 'Адрес погрузки (склад поставщика).' })
+  loading_address?: string;
+  @Field(() => String, { nullable: true, description: 'Дата и время погрузки (ISO).' })
+  loading_datetime?: string;
+  @Field(() => String, { nullable: true, description: 'Расчётная дата и время доставки на КУ (ISO).' })
+  delivery_datetime_estimate?: string;
+  @Field(() => [MarketplaceShipmentLinePackagingDTO], {
+    nullable: true,
+    description: 'Упаковка по строкам партии: сколько единиц в коробке на каждый заказ.',
+  })
+  packaging?: MarketplaceShipmentLinePackagingDTO[];
+}
+
+// Все поля данных экспедитора — НЕОБЯЗАТЕЛЬНЫЕ. ТТН не подписывается ЭЦП и не
+// идёт в реестр кооператива; заполняем, что известно о перевозчике, а пустое
+// просто не попадёт в документ. Раньше @IsNotEmpty на каждом поле блокировал
+// формирование партии («ttn_data.<поле> should not be empty»), хотя сама форма
+// заявлена как опциональная. Паспорт экспедитора в цифровой системе НЕ хранится
+// (минимизация ПДн) — собираем только то, что печатается в ТТН.
+// Упаковка строки партии — вход. Задаётся поставщиком при формировании партии
+// (для каждого заказа: сколько единиц в коробке).
+@InputType('MarketplaceShipmentLinePackagingInput')
+export class MarketplaceShipmentLinePackagingInputDTO {
+  @Field(() => ID, { description: 'Заказ партии, к которому относится упаковка.' })
+  @IsString()
+  @IsNotEmpty()
+  order_id!: string;
+
+  @Field(() => Int, { description: 'Сколько единиц имущества в одной коробке.' })
+  @IsInt()
+  @Min(1)
+  units_per_box!: number;
 }
 
 @InputType('MarketplaceShipmentTTNDataInput')
 export class MarketplaceShipmentTTNDataInputDTO {
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  expeditor_full_name!: string;
+  expeditor_full_name?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  expeditor_phone!: string;
+  expeditor_phone?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  expeditor_id_doc!: string;
+  vehicle_number?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  vehicle_number!: string;
+  loading_address?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  loading_address!: string;
+  loading_datetime?: string;
 
-  @Field(() => String)
+  @Field(() => String, { nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  loading_datetime!: string;
+  delivery_datetime_estimate?: string;
 
-  @Field(() => String)
-  @IsString()
-  @IsNotEmpty()
-  delivery_datetime_estimate!: string;
+  @Field(() => [MarketplaceShipmentLinePackagingInputDTO], {
+    nullable: true,
+    description: 'Упаковка по строкам партии: сколько единиц в коробке на каждый заказ.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceShipmentLinePackagingInputDTO)
+  packaging?: MarketplaceShipmentLinePackagingInputDTO[];
 }
 
 @ObjectType('MarketplaceShipment')

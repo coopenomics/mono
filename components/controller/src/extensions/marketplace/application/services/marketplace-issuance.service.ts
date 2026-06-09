@@ -34,7 +34,12 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
+import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -103,6 +108,8 @@ export class MarketplaceIssuanceService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -406,8 +413,11 @@ export class MarketplaceIssuanceService {
     const total_amount = (
       input.actual_quantity * Number.parseFloat(unit_price)
     ).toFixed(4);
-    const action: Cooperative.Registry.MarketplaceAplReception.Action = {
-      registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
+    // Артикул/наименование/единица — из оферты заказа: акт выдачи несёт ИМЕННО
+    // заказ заказчика (его СКУ, кол-во и стоимость), а не заглушку фабрики.
+    const offer = await this.offerRepo.findById(input.order.offer_id);
+    const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
+      registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
       coopname: input.order.coopname,
       username: input.order.orderer_account,
       order_id: input.order.id,
@@ -420,6 +430,11 @@ export class MarketplaceIssuanceService {
       fact_quantity: input.actual_quantity,
       total_amount,
       supplier_account: input.order.supplier_account,
+      sku: input.order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
+      unit_cost: unit_price,
+      currency: this.assetConfig.symbol,
       // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
       // мог получить исходник по doc_hash через buildDocumentAggregate и
       // наложить вторую подпись поверх подписи председателя (канон 2-подписи).

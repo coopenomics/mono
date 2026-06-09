@@ -1,5 +1,5 @@
 import type { IDocDataRef, IGenerate, IMetaDocument } from '../../document'
-import type { ICooperativeData, IFirstLastMiddleName, IVars } from '../../model'
+import type { ICommonUser, ICooperativeData, IVars } from '../../model'
 import type { IOrganizationData } from '../../users'
 
 export const registry_id = 1103
@@ -18,8 +18,6 @@ export interface PrivateData {
   expeditor_full_name: string
   /** Контактный телефон экспедитора. */
   expeditor_phone: string
-  /** Документ, удостоверяющий личность экспедитора. */
-  expeditor_id_doc: string
   /** Номер транспортного средства. */
   vehicle_number: string
   /** Адрес погрузки. */
@@ -37,12 +35,12 @@ export interface PrivateData {
 // пока не подписывают перевозку. Ссылка на ТТН вшивается в АПП приёмки
 // через `Shipment.ttn_document_id`.
 //
-// **Все персональные данные экспедитора и параметры перевозки** (ФИО,
-// телефон, паспорт, госномер, адрес погрузки и т.п.) хранятся off-chain
-// в `doc_private_data`; on-chain — только `doc_data_hash`.
+// **Данные экспедитора и параметры перевозки** (ФИО, телефон, госномер, адрес
+// погрузки и т.п.) хранятся off-chain в `doc_private_data`; on-chain — только
+// `doc_data_hash`. Паспорт/удостоверение НЕ собираем и НЕ храним (минимизация ПДн).
 export interface Action extends IGenerate, IDocDataRef {
   registry_id: number
-  /** Уникальный номер ТТН (формат `<COOP>-TTN-<CYCLE>-<KU>-<HEX>`). */
+  /** Уникальный номер ТТН (формат `ТТН-<12 HEX>`). */
   ttn_number: string
   /** id заявки (cycle), в рамках которой формируется партия. */
   cycle_id: string
@@ -73,8 +71,12 @@ export interface Model {
   total_amount: string
   currency: string
   supplier_account: string
-  /** ФИО поставщика — резолвится фабрикой по `supplier_account`. */
-  supplier: IFirstLastMiddleName
+  /**
+   * Поставщик — резолвится фабрикой по `supplier_account` в орг-или-ФИО
+   * (`full_name_or_short_name`): для физлица/ИП — ФИО, для организации —
+   * краткое наименование. Раньше было только ФИО → для орг-поставщика пусто.
+   */
+  supplier: ICommonUser
   /** Приватные данные экспедитора и параметры перевозки (off-chain). */
   doc_data: PrivateData
   /** Карточка КУ-приёмника — резолвится фабрикой по `accept_braname`. */
@@ -99,7 +101,7 @@ th {  width: 35%; }
   <p style="text-align:center" class="subheader">{% trans 'ttn_subtitle' %}</p>
   <p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
 
-  <p>{% trans 'ttn_intro', vars.full_abbr, vars.name, supplier.last_name, supplier.first_name, supplier.middle_name %}</p>
+  <p>{% trans 'ttn_intro', vars.full_abbr, vars.name, supplier.full_name_or_short_name %}</p>
 
   <table>
     <tbody>
@@ -132,10 +134,6 @@ th {  width: 35%; }
       <tr>
         <th>{% trans 'expeditor_phone_label' %}</th>
         <td>{{ doc_data.expeditor_phone }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'expeditor_id_doc_label' %}</th>
-        <td>{{ doc_data.expeditor_id_doc }}</td>
       </tr>
     </tbody>
   </table>
@@ -174,7 +172,7 @@ th {  width: 35%; }
         <tr>
           <th>{% trans 'shipped' %}</th>
           <td>{% trans 'supplier_role' %}</td>
-          <td>{{ supplier.last_name }} {{ supplier.first_name }} {{ supplier.middle_name }}</td>
+          <td>{{ supplier.full_name_or_short_name }}</td>
           <td>{% trans 'signature_placeholder' %}</td>
         </tr>
         <tr>
@@ -192,8 +190,8 @@ th {  width: 35%; }
 export const translations = {
   ru: {
     ttn_number_label: 'ТРАНСПОРТНАЯ НАКЛАДНАЯ № {0}',
-    ttn_subtitle: 'на перевозку партии имущества по Целевой Потребительской Программе «СТОЛ ЗАКАЗОВ»',
-    ttn_intro: '{0} "{1}" (далее – Кооператив) принимает к перевозке партию имущества, отправляемую пайщиком-поставщиком {2} {3} {4} (далее – Поставщик), на основании настоящей транспортной накладной.',
+    ttn_subtitle: 'на перевозку партии имущества по Целевой Потребительской Программе «Членский стол заказов»',
+    ttn_intro: '{0} "{1}" (далее – Кооператив) принимает к перевозке партию имущества, отправляемую пайщиком-поставщиком {2} (далее – Поставщик), на основании настоящей транспортной накладной.',
     shipment_label: 'Партия поставки',
     cycle_label: 'Консолидированная заявка',
     accept_braname_label: 'Кооперативный участок-приёмник',
@@ -202,7 +200,6 @@ export const translations = {
     transport_section: 'Транспортировка',
     expeditor_full_name_label: 'ФИО экспедитора',
     expeditor_phone_label: 'Телефон экспедитора',
-    expeditor_id_doc_label: 'Документ экспедитора',
     vehicle_number_label: 'Номер транспортного средства',
     loading_address_label: 'Адрес погрузки',
     loading_datetime_label: 'Дата и время погрузки',
@@ -229,7 +226,7 @@ export const exampleData = {
     full_abbr: 'Потребительский Кооператив',
     name: 'ВОСХОД',
   },
-  ttn_number: 'VOSKHOD-TTN-2026MAY-MOSCOW-A1B2C3D4',
+  ttn_number: 'ТТН-A1B2C3D4E5F6',
   cycle_id: 'cycle-uuid-1',
   shipment_id: 'shipment-uuid-1',
   accept_braname: 'KU-MOSCOW-1',
@@ -237,14 +234,15 @@ export const exampleData = {
   currency: 'RUB',
   supplier_account: 'supplier1',
   supplier: {
-    last_name: 'Петров',
-    first_name: 'Пётр',
-    middle_name: 'Петрович',
+    full_name_or_short_name: 'ООО "РОМАШКА"',
+    birthdate_or_ogrn: '1234567890123',
+    abbr_full_name: 'Общество с ограниченной ответственностью "РОМАШКА"',
+    email: 'supplier@example.com',
+    phone: '+7 (999) 765-43-21',
   },
   doc_data: {
     expeditor_full_name: 'Сидоров Сидор Сидорович',
     expeditor_phone: '+7 (999) 123-45-67',
-    expeditor_id_doc: 'Паспорт РФ 4500 123456',
     vehicle_number: 'А123БВ77',
     loading_address: 'г. Москва, ул. Поставщика, д. 1',
     loading_datetime: '2026-05-15 09:00',

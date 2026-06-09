@@ -1,7 +1,7 @@
 import type { IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonUser, ICooperativeData, IVars } from '../../model'
 
-export const registry_id = 1106
+export const registry_id = 1108
 
 /**
  * Заявление председателя о списании скоропорта со складов кооперативных

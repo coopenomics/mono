@@ -1,7 +1,7 @@
 import type { IDecisionData, IGenerate, IMetaDocument } from '../../document'
 import type { ICooperativeData, IVars } from '../../model'
 
-export const registry_id = 1105
+export const registry_id = 1107
 
 /**
  * Протокол совета о списании скоропорта со складов кооперативных

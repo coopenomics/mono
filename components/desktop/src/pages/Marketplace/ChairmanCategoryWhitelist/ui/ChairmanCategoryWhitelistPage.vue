@@ -155,12 +155,13 @@ q-page.categories(role='region', aria-label='Категории кооперат
 
   //- Действия страницы — в шапке (канон): добавить свою категорию + обновить.
   Teleport(to='#header-actions-host', defer)
-    BaseButton(variant='primary', @click='onAdd')
+    BaseButton(variant='primary', size='sm', @click='onAdd')
       template(#icon-left)
         q-icon(name='add', size='18px')
       | Добавить категорию
     BaseButton(
       variant='ghost',
+      size='sm',
       icon-only,
       aria-label='Обновить',
       :loading='loading',

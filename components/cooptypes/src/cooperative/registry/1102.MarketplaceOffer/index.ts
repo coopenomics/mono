@@ -1,7 +1,7 @@
 import type { IGenerate, IMetaDocument } from '../../document'
 import type { ICommonUser, ICooperativeData, IVars } from '../../model'
 
-export const registry_id = 1101
+export const registry_id = 1102
 
 // Модель действия для генерации.
 // Эпик 1 / Story 1.11 + Story 1.4 (L3 fallback). Backend marketplace вычисляет
@@ -16,7 +16,7 @@ export interface Action extends IGenerate {
 export type Meta = IMetaDocument & Action
 
 // Инстанс оферты ЦПП «Стол заказов» для конкретного пайщика
-// (renderуется из шаблона 1100.MarketplaceOfferTemplate) с подстановкой ФИО.
+// (renderуется из шаблона 1101.MarketplaceOfferTemplate) с подстановкой ФИО.
 export interface Model {
   meta: IMetaDocument
   coop: ICooperativeData

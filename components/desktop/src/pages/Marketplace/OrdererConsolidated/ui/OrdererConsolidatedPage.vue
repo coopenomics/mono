@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { EmptyState } from 'src/shared/ui/base';
+import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
@@ -34,8 +35,22 @@ import type {
  * `group_min_volume` — целевой минимум КУ) приходят с бэкенда. Polling 15s.
  */
 
+const route = useRoute();
+const router = useRouter();
+const coopname = computed(() => String(route.params.coopname ?? ''));
+
 const POLL_INTERVAL_MS = 15_000;
 const PAGE_SIZE = 200;
+
+// Клик по карточке партии → карточка предложения (как из корзины). `from=
+// consolidated` даёт «назад» подпись «К коллективному заказу» и fallback-маршрут.
+function openOffer(offerId: string): void {
+  void router.push({
+    name: 'marketplace-offer-detail',
+    params: { coopname: coopname.value, offerId },
+    query: { from: 'consolidated' },
+  });
+}
 
 const items = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
@@ -159,17 +174,6 @@ function formatCost(value: number): string {
   }).format(value);
 }
 
-// Состав партии строками для общего виджета SupplyPartyCard. У заказчика «кто» —
-// его собственные заказы (товар/КУ уже в шапке карточки).
-function memberRows(p: CollectiveParty): Array<{ id: string; who: string; qty: string; cost: string }> {
-  return p.orders.map((o) => ({
-    id: o.id,
-    who: `Ваш заказ № ${o.id.slice(0, 8)}`,
-    qty: `${o.quantity} ${p.unitLabel}`,
-    cost: formatCost(parseFloat(o.total_cost) || 0),
-  }));
-}
-
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -215,8 +219,8 @@ q-page.collective(role="region", aria-label="Коллективный заказ
       | объёма поставки; на каждом этапе видно, сколько уже набрано всеми
       | пайщиками.
 
-    q-inner-loading(:showing="loading && items.length === 0")
-      q-spinner(color="primary", size="2em")
+    //- Канон загрузки: скелетон, а не спиннер поверх.
+    CardListSkeleton(v-if="loading && !hasParties", :count="3")
 
     EmptyState(
       v-if="!loading && !hasParties",
@@ -232,16 +236,19 @@ q-page.collective(role="region", aria-label="Коллективный заказ
       SupplyPartyCard(
         v-for="p in parties",
         :key="p.key",
+        clickable,
+        @card-click="openOffer(p.offer_id)",
         :product-name="p.productName",
         :pvz-name="p.pvzName",
         :stage-status="p.stageStatus",
         :order-count="p.orders.length",
-        :volume-label="`Накоплено всеми: ${accumulated(p)} ${p.unitLabel}`",
+        hide-order-count,
+        :volume-label="`Накоплено: ${accumulated(p)} ${p.unitLabel}`",
         :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume} ${p.unitLabel}` : ''",
         :progress="progressRatio(p)",
         :bar-color="barColor(p)",
-        :members="memberRows(p)",
-        total-label="Ваш вклад в партию",
+        :members="[]",
+        total-label="Ваше участие в партии",
         :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits} ${p.unitLabel}`"
       )
         template(#hint)
@@ -252,7 +259,7 @@ q-page.collective(role="region", aria-label="Коллективный заказ
             span Сбор продолжается. Поставщик может принять партию и раньше — минимум лишь ориентир.
           template(v-else)
             q-icon(name="local_shipping", size="14px")
-            span Партия набрана. Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
+            span Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
 </template>
 
 <style scoped lang="scss">

@@ -11,6 +11,7 @@ import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offe
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceCartDomainEntity } from '../../domain/entities/marketplace-cart.entity';
 import { MarketplaceCartDTO, MarketplaceCartItemDTO } from '../dto/marketplace-cart.dto';
+import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 
 export const MARKETPLACE_CART_SERVICE = Symbol('MARKETPLACE_CART_SERVICE');
 
@@ -34,7 +35,8 @@ export class MarketplaceCartService {
     @Inject(MARKETPLACE_CART_REPOSITORY)
     private readonly cartRepo: MarketplaceCartDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
-    private readonly offerRepo: MarketplaceOfferDomainRepository
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
+    private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
   async getCart(scope: CartScope): Promise<MarketplaceCartDTO> {
@@ -149,33 +151,40 @@ export class MarketplaceCartService {
     const offerById = new Map(offers.map((o) => [o.id, o]));
 
     let totalCost = 0;
-    const items = cart.items.map((item) => {
-      const offer = offerById.get(item.offer_id) ?? null;
-      const price = offer ? Number.parseFloat(offer.price_per_unit) : null;
-      const lineTotalNum = price !== null ? price * item.quantity : null;
-      const available = offer
-        ? cart.delivery_braname
-          ? this.offerDeliversTo(offer, cart.delivery_braname)
-          : true
-        : false;
-      if (available && lineTotalNum !== null) {
-        totalCost += lineTotalNum;
-      }
-      return new MarketplaceCartItemDTO({
-        id: item.id,
-        offer_id: item.offer_id,
-        quantity: item.quantity,
-        product_name: offer?.product_name ?? null,
-        unit_of_measure: offer?.unit_of_measure ?? null,
-        price_per_unit: offer?.price_per_unit ?? null,
-        line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
-        image_url: null,
-        available_on_current_ku: available,
-        // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
-        // остаток на предложении как потолок количества в корзине.
-        max_available: offer && !offer.unlimited_flag ? offer.quantity_available : null,
-      });
-    });
+    const items = await Promise.all(
+      cart.items.map(async (item) => {
+        const offer = offerById.get(item.offer_id) ?? null;
+        const price = offer ? Number.parseFloat(offer.price_per_unit) : null;
+        const lineTotalNum = price !== null ? price * item.quantity : null;
+        const available = offer
+          ? cart.delivery_braname
+            ? this.offerDeliversTo(offer, cart.delivery_braname)
+            : true
+          : false;
+        if (available && lineTotalNum !== null) {
+          totalCost += lineTotalNum;
+        }
+        // Обложка товара — первое изображение оффера (как и в каталоге). URL
+        // подписан и TTL-ограничен; строим тем же сервисом, что field-резолвер
+        // images, чтобы в корзине было фото имущества, а не заглушка.
+        const coverKey = offer?.images?.[0]?.bucket_key ?? null;
+        const imageUrl = coverKey ? await this.imagesService.getReadUrl(coverKey) : null;
+        return new MarketplaceCartItemDTO({
+          id: item.id,
+          offer_id: item.offer_id,
+          quantity: item.quantity,
+          product_name: offer?.product_name ?? null,
+          unit_of_measure: offer?.unit_of_measure ?? null,
+          price_per_unit: offer?.price_per_unit ?? null,
+          line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
+          image_url: imageUrl,
+          available_on_current_ku: available,
+          // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
+          // остаток на предложении как потолок количества в корзине.
+          max_available: offer && !offer.unlimited_flag ? offer.quantity_available : null,
+        });
+      })
+    );
 
     return new MarketplaceCartDTO({
       id: cart.id,

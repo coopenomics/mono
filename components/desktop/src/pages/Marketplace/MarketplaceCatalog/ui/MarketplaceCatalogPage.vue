@@ -4,13 +4,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import {
   CatalogOfferCard,
+  CatalogOfferCardSkeleton,
   type CatalogOffer,
   type CatalogOfferStatus,
 } from 'src/widgets/Marketplace/CatalogOfferCard';
-import { BaseSelect, BaseButton, EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
+import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -50,6 +51,8 @@ const counts = ref<Map<number, number>>(new Map());
 const items = ref<MarketplaceOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
+// Кол-во скелетон-карточек на первичной загрузке витрины.
+const SKELETON_COUNT = 8;
 const selectedCategoryId = ref<number>(ALL_KEY);
 const sort = ref<CatalogSort>('created_at_desc');
 const currentPage = ref(1);
@@ -61,14 +64,19 @@ const totalActiveCount = computed(() =>
 );
 
 // Категории как канон-вкладки (`PageTabs` со счётчиком). `key` — строковый id
-// категории (или 'all'), счётчик — число активных предложений в категории.
+// категории (или 'all'), счётчик — число доступных к заказу товаров. Пустые
+// категории (count == 0) НЕ показываем — заказчику ни к чему категории, в
+// которых под его пунктом выдачи ничего нет. Счётчики КУ-скоупные (бэкенд),
+// поэтому фильтр следует за выбранным пунктом.
 const categoryTabs = computed<PageTab[]>(() => [
   { key: 'all', label: 'Все', count: totalActiveCount.value },
-  ...categories.value.map((cat) => ({
-    key: String(cat.id),
-    label: cat.display_name,
-    count: counts.value.get(cat.id) ?? 0,
-  })),
+  ...categories.value
+    .filter((cat) => (counts.value.get(cat.id) ?? 0) > 0)
+    .map((cat) => ({
+      key: String(cat.id),
+      label: cat.display_name,
+      count: counts.value.get(cat.id) ?? 0,
+    })),
 ]);
 
 const activeCategoryKey = computed(() =>
@@ -84,6 +92,10 @@ const sortOptions: Array<{ label: string; value: CatalogSort }> = [
   { label: 'Цена ↑', value: 'price_asc' },
   { label: 'Цена ↓', value: 'price_desc' },
 ];
+
+const currentSortLabel = computed(
+  () => sortOptions.find((o) => o.value === sort.value)?.label ?? 'Сортировка',
+);
 
 const emptyBody = computed(() =>
   selectedCategoryId.value !== ALL_KEY
@@ -120,7 +132,12 @@ function canOrder(offer: MarketplaceOfferView): boolean {
 }
 
 async function loadCategories(): Promise<void> {
-  const [cats, cc] = await Promise.all([fetchCategories(), fetchCategoryOfferCounts()]);
+  // Счётчики КУ-скоупим текущим пунктом выдачи — пустые на нём категории уйдут
+  // из вкладок (categoryTabs фильтрует count==0). Без КУ (гость) — глобально.
+  const [cats, cc] = await Promise.all([
+    fetchCategories(),
+    fetchCategoryOfferCounts(cartStore.currentBraname),
+  ]);
   categories.value = cats;
   const map = new Map<number, number>();
   for (const c of cc) map.set(c.category_id, c.count);
@@ -208,9 +225,19 @@ function goToDetail(offer: MarketplaceOfferView): void {
 }
 
 // Перезагрузка витрины под текущий КУ (категории зависят от КУ-фильтра).
+// Категории грузим первыми: если выбранная категория опустела на новом пункте
+// (её вкладка исчезнет), сбрасываемся на «Все», иначе подсветка повиснет на
+// несуществующей вкладке, а витрина покажет пустой EmptyState.
 async function reloadCatalog(): Promise<void> {
   currentPage.value = 1;
-  await Promise.all([loadCategories(), loadPage(false)]);
+  await loadCategories();
+  if (
+    selectedCategoryId.value !== ALL_KEY &&
+    (counts.value.get(selectedCategoryId.value) ?? 0) === 0
+  ) {
+    selectedCategoryId.value = ALL_KEY;
+  }
+  await loadPage(false);
 }
 
 // КУ сменили в шапке — перегружаем витрину под новый пункт выдачи.
@@ -218,9 +245,6 @@ async function onKUChanged(): Promise<void> {
   await reloadCatalog();
 }
 
-function goToCart(): void {
-  void router.push({ name: 'marketplace-cart', params: { coopname: coopname.value } });
-}
 
 onMounted(async () => {
   // Корзина хранит текущий КУ — грузим её первой (если упадёт, напр. у гостя
@@ -237,18 +261,12 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.catalog(role="region", aria-label="Каталог Стола заказов")
-  //- Индикатор корзины в шапке стола (Story 16.1) — с числом позиций.
-  Teleport(to="#header-actions-host", defer)
-    BaseButton(v-if="!needsKU", variant="secondary", size="sm", @click="goToCart")
-      template(#icon-left)
-        q-icon(name="shopping_cart", size="16px")
-      | Корзина{{ cartStore.positionsCount ? ` (${cartStore.positionsCount})` : '' }}
+  //- Индикатор корзины в шапке стола (Story 16.1) — общий header-виджет,
+  //- переиспользуется и на странице предложения.
+  CartHeaderButton(:coopname="coopname")
 
-  //- Сначала закрываемая инфо-подсказка (PageHint, ×), под ней — незакрываемый
-  //- бар пункта выдачи (КУ всегда на виду, не прячется).
-  PageHint(storage-key="mp:catalog:banner-dismissed")
-    | Предложения поставщиков кооператива. Выберите пункт выдачи (КУ), чтобы заказывать и видеть только доставимое на него.
-
+  //- Бар пункта выдачи (КУ всегда на виду). Инфо-баннер убран — назначение
+  //- каталога очевидно из контекста.
   KUHeaderBar(:coopname="coopname", @changed="onKUChanged")
 
   //- КУ не выбран — режим просмотра витрины целиком (гость). Поясняем, что для
@@ -263,15 +281,31 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
     @select="onSelectCategory"
   )
     template(#actions)
-      BaseSelect.catalog__sort(
-        :model-value="sort",
-        :options="sortOptions",
-        label="Сортировка",
-        @update:model-value="onSortChange"
-      )
+      //- Сортировка — ghost-кнопка с меню, НЕ bordered-селект: коробка q-field
+      //- выше строки табов и ломает высоту полосы. Кнопка центрируется в actions
+      //- и не добавляет вертикали (канон: в actions табов — компактные кнопки).
+      BaseButton.catalog__sort(variant="ghost", size="sm")
+        template(#icon-left)
+          q-icon(name="swap_vert", size="18px")
+        span.catalog__sort-label {{ currentSortLabel }}
+        q-icon(name="arrow_drop_down", size="18px")
+        q-menu(anchor="bottom right", self="top right")
+          q-list(dense, style="min-width: 180px")
+            q-item(
+              v-for="opt in sortOptions",
+              :key="opt.value",
+              clickable,
+              v-close-popup,
+              :active="opt.value === sort",
+              @click="onSortChange(opt.value)"
+            )
+              q-item-section {{ opt.label }}
 
-  q-inner-loading(:showing="loading && items.length === 0")
-    q-spinner(color="primary", size="2em")
+  //- Канон: на первичной загрузке — скелетон-сетка карточек, не перекрывающий
+  //- спиннер. Polling обновляет молча.
+  .row.q-col-gutter-md(v-if="loading && items.length === 0")
+    .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
+      CatalogOfferCardSkeleton
 
   EmptyState(
     v-if="!loading && items.length === 0",
@@ -323,10 +357,18 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
     :deep(.tabbar__tabs) {
       padding: 0 var(--p-6, 24px);
     }
+
+    // Полоса табов с селектом сортировки в actions: держим её компактной, чтобы
+    // вкладки шли сразу под баром ПВЗ, а не «висели» от высокого поля.
+    :deep(.tabbar) {
+      min-height: 44px;
+      align-items: center;
+    }
   }
 
-  &__sort {
-    min-width: 200px;
+  // Метка текущей сортировки в ghost-кнопке: серее заголовков, без переноса.
+  &__sort-label {
+    white-space: nowrap;
   }
 
   // Заметка режима просмотра без КУ (гость): на info-поверхности, не баннер.

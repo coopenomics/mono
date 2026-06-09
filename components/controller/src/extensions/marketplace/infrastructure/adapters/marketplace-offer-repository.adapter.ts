@@ -103,14 +103,27 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
     }
   }
 
-  async countByCategory(coopname: string): Promise<Map<number, number>> {
-    const rows = await this.repo
+  async countByCategory(
+    coopname: string,
+    delivery_braname?: string | null
+  ): Promise<Map<number, number>> {
+    const qb = this.repo
       .createQueryBuilder('o')
       .select('o.category_id', 'category_id')
       .addSelect('COUNT(*)', 'cnt')
       .where('o.coopname = :coop', { coop: coopname })
       .andWhere('o.status = :s', { s: MarketplaceOfferStatuses.ACTIVE })
-      .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)')
+      .andWhere('(o.unlimited_flag = true OR o.quantity_available > 0)');
+
+    // КУ-доступность: счётчики скоупим тем же jsonb-containment, что и витрина
+    // (см. list), иначе категория «есть» по кооперативу, но пуста на пункте.
+    if (delivery_braname) {
+      qb.andWhere('o.delivery_points @> :dp', {
+        dp: JSON.stringify([{ braname: delivery_braname }]),
+      });
+    }
+
+    const rows = await qb
       .groupBy('o.category_id')
       .getRawMany<{ category_id: string; cnt: string }>();
 

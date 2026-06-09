@@ -6202,6 +6202,8 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
+	/** Символ валюты для сумм в акте. */
+	currency: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Фактически принятое количество единиц. */
@@ -6216,12 +6218,16 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string | Variable<any, string>,
+	/** Наименование товара по заказу. */
+	product_title: string | Variable<any, string>,
 	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string | Variable<any, string>,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
@@ -6232,6 +6238,10 @@ export type ValueTypes = {
 	total_amount: string | Variable<any, string>,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string | Variable<any, string>,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string | Variable<any, string>,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -6790,6 +6800,8 @@ export type ValueTypes = {
 	delivery_point_address?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?:boolean | `@${string}`,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?:boolean | `@${string}`,
@@ -6880,6 +6892,8 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
+	/** Символ валюты для сумм в акте. */
+	currency: string | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Фактически принятое количество единиц по заказу. */
@@ -6894,12 +6908,16 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string | Variable<any, string>,
+	/** Наименование товара по заказу. */
+	product_title: string | Variable<any, string>,
 	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
 	reception_id: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string | Variable<any, string>,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
@@ -6910,6 +6928,10 @@ export type ValueTypes = {
 	total_amount: string | Variable<any, string>,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string | Variable<any, string>,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string | Variable<any, string>,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -7212,6 +7234,10 @@ export type ValueTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?:boolean | `@${string}`,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -7809,6 +7835,20 @@ export type ValueTypes = {
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ValueTypes["MarketplaceShipmentTTNDataInput"] | undefined | null | Variable<any, string>
 };
+	["MarketplaceShipmentLinePackaging"]: AliasType<{
+	/** Заказ партии, к которому относится упаковка. */
+	order_id?:boolean | `@${string}`,
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceShipmentLinePackaging']?: Omit<ValueTypes["MarketplaceShipmentLinePackaging"], "...on MarketplaceShipmentLinePackaging">
+}>;
+	["MarketplaceShipmentLinePackagingInput"]: {
+	/** Заказ партии, к которому относится упаковка. */
+	order_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number | Variable<any, string>
+};
 	/** Статус партии поставки. */
 ["MarketplaceShipmentStatus"]:MarketplaceShipmentStatus;
 	["MarketplaceShipmentTTNData"]: AliasType<{
@@ -7816,27 +7856,28 @@ export type ValueTypes = {
 	delivery_datetime_estimate?:boolean | `@${string}`,
 	/** ФИО экспедитора. */
 	expeditor_full_name?:boolean | `@${string}`,
-	/** Документ удостоверения личности (серия/номер). */
-	expeditor_id_doc?:boolean | `@${string}`,
 	/** Контактный телефон экспедитора. */
 	expeditor_phone?:boolean | `@${string}`,
 	/** Адрес погрузки (склад поставщика). */
 	loading_address?:boolean | `@${string}`,
 	/** Дата и время погрузки (ISO). */
 	loading_datetime?:boolean | `@${string}`,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?:ValueTypes["MarketplaceShipmentLinePackaging"],
 	/** Госномер транспортного средства. */
 	vehicle_number?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceShipmentTTNData']?: Omit<ValueTypes["MarketplaceShipmentTTNData"], "...on MarketplaceShipmentTTNData">
 }>;
 	["MarketplaceShipmentTTNDataInput"]: {
-	delivery_datetime_estimate: string | Variable<any, string>,
-	expeditor_full_name: string | Variable<any, string>,
-	expeditor_id_doc: string | Variable<any, string>,
-	expeditor_phone: string | Variable<any, string>,
-	loading_address: string | Variable<any, string>,
-	loading_datetime: string | Variable<any, string>,
-	vehicle_number: string | Variable<any, string>
+	delivery_datetime_estimate?: string | undefined | null | Variable<any, string>,
+	expeditor_full_name?: string | undefined | null | Variable<any, string>,
+	expeditor_phone?: string | undefined | null | Variable<any, string>,
+	loading_address?: string | undefined | null | Variable<any, string>,
+	loading_datetime?: string | undefined | null | Variable<any, string>,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<ValueTypes["MarketplaceShipmentLinePackagingInput"]> | undefined | null | Variable<any, string>,
+	vehicle_number?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
@@ -9794,8 +9835,8 @@ marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] 
 	marketplaceAttributeStats?:ValueTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
-	marketplaceCategoryOfferCounts?:ValueTypes["MarketplaceCategoryOfferCount"],
+marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
+	delivery_braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryOfferCount"]],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ValueTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -16450,6 +16491,8 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
@@ -16464,12 +16507,16 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -16480,6 +16527,10 @@ export type ResolverInputTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -17012,6 +17063,8 @@ export type ResolverInputTypes = {
 	delivery_point_address?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?:boolean | `@${string}`,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?:boolean | `@${string}`,
@@ -17099,6 +17152,8 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц по заказу. */
@@ -17113,12 +17168,16 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -17129,6 +17188,10 @@ export type ResolverInputTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -17423,6 +17486,10 @@ export type ResolverInputTypes = {
 	delivery_braname?:boolean | `@${string}`,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?:boolean | `@${string}`,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?:boolean | `@${string}`,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?:boolean | `@${string}`,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?:boolean | `@${string}`,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -18002,6 +18069,19 @@ export type ResolverInputTypes = {
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ResolverInputTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
+	["MarketplaceShipmentLinePackaging"]: AliasType<{
+	/** Заказ партии, к которому относится упаковка. */
+	order_id?:boolean | `@${string}`,
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceShipmentLinePackagingInput"]: {
+	/** Заказ партии, к которому относится упаковка. */
+	order_id: ResolverInputTypes["ID"],
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number
+};
 	/** Статус партии поставки. */
 ["MarketplaceShipmentStatus"]:MarketplaceShipmentStatus;
 	["MarketplaceShipmentTTNData"]: AliasType<{
@@ -18009,26 +18089,27 @@ export type ResolverInputTypes = {
 	delivery_datetime_estimate?:boolean | `@${string}`,
 	/** ФИО экспедитора. */
 	expeditor_full_name?:boolean | `@${string}`,
-	/** Документ удостоверения личности (серия/номер). */
-	expeditor_id_doc?:boolean | `@${string}`,
 	/** Контактный телефон экспедитора. */
 	expeditor_phone?:boolean | `@${string}`,
 	/** Адрес погрузки (склад поставщика). */
 	loading_address?:boolean | `@${string}`,
 	/** Дата и время погрузки (ISO). */
 	loading_datetime?:boolean | `@${string}`,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?:ResolverInputTypes["MarketplaceShipmentLinePackaging"],
 	/** Госномер транспортного средства. */
 	vehicle_number?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceShipmentTTNDataInput"]: {
-	delivery_datetime_estimate: string,
-	expeditor_full_name: string,
-	expeditor_id_doc: string,
-	expeditor_phone: string,
-	loading_address: string,
-	loading_datetime: string,
-	vehicle_number: string
+	delivery_datetime_estimate?: string | undefined | null,
+	expeditor_full_name?: string | undefined | null,
+	expeditor_phone?: string | undefined | null,
+	loading_address?: string | undefined | null,
+	loading_datetime?: string | undefined | null,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<ResolverInputTypes["MarketplaceShipmentLinePackagingInput"]> | undefined | null,
+	vehicle_number?: string | undefined | null
 };
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
@@ -19913,8 +19994,8 @@ marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributes
 	marketplaceAttributeStats?:ResolverInputTypes["MarketplaceAttributeStats"],
 marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
-	marketplaceCategoryOfferCounts?:ResolverInputTypes["MarketplaceCategoryOfferCount"],
+marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
+	delivery_braname?: string | undefined | null},ResolverInputTypes["MarketplaceCategoryOfferCount"]],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ResolverInputTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -26375,6 +26456,8 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
@@ -26389,12 +26472,16 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -26405,6 +26492,10 @@ export type ModelTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -26904,6 +26995,8 @@ export type ModelTypes = {
 	delivery_point_address?: string | undefined | null,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?: string | undefined | null,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?: ModelTypes["DateTime"] | undefined | null,
 	id: ModelTypes["ID"],
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?: ModelTypes["DateTime"] | undefined | null,
@@ -26987,6 +27080,8 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц по заказу. */
@@ -27001,12 +27096,16 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -27017,6 +27116,10 @@ export type ModelTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -27301,6 +27404,10 @@ export type ModelTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?: number | undefined | null,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?: number | undefined | null,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -27855,31 +27962,44 @@ export type ModelTypes = {
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: ModelTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
+	["MarketplaceShipmentLinePackaging"]: {
+		/** Заказ партии, к которому относится упаковка. */
+	order_id: ModelTypes["ID"],
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number
+};
+	["MarketplaceShipmentLinePackagingInput"]: {
+	/** Заказ партии, к которому относится упаковка. */
+	order_id: ModelTypes["ID"],
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number
+};
 	["MarketplaceShipmentStatus"]:MarketplaceShipmentStatus;
 	["MarketplaceShipmentTTNData"]: {
 		/** Расчётная дата и время доставки на КУ (ISO). */
-	delivery_datetime_estimate: string,
+	delivery_datetime_estimate?: string | undefined | null,
 	/** ФИО экспедитора. */
-	expeditor_full_name: string,
-	/** Документ удостоверения личности (серия/номер). */
-	expeditor_id_doc: string,
+	expeditor_full_name?: string | undefined | null,
 	/** Контактный телефон экспедитора. */
-	expeditor_phone: string,
+	expeditor_phone?: string | undefined | null,
 	/** Адрес погрузки (склад поставщика). */
-	loading_address: string,
+	loading_address?: string | undefined | null,
 	/** Дата и время погрузки (ISO). */
-	loading_datetime: string,
+	loading_datetime?: string | undefined | null,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<ModelTypes["MarketplaceShipmentLinePackaging"]> | undefined | null,
 	/** Госномер транспортного средства. */
-	vehicle_number: string
+	vehicle_number?: string | undefined | null
 };
 	["MarketplaceShipmentTTNDataInput"]: {
-	delivery_datetime_estimate: string,
-	expeditor_full_name: string,
-	expeditor_id_doc: string,
-	expeditor_phone: string,
-	loading_address: string,
-	loading_datetime: string,
-	vehicle_number: string
+	delivery_datetime_estimate?: string | undefined | null,
+	expeditor_full_name?: string | undefined | null,
+	expeditor_phone?: string | undefined | null,
+	loading_address?: string | undefined | null,
+	loading_datetime?: string | undefined | null,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<ModelTypes["MarketplaceShipmentLinePackagingInput"]> | undefined | null,
+	vehicle_number?: string | undefined | null
 };
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
@@ -30393,7 +30513,7 @@ export type ModelTypes = {
 	marketplaceCategoryAttributes: Array<ModelTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: ModelTypes["MarketplaceCppStatus"],
@@ -37142,6 +37262,8 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц. */
@@ -37156,12 +37278,16 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта в реестре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -37172,6 +37298,10 @@ export type GraphQLTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -37731,6 +37861,8 @@ export type GraphQLTypes = {
 	delivery_point_address?: string | undefined | null,
 	/** Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка. */
 	delivery_point_name?: string | undefined | null,
+	/** Срок годности имущества. По нему идёт списание просрочки — ключевой параметр контроля склада. Пусто — срок не задан. */
+	expiry_date?: GraphQLTypes["DateTime"] | undefined | null,
 	id: GraphQLTypes["ID"],
 	/** Момент маркировки штрих-кодом (если есть). */
 	labeled_at?: GraphQLTypes["DateTime"] | undefined | null,
@@ -37820,6 +37952,8 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Символ валюты для сумм в акте. */
+	currency: string,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Фактически принятое количество единиц по заказу. */
@@ -37834,12 +37968,16 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа пайщика, по которому формируется акт выдачи. */
 	order_id: string,
+	/** Наименование товара по заказу. */
+	product_title: string,
 	/** Идентификатор записи акта приёмки в инфраструктуре marketplace. */
 	reception_id: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (СКУ) товара по заказу. */
+	sku: string,
 	/** Учётная запись поставщика, передавшего партию на кооперативный участок. */
 	supplier_account: string,
 	/** Часовой пояс, в котором был создан документ */
@@ -37850,6 +37988,10 @@ export type GraphQLTypes = {
 	total_amount: string,
 	/** Учётная запись передающей стороны — председатель кооперативного участка или доверенное им лицо. */
 	transmitter: string,
+	/** Цена за единицу товара по заказу. */
+	unit_cost: string,
+	/** Единица измерения товара (человекочитаемая). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -38153,6 +38295,10 @@ export type GraphQLTypes = {
 	delivery_braname: string,
 	/** Адрес пункта выдачи — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_address?: string | undefined | null,
+	/** Широта пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lat?: number | undefined | null,
+	/** Долгота пункта выдачи на карте — чтобы показать заказчику, куда ехать за заказом. */
+	delivery_point_lng?: number | undefined | null,
 	/** Наименование пункта выдачи (кооперативного участка) — для отображения вместо служебного идентификатора ПВЗ. */
 	delivery_point_name?: string | undefined | null,
 	/** Учётная запись стороны кооператива, поставившей подпись вместе с заказчиком. */
@@ -38749,34 +38895,49 @@ export type GraphQLTypes = {
 	/** Поля ТТН — обязательны для Варианта Б. */
 	ttn_data?: GraphQLTypes["MarketplaceShipmentTTNDataInput"] | undefined | null
 };
+	["MarketplaceShipmentLinePackaging"]: {
+	__typename: "MarketplaceShipmentLinePackaging",
+	/** Заказ партии, к которому относится упаковка. */
+	order_id: GraphQLTypes["ID"],
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number,
+	['...on MarketplaceShipmentLinePackaging']: Omit<GraphQLTypes["MarketplaceShipmentLinePackaging"], "...on MarketplaceShipmentLinePackaging">
+};
+	["MarketplaceShipmentLinePackagingInput"]: {
+		/** Заказ партии, к которому относится упаковка. */
+	order_id: GraphQLTypes["ID"],
+	/** Сколько единиц имущества в одной коробке. */
+	units_per_box: number
+};
 	/** Статус партии поставки. */
 ["MarketplaceShipmentStatus"]: MarketplaceShipmentStatus;
 	["MarketplaceShipmentTTNData"]: {
 	__typename: "MarketplaceShipmentTTNData",
 	/** Расчётная дата и время доставки на КУ (ISO). */
-	delivery_datetime_estimate: string,
+	delivery_datetime_estimate?: string | undefined | null,
 	/** ФИО экспедитора. */
-	expeditor_full_name: string,
-	/** Документ удостоверения личности (серия/номер). */
-	expeditor_id_doc: string,
+	expeditor_full_name?: string | undefined | null,
 	/** Контактный телефон экспедитора. */
-	expeditor_phone: string,
+	expeditor_phone?: string | undefined | null,
 	/** Адрес погрузки (склад поставщика). */
-	loading_address: string,
+	loading_address?: string | undefined | null,
 	/** Дата и время погрузки (ISO). */
-	loading_datetime: string,
+	loading_datetime?: string | undefined | null,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<GraphQLTypes["MarketplaceShipmentLinePackaging"]> | undefined | null,
 	/** Госномер транспортного средства. */
-	vehicle_number: string,
+	vehicle_number?: string | undefined | null,
 	['...on MarketplaceShipmentTTNData']: Omit<GraphQLTypes["MarketplaceShipmentTTNData"], "...on MarketplaceShipmentTTNData">
 };
 	["MarketplaceShipmentTTNDataInput"]: {
-		delivery_datetime_estimate: string,
-	expeditor_full_name: string,
-	expeditor_id_doc: string,
-	expeditor_phone: string,
-	loading_address: string,
-	loading_datetime: string,
-	vehicle_number: string
+		delivery_datetime_estimate?: string | undefined | null,
+	expeditor_full_name?: string | undefined | null,
+	expeditor_phone?: string | undefined | null,
+	loading_address?: string | undefined | null,
+	loading_datetime?: string | undefined | null,
+	/** Упаковка по строкам партии: сколько единиц в коробке на каждый заказ. */
+	packaging?: Array<GraphQLTypes["MarketplaceShipmentLinePackagingInput"]> | undefined | null,
+	vehicle_number?: string | undefined | null
 };
 	["MarketplaceSignAplReceptionInput"]: {
 		/** Идентификатор акта приёмки. */
@@ -41460,7 +41621,7 @@ export type GraphQLTypes = {
 	marketplaceCategoryAttributes: Array<GraphQLTypes["MarketplaceAttribute"]>,
 	/** Получить группированные атрибуты для категории и типа товара marketplace */
 	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
-	/** Счётчики активных Offer'ов per category — для фильтр-чипов Story 3.5 */
+	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: GraphQLTypes["MarketplaceCppStatus"],
@@ -44097,6 +44258,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceShipmentDeliveryVariant"]: ValueTypes["MarketplaceShipmentDeliveryVariant"];
 	["MarketplaceShipmentGroupInput"]: ValueTypes["MarketplaceShipmentGroupInput"];
+	["MarketplaceShipmentLinePackagingInput"]: ValueTypes["MarketplaceShipmentLinePackagingInput"];
 	["MarketplaceShipmentStatus"]: ValueTypes["MarketplaceShipmentStatus"];
 	["MarketplaceShipmentTTNDataInput"]: ValueTypes["MarketplaceShipmentTTNDataInput"];
 	["MarketplaceSignAplReceptionInput"]: ValueTypes["MarketplaceSignAplReceptionInput"];

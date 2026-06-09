@@ -134,6 +134,8 @@ export class MarketplaceOrderDisplayService {
         unit_of_measure: offer?.unit_of_measure ?? null,
         delivery_point_name: branch?.name ?? null,
         delivery_point_address: branch?.address ?? null,
+        delivery_point_lat: branch?.lat ?? null,
+        delivery_point_lng: branch?.lng ?? null,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
         group_accumulated_quantity: accumulated,
@@ -206,16 +208,22 @@ export class MarketplaceOrderDisplayService {
     return this.orgDisplay(await this.safeOrg(braname));
   }
 
-  /** Батч реквизитов веток по `braname` (дедуп) для обогащения ленты заказов. */
+  /**
+   * Батч реквизитов веток по `braname` (дедуп) для обогащения ленты заказов.
+   * Наименование/адрес — из организации участка (live); координаты — из геокода
+   * marketplace-детализации КУ (карта «куда ехать» на карточке заказа).
+   */
   private async resolveBranches(
     branames: string[]
-  ): Promise<Map<string, { name: string | null; address: string | null }>> {
-    const result = new Map<string, { name: string | null; address: string | null }>();
+  ): Promise<Map<string, { name: string | null; address: string | null; lat: number | null; lng: number | null }>> {
+    const result = new Map<
+      string,
+      { name: string | null; address: string | null; lat: number | null; lng: number | null }
+    >();
     const unique = [...new Set(branames.filter((b) => b))];
     await Promise.all(
       unique.map(async (braname) => {
-        const { name, address } = this.orgDisplay(await this.safeOrg(braname));
-        result.set(braname, { name, address });
+        result.set(braname, await this.resolveBranchDisplay(braname));
       })
     );
     return result;

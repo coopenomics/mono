@@ -11,6 +11,7 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
 import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
@@ -106,14 +107,21 @@ function canPrintTtn(row: MarketplaceShipmentView): boolean {
 }
 
 function openTtn(row: MarketplaceShipmentView): void {
-  ttnData.value = buildTtnData(row, preparedOrders.value, coopname.value);
+  // Поставщик партии = текущий offerer (его собственный стол) → имя из сессии,
+  // а не технический account/braname.
+  ttnData.value = buildTtnData(
+    row,
+    preparedOrders.value,
+    coopname.value,
+    session.displayName,
+  );
   ttnDialogOpen.value = true;
 }
 
 // Статус партии → метка + canon-вариант бейджа.
 const SHIPMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   DRAFT: { label: 'Черновик', variant: 'neutral' },
-  SUPPLY_PREPARED: { label: 'Готова к отгрузке', variant: 'info' },
+  SUPPLY_PREPARED: { label: 'Собрана к отгрузке', variant: 'info' },
   RECEPTION_IN_PROGRESS: { label: 'Идёт приёмка', variant: 'warn' },
   ACCEPTED_TO_COOP: { label: 'Принята кооперативом', variant: 'pos' },
   CANCELLED: { label: 'Отменена', variant: 'neutral' },
@@ -255,7 +263,7 @@ q-page.offerer-supply
               td.col-status
                 BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
                 .offerer-supply__next(v-if='nextStep(row)') {{ nextStep(row) }}
-              td.col-num {{ row.total_amount }} ₽
+              td.col-num {{ formatAsset2Digits(row.total_amount) }} ₽
               td.col-ttn
                 .offerer-supply__ttn-cell(v-if='canPrintTtn(row)')
                   span.offerer-supply__ttn-num(v-if='row.ttn_number') {{ row.ttn_number }}
@@ -282,7 +290,7 @@ q-page.offerer-supply
 
   HandoffCodeDialog(v-model='myCodeDialogOpen', :coopname='coopname', :kind='HandoffTokenKind.Pickup')
 
-  BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', size='lg')
+  BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', maximized)
     TTNPrintPreview(v-if='ttnData', :data='ttnData')
 </template>
 
@@ -409,6 +417,11 @@ q-page.offerer-supply
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
+    // ttn_number — длинный токен без пробелов (ТТН-55DC6F57974C / VOSKHOD-TTN-…);
+    // без принудительного переноса хвост после дефиса вылазит за ячейку.
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.3;
   }
 }
 

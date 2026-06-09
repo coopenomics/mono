@@ -38,7 +38,8 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
     if (data.braname)
       branch = await this.getOrganization(data.braname, data.block_num)
 
-    const program = await this.getProgram(request.program_id)
+    // Имя ЦПП фиксировано для членского стола заказов (не из заглушки реестра).
+    const program: MarketplaceReturnStatement.Model['program'] = { name: 'Членский стол заказов' }
 
     const combinedData: MarketplaceReturnStatement.Model = {
       meta,

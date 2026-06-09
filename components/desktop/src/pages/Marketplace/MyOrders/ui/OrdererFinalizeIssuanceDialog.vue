@@ -5,6 +5,7 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { useActsPreview } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -40,6 +41,8 @@ const globalStore = useGlobalStore();
 const signing = ref(false);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
+// Единый паттерн «Показать / Скрыть акты»: таблица состава прячется при показе.
+const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
 
 const pointLabel = computed<string>(() => {
   const o = props.orders[0];
@@ -77,7 +80,7 @@ function diffBadge(o: MarketplaceOrderIssuanceView): { label: string; variant: B
 watch(
   () => [props.modelValue, props.orders.map((o) => o.id).join(',')],
   ([visible]) => {
-    if (visible) previewHtml.value = '';
+    if (visible) resetActs();
   },
   { immediate: false },
 );
@@ -165,40 +168,38 @@ BaseDialog(
       | Сверьте полученное имущество. Количество и стоимость зафиксированы при
       | открытии выдачи — подтвердите получение по всем позициям одной подписью.
 
-    .table-wrap
-      .table-scroll
-        table.table
-          thead
-            tr
-              th Позиция
-              th.col-num Заказ
-              th.col-num К получению
-              th.col-num Сумма
-              th.col-state Итог
-          tbody
-            tr(v-for="o in orders", :key="o.id")
-              td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
-              td.col-num {{ o.quantity }} {{ unitShort(o) }}
-              td.col-num {{ factQty(o) }} {{ unitShort(o) }}
-              td.col-num {{ formatAsset2Digits(factCost(o)) }} ₽
-              td.col-state
-                BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
+    template(v-if="!showActs")
+      .table-wrap
+        .table-scroll
+          table.table
+            thead
+              tr
+                th Позиция
+                th.col-num Заказ
+                th.col-num К получению
+                th.col-num Сумма
+                th.col-state Итог
+            tbody
+              tr(v-for="o in orders", :key="o.id")
+                td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
+                td.col-num {{ o.quantity }} {{ unitShort(o) }}
+                td.col-num {{ factQty(o) }} {{ unitShort(o) }}
+                td.col-num {{ formatAsset2Digits(factCost(o)) }} ₽
+                td.col-state
+                  BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
 
-    .mp-orderer-finalize__sum
-      span.mp-orderer-finalize__sum-label Итого к получению
-      span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+      .mp-orderer-finalize__sum
+        span.mp-orderer-finalize__sum-label Итого к получению
+        span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
 
-    .mp-orderer-finalize__preview-actions
-      BaseButton(variant="ghost", size="sm", :loading="previewLoading", @click="loadPreview")
-        template(#icon-left)
-          q-icon(name="description", size="16px")
-        | Показать акты
-
-    .mp-orderer-finalize__preview(v-if="previewHtml")
-      div(v-html="previewHtml")
+    .mp-orderer-finalize__preview(v-if="showActs", v-html="previewHtml")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!orders.length", @click="toggleActs")
+      template(#icon-left)
+        q-icon(name="description", size="16px")
+      | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(variant="primary", :loading="signing", :disabled="signing || !orders.length", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="16px")
@@ -259,11 +260,6 @@ BaseDialog(
     font-size: var(--p-fs-h3, 15px);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
-  }
-
-  &__preview-actions {
-    display: flex;
-    justify-content: flex-start;
   }
 
   &__preview {

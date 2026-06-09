@@ -86,16 +86,15 @@ export interface MarketplaceShipmentCreateResult {
  *   2. Загружает все Order'ы заявки → жёсткая валидация состава.
  *   3. Транзакционно создаёт Shipment per группа + переводит Order'ы
  *      группы в SUPPLY_PREPARED (через applyStatusTransition).
- *   4. Для Варианта Б генерирует уникальный ttn_number (Story 5.1 form);
- *      реальный PDF-документ через document-factory подключается follow-up'ом
- *      (Story 5.1 техдолг — AR33 интеграция).
+ *   4. Для Варианта Б генерирует уникальный ttn_number (формат «ТТН-<12hex>»).
  *
- * Документ ТТН рендерится через платформенный document-factory под
- * registry_id=1103 (`Cooperative.Registry.MarketplaceTransportNote`),
- * сохраняется в локальном реестре `marketplace_ttn_document` и не
- * публикуется в общий реестр документов кооператива — экспедиторы
- * пока не пайщики и подписывают перевозку вне платформы. Ссылка на
- * документ кладётся в `Shipment.ttn_document_id`.
+ * Сам документ ТТН ПОКА генерируется на фронте на лету (desktop
+ * `TTNPrintPreview` из shipment+orders), НЕ через document-factory: ТТН
+ * экспедитора не подписывается ЭЦП и не публикуется в общий реестр документов
+ * кооператива, поэтому рендерить и хранить HTML на бэкенде незачем. Фабричный
+ * путь (registry_id=1103 + `generateAndStoreTtnDocument`) и реестр
+ * `marketplace_ttn_document` оставлены на будущее, но не вызываются —
+ * единый источник генерации ТТН сейчас фронтовый, чтобы не дублировать логику.
  */
 @Injectable()
 export class MarketplaceShipmentCreateService {
@@ -168,7 +167,7 @@ export class MarketplaceShipmentCreateService {
       const groupAmount = this.sumAmount(groupOrders);
       const ttnNumber =
         group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR
-          ? this.computeTTNNumber(cycle.coopname, cycle.id, group.braname)
+          ? this.computeTTNNumber()
           : null;
 
       const shipment = await this.shipmentRepo.create({
@@ -184,27 +183,16 @@ export class MarketplaceShipmentCreateService {
         status: MarketplaceShipmentStatuses.SUPPLY_PREPARED,
       });
 
-      // Вариант Б: рендерим ТТН через document-factory (registry_id=1103) и
-      // сохраняем в локальном marketplace-реестре; в общий реестр документов
-      // кооператива ТТН не публикуется.
-      if (
-        group.delivery_variant === MarketplaceShipmentDeliveryVariants.EXPEDITOR &&
-        ttnNumber &&
-        group.ttn_data
-      ) {
-        const ttnDocId = await this.generateAndStoreTtnDocument({
-          coopname: cycle.coopname,
-          shipment_id: shipment.id,
-          cycle_id: cycle.id,
-          braname: group.braname,
-          supplier_account: cycle.supplier_account,
-          total_amount: groupAmount,
-          ttn_number: ttnNumber,
-          ttn_data: group.ttn_data,
-        });
-        await this.shipmentRepo.applyTtnDocumentId(shipment.id, ttnDocId);
-        shipment.ttn_document_id = ttnDocId;
-      }
+      // ТТН (Вариант Б) ПОКА генерируется только на фронте на лету
+      // (desktop `TTNPrintPreview` из данных партии/заказов), а НЕ через
+      // document-factory. Причина: ТТН экспедитора не подписывается ЭЦП и не
+      // публикуется в общий реестр документов кооператива — хранить отрендеренный
+      // HTML незачем (фронт всегда пересоберёт его из shipment+orders). Чтобы не
+      // дублировать логику генерации в двух местах, фабричный путь (registry 1103
+      // + `generateAndStoreTtnDocument`) сейчас НЕ вызывается; `ttn_number`
+      // по-прежнему выпускается выше и используется фронтом. Метод и реестр
+      // оставлены на будущее — если ТТН пойдёт в реестр с подписями.
+      // `ttn_document_id` остаётся null (ни приёмка, ни UI от него не зависят).
 
       // Заказы группы → привязка к партии + SUPPLY_PREPARED одним bulk-апдейтом.
       // Guard `shipment_id IS NULL` отсекает заказы, уже включённые в другую
@@ -272,23 +260,13 @@ export class MarketplaceShipmentCreateService {
     }
   }
 
+  // Правка 2026-06-07: поля ТТН необязательны. Поставщик формирует накладную с
+  // тем, что известно (минимум — пусто), и отдаёт её перевозчику; незаполненное
+  // просто не попадает в документ. Backend не требует ни одного поля — только
+  // проверяет тип, если объект передан.
   private assertTTNData(ttn: MarketplaceShipmentTTNData | null | undefined): void {
-    if (!ttn) {
-      throw new BadRequestException('Для Варианта Б обязательны поля ТТН (экспедитор / транспорт / погрузка / доставка).');
-    }
-    const required: Array<keyof MarketplaceShipmentTTNData> = [
-      'expeditor_full_name',
-      'expeditor_phone',
-      'expeditor_id_doc',
-      'vehicle_number',
-      'loading_address',
-      'loading_datetime',
-      'delivery_datetime_estimate',
-    ];
-    for (const key of required) {
-      if (!ttn[key] || String(ttn[key]).trim().length === 0) {
-        throw new BadRequestException(`Поле ТТН "${key}" обязательно для Варианта Б.`);
-      }
+    if (ttn != null && typeof ttn !== 'object') {
+      throw new BadRequestException('ttn_data должен быть объектом.');
     }
   }
 
@@ -365,6 +343,10 @@ export class MarketplaceShipmentCreateService {
     throw new BadRequestException(`Состав поставки не соответствует акцептованной заявке: ${message}`);
   }
 
+  // ⚠️ ЗАРЕЗЕРВИРОВАНО / ПОКА НЕ ВЫЗЫВАЕТСЯ. Фабричная генерация ТТН (registry
+  // 1103) отключена: пользовательская ТТН рендерится на фронте на лету, в реестр
+  // с ЭЦП не публикуется (см. комментарий в основном цикле выше). Метод оставлен
+  // на случай, когда ТТН понадобится подписывать/хранить в общем реестре.
   private async generateAndStoreTtnDocument(input: {
     coopname: string;
     shipment_id: string;
@@ -375,14 +357,16 @@ export class MarketplaceShipmentCreateService {
     ttn_number: string;
     ttn_data: MarketplaceShipmentTTNData;
   }): Promise<string> {
+    // Поля ttn_data опциональны (паспорт убран, остальное — что известно).
+    // Этот фабричный путь сейчас НЕ вызывается (единый источник ТТН — фронт);
+    // пустые коэрцим в '' лишь для сохранения контракта PrivateData.
     const privatePayload: Cooperative.Registry.MarketplaceTransportNote.PrivateData = {
-      expeditor_full_name: input.ttn_data.expeditor_full_name,
-      expeditor_phone: input.ttn_data.expeditor_phone,
-      expeditor_id_doc: input.ttn_data.expeditor_id_doc,
-      vehicle_number: input.ttn_data.vehicle_number,
-      loading_address: input.ttn_data.loading_address,
-      loading_datetime: input.ttn_data.loading_datetime,
-      delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate,
+      expeditor_full_name: input.ttn_data.expeditor_full_name ?? '',
+      expeditor_phone: input.ttn_data.expeditor_phone ?? '',
+      vehicle_number: input.ttn_data.vehicle_number ?? '',
+      loading_address: input.ttn_data.loading_address ?? '',
+      loading_datetime: input.ttn_data.loading_datetime ?? '',
+      delivery_datetime_estimate: input.ttn_data.delivery_datetime_estimate ?? '',
     };
 
     const { hash: doc_data_hash } = await this.documentDomainService.saveDocData(
@@ -424,11 +408,12 @@ export class MarketplaceShipmentCreateService {
     return stored.id;
   }
 
-  private computeTTNNumber(coopname: string, cycle_id: string, braname: string): string {
-    const suffix = randomBytes(4).toString('hex').toUpperCase();
-    const cycleShort = cycle_id.replace(/-/g, '').slice(0, 8).toUpperCase();
-    const kuShort = braname.slice(0, 6).toUpperCase();
-    return `${coopname.toUpperCase()}-TTN-${cycleShort}-${kuShort}-${suffix}`;
+  // Номер ТТН — человекочитаемый русский: «ТТН-<12 hex>». Без латинского
+  // braname/cycle и многосекционных дефисов (они в У ничего не значат). 6 байт
+  // случайности (2^48) — коллизия практически невозможна; уникальность одна на
+  // партию. Один и тот же номер печатается и в фабричном документе, и в превью.
+  private computeTTNNumber(): string {
+    return `ТТН-${randomBytes(6).toString('hex').toUpperCase()}`;
   }
 
   private sumAmount(orders: MarketplaceOrderDomainEntity[]): string {

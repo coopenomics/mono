@@ -3,7 +3,7 @@ import { Cooperative } from 'cooptypes'
 import type { ITemplate } from '../Interfaces'
 import { IMetaJSONSchema } from '../Schema/MetaSchema'
 import { CooperativeSchema, VarsSchema, organizationSchema } from '../Schema'
-import { FirstLastMiddleNameSchema } from '../Schema/FirstLastMiddleNameSchema'
+import { CommonUserSchema } from '../Schema/CommonUserSchema'
 
 export const registry_id = Cooperative.Registry.MarketplaceTransportNote.registry_id
 
@@ -21,7 +21,6 @@ const PrivateDataSchema: JSONSchemaType<PrivateData> = {
   properties: {
     expeditor_full_name: { type: 'string' },
     expeditor_phone: { type: 'string' },
-    expeditor_id_doc: { type: 'string' },
     vehicle_number: { type: 'string' },
     loading_address: { type: 'string' },
     loading_datetime: { type: 'string' },
@@ -30,7 +29,6 @@ const PrivateDataSchema: JSONSchemaType<PrivateData> = {
   required: [
     'expeditor_full_name',
     'expeditor_phone',
-    'expeditor_id_doc',
     'vehicle_number',
     'loading_address',
     'loading_datetime',
@@ -52,7 +50,7 @@ export const Schema: JSONSchemaType<Model> = {
     total_amount: { type: 'string' },
     currency: { type: 'string' },
     supplier_account: { type: 'string' },
-    supplier: FirstLastMiddleNameSchema,
+    supplier: CommonUserSchema,
     doc_data: PrivateDataSchema,
     branch: { ...organizationSchema, nullable: true },
   },

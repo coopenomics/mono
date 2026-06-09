@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Dialog } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
+import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
@@ -13,6 +14,7 @@ import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { cancelOrder, fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
@@ -49,6 +51,16 @@ const receivable = computed(() => order.value?.status === 'READY_TO_RECEIVE');
 const pvzName = computed(() => order.value?.delivery_point_name || order.value?.delivery_braname || '');
 const pvzAddress = computed(() => order.value?.delivery_point_address || '');
 
+// Координаты ПВЗ (живой геокод КУ) — карта «куда ехать» прямо на странице
+// заказа. Показываем, только когда участок геокодирован.
+const pvzLat = computed(() =>
+  typeof order.value?.delivery_point_lat === 'number' ? order.value.delivery_point_lat : null,
+);
+const pvzLng = computed(() =>
+  typeof order.value?.delivery_point_lng === 'number' ? order.value.delivery_point_lng : null,
+);
+const hasMap = computed(() => pvzLat.value !== null && pvzLng.value !== null);
+
 // Факт выдачи появляется, когда оператор открыл выдачу.
 const issuanceFact = computed(() => order.value?.issuance_fact ?? null);
 
@@ -72,9 +84,9 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
 });
 
 function formatDate(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
-  const parsed = new Date(String(value));
-  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('ru-RU');
+  // Время с бэкенда в UTC — показываем в локальном поясе пользователя.
+  const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm');
+  return out || '—';
 }
 
 function formatPrice(value: string | null | undefined): string {
@@ -196,11 +208,15 @@ q-page.order-detail(role="region", aria-label="Заказ")
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(order.price_per_unit) }}
 
-            .order-detail__pvz(v-if="pvzName || pvzAddress")
-              q-icon(name="place", size="18px")
-              .order-detail__pvz-text
-                .order-detail__pvz-name(v-if="pvzName") {{ pvzName }}
-                .t-muted(v-if="pvzAddress") {{ pvzAddress }}
+      BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
+        template(#head)
+          .t-h3 Где забрать
+        .order-detail__pvz(:class="{ 'q-mb-sm': hasMap }")
+          q-icon(name="place", size="18px")
+          .order-detail__pvz-text
+            .order-detail__pvz-name(v-if="pvzName") {{ pvzName }}
+            .t-muted(v-if="pvzAddress") {{ pvzAddress }}
+        MapView(v-if="hasMap", :lat="pvzLat ?? 0", :long="pvzLng ?? 0")
 
       BaseCard.order-detail__card(v-if="issuanceFact")
         template(#head)

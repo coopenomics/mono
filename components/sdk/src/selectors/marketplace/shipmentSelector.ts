@@ -3,12 +3,15 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 const rawTTNDataSelector = {
   expeditor_full_name: true,
-  expeditor_id_doc: true,
   expeditor_phone: true,
   vehicle_number: true,
   loading_address: true,
   loading_datetime: true,
   delivery_datetime_estimate: true,
+  packaging: {
+    order_id: true,
+    units_per_box: true,
+  },
 }
 
 const _validateTTNData: MakeAllFieldsRequired<ValueTypes['MarketplaceShipmentTTNData']> =

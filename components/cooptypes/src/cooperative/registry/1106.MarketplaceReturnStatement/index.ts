@@ -2,14 +2,14 @@ import type { IDocDataRef, IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonRequest, ICommonUser, ICooperativeData, IVars } from '../../model'
 import type { IOrganizationData } from '../../users'
 
-export const registry_id = 1104
+export const registry_id = 1106
 
 /**
  * Заявление пайщика о гарантийном возврате имущества — Эпик 7 ЦПП
  * «Стол заказов» (членские взносы).
  *
  * Подписывается пайщиком-заказчиком и инициирует процесс возврата
- * полученного по АПП (1102.MarketplaceAplReception) имущества обратно
+ * полученного по АПП (1104.MarketplaceAplReception) имущества обратно
  * на кооператив в пределах гарантийного срока, заданного поставщиком.
  *
  * При окончательном принятии заявления на очном осмотре C++ контракт
