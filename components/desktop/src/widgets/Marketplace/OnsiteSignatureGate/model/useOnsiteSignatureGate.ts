@@ -101,7 +101,7 @@ const isVisible = computed(() => supplierTasks.value.length > 0 || ordererTasks.
  * Тихий опрос обоих источников. Запросы независимы: сбой одного не гасит другой
  * и не алертит — это фоновый poll, не действие пользователя.
  */
-async function refresh(): Promise<void> {
+async function refresh(source = 'ручной'): Promise<void> {
   const global = useGlobalStore();
   if (!global.wif) {
     // Не залогинен — гейта нет, очищаем возможный хвост.
@@ -109,6 +109,7 @@ async function refresh(): Promise<void> {
     ordererOrders.value = [];
     return;
   }
+  const wasVisible = isVisible.value;
   loading.value = true;
   try {
     const [receptions, orders] = await Promise.all([
@@ -120,6 +121,14 @@ async function refresh(): Promise<void> {
   } finally {
     loading.value = false;
   }
+  // Явный маркер: ЧТО дёрнуло дочитку (ПОДПИСКА / POLL / ручной) и всплыл ли
+  // гейт. Если overlay появился сразу после «✅ ПОДПИСКА СРАБОТАЛА» — отработал
+  // сокет; если перед этим был «POLL» — сработала страховочная дочитка.
+  const appeared = !wasVisible && isVisible.value;
+  console.info(
+    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, заказчик=${ordererTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
+    appeared ? 'color:#16a34a;font-weight:bold' : 'color:#64748b',
+  );
 }
 
 async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {

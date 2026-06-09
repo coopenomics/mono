@@ -30,8 +30,11 @@ export interface RealtimeSubscription {
    * хэндл с `close()`.
    */
   open: () => RealtimeHandle;
-  /** Дочитать авторитетное состояние (catch-up): на возврат активности/страховку. */
-  resync: () => void | Promise<void>;
+  /**
+   * Дочитать авторитетное состояние (catch-up): на возврат активности/страховку.
+   * `reason` — человекочитаемый источник дочитки для лога (страховка/возврат вкладки).
+   */
+  resync: (reason?: string) => void | Promise<void>;
 }
 
 const subscriptions = new Map<string, RealtimeSubscription>();
@@ -76,10 +79,10 @@ function closeAll(): void {
   [...handles.keys()].forEach(closeSub);
 }
 
-function resyncActive(): void {
+function resyncActive(reason: string): void {
   if (!isAuthed() || !isForeground()) return;
   subscriptions.forEach((sub) => {
-    if (handles.has(sub.id)) void sub.resync();
+    if (handles.has(sub.id)) void sub.resync(reason);
   });
 }
 
@@ -119,11 +122,11 @@ export function startRealtimeChannel(): void {
   // Возврат вкладки/приложения в активность → немедленная дочитка состояния.
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') resyncActive();
+      if (document.visibilityState === 'visible') resyncActive('POLL (возврат вкладки)');
     });
   }
 
   // Страховка от зомби-сокета (ws «жив», но публикацию пропустил). Это НЕ
   // возврат к частому поллингу — при здоровом канале дочитка ничего не меняет.
-  setInterval(resyncActive, SAFETY_RESYNC_MS);
+  setInterval(() => resyncActive('POLL (страховка 60с)'), SAFETY_RESYNC_MS);
 }
