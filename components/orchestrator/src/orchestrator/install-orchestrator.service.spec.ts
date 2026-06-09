@@ -24,12 +24,12 @@ import {
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
 
 class FakeDockerRunner implements DockerRunnerPort {
-  pulls: Array<{ imageRef: string; bearerToken: string }> = [];
+  pulls: Array<{ imageRef: string; username: string; password: string }> = [];
   ups: Array<{ composeFile: string; serviceName: string }> = [];
   downs: Array<{ composeFile: string; serviceName: string }> = [];
   pullError?: Error;
   upError?: Error;
-  async pullImage(opts: { imageRef: string; bearerToken: string }): Promise<void> {
+  async pullImage(opts: { imageRef: string; username: string; password: string }): Promise<void> {
     this.pulls.push(opts);
     if (this.pullError) throw this.pullError;
   }
@@ -52,10 +52,10 @@ class FakeHealthProbe implements HealthProbePort {
 }
 
 class FakeOciTokenClient implements OciTokenClientPort {
-  calls: Array<{ packageId: string; jwt: string }> = [];
+  calls: Array<{ packageId: string; coopname: string; jwt: string }> = [];
   token = 'fake-bearer-token';
   error?: Error;
-  async issueToken(opts: { packageId: string; jwt: string }): Promise<string> {
+  async issueToken(opts: { packageId: string; coopname: string; jwt: string }): Promise<string> {
     this.calls.push(opts);
     if (this.error) throw this.error;
     return this.token;
@@ -110,6 +110,7 @@ describe('InstallOrchestratorService', () => {
       composeFile: '/etc/orchestrator/extensions.yaml',
       composeService: 'chatcoop',
       cooperativeJwt: 'jwt-of-voskhod',
+      coopname: 'voskhod',
     });
 
     expect(result.status).toBe('applied');
@@ -117,15 +118,21 @@ describe('InstallOrchestratorService', () => {
     expect(result.packageId).toBe(baseInput.packageId);
     expect(result.healthAfterMs).toBe(100);
 
-    expect(h.oci.calls).toEqual([{ packageId: baseInput.packageId, jwt: 'jwt-of-voskhod' }]);
+    expect(h.oci.calls).toEqual([
+      { packageId: baseInput.packageId, coopname: 'voskhod', jwt: 'jwt-of-voskhod' },
+    ]);
     expect(h.docker.pulls).toEqual([
-      { imageRef: 'registry.local/coopenomics/chatcoop:1.0.0', bearerToken: 'fake-bearer-token' },
+      {
+        imageRef: 'registry.local/coopenomics/chatcoop:1.0.0',
+        username: 'voskhod',
+        password: 'jwt-of-voskhod',
+      },
     ]);
     expect(h.docker.ups).toEqual([
       { composeFile: '/etc/orchestrator/extensions.yaml', serviceName: 'chatcoop' },
     ]);
     expect(h.health.calls).toEqual([
-      { url: baseInput.url, timeoutMs: 60_000 },
+      { url: 'http://chatcoop:3000/_health', timeoutMs: 60_000 },
     ]);
     expect(h.registry.upserts).toEqual([
       { packageId: baseInput.packageId, version: baseInput.version, url: baseInput.url },
@@ -165,9 +172,9 @@ describe('InstallOrchestratorService', () => {
     expect(h.registry.upserts).toEqual([]);
   });
 
-  it('imageRef без cooperativeJwt → failed: oci-token, без shell-вызовов', async () => {
+  it('imageRef без cooperativeJwt/coopname → failed: oci-token, без shell-вызовов', async () => {
     const h = buildHarness();
-    const result = await h.service.install({ ...baseInput, imageRef: 'reg/img:1.0.0' });
+    const result = await h.service.install({ ...baseInput, imageRef: 'reg.local/img:1.0.0' });
     expect(result.status).toBe('failed');
     if (result.status !== 'failed') return;
     expect(result.reason).toBe('oci-token');
@@ -180,8 +187,9 @@ describe('InstallOrchestratorService', () => {
     h.docker.pullError = new Error('docker pull failed: unauthorized');
     const result = await h.service.install({
       ...baseInput,
-      imageRef: 'reg/img:1.0.0',
+      imageRef: 'reg.local/img:1.0.0',
       cooperativeJwt: 'jwt',
+      coopname: 'voskhod',
     });
     expect(result.status).toBe('failed');
     if (result.status !== 'failed') return;
@@ -210,6 +218,6 @@ describe('InstallOrchestratorService', () => {
   it('healthcheckTimeoutMs из input пробрасывается в HealthProbe', async () => {
     const h = buildHarness();
     await h.service.install({ ...baseInput, healthcheckTimeoutMs: 5_000 });
-    expect(h.health.calls).toEqual([{ url: baseInput.url, timeoutMs: 5_000 }]);
+    expect(h.health.calls).toEqual([{ url: 'http://chatcoop:3000/_health', timeoutMs: 5_000 }]);
   });
 });

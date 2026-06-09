@@ -12,27 +12,54 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { mkdtemp, rm } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { DockerRunnerPort } from './ports';
 
 const execFileAsync = promisify(execFile);
 const DOCKER_TIMEOUT_MS = 120_000;
 
+/**
+ * Хост registry из OCI image ref: `registry.host/scope/name:tag` →
+ * `registry.host`. Если первый сегмент не похож на хост (нет `.`/`:`),
+ * ref указывает на Docker Hub — логиниться в наш CA-контур бессмысленно.
+ */
+export function registryHostOf(imageRef: string): string | null {
+  const first = imageRef.split('/')[0] ?? '';
+  return first.includes('.') || first.includes(':') ? first : null;
+}
+
 @Injectable()
 export class ShellDockerRunner implements DockerRunnerPort {
   private readonly logger = new Logger(ShellDockerRunner.name);
 
-  async pullImage(opts: { imageRef: string; bearerToken: string }): Promise<void> {
+  async pullImage(opts: { imageRef: string; username: string; password: string }): Promise<void> {
     /*
-     * docker pull использует уже логиненный креденшал-helper; токен
-     * прокидывается через переменную окружения DOCKER_AUTH_TOKEN,
-     * которую читает per-registry credential helper (см. deploy/).
-     * В MWP здесь только pull — login лежит на инфраструктурном
-     * скрипте при bootstrap'е orchestrator'а.
+     * Авторизация — через изолированный DOCKER_CONFIG (временный каталог),
+     * чтобы не трогать host-level ~/.docker/config.json. `docker login`
+     * кладёт туда Basic-credentials; на pull docker получает 401 +
+     * WWW-Authenticate от registry (ca-auth), идёт в его token endpoint
+     * с этими credentials и дальше пуллит с Bearer'ом — стандартный
+     * OCI Distribution token flow.
      */
-    this.logger.log(`docker pull ${opts.imageRef}`);
-    await this.run('docker', ['pull', opts.imageRef], {
-      DOCKER_AUTH_TOKEN: opts.bearerToken,
-    });
+    const host = registryHostOf(opts.imageRef);
+    if (host === null) {
+      throw new Error(`docker pull: imageRef '${opts.imageRef}' без явного registry-хоста не поддерживается`);
+    }
+    const configDir = await mkdtemp(join(tmpdir(), 'orch-docker-'));
+    try {
+      this.logger.log(`docker login ${host} + pull ${opts.imageRef}`);
+      await this.run(
+        'docker',
+        ['login', host, '--username', opts.username, '--password-stdin'],
+        { DOCKER_CONFIG: configDir },
+        opts.password,
+      );
+      await this.run('docker', ['pull', opts.imageRef], { DOCKER_CONFIG: configDir });
+    } finally {
+      await rm(configDir, { recursive: true, force: true });
+    }
   }
 
   async composeUp(opts: { composeFile: string; serviceName: string }): Promise<void> {
@@ -59,12 +86,22 @@ export class ShellDockerRunner implements DockerRunnerPort {
     ]);
   }
 
-  private async run(cmd: string, args: string[], extraEnv: NodeJS.ProcessEnv = {}): Promise<void> {
+  private async run(
+    cmd: string,
+    args: string[],
+    extraEnv: NodeJS.ProcessEnv = {},
+    stdin?: string,
+  ): Promise<void> {
     try {
-      const { stdout, stderr } = await execFileAsync(cmd, args, {
+      const promise = execFileAsync(cmd, args, {
         timeout: DOCKER_TIMEOUT_MS,
         env: { ...process.env, ...extraEnv },
       });
+      if (stdin !== undefined && promise.child.stdin) {
+        promise.child.stdin.write(stdin);
+        promise.child.stdin.end();
+      }
+      const { stdout, stderr } = await promise;
       if (stdout) this.logger.debug(stdout.trim());
       if (stderr) this.logger.debug(stderr.trim());
     } catch (e) {

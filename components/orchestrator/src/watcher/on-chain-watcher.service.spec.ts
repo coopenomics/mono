@@ -117,6 +117,7 @@ describe('OnChainWatcherService', () => {
           composeService: undefined,
           composeFile: undefined,
           cooperativeJwt: undefined,
+          coopname: 'voskhod',
         },
       ]);
     });

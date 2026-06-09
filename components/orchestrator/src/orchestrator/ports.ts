@@ -15,8 +15,14 @@
  * impl возвращает заранее заданные результаты — без shell.
  */
 export interface DockerRunnerPort {
-  /** Подтянуть образ из приватного registry. */
-  pullImage(opts: { imageRef: string; bearerToken: string }): Promise<void>;
+  /**
+   * Подтянуть образ из приватного registry.
+   *
+   * `username`/`password` — credentials для `docker login` (password —
+   * per-package JWT от CA-auth; docker сам обменяет его на Bearer через
+   * OCI token endpoint `GET /v2/auth/token` по `WWW-Authenticate`-flow).
+   */
+  pullImage(opts: { imageRef: string; username: string; password: string }): Promise<void>;
   /** Поднять сервис compose-проекта (idempotent — повторный вызов no-op если up). */
   composeUp(opts: { composeFile: string; serviceName: string }): Promise<void>;
   /** Снять сервис compose-проекта — используется на rollback. */
@@ -47,14 +53,16 @@ export type HealthOutcome =
 export const HEALTH_PROBE = Symbol('HealthProbePort');
 
 /**
- * Порт получения OCI token у CA-auth для docker pull из приватного
- * registry. Возвращает bearer-токен, валидный для конкретного scope
- * `repository:<packageId>:pull`.
+ * Порт preflight-проверки docker pull у CA-auth: обмен per-package JWT
+ * на OCI access_token через `GET /v2/auth/token` (Basic-auth, JWT в
+ * password). Реальный pull делает `docker login` тем же JWT — этот порт
+ * нужен, чтобы провалить install быстро и с внятной причиной (нет
+ * подписки / scope mismatch), не дожидаясь невнятного 403 от docker CLI.
  *
  * @see ca-auth/src/modules/registry/web/oci-token.controller.ts (Story 10.6)
  */
 export interface OciTokenClientPort {
-  issueToken(opts: { packageId: string; jwt: string }): Promise<string>;
+  issueToken(opts: { packageId: string; coopname: string; jwt: string }): Promise<string>;
 }
 
 export const OCI_TOKEN_CLIENT = Symbol('OciTokenClientPort');

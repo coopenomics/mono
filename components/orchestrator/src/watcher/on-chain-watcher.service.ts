@@ -174,6 +174,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       composeService: spec.composeService,
       composeFile: spec.composeFile,
       cooperativeJwt: this.cfg.cooperativeJwt,
+      coopname: this.cfg.coopname,
     });
     if (result.status === 'failed') {
       this.logger.error(

@@ -60,12 +60,35 @@ export interface InstallExtensionInput {
    */
   composeFile?: string;
   /**
-   * JWT кооператива для запроса OCI-токена у CA-auth. Нужен только
+   * Per-package JWT от CA-auth для docker pull. Нужен только
    * если задан `imageRef`.
    */
   cooperativeJwt?: string;
+  /**
+   * Имя кооператива — username для docker login (CA-auth ожидает
+   * совпадение с `sub`-claim'ом JWT). Нужен только если задан `imageRef`.
+   */
+  coopname?: string;
+  /**
+   * URL healthcheck'а. Если не задан — выводится из `url`:
+   * origin субграфа + `/_health` (канон @coopenomics/extension-sdk).
+   */
+  healthUrl?: string;
   /** Healthcheck timeout. По умолчанию 60 сек — Nest-приложение успевает прогреться. */
   healthcheckTimeoutMs?: number;
+}
+
+/**
+ * `GET <subgraph-origin>/_health` — канонический healthcheck расширения
+ * (HealthController в extension-sdk). GraphQL-endpoint для GET-probe
+ * не годится: Apollo отвечает 400/405 на GET без query.
+ */
+export function deriveHealthUrl(subgraphUrl: string): string {
+  try {
+    return `${new URL(subgraphUrl).origin}/_health`;
+  } catch {
+    return subgraphUrl;
+  }
 }
 
 export type InstallOutcome =
@@ -94,17 +117,27 @@ export class InstallOrchestratorService {
     const timeoutMs = input.healthcheckTimeoutMs ?? 60_000;
     this.logger.log(`install start: ${input.packageId}@${input.version} → ${input.url}`);
 
-    // 1. (опц.) docker pull через CA-auth OCI token.
+    // 1. (опц.) docker pull: preflight-обмен JWT на OCI token (валидация
+    //    подписки/scope с внятной ошибкой), затем docker login+pull тем же JWT.
     if (input.imageRef !== undefined) {
-      if (input.cooperativeJwt === undefined) {
-        return this.failed(input.packageId, 'oci-token', 'cooperativeJwt обязателен при заданном imageRef');
+      if (input.cooperativeJwt === undefined || input.coopname === undefined) {
+        return this.failed(
+          input.packageId,
+          'oci-token',
+          'cooperativeJwt и coopname обязательны при заданном imageRef',
+        );
       }
       try {
-        const bearerToken = await this.oci.issueToken({
+        await this.oci.issueToken({
           packageId: input.packageId,
+          coopname: input.coopname,
           jwt: input.cooperativeJwt,
         });
-        await this.docker.pullImage({ imageRef: input.imageRef, bearerToken });
+        await this.docker.pullImage({
+          imageRef: input.imageRef,
+          username: input.coopname,
+          password: input.cooperativeJwt,
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         const reason: InstallFailureReason = msg.includes('docker') ? 'docker-pull' : 'oci-token';
@@ -125,8 +158,9 @@ export class InstallOrchestratorService {
       }
     }
 
-    // 3. healthcheck poll по URL subgraph'а.
-    const health = await this.health.waitUntilHealthy({ url: input.url, timeoutMs });
+    // 3. healthcheck poll по /_health subgraph'а (не по GraphQL-endpoint'у).
+    const healthUrl = input.healthUrl ?? deriveHealthUrl(input.url);
+    const health = await this.health.waitUntilHealthy({ url: healthUrl, timeoutMs });
     if (!health.ok) {
       await this.rollbackComposeIfAny(input);
       return this.failed(
