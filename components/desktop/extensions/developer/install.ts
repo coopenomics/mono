@@ -4,15 +4,16 @@
 // определяется по флагу `is_operator_coop` в Vuex/Pinia store, который
 // устанавливается через DesktopWorkspace.grants от controller'а).
 //
-// V1 содержание: 4 страницы-заглушки, описывающие, что разработчик мог
-// бы сделать (мои пакеты, опубликовать релиз, подписчики, pricing). Все
-// реальные действия идут REST'ом в ca-admin через chairman-token. На этом
-// этапе UI-минимум, реальные mutation'ы — story 9.3.b.
+// Страницы: мои пакеты, публикация пакета/релиза, модерация заявок
+// (операторский approve восхода), подписчики, pricing. Все реальные
+// действия идут GraphQL-мутациями apps-catalog-proxy controller'а,
+// который проксирует их в ca-admin/ca-auth каталога.
 
 import { markRaw } from 'vue';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { DeveloperMyPackagesPage } from './pages/DeveloperMyPackagesPage';
 import { DeveloperPublishReleasePage } from './pages/DeveloperPublishReleasePage';
+import { DeveloperModerationPage } from './pages/DeveloperModerationPage';
 import { DeveloperSubscribersPage } from './pages/DeveloperSubscribersPage';
 import { DeveloperPricingPage } from './pages/DeveloperPricingPage';
 
@@ -21,13 +22,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     workspace: 'developer',
     extension_name: 'developer',
     title: 'Стол разработчика',
-    icon: 'fa-solid fa-code',
+    icon: 'code',
     defaultRoute: 'developer-my-packages',
     routes: [
       {
         meta: {
           title: 'Стол разработчика',
-          icon: 'fa-solid fa-code',
+          icon: 'code',
           roles: ['chairman'],
         },
         path: '/:coopname/developer',
@@ -39,7 +40,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(DeveloperMyPackagesPage),
             meta: {
               title: 'Мои пакеты',
-              icon: 'fa-solid fa-box',
+              icon: 'inventory_2',
               roles: ['chairman'],
             },
           },
@@ -49,7 +50,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(DeveloperPublishReleasePage),
             meta: {
               title: 'Опубликовать релиз',
-              icon: 'fa-solid fa-upload',
+              icon: 'upload',
+              roles: ['chairman'],
+            },
+          },
+          {
+            path: 'moderation',
+            name: 'developer-moderation',
+            component: markRaw(DeveloperModerationPage),
+            meta: {
+              title: 'Модерация',
+              icon: 'fact_check',
               roles: ['chairman'],
             },
           },
@@ -59,7 +70,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(DeveloperSubscribersPage),
             meta: {
               title: 'Подписчики',
-              icon: 'fa-solid fa-users',
+              icon: 'group',
               roles: ['chairman'],
             },
           },
@@ -69,7 +80,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(DeveloperPricingPage),
             meta: {
               title: 'Pricing',
-              icon: 'fa-solid fa-rouble-sign',
+              icon: 'currency_ruble',
               roles: ['chairman'],
             },
           },

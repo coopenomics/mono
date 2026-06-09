@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { Mutations } from '@coopenomics/sdk';
+import { Zeus, type Mutations } from '@coopenomics/sdk';
 import { api } from '../api';
 
 export type IPublishPackageInput = Mutations.Extensions.PublishPackage.IInput['data'];
@@ -16,7 +16,7 @@ export function usePublishPackage() {
     try {
       const result = await api.publishPackage(input);
       lastResult.value = result;
-      if (result.status === 'failed') {
+      if (result.status === Zeus.PublishPackageStatus.FAILED) {
         lastError.value = result.error || 'Не удалось зарегистрировать пакет';
       }
       return result;

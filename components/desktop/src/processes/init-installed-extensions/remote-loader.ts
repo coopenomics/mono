@@ -165,8 +165,24 @@ export async function loadRemoteExtension(
 }
 
 /**
- * Один pass remote-loader'а: получить список → загрузить каждый → отдать
- * слитый массив workspace'ов вызывателю, который сам впишет их в store/router.
+ * Память pass'а: какие пакеты уже eval'нуты в этой SPA-сессии.
+ * Ключ — `packageId@version`: новая версия пакета считается новым
+ * кандидатом на установку (повторный eval того же кода не делаем).
+ */
+const installedRemoteKeys = new Set<string>();
+
+function remoteKeyOf(desc: RemoteExtensionDescriptor): string {
+  return `${desc.packageId}@${desc.version ?? 'unversioned'}`;
+}
+
+/**
+ * Один pass remote-loader'а: получить список → загрузить каждый НОВЫЙ
+ * (не установленный в этой сессии) → отдать слитый массив workspace'ов
+ * вызывателю, который сам впишет их в store/router.
+ *
+ * Pass идемпотентен — его можно вызывать периодически (auto-refresh
+ * «workspace появился без F5», см. Architecture v3 шаг 18): уже
+ * установленные пакеты пропускаются по `packageId@version`.
  *
  * Падение одного пакета не должно валить остальные (try/catch per item).
  */
@@ -181,8 +197,11 @@ export async function installRemoteExtensions(
   const descriptors = await fetchInstalledRemotePackages(coopname);
   const all: IWorkspaceConfig[] = [];
   for (const desc of descriptors) {
+    const key = remoteKeyOf(desc);
+    if (installedRemoteKeys.has(key)) continue;
     try {
       const cfgs = await loadRemoteExtension(desc);
+      installedRemoteKeys.add(key);
       all.push(...cfgs);
       console.log(
         `[remote-loader] установлен ${desc.packageId}${desc.version ? '@' + desc.version : ''} (${cfgs.length} workspace[ов])`,

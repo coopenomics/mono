@@ -1,12 +1,8 @@
 <template lang="pug">
-.epic9-hint
-  q-banner.bg-info.text-white.q-mb-md(rounded)
-    template(#avatar)
-      q-icon(name='fa-solid fa-rocket')
-    | Epic 9 — магазин приложений. Bundle-расширения ниже — нативные,
-    | оплачивать не нужно. Удалённые пакеты подгружаются из публичного
-    | каталога apps-catalog через проксирующий резолвер controller'а
-    | (Story 9.5.b).
+BaseBanner.q-mb-md(variant='info')
+  | Нативные расширения встроены в платформу и не требуют оплаты.
+  | Удалённые пакеты публикуются в каталоге приложений и подключаются
+  | по подписке кооператива.
 
 section.catalog-section
   h3.catalog-section__title Нативные расширения
@@ -21,33 +17,33 @@ section.catalog-section.catalog-section--remote
   .catalog-section__head
     h3.catalog-section__title Удалённые пакеты
     span.catalog-section__hint(v-if='!remoteLoading && !remoteError && remoteExtensions.length')
-      | Каталог apps-catalog · {{ remoteExtensions.length }} {{ packagesWord }}
+      | Каталог приложений · {{ remoteExtensions.length }} {{ packagesWord }}
 
-  .catalog-state(v-if='remoteLoading')
-    q-spinner-dots(size='32px', color='primary')
-    span.catalog-state__text Загружаем каталог apps-catalog…
+  .catalog-grid(v-if='remoteLoading && !remoteExtensions.length')
+    article.remote-card(v-for='n in 3', :key='n')
+      .remote-card__head
+        .remote-card__tile.skel
+        .remote-card__heading
+          .skel.skel--title(style='width: 140px')
+          .skel.skel--text(style='width: 80px')
+      .skel.skel--text(style='width: 90%')
+      .skel.skel--text(style='width: 60%')
 
   .catalog-state.catalog-state--error(v-else-if='remoteError')
-    q-icon.catalog-state__icon(name='fa-solid fa-triangle-exclamation', size='28px')
+    q-icon.catalog-state__icon(name='warning', size='28px')
     .catalog-state__body
       h4.catalog-state__title Не удалось загрузить удалённые пакеты
       p.catalog-state__text {{ remoteError }}
-      q-btn(
-        unelevated,
-        color='primary',
-        size='sm',
-        icon='fa-solid fa-rotate-right',
-        label='Повторить',
-        @click='loadRemote'
-      )
+      div
+        BaseButton(variant='secondary', size='sm', @click='loadRemote') Повторить
 
-  .catalog-state.catalog-state--empty(v-else-if='!remoteExtensions.length')
-    q-icon.catalog-state__icon(name='fa-solid fa-box-open', size='28px')
-    .catalog-state__body
-      h4.catalog-state__title Каталог пока пуст
-      p.catalog-state__text
-        | В apps-catalog ещё не опубликован ни один пакет. Зайдите позже
-        | или соберите свой пакет в столе разработчика.
+  EmptyState(
+    v-else-if='!remoteExtensions.length',
+    title='Каталог пока пуст',
+    body='В каталоге приложений ещё не опубликован ни один пакет. Зайдите позже или соберите свой пакет в столе разработчика.'
+  )
+    template(#icon)
+      q-icon(name='inventory_2', size='28px')
 
   .catalog-grid(v-else)
     article.remote-card(
@@ -55,48 +51,41 @@ section.catalog-section.catalog-section--remote
       :key='pkg.packageId'
     )
       .remote-card__head
-        q-avatar(size='48px', color='deep-orange-1', text-color='deep-orange-10')
-          q-icon(name='fa-solid fa-cube' size='22px')
+        .remote-card__tile
+          q-icon(name='extension', size='22px')
         .remote-card__heading
           h3.remote-card__title {{ pkg.title }}
-          span.badge.badge--info
-            q-icon(name='fa-solid fa-cloud-arrow-down' size='11px')
-            | Удалённый
+          BaseBadge(variant='info') Удалённый
       p.remote-card__desc {{ pkg.description }}
       .remote-card__meta
         span.remote-card__publisher
-          q-icon(name='fa-solid fa-building' size='12px')
+          q-icon(name='business', size='12px')
           | {{ pkg.publisher }}
         span.remote-card__version(
           v-if='pkg.lastActiveVersion',
           title='Последняя активная версия'
         )
-          q-icon(name='fa-solid fa-code-branch' size='12px')
+          q-icon(name='commit', size='12px')
           | {{ pkg.lastActiveVersion }}
         span.remote-card__price {{ formatPrice(pkg.rubPerMonth) }} ₽/мес
       .remote-card__foot
-        q-btn.remote-card__btn(
-          unelevated,
-          color='primary',
-          label='Подписаться',
-          icon='fa-solid fa-plus',
-          size='sm',
-          @click='openSubscribe(pkg)'
-        )
+        BaseButton(variant='primary', size='sm', @click='openSubscribe(pkg)') Подписаться
 
-q-dialog(v-model='subscribeDialog')
-  q-card.subscribe-dialog
-    q-card-section
-      .text-h6 Подписка на {{ pendingPkg?.title || 'пакет' }}
-    q-card-section.q-pt-none
-      p Стоимость: {{ pendingPkg ? formatPrice(pendingPkg.rubPerMonth) : '—' }} ₽/мес.
-        | Период оплаты определяется globals.min_payment_period_seconds.
-      p.text-caption.q-mb-none
-        | Реальная подпись и трансфер AXON будут включены после 9.6.b
-        | (auto-extend self-subscription) — сейчас отображается информация
-        | из публичного каталога apps-catalog.
-    q-card-actions(align='right')
-      q-btn(flat, label='Закрыть', v-close-popup)
+BaseDialog(v-model='subscribeDialog', :title='subscribeTitle', size='sm')
+  .subscribe-dialog__body
+    p.q-mb-sm
+      | Стоимость: {{ pendingPkg ? formatPrice(pendingPkg.rubPerMonth) : '—' }} ₽/мес.
+      | Первый период может быть пробным — это определяет каталог приложений.
+    BaseBanner.q-mb-sm(v-if='subscribeResultBanner', :variant='subscribeResultBanner.variant')
+      | {{ subscribeResultBanner.text }}
+  template(#footer)
+    BaseButton(variant='ghost', :disabled='subscribing', @click='closeSubscribe') Закрыть
+    BaseButton(
+      v-if='!subscribeDone',
+      variant='primary',
+      :loading='subscribing',
+      @click='confirmSubscribe'
+    ) Подписаться
 </template>
 
 <script lang="ts" setup>
@@ -105,7 +94,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { api as extensionApi } from 'src/entities/Extension/api';
 import { onMounted, computed, ref } from 'vue';
 import { ExtensionCard } from 'src/widgets/ExtensionCard';
-import { Queries } from '@coopenomics/sdk';
+import { Queries, Zeus } from '@coopenomics/sdk';
+import { BaseBadge, BaseBanner, BaseButton, BaseDialog, EmptyState } from 'src/shared/ui/base';
 
 type RemotePackage = Queries.Extensions.AppsCatalogRemotePackages.IOutput[
   typeof Queries.Extensions.AppsCatalogRemotePackages.name
@@ -140,10 +130,76 @@ function formatPrice(rub: number): string {
 
 const subscribeDialog = ref(false);
 const pendingPkg = ref<RemotePackage | null>(null);
+const subscribing = ref(false);
+const subscribeDone = ref(false);
+const subscribeResultBanner = ref<{ variant: 'pos' | 'warn' | 'neg'; text: string } | null>(null);
+
+const subscribeTitle = computed(() =>
+  pendingPkg.value ? `Подписка на ${pendingPkg.value.title}` : 'Подписка на пакет',
+);
 
 function openSubscribe(pkg: RemotePackage) {
   pendingPkg.value = pkg;
+  subscribeDone.value = false;
+  subscribeResultBanner.value = null;
   subscribeDialog.value = true;
+}
+
+function closeSubscribe() {
+  subscribeDialog.value = false;
+}
+
+async function confirmSubscribe() {
+  if (!pendingPkg.value) return;
+  subscribing.value = true;
+  subscribeResultBanner.value = null;
+  try {
+    const result = await extensionApi.subscribePackage({
+      packageId: pendingPkg.value.packageId,
+    });
+    switch (result.status) {
+      case Zeus.SubscribePackageStatus.ACTIVATED:
+        subscribeDone.value = true;
+        subscribeResultBanner.value = {
+          variant: 'pos',
+          text: result.state === Zeus.SubscriptionStateEnum.TRIAL
+            ? `Пробная подписка активна до ${formatDate(result.endAt)}.`
+            : `Подписка активна до ${formatDate(result.endAt)}.`,
+        };
+        break;
+      case Zeus.SubscribePackageStatus.ALREADY_ACTIVE:
+        subscribeDone.value = true;
+        subscribeResultBanner.value = {
+          variant: 'warn',
+          text: 'Подписка на этот пакет уже активна.',
+        };
+        break;
+      case Zeus.SubscribePackageStatus.CLIENT_NOT_REGISTERED:
+        subscribeResultBanner.value = {
+          variant: 'neg',
+          text: 'Кооператив не подключён к каталогу приложений. Обратитесь к оператору каталога.',
+        };
+        break;
+      default:
+        subscribeResultBanner.value = {
+          variant: 'neg',
+          text: result.error || 'Каталог приложений недоступен. Попробуйте позже.',
+        };
+    }
+  } catch (e) {
+    subscribeResultBanner.value = {
+      variant: 'neg',
+      text: e instanceof Error ? e.message : String(e),
+    };
+  } finally {
+    subscribing.value = false;
+  }
+}
+
+function formatDate(iso?: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
 }
 
 async function loadRemote() {
@@ -154,7 +210,7 @@ async function loadRemote() {
     remoteExtensions.value = list;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    remoteError.value = msg || 'Каталог apps-catalog недоступен';
+    remoteError.value = msg || 'Каталог приложений недоступен';
     remoteExtensions.value = [];
   } finally {
     remoteLoading.value = false;
@@ -169,19 +225,19 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .catalog-section {
-  margin-bottom: var(--p-6, 24px);
+  margin-bottom: var(--p-6);
 }
 
 .catalog-section__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--p-3, 12px);
-  margin-bottom: var(--p-3, 12px);
+  gap: var(--p-3);
+  margin-bottom: var(--p-3);
 }
 
 .catalog-section__title {
-  margin: 0 0 var(--p-3, 12px);
+  margin: 0 0 var(--p-3);
   font-size: var(--p-fs-h3);
   font-weight: 600;
   color: var(--p-ink);
@@ -195,47 +251,39 @@ onMounted(async () => {
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--p-4, 16px);
+  gap: var(--p-4);
 }
 
 .catalog-state {
   display: flex;
   align-items: center;
-  gap: var(--p-4, 16px);
-  padding: var(--p-5, 20px);
-  background: var(--p-surface, #fff);
+  gap: var(--p-4);
+  padding: var(--p-5);
+  background: var(--p-surface);
   border: 1px solid var(--p-line);
-  border-radius: var(--p-r-lg, 14px);
+  border-radius: var(--p-r-lg);
   color: var(--p-ink-2);
 }
 
 .catalog-state--error {
-  border-color: var(--p-warn, #f59e0b);
-  background: var(--p-warn-soft, #fff7ed);
+  border-color: var(--p-warn);
+  background: var(--p-warn-soft);
   color: var(--p-ink);
 }
 
-.catalog-state--empty {
-  border-style: dashed;
-}
-
 .catalog-state__icon {
-  color: var(--p-accent, #f97316);
-}
-
-.catalog-state--error .catalog-state__icon {
-  color: var(--p-warn, #f59e0b);
+  color: var(--p-warn);
 }
 
 .catalog-state__body {
   display: flex;
   flex-direction: column;
-  gap: var(--p-2, 8px);
+  gap: var(--p-2);
 }
 
 .catalog-state__title {
   margin: 0;
-  font-size: var(--p-fs-h4);
+  font-size: var(--p-fs-body);
   font-weight: 600;
   color: var(--p-ink);
 }
@@ -249,31 +297,42 @@ onMounted(async () => {
 .remote-card {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3, 12px);
-  padding: var(--p-5, 20px);
-  background: var(--p-surface, #fff);
+  gap: var(--p-3);
+  padding: var(--p-5);
+  background: var(--p-surface);
   border: 1px solid var(--p-line);
-  border-radius: var(--p-r-lg, 14px);
+  border-radius: var(--p-r-lg);
   min-height: 200px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .remote-card:hover {
-  border-color: var(--p-line-strong, #d4d4d8);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  border-color: var(--p-line-2);
 }
 
 .remote-card__head {
   display: flex;
   align-items: flex-start;
-  gap: var(--p-3, 12px);
+  gap: var(--p-3);
+}
+
+.remote-card__tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--p-r-md);
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
 }
 
 .remote-card__heading {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--p-1, 4px);
+  gap: var(--p-1);
 }
 
 .remote-card__title {
@@ -295,7 +354,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--p-3, 12px);
+  gap: var(--p-3);
   margin-top: auto;
   font-size: var(--p-fs-body-sm);
   color: var(--p-ink-2);
@@ -305,7 +364,7 @@ onMounted(async () => {
 .remote-card__version {
   display: inline-flex;
   align-items: center;
-  gap: var(--p-1, 4px);
+  gap: var(--p-1);
 }
 
 .remote-card__price {
@@ -319,7 +378,8 @@ onMounted(async () => {
   justify-content: flex-end;
 }
 
-.subscribe-dialog {
-  min-width: 360px;
+.subscribe-dialog__body {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
 }
 </style>

@@ -45,9 +45,26 @@ export async function useInitExtensionsProcess(router: Router) {
     }
   }
 
-  // Epic 9 story 9.4 — remote-loader pass. Тянем пакеты с активной
-  // подпиской из apps-catalog. На V1 — заглушка, возвращает [];
-  // реальный fetch + eval — 9.4.b.
+  // Epic 9 story 9.4 — remote-loader pass: fetch + eval install.js
+  // пакетов из apps-catalog (см. remote-loader.ts).
+  await runRemotePass(router);
+
+  // Architecture v3, шаг 18: «workspace появляется без F5». WS-канала
+  // extensions.composed на MVP нет, поэтому новые пакеты подхватываются
+  // периодическим повтором pass'а (он идемпотентен — уже установленные
+  // пакеты пропускаются по packageId@version). Только в браузере:
+  // в SSR-процессе интервал не нужен и утёк бы.
+  if (typeof window !== 'undefined') {
+    setInterval(() => {
+      void runRemotePass(router);
+    }, REMOTE_REFRESH_INTERVAL_MS);
+  }
+}
+
+const REMOTE_REFRESH_INTERVAL_MS = 60_000;
+
+async function runRemotePass(router: Router): Promise<void> {
+  const store = useDesktopStore();
   try {
     const coopname = (store as any).currentCoopname ?? '';
     const remoteConfigs: IWorkspaceConfig[] = await installRemoteExtensions(
