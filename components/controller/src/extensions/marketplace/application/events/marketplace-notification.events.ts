@@ -47,6 +47,15 @@ export const MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT = 'marketplace.offer.count
  */
 export const MARKETPLACE_OFFER_APPROVED_EVENT = 'marketplace.offer.approved';
 
+/**
+ * Статус заказа сменился (принял поставщик, подготовил партию, принял КУ,
+ * выдан, отменён, возвращён). Адресный сигнал персональным каналам обеих
+ * сторон заказа — заказчику и поставщику, — чтобы их столы заказов мгновенно
+ * перечитали состояние без поллинга. Эмитится из единой точки синхронизации с
+ * цепью (chain-as-source-of-truth) ПОСЛЕ commit'а в PG (INV-12).
+ */
+export const MARKETPLACE_ORDER_STATUS_CHANGED_EVENT = 'marketplace.order.status.changed';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -115,6 +124,19 @@ export interface MarketplaceOfferApprovedEvent {
   approved_by: string;
   /** Категория предложения — каталог решает, нужно ли обновлять текущую вкладку. */
   category_id: number;
+}
+
+export interface MarketplaceOrderStatusChangedEvent {
+  coopname: string;
+  order_id: string;
+  /** Новый статус заказа (значение из `MarketplaceOrderStatuses`). */
+  status: string;
+  /** Предыдущий статус — клиенту хватает для решения, нужно ли реагировать. */
+  previous_status: string;
+  /** Аккаунт заказчика — адресат персонального сигнала. */
+  orderer_account: string;
+  /** Аккаунт поставщика — второй адресат персонального сигнала. */
+  supplier_account: string;
 }
 
 /**

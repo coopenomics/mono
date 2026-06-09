@@ -6753,6 +6753,7 @@ export type ValueTypes = {
 	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
 		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
 		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
+		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
 		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"]
 		__typename?: boolean | `@${string}`
 }>;
@@ -7379,8 +7380,19 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderReadyToReceiveEvent']?: Omit<ValueTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
 }>;
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: AliasType<{
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+	/** Предыдущий статус заказа. */
+	previous_status?:boolean | `@${string}`,
+	/** Новый статус заказа. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderStatusChangedEvent']?: Omit<ValueTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
+}>;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
@@ -17075,6 +17087,7 @@ export type ResolverInputTypes = {
 	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
 	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
 	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
+	MarketplaceOrderStatusChangedEvent?:ResolverInputTypes["MarketplaceOrderStatusChangedEvent"],
 	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
 		__typename?: boolean | `@${string}`
 }>;
@@ -17682,8 +17695,18 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: AliasType<{
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+	/** Предыдущий статус заказа. */
+	previous_status?:boolean | `@${string}`,
+	/** Новый статус заказа. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
@@ -27059,7 +27082,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -27641,6 +27664,15 @@ export type ModelTypes = {
 	order_id: string
 };
 	["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: {
+		/** Идентификатор заказа. */
+	order_id: string,
+	/** Предыдущий статус заказа. */
+	previous_status: ModelTypes["MarketplaceOrderStatus"],
+	/** Новый статус заказа. */
+	status: ModelTypes["MarketplaceOrderStatus"]
+};
 	["MarketplaceOutgoingPaymentRequest"]: {
 		/** Сумма платежа (numeric с 4 знаками). */
 	amount: string,
@@ -37966,10 +37998,11 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceReceptionPendingSignEvent"
+        	__typename:"MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent"
         	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
 	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
 	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
+	['...on MarketplaceOrderStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceOrderStatusChangedEvent"];
 	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
 };
 	["MarketplaceEventsInput"]: {
@@ -38595,8 +38628,19 @@ export type GraphQLTypes = {
 	order_id: string,
 	['...on MarketplaceOrderReadyToReceiveEvent']: Omit<GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
 };
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]: MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: {
+	__typename: "MarketplaceOrderStatusChangedEvent",
+	/** Идентификатор заказа. */
+	order_id: string,
+	/** Предыдущий статус заказа. */
+	previous_status: GraphQLTypes["MarketplaceOrderStatus"],
+	/** Новый статус заказа. */
+	status: GraphQLTypes["MarketplaceOrderStatus"],
+	['...on MarketplaceOrderStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
+};
 	["MarketplaceOutgoingPaymentRequest"]: {
 	__typename: "MarketplaceOutgoingPaymentRequest",
 	/** Сумма платежа (numeric с 4 знаками). */
@@ -43896,7 +43940,7 @@ export enum MarketplaceOrderIssuanceFactDiffState {
 	LESS = "LESS",
 	MORE = "MORE"
 }
-/** Этап жизненного цикла заказа. */
+/** Статус заказа в Столе заказов. */
 export enum MarketplaceOrderStatus {
 	ACCEPTED = "ACCEPTED",
 	ACCEPTED_PENDING_SUPPLIER = "ACCEPTED_PENDING_SUPPLIER",

@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { AbstractEntitySyncService } from '~/shared/services/abstract-entity-sync.service';
+import type { ISyncResult } from '~/shared/interfaces/blockchain-sync.interface';
 import { MarketplaceOrderDomainEntity } from '../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderBlockchainData } from '../domain/entities/marketplace-order.entity';
 import {
@@ -13,6 +14,10 @@ import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
 } from '../application/services/marketplace-offer-counters.service';
+import {
+  MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
+  type MarketplaceOrderStatusChangedEvent,
+} from '../application/events/marketplace-notification.events';
 
 @Injectable()
 export class MarketplaceOrderSyncService
@@ -49,6 +54,49 @@ export class MarketplaceOrderSyncService
     this.logger.debug(
       `MarketplaceOrderSyncService: подписан на ${patterns.length} delta-паттернов + fork-канал`
     );
+  }
+
+  /**
+   * Единая точка применения дельты заказа. Переопределяем, чтобы на каждом
+   * реальном переходе статуса (chain-as-source-of-truth) выпустить адресный
+   * realtime-сигнал обеим сторонам заказа. Эмит — строго ПОСЛЕ `super` (то
+   * есть после commit'а в PG, INV-12). Новый статус читаем из персиста уже
+   * ПОСЛЕ применения forward-rank guard'а в `updateFromBlockchain`: запоздалая
+   * дельта может не примениться, и сигнал должен отражать фактическое
+   * состояние, а не сырую дельту. Цена — один дополнительный read на апдейт
+   * (заказ переходит статус считанные разы за жизненный цикл, не hot-path).
+   */
+  public async handleSyncDelta(
+    syncKey: string,
+    syncValue: string,
+    blockchainData: MarketplaceOrderBlockchainData,
+    blockNum: number,
+    present = true
+  ): Promise<ISyncResult> {
+    const before = await this.repository.findBySyncKey(syncKey, syncValue);
+    const previousStatus = before?.status ?? null;
+
+    const result = await super.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
+
+    if (result.updated && previousStatus !== null) {
+      const after = await this.repository.findBySyncKey(syncKey, syncValue);
+      if (after && after.status !== previousStatus) {
+        const event: MarketplaceOrderStatusChangedEvent = {
+          coopname: after.coopname,
+          order_id: after.id,
+          status: after.status,
+          previous_status: previousStatus,
+          orderer_account: after.orderer_account,
+          supplier_account: after.supplier_account,
+        };
+        this.eventEmitter.emit(MARKETPLACE_ORDER_STATUS_CHANGED_EVENT, event);
+        this.logger.debug(
+          `MarketplaceOrderSyncService: статус заказа ${after.id} ${previousStatus}→${after.status} — эмит realtime-сигнала`
+        );
+      }
+    }
+
+    return result;
   }
 
   async handleForkEvent(forkData: { block_num: number }): Promise<void> {

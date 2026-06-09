@@ -4179,6 +4179,7 @@ export const ReturnTypes: Record<string,any> = {
 		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
 		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
 		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
+		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
 		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent"
 	},
 	MarketplaceExpressPickupCandidate:{
@@ -4384,6 +4385,11 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		order_hash:"String",
 		order_id:"String"
+	},
+	MarketplaceOrderStatusChangedEvent:{
+		order_id:"String",
+		previous_status:"MarketplaceOrderStatus",
+		status:"MarketplaceOrderStatus"
 	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",

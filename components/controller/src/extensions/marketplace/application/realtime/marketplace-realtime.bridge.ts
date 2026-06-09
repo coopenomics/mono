@@ -9,16 +9,19 @@ import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   MarketplaceAplSupplierOnsiteSignRequestEvent,
   MarketplaceOfferApprovedEvent,
   MarketplaceOfferCountersChangedEvent,
   MarketplaceOrderReadyToReceiveEvent,
+  MarketplaceOrderStatusChangedEvent,
 } from '../events/marketplace-notification.events';
 import {
   MarketplaceEventType,
   MarketplaceOfferPublishedEventDTO,
   MarketplaceOfferStockChangedEventDTO,
   MarketplaceOrderReadyToReceiveEventDTO,
+  MarketplaceOrderStatusChangedEventDTO,
   MarketplaceReceptionPendingSignEventDTO,
 } from '../dto/marketplace-event.dto';
 import { marketplaceCatalogTopic, marketplaceMemberTopic } from './marketplace-realtime.topics';
@@ -102,5 +105,27 @@ export class MarketplaceRealtimeBridge {
       `[mp-ws] PUBLISH OFFER_PUBLISHED → topic=${topic} offer=${event.offer_id} category=${event.category_id}`
     );
     await this.pubSub.publish(topic, payload);
+  }
+
+  // Статус заказа сменился — адресный сигнал обеим сторонам заказа в их
+  // персональные топики. Заказчик и поставщик ждут перехода с разных столов
+  // (кабинет / приёмка), поэтому публикуем в оба; если это один и тот же
+  // аккаунт (поставщик заказал у себя) — не дублируем.
+  @OnEvent(MARKETPLACE_ORDER_STATUS_CHANGED_EVENT)
+  async onOrderStatusChanged(event: MarketplaceOrderStatusChangedEvent): Promise<void> {
+    const payload: MarketplaceOrderStatusChangedEventDTO = {
+      eventType: MarketplaceEventType.ORDER_STATUS_CHANGED,
+      order_id: event.order_id,
+      status: event.status,
+      previous_status: event.previous_status,
+    };
+    const recipients = new Set([event.orderer_account, event.supplier_account]);
+    for (const account of recipients) {
+      const topic = marketplaceMemberTopic(event.coopname, account);
+      logger.info(
+        `[mp-ws] PUBLISH ORDER_STATUS_CHANGED → topic=${topic} order=${event.order_id} ${event.previous_status}→${event.status}`
+      );
+      await this.pubSub.publish(topic, payload);
+    }
   }
 }

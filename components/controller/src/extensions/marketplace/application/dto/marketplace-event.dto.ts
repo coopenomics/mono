@@ -1,4 +1,16 @@
-import { createUnionType, Field, Int, ObjectType } from '@nestjs/graphql';
+import { createUnionType, Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
+
+/**
+ * Статус заказа на проводе. Регистрируем уже существующий канон-набор
+ * `MarketplaceOrderStatuses` как GraphQL-enum, чтобы realtime-сигнал нёс
+ * строго типизированный статус (не строку) — фронт дискриминирует переходы
+ * по enum, а не по литералу.
+ */
+registerEnumType(MarketplaceOrderStatuses, {
+  name: 'MarketplaceOrderStatus',
+  description: 'Статус заказа в Столе заказов.',
+});
 
 /**
  * Дискриминатор полезной нагрузки realtime-события marketplace.
@@ -12,6 +24,7 @@ export enum MarketplaceEventType {
   RECEPTION_PENDING_SIGN = 'RECEPTION_PENDING_SIGN',
   OFFER_STOCK_CHANGED = 'OFFER_STOCK_CHANGED',
   OFFER_PUBLISHED = 'OFFER_PUBLISHED',
+  ORDER_STATUS_CHANGED = 'ORDER_STATUS_CHANGED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -72,6 +85,22 @@ export class MarketplaceOfferPublishedEventDTO {
   category_id!: number;
 }
 
+@ObjectType('MarketplaceOrderStatusChangedEvent', {
+  description: 'У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние.',
+})
+export class MarketplaceOrderStatusChangedEventDTO {
+  eventType!: MarketplaceEventType.ORDER_STATUS_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор заказа.' })
+  order_id!: string;
+
+  @Field(() => MarketplaceOrderStatuses, { description: 'Новый статус заказа.' })
+  status!: string;
+
+  @Field(() => MarketplaceOrderStatuses, { description: 'Предыдущий статус заказа.' })
+  previous_status!: string;
+}
+
 /**
  * Объединение всех типов realtime-событий marketplace.
  *
@@ -90,6 +119,7 @@ export const MarketplaceEventUnion = createUnionType({
       MarketplaceReceptionPendingSignEventDTO,
       MarketplaceOfferStockChangedEventDTO,
       MarketplaceOfferPublishedEventDTO,
+      MarketplaceOrderStatusChangedEventDTO,
     ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
@@ -101,6 +131,8 @@ export const MarketplaceEventUnion = createUnionType({
         return MarketplaceOfferStockChangedEventDTO;
       case MarketplaceEventType.OFFER_PUBLISHED:
         return MarketplaceOfferPublishedEventDTO;
+      case MarketplaceEventType.ORDER_STATUS_CHANGED:
+        return MarketplaceOrderStatusChangedEventDTO;
       default:
         return null;
     }
@@ -111,4 +143,5 @@ export type MarketplaceEventPayload =
   | MarketplaceOrderReadyToReceiveEventDTO
   | MarketplaceReceptionPendingSignEventDTO
   | MarketplaceOfferStockChangedEventDTO
-  | MarketplaceOfferPublishedEventDTO;
+  | MarketplaceOfferPublishedEventDTO
+  | MarketplaceOrderStatusChangedEventDTO;

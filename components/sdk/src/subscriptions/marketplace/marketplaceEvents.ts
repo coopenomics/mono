@@ -37,6 +37,11 @@ export const subscription = Selector('Subscription')({
         offer_id: true,
         category_id: true,
       },
+      '...on MarketplaceOrderStatusChangedEvent': {
+        order_id: true,
+        status: true,
+        previous_status: true,
+      },
     },
   ],
 })
