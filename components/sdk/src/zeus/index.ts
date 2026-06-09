@@ -63,13 +63,17 @@ export const apiSubscription = (options: chainOptions) => {
     },
   );
 
-  return (query: string) => {
+  return (query: string, variables?: Record<string, unknown>) => {
     let onMessage: ((event: any) => void) | undefined;
     let onError: Sink['error'] | undefined;
     let onClose: Sink['complete'] | undefined;
 
+    // keep: ОБЯЗАТЕЛЬНО прокидываем variables в subscribe. Zeus строит запрос с
+    // объявлением переменных ($input: Type!), а не инлайнит значения; без передачи
+    // variables сервер падает на коэрции «переменная не предоставлена» ещё до
+    // резолвера — подписка молча не работает (был баг: гейт жил только на POLL).
     client.subscribe(
-      { query },
+      { query, variables },
       {
         next({ data }) {
           onMessage && onMessage(data);
@@ -401,6 +405,9 @@ export const SubscriptionThunder =
         operationOptions: ops,
         scalars: options?.scalars,
       }),
+      // keep: передаём значения переменных в транспорт подписки — без этого
+      // ws-subscribe уходит с $input без значения и падает на коэрции (см. apiSubscription).
+      ops?.variables,
     ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
     if (returnedFunction?.on && options?.scalars) {
       const wrapped = returnedFunction.on;
