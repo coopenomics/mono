@@ -19,3 +19,13 @@ export {
 } from './handoff-routing';
 export { useActsPreview } from './useActsPreview';
 export { usePollingRefresh } from './usePollingRefresh';
+export {
+  useMarketplaceRealtime,
+  registerMarketplaceConsumer,
+  dispatchMarketplaceEvent,
+  resyncMarketplaceConsumers,
+  type MarketplaceRealtimeEvent,
+  type MarketplaceRealtimeEventName,
+  type MarketplaceRealtimeHandlers,
+  type MarketplaceRealtimeOptions,
+} from './marketplace-realtime';

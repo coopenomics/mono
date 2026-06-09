@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   CatalogOfferCard,
   CatalogOfferCardSkeleton,
@@ -257,6 +259,63 @@ onMounted(async () => {
   await loadCategories();
   await loadPage(false);
 });
+
+// ── Живая витрина: realtime-сигналы каталога (Фаза A) ──────────────────────
+// Остаток меняется → точечно правим карточку по offer_id, без перезагрузки и
+// мельтешения (частое событие). Новый оффер / catch-up → ненавязчивое обновление
+// с сохранением уже загруженной глубины (НЕ сброс на первую страницу — иначе
+// страховочный resync раз в 60с дёргал бы прокрутку у листающего пайщика).
+function patchOfferStock(offerId: string, quantityAvailable: number, unlimited: boolean): void {
+  const item = items.value.find((o) => o.id === offerId);
+  if (!item) return; // оффер не на текущей вкладке/в загруженном диапазоне — пропуск
+  item.quantity_available = quantityAvailable;
+  item.unlimited_flag = unlimited;
+}
+
+async function refreshCatalogLiveNow(): Promise<void> {
+  await loadCategories();
+  if (
+    selectedCategoryId.value !== ALL_KEY &&
+    (counts.value.get(selectedCategoryId.value) ?? 0) === 0
+  ) {
+    selectedCategoryId.value = ALL_KEY;
+    currentPage.value = 1;
+  }
+  // Перечитываем ровно загруженную глубину одним запросом (page=1, limit по
+  // числу уже показанных) — состав/порядок/остатки свежие, новый оффер встаёт
+  // на своё место по сортировке, прокрутка не прыгает. Тихо: при items>0
+  // скелетон не показывается.
+  const limit = Math.max(PAGE_SIZE, currentPage.value * PAGE_SIZE);
+  loading.value = true;
+  try {
+    const page = await fetchCatalog({
+      category_id: selectedCategoryId.value === ALL_KEY ? null : selectedCategoryId.value,
+      page: 1,
+      limit,
+      sort: sort.value,
+      delivery_braname: cartStore.currentBraname,
+    });
+    total.value = page.totalCount;
+    items.value = page.items;
+  } catch {
+    // Фоновое обновление — молча; следующий сигнал/resync дочитает снова.
+  } finally {
+    loading.value = false;
+  }
+}
+
+const refreshCatalogLive = debounce(() => {
+  void refreshCatalogLiveNow();
+}, 400);
+
+useMarketplaceRealtime(
+  {
+    MarketplaceOfferStockChangedEvent: (e) =>
+      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag),
+    MarketplaceOfferPublishedEvent: () => refreshCatalogLive(),
+  },
+  { onResync: () => refreshCatalogLive() }
+);
 </script>
 
 <template lang="pug">
