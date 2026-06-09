@@ -67,11 +67,13 @@ export interface SignReceptionsSupplierResult {
 /**
  * On-chain первая подпись поставщика (`signsupp`) по всем актам одной поставки.
  *
- * Последовательно, с изоляцией ошибок: сбой по одному акту не теряет уже
- * подписанные. По каждому акту — свой документ(ы) и своя транзакция (цикл по
- * receptions, внутри — цикл по payloads). Алерты/прогресс — на стороне
- * вызывающего (диалог стола поставщика ИЛИ глобальный гейт подписи на месте):
- * `onProgress(done)` вызывается после каждого успешно подписанного акта.
+ * ПАРАЛЛЕЛЬНО по актам, с изоляцией ошибок: сбой по одному акту не теряет уже
+ * подписанные. У каждого акта свой документ(ы) и своя транзакция (разные хэши —
+ * гонок на цепи нет), поэтому подписи уходят почти в один блок. Внутри акта
+ * payloads подписываются по очереди (один акт — одна транзакция). Алерты/
+ * прогресс — на стороне вызывающего (диалог стола поставщика ИЛИ глобальный
+ * гейт подписи на месте): `onProgress(done)` — по мере завершения (JS
+ * однопоточный, счётчик безопасен).
  *
  * Единый источник логики подписи — чтобы стол и гейт не расходились в крипто-
  * флоу (DRY: вынесено из SignAplReceptionDialog при добавлении гейта Фазы 1).
@@ -84,23 +86,25 @@ export async function signReceptionGroupAsSupplier(
   const signer = new Classes.Document(wif);
   let done = 0;
   const errors: { receptionId: string; error: unknown }[] = [];
-  for (const r of receptions) {
-    try {
-      const payloads = await fetchSupplierSignablePayloads(r.id);
-      if (payloads.length === 0) {
-        throw new Error('Backend не вернул ни одного акта для подписи.');
+  await Promise.all(
+    receptions.map(async (r) => {
+      try {
+        const payloads = await fetchSupplierSignablePayloads(r.id);
+        if (payloads.length === 0) {
+          throw new Error('Backend не вернул ни одного акта для подписи.');
+        }
+        const signed_documents: SignedDocumentInput[] = [];
+        for (const payload of payloads) {
+          const signed = await signer.signDocument(payload, r.offerer_account, 1);
+          signed_documents.push(signed);
+        }
+        await signAsSupplier(r.id, signed_documents);
+        done += 1;
+        onProgress?.(done);
+      } catch (error) {
+        errors.push({ receptionId: r.id, error });
       }
-      const signed_documents: SignedDocumentInput[] = [];
-      for (const payload of payloads) {
-        const signed = await signer.signDocument(payload, r.offerer_account, 1);
-        signed_documents.push(signed);
-      }
-      await signAsSupplier(r.id, signed_documents);
-      done += 1;
-      onProgress?.(done);
-    } catch (error) {
-      errors.push({ receptionId: r.id, error });
-    }
-  }
+    }),
+  );
   return { done, errors };
 }

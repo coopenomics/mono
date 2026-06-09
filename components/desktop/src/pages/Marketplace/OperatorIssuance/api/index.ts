@@ -132,8 +132,10 @@ export interface FinalizeOrdererResult {
  *
  * На каждый акт накладывает подпись №2 поверх подписи председателя (документ
  * НЕ перегенерируется — берётся агрегат rawDocument + document с первой
- * подписью). Последовательно, без гонок on-chain подписей; сбой по одной
- * позиции не теряет уже полученные. `onProgress(ok)` — после каждой успешной.
+ * подписью). ПАРАЛЛЕЛЬНО: у каждого заказа свой хэш — на цепи это разные
+ * документы, гонок подписи нет, и все signiss2 уходят почти в один блок (а не
+ * по ~0.5с друг за другом). Сбой по одной позиции не теряет уже полученные.
+ * `onProgress(ok)` — по мере завершения (JS однопоточный, счётчик безопасен).
  *
  * Единый источник логики финальной подписи получения — чтобы карточка «Моих
  * заказов» и глобальный гейт подписи на месте не расходились в крипто-флоу
@@ -148,19 +150,21 @@ export async function finalizeOrdererIssuance(
   const signer = new Classes.Document(wif);
   let ok = 0;
   const failed: { order: MarketplaceOrderIssuanceView; error: unknown }[] = [];
-  for (const o of orders) {
-    try {
-      const aggregate = await getOrdererSignablePayload({ order_id: o.id });
-      const fullSigned = await signer.signDocument(aggregate.rawDocument, username, 2, [
-        aggregate.document,
-      ]);
-      await finalizeIssuance({ order_id: o.id, signed_document: fullSigned });
-      ok += 1;
-      onProgress?.(ok);
-    } catch (error) {
-      console.error('finalizeIssuance failed for order', o.id, error);
-      failed.push({ order: o, error });
-    }
-  }
+  await Promise.all(
+    orders.map(async (o) => {
+      try {
+        const aggregate = await getOrdererSignablePayload({ order_id: o.id });
+        const fullSigned = await signer.signDocument(aggregate.rawDocument, username, 2, [
+          aggregate.document,
+        ]);
+        await finalizeIssuance({ order_id: o.id, signed_document: fullSigned });
+        ok += 1;
+        onProgress?.(ok);
+      } catch (error) {
+        console.error('finalizeIssuance failed for order', o.id, error);
+        failed.push({ order: o, error });
+      }
+    }),
+  );
   return { ok, failed };
 }

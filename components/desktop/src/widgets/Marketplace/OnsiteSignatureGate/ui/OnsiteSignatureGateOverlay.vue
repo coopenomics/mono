@@ -3,7 +3,7 @@ import { computed, onMounted, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { usePollingRefresh, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { type ReceptionGroup } from 'src/shared/lib/marketplace';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
@@ -20,9 +20,7 @@ import { useOnsiteSignatureGate, type OrdererPickupTask } from '../model/useOnsi
  * осознанный consent-gate, как онбординг-оферты.
  */
 
-const POLL_INTERVAL_MS = 10_000;
-
-const { isVisible, loading, signingKey, supplierTasks, ordererTasks, refresh, signSupplier, signOrderer } =
+const { isVisible, signingKey, supplierTasks, ordererTasks, refresh, signSupplier, signOrderer } =
   useOnsiteSignatureGate();
 
 const systemStore = useSystemStore();
@@ -62,11 +60,12 @@ const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signing
 const ordererBusy = (t: OrdererPickupTask) => signingKey.value === t.key;
 const anySigning = computed(() => signingKey.value !== null);
 
+// Первичная загрузка состояния при монтировании оверлея (он живёт всё время
+// работы приложения). Дальше гейт обновляется realtime-подпиской + catch-up'ом
+// канала ядра — поллинга больше нет (Фаза 2).
 onMounted(() => {
   void refresh();
 });
-
-usePollingRefresh(() => refresh(), { intervalMs: POLL_INTERVAL_MS, isBusy: loading });
 </script>
 
 <template lang="pug">
