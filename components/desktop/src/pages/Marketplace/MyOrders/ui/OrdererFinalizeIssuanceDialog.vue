@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
@@ -10,7 +9,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getOrdererSignablePayload,
-  finalizeIssuance,
+  finalizeOrdererIssuance,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 
@@ -111,27 +110,13 @@ async function confirm(): Promise<void> {
     return;
   }
   signing.value = true;
-  const signer = new Classes.Document(wif);
-  const failed: string[] = [];
-  let ok = 0;
-  // Цикл по позициям: на каждый акт накладываем финальную подпись (2) поверх
-  // подписи председателя. Последовательно — без гонок on-chain подписей.
-  for (const o of props.orders) {
-    try {
-      const aggregate = await getOrdererSignablePayload({ order_id: o.id });
-      const fullSigned = await signer.signDocument(
-        aggregate.rawDocument,
-        globalStore.username,
-        2,
-        [aggregate.document],
-      );
-      await finalizeIssuance({ order_id: o.id, signed_document: fullSigned });
-      ok += 1;
-    } catch (e) {
-      console.error('finalizeIssuance failed for order', o.id, e);
-      failed.push(o.product_name || o.id.slice(0, 8));
-    }
-  }
+  // Крипто-флоу финальной подписи вынесен в api (finalizeOrdererIssuance) —
+  // единый источник с глобальным гейтом подписи на месте.
+  const { ok, failed } = await finalizeOrdererIssuance(
+    props.orders,
+    wif,
+    globalStore.username,
+  );
   signing.value = false;
 
   if (ok > 0) emit('finalized');
@@ -139,9 +124,10 @@ async function confirm(): Promise<void> {
     SuccessAlert(`Имущество получено по ${ok} позиц. Заказы закрыты.`);
     emit('update:modelValue', false);
   } else {
+    const names = failed.map((f) => f.order.product_name || f.order.id.slice(0, 8));
     FailAlert(
       new Error(
-        `Получено ${ok} из ${props.orders.length}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
+        `Получено ${ok} из ${props.orders.length}. Не удалось: ${names.join(', ')}. Повторите по оставшимся.`,
       ),
     );
   }

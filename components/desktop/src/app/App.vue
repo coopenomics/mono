@@ -5,12 +5,14 @@
   RequireAgreements
   SelectBranchOverlay
   NotificationPermissionDialog
+  OnsiteSignatureGateOverlay
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api/alerts';
 import { RequireAgreements } from 'src/widgets/RequireAgreements';
+import { OnsiteSignatureGateOverlay } from 'src/widgets/Marketplace/OnsiteSignatureGate';
 import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
 import {
   NotificationPermissionDialog,

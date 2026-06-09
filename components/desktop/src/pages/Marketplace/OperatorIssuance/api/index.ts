@@ -1,4 +1,4 @@
-import { Mutations, Queries, type Types } from '@coopenomics/sdk';
+import { Classes, Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 /**
@@ -118,4 +118,49 @@ export async function finalizeIssuance(
     { variables: { data } },
   );
   return result;
+}
+
+export interface FinalizeOrdererResult {
+  /** Сколько позиций успешно получено финальной подписью заказчика. */
+  ok: number;
+  /** Позиции, по которым подпись не прошла, с исходной ошибкой — для алертов вызывающего. */
+  failed: { order: MarketplaceOrderIssuanceView; error: unknown }[];
+}
+
+/**
+ * Финальная подпись заказчика (`signiss2`) по всем позициям пункта выдачи.
+ *
+ * На каждый акт накладывает подпись №2 поверх подписи председателя (документ
+ * НЕ перегенерируется — берётся агрегат rawDocument + document с первой
+ * подписью). Последовательно, без гонок on-chain подписей; сбой по одной
+ * позиции не теряет уже полученные. `onProgress(ok)` — после каждой успешной.
+ *
+ * Единый источник логики финальной подписи получения — чтобы карточка «Моих
+ * заказов» и глобальный гейт подписи на месте не расходились в крипто-флоу
+ * (DRY: вынесено из OrdererFinalizeIssuanceDialog при добавлении гейта Фазы 1).
+ */
+export async function finalizeOrdererIssuance(
+  orders: MarketplaceOrderIssuanceView[],
+  wif: string,
+  username: string,
+  onProgress?: (ok: number) => void,
+): Promise<FinalizeOrdererResult> {
+  const signer = new Classes.Document(wif);
+  let ok = 0;
+  const failed: { order: MarketplaceOrderIssuanceView; error: unknown }[] = [];
+  for (const o of orders) {
+    try {
+      const aggregate = await getOrdererSignablePayload({ order_id: o.id });
+      const fullSigned = await signer.signDocument(aggregate.rawDocument, username, 2, [
+        aggregate.document,
+      ]);
+      await finalizeIssuance({ order_id: o.id, signed_document: fullSigned });
+      ok += 1;
+      onProgress?.(ok);
+    } catch (error) {
+      console.error('finalizeIssuance failed for order', o.id, error);
+      failed.push({ order: o, error });
+    }
+  }
+  return { ok, failed };
 }

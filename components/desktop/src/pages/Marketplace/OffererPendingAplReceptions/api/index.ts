@@ -1,4 +1,4 @@
-import { Mutations, Queries, type Types } from '@coopenomics/sdk';
+import { Classes, Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
 type _RawAplReception =
@@ -55,4 +55,52 @@ export async function signAsSupplier(
     });
   // Zeus отдаёт ID/DateTime как unknown; сужаем скаляры до строк во view-типе.
   return result as { apl_reception: MarketplaceAplReceptionView };
+}
+
+export interface SignReceptionsSupplierResult {
+  /** Сколько актов поставки успешно подписано первой подписью. */
+  done: number;
+  /** Акты, по которым подпись не прошла, с исходной ошибкой — для алертов вызывающего. */
+  errors: { receptionId: string; error: unknown }[];
+}
+
+/**
+ * On-chain первая подпись поставщика (`signsupp`) по всем актам одной поставки.
+ *
+ * Последовательно, с изоляцией ошибок: сбой по одному акту не теряет уже
+ * подписанные. По каждому акту — свой документ(ы) и своя транзакция (цикл по
+ * receptions, внутри — цикл по payloads). Алерты/прогресс — на стороне
+ * вызывающего (диалог стола поставщика ИЛИ глобальный гейт подписи на месте):
+ * `onProgress(done)` вызывается после каждого успешно подписанного акта.
+ *
+ * Единый источник логики подписи — чтобы стол и гейт не расходились в крипто-
+ * флоу (DRY: вынесено из SignAplReceptionDialog при добавлении гейта Фазы 1).
+ */
+export async function signReceptionGroupAsSupplier(
+  receptions: Pick<MarketplaceAplReceptionView, 'id' | 'offerer_account'>[],
+  wif: string,
+  onProgress?: (done: number) => void,
+): Promise<SignReceptionsSupplierResult> {
+  const signer = new Classes.Document(wif);
+  let done = 0;
+  const errors: { receptionId: string; error: unknown }[] = [];
+  for (const r of receptions) {
+    try {
+      const payloads = await fetchSupplierSignablePayloads(r.id);
+      if (payloads.length === 0) {
+        throw new Error('Backend не вернул ни одного акта для подписи.');
+      }
+      const signed_documents: SignedDocumentInput[] = [];
+      for (const payload of payloads) {
+        const signed = await signer.signDocument(payload, r.offerer_account, 1);
+        signed_documents.push(signed);
+      }
+      await signAsSupplier(r.id, signed_documents);
+      done += 1;
+      onProgress?.(done);
+    } catch (error) {
+      errors.push({ receptionId: r.id, error });
+    }
+  }
+  return { done, errors };
 }

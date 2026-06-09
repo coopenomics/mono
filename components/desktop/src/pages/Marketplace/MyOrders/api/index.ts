@@ -7,7 +7,11 @@ import type { MarketplaceOrderPage, MarketplaceOrderStatusView, MarketplaceOrder
 // председателя) и mutation финализации из operator-стола выдачи. Отдельной
 // страницы «Готово к получению» больше нет: статус READY_TO_RECEIVE — обычный
 // этап заказа в общем списке.
-export { getOrdererSignablePayload, finalizeIssuance } from '../../OperatorIssuance/api';
+export {
+  getOrdererSignablePayload,
+  finalizeIssuance,
+  finalizeOrdererIssuance,
+} from '../../OperatorIssuance/api';
 export type {
   MarketplaceOrderIssuanceView,
   MarketplaceOrderIssuanceFactView,
