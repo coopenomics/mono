@@ -43944,6 +43944,7 @@ export enum ProductCardType {
 export enum ProgramKey {
 	CAPITALIZATION = "CAPITALIZATION",
 	GENERATION = "GENERATION",
+	MARKETPLACE = "MARKETPLACE",
 	UNDEFINED = "UNDEFINED"
 }
 /** Тип целевой потребительской программы */

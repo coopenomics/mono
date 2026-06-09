@@ -8,6 +8,9 @@ export enum ProgramKey {
   /** Программа Капитализация - вклад имуществом или денег в систему */
   CAPITALIZATION = 'CAPITALIZATION',
 
+  /** ЦПП «Стол заказов» - целевая потребительская программа совместных закупок */
+  MARKETPLACE = 'MARKETPLACE',
+
   /** Нет определенной программы */
   UNDEFINED = 'UNDEFINED',
 }

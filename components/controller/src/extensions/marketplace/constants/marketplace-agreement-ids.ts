@@ -22,6 +22,11 @@ export const MARKETPLACE_EXTENSION_NAME = 'market';
 
 export const MARKETPLACE_OFFER_AGREEMENT_ID = 'marketplace_offer';
 
+// Ключ выбираемой программы регистрации ЦПП «Стол заказов». Совпадает со
+// значением `ProgramKey.MARKETPLACE` ядра (domain/registration/enum) — по нему
+// registration-flow генерит персональные номер+дату оферты пайщика в Udata.
+export const MARKETPLACE_PROGRAM_KEY = 'MARKETPLACE';
+
 // On-chain имя оферты в `soviet::coagreements`. Контракт принимает eosio::name
 // (a-z, 1-5, точка, max 12) — `_` запрещён. Значение совпадает с
 // `_marketplace_program = "marketplace"_n` (lib/consts.hpp, program_id=2), иначе

@@ -22,6 +22,8 @@ import {
 import { Cooperative } from 'cooptypes';
 import { registerMarketplaceInAgreementRegistry } from './application/registration/register-marketplace-in-agreement-registry';
 import { registerMarketplaceOnboardingSteps } from './application/onboarding/register-marketplace-onboarding-steps';
+import { MARKETPLACE_UDATA_PARAMETERS_PORT } from '~/domain/common/ports/marketplace-udata-parameters.port';
+import { MarketplaceUdataParametersAdapter } from './application/registration/marketplace-udata-parameters.adapter';
 
 /**
  * Optional-инжектируемый порт файлового хранилища. Имя расширения marketplace
@@ -180,8 +182,14 @@ export class MarketplacePlugin extends BaseExtModule {
     MarketplaceExtensionDomainModule, // Доменный слой (включает инфраструктуру через DIP)
     MarketplaceExtensionApplicationModule, // Слой приложения (GraphQL резолверы и сервисы)
   ],
-  providers: [MarketplacePlugin],
-  exports: [MarketplacePlugin],
+  providers: [
+    MarketplacePlugin,
+    {
+      provide: MARKETPLACE_UDATA_PARAMETERS_PORT,
+      useClass: MarketplaceUdataParametersAdapter,
+    },
+  ],
+  exports: [MarketplacePlugin, MARKETPLACE_UDATA_PARAMETERS_PORT],
 })
 export class MarketplacePluginModule {
   constructor(private readonly marketplacePlugin: MarketplacePlugin) {}
