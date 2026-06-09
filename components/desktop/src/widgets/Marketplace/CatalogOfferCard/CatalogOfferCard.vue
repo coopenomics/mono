@@ -125,10 +125,19 @@ const shortDescription = computed(() => {
   return d.length > DESC_MAX ? `${d.slice(0, DESC_MAX).trimEnd()}…` : d
 })
 
-const isEmpty = computed(() => (props.offer.remainUnits ?? 0) <= 0)
-const stockLabel = computed(() => isEmpty.value
-  ? 'Нет в наличии'
-  : `${props.offer.remainUnits} ${unitLabel.value}`)
+// remainUnits === undefined/null означает «без ограничений по количеству»
+// (родительский маппинг: unlimited_flag ? undefined : quantity_available).
+// Безлимит ≠ отсутствие товара — «сколько угодно» это доступность, а не пусто,
+// поэтому красную метку «Нет в наличии» в этом случае не ставим (как на странице
+// детали оферты, где безлимит = «Без ограничения остатка»).
+const isUnlimited = computed(() => props.offer.remainUnits == null)
+const isEmpty = computed(() => !isUnlimited.value && (props.offer.remainUnits ?? 0) <= 0)
+const stockLabel = computed(() => {
+  if (isUnlimited.value) return 'Без ограничений'
+  return isEmpty.value
+    ? 'Нет в наличии'
+    : `${props.offer.remainUnits} ${unitLabel.value}`
+})
 
 const cardClasses = computed(() => ({
   'mp-card--interactive': props.clickable,
