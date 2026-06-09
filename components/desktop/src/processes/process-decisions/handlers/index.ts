@@ -4,6 +4,7 @@ import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecis
 import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
+import { useCooperativeInvest } from 'src/features/Wallet/CooperativeInvest';
 
 /**
  * Регистрация обработчиков базовых решений
@@ -92,6 +93,34 @@ export function registerBaseDecisionHandlers() {
       }
 
       return await generateReturnByMoneyDecision({
+        username,
+        decision_id,
+        payment_hash: parsedDocumentMeta.payment_hash,
+        quantity: parsedDocumentMeta.quantity,
+        currency: parsedDocumentMeta.currency,
+      });
+    },
+  });
+
+  // Обработчик для CooperativeInvestDecision (решение об инвестировании
+  // средств кооператива в ЦПП оператора)
+  decisionFactory.registerHandler('createinv', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения createinv');
+      }
+
+      const { generateCooperativeInvestDecision } = useCooperativeInvest();
+
+      const parsedDocumentMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.CooperativeInvestStatement.Action;
+
+      if (!parsedDocumentMeta.payment_hash || !parsedDocumentMeta.quantity || !parsedDocumentMeta.currency) {
+        throw new Error('Некорректные метаданные заявления для решения createinv');
+      }
+
+      return await generateCooperativeInvestDecision({
         username,
         decision_id,
         payment_hash: parsedDocumentMeta.payment_hash,
