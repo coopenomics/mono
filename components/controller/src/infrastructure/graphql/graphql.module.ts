@@ -42,14 +42,22 @@ function extractBearerToken(raw: unknown): string | null {
           onConnect: (context: any) => {
             const params = context?.connectionParams ?? {};
             const token = extractBearerToken(params.authorization ?? params.Authorization);
-            if (!token) return false;
+            if (!token) {
+              logger.warn('[mp-ws] onConnect ОТКЛОНЁН: нет токена в connectionParams');
+              return false;
+            }
             try {
               const payload: any = jwt.verify(token, config.jwt.secret);
-              if (payload?.type !== tokenTypes.ACCESS) return false;
+              if (payload?.type !== tokenTypes.ACCESS) {
+                logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: тип токена "${payload?.type}" != ACCESS`);
+                return false;
+              }
               context.extra = context.extra ?? {};
               context.extra.user = { sub: payload.sub };
+              logger.info(`[mp-ws] onConnect ✅ принят: sub=${payload.sub}`);
               return true;
-            } catch {
+            } catch (e) {
+              logger.warn(`[mp-ws] onConnect ОТКЛОНЁН: verify failed (${(e as Error).message})`);
               return false;
             }
           },

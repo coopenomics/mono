@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PubSub } from 'graphql-subscriptions';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
+import logger from '~/config/logger';
 import {
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
@@ -36,10 +37,11 @@ export class MarketplaceRealtimeBridge {
       order_hash: event.order_hash,
       braname: event.braname,
     };
-    await this.pubSub.publish(
-      marketplaceMemberTopic(event.coopname, event.orderer_account),
-      payload
+    const topic = marketplaceMemberTopic(event.coopname, event.orderer_account);
+    logger.info(
+      `[mp-ws] PUBLISH ORDER_READY_TO_RECEIVE → topic=${topic} order=${event.order_id}`
     );
+    await this.pubSub.publish(topic, payload);
   }
 
   // Только очная приёмка (Вариант А): поставщик у стойки, экран перекрывается
@@ -54,9 +56,10 @@ export class MarketplaceRealtimeBridge {
       reception_id: event.apl_reception_id,
       ku_name: event.ku_name,
     };
-    await this.pubSub.publish(
-      marketplaceMemberTopic(event.coopname, event.supplier_account),
-      payload
+    const topic = marketplaceMemberTopic(event.coopname, event.supplier_account);
+    logger.info(
+      `[mp-ws] PUBLISH RECEPTION_PENDING_SIGN (очно) → topic=${topic} reception=${event.apl_reception_id} supplier_account=${event.supplier_account}`
     );
+    await this.pubSub.publish(topic, payload);
   }
 }
