@@ -1104,7 +1104,7 @@ export type ScalarCoders = {
 	JSONObject?: ScalarResolver;
 	ID?: ScalarResolver;
 }
-type ZEUS_UNIONS = GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
+type ZEUS_UNIONS = GraphQLTypes["MarketplaceEvent"] | GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
 
 export type ValueTypes = {
     ["Account"]: AliasType<{
@@ -6750,6 +6750,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
+	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
+		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"]
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceEventsInput"]: {
+	/** Кооперативное имя. */
+	coopname: string | Variable<any, string>
+};
 	["MarketplaceExpressPickupCandidate"]: AliasType<{
 	/** КУ-получатель. */
 	braname?:boolean | `@${string}`,
@@ -7338,6 +7346,17 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderPaginationResult']?: Omit<ValueTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
 }>;
+	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
+["MarketplaceOrderReadyToReceiveEvent"]: AliasType<{
+	/** Пункт выдачи, где заказ готов к получению. */
+	braname?:boolean | `@${string}`,
+	/** Контрольная сумма заказа. */
+	order_hash?:boolean | `@${string}`,
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderReadyToReceiveEvent']?: Omit<ValueTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
+}>;
 	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
@@ -7387,6 +7406,15 @@ export type ValueTypes = {
 	typeName?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceProductType']?: Omit<ValueTypes["MarketplaceProductType"], "...on MarketplaceProductType">
+}>;
+	/** Поставка ожидает подписи поставщика на пункте приёмки. */
+["MarketplaceReceptionPendingSignEvent"]: AliasType<{
+	/** Наименование кооперативного участка приёмки. */
+	ku_name?:boolean | `@${string}`,
+	/** Идентификатор приёмки. */
+	reception_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReceptionPendingSignEvent']?: Omit<ValueTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
 }>;
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
 	/** AGREEMENT_ID (например `marketplace_offer`) */
@@ -10921,6 +10949,11 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Распределение голосов */
 	votes: Array<ValueTypes["VoteDistributionInput"]> | Variable<any, string>
 };
+	["Subscription"]: AliasType<{
+marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
+		__typename?: boolean | `@${string}`,
+	['...on Subscription']?: Omit<ValueTypes["Subscription"], "...on Subscription">
+}>;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -17014,6 +17047,15 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceEvent"]: AliasType<{
+	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
+	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceEventsInput"]: {
+	/** Кооперативное имя. */
+	coopname: string
+};
 	["MarketplaceExpressPickupCandidate"]: AliasType<{
 	/** КУ-получатель. */
 	braname?:boolean | `@${string}`,
@@ -17586,6 +17628,16 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
+["MarketplaceOrderReadyToReceiveEvent"]: AliasType<{
+	/** Пункт выдачи, где заказ готов к получению. */
+	braname?:boolean | `@${string}`,
+	/** Контрольная сумма заказа. */
+	order_hash?:boolean | `@${string}`,
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
@@ -17632,6 +17684,14 @@ export type ResolverInputTypes = {
 	typeId?:boolean | `@${string}`,
 	/** Название типа товара */
 	typeName?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Поставка ожидает подписи поставщика на пункте приёмки. */
+["MarketplaceReceptionPendingSignEvent"]: AliasType<{
+	/** Наименование кооперативного участка приёмки. */
+	ku_name?:boolean | `@${string}`,
+	/** Идентификатор приёмки. */
+	reception_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
@@ -21051,6 +21111,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Распределение голосов */
 	votes: Array<ResolverInputTypes["VoteDistributionInput"]>
 };
+	["Subscription"]: AliasType<{
+marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
+		__typename?: boolean | `@${string}`
+}>;
 	["SubscriptionStatsDto"]: AliasType<{
 	/** Количество активных подписок */
 	active?:boolean | `@${string}`,
@@ -21638,6 +21702,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["schema"]: AliasType<{
 	query?:ResolverInputTypes["Query"],
 	mutation?:ResolverInputTypes["Mutation"],
+	subscription?:ResolverInputTypes["Subscription"],
 		__typename?: boolean | `@${string}`
 }>;
 	["ID"]:unknown
@@ -26948,6 +27013,11 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
+	["MarketplaceEvent"]:ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEventsInput"]: {
+	/** Кооперативное имя. */
+	coopname: string
+};
 	["MarketplaceExpressPickupCandidate"]: {
 		/** КУ-получатель. */
 	braname: string,
@@ -27499,6 +27569,15 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
+["MarketplaceOrderReadyToReceiveEvent"]: {
+		/** Пункт выдачи, где заказ готов к получению. */
+	braname: string,
+	/** Контрольная сумма заказа. */
+	order_hash: string,
+	/** Идентификатор заказа. */
+	order_id: string
+};
 	["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
 	["MarketplaceOutgoingPaymentRequest"]: {
 		/** Сумма платежа (numeric с 4 знаками). */
@@ -27542,6 +27621,13 @@ export type ModelTypes = {
 	typeId: number,
 	/** Название типа товара */
 	typeName: string
+};
+	/** Поставка ожидает подписи поставщика на пункте приёмки. */
+["MarketplaceReceptionPendingSignEvent"]: {
+		/** Наименование кооперативного участка приёмки. */
+	ku_name: string,
+	/** Идентификатор приёмки. */
+	reception_id: string
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 		/** AGREEMENT_ID (например `marketplace_offer`) */
@@ -31600,6 +31686,10 @@ export type ModelTypes = {
 	/** Распределение голосов */
 	votes: Array<ModelTypes["VoteDistributionInput"]>
 };
+	["Subscription"]: {
+		/** Персональный поток событий пайщика в Столе заказов. */
+	marketplaceEvents: ModelTypes["MarketplaceEvent"]
+};
 	["SubscriptionStatsDto"]: {
 		/** Количество активных подписок */
 	active: number,
@@ -32158,7 +32248,8 @@ export type ModelTypes = {
 	["ZeroReportSignerType"]:ZeroReportSignerType;
 	["schema"]: {
 	query?: ModelTypes["Query"] | undefined | null,
-	mutation?: ModelTypes["Mutation"] | undefined | null
+	mutation?: ModelTypes["Mutation"] | undefined | null,
+	subscription?: ModelTypes["Subscription"] | undefined | null
 };
 	["ID"]:any
     }
@@ -37810,6 +37901,15 @@ export type GraphQLTypes = {
 	value: string,
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
+	["MarketplaceEvent"]:{
+        	__typename:"MarketplaceOrderReadyToReceiveEvent" | "MarketplaceReceptionPendingSignEvent"
+        	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
+	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
+};
+	["MarketplaceEventsInput"]: {
+		/** Кооперативное имя. */
+	coopname: string
+};
 	["MarketplaceExpressPickupCandidate"]: {
 	__typename: "MarketplaceExpressPickupCandidate",
 	/** КУ-получатель. */
@@ -38398,6 +38498,17 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOrderPaginationResult']: Omit<GraphQLTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
 };
+	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
+["MarketplaceOrderReadyToReceiveEvent"]: {
+	__typename: "MarketplaceOrderReadyToReceiveEvent",
+	/** Пункт выдачи, где заказ готов к получению. */
+	braname: string,
+	/** Контрольная сумма заказа. */
+	order_hash: string,
+	/** Идентификатор заказа. */
+	order_id: string,
+	['...on MarketplaceOrderReadyToReceiveEvent']: Omit<GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
+};
 	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]: MarketplaceOrderStatus;
 	["MarketplaceOutgoingPaymentRequest"]: {
@@ -38447,6 +38558,15 @@ export type GraphQLTypes = {
 	/** Название типа товара */
 	typeName: string,
 	['...on MarketplaceProductType']: Omit<GraphQLTypes["MarketplaceProductType"], "...on MarketplaceProductType">
+};
+	/** Поставка ожидает подписи поставщика на пункте приёмки. */
+["MarketplaceReceptionPendingSignEvent"]: {
+	__typename: "MarketplaceReceptionPendingSignEvent",
+	/** Наименование кооперативного участка приёмки. */
+	ku_name: string,
+	/** Идентификатор приёмки. */
+	reception_id: string,
+	['...on MarketplaceReceptionPendingSignEvent']: Omit<GraphQLTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 	__typename: "MarketplaceRegistrationOfferStatus",
@@ -42775,6 +42895,12 @@ export type GraphQLTypes = {
 	/** Распределение голосов */
 	votes: Array<GraphQLTypes["VoteDistributionInput"]>
 };
+	["Subscription"]: {
+	__typename: "Subscription",
+	/** Персональный поток событий пайщика в Столе заказов. */
+	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
+	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
+};
 	["SubscriptionStatsDto"]: {
 	__typename: "SubscriptionStatsDto",
 	/** Количество активных подписок */
@@ -44208,6 +44334,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateWriteoffDraftInput"]: ValueTypes["MarketplaceCreateWriteoffDraftInput"];
 	["MarketplaceDeclineOrdersBatchInput"]: ValueTypes["MarketplaceDeclineOrdersBatchInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
+	["MarketplaceEventsInput"]: ValueTypes["MarketplaceEventsInput"];
 	["MarketplaceFinalizeIssuanceInput"]: ValueTypes["MarketplaceFinalizeIssuanceInput"];
 	["MarketplaceGenerateInventoryLabelInput"]: ValueTypes["MarketplaceGenerateInventoryLabelInput"];
 	["MarketplaceGeocodeStatus"]: ValueTypes["MarketplaceGeocodeStatus"];

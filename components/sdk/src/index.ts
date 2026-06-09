@@ -11,6 +11,7 @@ import { ZeusScalars } from './zeus/index'
 export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
+export * as Subscriptions from './subscriptions'
 export * as Selectors from './selectors'
 
 export * as Types from './types'
@@ -183,7 +184,12 @@ export class Client {
    * Подписка на GraphQL-события.
    */
   public get Subscription() {
-    return ZeusSubscription(this.options.api_url.replace(/^http/, 'ws'))
+    // Прокидываем заголовки (в т.ч. Authorization) — Zeus кладёт их в
+    // connectionParams ws-соединения, по которым сервер аутентифицирует
+    // подписку в onConnect. Без этого канал был бы анонимным и отклонялся.
+    return ZeusSubscription(this.options.api_url.replace(/^http/, 'ws'), {
+      headers: this.currentHeaders,
+    })
   }
 
   /**
