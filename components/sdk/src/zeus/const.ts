@@ -2167,6 +2167,7 @@ export const AllTypesProps: Record<string,any> = {
 	RegisterParticipantInput:{
 		blagorost_offer:"SignedDigitalDocumentInput",
 		generator_offer:"SignedDigitalDocumentInput",
+		marketplace_offer:"SignedDigitalDocumentInput",
 		privacy_agreement:"SignedDigitalDocumentInput",
 		program_key:"ProgramKey",
 		signature_agreement:"SignedDigitalDocumentInput",

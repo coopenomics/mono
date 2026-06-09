@@ -74,6 +74,14 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
   @IsOptional()
   generator_offer?: SignedDigitalDocumentInputDTO;
 
+  @Field(() => SignedDigitalDocumentInputDTO, {
+    description: 'Подписанная оферта по целевой потребительской программе «Стол заказов» (опционально, только для программы marketplace)',
+    nullable: true,
+  })
+  @ValidateNested()
+  @IsOptional()
+  marketplace_offer?: SignedDigitalDocumentInputDTO;
+
   @Field(() => ProgramKey, { description: 'Ключ выбранной программы регистрации', nullable: true })
   @IsOptional()
   program_key?: ProgramKey;
