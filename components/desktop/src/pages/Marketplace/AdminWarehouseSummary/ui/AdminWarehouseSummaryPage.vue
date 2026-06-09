@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { debounce } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
-import { BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base'
+import { EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units'
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import {
   WarehouseSummaryGrid,
   type WarehouseRow,
@@ -26,6 +28,23 @@ async function load(): Promise<void> {
     loading.value = false
   }
 }
+
+// Realtime вместо кнопки «Обновить»: сводку двигают приёмки (акт →
+// ACCEPTED_TO_COOP), выдачи (заказ → RECEIVED) и исполненные списания.
+// Председатель получает служебный канал персонала КУ по праву admin —
+// сигналы всех участков приходят без фильтра.
+const reloadLive = debounce(() => {
+  if (loading.value) return
+  void load()
+}, 400)
+useMarketplaceRealtime(
+  {
+    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() },
+)
 
 onMounted(() => {
   void load()
@@ -122,19 +141,6 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
   PageHint(storage-key='mp:admin-warehouse-summary:banner-dismissed')
     | Сводный обзор склада и оборота по всем пунктам выдачи кооператива. Только для
     | чтения — операции выполняются на столах ПВЗ.
-
-  //- Обновление — в шапке страницы (канон: действия — в топбаре).
-  Teleport(to='#header-actions-host', defer)
-    BaseButton(
-      variant='ghost',
-      size='sm',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   q-tabs.warehouse-summary__tabs(
     v-model='tab',

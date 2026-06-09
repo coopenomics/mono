@@ -366,6 +366,8 @@ useMarketplaceRealtime(
       if (event.braname === braname.value.trim()) reloadLive()
     },
     MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    // Исполненное списание тоже опустошает полки склада.
+    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
   },
   { onResync: () => reloadLive() },
 )

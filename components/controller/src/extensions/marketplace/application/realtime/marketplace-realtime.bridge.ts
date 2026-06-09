@@ -17,6 +17,11 @@ import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
+  MARKETPLACE_WRITEOFF_AUTHORIZED_EVENT,
+  MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT,
+  MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
+  MARKETPLACE_WRITEOFF_PROPOSED_EVENT,
+  MARKETPLACE_WRITEOFF_REJECTED_EVENT,
   MarketplaceAplReceptionStatusChangedEvent,
   MarketplaceAplSupplierOnsiteSignRequestEvent,
   MarketplaceOfferApprovedEvent,
@@ -29,6 +34,11 @@ import {
   MarketplaceReturnClaimSubmittedEvent,
   MarketplaceSupplierPaymentConfirmedEvent,
   MarketplaceSupplierPaymentDeclinedEvent,
+  MarketplaceWriteoffAuthorizedPayload,
+  MarketplaceWriteoffDraftBuiltPayload,
+  MarketplaceWriteoffExecutedPayload,
+  MarketplaceWriteoffProposedPayload,
+  MarketplaceWriteoffRejectedPayload,
 } from '../events/marketplace-notification.events';
 import {
   MarketplaceAplReceptionStatusChangedEventDTO,
@@ -41,12 +51,15 @@ import {
   MarketplacePaymentStatusChangedEventDTO,
   MarketplaceReceptionPendingSignEventDTO,
   MarketplaceReturnClaimStatusChangedEventDTO,
+  MarketplaceWriteoffStatusChangedEventDTO,
 } from '../dto/marketplace-event.dto';
 import type { MarketplaceAplReceptionStatusEnum } from '../dto/marketplace-apl-reception.dto';
 import { MarketplaceOfferStatusEnum } from '../dto/marketplace-offer.dto';
 import { MarketplaceOutgoingPaymentRequestStatusEnum } from '../dto/marketplace-outgoing-payment.dto';
 import { MarketplaceReturnClaimStatusEnum } from '../dto/marketplace-return-claim.dto';
+import { MarketplaceWriteoffProposalStatusEnum } from '../dto/marketplace-writeoff.dto';
 import {
+  marketplaceBoardTopic,
   marketplaceCatalogTopic,
   marketplaceMemberTopic,
   marketplaceModerationTopic,
@@ -350,5 +363,76 @@ export class MarketplaceRealtimeBridge {
       `[mp-ws] PUBLISH PAYMENT_STATUS_CHANGED → topic=${topic} payment=${payment_request_id} status=${status}`
     );
     await this.pubSub.publish(topic, payload);
+  }
+
+  // ── Списания: повестка совета и склады КУ ───────────────────────────
+  //
+  // Жизненный цикл проекта списания (сформирован → в повестке → авторизован →
+  // исполнен / отклонён) ведут cron и совет — для столов повестки и админ-листа
+  // это внешние изменения. Исполненное списание к тому же опустошает склад КУ.
+  // Адресаты: канал совета (member/chairman) + служебный канал персонала КУ.
+
+  @OnEvent(MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT)
+  async onWriteoffDraftBuilt(event: MarketplaceWriteoffDraftBuiltPayload): Promise<void> {
+    await this.publishWriteoffStatus(
+      event.coopname,
+      event.proposal_id,
+      MarketplaceWriteoffProposalStatusEnum.DRAFT
+    );
+  }
+
+  @OnEvent(MARKETPLACE_WRITEOFF_PROPOSED_EVENT)
+  async onWriteoffProposed(event: MarketplaceWriteoffProposedPayload): Promise<void> {
+    await this.publishWriteoffStatus(
+      event.coopname,
+      event.proposal_id,
+      MarketplaceWriteoffProposalStatusEnum.ON_AGENDA
+    );
+  }
+
+  @OnEvent(MARKETPLACE_WRITEOFF_AUTHORIZED_EVENT)
+  async onWriteoffAuthorized(event: MarketplaceWriteoffAuthorizedPayload): Promise<void> {
+    await this.publishWriteoffStatus(
+      event.coopname,
+      event.proposal_id,
+      MarketplaceWriteoffProposalStatusEnum.AUTHORIZED
+    );
+  }
+
+  @OnEvent(MARKETPLACE_WRITEOFF_EXECUTED_EVENT)
+  async onWriteoffExecuted(event: MarketplaceWriteoffExecutedPayload): Promise<void> {
+    await this.publishWriteoffStatus(
+      event.coopname,
+      event.proposal_id,
+      MarketplaceWriteoffProposalStatusEnum.EXECUTED
+    );
+  }
+
+  @OnEvent(MARKETPLACE_WRITEOFF_REJECTED_EVENT)
+  async onWriteoffRejected(event: MarketplaceWriteoffRejectedPayload): Promise<void> {
+    await this.publishWriteoffStatus(
+      event.coopname,
+      event.proposal_id,
+      MarketplaceWriteoffProposalStatusEnum.REJECTED
+    );
+  }
+
+  private async publishWriteoffStatus(
+    coopname: string,
+    proposal_id: string,
+    status: MarketplaceWriteoffProposalStatusEnum
+  ): Promise<void> {
+    const payload: MarketplaceWriteoffStatusChangedEventDTO = {
+      eventType: MarketplaceEventType.WRITEOFF_STATUS_CHANGED,
+      proposal_id,
+      status,
+    };
+    const boardTopic = marketplaceBoardTopic(coopname);
+    const staffTopic = marketplaceStaffTopic(coopname);
+    logger.info(
+      `[mp-ws] PUBLISH WRITEOFF_STATUS_CHANGED → topics=${boardTopic},${staffTopic} proposal=${proposal_id} status=${status}`
+    );
+    await this.pubSub.publish(boardTopic, payload);
+    await this.pubSub.publish(staffTopic, payload);
   }
 }

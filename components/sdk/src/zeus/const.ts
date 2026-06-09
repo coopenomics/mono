@@ -4189,7 +4189,8 @@ export const ReturnTypes: Record<string,any> = {
 		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
 		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
 		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
-		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent"
+		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent",
+		"...on MarketplaceWriteoffStatusChangedEvent":"MarketplaceWriteoffStatusChangedEvent"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -4680,6 +4681,10 @@ export const ReturnTypes: Record<string,any> = {
 		inventory_id:"String",
 		quantity:"String",
 		reason:"String"
+	},
+	MarketplaceWriteoffStatusChangedEvent:{
+		proposal_id:"String",
+		status:"MarketplaceWriteoffProposalStatus"
 	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",

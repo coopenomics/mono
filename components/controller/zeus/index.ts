@@ -6769,7 +6769,8 @@ export type ValueTypes = {
 		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
 		["...on MarketplacePaymentStatusChangedEvent"]?: ValueTypes["MarketplacePaymentStatusChangedEvent"],
 		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"],
-		["...on MarketplaceReturnClaimStatusChangedEvent"]?: ValueTypes["MarketplaceReturnClaimStatusChangedEvent"]
+		["...on MarketplaceReturnClaimStatusChangedEvent"]?: ValueTypes["MarketplaceReturnClaimStatusChangedEvent"],
+		["...on MarketplaceWriteoffStatusChangedEvent"]?: ValueTypes["MarketplaceWriteoffStatusChangedEvent"]
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -8165,6 +8166,15 @@ export type ValueTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string | Variable<any, string>
 };
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Новый статус проекта списания. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWriteoffStatusChangedEvent']?: Omit<ValueTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
+}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -17147,6 +17157,7 @@ export type ResolverInputTypes = {
 	MarketplacePaymentStatusChangedEvent?:ResolverInputTypes["MarketplacePaymentStatusChangedEvent"],
 	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
 	MarketplaceReturnClaimStatusChangedEvent?:ResolverInputTypes["MarketplaceReturnClaimStatusChangedEvent"],
+	MarketplaceWriteoffStatusChangedEvent?:ResolverInputTypes["MarketplaceWriteoffStatusChangedEvent"],
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -18495,6 +18506,14 @@ export type ResolverInputTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
 };
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Новый статус проекта списания. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -27175,7 +27194,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferModerationEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplacePaymentStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"] | ModelTypes["MarketplaceReturnClaimStatusChangedEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferModerationEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplacePaymentStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"] | ModelTypes["MarketplaceReturnClaimStatusChangedEvent"] | ModelTypes["MarketplaceWriteoffStatusChangedEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -28460,6 +28479,13 @@ export type ModelTypes = {
 	["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
+};
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: {
+		/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Новый статус проекта списания. */
+	status: ModelTypes["MarketplaceWriteoffProposalStatus"]
 };
 	["MatrixAccountStatusResponseDTO"]: {
 		hasAccount: boolean,
@@ -38125,7 +38151,7 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferModerationEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplacePaymentStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent" | "MarketplaceReturnClaimStatusChangedEvent"
+        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferModerationEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplacePaymentStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent" | "MarketplaceReturnClaimStatusChangedEvent" | "MarketplaceWriteoffStatusChangedEvent"
         	['...on MarketplaceAplReceptionStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"];
 	['...on MarketplaceOfferModerationEvent']: '__union' & GraphQLTypes["MarketplaceOfferModerationEvent"];
 	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
@@ -38135,6 +38161,7 @@ export type GraphQLTypes = {
 	['...on MarketplacePaymentStatusChangedEvent']: '__union' & GraphQLTypes["MarketplacePaymentStatusChangedEvent"];
 	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
 	['...on MarketplaceReturnClaimStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"];
+	['...on MarketplaceWriteoffStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"];
 };
 	["MarketplaceEventsInput"]: {
 		/** Кооперативное имя. */
@@ -39528,6 +39555,15 @@ export type GraphQLTypes = {
 ["MarketplaceWriteoffProposalTrigger"]: MarketplaceWriteoffProposalTrigger;
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 		draft_id: string
+};
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: {
+	__typename: "MarketplaceWriteoffStatusChangedEvent",
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Новый статус проекта списания. */
+	status: GraphQLTypes["MarketplaceWriteoffProposalStatus"],
+	['...on MarketplaceWriteoffStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
 };
 	["MatrixAccountStatusResponseDTO"]: {
 	__typename: "MatrixAccountStatusResponseDTO",

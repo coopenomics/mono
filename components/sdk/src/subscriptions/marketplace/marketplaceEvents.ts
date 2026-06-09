@@ -60,6 +60,10 @@ export const subscription = Selector('Subscription')({
         payment_request_id: true,
         status: true,
       },
+      '...on MarketplaceWriteoffStatusChangedEvent': {
+        proposal_id: true,
+        status: true,
+      },
     },
   ],
 })

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
@@ -14,6 +15,7 @@ import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
 import { Map as MapView } from 'src/shared/ui/Map'
@@ -164,6 +166,16 @@ async function retryGeocode(row: IssuancePointRow): Promise<void> {
   }
 }
 
+// Фоновое обновление вместо кнопки: геокодер проставляет координаты
+// асинхронно после сохранения адреса — статус доезжает страховочным
+// resync'ом канала (60с) и catch-up'ом на возврат вкладки. Собственных
+// realtime-событий у КУ-деталей нет (изменения делает сам админ).
+const reloadLive = debounce(() => {
+  if (loading.value) return
+  void load()
+}, 400)
+useMarketplaceRealtime({}, { onResync: () => reloadLive() })
+
 onMounted(() => {
   void load()
 })
@@ -180,16 +192,6 @@ q-page.admin-pvz
   .admin-pvz__toolbar
     .admin-pvz__counter(v-if='!loading && rows.length')
       | Подключено пунктов выдачи: {{ connectedCount }} из {{ rows.length }}
-    q-space
-    BaseButton(
-      variant='ghost',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   TableSkeleton(
     v-if='loading && !rows.length',

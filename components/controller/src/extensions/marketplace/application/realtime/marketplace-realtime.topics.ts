@@ -49,3 +49,15 @@ export function marketplaceStaffTopic(coopname: string): string {
 export function marketplaceModerationTopic(coopname: string): string {
   return `marketplace:moderation:${coopname}`;
 }
+
+/**
+ * Имя PubSub-топика канала совета кооператива.
+ *
+ * Повестка списаний и надзорные столы совета: события проектов списания
+ * адресуются членам совета и председателю (core-роли member/chairman), а не
+ * персоналу КУ. Подключается ТОЛЬКО соединениям с этими ролями — резолвер
+ * проверяет при открытии подписки; клиент топики не выбирает.
+ */
+export function marketplaceBoardTopic(coopname: string): string {
+  return `marketplace:board:${coopname}`;
+}

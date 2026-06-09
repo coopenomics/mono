@@ -18,6 +18,7 @@ import {
 } from '../dto/marketplace-event.dto';
 import { MarketplaceEventsInputDTO } from '../dto/marketplace-events-input.dto';
 import {
+  marketplaceBoardTopic,
   marketplaceCatalogTopic,
   marketplaceMemberTopic,
   marketplaceModerationTopic,
@@ -64,32 +65,41 @@ export class MarketplaceEventsResolver {
     const memberTopic = marketplaceMemberTopic(config.coopname, username);
     const catalogTopic = marketplaceCatalogTopic(config.coopname);
     const topics = [memberTopic, catalogTopic];
-    if (await this.isBranchStaff(username)) {
+    const role = await this.resolveRole(username);
+    // Служебный канал КУ: персонал участка ИЛИ председатель — у него
+    // marketplace-роль admin (read:all), надзорные столы (сводка склада,
+    // списания) живут теми же операционными сигналами.
+    if (role === 'chairman' || (await this.isBranchStaff(username))) {
       topics.push(marketplaceStaffTopic(config.coopname));
     }
-    if (await this.isChairman(username)) {
+    if (role === 'chairman') {
       topics.push(marketplaceModerationTopic(config.coopname));
+    }
+    // Канал совета: члены совета и председатель (повестка списаний).
+    if (role === 'chairman' || role === 'member') {
+      topics.push(marketplaceBoardTopic(config.coopname));
     }
     logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topics);
   }
 
   /**
-   * Канал модерации — только председателю (core-роль chairman = marketplace
-   * admin, та же логика, что в `mapCoreRolesToMarketplaceRoles`). Роль читаем
-   * из записи пользователя в PG, а не из ws-контекста: graphql-ws кладёт в
-   * контекст только `sub`. Ошибка проверки деградирует в «не председатель» —
-   * стол модерации добирает состояние resync'ом.
+   * Core-роль аккаунта (user/member/chairman) — определяет служебные каналы:
+   * chairman → staff + moderation + board, member → board (та же логика, что
+   * в `mapCoreRolesToMarketplaceRoles`). Роль читаем из записи пользователя в
+   * PG, а не из ws-контекста: graphql-ws кладёт в контекст только `sub`.
+   * Ошибка проверки деградирует в «обычный пайщик» — служебные столы добирают
+   * состояние resync'ом.
    */
-  private async isChairman(username: string): Promise<boolean> {
+  private async resolveRole(username: string): Promise<string | null> {
     try {
       const record = await this.userRepository.findByUsername(username);
-      return record?.role === 'chairman';
+      return record?.role ?? null;
     } catch (err: any) {
       logger.warn(
-        `[mp-ws] не удалось проверить роль ${username}: ${err.message} — канал модерации не подключён`
+        `[mp-ws] не удалось проверить роль ${username}: ${err.message} — служебные каналы не подключены`
       );
-      return false;
+      return null;
     }
   }
 

@@ -4,6 +4,7 @@ import { MarketplaceAplReceptionStatusEnum } from './marketplace-apl-reception.d
 import { MarketplaceOfferStatusEnum } from './marketplace-offer.dto';
 import { MarketplaceOutgoingPaymentRequestStatusEnum } from './marketplace-outgoing-payment.dto';
 import { MarketplaceReturnClaimStatusEnum } from './marketplace-return-claim.dto';
+import { MarketplaceWriteoffProposalStatusEnum } from './marketplace-writeoff.dto';
 
 /**
  * Статус заказа на проводе. Регистрируем уже существующий канон-набор
@@ -33,6 +34,7 @@ export enum MarketplaceEventType {
   RETURN_CLAIM_STATUS_CHANGED = 'RETURN_CLAIM_STATUS_CHANGED',
   OFFER_MODERATION_CHANGED = 'OFFER_MODERATION_CHANGED',
   PAYMENT_STATUS_CHANGED = 'PAYMENT_STATUS_CHANGED',
+  WRITEOFF_STATUS_CHANGED = 'WRITEOFF_STATUS_CHANGED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -172,6 +174,22 @@ export class MarketplacePaymentStatusChangedEventDTO {
   status!: MarketplaceOutgoingPaymentRequestStatusEnum;
 }
 
+@ObjectType('MarketplaceWriteoffStatusChangedEvent', {
+  description:
+    'Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние.',
+})
+export class MarketplaceWriteoffStatusChangedEventDTO {
+  eventType!: MarketplaceEventType.WRITEOFF_STATUS_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+
+  @Field(() => MarketplaceWriteoffProposalStatusEnum, {
+    description: 'Новый статус проекта списания.',
+  })
+  status!: MarketplaceWriteoffProposalStatusEnum;
+}
+
 /**
  * Объединение всех типов realtime-событий marketplace.
  *
@@ -195,6 +213,7 @@ export const MarketplaceEventUnion = createUnionType({
       MarketplaceReturnClaimStatusChangedEventDTO,
       MarketplaceOfferModerationEventDTO,
       MarketplacePaymentStatusChangedEventDTO,
+      MarketplaceWriteoffStatusChangedEventDTO,
     ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
@@ -216,6 +235,8 @@ export const MarketplaceEventUnion = createUnionType({
         return MarketplaceOfferModerationEventDTO;
       case MarketplaceEventType.PAYMENT_STATUS_CHANGED:
         return MarketplacePaymentStatusChangedEventDTO;
+      case MarketplaceEventType.WRITEOFF_STATUS_CHANGED:
+        return MarketplaceWriteoffStatusChangedEventDTO;
       default:
         return null;
     }
@@ -231,4 +252,5 @@ export type MarketplaceEventPayload =
   | MarketplaceAplReceptionStatusChangedEventDTO
   | MarketplaceReturnClaimStatusChangedEventDTO
   | MarketplaceOfferModerationEventDTO
-  | MarketplacePaymentStatusChangedEventDTO;
+  | MarketplacePaymentStatusChangedEventDTO
+  | MarketplaceWriteoffStatusChangedEventDTO;
