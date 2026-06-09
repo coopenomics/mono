@@ -27,11 +27,17 @@ function makeRepo(initialConfig: any = {}) {
     Object.assign(state.config, patch.config);
     return state;
   });
+  // patchConfig — атомарный shallow-merge top-level ключей (как в проде).
+  const patchConfigMock = jest.fn().mockImplementation(async (_name: string, patch: any) => {
+    Object.assign(state.config, patch);
+    return state;
+  });
   return {
     findByName: jest.fn().mockImplementation(async (name: string) =>
       name === 'market' ? state : null
     ),
     update: updateMock,
+    patchConfig: patchConfigMock,
     _state: state,
   } as any;
 }
@@ -55,7 +61,7 @@ describe('MarketplaceCoopAcceptanceService', () => {
     expect(status.status).toBe('not_accepted');
   });
 
-  it('accept(input) → status=active + поля заполнены, repo.update вызван', async () => {
+  it('accept(input) → status=active + поля заполнены, repo.patchConfig вызван', async () => {
     const repo = makeRepo({
       coopAcceptance: { accepted: false, document_registry_id: 0, accepted_at: '', accepted_by_board_decision_id: '' },
     });
@@ -71,7 +77,7 @@ describe('MarketplaceCoopAcceptanceService', () => {
     expect(status.document_registry_id).toBe(1101);
     expect(status.accepted_at).toBe('2026-05-14T12:00:00Z');
     expect(status.accepted_by_board_decision_id).toBe('board-decision-42');
-    expect(repo.update).toHaveBeenCalledTimes(1);
+    expect(repo.patchConfig).toHaveBeenCalledTimes(1);
     expect(repo._state.config.coopAcceptance).toEqual({
       accepted: true,
       document_registry_id: 1101,

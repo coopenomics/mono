@@ -110,8 +110,9 @@ export class MarketplacePlugin extends BaseExtModule {
     const boardDecisionRef =
       (cfg.onboarding_marketplace_provision_hash as string | undefined) || '';
 
-    const nextConfig: IConfig = {
-      ...this.plugin.config,
+    // Атомарный merge только coopAcceptance: не затираем onboarding_*_done,
+    // которые generic-слушатель мог проставить параллельно по решениям совета.
+    const merged = await this.extensionRepository.patchConfig(this.name, {
       coopAcceptance: {
         accepted: true,
         document_registry_id:
@@ -119,10 +120,8 @@ export class MarketplacePlugin extends BaseExtModule {
         accepted_at: acceptedAt,
         accepted_by_board_decision_id: boardDecisionRef,
       },
-    };
-
-    await this.extensionRepository.update({ name: this.name, config: nextConfig });
-    this.plugin = { ...this.plugin, config: nextConfig };
+    });
+    this.plugin = { ...this.plugin, config: merged.config };
     this.logger.info(
       '[MARKETPLACE.L1] coopAcceptance.accepted выставлен по завершению онбординга совета'
     );

@@ -73,13 +73,13 @@ export class CapitalOnboardingEventsService {
 
       const wasAlreadyDone = !!(plugin.config as any)[flagKey];
 
-      // Обновляем флаг завершения шага
-      const updatedConfig = {
-        ...plugin.config,
+      // Атомарный merge одного флага: два решения совета по разным шагам,
+      // утверждённые почти одновременно, иначе теряли бы друг друга. merged —
+      // свежий слитый config (под локом), поэтому isL1Complete видит все флаги.
+      const merged = await this.extensionRepository.patchConfig('capital', {
         [flagKey]: true,
-      };
-
-      await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+      });
+      const updatedConfig = merged.config;
 
       this.logger.info(`Флаг ${flagKey} установлен в true`);
 

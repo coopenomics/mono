@@ -57,4 +57,28 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
 
     return existingEntity.toDomainEntity();
   }
+
+  async patchConfig(name: string, patch: Record<string, unknown>): Promise<ExtensionDomainEntity<TConfig>> {
+    if (!name) throw new Error('Имя расширения для обновления обязательный параметр');
+
+    // Транзакция + pessimistic_write (SELECT … FOR UPDATE) сериализует
+    // конкурентных писателей по этой строке: второй ждёт коммита первого и
+    // читает уже слитый config, поэтому патчи разных ключей не затирают друг
+    // друга (lost-update в update(), пишущем весь config из устаревшего снимка).
+    return this.ormRepo.manager.transaction(async (em) => {
+      const repo = em.getRepository(ExtensionEntity);
+      const existing = await repo.findOne({
+        where: { name } as FindOptionsWhere<ExtensionEntity>,
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!existing) {
+        throw new Error('Расширение не найдено в установленных');
+      }
+
+      existing.config = { ...((existing.config as Record<string, unknown>) ?? {}), ...patch } as TConfig;
+      await repo.save(existing);
+
+      return (existing as ExtensionEntity<TConfig>).toDomainEntity();
+    });
+  }
 }
