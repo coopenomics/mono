@@ -42,6 +42,11 @@ export const subscription = Selector('Subscription')({
         status: true,
         previous_status: true,
       },
+      '...on MarketplaceAplReceptionStatusChangedEvent': {
+        reception_id: true,
+        status: true,
+        braname: true,
+      },
     },
   ],
 })

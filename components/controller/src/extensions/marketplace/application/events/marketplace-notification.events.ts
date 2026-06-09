@@ -56,6 +56,16 @@ export const MARKETPLACE_OFFER_APPROVED_EVENT = 'marketplace.offer.approved';
  */
 export const MARKETPLACE_ORDER_STATUS_CHANGED_EVENT = 'marketplace.order.status.changed';
 
+/**
+ * Статус акта приёмки (АПП) сменился: акт создан и ждёт подписи поставщика,
+ * поставщик подписал, председатель закрыл, акт отменён. Подпись поставщика
+ * НЕ двигает статусы заказов — поэтому отдельное событие: оператор у стойки
+ * ждёт именно эту подпись и не может отпустить поставщика без неё. Адресаты:
+ * служебный канал персонала КУ + персональный канал поставщика.
+ */
+export const MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT =
+  'marketplace.aplReception.status.changed';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -136,6 +146,17 @@ export interface MarketplaceOrderStatusChangedEvent {
   /** Аккаунт заказчика — адресат персонального сигнала. */
   orderer_account: string;
   /** Аккаунт поставщика — второй адресат персонального сигнала. */
+  supplier_account: string;
+}
+
+export interface MarketplaceAplReceptionStatusChangedEvent {
+  coopname: string;
+  apl_reception_id: string;
+  /** Новый статус акта (значение из `MarketplaceAplReceptionStatuses`). */
+  status: string;
+  /** КУ приёмки — стол оператора фильтрует чужие участки. */
+  braname: string;
+  /** Аккаунт поставщика — адресат персонального сигнала. */
   supplier_account: string;
 }
 

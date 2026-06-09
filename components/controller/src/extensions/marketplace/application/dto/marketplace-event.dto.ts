@@ -1,5 +1,6 @@
 import { createUnionType, Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
+import { MarketplaceAplReceptionStatusEnum } from './marketplace-apl-reception.dto';
 
 /**
  * Статус заказа на проводе. Регистрируем уже существующий канон-набор
@@ -25,6 +26,7 @@ export enum MarketplaceEventType {
   OFFER_STOCK_CHANGED = 'OFFER_STOCK_CHANGED',
   OFFER_PUBLISHED = 'OFFER_PUBLISHED',
   ORDER_STATUS_CHANGED = 'ORDER_STATUS_CHANGED',
+  RECEPTION_STATUS_CHANGED = 'RECEPTION_STATUS_CHANGED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -101,6 +103,23 @@ export class MarketplaceOrderStatusChangedEventDTO {
   previous_status!: string;
 }
 
+@ObjectType('MarketplaceAplReceptionStatusChangedEvent', {
+  description:
+    'У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние.',
+})
+export class MarketplaceAplReceptionStatusChangedEventDTO {
+  eventType!: MarketplaceEventType.RECEPTION_STATUS_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор акта приёмки.' })
+  reception_id!: string;
+
+  @Field(() => MarketplaceAplReceptionStatusEnum, { description: 'Новый статус акта приёмки.' })
+  status!: MarketplaceAplReceptionStatusEnum;
+
+  @Field(() => String, { description: 'Кооперативный участок приёмки.' })
+  braname!: string;
+}
+
 /**
  * Объединение всех типов realtime-событий marketplace.
  *
@@ -120,6 +139,7 @@ export const MarketplaceEventUnion = createUnionType({
       MarketplaceOfferStockChangedEventDTO,
       MarketplaceOfferPublishedEventDTO,
       MarketplaceOrderStatusChangedEventDTO,
+      MarketplaceAplReceptionStatusChangedEventDTO,
     ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
@@ -133,6 +153,8 @@ export const MarketplaceEventUnion = createUnionType({
         return MarketplaceOfferPublishedEventDTO;
       case MarketplaceEventType.ORDER_STATUS_CHANGED:
         return MarketplaceOrderStatusChangedEventDTO;
+      case MarketplaceEventType.RECEPTION_STATUS_CHANGED:
+        return MarketplaceAplReceptionStatusChangedEventDTO;
       default:
         return null;
     }
@@ -144,4 +166,5 @@ export type MarketplaceEventPayload =
   | MarketplaceReceptionPendingSignEventDTO
   | MarketplaceOfferStockChangedEventDTO
   | MarketplaceOfferPublishedEventDTO
-  | MarketplaceOrderStatusChangedEventDTO;
+  | MarketplaceOrderStatusChangedEventDTO
+  | MarketplaceAplReceptionStatusChangedEventDTO;

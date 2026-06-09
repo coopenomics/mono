@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import {
+  MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
+  type MarketplaceOrderStatusChangedEvent,
+} from '../../application/events/marketplace-notification.events';
 import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateInput,
@@ -25,8 +30,33 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
   constructor(
     @InjectRepository(MarketplaceOrderEntity, 'marketplace')
     private readonly repo: Repository<MarketplaceOrderEntity>,
-    private readonly mapper: MarketplaceOrderMapper
+    private readonly mapper: MarketplaceOrderMapper,
+    private readonly eventEmitter: EventEmitter2
   ) {}
+
+  /**
+   * Realtime-сигнал смены статуса заказа из backend-forward write-path'ов
+   * (отмена, действие поставщика, закрывающие подписи, формирование партии).
+   * Эти переходы идут МИМО syncer'а: запоздалая on-chain дельта принесёт уже
+   * совпадающий статус, и sync-эмит не сработает — поэтому единая точка здесь,
+   * после commit'а в PG (INV-12). Sync-эмит покрывает обратный случай (переход
+   * пришёл первым с цепи); вместе дубликатов нет — каждый эмитит только когда
+   * статус фактически изменился у него.
+   */
+  private emitStatusChanged(
+    after: MarketplaceOrderDomainEntity,
+    previousStatus: MarketplaceOrderStatus
+  ): void {
+    const event: MarketplaceOrderStatusChangedEvent = {
+      coopname: after.coopname,
+      order_id: after.id,
+      status: after.status,
+      previous_status: previousStatus,
+      orderer_account: after.orderer_account,
+      supplier_account: after.supplier_account,
+    };
+    this.eventEmitter.emit(MARKETPLACE_ORDER_STATUS_CHANGED_EVENT, event);
+  }
 
   async persistAfterBlock(input: MarketplaceOrderCreateInput): Promise<MarketplaceOrderDomainEntity> {
     const row = this.repo.create({
@@ -56,7 +86,11 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       on_chain_present: false,
     });
     const saved = await this.repo.save(row);
-    return this.mapper.toDomain(saved);
+    const created = this.mapper.toDomain(saved);
+    // Появление заказа — тоже событие для столов: поставщик видит пополнение
+    // накопителя сразу. previous == status маркирует «создан», не «перешёл».
+    this.emitStatusChanged(created, created.status);
+    return created;
   }
 
   async findById(id: string): Promise<MarketplaceOrderDomainEntity | null> {
@@ -114,6 +148,8 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     newStatus: MarketplaceOrderStatus,
     reason: string | null
   ): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
+
     const patch: Partial<MarketplaceOrderEntity> = {
       status: newStatus,
       last_status_reason: reason,
@@ -129,7 +165,11 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
     await this.repo.update({ id }, patch as Record<string, unknown>);
     const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+    const updated = this.mapper.toDomain(row);
+    if (before.status !== updated.status) {
+      this.emitStatusChanged(updated, before.status);
+    }
+    return updated;
   }
 
   // ── IBlockchainSyncRepository (для syncer'а) ──────────────────────
@@ -229,6 +269,8 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     newStatus: MarketplaceOrderStatus
   ): Promise<number> {
     if (orderIds.length === 0) return 0;
+    const beforeRows = await this.repo.find({ where: { id: In(orderIds) } });
+    const beforeStatusById = new Map(beforeRows.map((r) => [r.id, r.status] as const));
     const result = await this.repo
       .createQueryBuilder()
       .update(MarketplaceOrderEntity)
@@ -239,6 +281,15 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       })
       .where('id IN (:...ids) AND cycle_id IS NULL', { ids: orderIds })
       .execute();
+    // Партия — пачка заказов; сигналим по каждому реально перешедшему: у
+    // заказов одной партии могут быть разные заказчики-адресаты.
+    const afterRows = await this.repo.find({ where: { id: In(orderIds) } });
+    for (const row of afterRows) {
+      const prev = beforeStatusById.get(row.id);
+      if (prev !== undefined && prev !== row.status) {
+        this.emitStatusChanged(this.mapper.toDomain(row), prev);
+      }
+    }
     return result.affected ?? 0;
   }
 
@@ -281,6 +332,14 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         accepted: 'ACCEPTED',
       })
       .execute();
+    // Guard WHERE пропускает только ACCEPTED → перешли ровно те, кто теперь
+    // SUPPLY_PREPARED в этой партии; previous известен из guard'а.
+    const afterRows = await this.repo.find({ where: { id: In(orderIds), shipment_id } });
+    for (const row of afterRows) {
+      if (row.status === 'SUPPLY_PREPARED') {
+        this.emitStatusChanged(this.mapper.toDomain(row), 'ACCEPTED');
+      }
+    }
     return result.affected ?? 0;
   }
 
@@ -360,6 +419,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
     await this.repo.update(
       { id },
       {
@@ -373,7 +433,11 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       } as Record<string, unknown>
     );
     const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+    const updated = this.mapper.toDomain(row);
+    if (before.status !== updated.status) {
+      this.emitStatusChanged(updated, before.status);
+    }
+    return updated;
   }
 
   async applyIssuanceFinalized(
@@ -385,6 +449,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       warranty_until: Date | null;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
+    const before = await this.repo.findOneOrFail({ where: { id } });
     await this.repo.update(
       { id },
       {
@@ -398,7 +463,11 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       } as Record<string, unknown>
     );
     const row = await this.repo.findOneOrFail({ where: { id } });
-    return this.mapper.toDomain(row);
+    const updated = this.mapper.toDomain(row);
+    if (before.status !== updated.status) {
+      this.emitStatusChanged(updated, before.status);
+    }
+    return updated;
   }
 
   async listForIssuanceByBraname(

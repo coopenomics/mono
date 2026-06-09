@@ -9,9 +9,11 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
+  MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
+  type MarketplaceAplReceptionStatusChangedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceAplSupplierOnsiteSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
@@ -396,6 +398,8 @@ export class MarketplaceAplReceptionService {
       MarketplaceShipmentStatuses.RECEPTION_IN_PROGRESS
     );
 
+    this.emitReceptionStatusChanged(reception);
+
     this.logger.log(
       `АПП ${reception.id} (вариант ${variant}) для партии ${shipment.id}, ku=${shipment.braname}, orders=${groupOrders.length}, total=${total}`
     );
@@ -621,6 +625,8 @@ export class MarketplaceAplReceptionService {
 
     this.logger.log(`АПП ${reception.id}: подпись поставщика принята (tx=${txHash}).`);
 
+    this.emitReceptionStatusChanged(updated);
+
     return { apl_reception: updated };
   }
 
@@ -702,7 +708,25 @@ export class MarketplaceAplReceptionService {
       `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.braname).length} заказам инициированы через gateway.`
     );
 
+    this.emitReceptionStatusChanged(updated);
+
     return { apl_reception: updated };
+  }
+
+  /**
+   * Realtime-сигнал смены статуса акта: оператор у стойки и поставщик видят
+   * проставленную подпись сразу, без поллинга. Эмитится ПОСЛЕ commit'а
+   * статуса в PG (INV-12); маршрутизация по адресатам — в realtime-мосте.
+   */
+  private emitReceptionStatusChanged(reception: MarketplaceAplReceptionDomainEntity): void {
+    const event: MarketplaceAplReceptionStatusChangedEvent = {
+      coopname: reception.coopname,
+      apl_reception_id: reception.id,
+      status: reception.status,
+      braname: reception.braname,
+      supplier_account: reception.offerer_account,
+    };
+    this.eventBus.emit(MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT, event);
   }
 
   /**

@@ -23,3 +23,17 @@ export function marketplaceMemberTopic(coopname: string, username: string): stri
 export function marketplaceCatalogTopic(coopname: string): string {
   return `marketplace:catalog:${coopname}`;
 }
+
+/**
+ * Имя PubSub-топика служебного канала персонала кооперативных участков.
+ *
+ * Третий класс адресации — между персональным и широковещательным: оператор
+ * у стойки (председатель КУ или доверенное лицо) не является стороной заказа,
+ * но не может отпустить заказчика/поставщика, пока не увидит, что подпись
+ * проставлена. Подключается ТОЛЬКО соединениям, чей аккаунт подтверждён как
+ * персонал хотя бы одного КУ (trustee/trusted) — резолвер проверяет при
+ * открытии подписки; рядовой пайщик этот канал не получает.
+ */
+export function marketplaceStaffTopic(coopname: string): string {
+  return `marketplace:staff:${coopname}`;
+}

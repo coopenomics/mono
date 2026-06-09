@@ -6249,6 +6249,17 @@ export type ValueTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок приёмки. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор акта приёмки. */
+	reception_id?:boolean | `@${string}`,
+	/** Новый статус акта приёмки. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAplReceptionStatusChangedEvent']?: Omit<ValueTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
+}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -6750,7 +6761,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
-	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
+	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceAplReceptionStatusChangedEvent"]?: ValueTypes["MarketplaceAplReceptionStatusChangedEvent"],
+		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
 		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
 		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
 		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
@@ -16607,6 +16619,16 @@ export type ResolverInputTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок приёмки. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор акта приёмки. */
+	reception_id?:boolean | `@${string}`,
+	/** Новый статус акта приёмки. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -17084,6 +17106,7 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEvent"]: AliasType<{
+	MarketplaceAplReceptionStatusChangedEvent?:ResolverInputTypes["MarketplaceAplReceptionStatusChangedEvent"],
 	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
 	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
 	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
@@ -26636,6 +26659,15 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: {
+		/** Кооперативный участок приёмки. */
+	braname: string,
+	/** Идентификатор акта приёмки. */
+	reception_id: string,
+	/** Новый статус акта приёмки. */
+	status: ModelTypes["MarketplaceAplReceptionStatus"]
+};
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string
@@ -27082,7 +27114,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -37496,6 +37528,17 @@ export type GraphQLTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]: MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: {
+	__typename: "MarketplaceAplReceptionStatusChangedEvent",
+	/** Кооперативный участок приёмки. */
+	braname: string,
+	/** Идентификатор акта приёмки. */
+	reception_id: string,
+	/** Новый статус акта приёмки. */
+	status: GraphQLTypes["MarketplaceAplReceptionStatus"],
+	['...on MarketplaceAplReceptionStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
+};
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]: MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -37998,8 +38041,9 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent"
-        	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
+        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent"
+        	['...on MarketplaceAplReceptionStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"];
+	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
 	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
 	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
 	['...on MarketplaceOrderStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceOrderStatusChangedEvent"];

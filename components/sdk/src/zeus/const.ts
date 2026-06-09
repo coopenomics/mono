@@ -3980,6 +3980,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
 	},
+	MarketplaceAplReceptionStatusChangedEvent:{
+		braname:"String",
+		reception_id:"String",
+		status:"MarketplaceAplReceptionStatus"
+	},
 	MarketplaceAttribute:{
 		attributeComplexId:"Int",
 		attributeId:"Int",
@@ -4176,6 +4181,7 @@ export const ReturnTypes: Record<string,any> = {
 		value:"String"
 	},
 	MarketplaceEvent:{
+		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
 		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
 		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
 		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",

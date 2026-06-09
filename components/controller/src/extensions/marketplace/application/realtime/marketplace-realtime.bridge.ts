@@ -5,11 +5,13 @@ import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import config from '~/config/config';
 import logger from '~/config/logger';
 import {
+  MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
+  MarketplaceAplReceptionStatusChangedEvent,
   MarketplaceAplSupplierOnsiteSignRequestEvent,
   MarketplaceOfferApprovedEvent,
   MarketplaceOfferCountersChangedEvent,
@@ -17,6 +19,7 @@ import {
   MarketplaceOrderStatusChangedEvent,
 } from '../events/marketplace-notification.events';
 import {
+  MarketplaceAplReceptionStatusChangedEventDTO,
   MarketplaceEventType,
   MarketplaceOfferPublishedEventDTO,
   MarketplaceOfferStockChangedEventDTO,
@@ -24,7 +27,12 @@ import {
   MarketplaceOrderStatusChangedEventDTO,
   MarketplaceReceptionPendingSignEventDTO,
 } from '../dto/marketplace-event.dto';
-import { marketplaceCatalogTopic, marketplaceMemberTopic } from './marketplace-realtime.topics';
+import type { MarketplaceAplReceptionStatusEnum } from '../dto/marketplace-apl-reception.dto';
+import {
+  marketplaceCatalogTopic,
+  marketplaceMemberTopic,
+  marketplaceStaffTopic,
+} from './marketplace-realtime.topics';
 
 /**
  * Мост: внутренние доменные события marketplace (EventEmitter2, эмитятся ПОСЛЕ
@@ -110,7 +118,9 @@ export class MarketplaceRealtimeBridge {
   // Статус заказа сменился — адресный сигнал обеим сторонам заказа в их
   // персональные топики. Заказчик и поставщик ждут перехода с разных столов
   // (кабинет / приёмка), поэтому публикуем в оба; если это один и тот же
-  // аккаунт (поставщик заказал у себя) — не дублируем.
+  // аккаунт (поставщик заказал у себя) — не дублируем. Плюс служебный канал
+  // персонала КУ: оператор у стойки выдачи ждёт подпись заказчика (signiss2 →
+  // RECEIVED) и не может отпустить его, пока не увидит её на своём столе.
   @OnEvent(MARKETPLACE_ORDER_STATUS_CHANGED_EVENT)
   async onOrderStatusChanged(event: MarketplaceOrderStatusChangedEvent): Promise<void> {
     const payload: MarketplaceOrderStatusChangedEventDTO = {
@@ -127,5 +137,29 @@ export class MarketplaceRealtimeBridge {
       );
       await this.pubSub.publish(topic, payload);
     }
+    await this.pubSub.publish(marketplaceStaffTopic(event.coopname), payload);
+  }
+
+  // Статус акта приёмки сменился (создан / поставщик подписал / председатель
+  // закрыл). Подпись поставщика НЕ двигает статусы заказов, а оператор у стойки
+  // ждёт именно её — поэтому отдельный сигнал: персоналу КУ (служебный канал)
+  // и поставщику (его стол «Подпись приёмки»).
+  @OnEvent(MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT)
+  async onAplReceptionStatusChanged(
+    event: MarketplaceAplReceptionStatusChangedEvent
+  ): Promise<void> {
+    const payload: MarketplaceAplReceptionStatusChangedEventDTO = {
+      eventType: MarketplaceEventType.RECEPTION_STATUS_CHANGED,
+      reception_id: event.apl_reception_id,
+      status: event.status as MarketplaceAplReceptionStatusEnum,
+      braname: event.braname,
+    };
+    const staffTopic = marketplaceStaffTopic(event.coopname);
+    const supplierTopic = marketplaceMemberTopic(event.coopname, event.supplier_account);
+    logger.info(
+      `[mp-ws] PUBLISH RECEPTION_STATUS_CHANGED → topics=${staffTopic},${supplierTopic} reception=${event.apl_reception_id} status=${event.status}`
+    );
+    await this.pubSub.publish(staffTopic, payload);
+    await this.pubSub.publish(supplierTopic, payload);
   }
 }
