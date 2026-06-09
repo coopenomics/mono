@@ -1392,6 +1392,9 @@ importers:
 
   components/orchestrator:
     dependencies:
+      '@apollo/composition':
+        specifier: ^2.14.1
+        version: 2.14.1(graphql@16.13.2)
       '@apollo/gateway':
         specifier: ^2.9.0
         version: 2.14.1(encoding@0.1.13)(graphql@16.13.2)

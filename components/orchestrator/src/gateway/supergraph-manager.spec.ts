@@ -166,6 +166,24 @@ describe('createDynamicSupergraphManager', () => {
     await lifecycle.cleanup();
   });
 
+  it('forceRefresh(): немедленный recompose без ожидания таймера', async () => {
+    const registry = new FakeRegistry();
+    registry.current = [{ name: 'core', url: 'http://core:3000/graphql' }];
+    const composer = new FakeComposer();
+    const updates: string[] = [];
+    const lifecycle = await createDynamicSupergraphManager(
+      { registry, composer, pollIntervalMs: POLL_MS },
+      (sdl) => updates.push(sdl),
+    );
+    registry.current.push({ name: 'chatcoop', url: 'http://chatcoop:3000/graphql' });
+    await expect(lifecycle.forceRefresh()).resolves.toBe(true);
+    expect(updates).toEqual(['# supergraph v2\ncore,chatcoop']);
+    // повторный вызов без изменений — recompose не нужен
+    await expect(lifecycle.forceRefresh()).resolves.toBe(false);
+    expect(composer.calls.length).toBe(2);
+    await lifecycle.cleanup();
+  });
+
   it('cleanup() останавливает таймер — composer перестаёт вызываться', async () => {
     const registry = new FakeRegistry();
     registry.current = [{ name: 'core', url: 'http://core:3000/graphql' }];

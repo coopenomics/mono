@@ -53,6 +53,12 @@ export interface SupergraphManagerOptions {
 export interface SupergraphManagerLifecycle {
   /** Начальный SDL для отдачи gateway'ю на bootstrap'е. */
   initialSdl: string;
+  /**
+   * Немедленный recompose вне расписания (POST /v1/internal/composition/refresh).
+   * Возвращает `true`, если registry изменился и supergraph пересобран,
+   * `false` — если состояние актуально. Ошибки composer'а пробрасываются.
+   */
+  forceRefresh(): Promise<boolean>;
   /** Освободить таймер — gateway вызовет при shutdown'е. */
   cleanup(): Promise<void>;
 }
@@ -93,28 +99,30 @@ export async function createDynamicSupergraphManager(
 
   const initialSdl = await composeOnce();
 
+  const refreshIfChanged = async (): Promise<boolean> => {
+    const subgraphs = await opts.registry.listForCompose();
+    const fp = fingerprintOf(subgraphs);
+    if (fp === lastFingerprint) return false;
+    logger.log(`supergraph registry changed (was ${lastFingerprint.split('|').length} subgraphs, now ${fp.split('|').length}) — recompose`);
+    // ВАЖНО: fingerprint обновляем только ПОСЛЕ успешного compose.
+    // Иначе при exception в composer'е следующий tick посчитает,
+    // что состояние уже актуально (fp === lastFingerprint) и пропустит
+    // retry — supergraph навсегда останется в устаревшем состоянии.
+    const sdl = await opts.composer.compose(subgraphs);
+    lastFingerprint = fp;
+    update(sdl);
+    return true;
+  };
+
   const timer = setInterval(() => {
-    void (async () => {
-      try {
-        const subgraphs = await opts.registry.listForCompose();
-        const fp = fingerprintOf(subgraphs);
-        if (fp === lastFingerprint) return;
-        logger.log(`supergraph registry changed (was ${lastFingerprint.split('|').length} subgraphs, now ${fp.split('|').length}) — recompose`);
-        // ВАЖНО: fingerprint обновляем только ПОСЛЕ успешного compose.
-        // Иначе при exception в composer'е следующий tick посчитает,
-        // что состояние уже актуально (fp === lastFingerprint) и пропустит
-        // retry — supergraph навсегда останется в устаревшем состоянии.
-        const sdl = await opts.composer.compose(subgraphs);
-        lastFingerprint = fp;
-        update(sdl);
-      } catch (e) {
-        logger.error(`recompose tick failed: ${e instanceof Error ? e.message : String(e)}`);
-      }
-    })();
+    void refreshIfChanged().catch((e) => {
+      logger.error(`recompose tick failed: ${e instanceof Error ? e.message : String(e)}`);
+    });
   }, opts.pollIntervalMs);
 
   return {
     initialSdl,
+    forceRefresh: refreshIfChanged,
     cleanup: async () => {
       clearInterval(timer);
     },

@@ -1,17 +1,24 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloGatewayDriver, ApolloGatewayDriverConfig } from '@nestjs/apollo';
-import { IntrospectAndCompose, RemoteGraphQLDataSource } from '@apollo/gateway';
-import { SubgraphRegistryEntity } from './subgraph-registry.entity';
+import { RemoteGraphQLDataSource } from '@apollo/gateway';
+import { SubgraphRegistryModule } from './subgraph-registry.module';
 import { SubgraphRegistryService } from './subgraph-registry.service';
+import { SupergraphRefreshService } from './supergraph-refresh.service';
+import { createDynamicSupergraphManager } from './supergraph-manager';
+import { IntrospectionSupergraphComposer } from './supergraph-composer.impl';
+import { loadAppConfig } from '../config/app-config';
 
 /**
  * Apollo Federation Gateway tenant'а.
  *
- * IntrospectAndCompose читает active subgraph'ы из Postgres registry с
- * periodic polling. Gateway не перезагружается при появлении нового
- * subgraph'а — он re-introspect'ит и swap'ает supergraph in-memory.
+ * Supergraph собирается динамически (Story 10.3b): dynamic supergraph
+ * manager на каждый poll-tick перечитывает Postgres registry; при
+ * изменении списка `(name, url)` — re-introspect'ит subgraph'ы и
+ * swap'ает supergraph in-memory через gateway `update()`. Появление
+ * НОВОГО subgraph'а после install не требует рестарта orchestrator'а.
+ * `POST /v1/internal/composition/refresh` форсит recompose немедленно
+ * (через {@link SupergraphRefreshService}).
  *
  * JWT forwarding: gateway получает Authorization-header от desktop,
  * прокидывает в каждый subgraph через willSendRequest. Subgraph'ы
@@ -19,26 +26,18 @@ import { SubgraphRegistryService } from './subgraph-registry.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SubgraphRegistryEntity]),
+    SubgraphRegistryModule,
     GraphQLModule.forRootAsync<ApolloGatewayDriverConfig>({
       driver: ApolloGatewayDriver,
-      imports: [TypeOrmModule.forFeature([SubgraphRegistryEntity])],
-      inject: [SubgraphRegistryService],
-      useFactory: async (registry: SubgraphRegistryService) => {
-        // MVP-режим: subgraphs читаются из Postgres registry один раз на
-        // bootstrap. IntrospectAndCompose делает polling existing endpoints
-        // и автоматически re-compose'ит если у subgraph'а изменилась схема.
-        //
-        // Но: добавление НОВОГО subgraph'а (POST /v1/internal/extensions/install)
-        // потребует рестарта контейнера orchestrator. На MVP это
-        // ОК — gateway маленький, warmup ~5 сек, делается orchestrator-pipeline
-        // при первом install'е приложения (Story 10.4).
-        //
-        // Полностью dynamic supergraph composition (без рестарта) — отдельная
-        // story 10.3b: custom SupergraphManager, который опрашивает registry
-        // на каждый poll и собирает supergraphSdl.fetch().
-        const subgraphs = await registry.listForCompose();
-        if (subgraphs.length === 0) {
+      imports: [SubgraphRegistryModule],
+      inject: [SubgraphRegistryService, SupergraphRefreshService],
+      useFactory: async (
+        registry: SubgraphRegistryService,
+        refresh: SupergraphRefreshService,
+      ) => {
+        const cfg = loadAppConfig();
+        const initial = await registry.listForCompose();
+        if (initial.length === 0) {
           throw new Error('[gateway] subgraph registry пуст — orchestrator должен seed core до boot gateway');
         }
         return {
@@ -48,11 +47,19 @@ import { SubgraphRegistryService } from './subgraph-registry.service';
             context: ({ req }: { req: unknown }) => ({ req }),
           },
           gateway: {
-            supergraphSdl: new IntrospectAndCompose({
-              subgraphs,
-              pollIntervalInMs: 10000,
-            }),
-            buildService({ url }) {
+            supergraphSdl: async ({ update }: { update: (sdl: string) => void }) => {
+              const manager = await createDynamicSupergraphManager(
+                {
+                  composer: new IntrospectionSupergraphComposer(),
+                  registry,
+                  pollIntervalMs: cfg.compositionPollIntervalMs,
+                },
+                update,
+              );
+              refresh.attach(manager);
+              return { supergraphSdl: manager.initialSdl, cleanup: manager.cleanup };
+            },
+            buildService({ url }: { url?: string }) {
               return new RemoteGraphQLDataSource({
                 url,
                 willSendRequest({ request, context }) {
@@ -69,7 +76,6 @@ import { SubgraphRegistryService } from './subgraph-registry.service';
       },
     }),
   ],
-  providers: [SubgraphRegistryService],
-  exports: [SubgraphRegistryService, TypeOrmModule],
+  exports: [SubgraphRegistryModule],
 })
 export class GatewayModule {}
