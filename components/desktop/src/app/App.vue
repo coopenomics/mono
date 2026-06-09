@@ -2,22 +2,19 @@
 .breable-text(v-if='isLoaded')
   router-view
 
-  RequireAgreements
-  SelectBranchOverlay
-  NotificationPermissionDialog
-  OnsiteSignatureGateOverlay
+  //- Глобальные оверлеи рендерятся ОБОБЩЁННО из универсального реестра-фабрики:
+  //- платформенные регистрируются в registerCoreOverlays, оверлеи расширений —
+  //- в их install.ts. App не импортирует конкретные оверлеи (тем более виджеты
+  //- расширений).
+  component(v-for='o in globalOverlays', :key='o.id', :is='o.component')
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api/alerts';
-import { RequireAgreements } from 'src/widgets/RequireAgreements';
-import { OnsiteSignatureGateOverlay } from 'src/widgets/Marketplace/OnsiteSignatureGate';
-import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
-import {
-  NotificationPermissionDialog,
-  useNotificationPermissionDialog,
-} from 'src/features/NotificationPermissionDialog';
+import { getGlobalOverlays } from 'src/shared/lib/overlays';
+import { registerCoreOverlays } from 'src/app/providers/global-overlays';
+import { useNotificationPermissionDialog } from 'src/features/NotificationPermissionDialog';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
@@ -29,6 +26,11 @@ const system = useSystemStore();
 const { info } = system;
 
 const isLoaded = ref(false);
+
+// Платформенные глобальные оверлеи кладём в универсальный реестр; оверлеи
+// расширений добавляются в их install.ts. App рендерит реестр обобщённо.
+registerCoreOverlays();
+const globalOverlays = getGlobalOverlays();
 
 // Диалог разрешения уведомлений
 const { showDialog } = useNotificationPermissionDialog();

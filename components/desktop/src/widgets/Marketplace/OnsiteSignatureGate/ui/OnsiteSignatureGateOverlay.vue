@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue';
-import { NotifyAlert } from 'src/shared/api';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
@@ -62,15 +61,6 @@ function factCost(o: OrdererPickupTask['orders'][number]): string {
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
 const ordererBusy = (t: OrdererPickupTask) => signingKey.value === t.key;
 const anySigning = computed(() => signingKey.value !== null);
-
-function callOperator(): void {
-  // Фоллбэк к ручной приёмке у оператора (#43) появится отдельно; пока —
-  // подсказка пайщику подойти к стойке. Гейт остаётся: уйти, не подписав, нельзя.
-  NotifyAlert(
-    'Подойдите к оператору ПВЗ',
-    'Оператор поможет с подписью на стойке. Окно закроется, как только акт будет подписан.',
-  );
-}
 
 onMounted(() => {
   void refresh();
@@ -176,12 +166,6 @@ BaseDialog(
           template(#icon-left)
             q-icon(name='draw', size='18px')
           | Подписать и получить
-
-    .onsite-gate__help
-      BaseButton(variant='ghost', :disabled='anySigning', @click='callOperator')
-        template(#icon-left)
-          q-icon(name='support_agent', size='18px')
-        | Позвать оператора
 </template>
 
 <style scoped lang="scss">
@@ -286,12 +270,6 @@ BaseDialog(
   &__foot {
     display: flex;
     justify-content: flex-end;
-  }
-
-  &__help {
-    display: flex;
-    justify-content: center;
-    padding-top: var(--p-2, 8px);
   }
 }
 </style>
