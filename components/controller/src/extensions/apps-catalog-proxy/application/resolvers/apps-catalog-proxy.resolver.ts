@@ -20,9 +20,9 @@ import {
   ReleaseTypeEnum,
 } from '../dto/moderation-request.dto';
 import { PublishPackageInputDTO } from '../dto/publish-package-input.dto';
-import { PublishPackageResultDTO } from '../dto/publish-package-result.dto';
+import { PublishPackageResultDTO, PublishPackageStatus } from '../dto/publish-package-result.dto';
 import { PublishReleaseInputDTO } from '../dto/publish-release-input.dto';
-import { PublishReleaseResultDTO } from '../dto/publish-release-result.dto';
+import { PublishReleaseResultDTO, PublishReleaseStatus } from '../dto/publish-release-result.dto';
 import {
   ReleaseScopeInputDTO,
   ReleaseScopeType,
@@ -154,17 +154,17 @@ export class AppsCatalogProxyResolver {
       this.logger.log(
         `publishPackage applied: ${data.packageId} (request ${outcome.requestId})`,
       );
-      return { status: 'applied', requestId: outcome.requestId };
+      return { status: PublishPackageStatus.APPLIED, requestId: outcome.requestId };
     }
     if (outcome.status === 'conflict') {
       return {
-        status: 'conflict',
+        status: PublishPackageStatus.CONFLICT,
         requestId: outcome.requestId,
         error: outcome.error,
       };
     }
     return {
-      status: 'failed',
+      status: PublishPackageStatus.FAILED,
       requestId: outcome.requestId,
       error: outcome.error,
     };
@@ -203,20 +203,20 @@ export class AppsCatalogProxyResolver {
         `publishRelease applied: ${data.packageId}@${data.version} (request ${outcome.requestId}, tx ${outcome.transactionId ?? '-'})`,
       );
       return {
-        status: 'applied',
+        status: PublishReleaseStatus.APPLIED,
         requestId: outcome.requestId,
         transactionId: outcome.transactionId,
       };
     }
     if (outcome.status === 'invalidManifest') {
       return {
-        status: 'invalidManifest',
+        status: PublishReleaseStatus.INVALID_MANIFEST,
         requestId: outcome.requestId,
         error: outcome.error,
       };
     }
     return {
-      status: 'failed',
+      status: PublishReleaseStatus.FAILED,
       requestId: outcome.requestId,
       error: outcome.error,
     };

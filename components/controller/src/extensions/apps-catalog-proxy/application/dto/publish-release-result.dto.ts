@@ -1,9 +1,8 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 /**
- * Результат `Mutation.publishRelease` (story 9.3.b-rel).
+ * Статусы результата `Mutation.publishRelease` (story 9.3.b-rel).
  *
- * Discriminator `status`:
  *  - `applied` — ca-admin вернул 200, on-chain `apps::setrelease` улетел;
  *  - `invalidManifest` — HTTP 422 INVALID_MANIFEST (Zod-валидация
  *    manifest'а провалилась на стороне ca-admin); UI должен показать
@@ -11,13 +10,21 @@ import { Field, ObjectType } from '@nestjs/graphql';
  *  - `failed` — прочие ошибки (network, 401, degraded-mode без
  *    APPS_CATALOG_API_KEY).
  */
+export enum PublishReleaseStatus {
+  APPLIED = 'applied',
+  INVALID_MANIFEST = 'invalidManifest',
+  FAILED = 'failed',
+}
+
+registerEnumType(PublishReleaseStatus, {
+  name: 'PublishReleaseStatus',
+  description: 'Статус мутации publishRelease',
+});
+
 @ObjectType()
 export class PublishReleaseResultDTO {
-  @Field({
-    description:
-      'Статус: applied | invalidManifest | failed',
-  })
-  status!: 'applied' | 'invalidManifest' | 'failed';
+  @Field(() => PublishReleaseStatus, { description: 'Discriminator' })
+  status!: PublishReleaseStatus;
 
   @Field({
     description:
