@@ -27,12 +27,15 @@ export const apiSubscription = (options: chainOptions) => {
     on: {
       connected: (socket) => {
         activeSocket = socket;
+        try { console.info('%c[ws keepAlive] ✅ соединение установлено, ping каждые 12с', 'color:#0f766e'); } catch {}
       },
       ping: (received) => {
         // received=false → пинг отправлен нами; ждём pong не дольше 5с.
         if (!received) {
+          try { console.debug('[ws keepAlive] ping → сервер'); } catch {}
           pongTimer = setTimeout(() => {
             if (activeSocket && activeSocket.readyState === 1) {
+              try { console.warn('[ws keepAlive] ⚠ pong не пришёл за 5с — закрываю мёртвый сокет, reconnect'); } catch {}
               activeSocket.close(4408, 'Keep-alive timeout');
             }
           }, 5_000);
@@ -42,6 +45,7 @@ export const apiSubscription = (options: chainOptions) => {
         if (received && pongTimer) {
           clearTimeout(pongTimer);
           pongTimer = undefined;
+          try { console.debug('[ws keepAlive] ← pong ✓ (сокет живой)'); } catch {}
         }
       },
     },
