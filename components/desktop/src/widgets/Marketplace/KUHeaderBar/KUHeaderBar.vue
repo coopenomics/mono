@@ -17,12 +17,12 @@
   BaseDialog(
     v-model="dialogOpen",
     title="Пункт выдачи (КУ)",
-    size="lg",
+    maximized,
     :close-on-backdrop="!saving"
   )
     template(#default)
       .mp-ku-bar__hint Выберите кооперативный участок — каталог покажет товары, которые возят на него. При смене участка позиции корзины, которых нет на новом участке, станут недоступны для оформления.
-      KUSelector(v-model="picked", :coopname="coopname")
+      KUSelector(v-model="picked", :coopname="coopname", map-min-height="calc(100vh - 240px)")
     template(#footer)
       BaseButton(variant="ghost", :disabled="saving", @click="dialogOpen = false") Отмена
       BaseButton(
