@@ -5,6 +5,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import { MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT } from '../events/marketplace-notification.events';
 
 export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUNTERS_SERVICE');
 
@@ -31,7 +32,7 @@ export const MARKETPLACE_OFFER_COUNTERS_SERVICE = Symbol('MARKETPLACE_OFFER_COUN
  */
 @Injectable()
 export class MarketplaceOfferCountersService {
-  public static readonly EVENT_CHANGED = 'marketplace.offer.counters.changed';
+  public static readonly EVENT_CHANGED = MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT;
 
   constructor(
     @Inject(MARKETPLACE_OFFER_REPOSITORY)

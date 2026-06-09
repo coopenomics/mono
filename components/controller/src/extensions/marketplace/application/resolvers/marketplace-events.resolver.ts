@@ -13,15 +13,21 @@ import {
   MarketplaceEventUnion,
 } from '../dto/marketplace-event.dto';
 import { MarketplaceEventsInputDTO } from '../dto/marketplace-events-input.dto';
-import { marketplaceMemberTopic } from '../realtime/marketplace-realtime.topics';
+import {
+  marketplaceCatalogTopic,
+  marketplaceMemberTopic,
+} from '../realtime/marketplace-realtime.topics';
 
 /**
- * Единственная подписка приложения marketplace: персональный поток событий
- * пайщика. Аутентификация соединения — в graphql-ws `onConnect` (см.
- * graphql.module.ts), который кладёт `sub` JWT в контекст; здесь по `sub`
- * резолвится имя аккаунта и строится приватный топик. Клиент НЕ может задать
- * чужой топик — он выводится из токена, аргумент `input.coopname` лишь
- * сверяется с кооперативом инстанса.
+ * Единственная подписка приложения marketplace: поток событий для пайщика.
+ * Аутентификация соединения — в graphql-ws `onConnect` (см. graphql.module.ts),
+ * который кладёт `sub` JWT в контекст; здесь по `sub` резолвится имя аккаунта.
+ *
+ * Соединение слушает два топика: персональный (приватные события заказчика/
+ * поставщика, выводится из токена — клиент НЕ может задать чужой) и
+ * широковещательный каталог кооператива (публичные события витрины — остаток,
+ * новое предложение). Аргумент `input.coopname` лишь сверяется с кооперативом
+ * инстанса.
  */
 @Resolver()
 @Injectable()
@@ -34,7 +40,7 @@ export class MarketplaceEventsResolver {
 
   @Subscription(() => MarketplaceEventUnion, {
     name: 'marketplaceEvents',
-    description: 'Персональный поток событий пайщика в Столе заказов.',
+    description: 'Поток событий пайщика в Столе заказов: личные и каталог.',
     resolve: (payload: MarketplaceEventPayload) => payload,
   })
   async marketplaceEvents(
@@ -46,9 +52,10 @@ export class MarketplaceEventsResolver {
     }
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
-    const topic = marketplaceMemberTopic(config.coopname, username);
-    logger.info(`[mp-ws] подписка открыта: ${topic}`);
-    return this.pubSub.asyncIterator<MarketplaceEventPayload>(topic);
+    const memberTopic = marketplaceMemberTopic(config.coopname, username);
+    const catalogTopic = marketplaceCatalogTopic(config.coopname);
+    logger.info(`[mp-ws] подписка открыта: ${memberTopic} + ${catalogTopic}`);
+    return this.pubSub.asyncIterator<MarketplaceEventPayload>([memberTopic, catalogTopic]);
   }
 
   private async resolveUsername(sub: string | undefined): Promise<string> {

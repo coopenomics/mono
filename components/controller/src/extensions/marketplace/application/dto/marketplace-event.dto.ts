@@ -1,4 +1,4 @@
-import { createUnionType, Field, ObjectType } from '@nestjs/graphql';
+import { createUnionType, Field, Int, ObjectType } from '@nestjs/graphql';
 
 /**
  * Дискриминатор полезной нагрузки realtime-события marketplace.
@@ -10,6 +10,8 @@ import { createUnionType, Field, ObjectType } from '@nestjs/graphql';
 export enum MarketplaceEventType {
   ORDER_READY_TO_RECEIVE = 'ORDER_READY_TO_RECEIVE',
   RECEPTION_PENDING_SIGN = 'RECEPTION_PENDING_SIGN',
+  OFFER_STOCK_CHANGED = 'OFFER_STOCK_CHANGED',
+  OFFER_PUBLISHED = 'OFFER_PUBLISHED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -41,24 +43,64 @@ export class MarketplaceReceptionPendingSignEventDTO {
   ku_name!: string;
 }
 
+@ObjectType('MarketplaceOfferStockChangedEvent', {
+  description: 'У предложения в каталоге изменилось доступное количество.',
+})
+export class MarketplaceOfferStockChangedEventDTO {
+  eventType!: MarketplaceEventType.OFFER_STOCK_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор предложения.' })
+  offer_id!: string;
+
+  @Field(() => Int, { description: 'Доступное к заказу количество единиц.' })
+  quantity_available!: number;
+
+  @Field(() => Boolean, { description: 'Предложение без ограничения по количеству.' })
+  unlimited_flag!: boolean;
+}
+
+@ObjectType('MarketplaceOfferPublishedEvent', {
+  description: 'В каталоге появилось новое предложение.',
+})
+export class MarketplaceOfferPublishedEventDTO {
+  eventType!: MarketplaceEventType.OFFER_PUBLISHED;
+
+  @Field(() => String, { description: 'Идентификатор предложения.' })
+  offer_id!: string;
+
+  @Field(() => Int, { description: 'Категория предложения.' })
+  category_id!: number;
+}
+
 /**
- * Объединение всех типов realtime-событий персонального канала пайщика.
+ * Объединение всех типов realtime-событий marketplace.
  *
- * Принцип «сигнал, а не данные»: payload несёт только идентификаторы +
- * минимальный контекст, чтобы клиент понял «что обновить». Полные данные
- * (состав, цены, персональное) клиент дочитывает авторизованным query.
- * Поэтому даже при ошибке маршрутизации приватного в канал не утекает.
+ * Персональные события (заказ/приёмка) приходят пайщику-адресату, события
+ * каталога (остаток/публикация) — широковещательно всем подписчикам
+ * кооператива. Принцип «сигнал, а не данные»: payload несёт только
+ * идентификаторы + минимальный контекст, чтобы клиент понял «что обновить».
+ * Полные данные клиент дочитывает авторизованным query. Поэтому даже при
+ * ошибке маршрутизации приватное в канал не утекает.
  */
 export const MarketplaceEventUnion = createUnionType({
   name: 'MarketplaceEvent',
   types: () =>
-    [MarketplaceOrderReadyToReceiveEventDTO, MarketplaceReceptionPendingSignEventDTO] as const,
+    [
+      MarketplaceOrderReadyToReceiveEventDTO,
+      MarketplaceReceptionPendingSignEventDTO,
+      MarketplaceOfferStockChangedEventDTO,
+      MarketplaceOfferPublishedEventDTO,
+    ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
       case MarketplaceEventType.ORDER_READY_TO_RECEIVE:
         return MarketplaceOrderReadyToReceiveEventDTO;
       case MarketplaceEventType.RECEPTION_PENDING_SIGN:
         return MarketplaceReceptionPendingSignEventDTO;
+      case MarketplaceEventType.OFFER_STOCK_CHANGED:
+        return MarketplaceOfferStockChangedEventDTO;
+      case MarketplaceEventType.OFFER_PUBLISHED:
+        return MarketplaceOfferPublishedEventDTO;
       default:
         return null;
     }
@@ -67,4 +109,6 @@ export const MarketplaceEventUnion = createUnionType({
 
 export type MarketplaceEventPayload =
   | MarketplaceOrderReadyToReceiveEventDTO
-  | MarketplaceReceptionPendingSignEventDTO;
+  | MarketplaceReceptionPendingSignEventDTO
+  | MarketplaceOfferStockChangedEventDTO
+  | MarketplaceOfferPublishedEventDTO;

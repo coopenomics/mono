@@ -4176,6 +4176,8 @@ export const ReturnTypes: Record<string,any> = {
 		value:"String"
 	},
 	MarketplaceEvent:{
+		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
+		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
 		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
 		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent"
 	},
@@ -4298,6 +4300,15 @@ export const ReturnTypes: Record<string,any> = {
 		items:"MarketplaceOffer",
 		totalCount:"Int",
 		totalPages:"Int"
+	},
+	MarketplaceOfferPublishedEvent:{
+		category_id:"Int",
+		offer_id:"String"
+	},
+	MarketplaceOfferStockChangedEvent:{
+		offer_id:"String",
+		quantity_available:"Int",
+		unlimited_flag:"Boolean"
 	},
 	MarketplaceOnboardingState:{
 		agreement_id:"Int",

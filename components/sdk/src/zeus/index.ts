@@ -10,45 +10,9 @@ export const HEADERS = {}
 import { createClient, type Sink } from 'graphql-ws'; // keep
 
 export const apiSubscription = (options: chainOptions) => {
-  // keep: keepAlive + детекция мёртвого соединения (canonical graphql-ws recipe).
-  // Без этого «зомби-сокет» — TCP тихо рвётся промежуточным таймаутом при
-  // простое, graphql-ws этого не замечает (ни close, ни reconnect), и publish
-  // с сервера теряется до OS-таймаута (минуты). Клиент пингует сервер каждые
-  // 12с; если pong не пришёл за 5с — принудительно закрываем сокет, что
-  // запускает авто-reconnect graphql-ws (retry). Держит канал тёплым и живым.
-  let activeSocket: any = null;
-  let pongTimer: ReturnType<typeof setTimeout> | undefined;
   const client = createClient({
     url: String(options[0]),
     connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
-    keepAlive: 12_000,
-    retryAttempts: Infinity,
-    shouldRetry: () => true,
-    on: {
-      connected: (socket) => {
-        activeSocket = socket;
-        try { console.info('%c[ws keepAlive] ✅ соединение установлено, ping каждые 12с', 'color:#0f766e'); } catch {}
-      },
-      ping: (received) => {
-        // received=false → пинг отправлен нами; ждём pong не дольше 5с.
-        if (!received) {
-          try { console.debug('[ws keepAlive] ping → сервер'); } catch {}
-          pongTimer = setTimeout(() => {
-            if (activeSocket && activeSocket.readyState === 1) {
-              try { console.warn('[ws keepAlive] ⚠ pong не пришёл за 5с — закрываю мёртвый сокет, reconnect'); } catch {}
-              activeSocket.close(4408, 'Keep-alive timeout');
-            }
-          }, 5_000);
-        }
-      },
-      pong: (received) => {
-        if (received && pongTimer) {
-          clearTimeout(pongTimer);
-          pongTimer = undefined;
-          try { console.debug('[ws keepAlive] ← pong ✓ (сокет живой)'); } catch {}
-        }
-      },
-    },
   });
 
   const ws = new Proxy(
@@ -63,17 +27,13 @@ export const apiSubscription = (options: chainOptions) => {
     },
   );
 
-  return (query: string, variables?: Record<string, unknown>) => {
+  return (query: string) => {
     let onMessage: ((event: any) => void) | undefined;
     let onError: Sink['error'] | undefined;
     let onClose: Sink['complete'] | undefined;
 
-    // keep: ОБЯЗАТЕЛЬНО прокидываем variables в subscribe. Zeus строит запрос с
-    // объявлением переменных ($input: Type!), а не инлайнит значения; без передачи
-    // variables сервер падает на коэрции «переменная не предоставлена» ещё до
-    // резолвера — подписка молча не работает (был баг: гейт жил только на POLL).
     client.subscribe(
-      { query, variables },
+      { query },
       {
         next({ data }) {
           onMessage && onMessage(data);
@@ -405,9 +365,6 @@ export const SubscriptionThunder =
         operationOptions: ops,
         scalars: options?.scalars,
       }),
-      // keep: передаём значения переменных в транспорт подписки — без этого
-      // ws-subscribe уходит с $input без значения и падает на коэрции (см. apiSubscription).
-      ops?.variables,
     ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
     if (returnedFunction?.on && options?.scalars) {
       const wrapped = returnedFunction.on;
@@ -6793,7 +6750,9 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
-	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
+	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
+		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
+		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
 		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"]
 		__typename?: boolean | `@${string}`
 }>;
@@ -7234,8 +7193,28 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferPaginationResult']?: Omit<ValueTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 }>;
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: AliasType<{
+	/** Категория предложения. */
+	category_id?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferPublishedEvent']?: Omit<ValueTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
+}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Доступное к заказу количество единиц. */
+	quantity_available?:boolean | `@${string}`,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
+}>;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -17093,6 +17072,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEvent"]: AliasType<{
+	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
+	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
 	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
 	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
 		__typename?: boolean | `@${string}`
@@ -17523,8 +17504,26 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: AliasType<{
+	/** Категория предложения. */
+	category_id?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Доступное к заказу количество единиц. */
+	quantity_available?:boolean | `@${string}`,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -27060,7 +27059,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -27473,7 +27472,23 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: {
+		/** Категория предложения. */
+	category_id: number,
+	/** Идентификатор предложения. */
+	offer_id: string
+};
 	["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: {
+		/** Идентификатор предложения. */
+	offer_id: string,
+	/** Доступное к заказу количество единиц. */
+	quantity_available: number,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag: boolean
+};
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
@@ -31736,7 +31751,7 @@ export type ModelTypes = {
 	votes: Array<ModelTypes["VoteDistributionInput"]>
 };
 	["Subscription"]: {
-		/** Персональный поток событий пайщика в Столе заказов. */
+		/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: ModelTypes["MarketplaceEvent"]
 };
 	["SubscriptionStatsDto"]: {
@@ -37951,8 +37966,10 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceOrderReadyToReceiveEvent" | "MarketplaceReceptionPendingSignEvent"
-        	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
+        	__typename:"MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceReceptionPendingSignEvent"
+        	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
+	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
+	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
 	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
 };
 	["MarketplaceEventsInput"]: {
@@ -38392,8 +38409,28 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOfferPaginationResult']: Omit<GraphQLTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 };
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: {
+	__typename: "MarketplaceOfferPublishedEvent",
+	/** Категория предложения. */
+	category_id: number,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	['...on MarketplaceOfferPublishedEvent']: Omit<GraphQLTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
+};
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]: MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: {
+	__typename: "MarketplaceOfferStockChangedEvent",
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Доступное к заказу количество единиц. */
+	quantity_available: number,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag: boolean,
+	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
+};
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
@@ -42948,7 +42985,7 @@ export type GraphQLTypes = {
 };
 	["Subscription"]: {
 	__typename: "Subscription",
-	/** Персональный поток событий пайщика в Столе заказов. */
+	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
 	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
 };

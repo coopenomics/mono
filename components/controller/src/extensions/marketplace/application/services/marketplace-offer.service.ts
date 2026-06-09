@@ -38,7 +38,12 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import config from '~/config/config';
+import {
+  MARKETPLACE_OFFER_APPROVED_EVENT,
+  type MarketplaceOfferApprovedEvent,
+} from '../events/marketplace-notification.events';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
@@ -113,7 +118,8 @@ export class MarketplaceOfferService {
     private readonly categoryRepo: MarketplaceCategoryDomainRepository,
     @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
     private readonly availableCategoryService: AvailableCategoryDomainService,
-    private readonly imagesService: MarketplaceOfferImagesService
+    private readonly imagesService: MarketplaceOfferImagesService,
+    private readonly eventBus: EventEmitter2
   ) {}
 
   async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
@@ -321,11 +327,25 @@ export class MarketplaceOfferService {
       );
     }
     const wasApproved = offer.approved_at != null;
-    return this.repo.applyUpdate(offer.id, {
+    const updated = await this.repo.applyUpdate(offer.id, {
       status: wasApproved
         ? MarketplaceOfferStatuses.ACTIVE
         : MarketplaceOfferStatuses.PENDING_MODERATION,
     });
+    // republish ранее одобренного оффера возвращает его в каталог МИНУЯ
+    // модерацию — даём тот же сигнал «появилось в каталоге», что и approve,
+    // чтобы живая витрина показала вернувшееся предложение. На повторную
+    // модерацию (нет approved_at) сигнал даст уже модератор при approve.
+    if (wasApproved) {
+      const event: MarketplaceOfferApprovedEvent = {
+        offer_id: updated.id,
+        supplier_account: updated.supplier_account,
+        approved_by: updated.approved_by ?? supplier_account,
+        category_id: updated.category_id,
+      };
+      this.eventBus.emit(MARKETPLACE_OFFER_APPROVED_EVENT, event);
+    }
+    return updated;
   }
 
   async listMine(

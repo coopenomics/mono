@@ -10,3 +10,16 @@
 export function marketplaceMemberTopic(coopname: string, username: string): string {
   return `marketplace:events:${coopname}:${username}`;
 }
+
+/**
+ * Имя PubSub-топика широковещательного канала каталога кооператива.
+ *
+ * В отличие от персонального топика — общий для всех подписчиков кооператива:
+ * появление нового предложения и изменение остатка должны быть видны всем
+ * сразу, без перехода по страницам. Приватности здесь нет: каталог и так
+ * публичен внутри кооператива (любой пайщик видит витрину). Payload —
+ * по-прежнему только сигнал (идентификаторы), детали клиент дочитывает query.
+ */
+export function marketplaceCatalogTopic(coopname: string): string {
+  return `marketplace:catalog:${coopname}`;
+}

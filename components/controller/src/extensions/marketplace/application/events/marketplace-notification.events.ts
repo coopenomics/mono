@@ -34,6 +34,19 @@ export const MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT =
 export const MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT =
   'marketplace.order.orderer.readyToReceive';
 
+/**
+ * Остаток предложения изменился (заказ заблокировал/освободил/списал единицы).
+ * Сигнал широковещательному каналу каталога, чтобы у всех пайщиков карточка
+ * обновила доступное количество без перехода по страницам.
+ */
+export const MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT = 'marketplace.offer.counters.changed';
+
+/**
+ * Предложение прошло модерацию и стало активным — попадает в каталог. Сигнал
+ * широковещательному каналу каталога, чтобы витрина показала новое предложение.
+ */
+export const MARKETPLACE_OFFER_APPROVED_EVENT = 'marketplace.offer.approved';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -83,6 +96,25 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   orderer_account: string;
   /** Кооперативный участок, где имущество готово к выдаче. */
   braname: string;
+}
+
+export interface MarketplaceOfferCountersChangedEvent {
+  offer_id: string;
+  supplier_account: string;
+  op: 'block' | 'unblock' | 'consume' | 'rollback';
+  qty: number;
+  quantity_available: number;
+  quantity_blocked: number;
+  quantity_consumed: number;
+  unlimited_flag: boolean;
+}
+
+export interface MarketplaceOfferApprovedEvent {
+  offer_id: string;
+  supplier_account: string;
+  approved_by: string;
+  /** Категория предложения — каталог решает, нужно ли обновлять текущую вкладку. */
+  category_id: number;
 }
 
 /**
