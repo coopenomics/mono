@@ -14,14 +14,14 @@
   },
   "dependencies": {
     "express": "^4.22.1",
-    "nodemailer": "^8.0.1"
+    "nodemailer": "^8.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "@types/nodemailer": "^6.4.14",
-    "nodemon": "^3.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.0.0"
+    "nodemon": "^3.1.0"
   }
 }
