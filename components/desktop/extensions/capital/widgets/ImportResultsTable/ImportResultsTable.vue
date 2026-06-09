@@ -153,7 +153,7 @@ const hasErrors = computed(() => {
   return props.items.some((item) => item.status === 'error');
 });
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | undefined) => {
   switch (status) {
     case 'success':
       return 'positive';
@@ -166,7 +166,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusIcon = (status: string) => {
+const getStatusIcon = (status: string | undefined) => {
   switch (status) {
     case 'success':
       return 'check_circle';
@@ -179,7 +179,7 @@ const getStatusIcon = (status: string) => {
   }
 };
 
-const getStatusLabel = (status: string) => {
+const getStatusLabel = (status: string | undefined) => {
   switch (status) {
     case 'success':
       return 'Успешно';
@@ -192,7 +192,8 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-const truncateText = (text: string, maxLength: number) => {
+const truncateText = (text: string | undefined, maxLength: number) => {
+  if (!text) return '';
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };

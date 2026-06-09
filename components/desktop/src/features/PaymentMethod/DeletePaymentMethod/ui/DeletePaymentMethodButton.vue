@@ -27,6 +27,7 @@ div
 </template>
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
+import type { PropType } from 'vue';
 import { useDeletePaymentMethod } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
@@ -44,9 +45,9 @@ const props = defineProps({
     required: true,
   },
   size: {
-    type: String as () => BaseButtonSize,
+    type: String as PropType<BaseButtonSize>,
     required: false,
-    default: 'md'
+    default: 'md' as BaseButtonSize
   }
 })
 
