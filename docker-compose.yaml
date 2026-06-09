@@ -106,6 +106,36 @@ services:
     working_dir: /app
     command: pnpm --filter @coopenomics/desktop run dev
 
+  # Per-tenant Apollo Federation Gateway + install pipeline расширений (E10).
+  # Под профилем `federation`: обычный `docker compose up -d` его НЕ поднимает —
+  # нужен явный `docker compose --profile federation up -d orchestrator`.
+  # Доступ к docker daemon — через socket-mount; от root (socket требует прав).
+  orchestrator:
+    build:
+      context: ./
+      dockerfile: components/orchestrator/Dockerfile
+    image: orchestrator
+    profiles: ["federation"]
+    restart: unless-stopped
+    environment:
+      HOME: /tmp
+      GATEWAY_PORT: 4000
+      # Пароль postgres содержит `!` — в URL он закодирован как %21.
+      DATABASE_URL: ${ORCHESTRATOR_DATABASE_URL:-postgres://postgres:postgres%2123%2123@postgres:5432/voskhod}
+      CORE_SUBGRAPH_URL: ${CORE_SUBGRAPH_URL:-http://coopback:2998/v1/graphql}
+      COOPNAME: ${COOPNAME:-voskhod}
+      JWT_SECRET: ${JWT_SECRET:-secret}
+      COMPOSITION_POLL_INTERVAL_MS: ${COMPOSITION_POLL_INTERVAL_MS:-10000}
+      CA_AUTH_BASE_URL: ${CA_AUTH_BASE_URL:-http://ca-auth:3001}
+      COOPERATIVE_JWT: ${COOPERATIVE_JWT:-}
+    volumes:
+      - ./:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "127.0.0.1:${ORCHESTRATOR_HOST_PORT:-4000}:4000"
+    working_dir: /app
+    command: pnpm --filter @coopenomics/orchestrator run dev
+
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped

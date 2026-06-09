@@ -32,7 +32,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const coreSubgraphUrl = env.CORE_SUBGRAPH_URL;
   if (!coreSubgraphUrl) {
-    throw new AppConfigError('CORE_SUBGRAPH_URL не задан (например http://coopback:3000/v1/graphql)');
+    throw new AppConfigError('CORE_SUBGRAPH_URL не задан (например http://coopback:2998/v1/graphql)');
   }
   const coopname = env.COOPNAME;
   if (!coopname) {
