@@ -9,30 +9,64 @@ import {
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT,
+  MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
+  MARKETPLACE_OFFER_REJECTED_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
+  MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
+  MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
+  MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
+  MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MarketplaceAplReceptionStatusChangedEvent,
   MarketplaceAplSupplierOnsiteSignRequestEvent,
   MarketplaceOfferApprovedEvent,
   MarketplaceOfferCountersChangedEvent,
+  MarketplaceOfferModerationRequestedEvent,
+  MarketplaceOfferRejectedEvent,
   MarketplaceOrderReadyToReceiveEvent,
   MarketplaceOrderStatusChangedEvent,
+  MarketplaceReturnClaimDecidedEvent,
+  MarketplaceReturnClaimSubmittedEvent,
+  MarketplaceSupplierPaymentConfirmedEvent,
+  MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
 import {
   MarketplaceAplReceptionStatusChangedEventDTO,
   MarketplaceEventType,
+  MarketplaceOfferModerationEventDTO,
   MarketplaceOfferPublishedEventDTO,
   MarketplaceOfferStockChangedEventDTO,
   MarketplaceOrderReadyToReceiveEventDTO,
   MarketplaceOrderStatusChangedEventDTO,
+  MarketplacePaymentStatusChangedEventDTO,
   MarketplaceReceptionPendingSignEventDTO,
+  MarketplaceReturnClaimStatusChangedEventDTO,
 } from '../dto/marketplace-event.dto';
 import type { MarketplaceAplReceptionStatusEnum } from '../dto/marketplace-apl-reception.dto';
+import { MarketplaceOfferStatusEnum } from '../dto/marketplace-offer.dto';
+import { MarketplaceOutgoingPaymentRequestStatusEnum } from '../dto/marketplace-outgoing-payment.dto';
+import { MarketplaceReturnClaimStatusEnum } from '../dto/marketplace-return-claim.dto';
 import {
   marketplaceCatalogTopic,
   marketplaceMemberTopic,
+  marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from './marketplace-realtime.topics';
+
+/**
+ * Решение председателя по возврату → статус заявления. Маппинг закреплён
+ * семантикой `MarketplaceReturnClaimService` (каждое решение детерминированно
+ * переводит заявление ровно в один статус).
+ */
+const RETURN_DECISION_TO_STATUS: Record<
+  MarketplaceReturnClaimDecidedEvent['decision'],
+  MarketplaceReturnClaimStatusEnum
+> = {
+  approve_visit: MarketplaceReturnClaimStatusEnum.APPROVED_FOR_VISIT,
+  reject_remote: MarketplaceReturnClaimStatusEnum.REJECTED_REMOTELY,
+  accept_at_visit: MarketplaceReturnClaimStatusEnum.ACCEPTED_AT_VISIT,
+  reject_at_visit: MarketplaceReturnClaimStatusEnum.REJECTED_AT_VISIT,
+};
 
 /**
  * Мост: внутренние доменные события marketplace (EventEmitter2, эмитятся ПОСЛЕ
@@ -161,5 +195,160 @@ export class MarketplaceRealtimeBridge {
     );
     await this.pubSub.publish(staffTopic, payload);
     await this.pubSub.publish(supplierTopic, payload);
+  }
+
+  // Заявление на возврат подано (PENDING_CHAIRMAN_REVIEW). Стол возвратов
+  // оператора КУ доставки должен показать новое заявление сразу — пайщик
+  // может стоять у стойки; заказчику сигнал подтверждает приём заявления.
+  @OnEvent(MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT)
+  async onReturnClaimSubmitted(event: MarketplaceReturnClaimSubmittedEvent): Promise<void> {
+    await this.publishReturnClaimStatus(
+      event.coopname,
+      event.claim_id,
+      MarketplaceReturnClaimStatusEnum.PENDING_CHAIRMAN_REVIEW,
+      event.delivery_braname,
+      event.orderer_account
+    );
+  }
+
+  // Председатель принял решение по возврату (одобрил визит / отказал удалённо /
+  // принял или отказал на месте). Заказчик видит вердикт мгновенно — в том
+  // числе стоя у стойки при очном осмотре; стол оператора обновляет ленту.
+  @OnEvent(MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT)
+  async onReturnClaimDecided(event: MarketplaceReturnClaimDecidedEvent): Promise<void> {
+    await this.publishReturnClaimStatus(
+      event.coopname,
+      event.claim_id,
+      RETURN_DECISION_TO_STATUS[event.decision],
+      event.braname,
+      event.orderer_account
+    );
+  }
+
+  private async publishReturnClaimStatus(
+    coopname: string,
+    claim_id: string,
+    status: MarketplaceReturnClaimStatusEnum,
+    braname: string,
+    orderer_account: string
+  ): Promise<void> {
+    const payload: MarketplaceReturnClaimStatusChangedEventDTO = {
+      eventType: MarketplaceEventType.RETURN_CLAIM_STATUS_CHANGED,
+      claim_id,
+      status,
+      braname,
+    };
+    const staffTopic = marketplaceStaffTopic(coopname);
+    const ordererTopic = marketplaceMemberTopic(coopname, orderer_account);
+    logger.info(
+      `[mp-ws] PUBLISH RETURN_CLAIM_STATUS_CHANGED → topics=${staffTopic},${ordererTopic} claim=${claim_id} status=${status}`
+    );
+    await this.pubSub.publish(staffTopic, payload);
+    await this.pubSub.publish(ordererTopic, payload);
+  }
+
+  // Предложение поступило на модерацию — очередь на столе председателя
+  // пополняется сразу. Поставщику сигнал не нужен: это его собственное
+  // действие, его стол обновился локально.
+  @OnEvent(MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT)
+  async onOfferModerationRequested(
+    event: MarketplaceOfferModerationRequestedEvent
+  ): Promise<void> {
+    await this.publishOfferModeration(
+      event.offer_id,
+      MarketplaceOfferStatusEnum.PENDING_MODERATION
+    );
+  }
+
+  // Предложение одобрено (или вернулось в каталог republish'ем) — очередь
+  // модерации сокращается; поставщик видит одобрение на своём столе сразу.
+  // Каталожный сигнал OFFER_PUBLISHED уходит отдельным handler'ом выше.
+  @OnEvent(MARKETPLACE_OFFER_APPROVED_EVENT)
+  async onOfferModerationApproved(event: MarketplaceOfferApprovedEvent): Promise<void> {
+    await this.publishOfferModeration(
+      event.offer_id,
+      MarketplaceOfferStatusEnum.ACTIVE,
+      event.supplier_account
+    );
+  }
+
+  // Предложение отклонено модератором — поставщик узнаёт об отказе мгновенно,
+  // очередь модерации обновляется у остальных модераторов.
+  @OnEvent(MARKETPLACE_OFFER_REJECTED_EVENT)
+  async onOfferModerationRejected(event: MarketplaceOfferRejectedEvent): Promise<void> {
+    await this.publishOfferModeration(
+      event.offer_id,
+      MarketplaceOfferStatusEnum.REJECTED,
+      event.supplier_account
+    );
+  }
+
+  private async publishOfferModeration(
+    offer_id: string,
+    status: MarketplaceOfferStatusEnum,
+    supplier_account?: string
+  ): Promise<void> {
+    const payload: MarketplaceOfferModerationEventDTO = {
+      eventType: MarketplaceEventType.OFFER_MODERATION_CHANGED,
+      offer_id,
+      status,
+    };
+    const moderationTopic = marketplaceModerationTopic(config.coopname);
+    logger.info(
+      `[mp-ws] PUBLISH OFFER_MODERATION_CHANGED → topic=${moderationTopic} offer=${offer_id} status=${status}`
+    );
+    await this.pubSub.publish(moderationTopic, payload);
+    if (supplier_account) {
+      await this.pubSub.publish(
+        marketplaceMemberTopic(config.coopname, supplier_account),
+        payload
+      );
+    }
+  }
+
+  // Кассир подтвердил банковский перевод поставщику — история выплат
+  // поставщика отражает COMPLETED без поллинга.
+  @OnEvent(MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT)
+  async onSupplierPaymentConfirmed(
+    event: MarketplaceSupplierPaymentConfirmedEvent
+  ): Promise<void> {
+    await this.publishPaymentStatus(
+      event.coopname,
+      event.payment_request_id,
+      MarketplaceOutgoingPaymentRequestStatusEnum.COMPLETED,
+      event.supplier_account
+    );
+  }
+
+  // Кассир отклонил выплату — поставщик видит отказ сразу и может выяснить
+  // причину, не дожидаясь перезагрузки страницы.
+  @OnEvent(MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT)
+  async onSupplierPaymentDeclined(
+    event: MarketplaceSupplierPaymentDeclinedEvent
+  ): Promise<void> {
+    await this.publishPaymentStatus(
+      event.coopname,
+      event.payment_request_id,
+      MarketplaceOutgoingPaymentRequestStatusEnum.DECLINED,
+      event.supplier_account
+    );
+  }
+
+  private async publishPaymentStatus(
+    coopname: string,
+    payment_request_id: string,
+    status: MarketplaceOutgoingPaymentRequestStatusEnum,
+    supplier_account: string
+  ): Promise<void> {
+    const payload: MarketplacePaymentStatusChangedEventDTO = {
+      eventType: MarketplaceEventType.PAYMENT_STATUS_CHANGED,
+      payment_request_id,
+      status,
+    };
+    const topic = marketplaceMemberTopic(coopname, supplier_account);
+    logger.info(
+      `[mp-ws] PUBLISH PAYMENT_STATUS_CHANGED → topic=${topic} payment=${payment_request_id} status=${status}`
+    );
+    await this.pubSub.publish(topic, payload);
   }
 }

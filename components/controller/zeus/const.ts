@@ -4182,11 +4182,14 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceEvent:{
 		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
+		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
 		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
 		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
 		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
 		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
-		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent"
+		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
+		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
+		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -4302,6 +4305,10 @@ export const ReturnTypes: Record<string,any> = {
 		sort_order:"Int",
 		url:"String"
 	},
+	MarketplaceOfferModerationEvent:{
+		offer_id:"String",
+		status:"MarketplaceOfferStatus"
+	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
 		items:"MarketplaceOffer",
@@ -4414,6 +4421,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
 		updated_at:"DateTime"
+	},
+	MarketplacePaymentStatusChangedEvent:{
+		payment_request_id:"String",
+		status:"MarketplaceOutgoingPaymentRequestStatus"
 	},
 	MarketplaceProductType:{
 		descriptionCategoryId:"Int",
@@ -4571,6 +4582,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceReturnClaimResult:{
 		claim:"MarketplaceReturnClaim",
 		tx_hash:"String"
+	},
+	MarketplaceReturnClaimStatusChangedEvent:{
+		braname:"String",
+		claim_id:"String",
+		status:"MarketplaceReturnClaimStatus"
 	},
 	MarketplaceShipment:{
 		braname:"String",

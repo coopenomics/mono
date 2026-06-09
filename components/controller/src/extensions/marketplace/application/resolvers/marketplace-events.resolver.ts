@@ -20,6 +20,7 @@ import { MarketplaceEventsInputDTO } from '../dto/marketplace-events-input.dto';
 import {
   marketplaceCatalogTopic,
   marketplaceMemberTopic,
+  marketplaceModerationTopic,
   marketplaceStaffTopic,
 } from '../realtime/marketplace-realtime.topics';
 
@@ -66,8 +67,30 @@ export class MarketplaceEventsResolver {
     if (await this.isBranchStaff(username)) {
       topics.push(marketplaceStaffTopic(config.coopname));
     }
+    if (await this.isChairman(username)) {
+      topics.push(marketplaceModerationTopic(config.coopname));
+    }
     logger.info(`[mp-ws] подписка открыта: ${topics.join(' + ')}`);
     return this.pubSub.asyncIterator<MarketplaceEventPayload>(topics);
+  }
+
+  /**
+   * Канал модерации — только председателю (core-роль chairman = marketplace
+   * admin, та же логика, что в `mapCoreRolesToMarketplaceRoles`). Роль читаем
+   * из записи пользователя в PG, а не из ws-контекста: graphql-ws кладёт в
+   * контекст только `sub`. Ошибка проверки деградирует в «не председатель» —
+   * стол модерации добирает состояние resync'ом.
+   */
+  private async isChairman(username: string): Promise<boolean> {
+    try {
+      const record = await this.userRepository.findByUsername(username);
+      return record?.role === 'chairman';
+    } catch (err: any) {
+      logger.warn(
+        `[mp-ws] не удалось проверить роль ${username}: ${err.message} — канал модерации не подключён`
+      );
+      return false;
+    }
   }
 
   /**

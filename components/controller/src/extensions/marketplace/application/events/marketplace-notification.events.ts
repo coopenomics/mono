@@ -136,6 +136,34 @@ export interface MarketplaceOfferApprovedEvent {
   category_id: number;
 }
 
+/**
+ * Предложение поступило на модерацию (создано, значимо изменено или
+ * возвращено на публикацию без прошлого одобрения). Сигнал служебному каналу
+ * модерации, чтобы стол председателя показал новую заявку без поллинга.
+ */
+export const MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT =
+  'marketplace.offer.moderationRequested';
+
+export interface MarketplaceOfferModerationRequestedEvent {
+  offer_id: string;
+  supplier_account: string;
+}
+
+/**
+ * Предложение отклонено модератором. Имя события исторически закреплено в
+ * `MarketplaceModerationService.EVENT_REJECTED` — константа вынесена сюда,
+ * чтобы realtime-мост подписался: поставщик и стол модерации видят отказ
+ * сразу, без поллинга.
+ */
+export const MARKETPLACE_OFFER_REJECTED_EVENT = 'marketplace.offer.rejected';
+
+export interface MarketplaceOfferRejectedEvent {
+  offer_id: string;
+  supplier_account: string;
+  rejected_by: string;
+  reason: string;
+}
+
 export interface MarketplaceOrderStatusChangedEvent {
   coopname: string;
   order_id: string;

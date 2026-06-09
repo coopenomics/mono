@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
@@ -54,6 +56,21 @@ async function load(): Promise<void> {
     loading.value = false;
   }
 }
+
+// Realtime: кассир подтвердил/отклонил перевод — строка истории меняет статус
+// сразу. Новая PENDING-выплата рождается закрывающей подписью председателя,
+// её приносит сигнал статуса акта приёмки (он тоже адресован поставщику).
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplacePaymentStatusChangedEvent: () => reloadLive(),
+    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(() => {
   void load();

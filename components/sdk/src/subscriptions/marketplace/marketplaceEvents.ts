@@ -47,6 +47,19 @@ export const subscription = Selector('Subscription')({
         status: true,
         braname: true,
       },
+      '...on MarketplaceReturnClaimStatusChangedEvent': {
+        claim_id: true,
+        status: true,
+        braname: true,
+      },
+      '...on MarketplaceOfferModerationEvent': {
+        offer_id: true,
+        status: true,
+      },
+      '...on MarketplacePaymentStatusChangedEvent': {
+        payment_request_id: true,
+        status: true,
+      },
     },
   ],
 })

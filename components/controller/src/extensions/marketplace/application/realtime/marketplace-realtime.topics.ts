@@ -37,3 +37,15 @@ export function marketplaceCatalogTopic(coopname: string): string {
 export function marketplaceStaffTopic(coopname: string): string {
   return `marketplace:staff:${coopname}`;
 }
+
+/**
+ * Имя PubSub-топика канала модерации предложений.
+ *
+ * Отдельный от служебного канала персонала КУ: модерирует председатель
+ * кооператива (marketplace-роль admin = core-роль chairman), а не персонал
+ * участка. Подключается ТОЛЬКО соединениям с ролью chairman — резолвер
+ * проверяет при открытии подписки; клиент топики не выбирает.
+ */
+export function marketplaceModerationTopic(coopname: string): string {
+  return `marketplace:moderation:${coopname}`;
+}

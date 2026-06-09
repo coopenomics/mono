@@ -6762,11 +6762,14 @@ export type ValueTypes = {
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
 	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceAplReceptionStatusChangedEvent"]?: ValueTypes["MarketplaceAplReceptionStatusChangedEvent"],
+		["...on MarketplaceOfferModerationEvent"]?: ValueTypes["MarketplaceOfferModerationEvent"],
 		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
 		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
 		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
 		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
-		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"]
+		["...on MarketplacePaymentStatusChangedEvent"]?: ValueTypes["MarketplacePaymentStatusChangedEvent"],
+		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"],
+		["...on MarketplaceReturnClaimStatusChangedEvent"]?: ValueTypes["MarketplaceReturnClaimStatusChangedEvent"]
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -7194,6 +7197,15 @@ export type ValueTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null | Variable<any, string>
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Новый статус предложения. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferModerationEvent']?: Omit<ValueTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -7437,6 +7449,15 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: AliasType<{
+	/** Идентификатор платёжной заявки. */
+	payment_request_id?:boolean | `@${string}`,
+	/** Новый статус выплаты. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplacePaymentStatusChangedEvent']?: Omit<ValueTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
+}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -7803,6 +7824,17 @@ export type ValueTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор заявления на возврат. */
+	claim_id?:boolean | `@${string}`,
+	/** Новый статус заявления. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimStatusChangedEvent']?: Omit<ValueTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
+}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
@@ -17107,11 +17139,14 @@ export type ResolverInputTypes = {
 }>;
 	["MarketplaceEvent"]: AliasType<{
 	MarketplaceAplReceptionStatusChangedEvent?:ResolverInputTypes["MarketplaceAplReceptionStatusChangedEvent"],
+	MarketplaceOfferModerationEvent?:ResolverInputTypes["MarketplaceOfferModerationEvent"],
 	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
 	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
 	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
 	MarketplaceOrderStatusChangedEvent?:ResolverInputTypes["MarketplaceOrderStatusChangedEvent"],
+	MarketplacePaymentStatusChangedEvent?:ResolverInputTypes["MarketplacePaymentStatusChangedEvent"],
 	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
+	MarketplaceReturnClaimStatusChangedEvent?:ResolverInputTypes["MarketplaceReturnClaimStatusChangedEvent"],
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -17529,6 +17564,14 @@ export type ResolverInputTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Новый статус предложения. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -17761,6 +17804,14 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: AliasType<{
+	/** Идентификатор платёжной заявки. */
+	payment_request_id?:boolean | `@${string}`,
+	/** Новый статус выплаты. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -18114,6 +18165,16 @@ export type ResolverInputTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор заявления на возврат. */
+	claim_id?:boolean | `@${string}`,
+	/** Новый статус заявления. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -27114,7 +27175,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferModerationEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplacePaymentStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"] | ModelTypes["MarketplaceReturnClaimStatusChangedEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -27517,6 +27578,13 @@ export type ModelTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: {
+		/** Идентификатор предложения. */
+	offer_id: string,
+	/** Новый статус предложения. */
+	status: ModelTypes["MarketplaceOfferStatus"]
+};
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -27734,6 +27802,13 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: {
+		/** Идентификатор платёжной заявки. */
+	payment_request_id: string,
+	/** Новый статус выплаты. */
+	status: ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]
+};
 	["MarketplaceProductType"]: {
 		/** ID категории */
 	descriptionCategoryId: number,
@@ -28071,6 +28146,15 @@ export type ModelTypes = {
 	reason_text?: string | undefined | null
 };
 	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: {
+		/** Кооперативный участок, рассматривающий возврат. */
+	braname: string,
+	/** Идентификатор заявления на возврат. */
+	claim_id: string,
+	/** Новый статус заявления. */
+	status: ModelTypes["MarketplaceReturnClaimStatus"]
+};
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -38041,13 +38125,16 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent"
+        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferModerationEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplacePaymentStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent" | "MarketplaceReturnClaimStatusChangedEvent"
         	['...on MarketplaceAplReceptionStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"];
+	['...on MarketplaceOfferModerationEvent']: '__union' & GraphQLTypes["MarketplaceOfferModerationEvent"];
 	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
 	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
 	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
 	['...on MarketplaceOrderStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceOrderStatusChangedEvent"];
+	['...on MarketplacePaymentStatusChangedEvent']: '__union' & GraphQLTypes["MarketplacePaymentStatusChangedEvent"];
 	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
+	['...on MarketplaceReturnClaimStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"];
 };
 	["MarketplaceEventsInput"]: {
 		/** Кооперативное имя. */
@@ -38474,6 +38561,15 @@ export type GraphQLTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: {
+	__typename: "MarketplaceOfferModerationEvent",
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Новый статус предложения. */
+	status: GraphQLTypes["MarketplaceOfferStatus"],
+	['...on MarketplaceOfferModerationEvent']: Omit<GraphQLTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
+};
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
 	/** Текущая страница */
@@ -38717,6 +38813,15 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: {
+	__typename: "MarketplacePaymentStatusChangedEvent",
+	/** Идентификатор платёжной заявки. */
+	payment_request_id: string,
+	/** Новый статус выплаты. */
+	status: GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"],
+	['...on MarketplacePaymentStatusChangedEvent']: Omit<GraphQLTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
+};
 	["MarketplaceProductType"]: {
 	__typename: "MarketplaceProductType",
 	/** ID категории */
@@ -39083,6 +39188,17 @@ export type GraphQLTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: {
+	__typename: "MarketplaceReturnClaimStatusChangedEvent",
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname: string,
+	/** Идентификатор заявления на возврат. */
+	claim_id: string,
+	/** Новый статус заявления. */
+	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
+	['...on MarketplaceReturnClaimStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
+};
 	["MarketplaceReturnStatementSignedInput"]: {
 		/** Хэш содержимого документа */
 	doc_hash: string,

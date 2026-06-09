@@ -24,6 +24,11 @@ import { useOnsiteSignatureGate } from './useOnsiteSignatureGate';
 const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
   'MarketplaceOrderReadyToReceiveEvent',
   'MarketplaceReceptionPendingSignEvent',
+  // Статусные сигналы закрывают гейт кросс-девайсно: подписал на телефоне —
+  // оверлей на десктопе уходит сразу, а не по 60-сек страховке. Дочитка
+  // дешёвая, события по своему аккаунту редкие.
+  'MarketplaceOrderStatusChangedEvent',
+  'MarketplaceAplReceptionStatusChangedEvent',
 ]);
 
 export function createMarketplaceEventsSubscription(): RealtimeSubscription {

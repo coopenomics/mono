@@ -1,6 +1,9 @@
 import { createUnionType, Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { MarketplaceAplReceptionStatusEnum } from './marketplace-apl-reception.dto';
+import { MarketplaceOfferStatusEnum } from './marketplace-offer.dto';
+import { MarketplaceOutgoingPaymentRequestStatusEnum } from './marketplace-outgoing-payment.dto';
+import { MarketplaceReturnClaimStatusEnum } from './marketplace-return-claim.dto';
 
 /**
  * Статус заказа на проводе. Регистрируем уже существующий канон-набор
@@ -27,6 +30,9 @@ export enum MarketplaceEventType {
   OFFER_PUBLISHED = 'OFFER_PUBLISHED',
   ORDER_STATUS_CHANGED = 'ORDER_STATUS_CHANGED',
   RECEPTION_STATUS_CHANGED = 'RECEPTION_STATUS_CHANGED',
+  RETURN_CLAIM_STATUS_CHANGED = 'RETURN_CLAIM_STATUS_CHANGED',
+  OFFER_MODERATION_CHANGED = 'OFFER_MODERATION_CHANGED',
+  PAYMENT_STATUS_CHANGED = 'PAYMENT_STATUS_CHANGED',
 }
 
 @ObjectType('MarketplaceOrderReadyToReceiveEvent', {
@@ -120,6 +126,52 @@ export class MarketplaceAplReceptionStatusChangedEventDTO {
   braname!: string;
 }
 
+@ObjectType('MarketplaceReturnClaimStatusChangedEvent', {
+  description:
+    'У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние.',
+})
+export class MarketplaceReturnClaimStatusChangedEventDTO {
+  eventType!: MarketplaceEventType.RETURN_CLAIM_STATUS_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор заявления на возврат.' })
+  claim_id!: string;
+
+  @Field(() => MarketplaceReturnClaimStatusEnum, { description: 'Новый статус заявления.' })
+  status!: MarketplaceReturnClaimStatusEnum;
+
+  @Field(() => String, { description: 'Кооперативный участок, рассматривающий возврат.' })
+  braname!: string;
+}
+
+@ObjectType('MarketplaceOfferModerationEvent', {
+  description:
+    'Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено).',
+})
+export class MarketplaceOfferModerationEventDTO {
+  eventType!: MarketplaceEventType.OFFER_MODERATION_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор предложения.' })
+  offer_id!: string;
+
+  @Field(() => MarketplaceOfferStatusEnum, { description: 'Новый статус предложения.' })
+  status!: MarketplaceOfferStatusEnum;
+}
+
+@ObjectType('MarketplacePaymentStatusChangedEvent', {
+  description: 'У выплаты поставщику сменился статус — история выплат должна перечитать состояние.',
+})
+export class MarketplacePaymentStatusChangedEventDTO {
+  eventType!: MarketplaceEventType.PAYMENT_STATUS_CHANGED;
+
+  @Field(() => String, { description: 'Идентификатор платёжной заявки.' })
+  payment_request_id!: string;
+
+  @Field(() => MarketplaceOutgoingPaymentRequestStatusEnum, {
+    description: 'Новый статус выплаты.',
+  })
+  status!: MarketplaceOutgoingPaymentRequestStatusEnum;
+}
+
 /**
  * Объединение всех типов realtime-событий marketplace.
  *
@@ -140,6 +192,9 @@ export const MarketplaceEventUnion = createUnionType({
       MarketplaceOfferPublishedEventDTO,
       MarketplaceOrderStatusChangedEventDTO,
       MarketplaceAplReceptionStatusChangedEventDTO,
+      MarketplaceReturnClaimStatusChangedEventDTO,
+      MarketplaceOfferModerationEventDTO,
+      MarketplacePaymentStatusChangedEventDTO,
     ] as const,
   resolveType(value: { eventType?: MarketplaceEventType }) {
     switch (value.eventType) {
@@ -155,6 +210,12 @@ export const MarketplaceEventUnion = createUnionType({
         return MarketplaceOrderStatusChangedEventDTO;
       case MarketplaceEventType.RECEPTION_STATUS_CHANGED:
         return MarketplaceAplReceptionStatusChangedEventDTO;
+      case MarketplaceEventType.RETURN_CLAIM_STATUS_CHANGED:
+        return MarketplaceReturnClaimStatusChangedEventDTO;
+      case MarketplaceEventType.OFFER_MODERATION_CHANGED:
+        return MarketplaceOfferModerationEventDTO;
+      case MarketplaceEventType.PAYMENT_STATUS_CHANGED:
+        return MarketplacePaymentStatusChangedEventDTO;
       default:
         return null;
     }
@@ -167,4 +228,7 @@ export type MarketplaceEventPayload =
   | MarketplaceOfferStockChangedEventDTO
   | MarketplaceOfferPublishedEventDTO
   | MarketplaceOrderStatusChangedEventDTO
-  | MarketplaceAplReceptionStatusChangedEventDTO;
+  | MarketplaceAplReceptionStatusChangedEventDTO
+  | MarketplaceReturnClaimStatusChangedEventDTO
+  | MarketplaceOfferModerationEventDTO
+  | MarketplacePaymentStatusChangedEventDTO;

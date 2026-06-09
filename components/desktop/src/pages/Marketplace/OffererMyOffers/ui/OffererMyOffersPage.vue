@@ -228,6 +228,9 @@ useMarketplaceRealtime(
   {
     MarketplaceOfferPublishedEvent: () => reloadLive(),
     MarketplaceOfferStockChangedEvent: () => reloadLive(),
+    // Вердикт модерации (одобрено/отклонено) приходит в персональный канал
+    // поставщика — статус-бейдж карточки обновляется сразу, без поллинга.
+    MarketplaceOfferModerationEvent: () => reloadLive(),
   },
   { onResync: () => reloadLive() }
 );

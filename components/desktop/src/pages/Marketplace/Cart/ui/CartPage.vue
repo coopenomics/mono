@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -10,6 +11,7 @@ import {
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 
 /**
  * Эпик 16 / Story 16.1 + 16.2: страница корзины заказчика и оформление.
@@ -134,6 +136,22 @@ function goToDetail(offerId: string): void {
     query: { from: 'cart' },
   });
 }
+
+// Realtime: остаток позиции из корзины изменился (другие пайщики выкупают
+// предложение) — перечитываем корзину, чтобы оформление не упёрлось в
+// устаревшее количество. Реагируем только на свои offer_id.
+const reloadLive = debounce(() => {
+  if (cartStore.loading) return;
+  void cartStore.load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceOfferStockChangedEvent: (event) => {
+      if (cartStore.items.some((it) => it.offer_id === event.offer_id)) reloadLive();
+    },
+  },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(async () => {
   try {
