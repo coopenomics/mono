@@ -40,6 +40,7 @@
     "start": "esno src/index.ts",
     "test": "vitest run --testTimeout 60000",
     "typecheck": "tsc --noEmit",
+    "predocs": "pnpm -F @coopenomics/controller generate-schema",
     "docs": "esno scripts/generate-index-comments.ts && typedoc",
     "update:comments": "esno scripts/generate-index-comments.ts"
   },
