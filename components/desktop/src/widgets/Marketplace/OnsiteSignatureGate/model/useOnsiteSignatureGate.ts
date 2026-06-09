@@ -1,0 +1,187 @@
+import { computed, ref } from 'vue';
+import { useGlobalStore } from 'src/shared/store';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import {
+  listAplReceptionsAsSupplier,
+  signReceptionGroupAsSupplier,
+  type MarketplaceAplReceptionView,
+} from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
+import {
+  listMyReadyToReceive,
+  finalizeOrdererIssuance,
+  type MarketplaceOrderIssuanceView,
+} from 'src/pages/Marketplace/OperatorIssuance/api';
+
+/**
+ * Глобальный гейт «подпись на месте» (Фаза 2, на realtime-подписке).
+ *
+ * Перекрывает весь экран ЛК, когда пайщик ЛИЧНО прибыл на ПВЗ и от него ждут
+ * подпись акта — чтобы он не ушёл, не подписав:
+ *  - ПОСТАВЩИК: акт приёмки в статусе ожидания его (первой) подписи И только
+ *    при ОЧНОЙ доставке (variant A). При доставке через экспедитора экран НЕ
+ *    блокируем — поставщик подписывает в своём столе в удобный момент, гейт
+ *    не должен мешать его работе.
+ *  - ЗАКАЗЧИК: заказ готов к получению (председатель открыл выдачу первой
+ *    подписью) и финальная подпись заказчика ещё не поставлена — он подтверждает
+ *    получение второй (закрывающей) подписью.
+ *
+ * Канон подписей (L1): передающий подписывает первым, принимающий — последним.
+ * Приёмка: поставщик(1) → председатель(2). Выдача: председатель(1) → заказчик(2).
+ *
+ * Оператора/председателя гейт НЕ трогает: он держит много заказов на стойке и
+ * находит действия в своих столах сам — здесь запрашиваются только «мои как
+ * поставщика» и «мои готовые к получению», то есть данные самого пайщика.
+ *
+ * Сигнал = сам статус. Источник обновлений — realtime-подписка marketplace
+ * (персональный канал пайщика): на любое событие канал ядра дёргает refresh,
+ * плюс catch-up при возврате приложения в активность и страховочный таймер.
+ * Гейт сам закрывается, как только статус ушёл вперёд (подписал) ИЛИ оператор
+ * откатил — после ближайшей дочитки список пустеет. Поллинга нет.
+ */
+
+interface OrdererPickupTask {
+  /** Ключ группировки — braname пункта выдачи. */
+  key: string;
+  pointName: string;
+  pointAddress: string;
+  orders: MarketplaceOrderIssuanceView[];
+  /** Совокупная сумма к получению по всем позициям пункта. */
+  totalCost: string;
+}
+
+const PENDING_SUPPLIER_SIGN = 'PENDING_SUPPLIER_SIGN';
+// Очная приёмка кодируется как 'A' / 'IN_PERSON' в зависимости от слоя — гейт
+// блокирует ТОЛЬКО её; экспедиторскую (B / EXPEDITOR) не трогает.
+const IN_PERSON_VARIANTS = new Set(['A', 'IN_PERSON']);
+
+// Singleton-состояние (как у SelectBranchOverlay): один гейт на всё приложение.
+const supplierReceptions = ref<MarketplaceAplReceptionView[]>([]);
+const ordererOrders = ref<MarketplaceOrderIssuanceView[]>([]);
+const loading = ref(false);
+/** Ключ задачи (group.key / task.key), которая сейчас подписывается. */
+const signingKey = ref<string | null>(null);
+
+const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(() =>
+  groupAplReceptions(supplierReceptions.value, { byOfferer: false }).filter(
+    (g) => g.status === PENDING_SUPPLIER_SIGN && IN_PERSON_VARIANTS.has(g.variant),
+  ),
+);
+
+const ordererTasks = computed<OrdererPickupTask[]>(() => {
+  // listMyReadyToReceive отдаёт заказы со статусом READY_TO_RECEIVE; фильтруем
+  // ещё не подписанные заказчиком и группируем по пункту выдачи — одна подпись
+  // на пункт (как в карточке «Моих заказов», задача #53).
+  const pending = ordererOrders.value.filter((o) => !o.orderer_signed_at);
+  const byPoint = new Map<string, MarketplaceOrderIssuanceView[]>();
+  for (const o of pending) {
+    const key = o.delivery_braname || o.delivery_point_name || o.id;
+    const arr = byPoint.get(key) ?? [];
+    arr.push(o);
+    byPoint.set(key, arr);
+  }
+  return [...byPoint.entries()].map(([key, orders]) => ({
+    key,
+    pointName: orders[0]?.delivery_point_name ?? '',
+    pointAddress: orders[0]?.delivery_point_address ?? '',
+    orders,
+    totalCost: orders
+      .reduce(
+        (sum, o) => sum + Number.parseFloat(o.issuance_fact?.fact_cost ?? o.total_cost ?? '0'),
+        0,
+      )
+      .toFixed(4),
+  }));
+});
+
+/** Гейт виден, пока есть хоть одна личная подпись, которую ждут от пайщика. */
+const isVisible = computed(() => supplierTasks.value.length > 0 || ordererTasks.value.length > 0);
+
+/**
+ * Тихий опрос обоих источников. Запросы независимы: сбой одного не гасит другой
+ * и не алертит — это фоновый poll, не действие пользователя.
+ */
+async function refresh(): Promise<void> {
+  const global = useGlobalStore();
+  if (!global.wif) {
+    // Не залогинен — гейта нет, очищаем возможный хвост.
+    supplierReceptions.value = [];
+    ordererOrders.value = [];
+    return;
+  }
+  loading.value = true;
+  try {
+    const [receptions, orders] = await Promise.all([
+      listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
+      listMyReadyToReceive().catch(() => [] as MarketplaceOrderIssuanceView[]),
+    ]);
+    supplierReceptions.value = receptions;
+    ordererOrders.value = orders;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
+  const global = useGlobalStore();
+  const wif = global.wif?.toString();
+  if (!wif) {
+    FailAlert(new Error('Приватный ключ поставщика не найден. Войдите в кооператив.'));
+    return;
+  }
+  signingKey.value = group.key;
+  try {
+    const { errors } = await signReceptionGroupAsSupplier(group.receptions, wif);
+    if (errors.length === 0) {
+      SuccessAlert('Поставка подписана. Ожидается закрывающая подпись председателя КУ.');
+    } else {
+      for (const { receptionId, error } of errors) {
+        FailAlert(error, `Не удалось подписать один из актов поставки (${receptionId.slice(0, 8)})`);
+      }
+    }
+    await refresh();
+  } finally {
+    signingKey.value = null;
+  }
+}
+
+async function signOrderer(task: OrdererPickupTask): Promise<void> {
+  const global = useGlobalStore();
+  const wif = global.wif?.toString();
+  if (!wif) {
+    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
+    return;
+  }
+  signingKey.value = task.key;
+  try {
+    const { ok, failed } = await finalizeOrdererIssuance(task.orders, wif, global.username);
+    if (failed.length === 0) {
+      SuccessAlert(`Имущество получено по ${ok} позиц. Заказы закрыты.`);
+    } else {
+      const names = failed.map((f) => f.order.product_name || f.order.id.slice(0, 8));
+      FailAlert(
+        new Error(
+          `Получено ${ok} из ${task.orders.length}. Не удалось: ${names.join(', ')}. Повторите по оставшимся.`,
+        ),
+      );
+    }
+    await refresh();
+  } finally {
+    signingKey.value = null;
+  }
+}
+
+export function useOnsiteSignatureGate() {
+  return {
+    isVisible,
+    loading,
+    signingKey,
+    supplierTasks,
+    ordererTasks,
+    refresh,
+    signSupplier,
+    signOrderer,
+  };
+}
+
+export type { OrdererPickupTask };

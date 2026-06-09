@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
@@ -10,9 +9,8 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
-  signAsSupplier,
+  signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
-  type SignedDocumentInput,
 } from '../api';
 
 /**
@@ -98,31 +96,23 @@ async function confirm(): Promise<void> {
 
   signing.value = true;
   done.value = 0;
-  const signer = new Classes.Document(wif);
-  let failed = 0;
   try {
-    // По каждому акту группы — отдельная подпись и отдельная транзакция. Идём
-    // последовательно: ошибка по одному не теряет уже подписанные.
-    for (const r of props.group.receptions) {
-      try {
-        const payloads = await fetchSupplierSignablePayloads(r.id);
-        if (payloads.length === 0) {
-          throw new Error('Backend не вернул ни одного акта для подписи.');
-        }
-        const signed_documents: SignedDocumentInput[] = [];
-        for (const payload of payloads) {
-          const signed = await signer.signDocument(payload, r.offerer_account, 1);
-          signed_documents.push(signed);
-        }
-        await signAsSupplier(r.id, signed_documents);
-        done.value += 1;
-      } catch (e) {
-        failed += 1;
-        FailAlert(e, `Не удалось подписать один из актов поставки (${r.id.slice(0, 8)})`);
-      }
+    // Крипто-флоу подписи вынесен в api (signReceptionGroupAsSupplier) — единый
+    // источник со столом и глобальным гейтом. Прогресс прокидываем в счётчик
+    // кнопки, ошибки/успех алертим здесь.
+    const { errors } = await signReceptionGroupAsSupplier(
+      props.group.receptions,
+      wif,
+      (d) => {
+        done.value = d;
+      },
+    );
+
+    for (const { receptionId, error } of errors) {
+      FailAlert(error, `Не удалось подписать один из актов поставки (${receptionId.slice(0, 8)})`);
     }
 
-    if (failed === 0) {
+    if (errors.length === 0) {
       // Поставщику число актов в партии знать не нужно — это внутренняя кухня
       // оформления (одна поставка = много актов на цепи). Для него поставка —
       // единое целое: подписал и ждёт закрывающую подпись председателя КУ.
@@ -130,12 +120,12 @@ async function confirm(): Promise<void> {
     } else {
       FailAlert(
         new Error(
-          `Подписано ${done.value} из ${deliveriesCount.value}; по ${failed} осталась ошибка — повторите.`,
+          `Подписано ${done.value} из ${deliveriesCount.value}; по ${errors.length} осталась ошибка — повторите.`,
         ),
       );
     }
     emit('signed');
-    if (failed === 0) emit('update:modelValue', false);
+    if (errors.length === 0) emit('update:modelValue', false);
   } finally {
     signing.value = false;
   }

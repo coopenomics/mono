@@ -183,30 +183,35 @@ async function confirm(): Promise<void> {
   const docSigner = new Classes.Document(wifKey);
   const failed: string[] = [];
   let ok = 0;
-  // Цикл по позициям: каждая — отдельный акт (председатель → openIssuance).
-  // Последовательно, чтобы не ловить гонки on-chain подписей.
-  for (const o of props.orders) {
-    const f = facts.value[o.id];
-    const priceStr = String(f.price);
-    try {
-      const generated = await getChairmanSignablePayload({
-        order_id: o.id,
-        actual_quantity: f.qty,
-        actual_unit_price: priceStr,
-      });
-      const signed = await docSigner.signDocument(generated, globalStore.username, 1);
-      await openIssuance({
-        order_id: o.id,
-        actual_quantity: f.qty,
-        actual_unit_price: priceStr,
-        signed_document: signed,
-      });
-      ok += 1;
-    } catch (e) {
-      console.error('openIssuance failed for order', o.id, e);
-      failed.push(o.product_name || o.id.slice(0, 8));
-    }
-  }
+  // По позициям ПАРАЛЛЕЛЬНО: каждая — отдельный акт (председатель →
+  // openIssuance, signiss1). У заказов разные хэши — на цепи это разные
+  // документы, гонок подписи нет, и все позиции пункта взводятся в
+  // READY_TO_RECEIVE почти в один блок. Это устраняет «прилёт по одной»:
+  // заказчик видит весь комплект сразу, а не по мере ~0.5с/акт.
+  await Promise.all(
+    props.orders.map(async (o) => {
+      const f = facts.value[o.id];
+      const priceStr = String(f.price);
+      try {
+        const generated = await getChairmanSignablePayload({
+          order_id: o.id,
+          actual_quantity: f.qty,
+          actual_unit_price: priceStr,
+        });
+        const signed = await docSigner.signDocument(generated, globalStore.username, 1);
+        await openIssuance({
+          order_id: o.id,
+          actual_quantity: f.qty,
+          actual_unit_price: priceStr,
+          signed_document: signed,
+        });
+        ok += 1;
+      } catch (e) {
+        console.error('openIssuance failed for order', o.id, e);
+        failed.push(o.product_name || o.id.slice(0, 8));
+      }
+    }),
+  );
   signing.value = false;
 
   if (ok > 0) emit('opened');

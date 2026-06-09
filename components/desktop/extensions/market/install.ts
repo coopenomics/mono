@@ -33,6 +33,12 @@ import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsRead
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
+import { registerGlobalOverlay } from 'src/shared/lib/overlays'
+import { registerRealtimeSubscription } from 'src/shared/lib/realtime'
+import {
+  OnsiteSignatureGateOverlay,
+  createMarketplaceEventsSubscription,
+} from 'src/widgets/Marketplace/OnsiteSignatureGate'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
 
 /**
@@ -73,6 +79,17 @@ import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
   registerMarketplaceProcessInfoHandlers()
+
+  // Глобальный гейт подписи на месте (Фаза 1) — расширение само вкладывает свой
+  // оверлей в универсальный реестр ядра, как и process-info-хендлеры выше. App
+  // его не импортирует; он сам решает свою видимость (поставщик очно / заказчик
+  // на получении).
+  registerGlobalOverlay('marketplace:onsite-signature-gate', OnsiteSignatureGateOverlay)
+
+  // Фаза 2: расширение вкладывает свою realtime-подписку в канал ядра (как и
+  // оверлей выше). Ядро откроет её при авторизации и будет дёргать catch-up;
+  // события персонального канала пайщика обновляют гейт без поллинга.
+  registerRealtimeSubscription(createMarketplaceEventsSubscription())
 
   return [
     // ───────────────────────── Стол заказчика ─────────────────────────

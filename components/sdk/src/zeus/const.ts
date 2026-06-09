@@ -719,6 +719,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceDetailKUInput:{
 		workingHours:"WorkingHoursInput"
 	},
+	MarketplaceEventsInput:{
+
+	},
 	MarketplaceFinalizeIssuanceInput:{
 		signed_document:"MarketplaceIssueActSignedDocumentInput"
 	},
@@ -2351,6 +2354,11 @@ export const AllTypesProps: Record<string,any> = {
 	StoryStatus: "enum" as const,
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
+	},
+	Subscription:{
+		marketplaceEvents:{
+			input:"MarketplaceEventsInput"
+		}
 	},
 	SystemStatus: "enum" as const,
 	TranscriptionStatus: "enum" as const,
@@ -4166,6 +4174,10 @@ export const ReturnTypes: Record<string,any> = {
 		picture:"String",
 		value:"String"
 	},
+	MarketplaceEvent:{
+		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
+		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent"
+	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
 		offerer_account:"String",
@@ -4356,6 +4368,11 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	MarketplaceOrderReadyToReceiveEvent:{
+		braname:"String",
+		order_hash:"String",
+		order_id:"String"
+	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
 		apl_reception_id:"ID",
@@ -4381,6 +4398,10 @@ export const ReturnTypes: Record<string,any> = {
 		isAvailable:"Boolean",
 		typeId:"Int",
 		typeName:"String"
+	},
+	MarketplaceReceptionPendingSignEvent:{
+		ku_name:"String",
+		reception_id:"String"
 	},
 	MarketplaceRegistrationOfferStatus:{
 		agreement_id:"String",
@@ -5792,6 +5813,9 @@ export const ReturnTypes: Record<string,any> = {
 		action:"ExtendedBlockchainAction",
 		documentAggregate:"DocumentAggregate"
 	},
+	Subscription:{
+		marketplaceEvents:"MarketplaceEvent"
+	},
 	SubscriptionStatsDto:{
 		active:"Int",
 		inactive:"Int",
@@ -5963,5 +5987,6 @@ export const ReturnTypes: Record<string,any> = {
 
 export const Ops = {
 query: "Query" as const,
-	mutation: "Mutation" as const
+	mutation: "Mutation" as const,
+	subscription: "Subscription" as const
 }
