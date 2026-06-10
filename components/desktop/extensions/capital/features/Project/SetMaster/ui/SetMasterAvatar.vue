@@ -4,14 +4,18 @@
   //- По клику открывается q-menu с ContributorSelector — мастер один,
   //- поэтому выбор одиночный (без мульти-выбора).
   .master-trigger(
-    :class='{ readonly: !canSet, empty: !currentMaster }'
+    :class='{ readonly: !canSet, empty: !currentMaster && !isLoadingMaster }'
   )
-    template(v-if='currentMaster')
+    //- Пока мастер грузится — скелетон-кружок, а не «мастер не назначен»:
+    //- пустой плейсхолдер во время загрузки вводит в заблуждение
+    template(v-if='isLoadingMaster && !currentMaster')
+      .skel.skel--circle.avatar-skel
+    template(v-else-if='currentMaster')
       .master-avatar
         span.master-initial {{ masterInitial }}
         q-tooltip(anchor='bottom middle', self='top middle') Мастер: {{ currentMaster.display_name || currentMaster.username }}
     template(v-else)
-      q-icon(name='manage_accounts', size='18px', color='grey-6')
+      q-icon.empty-icon(name='manage_accounts', size='18px', color='grey-6')
       q-tooltip(v-if='canSet', anchor='bottom middle', self='top middle') Назначить мастера
 
     q-menu(
@@ -59,6 +63,7 @@ const loading = ref(false);
 const selectedMaster = ref<IContributor | null>(null);
 const currentMaster = ref<IContributor | null>(null);
 const isSaving = ref(false);
+const isLoadingMaster = ref(false);
 const isProgrammaticChange = ref(false);
 
 const canSet = computed(() => !!props.project?.permissions?.can_set_master);
@@ -71,6 +76,7 @@ const masterInitial = computed(() => {
 
 const loadMaster = async (masterUsername: string) => {
   isProgrammaticChange.value = true;
+  isLoadingMaster.value = true;
   try {
     if (!masterUsername) {
       currentMaster.value = null;
@@ -89,6 +95,7 @@ const loadMaster = async (masterUsername: string) => {
   } finally {
     await nextTick();
     isProgrammaticChange.value = false;
+    isLoadingMaster.value = false;
   }
 };
 
@@ -172,9 +179,20 @@ watch(selectedMaster, async (newMaster, oldMaster) => {
   }
 
   &.empty {
-    padding: 4px;
-    justify-content: center;
+    padding: 4px 9px 4px 4px; // 4 + (28 − 18) / 2 — центр иконки в центре колонки аватара
   }
+}
+
+// Скелетон на время загрузки мастера — той же геометрии, что аватар
+.avatar-skel {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+// margin-left: auto — жёсткая прижимка вправо независимо от justify-content
+.empty-icon {
+  margin-left: auto;
 }
 
 .master-avatar {

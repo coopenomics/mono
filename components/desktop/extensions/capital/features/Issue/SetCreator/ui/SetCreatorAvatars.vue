@@ -4,9 +4,13 @@
   // По клику открывается q-menu с полным ContributorSelector — вся функциональность
   // существующего SetCreatorButton сохраняется (поиск, мульти-выбор, дебаунс-сохранение).
   .creators-trigger(
-    :class='{ readonly: !canAssign, empty: currentCreators.length === 0 }'
+    :class='{ readonly: !canAssign, empty: currentCreators.length === 0 && !isLoadingCreators }'
   )
-    template(v-if='currentCreators.length > 0')
+    //- Пока исполнители грузятся — скелетон-кружок, а не «назначьте исполнителя»:
+    //- пустой плейсхолдер во время загрузки вводит в заблуждение
+    template(v-if='isLoadingCreators && currentCreators.length === 0')
+      .skel.skel--circle.avatar-skel
+    template(v-else-if='currentCreators.length > 0')
       .avatar-stack
         .creator-avatar(
           v-for='(c, idx) in visibleCreators'
@@ -18,7 +22,7 @@
         .creator-avatar.more-avatar(v-if='hiddenCount > 0')
           span.creator-initial +{{ hiddenCount }}
     template(v-else)
-      q-icon(name='person_add', size='18px', color='grey-6')
+      q-icon.empty-icon(name='person_add', size='18px', color='grey-6')
 
     q-menu(
       v-if='canAssign'
@@ -233,10 +237,24 @@ watch(
     cursor: default;
   }
 
+  // Пустое состояние выравниваем так же вправо, как и заполненное: иначе
+  // иконка внутри фикс-ширины 72px визуально получала «отступ справа» и
+  // выпадала из вертикали аватарок соседних строк.
   &.empty {
-    padding: 4px;
-    justify-content: center;
+    padding: 4px 9px 4px 4px; // 4 + (28 − 18) / 2 — центр иконки в центре колонки аватара
   }
+}
+
+// margin-left: auto — жёсткая прижимка вправо независимо от justify-content
+.empty-icon {
+  margin-left: auto;
+}
+
+// Скелетон на время загрузки исполнителей — той же геометрии, что аватар
+.avatar-skel {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .avatar-stack {
