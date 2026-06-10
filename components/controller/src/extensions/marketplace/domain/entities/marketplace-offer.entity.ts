@@ -48,6 +48,15 @@ export class MarketplaceOfferDomainEntity {
   /** Изображения товара (обложка = индекс 0). Pure-db, ключи bucket'а. */
   public readonly images!: MarketplaceOfferImage[];
 
+  /**
+   * Оффер кооператива из обезличенного остатка склада КУ (requirement 76):
+   * non-null — продавец кооператив, исполнение мгновенное со склада этого КУ.
+   */
+  public readonly stock_braname!: string | null;
+
+  /** Исходный оффер поставщика — товарная привязка остатка (для группировки публикаций). */
+  public readonly stock_origin_offer_id!: string | null;
+
   public readonly status!: MarketplaceOfferStatus;
   public readonly approved_by!: string | null;
   public readonly approved_at!: Date | null;
@@ -77,6 +86,8 @@ export class MarketplaceOfferDomainEntity {
     barcode_strategy: MarketplaceBarcodeStrategy;
     pack_size: number | null;
     images: MarketplaceOfferImage[];
+    stock_braname: string | null;
+    stock_origin_offer_id: string | null;
     status: MarketplaceOfferStatus;
     approved_by: string | null;
     approved_at: Date | null;

@@ -1,5 +1,6 @@
 import type {
   MarketplaceBarcodeFormat,
+  MarketplaceInventoryOwnership,
   MarketplaceInventoryProps,
   MarketplaceInventoryStatus,
 } from './marketplace-inventory.types';
@@ -29,6 +30,10 @@ export class MarketplaceInventoryDomainEntity {
   public readonly labeled_at: Date | null;
   public readonly labeled_by_operator_account: string | null;
   public readonly expiry_date: Date | null;
+  public readonly ownership: MarketplaceInventoryOwnership;
+  public readonly arrival_price: string | null;
+  public readonly published_offer_id: string | null;
+  public readonly reserved_order_id: string | null;
   public readonly created_at: Date;
   public updated_at: Date;
 
@@ -58,6 +63,10 @@ export class MarketplaceInventoryDomainEntity {
     this.labeled_at = props.labeled_at ?? null;
     this.labeled_by_operator_account = props.labeled_by_operator_account ?? null;
     this.expiry_date = props.expiry_date ?? null;
+    this.ownership = props.ownership;
+    this.arrival_price = props.arrival_price ?? null;
+    this.published_offer_id = props.published_offer_id ?? null;
+    this.reserved_order_id = props.reserved_order_id ?? null;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;
   }

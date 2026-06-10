@@ -54,6 +54,18 @@ export interface ICreateOrder {
   batch_hash: IChecksum256
 }
 
+export interface IStockOrder {
+  coopname: IName
+  orderer: IName
+  order_hash: IChecksum256
+  offer_hash: IChecksum256
+  delivery_braname: IName
+  quantity: IUint64
+  unit_price: IAsset
+  warranty_period_secs: IUint32
+  batch_hash: IChecksum256
+}
+
 export interface ICancelOrder {
   coopname: IName
   orderer: IName

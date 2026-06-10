@@ -117,6 +117,40 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   braname: string;
 }
 
+/**
+ * requirement 76 (двухфазная докладка): оператор у стойки накидал пайщику
+ * предложение из опубликованного остатка склада КУ. Пайщику немедленно
+ * уходит персональный websocket-сигнал — у него всплывает экран принятия
+ * предложения. Неакцептованное предложение ничего не резервирует.
+ */
+export const MARKETPLACE_STOCK_PROPOSAL_CREATED_EVENT =
+  'marketplace.stockProposal.member.created';
+
+/**
+ * requirement 76: предложение докладки разрешилось — пайщик принял (созданы
+ * заказы из остатка, у стойки можно открывать выдачу), отказался либо
+ * оператор отозвал его для переформирования. Сигнал персоналу КУ (стойка
+ * видит live-статус) и пайщику (его экран предложения закрывается/обновляется).
+ */
+export const MARKETPLACE_STOCK_PROPOSAL_RESOLVED_EVENT =
+  'marketplace.stockProposal.resolved';
+
+export interface MarketplaceStockProposalCreatedEvent {
+  coopname: string;
+  proposal_id: string;
+  member_account: string;
+  braname: string;
+}
+
+export interface MarketplaceStockProposalResolvedEvent {
+  coopname: string;
+  proposal_id: string;
+  member_account: string;
+  braname: string;
+  /** ACCEPTED / DECLINED / CANCELLED — клиент дочитывает состояние query по сигналу. */
+  resolution: string;
+}
+
 export interface MarketplaceOfferCountersChangedEvent {
   offer_id: string;
   supplier_account: string;

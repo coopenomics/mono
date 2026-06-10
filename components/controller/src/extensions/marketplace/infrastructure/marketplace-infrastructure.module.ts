@@ -24,6 +24,7 @@ import { MarketplaceConsolidatedRequestEntity } from './entities/marketplace-con
 import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entity';
 import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
 import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
+import { MarketplaceStockProposalEntity } from './entities/marketplace-stock-proposal.entity';
 import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
@@ -53,6 +54,7 @@ import { MarketplaceConsolidatedRequestRepositoryAdapter } from './adapters/mark
 import { MarketplaceShipmentRepositoryAdapter } from './adapters/marketplace-shipment-repository.adapter';
 import { MarketplaceSupplyValidationLogRepositoryAdapter } from './adapters/marketplace-supply-validation-log-repository.adapter';
 import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-inventory-repository.adapter';
+import { MarketplaceStockProposalRepositoryAdapter } from './adapters/marketplace-stock-proposal-repository.adapter';
 import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
 import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-ttn-document-repository.adapter';
@@ -72,6 +74,7 @@ import { MarketplaceConsolidatedRequestMapper } from './mappers/marketplace-cons
 import { MarketplaceShipmentMapper } from './mappers/marketplace-shipment.mapper';
 import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supply-validation-log.mapper';
 import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
+import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
@@ -100,6 +103,7 @@ import { MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY } from '../domain/repositor
 import { MARKETPLACE_SHIPMENT_REPOSITORY } from '../domain/repositories/marketplace-shipment.repository';
 import { MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-supply-validation-log.repository';
 import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketplace-inventory.repository';
+import { MARKETPLACE_STOCK_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-stock-proposal.repository';
 import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
 import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/marketplace-ttn-document.repository';
@@ -141,6 +145,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceShipmentEntity,
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
+        MarketplaceStockProposalEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
@@ -176,6 +181,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceShipmentEntity,
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
+        MarketplaceStockProposalEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
         MarketplaceTtnDocumentEntity,
@@ -289,6 +295,11 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
       provide: MARKETPLACE_INVENTORY_REPOSITORY,
       useClass: MarketplaceInventoryRepositoryAdapter,
     },
+    MarketplaceStockProposalMapper,
+    {
+      provide: MARKETPLACE_STOCK_PROPOSAL_REPOSITORY,
+      useClass: MarketplaceStockProposalRepositoryAdapter,
+    },
     // Story 5.3 / 5.4 — АПП приёмки на КУ
     MarketplaceAplReceptionMapper,
     {
@@ -350,6 +361,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY,
     // Story 5.5
     MARKETPLACE_INVENTORY_REPOSITORY,
+    MARKETPLACE_STOCK_PROPOSAL_REPOSITORY,
     // Story 5.3 / 5.4
     MARKETPLACE_APL_RECEPTION_REPOSITORY,
     // Story 5.6 / 5.7

@@ -98,6 +98,20 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   public images!: Array<{ bucket_key: string; content_hash: string; mime_type: string }>;
 
+  /**
+   * Оффер кооператива из обезличенного остатка склада КУ (requirement 76):
+   * non-null = «продавец — кооператив, исполнение мгновенное со склада этого
+   * КУ». Публикуется оператором отдельным действием (цена прибытия или
+   * уценка), supplier_account при этом = coopname.
+   */
+  @Column({ type: 'varchar', length: 13, nullable: true })
+  public stock_braname!: string | null;
+
+  // Исходный оффер поставщика, из которого пришло имущество остатка:
+  // группирует публикации одного товара в один оффер кооператива на КУ.
+  @Column({ type: 'uuid', nullable: true })
+  public stock_origin_offer_id!: string | null;
+
   @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceOfferStatus;
 

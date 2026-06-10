@@ -380,19 +380,40 @@ export class MarketplaceIssuanceService {
       warranty_until: warrantyUntil,
     });
 
-    // Выдача завершена — имущество ушло пайщику: переводим позиции склада
-    // этого заказа RECEIVED/LABELED → ISSUED, чтобы учёт расхода/остатка на
-    // складе КУ отражал выдачу (иначе расход на сводном складе всегда 0).
+    // Выдача завершена — имущество ушло пайщику: выданное помечаем ISSUED,
+    // а невостребованная дельта (выдано меньше принятого) переходит в
+    // обезличенный остаток склада КУ (requirement 76) — собственность
+    // кооператива, доступная к перепредложению пайщикам после публикации.
     // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
     try {
-      const issued = await this.inventoryRepo.markIssuedByOrder(order.coopname, order.id);
-      this.logger.log(
-        `Выдача order ${order.id}: переведено в ISSUED позиций склада: ${issued}.`
-      );
+      if (this.isStockOrder(order)) {
+        // Заказ из остатка: выданное — ISSUED, невыданный резерв возвращается
+        // в свободный опубликованный остаток.
+        const released = await this.inventoryRepo.finalizeReservedIssue(
+          order.coopname,
+          order.id,
+          actual_quantity
+        );
+        this.logger.log(
+          `Выдача stock-order ${order.id}: выдано ${actual_quantity}, возвращено в остаток ${released} ед.`
+        );
+      } else {
+        // Цена прибытия = цена заказа (закупочная при приёмке); если приёмка
+        // прошла по скорректированной цене, оператор уточнит цену публикации.
+        const detached = await this.inventoryRepo.detachRemainderToStock(
+          order.coopname,
+          order.id,
+          actual_quantity,
+          order.price_per_unit
+        );
+        this.logger.log(
+          `Выдача order ${order.id}: выдано ${actual_quantity}, в обезличенный остаток КУ ушло ${detached} ед.`
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Выдача order ${order.id}: не удалось перевести позиции склада в ISSUED (${message}); склад покажет их как остаток до ручной сверки.`
+        `Выдача order ${order.id}: не удалось закрыть складские позиции (${message}); склад покажет их как остаток до ручной сверки.`
       );
     }
 
@@ -405,11 +426,22 @@ export class MarketplaceIssuanceService {
 
   // ── private ──
 
+  /**
+   * Заказ из остатка кооператива (requirement 76): продавец — сам кооператив.
+   * Такой заказ не имеет приёмки — выдача идёт из зарезервированных позиций
+   * обезличенного остатка.
+   */
+  private isStockOrder(order: MarketplaceOrderDomainEntity): boolean {
+    return order.supplier_account === order.coopname;
+  }
+
   /** Принято на склад КУ по заказу и ещё не выдано (Σ RECEIVED/LABELED). */
   private async loadAvailableOnWarehouse(
     order: MarketplaceOrderDomainEntity
   ): Promise<number> {
-    const sums = await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
+    const sums = this.isStockOrder(order)
+      ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
+      : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
     return sums.get(order.id) ?? 0;
   }
 

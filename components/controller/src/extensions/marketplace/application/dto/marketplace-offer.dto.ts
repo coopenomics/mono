@@ -104,6 +104,13 @@ export class MarketplaceOfferDTO {
   })
   public readonly pack_size!: number | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Заполнено — предложение кооператива со склада этого участка (исполнение мгновенное, без цикла поставки).',
+  })
+  public readonly stock_braname!: string | null;
+
   @Field(() => MarketplaceOfferStatusEnum)
   public readonly status!: MarketplaceOfferStatusEnum;
 
@@ -157,6 +164,7 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     warranty_days: o.warranty_days,
     barcode_strategy: o.barcode_strategy as MarketplaceBarcodeStrategyEnum,
     pack_size: o.pack_size,
+    stock_braname: o.stock_braname,
     image_records: o.images ?? [],
     status: o.status,
     approved_by: o.approved_by,

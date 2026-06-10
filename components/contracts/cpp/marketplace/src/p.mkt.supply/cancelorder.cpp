@@ -10,6 +10,11 @@
  *  - actor == order.orderer.
  *  - Order в статусе active (до acceptorder). После acceptorder отмена
  *    запрещена — поставщик уже взял обязательство.
+ *  - Исключение — заказ из остатка кооператива (offerer == coopname,
+ *    см. stockorder): он рождается сразу в acceptcoop и отменяется в этом
+ *    статусе — до первой подписи акта выдачи оператор может откатить и
+ *    переформировать докладку (requirement 76, решение 11). После signiss1
+ *    статус уходит в ready_to_receive и отмена закрыта.
  *
  * @ingroup public_marketplace_actions
  */
@@ -20,8 +25,14 @@ void marketplace::cancelorder(eosio::name coopname,
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
-  eosio::check(o.status == OrderStatus::ACTIVE,
-               "Нельзя отменить заказ: он уже акцептован поставщиком");
+  const bool is_stock_order = (o.offerer == coopname);
+  if (is_stock_order) {
+    eosio::check(o.status == OrderStatus::ACCEPTED_TO_COOP,
+                 "Нельзя отменить заказ из остатка: выдача уже открыта");
+  } else {
+    eosio::check(o.status == OrderStatus::ACTIVE,
+                 "Нельзя отменить заказ: он уже акцептован поставщиком");
+  }
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNLOCK_ORDER,

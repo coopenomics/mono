@@ -35,6 +35,17 @@ registerEnumType(MarketplaceBarcodeStrategyEnum, {
     'Стратегия маркировки: одна этикетка на заказ, на единицу, или на упаковку.',
 });
 
+export enum MarketplaceInventoryOwnershipEnum {
+  ORDER = 'ORDER',
+  COOP = 'COOP',
+}
+
+registerEnumType(MarketplaceInventoryOwnershipEnum, {
+  name: 'MarketplaceInventoryOwnership',
+  description:
+    'Принадлежность позиции склада: адресная под заказ пайщика (ORDER) либо обезличенный остаток кооператива (COOP).',
+});
+
 export enum MarketplaceInventoryStatusEnum {
   RECEIVED = 'RECEIVED',
   LABELED = 'LABELED',
@@ -136,6 +147,29 @@ export class MarketplaceInventoryItemDTO {
     description: 'Оператор КУ, наклеивший штрих-код (если позиция промаркирована).',
   })
   labeled_by_operator_account!: string | null;
+
+  @Field(() => MarketplaceInventoryOwnershipEnum, {
+    description: 'Принадлежность: адресная позиция заказа или обезличенный остаток кооператива.',
+  })
+  ownership!: MarketplaceInventoryOwnershipEnum;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Цена прибытия за единицу (закупочная из акта приёмки) — база цены публикации остатка.',
+  })
+  arrival_price!: string | null;
+
+  @Field(() => ID, {
+    nullable: true,
+    description: 'Предложение кооператива, которым остаток опубликован в каталоге. Пусто — не опубликован.',
+  })
+  published_offer_id!: string | null;
+
+  @Field(() => ID, {
+    nullable: true,
+    description: 'Заказ со склада кооператива, под который позиция зарезервирована. Пусто — свободна.',
+  })
+  reserved_order_id!: string | null;
 
   @Field(() => Date)
   created_at!: Date;
@@ -301,6 +335,10 @@ export function toMarketplaceInventoryItemDTO(
   dto.received_by_operator_account = e.received_by_operator_account;
   dto.labeled_at = e.labeled_at;
   dto.labeled_by_operator_account = e.labeled_by_operator_account;
+  dto.ownership = e.ownership as MarketplaceInventoryOwnershipEnum;
+  dto.arrival_price = e.arrival_price;
+  dto.published_offer_id = e.published_offer_id;
+  dto.reserved_order_id = e.reserved_order_id;
   dto.created_at = e.created_at;
   dto.updated_at = e.updated_at;
   return dto;

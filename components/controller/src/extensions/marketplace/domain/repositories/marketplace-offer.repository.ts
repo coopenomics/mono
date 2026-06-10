@@ -44,6 +44,10 @@ export interface OfferCreateInput {
   barcode_strategy: MarketplaceBarcodeStrategy;
   pack_size: number | null;
   images: MarketplaceOfferImage[];
+  /** Оффер кооператива из остатка склада КУ (requirement 76); null — обычный оффер поставщика. */
+  stock_braname?: string | null;
+  /** Исходный оффер поставщика — товарная привязка остатка. */
+  stock_origin_offer_id?: string | null;
 }
 
 export interface OfferUpdateInput {

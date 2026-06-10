@@ -15,6 +15,10 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import {
+  MarketplaceStockService,
+  MARKETPLACE_STOCK_SERVICE,
+} from './marketplace-stock.service';
+import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
@@ -69,6 +73,8 @@ export class MarketplaceCheckoutService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_ORDER_CREATE_SERVICE)
     private readonly orderCreateService: MarketplaceOrderCreateService,
+    @Inject(MARKETPLACE_STOCK_SERVICE)
+    private readonly stockService: MarketplaceStockService,
     @Inject(MARKETPLACE_CART_SERVICE)
     private readonly cartService: MarketplaceCartService,
     @Inject(USER_WALLET_REPOSITORY)
@@ -151,6 +157,21 @@ export class MarketplaceCheckoutService {
     const succeededOfferIds: string[] = [];
     for (const line of payable) {
       try {
+        // requirement 76 (remote-докладка): строка с предложением кооператива
+        // со склада оформляется заказом из остатка — без цикла поставки,
+        // имущество уже на складе выбранного КУ.
+        if (line.offer.stock_braname) {
+          const res = await this.stockService.createStockOrder({
+            coopname: scope.coopname,
+            orderer_account: scope.orderer_account,
+            offer_id: line.offer_id,
+            quantity: line.quantity,
+            checkout_id: checkoutId,
+          });
+          createdDTOs.push(toMarketplaceOrderDTO(res.order));
+          succeededOfferIds.push(line.offer_id);
+          continue;
+        }
         const res = await this.orderCreateService.execute({
           coopname: scope.coopname,
           orderer_account: scope.orderer_account,

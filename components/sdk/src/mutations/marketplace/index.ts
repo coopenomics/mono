@@ -94,3 +94,17 @@ export * as ClearCart from './clearCart'
 export * as SetCartDeliveryPoint from './setCartDeliveryPoint'
 /** Эпик 16: оформить заказ из корзины (per-line, общий checkout_id) */
 export * as CheckoutCart from './checkoutCart'
+/** Склад кооператива (requirement 76): публикация остатка в каталог оффером кооператива */
+export * as PublishStock from './publishStock'
+/** Склад кооператива: снятие свободного остатка с витрины */
+export * as UnpublishStock from './unpublishStock'
+/** Докладка у стойки: оператор предлагает пайщику имущество со склада */
+export * as CreateStockProposal from './createStockProposal'
+/** Докладка: оператор отзывает неотвеченное предложение */
+export * as CancelStockProposal from './cancelStockProposal'
+/** Докладка: пайщик принимает предложение (создаются заказы со склада) */
+export * as AcceptStockProposal from './acceptStockProposal'
+/** Докладка: пайщик отказывается от предложения */
+export * as DeclineStockProposal from './declineStockProposal'
+/** Склад кооператива: отмена заказа со склада до открытия выдачи */
+export * as CancelStockOrder from './cancelStockOrder'

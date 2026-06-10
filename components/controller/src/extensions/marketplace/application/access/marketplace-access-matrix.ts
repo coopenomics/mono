@@ -44,6 +44,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // имущества по своему Order'у в пределах гарантийного срока и видит
     // только свои заявления.
     ReturnClaim: ['create:own', 'read:own'],
+    // requirement 76 (докладка): пайщик видит свои входящие предложения со
+    // склада кооператива и решает их судьбу — принять или отказаться.
+    StockProposal: ['read:own', 'resolve:own'],
   },
   offerer: {
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
@@ -74,6 +77,12 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     //  - decide:remote — одобрить визит / отказать удалённо (Story 7.2);
     //  - decide:on-site — принять / отказать на месте (Story 7.3 + 7.4).
     ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site'],
+    // requirement 76: оператор управляет обезличенным остатком своего КУ —
+    // публикует его в каталог (цена прибытия/уценка), снимает с публикации,
+    // накидывает предложения докладки у стойки и отзывает их, отменяет
+    // заказ из остатка до своей подписи на акте выдачи.
+    Stock: ['read:own-KU', 'publish:own-KU'],
+    StockProposal: ['create:own-KU', 'read:own-KU', 'cancel:own-KU'],
   },
   admin: {
     Offer: ['moderate', 'read'],
@@ -88,6 +97,8 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
     // списания, подписывает Заявление 1106 и отправляет проект в совет.
     Writeoff: ['manage_draft', 'propose', 'read:all'],
+    Stock: ['read:all', 'publish:all'],
+    StockProposal: ['create:all', 'read:all', 'cancel:all'],
   },
   board_readonly: {
     Warehouse: ['read:all'],

@@ -12,7 +12,14 @@
 export * as CreateOrder from './createOrder'
 
 /**
+ * Заказ имущества из обезличенного остатка склада кооператива (requirement 76).
+ * Продавец — кооператив; Order рождается сразу в acceptcoop. Один шаг ledger2: o.mkt.lock.
+ */
+export * as StockOrder from './stockOrder'
+
+/**
  * Заказчик отменяет заказ до акцепта поставщиком (Story 4.4). Триггерит o.mkt.unblk.
+ * Stock-ордер (продавец — кооператив) отменяется и в acceptcoop — до первой подписи акта выдачи.
  */
 export * as CancelOrder from './cancelOrder'
 

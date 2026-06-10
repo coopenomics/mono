@@ -926,6 +926,9 @@ export class MarketplaceAplReceptionService {
         labeled_at: null,
         labeled_by_operator_account: null,
         expiry_date: expiry,
+        // Цена прибытия — закупочная цена заказа: база цены публикации,
+        // если дельта позже уйдёт в обезличенный остаток КУ (requirement 76).
+        arrival_price: order.price_per_unit,
       });
       created += 1;
     }
