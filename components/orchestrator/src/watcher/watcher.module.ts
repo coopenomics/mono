@@ -1,14 +1,19 @@
 /**
- * @fileoverview WatcherModule — DI-проводка on-chain watcher'а (Story 10.5).
+ * @fileoverview WatcherModule — DI-проводка on-chain watcher'а (Story 10.5/10.5b).
  *
- * На текущий момент impl'ы портов поставляются заглушками
- * `NoopEventStream` / `NoopReleaseMetadata` — они не делают ничего.
- * Это сделано, чтобы AppModule не падал при boot'е, пока реальные
- * impl'ы (parser2 client / HTTP к apps-catalog) не приехали в
- * отдельных follow-up'ах.
+ * Реальные impl'ы портов включаются конфигурацией:
  *
- * Реальная подключка чита chain'а — отдельный PR
- * (`feat/E10-5b-chain-rpc-impl`). Этот модуль фиксирует контракт.
+ *  - `CHAIN_RPC_URL` задан → {@link ChainRpcAppsEventStream} поллит таблицы
+ *    apps-контракта (releases/subs/packages) через nodeos get_table_rows
+ *    и синтезирует события; иначе — Noop (watcher молчит).
+ *  - `COOPERATIVE_WIF` + `CA_AUTH_BASE_URL` заданы → {@link CaAuthReleaseMetadata}
+ *    достаёт install-spec из npm-манифеста в CA-auth registry по
+ *    signed-request + per-package JWT; иначе — Noop (install-spec взять
+ *    неоткуда, auto-install отключён).
+ *
+ * Так dev-стенд без каталога стартует без ошибок, а полный стенд получает
+ * автоматический pipeline «подписка/релиз on-chain → docker pull → run →
+ * healthcheck → registry → supergraph recompose» без ручных вызовов.
  */
 import { Module } from '@nestjs/common';
 import { GatewayModule } from '../gateway/gateway.module';
@@ -23,6 +28,8 @@ import {
   ReleaseMetadataPort,
 } from './ports';
 import { loadAppConfig } from '../config/app-config';
+import { ChainRpcAppsEventStream } from './chain-rpc-event-stream.impl';
+import { CaAuthReleaseMetadata } from './ca-auth-release-metadata.impl';
 
 class NoopEventStream implements AppsContractEventStreamPort {
   async subscribe(_handler: (e: AppsContractEvent) => Promise<void>): Promise<{ unsubscribe(): void }> {
@@ -40,8 +47,36 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
   imports: [GatewayModule, OrchestratorModule],
   providers: [
     OnChainWatcherService,
-    { provide: APPS_CONTRACT_EVENT_STREAM, useClass: NoopEventStream },
-    { provide: RELEASE_METADATA_PORT, useClass: NoopReleaseMetadata },
+    {
+      provide: APPS_CONTRACT_EVENT_STREAM,
+      useFactory: (): AppsContractEventStreamPort => {
+        const rpcUrl = process.env.CHAIN_RPC_URL;
+        if (!rpcUrl) return new NoopEventStream();
+        const cfg = loadAppConfig();
+        return new ChainRpcAppsEventStream({
+          rpcUrl,
+          contractAccount: process.env.APPS_CONTRACT_ACCOUNT ?? 'apps',
+          coopname: cfg.coopname,
+          pollIntervalMs: Number(process.env.WATCHER_POLL_INTERVAL_MS ?? 15000),
+        });
+      },
+    },
+    {
+      provide: RELEASE_METADATA_PORT,
+      useFactory: (): ReleaseMetadataPort => {
+        const wif = process.env.COOPERATIVE_WIF;
+        const caAuthBaseUrl = process.env.CA_AUTH_BASE_URL;
+        if (!wif || !caAuthBaseUrl) return new NoopReleaseMetadata();
+        const cfg = loadAppConfig();
+        return new CaAuthReleaseMetadata({
+          caAuthBaseUrl,
+          coopname: cfg.coopname,
+          cooperativeWif: wif,
+          jwtSecret: cfg.jwtSecret,
+          extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
+        });
+      },
+    },
     {
       provide: 'ON_CHAIN_WATCHER_CONFIG',
       useFactory: (): OnChainWatcherConfig => {
@@ -49,6 +84,7 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
         return {
           coopname: cfg.coopname,
           cooperativeJwt: process.env.COOPERATIVE_JWT,
+          extensionsNetwork: process.env.EXTENSIONS_DOCKER_NETWORK,
         };
       },
     },

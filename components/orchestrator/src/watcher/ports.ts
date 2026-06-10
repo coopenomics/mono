@@ -95,7 +95,7 @@ export interface ReleaseMetadataPort {
 }
 
 export interface ReleaseInstallSpec {
-  /** Внутренний URL subgraph'а — для healthcheck'а и записи в registry. */
+  /** Внутренний URL subgraph'а — для записи в registry. */
   url: string;
   /** OCI-ссылка образа в Nexus; если нет — frontend-only пакет, install не нужен. */
   imageRef?: string;
@@ -103,6 +103,21 @@ export interface ReleaseInstallSpec {
   composeService?: string;
   /** Путь к docker-compose файлу. */
   composeFile?: string;
+  /**
+   * Имя контейнера для прямого `docker run` (когда extension-сервисы не
+   * описаны заранее в compose-файле). Используется и как DNS-имя в
+   * docker-сети — `url`/`healthUrl` указывают на него.
+   */
+  containerName?: string;
+  /** URL healthcheck'а (default — origin url + /_health). */
+  healthUrl?: string;
+  /**
+   * Per-package JWT, полученный по подписке через signed-request к CA-auth.
+   * Идёт в docker login для pull'а из приватного registry.
+   */
+  pullJwt?: string;
+  /** Env-переменные контейнера расширения (SUBGRAPH_PORT, JWT_SECRET, COOPNAME). */
+  containerEnv?: Record<string, string>;
 }
 
 export const RELEASE_METADATA_PORT = Symbol('ReleaseMetadataPort');

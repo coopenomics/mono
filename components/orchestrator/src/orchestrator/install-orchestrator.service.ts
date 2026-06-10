@@ -76,6 +76,16 @@ export interface InstallExtensionInput {
   healthUrl?: string;
   /** Healthcheck timeout. По умолчанию 60 сек — Nest-приложение успевает прогреться. */
   healthcheckTimeoutMs?: number;
+  /**
+   * Имя контейнера для прямого `docker run` — альтернатива compose-пути,
+   * когда extension-сервис не описан заранее в compose-файле (auto-install
+   * watcher'ом). Требует `imageRef`.
+   */
+  containerName?: string;
+  /** Docker-сеть контейнера расширения (DNS-видимость для gateway/coopback). */
+  containerNetwork?: string;
+  /** Env контейнера расширения (SUBGRAPH_PORT, JWT_SECRET, COOPNAME). */
+  containerEnv?: Record<string, string>;
 }
 
 /**
@@ -145,12 +155,25 @@ export class InstallOrchestratorService {
       }
     }
 
-    // 2. (опц.) docker compose up сервиса.
+    // 2. (опц.) запуск контейнера: compose-сервис, если описан заранее,
+    //    иначе прямой docker run по containerName (путь auto-install'а).
     if (input.composeService !== undefined && input.composeFile !== undefined) {
       try {
         await this.docker.composeUp({
           composeFile: input.composeFile,
           serviceName: input.composeService,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return this.failed(input.packageId, 'compose-up', msg);
+      }
+    } else if (input.containerName !== undefined && input.imageRef !== undefined) {
+      try {
+        await this.docker.runContainer({
+          imageRef: input.imageRef,
+          name: input.containerName,
+          network: input.containerNetwork,
+          env: input.containerEnv,
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -185,15 +208,18 @@ export class InstallOrchestratorService {
   }
 
   private async rollbackComposeIfAny(input: InstallExtensionInput): Promise<void> {
-    if (input.composeService === undefined || input.composeFile === undefined) return;
     try {
-      await this.docker.composeDown({
-        composeFile: input.composeFile,
-        serviceName: input.composeService,
-      });
+      if (input.composeService !== undefined && input.composeFile !== undefined) {
+        await this.docker.composeDown({
+          composeFile: input.composeFile,
+          serviceName: input.composeService,
+        });
+      } else if (input.containerName !== undefined && input.imageRef !== undefined) {
+        await this.docker.removeContainer(input.containerName);
+      }
     } catch (e) {
       this.logger.error(
-        `rollback composeDown failed for ${input.packageId}: ${e instanceof Error ? e.message : String(e)}`,
+        `rollback failed for ${input.packageId}: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
   }

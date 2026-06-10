@@ -74,6 +74,35 @@ export class ShellDockerRunner implements DockerRunnerPort {
     ]);
   }
 
+  async runContainer(opts: {
+    imageRef: string;
+    name: string;
+    network?: string;
+    env?: Record<string, string>;
+  }): Promise<void> {
+    // Замещаем существующий контейнер с тем же именем: это и retry после
+    // падения, и обновление версии одним и тем же путём.
+    await this.removeContainer(opts.name);
+    const args = ['run', '-d', '--restart', 'unless-stopped', '--name', opts.name];
+    if (opts.network) {
+      args.push('--network', opts.network);
+    }
+    for (const [key, value] of Object.entries(opts.env ?? {})) {
+      args.push('-e', `${key}=${value}`);
+    }
+    args.push(opts.imageRef);
+    this.logger.log(`docker run -d --name ${opts.name} ${opts.imageRef}`);
+    await this.run('docker', args);
+  }
+
+  async removeContainer(name: string): Promise<void> {
+    try {
+      await this.run('docker', ['rm', '-f', name]);
+    } catch {
+      // контейнера нет — нормальное состояние первого запуска
+    }
+  }
+
   async composeDown(opts: { composeFile: string; serviceName: string }): Promise<void> {
     this.logger.log(`docker compose -f ${opts.composeFile} rm -fsv ${opts.serviceName}`);
     await this.run('docker', [

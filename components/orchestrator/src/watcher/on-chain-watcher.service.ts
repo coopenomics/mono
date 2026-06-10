@@ -29,6 +29,7 @@ import {
   AppsContractEvent,
   AppsContractEventStreamPort,
   RELEASE_METADATA_PORT,
+  ReleaseInstallSpec,
   ReleaseMetadataPort,
 } from './ports';
 import { InstallOrchestratorService } from '../orchestrator/install-orchestrator.service';
@@ -38,11 +39,13 @@ export interface OnChainWatcherConfig {
   /** Имя нашего кооператива — нужно для фильтрации scope=cooperatives. */
   coopname: string;
   /**
-   * JWT кооператива для install pipeline'а (нужен docker pull через
-   * CA-auth OCI token). Если не задан — install будет fail'ить на
-   * шаге oci-token; полезно для frontend-only пакетов.
+   * Фолбэк-JWT для docker pull, если metadata-порт не вернул
+   * per-package JWT (`spec.pullJwt`) — например, при статической
+   * конфигурации без signed-request ключа.
    */
   cooperativeJwt?: string;
+  /** Docker-сеть, в которую подключаются контейнеры расширений. */
+  extensionsNetwork?: string;
 }
 
 @Injectable()
@@ -164,7 +167,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
   private async callInstall(
     packageId: string,
     version: string,
-    spec: { url: string; imageRef?: string; composeService?: string; composeFile?: string },
+    spec: ReleaseInstallSpec,
   ): Promise<void> {
     const result = await this.orchestrator.install({
       packageId,
@@ -173,7 +176,11 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       imageRef: spec.imageRef,
       composeService: spec.composeService,
       composeFile: spec.composeFile,
-      cooperativeJwt: this.cfg.cooperativeJwt,
+      containerName: spec.containerName,
+      containerNetwork: this.cfg.extensionsNetwork,
+      containerEnv: spec.containerEnv,
+      healthUrl: spec.healthUrl,
+      cooperativeJwt: spec.pullJwt ?? this.cfg.cooperativeJwt,
       coopname: this.cfg.coopname,
     });
     if (result.status === 'failed') {

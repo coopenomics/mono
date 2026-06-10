@@ -27,6 +27,20 @@ export interface DockerRunnerPort {
   composeUp(opts: { composeFile: string; serviceName: string }): Promise<void>;
   /** Снять сервис compose-проекта — используется на rollback. */
   composeDown(opts: { composeFile: string; serviceName: string }): Promise<void>;
+  /**
+   * Прямой `docker run -d` контейнера расширения — путь auto-install'а,
+   * когда extension-сервис не описан заранее в compose-файле. Idempotent:
+   * существующий контейнер с тем же именем заменяется (rm -f + run) —
+   * так обновление версии не требует отдельной ветки кода.
+   */
+  runContainer(opts: {
+    imageRef: string;
+    name: string;
+    network?: string;
+    env?: Record<string, string>;
+  }): Promise<void>;
+  /** Снять контейнер расширения (rollback/uninstall). Idempotent. */
+  removeContainer(name: string): Promise<void>;
 }
 
 export const DOCKER_RUNNER = Symbol('DockerRunnerPort');

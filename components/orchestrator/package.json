@@ -19,6 +19,8 @@
     "@nestjs/graphql": "^12.2.1",
     "@nestjs/platform-express": "^10.4.0",
     "@nestjs/typeorm": "^10.0.2",
+    "bs58": "^4.0.1",
+    "elliptic": "^6.6.1",
     "graphql": "^16.9.0",
     "pg": "^8.13.0",
     "reflect-metadata": "^0.2.2",

@@ -40,6 +40,21 @@ class FakeDockerRunner implements DockerRunnerPort {
   async composeDown(opts: { composeFile: string; serviceName: string }): Promise<void> {
     this.downs.push(opts);
   }
+  runs: Array<{ imageRef: string; name: string; network?: string; env?: Record<string, string> }> = [];
+  removed: string[] = [];
+  runError?: Error;
+  async runContainer(opts: {
+    imageRef: string;
+    name: string;
+    network?: string;
+    env?: Record<string, string>;
+  }): Promise<void> {
+    this.runs.push(opts);
+    if (this.runError) throw this.runError;
+  }
+  async removeContainer(name: string): Promise<void> {
+    this.removed.push(name);
+  }
 }
 
 class FakeHealthProbe implements HealthProbePort {
@@ -219,5 +234,34 @@ describe('InstallOrchestratorService', () => {
     const h = buildHarness();
     await h.service.install({ ...baseInput, healthcheckTimeoutMs: 5_000 });
     expect(h.health.calls).toEqual([{ url: 'http://chatcoop:3000/_health', timeoutMs: 5_000 }]);
+  });
+
+  it('containerName без compose → docker run + rollback removeContainer при provале healthcheck', async () => {
+    const h = buildHarness();
+    const input = {
+      ...baseInput,
+      imageRef: 'registry.local/coopenomics/chatcoop:1.0.0',
+      cooperativeJwt: 'jwt-of-voskhod',
+      coopname: 'voskhod',
+      containerName: 'ext-chatcoop',
+      containerNetwork: 'mono-net',
+      containerEnv: { SUBGRAPH_PORT: '3001' },
+    };
+    const ok = await h.service.install(input);
+    expect(ok.status).toBe('applied');
+    expect(h.docker.runs).toEqual([
+      {
+        imageRef: input.imageRef,
+        name: 'ext-chatcoop',
+        network: 'mono-net',
+        env: { SUBGRAPH_PORT: '3001' },
+      },
+    ]);
+
+    const h2 = buildHarness();
+    h2.health.outcome = { ok: false, reason: 'timeout' };
+    const failed = await h2.service.install(input);
+    expect(failed.status).toBe('failed');
+    expect(h2.docker.removed).toEqual(['ext-chatcoop']);
   });
 });

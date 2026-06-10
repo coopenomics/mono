@@ -128,6 +128,14 @@ services:
       COMPOSITION_POLL_INTERVAL_MS: ${COMPOSITION_POLL_INTERVAL_MS:-10000}
       CA_AUTH_BASE_URL: ${CA_AUTH_BASE_URL:-http://ca-auth:3001}
       COOPERATIVE_JWT: ${COOPERATIVE_JWT:-}
+      # On-chain watcher (auto-install по таблицам apps-контракта).
+      # Без CHAIN_RPC_URL watcher молчит (Noop); без COOPERATIVE_WIF
+      # auto-install отключён (install-spec берётся по signed-request).
+      CHAIN_RPC_URL: ${CHAIN_RPC_URL:-http://node:8888}
+      APPS_CONTRACT_ACCOUNT: ${APPS_CONTRACT_ACCOUNT:-apps}
+      WATCHER_POLL_INTERVAL_MS: ${WATCHER_POLL_INTERVAL_MS:-15000}
+      COOPERATIVE_WIF: ${COOPERATIVE_WIF:-}
+      EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
