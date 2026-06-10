@@ -120,6 +120,70 @@ export async function finalizeIssuance(
   return result;
 }
 
+// ── Склад кооператива: докладка (requirement 76) ─────────────────────────
+
+/** Предложение имущества со склада кооператива (двухфазная докладка). */
+export type MarketplaceStockProposalView =
+  Queries.Marketplace.ListStockProposals.IOutput['marketplaceListStockProposals'][number];
+
+export type ListStockProposalsInput = Queries.Marketplace.ListStockProposals.IInput['data'];
+export type CreateStockProposalInput = Mutations.Marketplace.CreateStockProposal.IInput['data'];
+export type CancelStockOrderInput = Mutations.Marketplace.CancelStockOrder.IInput['data'];
+
+export async function listStockProposals(
+  data?: ListStockProposalsInput,
+): Promise<MarketplaceStockProposalView[]> {
+  const { [Queries.Marketplace.ListStockProposals.name]: result } = await client.Query(
+    Queries.Marketplace.ListStockProposals.query,
+    { variables: { data } },
+  );
+  return result as MarketplaceStockProposalView[];
+}
+
+export async function createStockProposal(
+  data: CreateStockProposalInput,
+): Promise<MarketplaceStockProposalView> {
+  const { [Mutations.Marketplace.CreateStockProposal.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CreateStockProposal.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceStockProposalView;
+}
+
+export async function cancelStockProposal(proposal_id: string): Promise<MarketplaceStockProposalView> {
+  const data: Mutations.Marketplace.CancelStockProposal.IInput['data'] = { proposal_id };
+  const { [Mutations.Marketplace.CancelStockProposal.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CancelStockProposal.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceStockProposalView;
+}
+
+export async function acceptStockProposal(
+  proposal_id: string,
+): Promise<{ proposal: MarketplaceStockProposalView; order_ids: string[] }> {
+  const data: Mutations.Marketplace.AcceptStockProposal.IInput['data'] = { proposal_id };
+  const { [Mutations.Marketplace.AcceptStockProposal.name]: result } = await client.Mutation(
+    Mutations.Marketplace.AcceptStockProposal.mutation,
+    { variables: { data } },
+  );
+  return result as { proposal: MarketplaceStockProposalView; order_ids: string[] };
+}
+
+export async function declineStockProposal(proposal_id: string): Promise<MarketplaceStockProposalView> {
+  const data: Mutations.Marketplace.DeclineStockProposal.IInput['data'] = { proposal_id };
+  const { [Mutations.Marketplace.DeclineStockProposal.name]: result } = await client.Mutation(
+    Mutations.Marketplace.DeclineStockProposal.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceStockProposalView;
+}
+
+/** Отмена заказа со склада кооператива до открытия выдачи (откат докладки). */
+export async function cancelStockOrder(data: CancelStockOrderInput): Promise<void> {
+  await client.Mutation(Mutations.Marketplace.CancelStockOrder.mutation, { variables: { data } });
+}
+
 export interface FinalizeOrdererResult {
   /** Сколько позиций успешно получено финальной подписью заказчика. */
   ok: number;

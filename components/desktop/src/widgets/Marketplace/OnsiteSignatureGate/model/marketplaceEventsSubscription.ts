@@ -29,6 +29,10 @@ const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
   // дешёвая, события по своему аккаунту редкие.
   'MarketplaceOrderStatusChangedEvent',
   'MarketplaceAplReceptionStatusChangedEvent',
+  // Докладка со склада кооператива (requirement 76): предложение всплывает в
+  // гейте немедленно; разрешение (принял/отозвано) — закрывает его.
+  'MarketplaceStockProposalCreatedEvent',
+  'MarketplaceStockProposalResolvedEvent',
 ]);
 
 export function createMarketplaceEventsSubscription(): RealtimeSubscription {

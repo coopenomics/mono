@@ -26,7 +26,11 @@
 
       <div class="mp-catalog-offer-card__title">{{ offer.title }}</div>
 
-      <div v-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
+      <div v-if="offer.coopStock" class="mp-catalog-offer-card__supplier">
+        <q-icon name="warehouse" size="13px" />
+        <span>Со склада кооператива — выдача сразу</span>
+      </div>
+      <div v-else-if="offer.supplierName" class="mp-catalog-offer-card__supplier">
         <q-icon name="storefront" size="13px" />
         <span>{{ offer.supplierName }}</span>
       </div>
@@ -77,6 +81,7 @@ export interface CatalogOffer {
   status?: CatalogOfferStatus
   category?: string        // название категории — показывается над заголовком
   supplierName?: string    // ФИО / наименование поставщика
+  coopStock?: boolean      // предложение кооператива со склада КУ — мгновенная выдача
 }
 
 const props = defineProps({

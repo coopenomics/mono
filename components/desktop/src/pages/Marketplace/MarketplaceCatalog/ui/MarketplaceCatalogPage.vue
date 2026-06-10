@@ -126,6 +126,8 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
     status,
     category: categoryNameById.value[offer.category_id] ?? undefined,
     supplierName: offer.supplier_name ?? undefined,
+    // Остаток склада кооператива (requirement 76): мгновенная выдача, без цикла поставки.
+    coopStock: Boolean(offer.stock_braname),
   };
 }
 
