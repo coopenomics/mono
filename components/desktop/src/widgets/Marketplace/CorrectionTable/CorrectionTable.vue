@@ -76,6 +76,10 @@
             <div class="mp-correction-table__card-label">План</div>
             <div class="mp-correction-table__card-value">{{ r.expected }} {{ r.unit }}</div>
           </div>
+          <div v-if="hasAvailable">
+            <div class="mp-correction-table__card-label">Принято</div>
+            <div class="mp-correction-table__card-value">{{ r.available ?? '—' }} {{ r.unit }}</div>
+          </div>
           <div>
             <div class="mp-correction-table__card-label">Факт</div>
             <q-input
@@ -116,6 +120,7 @@
         Итого позиций: {{ enrichedRows.length }}
       </div>
       <div class="mp-correction-table__summary-chips">
+        <span v-if="overStockCount" class="mp-status-chip mp-status-chip--error">Больше принятого · {{ overStockCount }}</span>
         <span class="mp-status-chip mp-status-chip--success">Совпадает · {{ matchCount }}</span>
         <span class="mp-status-chip mp-status-chip--warning">Недостача · {{ shortCount }}</span>
         <span class="mp-status-chip mp-status-chip--info">Избыток · {{ overCount }}</span>
@@ -133,7 +138,13 @@ export interface CorrectionRow {
   title: string
   unit: string
   expected: number   // план (заказ), количество
-  fact: number       // факт (поступление), количество
+  fact: number       // факт (поступление/выдача), количество
+  /**
+   * Принято на склад и не выдано — потолок факта при выдаче. Если задано,
+   * fact > available подсвечивается ошибкой «Больше принятого»: выдать со
+   * склада больше, чем физически есть, нельзя.
+   */
+  available?: number
   expectedPrice?: number  // цена за единицу по заказу (план)
   factPrice?: number       // фактическая цена за единицу (редактируется оператором)
 }
@@ -151,9 +162,15 @@ const compact = computed(() => $q.screen.lt.sm)
 
 // Режим правки цены включается, если хотя бы у одной строки задана цена.
 const hasPrice = computed(() => props.rows.some((r) => r.expectedPrice !== undefined))
+// Колонка «Принято» (склад) показывается, если потолок задан хотя бы у одной строки.
+const hasAvailable = computed(() => props.rows.some((r) => r.available !== undefined))
 
 const enrichedRows = computed(() =>
-  props.rows.map((r) => ({ ...r, delta: r.fact - r.expected }))
+  props.rows.map((r) => ({
+    ...r,
+    delta: r.fact - r.expected,
+    overStock: r.available !== undefined && r.fact > r.available,
+  }))
 )
 
 const columns = computed<QTableProps['columns']>(() => {
@@ -161,10 +178,15 @@ const columns = computed<QTableProps['columns']>(() => {
     { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left' },
     { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
     { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
+  ]
+  if (hasAvailable.value) {
+    base.push({ name: 'available', label: 'Принято', field: 'available', align: 'right' })
+  }
+  base.push(
     { name: 'fact',     label: 'Факт',    field: 'fact',     align: 'right' },
     { name: 'delta',    label: 'Δ',       field: 'delta',    align: 'right' },
     { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
-  ]
+  )
   if (hasPrice.value) {
     base.push({ name: 'factPrice', label: 'Цена/ед.', field: 'factPrice', align: 'right' })
   }
@@ -176,43 +198,49 @@ function onPriceChange(row: CorrectionRow): void {
   emit('change', { sku: row.sku, fact: row.fact, factPrice: row.factPrice })
 }
 
-type StatusKind = 'success' | 'warning' | 'info'
+type StatusKind = 'success' | 'warning' | 'info' | 'error'
 
-function statusLabel(r: CorrectionRow & { delta: number }): string {
+type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean }
+
+function statusLabel(r: EnrichedRow): string {
+  if (r.overStock) return 'Больше принятого'
   if (r.delta === 0) return 'Совпадает'
   if (r.delta < 0)  return 'Недостача'
   return 'Избыток'
 }
 
-function statusKind(r: CorrectionRow & { delta: number }): StatusKind {
+function statusKind(r: EnrichedRow): StatusKind {
+  if (r.overStock) return 'error'
   if (r.delta === 0) return 'success'
   if (r.delta < 0)  return 'warning'
   return 'info'
 }
 
-function deltaClass(r: CorrectionRow & { delta: number }): string {
+function deltaClass(r: EnrichedRow): string {
+  if (r.overStock) return 'text-negative'
   if (r.delta === 0) return 'text-positive'
   if (r.delta < 0)  return 'text-warning'
   return 'text-info'
 }
 
-const matchCount = computed(() => enrichedRows.value.filter((r) => r.delta === 0).length)
-const shortCount = computed(() => enrichedRows.value.filter((r) => r.delta < 0).length)
-const overCount  = computed(() => enrichedRows.value.filter((r) => r.delta > 0).length)
+const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta === 0).length)
+const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta < 0).length)
+const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta > 0).length)
+const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overStock).length)
 </script>
 
 <style scoped lang="scss">
 .mp-correction-table {
   display: flex;
   flex-direction: column;
-  gap: var(--mp-space-md);
+  gap: var(--p-3, 12px);
 
   &__grid {
-    background: var(--mp-surface-0);
-    border-radius: var(--mp-radius-md);
+    background: var(--p-surface);
+    border-radius: var(--p-r-md, 12px);
 
     :deep(td), :deep(th) {
-      font-size: 14px;
+      font-size: var(--p-fs-body, 14px);
     }
 
     // Поле «факт» не должно быть микроскопическим — даём минимум на ввод
@@ -224,38 +252,38 @@ const overCount  = computed(() => enrichedRows.value.filter((r) => r.delta > 0).
   &__cards {
     display: flex;
     flex-direction: column;
-    gap: var(--mp-space-md);
+    gap: var(--p-3, 12px);
   }
 
   &__card-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: var(--mp-space-sm);
-    margin-bottom: var(--mp-space-sm);
+    gap: var(--p-2, 8px);
+    margin-bottom: var(--p-2, 8px);
   }
 
   &__card-title {
     font-weight: 500;
-    color: var(--mp-on-surface);
+    color: var(--p-ink);
   }
 
   &__card-sku {
-    font-size: 12px;
-    color: var(--mp-on-surface-muted);
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
     margin-top: 2px;
   }
 
   &__card-grid {
     display: grid;
-    grid-template-columns: 1fr 1.4fr 1fr;
-    gap: var(--mp-space-md);
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: var(--p-3, 12px);
     align-items: end;
   }
 
   &__card-label {
     font-size: 11px;
-    color: var(--mp-on-surface-muted);
+    color: var(--p-ink-3);
     text-transform: uppercase;
     letter-spacing: .04em;
     margin-bottom: 4px;
@@ -264,31 +292,31 @@ const overCount  = computed(() => enrichedRows.value.filter((r) => r.delta > 0).
   &__card-value {
     font-size: 17px;
     font-weight: 600;
-    color: var(--mp-on-surface);
+    color: var(--p-ink);
   }
 
   &__fact-input--mobile :deep(.q-field__control) {
-    min-height: var(--mp-touch-target);
+    min-height: 44px;
   }
 
   &__summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--mp-space-md);
+    gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    padding-top: var(--mp-space-sm);
-    border-top: 1px solid var(--mp-border-subtle);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__summary-count {
-    font-size: 13px;
-    color: var(--mp-on-surface-muted);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
   }
 
   &__summary-chips {
     display: flex;
-    gap: var(--mp-space-sm);
+    gap: var(--p-2, 8px);
     flex-wrap: wrap;
   }
 }

@@ -67,10 +67,24 @@ const skuToId = computed<Record<string, string>>(() => {
   return m;
 });
 
+/**
+ * Потолок выдачи по заказу — фактически принято на склад КУ и не выдано.
+ * Выдать больше физического остатка нельзя (инцидент 2026-06-09: заказ 10,
+ * принято 5, акт ушёл на 10). null/undefined трактуем как «нет данных» и
+ * ограничиваем заказом — backend-гард всё равно не пропустит больше склада.
+ */
+function availableOf(o: MarketplaceOrderIssuanceView): number {
+  return o.warehouse_quantity ?? o.quantity;
+}
+
 function initFacts(): void {
   const next: Record<string, FactState> = {};
   for (const o of props.orders) {
-    next[o.id] = { qty: o.quantity, price: Number.parseFloat(o.price_per_unit) };
+    // Дефолт факта — что реально можно выдать: min(заказано, принято на склад).
+    next[o.id] = {
+      qty: Math.min(o.quantity, availableOf(o)),
+      price: Number.parseFloat(o.price_per_unit),
+    };
   }
   facts.value = next;
 }
@@ -83,7 +97,8 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       title: o.product_name || 'Товар по предложению',
       unit: marketplaceUnitShort(o.unit_of_measure),
       expected: o.quantity,
-      fact: f?.qty ?? o.quantity,
+      available: availableOf(o),
+      fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
       expectedPrice: Number.parseFloat(o.price_per_unit),
       factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
     };
@@ -111,8 +126,14 @@ const anyOver = computed(() =>
   props.orders.some((o) => (facts.value[o.id]?.qty ?? o.quantity) > o.quantity),
 );
 
+// Превышение склада: ввод выше принятого. Кнопки подписи и превью блокируются.
+const anyOverStock = computed(() =>
+  props.orders.some((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o)),
+);
+
 const allValid = computed(() =>
   props.orders.length > 0 &&
+  !anyOverStock.value &&
   props.orders.every((o) => {
     const f = facts.value[o.id];
     return f && f.qty > 0 && f.price > 0;
@@ -133,8 +154,13 @@ watch(
 function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: number }): void {
   const id = skuToId.value[payload.sku];
   if (!id) return;
+  const order = props.orders.find((o) => o.id === id);
   const f = facts.value[id] ?? { qty: 0, price: 0 };
-  f.qty = Math.max(0, payload.fact);
+  // Корректируем форму к потолку склада сразу при вводе: выдать больше
+  // принятого нельзя, акт на большее не сформируется (двойная защита с
+  // backend-гардом). Таблица показывает откорректированное значение.
+  const ceiling = order ? availableOf(order) : Number.POSITIVE_INFINITY;
+  f.qty = Math.min(Math.max(0, payload.fact), ceiling);
   if (payload.factPrice !== undefined) f.price = Math.max(0, payload.factPrice);
   facts.value = { ...facts.value, [id]: f };
   // Акты зависят от факта — сбрасываем устаревший превью.
@@ -249,9 +275,10 @@ TakeoverDialog(
   template(#default)
     .mp-issue-open-dialog
       .mp-issue-open-dialog__intro
-        | Сверьте привезённое имущество с заказами пайщика и укажите фактически
-        | выдаваемое количество по каждой позиции — оно войдёт в соответствующий
-        | акт. Открытие выдачи сформирует и подпишет акты сразу по всем позициям.
+        | Сверьте имущество на складе с заказами пайщика: «План» — сколько
+        | заказано, «Принято» — сколько фактически принято на склад и доступно
+        | к выдаче. Выдать больше принятого нельзя — факт ограничен складом.
+        | Открытие выдачи сформирует и подпишет акты сразу по всем позициям.
 
       template(v-if="!showActs")
         CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")

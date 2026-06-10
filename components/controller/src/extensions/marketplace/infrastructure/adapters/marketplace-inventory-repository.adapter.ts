@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 import {
+  MarketplaceInventoryOnWarehouseStatuses,
   MarketplaceInventoryStatuses,
   type MarketplaceInventoryStatus,
 } from '../../domain/entities/marketplace-inventory.types';
@@ -61,6 +62,26 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
 
   async countByOrder(coopname: string, order_id: string): Promise<number> {
     return this.repo.count({ where: { coopname, order_id } });
+  }
+
+  async sumOnWarehouseByOrders(
+    coopname: string,
+    order_ids: string[]
+  ): Promise<Map<string, number>> {
+    if (order_ids.length === 0) return new Map();
+    const rows = await this.repo
+      .createQueryBuilder('inv')
+      .select('inv.order_id', 'order_id')
+      .addSelect('SUM(inv.quantity_per_label)', 'total')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .groupBy('inv.order_id')
+      .getRawMany<{ order_id: string; total: string }>();
+    // SUM по int-колонке PostgreSQL приходит строкой — приводим явно.
+    return new Map(rows.map((r) => [r.order_id, Number(r.total)]));
   }
 
   async list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]> {

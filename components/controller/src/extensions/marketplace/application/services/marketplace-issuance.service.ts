@@ -141,9 +141,15 @@ export class MarketplaceIssuanceService {
       );
     }
     // Оператор сверяет факт при открытии: акт формируется на фактически
-    // выдаваемое количество и цену. Если оператор ещё не скорректировал — по заказу.
+    // выдаваемое количество и цену. Дефолт и потолок — принятое на склад
+    // (не заказ!): выдать больше физического остатка нельзя, и акт на большее
+    // даже не формируем.
+    const available = await this.loadAvailableOnWarehouse(order);
+    this.assertWithinWarehouse(order, actual_quantity ?? null, available);
     const fact_quantity =
-      actual_quantity && actual_quantity > 0 ? actual_quantity : order.quantity;
+      actual_quantity && actual_quantity > 0
+        ? actual_quantity
+        : Math.min(order.quantity, available);
     const fact_unit_price =
       actual_unit_price && Number.parseFloat(actual_unit_price) > 0
         ? actual_unit_price
@@ -205,6 +211,13 @@ export class MarketplaceIssuanceService {
     if (Number.parseFloat(input.actual_unit_price) <= 0) {
       throw new BadRequestException('Фактическая цена за единицу должна быть больше нуля.');
     }
+
+    // Гард склада: выдать можно только то, что физически принято на склад КУ
+    // по этому заказу и ещё не выдано. Без него акт подписывался на заказанное
+    // количество при недопоставке (инцидент 2026-06-09: заказ 10, принято 5,
+    // выдано «10»).
+    const available = await this.loadAvailableOnWarehouse(order);
+    this.assertWithinWarehouse(order, input.actual_quantity, available);
 
     this.verifyDocumentSignature(input.signed_document);
 
@@ -391,6 +404,36 @@ export class MarketplaceIssuanceService {
   }
 
   // ── private ──
+
+  /** Принято на склад КУ по заказу и ещё не выдано (Σ RECEIVED/LABELED). */
+  private async loadAvailableOnWarehouse(
+    order: MarketplaceOrderDomainEntity
+  ): Promise<number> {
+    const sums = await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
+    return sums.get(order.id) ?? 0;
+  }
+
+  /**
+   * Инвариант выдачи: со склада нельзя выдать больше, чем физически принято
+   * по заказу. Применяется и к превью акта (его нельзя сформировать на
+   * большее), и к самой мутации открытия выдачи.
+   */
+  private assertWithinWarehouse(
+    order: MarketplaceOrderDomainEntity,
+    requested_quantity: number | null,
+    available: number
+  ): void {
+    if (available <= 0) {
+      throw new ConflictException(
+        `По заказу ${order.id} нет принятого на склад имущества — выдача недоступна до приёмки поставки.`
+      );
+    }
+    if (requested_quantity !== null && requested_quantity > available) {
+      throw new ConflictException(
+        `Нельзя выдать больше, чем принято на склад: доступно ${available}, запрошено ${requested_quantity}.`
+      );
+    }
+  }
 
   private async loadOrder(
     coopname: string,

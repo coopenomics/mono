@@ -4374,6 +4374,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",
+		warehouse_quantity:"Int",
 		warranty_period_secs:"Int",
 		warranty_until:"DateTime"
 	},
