@@ -12,7 +12,8 @@ export { AuthV2Error, AuthV2ErrorCode } from './errors'
 export type { LoginParams, LoginResult } from './oidc'
 export { getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, recover } from './oidc'
 
-export type { EncryptedVaultBlob } from './vault'
+export type { EncryptedVaultBlob, VaultSubject } from './vault'
+export { ARGON2ID_PARAMS, decryptPrivateKey, deriveKey, encryptPrivateKey } from './vault'
 
 export type { Wallet } from './wallet'
 export { getWallet, rotateKey } from './wallet'

@@ -1,14 +1,8 @@
 /**
- * Vault-слой: client-side расшифровка приватного ключа (Argon2id + AES-256-GCM).
- * Пока только форма зашифрованного блоба; функции расшифровки и type-driven
- * запрет серверной расшифровки приходят в Stories 2.1–2.2.
+ * Vault-слой: client-side шифрование/расшифровка приватного ключа
+ * (Argon2id + AES-256-GCM). Сервер хранит только зашифрованный блоб и не
+ * может его расшифровать (type-driven ban в controller VaultService).
  */
-
-export interface EncryptedVaultBlob {
-  cipher_version: string
-  kdf_version: string
-  salt: string
-  nonce: string
-  ciphertext: string
-  auth_tag: string
-}
+export type { EncryptedVaultBlob, VaultSubject } from './types'
+export { ARGON2ID_PARAMS, deriveKey } from './kdf'
+export { decryptPrivateKey, encryptPrivateKey, fromB64Url } from './encrypt'

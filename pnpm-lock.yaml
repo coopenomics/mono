@@ -75,6 +75,9 @@ importers:
 
   components/auth:
     dependencies:
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       '@wharfkit/antelope':
         specifier: ^1.1.1
         version: 1.1.1

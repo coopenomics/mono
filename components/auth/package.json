@@ -39,6 +39,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@noble/hashes": "^1.8.0",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/session": "^1.4.0",
     "cooptypes": "workspace:*",

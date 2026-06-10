@@ -1,0 +1,37 @@
+/** Зеркало enum'а ошибок SDK @coopenomics/auth (источник контракта един). */
+export enum AuthV2ErrorCode {
+  VaultDecryptionFailed = 'vault_decryption_failed',
+  VaultServerDecryptionForbidden = 'vault_server_decryption_forbidden',
+  TimestampTooOld = 'timestamp_too_old',
+  SessionBindingReused = 'session_binding_reused',
+  ChainVerificationFailed = 'chain_verification_failed',
+  CooposDegraded = 'coopos_degraded',
+}
+
+/** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */
+export class AuthV2Error extends Error {
+  constructor(
+    readonly code: AuthV2ErrorCode,
+    description: string,
+  ) {
+    super(description);
+    this.name = 'AuthV2Error';
+  }
+
+  toResponse(): { error: AuthV2ErrorCode; error_description: string } {
+    return { error: this.code, error_description: this.message };
+  }
+}
+
+/**
+ * Инвариант CoopID: сервер никогда не расшифровывает ключ пайщика.
+ * Бросается в рантайме, если код пытается это сделать (страховка к type-ban).
+ */
+export class VaultServerDecryptionForbiddenError extends AuthV2Error {
+  constructor() {
+    super(
+      AuthV2ErrorCode.VaultServerDecryptionForbidden,
+      'Серверная расшифровка ключа участника запрещена: расшифровать может только владелец пароля на клиенте',
+    );
+  }
+}
