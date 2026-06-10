@@ -27,9 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (13 actions): createorder, stockorder, cancelorder,
+ *  - **p.mkt.supply** (12 actions): createorder, stockorder, cancelorder,
  *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2, markdown, setfee, setsplit.
+ *    signiss2, markdown, setfee.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -274,17 +274,6 @@ public:
    */
   [[eosio::action]] void setfee(eosio::name coopname,
                                  uint64_t membership_fee_percent);
-
-  /**
-   * @brief Отсечка персонального распределения членского взноса КУ
-   * (requirement b6): доля взноса, распределяемая между председателем и
-   * доверенными по весам branch::weights; остальное — в общий кошелёк КУ.
-   * Меняет председатель КУ.
-   * @ingroup public_marketplace_actions
-   */
-  [[eosio::action]] void setsplit(eosio::name coopname, eosio::name initiator,
-                                   eosio::name braname,
-                                   uint64_t personal_percent);
 
   // ── p.mkt.return ─────────────────────────────────────────────────────
 

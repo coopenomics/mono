@@ -52,7 +52,7 @@ namespace Marketplace::Memo {
   }
 
   inline std::string get_membership_fee_distribute_memo(uint64_t order_id) {
-    return "Распределение членского взноса по заказу имущества № " + std::to_string(order_id) + " кооперативному участку";
+    return "Членский взнос по заказу имущества № " + std::to_string(order_id) + " в общий кошелёк кооперативного участка";
   }
 
   inline std::string get_markdown_loss_memo(uint64_t order_id) {

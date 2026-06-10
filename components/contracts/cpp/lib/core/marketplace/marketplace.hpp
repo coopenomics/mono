@@ -149,14 +149,6 @@ inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   return cfg.exists() ? cfg.get().membership_fee_percent : 0;
 }
 
-/// Отсечка персонального распределения КУ (HUNDR_PERCENTS = 100%);
-/// 0 — весь взнос уходит в общий кошелёк КУ.
-inline uint64_t get_branch_personal_percent(eosio::name coopname, eosio::name braname) {
-  branch_splits_index splits(_marketplace, coopname.value);
-  auto it = splits.find(braname.value);
-  return it == splits.end() ? 0 : it->personal_percent;
-}
-
 /// Сумма членского взноса от базы по ставке (целочисленно, вниз).
 inline eosio::asset calc_membership_fee(const eosio::asset& base, uint64_t fee_percent) {
   const int64_t amount = static_cast<int64_t>(

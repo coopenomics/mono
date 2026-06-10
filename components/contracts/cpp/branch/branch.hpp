@@ -86,17 +86,29 @@ public:
                                     eosio::name contract, eosio::name username);
 
   /**
-   * @brief Раскладка поступивших членских взносов КУ: персональная часть по
-   * весам доверенных (o.brn.person), остальное — в общий кошелёк КУ
-   * (o.brn.common). Вызывается inline контрактом-источником (marketplace)
-   * при финализации заказа.
+   * @brief Зачисление поступивших членских взносов КУ в общий кошелёк
+   * участка (o.brn.common, 100% суммы). Вызывается inline
+   * контрактом-источником (marketplace) при финализации заказа.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void accrue(eosio::name coopname, eosio::name braname,
+                                 eosio::name source_contract,
+                                 eosio::asset amount,
+                                 eosio::checksum256 process_hash,
+                                 std::string memo);
+
+  /**
+   * @brief Ручное распределение средств общего кошелька КУ между
+   * председателем и доверенными по весам реестра: команда председателя,
+   * сумма раскладывается по весам (o.brn.release + o.brn.person), остаток
+   * округления остаётся в общем кошельке. Можно частично и многократно.
+   * Плановый резерв расходов (30 дней) контролирует бэкенд до вызова.
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void distribute(eosio::name coopname, eosio::name braname,
                                      eosio::name source_contract,
-                                     eosio::asset total_amount,
-                                     eosio::asset personal_amount,
-                                     eosio::checksum256 process_hash,
+                                     eosio::checksum256 round_hash,
+                                     eosio::asset amount,
                                      std::string memo);
 
   /**
@@ -135,4 +147,32 @@ public:
   [[eosio::action]] void aiddecline(eosio::name coopname,
                                      eosio::checksum256 outcome_hash,
                                      std::string reason);
+
+  /**
+   * @brief Команда оплаты расхода КУ из общего кошелька участка: исходящий
+   * платёж через gateway → списание o.brn.spend в callback'е spendconfirm
+   * после действия кассира. Плановый реестр расходов ведёт бэкенд.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void createspend(eosio::name coopname, eosio::name braname,
+                                      eosio::checksum256 spend_hash,
+                                      eosio::asset amount,
+                                      std::string memo);
+
+  /**
+   * @brief Callback от gateway::outcomplete — кассир подтвердил банковский
+   * перевод по расходу КУ. Здесь применяется o.brn.spend (Дт 86 / Кт 51).
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void spendconfirm(eosio::name coopname,
+                                       eosio::checksum256 outcome_hash);
+
+  /**
+   * @brief Callback от gateway::outdecline — перевод не состоялся; средства
+   * остаются на общем кошельке КУ, команда помечается отклонённой.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void spenddecline(eosio::name coopname,
+                                       eosio::checksum256 outcome_hash,
+                                       std::string reason);
 };

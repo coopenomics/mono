@@ -27,21 +27,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] mkt_config {
 
 typedef eosio::singleton<"config"_n, mkt_config> mkt_config_singleton;
 
-/**
- * @brief Отсечка персонального распределения членского взноса per-КУ:
- * какая доля взноса при финализации заказа распределяется по весам между
- * председателем и доверенными КУ (branch::weights); остальное — в общий
- * кошелёк КУ (w.brn.common). Настраивает председатель КУ (setsplit).
- *
- * @ingroup public_tables
- * @ingroup public_marketplace_tables
- * @par table: branchsplits
- */
-struct [[eosio::table, eosio::contract(MARKETPLACE)]] branch_split {
-  eosio::name braname;           ///< кооперативный участок (PK)
-  uint64_t    personal_percent;  ///< доля персонального распределения (HUNDR_PERCENTS = 100%)
-
-  uint64_t primary_key() const { return braname.value; }
-};
-
-typedef eosio::multi_index<"branchsplits"_n, branch_split> branch_splits_index;
+// Отсечка персонального распределения per-КУ (branchsplits/setsplit) удалена
+// раундом 5 (решение владельца 2026-06-10): при финализации 100% взноса
+// уходит в общий кошелёк КУ (branch::accrue), распределение доверенным —
+// ручная команда председателя branch::distribute с произвольной суммой.

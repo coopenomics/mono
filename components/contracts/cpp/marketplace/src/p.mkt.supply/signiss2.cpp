@@ -121,10 +121,10 @@ void marketplace::signiss2(eosio::name coopname,
   // Взнос принят окончательно вместе с фактом выдачи: пересчитывается
   // пропорционально факту (ставка зафиксирована в Order на момент заказа),
   // излишек возвращается (o.mkt.refund), недостающее при факте больше заказа
-  // дособирается с паевого (o.mkt.fee), затем вся фактическая сумма взноса
-  // инлайн-вызовом branch::distribute раскладывается по кошелькам КУ выдачи:
-  // персональная часть по отсечке КУ — между доверенными по весам, остальное
-  // — в общий кошелёк КУ.
+  // дособирается с паевого (o.mkt.fee), затем 100% фактической суммы взноса
+  // инлайн-вызовом branch::accrue зачисляется в общий кошелёк КУ выдачи —
+  // приоритет общего кошелька (раунд 5): распределение доверенным —
+  // отдельная команда председателя после контроля планового резерва.
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   if (locked_fee.amount > 0) {
     const eosio::asset fact_fee = eosio::asset(
@@ -149,15 +149,9 @@ void marketplace::signiss2(eosio::name coopname,
     }
 
     if (fact_fee.amount > 0) {
-      const eosio::asset personal_part = eosio::asset(
-          static_cast<int64_t>(static_cast<uint128_t>(fact_fee.amount) *
-                               Marketplace::get_branch_personal_percent(coopname, o.delivery_braname) /
-                               HUNDR_PERCENTS),
-          _root_govern_symbol);
-
-      Branch::distribute(_marketplace, coopname, o.delivery_braname,
-                         fact_fee, personal_part, o.hash,
-                         Marketplace::Memo::get_membership_fee_distribute_memo(o.id));
+      Branch::accrue(_marketplace, coopname, o.delivery_braname,
+                     fact_fee, o.hash,
+                     Marketplace::Memo::get_membership_fee_distribute_memo(o.id));
     }
   }
 

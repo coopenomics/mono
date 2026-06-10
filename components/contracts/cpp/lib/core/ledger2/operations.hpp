@@ -101,8 +101,10 @@ namespace operations {
 
   // branch — экономика кооперативного участка (requirement b6).
   namespace branch {
-    inline constexpr eosio::name DISTRIBUTE_PERSONAL = "o.brn.person"_n;  ///< Распределение членского взноса доверенному/председателю КУ при финализации заказа (TRANSFER w.mkt.fee → w.brn.person, без Dr/Cr — внутри 86). Доля = отсечка × вес/Σвесов из реестра весов branch::weights.
-    inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Часть членского взноса вне персонального распределения — в общий кошелёк КУ (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname КУ).
+    inline constexpr eosio::name DISTRIBUTE_PERSONAL = "o.brn.person"_n;  ///< Распределение доверенному/председателю КУ при ручном распределении председателем (TRANSFER w.brn.pool → w.brn.person, без Dr/Cr — внутри 86). Доля = вес/Σвесов из реестра весов branch::weights; вторая нога двухходовки после o.brn.release.
+    inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Зачисление 100% членского взноса в общий кошелёк КУ при финализации заказа (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname КУ). Вызывается branch::accrue инлайн от контракта-источника.
+    inline constexpr eosio::name RELEASE_FROM_COMMON = "o.brn.release"_n; ///< Изъятие из общего кошелька КУ в транзитный пул ручного распределения (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname). Первая нога двухходовки распределения: один username на операцию — поэтому common→person идёт через COOPERATIVE-транзит w.brn.pool.
+    inline constexpr eosio::name SPEND_COMMON        = "o.brn.spend"_n;   ///< Оплата расхода кооперативного участка из общего кошелька (BURN с w.brn.common, Dr 86 / Cr 51 — выплата с расчётного счёта по реквизитам, после подтверждения кассиром). Плановый резерв расходов контролирует бэкенд; путь использования включается с шасси расходов.
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром; НДФЛ получатель платит сам).
     inline constexpr eosio::name CONVERT_TO_MKT      = "o.brn.conv"_n;    ///< Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (TRANSFER w.brn.person → w.mkt.member, без Dr/Cr — внутри 86) для заказов как обычный пайщик.
   }
@@ -387,20 +389,39 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Возврат членского взноса по заказу" },
 
-  // 13a. p.brn.fees: Распределение членского взноса доверенному КУ
-  //      (TRANSFER w.mkt.fee → w.brn.person, без Dr/Cr — внутри 86).
-  //      Вызывается branch::distribute по весам реестра при финализации заказа.
-  { operations::branch::DISTRIBUTE_PERSONAL, processes::branch::FEES, WalletOp::TRANSFER,
-    ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_PERSONAL,
-    0, 0,
-    "Распределение членского взноса доверенному кооперативного участка" },
-
-  // 13b. p.brn.fees: Часть членского взноса в общий кошелёк КУ
+  // 13a. p.brn.fees: Зачисление 100% членского взноса в общий кошелёк КУ
   //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname).
+  //      Вызывается branch::accrue инлайн от контракта-источника при финализации заказа.
   { operations::branch::DISTRIBUTE_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_COMMON,
     0, 0,
     "Членский взнос в общий кошелёк кооперативного участка" },
+
+  // 13b-1. p.brn.fees: Изъятие из общего кошелька КУ на ручное распределение
+  //      (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname).
+  //      Первая нога двухходовки branch::distribute: walletop несёт один username,
+  //      поэтому common(braname) → person(доверенный) идёт через COOPERATIVE-транзит.
+  { operations::branch::RELEASE_FROM_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_COMMON, ledger2_wallets::BRANCH_DISTRIBUTION_POOL,
+    0, 0,
+    "Изъятие из общего кошелька кооперативного участка на распределение" },
+
+  // 13b-2. p.brn.fees: Распределение доверенному КУ по весам
+  //      (TRANSFER w.brn.pool → w.brn.person, без Dr/Cr — внутри 86).
+  //      Вторая нога двухходовки branch::distribute (ручная команда председателя,
+  //      доля = вес/Σвесов; остаток округления не покидает общий кошелёк).
+  { operations::branch::DISTRIBUTE_PERSONAL, processes::branch::FEES, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_DISTRIBUTION_POOL, ledger2_wallets::BRANCH_PERSONAL,
+    0, 0,
+    "Распределение членского взноса доверенному кооперативного участка" },
+
+  // 13b-3. p.brn.spend: Оплата расхода КУ из общего кошелька
+  //      (BURN с w.brn.common, Dr 86 / Cr 51 — деньги уходят из системы
+  //      банковским переводом по реквизитам после подтверждения кассиром).
+  { operations::branch::SPEND_COMMON, processes::branch::SPEND, WalletOp::BURN,
+    ledger2_wallets::BRANCH_COMMON, eosio::name{},
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Оплата расхода кооперативного участка из общего кошелька" },
 
   // 13c. p.brn.aid: Материальная помощь доверенному КУ
   //      (BURN с w.brn.person, Dr 86 / Cr 51 — деньги уходят из системы

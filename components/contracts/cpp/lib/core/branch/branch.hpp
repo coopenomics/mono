@@ -47,19 +47,20 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
 }
 
 /**
- * @brief Inline-вызов branch::distribute от контракта-источника членских
- * взносов (requirement b6 «Экономика КУ»): раскладка поступившего взноса по
- * кошелькам КУ — персональная часть по весам доверенных (o.brn.person),
- * остальное в общий кошелёк КУ (o.brn.common).
+ * @brief Inline-вызов branch::accrue от контракта-источника членских
+ * взносов (requirement b6 «Экономика КУ», раунд 5: приоритет общего
+ * кошелька): зачисление 100% взноса в общий кошелёк КУ (o.brn.common).
+ * Дальнейшее использование — отдельные команды председателя
+ * (distribute / createspend) после контроля планового резерва бэкендом.
  */
-inline void distribute(eosio::name actor, eosio::name coopname, eosio::name braname,
-                       eosio::asset total_amount, eosio::asset personal_amount,
-                       eosio::checksum256 process_hash, std::string memo) {
+inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
+                   eosio::asset amount,
+                   eosio::checksum256 process_hash, std::string memo) {
   eosio::action(
     eosio::permission_level{actor, "active"_n},
     _branch,
-    "distribute"_n,
-    std::make_tuple(coopname, braname, actor, total_amount, personal_amount, process_hash, memo)
+    "accrue"_n,
+    std::make_tuple(coopname, braname, actor, amount, process_hash, memo)
   ).send();
 }
 
