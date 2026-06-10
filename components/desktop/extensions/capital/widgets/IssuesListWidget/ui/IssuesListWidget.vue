@@ -34,6 +34,9 @@ div
           q-icon(name='inbox', size='20px')
           span Нет задач
 
+    // Полоска-добавлялка после всех задач
+    CreateIssueButton(:project-hash='projectHash', row)
+
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   div(v-else)
     q-table(
@@ -62,6 +65,9 @@ div
           q-icon(name='inbox', size='20px')
           span Нет задач
 
+    // Полоска-добавлялка после всех задач
+    CreateIssueButton(:project-hash='projectHash', row)
+
 </template>
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
@@ -71,6 +77,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
 
 const props = defineProps<{

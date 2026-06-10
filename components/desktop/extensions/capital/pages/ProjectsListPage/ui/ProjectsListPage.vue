@@ -16,6 +16,7 @@ div
     template(#project-content='{ project }')
       ComponentsListWidget(
         :components='project.components',
+        :project='project',
         :expanded='expandedComponents',
         @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
         @toggle-component='handleComponentToggle'

@@ -63,13 +63,6 @@ div
                   span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
                   q-tooltip Инвестиции: привлечено / план
               .cell-actions
-                .row-add
-                  CreateIssueButton(
-                    @click.stop,
-                    :project-hash='props.row.project_hash',
-                    size='sm',
-                    label='Задача'
-                  )
                 // Мастер — ответственный за компонент (зеркально исполнителям задач)
                 SetMasterAvatar(:project='props.row')
                 //- ProjectMenuWidget(:project='props.row', @click.stop)
@@ -92,17 +85,24 @@ div
       .list-empty
         q-icon(name='inbox', size='20px')
         span Нет компонентов
+
+  // Полоска-добавлялка после всех компонентов проекта
+  CreateComponentButton(
+    v-if='project && project.permissions?.can_edit_project',
+    :project='project',
+    row
+  )
 </template>
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import type { IProjectComponent } from 'app/extensions/capital/entities/Project/model';
+import type { IProject, IProjectComponent } from 'app/extensions/capital/entities/Project/model';
 import {
   getProjectStatusIcon,
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
 import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
-import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
+import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 // import { ProjectMenuWidget } from 'app/extensions/capital/widgets/ProjectMenuWidget';
@@ -111,6 +111,8 @@ const props = defineProps<{
   components: IProjectComponent[] | undefined;
   expanded: Record<string, boolean>;
   expandAll?: boolean;
+  /** Родительский проект — для полоски «Добавить компонент» в конце списка */
+  project?: IProject;
 }>();
 
 const emit = defineEmits<{
@@ -288,23 +290,6 @@ const columns = [
 
   .cell-actions {
     width: auto;
-  }
-}
-
-// Кнопка добавления проявляется при наведении на строку (на touch — всегда)
-.row-add {
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-tr:hover .row-add,
-.cell-actions:focus-within .row-add {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .row-add {
-    opacity: 1;
   }
 }
 

@@ -74,12 +74,6 @@ div
                     span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
                     q-tooltip Инвестиции: привлечено / план
                 .cell-actions
-                  .row-add(v-if='props.row.permissions?.can_edit_project')
-                    CreateComponentButton(
-                      :project='props.row',
-                      size='sm',
-                      @click.stop
-                    )
                   // Мастер — ответственный за проект (зеркально исполнителям задач)
                   SetMasterAvatar(:project='props.row')
 
@@ -106,7 +100,6 @@ import { FailAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
 import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
@@ -427,23 +420,6 @@ const columns = [
 
   .cell-actions {
     width: auto;
-  }
-}
-
-// Кнопка добавления проявляется при наведении на строку (на touch — всегда)
-.row-add {
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-
-tr:hover .row-add,
-.cell-actions:focus-within .row-add {
-  opacity: 1;
-}
-
-@media (hover: none) {
-  .row-add {
-    opacity: 1;
   }
 }
 
