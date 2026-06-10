@@ -1,0 +1,43 @@
+import type { Request } from 'express';
+
+/** Окна (мс): см. Story 9.1 AC / NFR10. */
+export const RATE_LIMIT_WINDOW_15M = 15 * 60 * 1000;
+export const RATE_LIMIT_WINDOW_1H = 60 * 60 * 1000;
+
+/** Одно правило лимита: не более `limit` обращений за окно `ttl` (мс). */
+export interface RateLimitRule {
+  limit: number;
+  /** окно в миллисекундах */
+  ttl: number;
+}
+
+/**
+ * Извлечь идентификатор аккаунта для per-account ключа из запроса. Возвращает
+ * `null|undefined`, если идентификатор недоступен ДО хендлера (тогда account-ключ
+ * пропускается, работает только per-IP) — например, на session/bind, где username
+ * резолвится из cookie authentik уже внутри обработчика.
+ */
+export type AccountKeyExtractor = (req: Request) => string | null | undefined;
+
+/** Конфиг двухключевого rate-limit для endpoint'а: всегда per-IP, опционально per-account. */
+export interface AuthRateLimitConfig {
+  ip: RateLimitRule;
+  account?: RateLimitRule & { key: AccountKeyExtractor };
+}
+
+/** Ключ метаданных, под которым `@AuthRateLimit` кладёт конфиг для guard'а. */
+export const AUTH_RATE_LIMIT_METADATA = 'auth-v2:rate-limit';
+
+// --- Пресеты лимитов (Story 9.1 AC) ---
+
+/** Per-IP для login-flow: 50 обращений / 15 мин. */
+export const LOGIN_IP_RULE: RateLimitRule = { limit: 50, ttl: RATE_LIMIT_WINDOW_15M };
+
+/** Per-account для login-flow: 5 обращений / 15 мин. */
+export const LOGIN_ACCOUNT_RULE: RateLimitRule = { limit: 5, ttl: RATE_LIMIT_WINDOW_15M };
+
+/**
+ * Magic-link (NFR10): 3 / час по обоим ключам. Endpoint magic-link — Story 3.1
+ * (ещё нет); пресет готов и навешивается на него при появлении.
+ */
+export const MAGIC_LINK_RULE: RateLimitRule = { limit: 3, ttl: RATE_LIMIT_WINDOW_1H };

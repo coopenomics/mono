@@ -22,6 +22,8 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   // 503: блокчейн/инфраструктура временно недоступна — клиенту «повторить позже».
   [AuthV2ErrorCode.CooposDegraded]: HttpStatus.SERVICE_UNAVAILABLE,
+  // 429: сработал rate-limit контура входа (Story 9.1) — слишком много попыток.
+  [AuthV2ErrorCode.TooManyAttempts]: HttpStatus.TOO_MANY_REQUESTS,
   // 403: серверная расшифровка ключа запрещена инвариантом (не «не авторизован»).
   [AuthV2ErrorCode.VaultServerDecryptionForbidden]: HttpStatus.FORBIDDEN,
   // 400: некорректный ввод/данные клиента (AC Story 1.11 — invalid_credentials → 400).

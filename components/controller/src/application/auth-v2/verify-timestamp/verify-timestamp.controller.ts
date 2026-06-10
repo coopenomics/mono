@@ -6,9 +6,13 @@ import {
   Post,
   Req,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
+import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
+import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
+import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { VerifyTimestampService } from './verify-timestamp.service';
 import type { VerifyTimestampResult } from './verify-timestamp.service';
 
@@ -36,6 +40,9 @@ export class VerifyTimestampController {
 
   @Post('timestamp')
   @HttpCode(200)
+  @UseGuards(AuthRateLimitGuard)
+  // per-IP: аккаунт зашит в подписанном binding_token, до хендлера не извлекаем.
+  @AuthRateLimit({ ip: LOGIN_IP_RULE })
   async verifyTimestamp(@Body() body: VerifyTimestampBody, @Req() req: Request): Promise<VerifyTimestampResult> {
     const signature = body?.signature;
     const timestamp = body?.timestamp;

@@ -8,6 +8,7 @@ export enum AuthV2ErrorCode {
   SessionBindingExpired = 'session_binding_expired',
   ChainVerificationFailed = 'chain_verification_failed',
   CooposDegraded = 'coopos_degraded',
+  TooManyAttempts = 'too_many_attempts',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */
