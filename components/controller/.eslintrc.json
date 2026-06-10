@@ -41,6 +41,7 @@
         "src/domain/**/*.ts"
       ],
       "excludedFiles": [
+        "src/**/*.spec.ts",
         "src/application/agreement/use-cases/agreement.interactor.ts",
         "src/application/decision/use-cases/decision.interactor.ts",
         "src/application/cooplace/interactors/cooplace.interactor.ts",

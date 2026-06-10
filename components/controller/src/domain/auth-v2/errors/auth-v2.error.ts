@@ -4,6 +4,7 @@ export enum AuthV2ErrorCode {
   VaultServerDecryptionForbidden = 'vault_server_decryption_forbidden',
   TimestampTooOld = 'timestamp_too_old',
   SessionBindingReused = 'session_binding_reused',
+  SessionBindingExpired = 'session_binding_expired',
   ChainVerificationFailed = 'chain_verification_failed',
   CooposDegraded = 'coopos_degraded',
 }

@@ -1,6 +1,6 @@
 // infrastructure/blockchain/blockchain.service.ts
 import { Injectable } from '@nestjs/common';
-import { Action, API, APIClient, Name, PrivateKey, PublicKey } from '@wharfkit/antelope';
+import { Action, API, APIClient, Bytes, Name, PrivateKey, PublicKey, Signature } from '@wharfkit/antelope';
 import { ContractKit, Table } from '@wharfkit/contract';
 import { Session, TransactResult } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
@@ -169,6 +169,12 @@ export class BlockchainService implements BlockchainPort {
   }
 
   // Authentication related methods
+  public recoverPublicKey(message: string, signature: string): string {
+    // recoverMessage хэширует utf8-байты (Checksum256) и восстанавливает pubkey —
+    // байт-в-байт зеркало клиентского PrivateKey.signMessage (SDK signTimestamp).
+    return Signature.from(signature).recoverMessage(Bytes.fromString(message, 'utf8')).toString();
+  }
+
   public hasActiveKey(account: BlockchainAccountInterface, publicKey: string): boolean {
     // Преобразуем объект аккаунта в обычный JSON для работы со строками (Wharfkit возвращает свои объекты)
     const accountJson = JSON.parse(JSON.stringify(account));

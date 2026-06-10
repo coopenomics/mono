@@ -33,6 +33,14 @@ export interface BlockchainPort {
 
   // Authentication related methods
   hasActiveKey(account: any, publicKey: string): boolean;
+  /**
+   * Восстановить публичный ключ из COOPOS-native recoverable подписи (`SIG_K1_…`)
+   * над utf8-сообщением. Зеркало клиентского `signMessage` (SDK signTimestamp,
+   * Story 2.4): сервер собирает то же каноническое сообщение и восстанавливает
+   * pubkey для сверки с аккаунтом. Крипто инкапсулировано в инфраструктуре —
+   * application/auth-v2 не импортирует wharfkit напрямую (гексагональный инвариант).
+   */
+  recoverPublicKey(message: string, signature: string): string;
   getCooperative(coopname: string): Promise<any>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
