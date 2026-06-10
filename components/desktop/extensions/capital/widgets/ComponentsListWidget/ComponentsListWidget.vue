@@ -47,26 +47,27 @@ div
                 ).q-mr-sm
                 span {{ props.row.title }}
 
-            // Метрики: часы факт/план и привлечённые инвестиции
-            .col-auto.row-meta-block
-              .row-meta
-                q-icon(name='schedule', size='14px')
-                span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
-                q-tooltip Часы исполнителей: факт / план
-              .row-meta(v-if='hasInvestMeta(props.row.fact?.total_received_investments, props.row.plan?.invest_pool)')
-                q-icon(name='payments', size='14px')
-                span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
-                q-tooltip Инвестиции: привлечено / план
-
-            // Actions - только CreateIssueButton (выравнивание по правому краю)
-            .col-auto.component-row__actions
-              .row.items-center.justify-end.q-gutter-xs
-                CreateIssueButton(
-                  @click.stop,
-                  :mini='true',
-                  :project-hash='props.row.project_hash',
-                  flat
-                )
+            // Правая сетка строки: время | инвестиции | действие —
+            // фиксированные колонки, одинаковые для всех уровней дерева
+            .col-auto.row-cells
+              .cell-time
+                .row-meta
+                  q-icon(name='schedule', size='14px')
+                  span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
+                  q-tooltip Часы исполнителей: факт / план
+              .cell-side
+                .row-meta(v-if='hasInvestMeta(props.row.fact?.total_received_investments, props.row.plan?.invest_pool)')
+                  q-icon(name='payments', size='14px')
+                  span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
+                  q-tooltip Инвестиции: привлечено / план
+              .cell-actions
+                .row-add
+                  CreateIssueButton(
+                    @click.stop,
+                    :project-hash='props.row.project_hash',
+                    size='sm',
+                    label='Задача'
+                  )
                 //- ProjectMenuWidget(:project='props.row', @click.stop)
 
       // Слот для дополнительного контента компонента
@@ -234,10 +235,6 @@ const columns = [
   padding-left: var(--p-2);
 }
 
-.component-row__actions {
-  width: 140px;
-}
-
 // Вложенный уровень (задачи компонента) — отступ каскада
 .component-row__nested {
   padding: 0 0 0 var(--p-7) !important;
@@ -247,15 +244,56 @@ const columns = [
   }
 }
 
-// Компактные метрики строки: часы факт/план, инвестиции
-.row-meta-block {
+// Правая сетка строки — фиксированные колонки, общие для всех уровней
+// дерева (проект/компонент/задача): время | статус-инвестиции | действия
+.row-cells {
   display: flex;
   align-items: center;
-  gap: var(--p-3);
-  margin-right: var(--p-3);
+}
 
-  @media (max-width: 640px) {
+.cell-time {
+  width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 132px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 120px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .cell-time,
+  .cell-side {
     display: none;
+  }
+
+  .cell-actions {
+    width: auto;
+  }
+}
+
+// Кнопка добавления проявляется при наведении на строку (на touch — всегда)
+.row-add {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+tr:hover .row-add,
+.cell-actions:focus-within .row-add {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .row-add {
+    opacity: 1;
   }
 }
 

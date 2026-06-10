@@ -2,7 +2,7 @@
 span
   BaseButton(
     variant='ghost',
-    :size='mini ? "sm" : "md"',
+    :size='size ?? (mini ? "sm" : "md")',
     :loading='loading',
     :icon-only='mini',
     aria-label='Создать задачу',
@@ -11,7 +11,7 @@ span
     template(#icon-left)
       q-icon(name='add', size='18px')
     template(v-if='!mini', #default)
-      | Создать задачу
+      | {{ label ?? 'Создать задачу' }}
 
   CreateIssueDialog(
     ref='dialogRef',
@@ -28,6 +28,10 @@ import { CreateIssueDialog } from './Dialog';
 defineProps<{
   mini?: boolean;
   projectHash?: string;
+  /** Размер кнопки независимо от mini (для компактных строк списков) */
+  size?: 'sm' | 'md';
+  /** Короткая подпись для строк списков (default «Создать задачу») */
+  label?: string;
 }>();
 
 const emit = defineEmits<{

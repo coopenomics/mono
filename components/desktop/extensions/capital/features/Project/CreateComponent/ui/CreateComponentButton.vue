@@ -2,7 +2,7 @@
 span
   BaseButton(
     variant='ghost',
-    :size='mini ? "sm" : "md"',
+    :size='size ?? (mini ? "sm" : "md")',
     :loading='loading',
     :icon-only='mini',
     aria-label='Создать компонент',
@@ -30,6 +30,8 @@ import { CreateComponentDialog } from './Dialog';
 defineProps<{
   project: IProject;
   mini?: boolean;
+  /** Размер кнопки независимо от mini (для компактных строк списков) */
+  size?: 'sm' | 'md';
 }>();
 
 const emit = defineEmits<{

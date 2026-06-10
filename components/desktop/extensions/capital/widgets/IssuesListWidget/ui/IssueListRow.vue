@@ -26,25 +26,28 @@
       size='sm'
     ) {{ tag }}
 
-  // 3. Действия: время (в одной вертикали с план/фактом проекта и
-  // компонента) + компактный chip статуса + аватарки исполнителей.
+  // 3. Правая сетка строки — те же фиксированные колонки, что у проектов
+  // и компонентов: время | статус | люди
   .actions-block(@click.stop)
-    IssueTimeChip(
-      :issue-hash='issue.issue_hash'
-      :estimate='issue.estimate'
-      :fact='issue.fact'
-      :readonly='!canChangeEstimate'
-    )
-    IssueStatusChip(
-      :model-value='issue.status'
-      :issue-hash='issue.issue_hash'
-      :readonly='!issue.permissions.can_change_status'
-      :allowed-transitions='issue.permissions.allowed_status_transitions'
-    )
-    SetCreatorAvatars(
-      :issue='issue'
-      :permissions='issue.permissions'
-    )
+    .cell-time
+      IssueTimeChip(
+        :issue-hash='issue.issue_hash'
+        :estimate='issue.estimate'
+        :fact='issue.fact'
+        :readonly='!canChangeEstimate'
+      )
+    .cell-side
+      IssueStatusChip(
+        :model-value='issue.status'
+        :issue-hash='issue.issue_hash'
+        :readonly='!issue.permissions.can_change_status'
+        :allowed-transitions='issue.permissions.allowed_status_transitions'
+      )
+    .cell-actions
+      SetCreatorAvatars(
+        :issue='issue'
+        :permissions='issue.permissions'
+      )
 </template>
 
 <script setup lang="ts">
@@ -145,13 +148,31 @@ const canChangeEstimate = computed(
   }
 }
 
-// 3. Actions — фиксированный набор справа, не сжимается.
+// 3. Actions — фиксированная колоночная сетка справа, синхронная со
+// строками проектов/компонентов (см. .row-cells в их виджетах).
 .actions-block {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
   flex-shrink: 0;
   margin-left: auto;
+}
+
+.cell-time {
+  width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 132px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 120px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 // Mobile: meta + title в первой строке (title справа от меты), actions
@@ -175,6 +196,13 @@ const canChangeEstimate = computed(
     width: 100%;
     margin-left: 0;
     justify-content: flex-end;
+    gap: var(--p-2);
+  }
+
+  .cell-time,
+  .cell-side,
+  .cell-actions {
+    width: auto;
   }
 }
 </style>
