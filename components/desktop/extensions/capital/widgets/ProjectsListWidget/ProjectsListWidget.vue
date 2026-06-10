@@ -1,5 +1,5 @@
 <template lang="pug">
-div
+.projects-list-widget
   // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
   .projects-skeleton(v-if='isInitialLoading')
     .skel(v-for='i in 8', :key='i')
@@ -345,8 +345,16 @@ const columns = [
   }
 }
 
+// Высоту задаёт страница (flex-колонка под шапкой и панелью фильтров);
+// fallback на полный вьюпорт минус шапка — для standalone-использования
+.projects-list-widget {
+  height: 100%;
+  min-height: 0;
+}
+
 .projects-scroll-area {
-  height: calc(100vh - 55px);
+  height: 100%;
+  max-height: calc(100vh - 55px);
   overflow-y: auto;
 }
 
