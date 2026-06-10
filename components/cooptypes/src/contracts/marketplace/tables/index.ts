@@ -23,4 +23,3 @@ export * as Config from './config'
 /**
  * Отсечки персонального распределения членского взноса по КУ (requirement b6).
  */
-export * as BranchSplits from './branchSplits'

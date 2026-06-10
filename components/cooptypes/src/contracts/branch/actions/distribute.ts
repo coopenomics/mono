@@ -3,9 +3,9 @@ import type * as Branch from '../../../interfaces/branch'
 import { Actors } from '../../../common'
 
 /**
- * Раскладка членского взноса по кошелькам КУ при финализации заказа: персональная часть
- * по весам (o.brn.person) + остальное в общий кошелёк КУ (o.brn.common). Вызывается inline
- * контрактом-источником (marketplace::signiss2).
+ * Ручное распределение средств общего кошелька КУ председателем (раунд 5 requirement b6):
+ * сумма раскладывается по весам через двухходовку o.brn.release + o.brn.person; остаток
+ * округления остаётся в общем кошельке. Плановый резерв 30 дней контролирует бэкенд.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 

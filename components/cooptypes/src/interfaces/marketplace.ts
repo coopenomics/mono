@@ -77,20 +77,8 @@ export interface ISetFee {
   membership_fee_percent: IUint64
 }
 
-export interface ISetSplit {
-  coopname: IName
-  initiator: IName
-  braname: IName
-  personal_percent: IUint64
-}
-
 export interface IMktConfig {
   membership_fee_percent: IUint64
-}
-
-export interface IBranchSplit {
-  braname: IName
-  personal_percent: IUint64
 }
 
 export interface ICancelOrder {

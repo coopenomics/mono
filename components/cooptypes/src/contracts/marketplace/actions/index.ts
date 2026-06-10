@@ -99,7 +99,6 @@ export * as SetFee from './setFee'
  * Отсечка персонального распределения членского взноса КУ (requirement b6).
  * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
  */
-export * as SetSplit from './setSplit'
 
 // ── p.mkt.return (5 actions) — Stories Эпика 7 ─────────────────────────
 

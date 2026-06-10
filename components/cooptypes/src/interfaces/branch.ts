@@ -92,13 +92,21 @@ export interface IDelweight {
   username: IName
 }
 
+export interface IAccrue {
+  coopname: IName
+  braname: IName
+  source_contract: IName
+  amount: IAsset
+  process_hash: IChecksum256
+  memo: string
+}
+
 export interface IDistribute {
   coopname: IName
   braname: IName
   source_contract: IName
-  total_amount: IAsset
-  personal_amount: IAsset
-  process_hash: IChecksum256
+  round_hash: IChecksum256
+  amount: IAsset
   memo: string
 }
 
@@ -128,6 +136,25 @@ export interface IAiddecline {
   reason: string
 }
 
+export interface ICreatespend {
+  coopname: IName
+  braname: IName
+  spend_hash: IChecksum256
+  amount: IAsset
+  memo: string
+}
+
+export interface ISpendconfirm {
+  coopname: IName
+  outcome_hash: IChecksum256
+}
+
+export interface ISpenddecline {
+  coopname: IName
+  outcome_hash: IChecksum256
+  reason: string
+}
+
 export interface IBranchWeight {
   id: IUint64
   braname: IName
@@ -150,5 +177,25 @@ export interface IBranchAid {
   amount: IAsset
   status: IName
   statement: IDocument2
+  decline_reason: string
+}
+
+export interface IBranchRound {
+  id: IUint64
+  hash: IChecksum256
+  braname: IName
+  contract: IName
+  amount: IAsset
+  distributed: IAsset
+  created_at: ITimePointSec
+}
+
+export interface IBranchSpend {
+  id: IUint64
+  hash: IChecksum256
+  braname: IName
+  amount: IAsset
+  status: IName
+  memo: string
   decline_reason: string
 }

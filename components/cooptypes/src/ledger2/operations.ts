@@ -229,15 +229,25 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Возврат членского взноса по заказу' },
 
   // branch — экономика кооперативного участка (requirement b6)
-  { code: 'o.brn.person',  process_type: 'p.brn.fees',    contract: 'branch',
-    name: 'DISTRIBUTE_PERSONAL', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.person',
-    debit: null, credit: null,
-    human_name: 'Распределение членского взноса доверенному кооперативного участка' },
-
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
     name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
     debit: null, credit: null,
     human_name: 'Членский взнос в общий кошелёк кооперативного участка' },
+
+  { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',
+    debit: null, credit: null,
+    human_name: 'Изъятие из общего кошелька кооперативного участка на распределение' },
+
+  { code: 'o.brn.person',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'DISTRIBUTE_PERSONAL', wallet_op: 'TRANSFER', wallet_from: 'w.brn.pool', wallet_to: 'w.brn.person',
+    debit: null, credit: null,
+    human_name: 'Распределение членского взноса доверенному кооперативного участка' },
+
+  { code: 'o.brn.spend',   process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.common', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Оплата расхода кооперативного участка из общего кошелька' },
 
   { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
     name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,
