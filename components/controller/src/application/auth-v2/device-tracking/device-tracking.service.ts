@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { KNOWN_DEVICES_STORE } from '~/domain/auth-v2/ports/known-devices-store.port';
 import type { IKnownDevicesStore } from '~/domain/auth-v2/ports/known-devices-store.port';
 import { AuditService } from '../audit/audit.service';
+import { NewDeviceNotificationService } from './new-device-notification.service';
 
 export interface RecordLoginInput {
   /** subject_id пайщика (user.id) — ключ множества устройств и audit. */
@@ -35,6 +36,7 @@ export class DeviceTrackingService {
   constructor(
     @Inject(KNOWN_DEVICES_STORE) private readonly devices: IKnownDevicesStore,
     private readonly audit: AuditService,
+    private readonly newDeviceNotifier: NewDeviceNotificationService,
   ) {}
 
   /** Стабильный идентификатор устройства по серверным заголовкам запроса. */
@@ -60,6 +62,17 @@ export class DeviceTrackingService {
         accept_language: input.acceptLanguage,
       },
     });
+
+    // Новое устройство — уведомляем пайщика (Story 3.9). Сервис best-effort:
+    // не бросает, bundling-окно 12ч внутри. Вход не зависит от доставки.
+    if (!known) {
+      await this.newDeviceNotifier.maybeNotify({
+        subjectId: input.subjectId,
+        username: input.username,
+        ip: input.ip,
+        userAgent: input.userAgent,
+      });
+    }
 
     return { isNewDevice: !known, fingerprint };
   }

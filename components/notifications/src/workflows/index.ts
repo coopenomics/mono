@@ -18,6 +18,7 @@ import { workflow as approvalResponseWorkflow } from './approval-response';
 import { workflow as newInitialPaymentRequestWorkflow } from './new-initial-payment-request';
 import { workflow as newDepositPaymentRequestWorkflow } from './new-deposit-payment-request';
 import { workflow as resetKeyWorkflow } from './reset-key';
+import { workflow as newDeviceLoginWorkflow } from './new-device-login';
 import { workflow as inviteWorkflow } from './invite';
 import { workflow as emailVerificationWorkflow } from './email-verification';
 import { workflow as serverProvisionedWorkflow } from './server-provisioned';
@@ -44,6 +45,7 @@ export * as ApprovalResponse from './approval-response';
 export * as NewInitialPaymentRequest from './new-initial-payment-request';
 export * as NewDepositPaymentRequest from './new-deposit-payment-request';
 export * as ResetKey from './reset-key';
+export * as NewDeviceLogin from './new-device-login';
 export * as Invite from './invite';
 export * as EmailVerification from './email-verification';
 export * as ServerProvisioned from './server-provisioned';
@@ -71,6 +73,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   newInitialPaymentRequestWorkflow,
   newDepositPaymentRequestWorkflow,
   resetKeyWorkflow,
+  newDeviceLoginWorkflow,
   inviteWorkflow,
   emailVerificationWorkflow,
   serverProvisionedWorkflow,

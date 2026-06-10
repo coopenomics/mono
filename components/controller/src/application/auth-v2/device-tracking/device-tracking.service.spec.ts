@@ -13,13 +13,14 @@ function setup() {
     remember: jest.fn().mockResolvedValue(undefined),
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const service = new DeviceTrackingService(devices as never, audit as never);
-  return { service, devices, audit };
+  const newDeviceNotifier = { maybeNotify: jest.fn().mockResolvedValue(undefined) };
+  const service = new DeviceTrackingService(devices as never, audit as never, newDeviceNotifier as never);
+  return { service, devices, audit, newDeviceNotifier };
 }
 
 describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
   it('новое устройство: remember + audit LoginSuccessful device_new=true, isNewDevice=true', async () => {
-    const { service, devices, audit } = setup();
+    const { service, devices, audit, newDeviceNotifier } = setup();
     devices.isKnown.mockResolvedValueOnce(false);
 
     const res = await service.recordLogin({
@@ -43,10 +44,17 @@ describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
         context: { device_new: true, user_agent: UA, accept_language: LANG },
       }),
     );
+    // Story 3.9: новое устройство → триггерится уведомление (best-effort).
+    expect(newDeviceNotifier.maybeNotify).toHaveBeenCalledWith({
+      subjectId: 'user-uuid-1',
+      username: 'ant',
+      ip: '1.2.3.4',
+      userAgent: UA,
+    });
   });
 
   it('известное устройство: device_new=false, isNewDevice=false, remember всё равно обновляет', async () => {
-    const { service, devices, audit } = setup();
+    const { service, devices, audit, newDeviceNotifier } = setup();
     devices.isKnown.mockResolvedValueOnce(true);
 
     const res = await service.recordLogin({
@@ -59,6 +67,8 @@ describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
 
     expect(res.isNewDevice).toBe(false);
     expect(devices.remember).toHaveBeenCalledTimes(1);
+    // Story 3.9: известное устройство — уведомление не шлётся.
+    expect(newDeviceNotifier.maybeNotify).not.toHaveBeenCalled();
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ context: { device_new: false, user_agent: UA, accept_language: LANG } }),
     );
