@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import path from 'path';
+import fs from 'fs';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
@@ -127,6 +128,14 @@ const envVarsSchema = z.object({
     .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
     .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // coop_domain_db (CoopID, Story 1.4): отдельная БД в coop-postgres (Story 1.1).
+  // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
+  COOP_DOMAIN_DB_HOST: z.string().default('127.0.0.1'),
+  COOP_DOMAIN_DB_PORT: z.coerce.number().default(5632),
+  COOP_DOMAIN_DB_USERNAME: z.string().default('coop_app_user'),
+  COOP_DOMAIN_DB_DATABASE: z.string().default('coop_domain_db'),
+  COOP_DOMAIN_DB_PASSWORD: z.string().optional(),
+  COOP_DOMAIN_DB_PASSWORD_FILE: z.string().optional(),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
@@ -226,6 +235,25 @@ export default {
   port: envVars.data.PORT,
   server_secret: envVars.data.SERVER_SECRET,
   timezone: envVars.data.TIMEZONE,
+  coopDomainDb: {
+    host: envVars.data.COOP_DOMAIN_DB_HOST,
+    port: envVars.data.COOP_DOMAIN_DB_PORT,
+    username: envVars.data.COOP_DOMAIN_DB_USERNAME,
+    database: envVars.data.COOP_DOMAIN_DB_DATABASE,
+    // Ленивый геттер: отсутствие секрет-файла бьёт только по потребителям
+    // coop_domain_db (миграция V2.4.0+), а не по импорту config всем coopback'ом.
+    get password(): string {
+      const file = envVars.data!.COOP_DOMAIN_DB_PASSWORD_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch (e) {
+          throw new Error(`COOP_DOMAIN_DB_PASSWORD_FILE недоступен (${file}): ${e instanceof Error ? e.message : e}`);
+        }
+      }
+      return envVars.data!.COOP_DOMAIN_DB_PASSWORD ?? '';
+    },
+  },
   blockchain: {
     url: envVars.data.BLOCKCHAIN_RPC,
     rpcList: envVars.data.BLOCKCHAIN_RPC_LIST.length

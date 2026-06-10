@@ -83,6 +83,7 @@ services:
     secrets:
       - coop_cert_key
       - coop_vault_key
+      - coop_pg_app_password
 
 secrets:
   coop_pg_superuser_password:
