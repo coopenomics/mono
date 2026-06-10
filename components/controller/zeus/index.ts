@@ -6123,6 +6123,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAid']?: Omit<ValueTypes["MarketplaceAid"], "...on MarketplaceAid">
 }>;
+	["MarketplaceAidStatementSignablePayloadInput"]: {
+	/** Сумма материальной помощи. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок, средства которого распределены получателю. */
+	braname: string | Variable<any, string>
+};
 	["MarketplaceAplReception"]: AliasType<{
 	/** КУ-получатель партии. */
 	braname?:boolean | `@${string}`,
@@ -10178,6 +10184,7 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
+marketplaceAidStatementSignablePayload?: [{	data: ValueTypes["MarketplaceAidStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ValueTypes["GetRequiredAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
@@ -16779,6 +16786,12 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceAidStatementSignablePayloadInput"]: {
+	/** Сумма материальной помощи. */
+	amount: number,
+	/** Кооперативный участок, средства которого распределены получателю. */
+	braname: string
+};
 	["MarketplaceAplReception"]: AliasType<{
 	/** КУ-получатель партии. */
 	braname?:boolean | `@${string}`,
@@ -20682,6 +20695,7 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
+marketplaceAidStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceAidStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceAplReceptionSupplierSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAspectAttributes?: [{	data: ResolverInputTypes["GetRequiredAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
@@ -27091,6 +27105,12 @@ export type ModelTypes = {
 	/** Получатель материальной помощи. */
 	username: string
 };
+	["MarketplaceAidStatementSignablePayloadInput"]: {
+	/** Сумма материальной помощи. */
+	amount: number,
+	/** Кооперативный участок, средства которого распределены получателю. */
+	braname: string
+};
 	["MarketplaceAplReception"]: {
 		/** КУ-получатель партии. */
 	braname: string,
@@ -31517,6 +31537,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
+	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */
+	marketplaceAidStatementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
 	marketplaceAplReceptionChairmanSignablePayloads: Array<ModelTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
@@ -38218,6 +38240,12 @@ export type GraphQLTypes = {
 	username: string,
 	['...on MarketplaceAid']: Omit<GraphQLTypes["MarketplaceAid"], "...on MarketplaceAid">
 };
+	["MarketplaceAidStatementSignablePayloadInput"]: {
+		/** Сумма материальной помощи. */
+	amount: number,
+	/** Кооперативный участок, средства которого распределены получателю. */
+	braname: string
+};
 	["MarketplaceAplReception"]: {
 	__typename: "MarketplaceAplReception",
 	/** КУ-получатель партии. */
@@ -43008,6 +43036,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
+	/** Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных. */
+	marketplaceAidStatementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх. */
 	marketplaceAplReceptionChairmanSignablePayloads: Array<GraphQLTypes["DocumentAggregate"]>,
 	/** Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier. */
@@ -45614,6 +45644,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
 	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
+	["MarketplaceAidStatementSignablePayloadInput"]: ValueTypes["MarketplaceAidStatementSignablePayloadInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
 	["MarketplaceAplReceptionSignedDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedDocumentInput"];

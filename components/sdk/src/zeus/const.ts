@@ -648,6 +648,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAddToWhitelistInput:{
 
 	},
+	MarketplaceAidStatementSignablePayloadInput:{
+
+	},
 	MarketplaceAplReceptionByIdInput:{
 
 	},
@@ -2051,6 +2054,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
+		},
+		marketplaceAidStatementSignablePayload:{
+			data:"MarketplaceAidStatementSignablePayloadInput"
 		},
 		marketplaceAplReceptionChairmanSignablePayloads:{
 			data:"MarketplaceAplReceptionByIdInput"
@@ -5744,6 +5750,7 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		listReportDrafts:"ReportDraft",
+		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",
 		marketplaceAplReceptionSupplierSignablePayloads:"GeneratedDocument",
 		marketplaceAspectAttributes:"MarketplaceAttribute",

@@ -1,6 +1,8 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -29,9 +31,20 @@ import {
   MarketplaceSetBranchSplitInputDTO,
   MarketplaceSetMembershipFeeInputDTO,
   MarketplaceSetTrusteeWeightInputDTO,
+  MarketplaceAidStatementSignablePayloadInputDTO,
   toMarketplaceAidDTO,
   toMarketplaceBranchEconomyDTO,
 } from '../dto/marketplace-economy.dto';
+
+function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
+  const dto = new GeneratedDocumentDTO();
+  dto.full_title = e.full_title;
+  dto.html = e.html;
+  dto.hash = e.hash;
+  dto.meta = e.meta;
+  dto.binary = e.binary;
+  return dto;
+}
 
 /**
  * requirement b6 «Экономика КУ»: единая ставка членского взноса, отсечка и
@@ -192,6 +205,26 @@ export class MarketplaceEconomyResolver {
   ): Promise<boolean> {
     await this.economyService.convertBranchFunds(config.coopname, member.username, data.amount);
     return true;
+  }
+
+  @Query(() => GeneratedDocumentDTO, {
+    name: 'marketplaceAidStatementSignablePayload',
+    description:
+      'Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Economy', 'use:own')
+  async marketplaceAidStatementSignablePayload(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceAidStatementSignablePayloadInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    const doc = await this.economyService.buildAidStatement(
+      config.coopname,
+      member.username,
+      data.braname,
+      data.amount
+    );
+    return toGeneratedDocumentDTO(doc);
   }
 
   @Mutation(() => Boolean, {

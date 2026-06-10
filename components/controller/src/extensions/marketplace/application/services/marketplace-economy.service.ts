@@ -11,6 +11,8 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -71,7 +73,8 @@ export class MarketplaceEconomyService {
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
-    private readonly assetConfig: MarketplaceAssetConfig
+    private readonly assetConfig: MarketplaceAssetConfig,
+    private readonly documentDomainService: DocumentDomainService
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -255,6 +258,41 @@ export class MarketplaceEconomyService {
       rethrowChainError(e);
     }
     return asset;
+  }
+
+  /**
+   * Сформировать подписываемое Заявление на материальную помощь (registry
+   * 1109): идентификатор заявки генерится здесь и фиксируется в meta —
+   * фронт возвращает его в createAid вместе с подписанным документом.
+   */
+  async buildAidStatement(
+    coopname: string,
+    username: string,
+    braname: string,
+    amount: number
+  ): Promise<DocumentDomainEntity> {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
+    }
+    const isMember = await this.kuChairmanService.isMemberOfBranch(coopname, braname, username);
+    if (!isMember) {
+      throw new ForbiddenException(
+        'Материальная помощь доступна председателю и доверенным этого кооперативного участка'
+      );
+    }
+    const aid_hash = createHash('sha256')
+      .update(`${coopname}:${username}:aid:${randomBytes(16).toString('hex')}`)
+      .digest('hex');
+    const action: Cooperative.Registry.BranchFinancialAidStatement.Action = {
+      registry_id: Cooperative.Registry.BranchFinancialAidStatement.registry_id,
+      coopname,
+      username,
+      lang: 'ru',
+      aid_hash,
+      braname,
+      amount: this.formatAsset(amount),
+    };
+    return this.documentDomainService.generateDocument({ data: action });
   }
 
   async createAid(

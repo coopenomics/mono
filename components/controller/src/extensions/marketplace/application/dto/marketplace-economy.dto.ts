@@ -149,6 +149,19 @@ export class MarketplaceConvertBranchFundsInputDTO {
   amount!: number;
 }
 
+@InputType('MarketplaceAidStatementSignablePayloadInput')
+export class MarketplaceAidStatementSignablePayloadInputDTO {
+  @Field({ description: 'Кооперативный участок, средства которого распределены получателю.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => Float, { description: 'Сумма материальной помощи.' })
+  @IsNumber()
+  @Min(0.0001)
+  amount!: number;
+}
+
 @InputType('MarketplaceCreateAidInput')
 export class MarketplaceCreateAidInputDTO {
   @Field({ description: 'Кооперативный участок, средства которого распределены получателю.' })
