@@ -11,6 +11,14 @@ import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from 
  *
  * Union `MarketplaceEvent` дискриминируется по `__typename`; выбирай поля
  * нужного типа через `... on`.
+ *
+ * Внимание: поля `status` событий НЕ селектируются. У каждого события свой
+ * enum-статус, а правило GraphQL SameResponseShape запрещает одно имя ответа
+ * с разными типами даже в разных `... on`-фрагментах union'а — сервер
+ * отклоняет весь документ на валидации, и подписка молча не открывается
+ * (инцидент 2026-06-10). Статус клиенту и не нужен: по сигналу он дочитывает
+ * состояние авторизованным query. Понадобится статус в payload — алиасить
+ * уникально (`order_status: status` и т.п.), не возвращать имя `status`.
  */
 export const name = 'marketplaceEvents'
 
@@ -18,7 +26,7 @@ export const subscription = Selector('Subscription')({
   [name]: [
     { input: $('input', 'MarketplaceEventsInput!') },
     {
-      __typename: true,
+      '__typename': true,
       '...on MarketplaceOrderReadyToReceiveEvent': {
         order_id: true,
         order_hash: true,
@@ -39,30 +47,23 @@ export const subscription = Selector('Subscription')({
       },
       '...on MarketplaceOrderStatusChangedEvent': {
         order_id: true,
-        status: true,
-        previous_status: true,
       },
       '...on MarketplaceAplReceptionStatusChangedEvent': {
         reception_id: true,
-        status: true,
         braname: true,
       },
       '...on MarketplaceReturnClaimStatusChangedEvent': {
         claim_id: true,
-        status: true,
         braname: true,
       },
       '...on MarketplaceOfferModerationEvent': {
         offer_id: true,
-        status: true,
       },
       '...on MarketplacePaymentStatusChangedEvent': {
         payment_request_id: true,
-        status: true,
       },
       '...on MarketplaceWriteoffStatusChangedEvent': {
         proposal_id: true,
-        status: true,
       },
     },
   ],
