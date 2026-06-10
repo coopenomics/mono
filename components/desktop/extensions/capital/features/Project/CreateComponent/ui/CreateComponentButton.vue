@@ -1,13 +1,17 @@
 <template lang="pug">
-q-btn(
-  @click.stop='handleButtonClick',
-  :loading='loading',
-  :label='mini ? "" : "Компонент"',
-  :icon='mini ? "add" : "add"',
-  :size='mini ? "sm" : "md"',
-  flat,
-  :dense="isMobile"
-)
+span
+  BaseButton(
+    variant='ghost',
+    :size='mini ? "sm" : "md"',
+    :loading='loading',
+    :icon-only='mini',
+    aria-label='Создать компонент',
+    @click.stop='handleButtonClick'
+  )
+    template(#icon-left)
+      q-icon(name='add', size='18px')
+    template(v-if='!mini', #default)
+      | Компонент
 
   CreateComponentDialog(
     ref="dialogRef"
@@ -20,10 +24,8 @@ q-btn(
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
-import { useWindowSize } from 'src/shared/hooks';
+import { BaseButton } from 'src/shared/ui/base';
 import { CreateComponentDialog } from './Dialog';
-
-const { isMobile } = useWindowSize();
 
 defineProps<{
   project: IProject;

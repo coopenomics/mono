@@ -178,14 +178,14 @@ const handleStatusChange = async (option: {
 .status-menu {
   min-width: 200px;
   padding: 6px;
-  background-color: var(--q-color-white, #fff);
+  background-color: var(--p-surface);
   border-radius: 8px;
 }
 
 .status-menu-header {
   font-size: 11px;
   font-weight: 500;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 8px 6px;
@@ -208,7 +208,7 @@ const handleStatusChange = async (option: {
   }
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--p-surface-2);
   }
 }
 

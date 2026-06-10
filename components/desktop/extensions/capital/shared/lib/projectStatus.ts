@@ -6,21 +6,21 @@ import { Zeus } from '@coopenomics/sdk';
 export const getProjectStatusColor = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.UNDEFINED:
-      return 'grey';
+      return 'grey-6';
     case Zeus.ProjectStatus.PENDING:
-      return 'orange';
+      return 'warning';
     case Zeus.ProjectStatus.ACTIVE:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.CANCELLED:
-      return 'red';
+      return 'negative';
     case Zeus.ProjectStatus.RESULT:
-      return 'blue';
+      return 'info';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.VOTING:
-      return 'purple';
+      return 'primary';
     default:
-      return 'grey';
+      return 'grey-6';
   }
 };
 
@@ -55,23 +55,23 @@ export const getProjectStatusIcon = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.PENDING:
     case 'pending':
-      return 'fa-solid fa-pause';
+      return 'pause';
     case Zeus.ProjectStatus.ACTIVE:
     case 'active':
-      return 'fa-solid fa-play';
+      return 'play_arrow';
     case Zeus.ProjectStatus.VOTING:
-      return 'fa-solid fa-check-to-slot';
+      return 'how_to_vote';
     case Zeus.ProjectStatus.RESULT:
     case 'result':
-      return 'fa-solid fa-check';
+      return 'check';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'fa-solid fa-check-circle';
+      return 'check_circle';
     case Zeus.ProjectStatus.CANCELLED:
-      return 'fa-solid fa-lock';
+      return 'lock';
     case Zeus.ProjectStatus.UNDEFINED:
     case 'cancelled':
     default:
-      return 'fa-regular fa-circle';
+      return 'radio_button_unchecked';
   }
 };
 
@@ -81,19 +81,19 @@ export const getProjectStatusIcon = (status: string) => {
 export const getProjectStatusDotColor = (status: string) => {
   switch (status) {
     case Zeus.ProjectStatus.PENDING:
-      return 'grey';
+      return 'grey-6';
     case Zeus.ProjectStatus.ACTIVE:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.VOTING:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.RESULT:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.FINALIZED:
-      return 'green';
+      return 'positive';
     case Zeus.ProjectStatus.CANCELLED:
-      return 'grey';
+      return 'grey-6';
     case Zeus.ProjectStatus.UNDEFINED:
     default:
-      return 'grey';
+      return 'grey-6';
   }
 };

@@ -6,19 +6,19 @@ import { Zeus } from '@coopenomics/sdk';
 export const getIssueStatusColor = (status: string) => {
   switch (status) {
     case Zeus.IssueStatus.TODO:
-      return 'red';
+      return 'negative';
     case Zeus.IssueStatus.IN_PROGRESS:
-      return 'blue';
+      return 'info';
     case Zeus.IssueStatus.BACKLOG:
-      return 'orange';
+      return 'warning';
     case Zeus.IssueStatus.ON_REVIEW:
-      return 'purple';
+      return 'primary';
     case Zeus.IssueStatus.DONE:
-      return 'green';
+      return 'positive';
     case Zeus.IssueStatus.CANCELED:
-      return 'grey';
+      return 'grey-6';
     default:
-      return 'grey';
+      return 'grey-6';
   }
 };
 

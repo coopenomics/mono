@@ -1,11 +1,10 @@
 <template lang="pug">
-q-card(flat)
-  // Лоадер загрузки проектов (только при первой загрузке)
-  WindowLoader(v-if='isInitialLoading', text='')
+div
+  // Скелетон первичной загрузки (poll и догрузка обновляют список молча)
+  .projects-skeleton(v-if='isInitialLoading')
+    .skel(v-for='i in 8', :key='i')
 
-  .projects-scroll-area(
-    style='height: calc(100vh - 55px); overflow-y: auto'
-  )
+  .projects-scroll-area(v-else)
     q-table(
       ref='tableRef',
       :rows='projects?.items || []',
@@ -29,16 +28,16 @@ q-card(flat)
           :props='props'
         )
           q-td
-            .row.items-center(style='padding-left: 12px; min-height: 48px')
-              // Кнопка раскрытия (35px)
-              .col-auto(style='width: 35px; flex-shrink: 0')
+            .row.items-center.project-row
+              // Кнопка раскрытия
+              .col-auto.project-row__toggle
                 ExpandToggleButton(
                   :expanded='expanded[props.row.project_hash]',
                   @click='handleToggleExpand(props.row.project_hash)'
                 )
 
-              // ID с иконкой типа внутри бейджа (100px + отступ 0px)
-              .col-auto(style='width: 100px; padding-left: 0px; flex-shrink: 0')
+              // ID с иконкой типа внутри бейджа
+              .col-auto.project-row__id
                 EntityIdBadge(
                   v-if='props.row.id'
                   :raw-id='props.row.id'
@@ -48,11 +47,10 @@ q-card(flat)
                   template(#prefix)
                     q-icon(name='work', size='xs')
 
-              // Title со статусом (400px + отступ 0px)
-              .col(style='width: 400px; padding-left: 0px')
+              // Title со статусом
+              .col.project-row__title-col
                 .list-item-title(
                   @click.stop='handleOpenProject(props.row.project_hash)'
-                  style='display: inline-block; vertical-align: top; word-wrap: break-word; white-space: normal'
                 )
                   q-icon(
                     :name='getProjectStatusIcon(props.row.status)',
@@ -61,10 +59,9 @@ q-card(flat)
                   ).q-mr-sm
                   span {{ props.row.title }}
 
-              // Actions - только CreateComponentButton (140px, выравнивание по правому краю)
-              .col-auto.ml-auto(
+              // Actions - только CreateComponentButton (выравнивание по правому краю)
+              .col-auto.ml-auto.project-row__actions(
                 v-if='props.row.permissions?.can_edit_project'
-                style='width: 140px'
               )
                 .row.items-center.justify-end.q-gutter-xs
                   CreateComponentButton(
@@ -88,7 +85,6 @@ q-card(flat)
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { WindowLoader } from 'src/shared/ui/Loader';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
@@ -324,28 +320,65 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
+// Скелетон первичной загрузки — строки повторяют высоту строк списка
+.projects-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-4);
+
+  .skel {
+    height: var(--p-7);
+  }
+}
+
+.projects-scroll-area {
+  height: calc(100vh - 55px);
+  overflow-y: auto;
+}
+
+// Структурные ширины колонок строки проекта (привязаны к
+// virtual-scroll-item-size=48 — не spacing, токенам не подлежат)
+.project-row {
+  padding-left: var(--p-3);
+  min-height: 48px;
+}
+
+.project-row__toggle {
+  width: 35px;
+  flex-shrink: 0;
+}
+
+.project-row__id {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.project-row__actions {
+  width: 140px;
+}
+
 .q-table {
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
+    padding: 0; // строка использует внутренние отступы .project-row
   }
 }
 
-.q-chip {
-  font-weight: 500;
-}
-
-// Импорт глобального стиля для подсветки
 :deep(.list-item-title) {
+  display: inline-block;
+  vertical-align: top;
+  word-wrap: break-word;
+  white-space: normal;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 </style>

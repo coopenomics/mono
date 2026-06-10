@@ -1,13 +1,17 @@
 <template lang="pug">
-q-btn(
-  @click='dialogRef?.openDialog()',
-  :loading='loading',
-  :label='mini ? "" : "Создать задачу"',
-  :icon='mini ? "add" : "add"',
-  :size='mini ? "sm" : "md"',
-  flat,
-  @click.stop
-)
+span
+  BaseButton(
+    variant='ghost',
+    :size='mini ? "sm" : "md"',
+    :loading='loading',
+    :icon-only='mini',
+    aria-label='Создать задачу',
+    @click.stop='dialogRef?.openDialog()'
+  )
+    template(#icon-left)
+      q-icon(name='add', size='18px')
+    template(v-if='!mini', #default)
+      | Создать задачу
 
   CreateIssueDialog(
     ref='dialogRef',
@@ -18,6 +22,7 @@ q-btn(
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { BaseButton } from 'src/shared/ui/base';
 import { CreateIssueDialog } from './Dialog';
 
 defineProps<{

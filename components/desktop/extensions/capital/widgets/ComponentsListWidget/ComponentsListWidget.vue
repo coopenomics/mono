@@ -17,16 +17,16 @@ div
         :props='props'
       )
         q-td
-          .row.items-center(style='padding-left:25px; min-height: 48px')
-            // Кнопка раскрытия (35px)
-            .col-auto(style='width: 35px; flex-shrink: 0')
+          .row.items-center.component-row
+            // Кнопка раскрытия
+            .col-auto.component-row__toggle
               ExpandToggleButton(
                 :expanded='expanded[props.row.project_hash]',
                 @click='handleToggleComponent(props.row.project_hash)'
               )
 
-            // ID с иконкой типа внутри бейджа (100px + отступ 0px)
-            .col-auto(style='width: 100px; flex-shrink: 0')
+            // ID с иконкой типа внутри бейджа
+            .col-auto.component-row__id
               EntityIdBadge(
                 v-if='props.row.id'
                 :raw-id='props.row.id'
@@ -34,13 +34,12 @@ div
                 address-clipboard
               )
                 template(#prefix)
-                  q-icon(name='fa-regular fa-file-code', size='xs')
+                  q-icon(name='code', size='xs')
 
-            // Title со статусом (400px)
-            .col(style='width: 400px; padding-left: 10px')
+            // Title со статусом
+            .col.component-row__title-col
               .list-item-title(
                 @click.stop='handleOpenComponent(props.row.project_hash)'
-                style='display: inline-block; vertical-align: top; word-wrap: break-word; white-space: normal'
               )
                 q-icon(
                   :name='getProjectStatusIcon(props.row.status)',
@@ -49,8 +48,8 @@ div
                 ).q-mr-sm
                 span {{ props.row.title }}
 
-            // Actions - только CreateIssueButton (140px, выравнивание по правому краю)
-            .col-auto.ml-auto(style='width: 140px')
+            // Actions - только CreateIssueButton (выравнивание по правому краю)
+            .col-auto.ml-auto.component-row__actions
               .row.items-center.justify-end.q-gutter-xs
                 CreateIssueButton(
                   @click.stop,
@@ -67,12 +66,9 @@ div
         :key='`e_${props.row.project_hash}`'
       )
         q-td(colspan='100%')
-          // Скелетон загрузки
-          div(v-if='loadingComponents[props.row.project_hash]', style='padding: 16px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px')
+          // Скелетон загрузки задач компонента
+          .component-row__skeleton(v-if='loadingComponents[props.row.project_hash]')
+            .skel.skel--num(v-for='i in 4', :key='i')
           // Реальный контент
           slot(v-else, name='component-content', :component='props.row')
 </template>
@@ -200,28 +196,59 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
+// Структурные ширины колонок строки компонента (общая сетка со строкой
+// проекта; вложенный уровень — больший левый отступ)
+.component-row {
+  padding-left: var(--p-6);
+  min-height: 48px;
+}
+
+.component-row__toggle {
+  width: 35px;
+  flex-shrink: 0;
+}
+
+.component-row__id {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.component-row__title-col {
+  padding-left: var(--p-2);
+}
+
+.component-row__actions {
+  width: 140px;
+}
+
+.component-row__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  padding: var(--p-4);
+}
+
 .q-table {
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
+    padding: 0; // строка использует внутренние отступы .component-row
   }
 }
 
-.q-chip {
-  font-weight: 500;
-}
-
-// Импорт глобального стиля для подсветки
 :deep(.list-item-title) {
+  display: inline-block;
+  vertical-align: top;
+  word-wrap: break-word;
+  white-space: normal;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 </style>

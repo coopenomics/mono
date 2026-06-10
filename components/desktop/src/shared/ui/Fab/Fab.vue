@@ -11,7 +11,7 @@ q-page-sticky(position="bottom-right" :offset="fabPos")
     :disable="draggingFab"
     v-touch-pan.prevent.mouse="moveFab"
     text-color="white"
-    color="accent"
+    color="primary"
     @mouseenter="onFabEnter"
     @mouseleave="onFabLeave"
     :class="`${fabClass || ''}`"

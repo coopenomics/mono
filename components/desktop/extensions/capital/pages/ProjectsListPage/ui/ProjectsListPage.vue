@@ -1,39 +1,35 @@
 <template lang="pug">
 div
-  q-card(flat)
-    div
-
-      // Виджет списка проектов
-      ProjectsListWidget(
-        :key='projectsListKey',
-        :expanded='expanded',
-        :has-issues-with-statuses='hasIssuesWithStatuses',
-        :has-issues-with-priorities='hasIssuesWithPriorities',
-        :has-issues-with-creators='hasIssuesWithCreators',
-        :master='master',
-        @toggle-expand='handleProjectToggleExpand',
-        @data-loaded='handleProjectsDataLoaded',
-        @open-project='handleOpenProject'
-        @pagination-changed='handlePaginationChanged'
+  // Виджет списка проектов
+  ProjectsListWidget(
+    :key='projectsListKey',
+    :expanded='expanded',
+    :has-issues-with-statuses='hasIssuesWithStatuses',
+    :has-issues-with-priorities='hasIssuesWithPriorities',
+    :has-issues-with-creators='hasIssuesWithCreators',
+    :master='master',
+    @toggle-expand='handleProjectToggleExpand',
+    @data-loaded='handleProjectsDataLoaded',
+    @open-project='handleOpenProject'
+    @pagination-changed='handlePaginationChanged'
+  )
+    template(#project-content='{ project }')
+      ComponentsListWidget(
+        :components='project.components',
+        :expanded='expandedComponents',
+        @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
+        @toggle-component='handleComponentToggle'
       )
-        template(#project-content='{ project }')
-          ComponentsListWidget(
-            :components='project.components',
-            :expanded='expandedComponents',
-            @open-component='(componentHash) => router.push({ name: "component-description", params: { project_hash: componentHash }, query: { _backRoute: "projects-list" } })',
-            @toggle-component='handleComponentToggle'
+        template(#component-content='{ component }')
+          IssuesListWidget(
+            :project-hash='component.project_hash',
+            :statuses='componentStatuses',
+            :priorities='componentPriorities',
+            :creators='componentCreators',
+            :master='componentMaster',
+            :compact='true',
+            @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
           )
-            template(#component-content='{ component }')
-              IssuesListWidget(
-                :project-hash='component.project_hash',
-                :statuses='componentStatuses',
-                :priorities='componentPriorities',
-                :creators='componentCreators',
-                :master='componentMaster',
-                :compact='true',
-                @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
-              )
-
 
   // Floating Action Button для создания проекта
   Fab(v-if='session.isChairman || session.isMember')
@@ -195,8 +191,3 @@ onBeforeUnmount(() => {
 
 </script>
 
-<style lang="scss" scoped>
-.q-chip {
-  font-weight: 500;
-}
-</style>

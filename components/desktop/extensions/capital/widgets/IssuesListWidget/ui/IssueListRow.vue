@@ -26,13 +26,11 @@
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
     span.title-text {{ issue.title }}
-    q-chip.label-chip(
+    BaseChip.label-chip(
       v-for='tag in tags'
       :key='tag'
-      dense
+      variant='neutral'
       size='sm'
-      color='grey-4'
-      text-color='dark'
     ) {{ tag }}
 
   // 3. Действия: компактный chip статуса + аватарки исполнителей.
@@ -52,6 +50,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { EntityIdBadge } from 'src/shared/ui';
+import { BaseChip } from 'src/shared/ui/base';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
@@ -87,9 +86,9 @@ const canChangeEstimate = computed(
   // мигрирует на вторую строку, не клипается за правый край.
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: var(--p-2) var(--p-3);
   min-height: 48px;
-  padding: 6px 12px;
+  padding: var(--p-2) var(--p-3);
   width: 100%;
   box-sizing: border-box;
 }
@@ -100,7 +99,7 @@ const canChangeEstimate = computed(
   flex-direction: row;
   align-items: center;
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--p-2);
 }
 
 .priority-icon {
@@ -117,14 +116,14 @@ const canChangeEstimate = computed(
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--p-1);
   cursor: pointer;
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--p-fs-body);
   transition: color 0.15s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 
@@ -137,8 +136,6 @@ const canChangeEstimate = computed(
 }
 
 .label-chip {
-  font-size: 0.7rem;
-  font-weight: 500;
   max-width: 140px;
 
   :deep(.q-chip__content) {
@@ -152,7 +149,7 @@ const canChangeEstimate = computed(
 .actions-block {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--p-2);
   flex-shrink: 0;
   margin-left: auto;
 }
