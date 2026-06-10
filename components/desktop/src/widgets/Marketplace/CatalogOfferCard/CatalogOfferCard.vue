@@ -37,12 +37,16 @@
 
       <div class="mp-catalog-offer-card__meta">
         <span class="mp-catalog-offer-card__price" v-if="offer.unitCost != null">
-          {{ formatPrice(offer.unitCost) }}
+          {{ formatPrice(unitCostWithFee) }}
           <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
         </span>
         <span class="mp-catalog-offer-card__stock" :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }">
           {{ stockLabel }}
         </span>
+      </div>
+
+      <div v-if="hasFee" class="mp-catalog-offer-card__fee-note">
+        Цена с членским взносом {{ feeLabel }}
       </div>
 
       <div v-if="shortDescription" class="mp-catalog-offer-card__desc">
@@ -90,6 +94,10 @@ const props = defineProps({
   // На экранах, где по карточке ничего не открывается (модерация — решение
   // принимается прямо в ней), передаём false.
   clickable: { type: Boolean, default: true },
+  // Единая ставка членского взноса кооператива, проценты (requirement b6).
+  // Если задана и > 0 — карточка показывает цену с учётом взноса (взнос
+  // входит в общую стоимость заказа) и поясняющую подпись.
+  feePercent: { type: Number, default: 0 },
 })
 
 const emit = defineEmits<{
@@ -148,6 +156,22 @@ const cardClasses = computed(() => ({
   'mp-card--interactive': props.clickable,
   [`mp-catalog-offer-card--${status.value}`]: !!status.value,
 }))
+
+const hasFee = computed(() => (props.feePercent ?? 0) > 0 && props.offer.unitCost != null)
+
+const unitCostWithFee = computed<number | string>(() => {
+  const base = props.offer.unitCost
+  if (base == null) return ''
+  if (!hasFee.value) return base
+  const n = typeof base === 'number' ? base : Number(base)
+  if (Number.isNaN(n)) return base
+  return n * (1 + props.feePercent / 100)
+})
+
+const feeLabel = computed(() => {
+  const p = props.feePercent
+  return (Number.isInteger(p) ? String(p) : p.toFixed(2).replace(/\.?0+$/, '')) + ' %'
+})
 
 function formatPrice(v: number | string) {
   const n = typeof v === 'number' ? v : Number(v)
@@ -243,6 +267,11 @@ function onClick() {
     align-items: baseline;
     gap: var(--mp-space-md);
     margin-top: 2px;
+  }
+
+  &__fee-note {
+    font-size: 12px;
+    color: var(--p-ink-3);
   }
 
   &__price {
