@@ -1,4 +1,4 @@
-import { createPrivateKey, type KeyObject } from 'node:crypto';
+import { createPrivateKey, randomUUID, type KeyObject } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { SignJWT } from 'jose';
 import config from '~/config/config';
@@ -68,6 +68,7 @@ export class CertificateService {
       .setProtectedHeader({ alg: 'ES256K', typ: 'JWT', kid: vostokKey })
       .setIssuer(`https://${coopname}.coop`)
       .setSubject(user.id)
+      .setJti(randomUUID()) // серийный номер удостоверения (ЛК показывает его, Story 1.9)
       .setIssuedAt()
       .setExpirationTime(CERTIFICATE_TTL)
       .sign(this.getSigningKey());

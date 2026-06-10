@@ -2,7 +2,7 @@
  * OIDC-слой: вход через authentik (password + timestamp-signature),
  * magic-link, recovery и работа с токенами (oidc-client-ts).
  */
-import { notImplemented } from '../errors'
+import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
 
 export interface LoginParams {
   /** Issuer кооператива, например `https://coop.example/application/o/coopid/` */
@@ -38,9 +38,25 @@ export async function getAccessToken(): Promise<string> {
   notImplemented('getAccessToken')
 }
 
-/** Актуальное participant_certificate текущей сессии. Story 1.8. */
-export async function getParticipantCertificate(): Promise<string> {
-  notImplemented('getParticipantCertificate')
+/**
+ * Актуальное participant_certificate текущей сессии — compact JWS из
+ * `GET /coop/certificate` (Story 1.8). `accessToken` — платформенный токен входа
+ * (Bearer). Декодирование claims — `decodeParticipantCertificate` (certificate/).
+ */
+export async function getParticipantCertificate(apiUrl: string, accessToken: string): Promise<string> {
+  let res: Response
+  try {
+    res = await fetch(`${apiUrl.replace(/\/$/, '')}/coop/certificate`, {
+      headers: { authorization: `Bearer ${accessToken}` },
+    })
+  }
+  catch (e) {
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при запросе удостоверения: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  if (!res.ok)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Не удалось получить удостоверение (HTTP ${res.status})`)
+  const body = (await res.json()) as { participant_certificate: string }
+  return body.participant_certificate
 }
 
 /** RP-initiated logout: revoke refresh_token, очистка сессии и keystore. Story 1.10. */

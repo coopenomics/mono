@@ -60,6 +60,7 @@ describe('CertificateService.issueForUsername', () => {
     const { payload } = await jwtVerify(jws, pubKey, { algorithms: ['ES256K'] });
     expect(payload.iss).toBe(`https://${COOPNAME}.coop`);
     expect(payload.sub).toBe('uuid-participant-1');
+    expect(payload.jti).toMatch(/^[0-9a-f-]{36}$/); // серийный номер (UUID)
     expect(payload.coopname).toBe(COOPNAME);
     expect(payload.iat).toBeDefined();
     expect(payload.exp).toBeGreaterThan(payload.iat as number);
