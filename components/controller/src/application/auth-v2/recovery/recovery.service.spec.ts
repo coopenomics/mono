@@ -13,14 +13,17 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
     const notifications = { notify: jest.fn().mockResolvedValue({ acknowledged: true, outboxIds: ['o1'] }) };
     const users = { findUserByEmail: jest.fn() };
     const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), consume: jest.fn() };
+    // По умолчанию email-канал активен (Story 3.5 гейтинг); тест отключения — отдельно.
+    const strategy = { isChannelActive: jest.fn().mockResolvedValue(true) };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const service = new RecoveryService(
       notifications as never,
       users as never,
       tokenStore as never,
+      strategy as never,
       audit as never,
     );
-    return { service, notifications, users, tokenStore, audit };
+    return { service, notifications, users, tokenStore, strategy, audit };
   }
 
   const verifiedUser = {
@@ -90,6 +93,17 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
   it('нет subscriber_id: письмо не шлётся (адрес Центра не настроен)', async () => {
     const { service, notifications, tokenStore, users } = setup();
     users.findUserByEmail.mockResolvedValueOnce({ ...verifiedUser, subscriber_id: '' });
+
+    await service.requestByEmail('ant@coop.test', null);
+
+    expect(tokenStore.issue).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('стратегия отключила email-канал (Story 3.5): письмо не шлётся, исход константен', async () => {
+    const { service, notifications, users, tokenStore, strategy } = setup();
+    users.findUserByEmail.mockResolvedValueOnce(verifiedUser);
+    strategy.isChannelActive.mockResolvedValueOnce(false);
 
     await service.requestByEmail('ant@coop.test', null);
 

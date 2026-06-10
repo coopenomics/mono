@@ -16,9 +16,11 @@ function setup() {
   };
   const users = { findUserById: jest.fn() };
   const tokenStore = { issue: jest.fn().mockResolvedValue(undefined), peek: jest.fn(), consume: jest.fn() };
+  // По умолчанию offline-канал активен (Story 3.5 гейтинг); тест отключения — отдельно.
+  const strategy = { isChannelActive: jest.fn().mockResolvedValue(true) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const service = new OfflineRecoveryService(codes as never, users as never, tokenStore as never, audit as never);
-  return { service, codes, users, tokenStore, audit };
+  const service = new OfflineRecoveryService(codes as never, users as never, tokenStore as never, strategy as never, audit as never);
+  return { service, codes, users, tokenStore, strategy, audit };
 }
 
 describe('OfflineRecoveryService (Story 3.4 — offline-код)', () => {
@@ -70,6 +72,18 @@ describe('OfflineRecoveryService (Story 3.4 — offline-код)', () => {
     users.findUserById.mockResolvedValueOnce(USER);
     await service.requestByOfflineCode('1234567890123456', null);
     expect(audit.record.mock.calls[0][0].context).toEqual({ strategy: 'offline_code' });
+  });
+
+  it('стратегия отключила offline-канал (Story 3.5): InvalidOfflineCode, код не потреблён', async () => {
+    const { service, codes, users, tokenStore, strategy } = setup();
+    codes.findSubjectByCodeHash.mockResolvedValueOnce('u1');
+    users.findUserById.mockResolvedValueOnce(USER);
+    strategy.isChannelActive.mockResolvedValueOnce(false);
+    await expect(service.requestByOfflineCode('1234567890123456', null)).rejects.toMatchObject({
+      code: AuthV2ErrorCode.InvalidOfflineCode,
+    });
+    expect(tokenStore.issue).not.toHaveBeenCalled();
+    expect(codes.consume).not.toHaveBeenCalled();
   });
 
   it('setForSubject: сохраняет keyed-hash кода (сейм on-boarding)', async () => {

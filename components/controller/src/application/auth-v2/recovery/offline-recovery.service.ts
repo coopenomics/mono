@@ -8,7 +8,9 @@ import { RECOVERY_TOKEN_STORE } from '~/domain/auth-v2/ports/recovery-token-stor
 import type { IRecoveryTokenStore } from '~/domain/auth-v2/ports/recovery-token-store.port';
 import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
+import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { AuditService } from '../audit/audit.service';
+import { RecoveryStrategyService } from './recovery-strategy.service';
 
 /** TTL recovery-токена — как у magic-link (Story 3.1): 5 минут. */
 const RECOVERY_TOKEN_TTL_SEC = 5 * 60;
@@ -29,6 +31,7 @@ export class OfflineRecoveryService {
     @Inject(OFFLINE_RECOVERY_CODE_REPOSITORY) private readonly codes: IOfflineRecoveryCodeRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     @Inject(RECOVERY_TOKEN_STORE) private readonly tokenStore: IRecoveryTokenStore,
+    private readonly strategy: RecoveryStrategyService,
     private readonly audit: AuditService,
   ) {}
 
@@ -45,6 +48,12 @@ export class OfflineRecoveryService {
     // Защитно: код есть, но пайщик пропал — трактуем как неверный код.
     const user = await this.users.findUserById(subjectId);
     if (!user) throw this.invalidCode();
+
+    // Гейтинг стратегии (Story 3.5): offline-канал работает только если он выбран.
+    // Не раскрываем стратегию наружу — тот же InvalidOfflineCode; код не потребляем.
+    if (!(await this.strategy.isChannelActive(subjectId, RecoveryStrategy.OfflineCode))) {
+      throw this.invalidCode();
+    }
 
     const token = randomUUID();
     await this.tokenStore.issue(

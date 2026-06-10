@@ -9,7 +9,9 @@ import type { UserDomainService } from '~/domain/user/services/user-domain.servi
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { RECOVERY_TOKEN_STORE } from '~/domain/auth-v2/ports/recovery-token-store.port';
 import type { IRecoveryTokenStore } from '~/domain/auth-v2/ports/recovery-token-store.port';
+import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { AuditService } from '../audit/audit.service';
+import { RecoveryStrategyService } from './recovery-strategy.service';
 
 /** TTL recovery-токена (Story 3.1 AC): magic-link живёт 5 минут. */
 const RECOVERY_TOKEN_TTL_SEC = 5 * 60;
@@ -30,6 +32,7 @@ export class RecoveryService {
     @Inject(NOTIFICATION_PORT) private readonly notifications: NotificationPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     @Inject(RECOVERY_TOKEN_STORE) private readonly tokenStore: IRecoveryTokenStore,
+    private readonly strategy: RecoveryStrategyService,
     private readonly audit: AuditService,
   ) {}
 
@@ -46,6 +49,13 @@ export class RecoveryService {
     // нет subscriber_id (адрес Центра уведомлений ещё не настроен).
     if (!user || !user.is_email_verified || !user.subscriber_id) {
       this.logger.debug('recovery: запрос по неизвестному/неподтверждённому email — тихий выход');
+      return;
+    }
+
+    // Гейтинг стратегии (Story 3.5): email-канал работает только если он выбран.
+    // Исход остаётся константным (void) — стратегия наружу не раскрывается.
+    if (!(await this.strategy.isChannelActive(user.id, RecoveryStrategy.EmailMagicLink))) {
+      this.logger.debug('recovery: email-канал отключён стратегией пайщика — тихий выход');
       return;
     }
 

@@ -20,6 +20,8 @@ import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
 import { RecoveryService } from './recovery/recovery.service';
 import { RecoveryConfirmService } from './recovery/recovery-confirm.service';
 import { OfflineRecoveryService } from './recovery/offline-recovery.service';
+import { RecoveryStrategyService } from './recovery/recovery-strategy.service';
+import { RecoveryStrategyController } from './recovery/recovery-strategy.controller';
 import { RecoveryFinalizationPlaceholder } from './recovery/recovery-finalization.placeholder';
 import { RecoveryController } from './recovery/recovery.controller';
 import { TwoFactorService } from './two-factor/two-factor.service';
@@ -33,9 +35,9 @@ import { TwoFactorController } from './two-factor/two-factor.controller';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, TwoFactorController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController],
   providers: [
-    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, TwoFactorService,
+    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (ротация ключа) — сейм Story 3.3: пока placeholder (503).

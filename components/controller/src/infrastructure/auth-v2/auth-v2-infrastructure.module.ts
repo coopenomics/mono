@@ -4,6 +4,7 @@ import { RATE_LIMIT_STORAGE } from '~/domain/auth-v2/ports/rate-limit-storage.po
 import { RECOVERY_TOKEN_STORE } from '~/domain/auth-v2/ports/recovery-token-store.port';
 import { TWO_FACTOR_REPOSITORY } from '~/domain/auth-v2/ports/two-factor.port';
 import { OFFLINE_RECOVERY_CODE_REPOSITORY } from '~/domain/auth-v2/ports/offline-recovery-code.port';
+import { RECOVERY_STRATEGY_REPOSITORY } from '~/domain/auth-v2/ports/recovery-strategy.port';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
@@ -12,8 +13,9 @@ import { RedisThrottlerStorage } from './redis-throttler.storage';
 import { RedisRecoveryTokenStore } from './redis-recovery-token.store';
 import { PostgresTwoFactorRepository } from './postgres-two-factor.repository';
 import { PostgresOfflineRecoveryCodeRepository } from './postgres-offline-recovery-code.repository';
+import { PostgresRecoveryStrategyRepository } from './postgres-recovery-strategy.repository';
 
-/** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код. */
+/** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код + recovery-стратегия. */
 @Module({
   imports: [RedisModule],
   providers: [
@@ -23,7 +25,8 @@ import { PostgresOfflineRecoveryCodeRepository } from './postgres-offline-recove
     { provide: RECOVERY_TOKEN_STORE, useClass: RedisRecoveryTokenStore },
     { provide: TWO_FACTOR_REPOSITORY, useClass: PostgresTwoFactorRepository },
     { provide: OFFLINE_RECOVERY_CODE_REPOSITORY, useClass: PostgresOfflineRecoveryCodeRepository },
+    { provide: RECOVERY_STRATEGY_REPOSITORY, useClass: PostgresRecoveryStrategyRepository },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY],
 })
 export class AuthV2InfrastructureModule {}
