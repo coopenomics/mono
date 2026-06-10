@@ -19,7 +19,7 @@ export type { StorageAdapter } from './wallet'
 export { clearPinProtected, fetchVaultBlob, getWallet, isWalletUnlocked, lockWallet, rotateKey, unlockWallet, unlockWithPin, Wallet } from './wallet'
 
 export type { SignedDocument, TimestampSignature } from './signing'
-export { signDocument, signTimestamp } from './signing'
+export { canonicalTimestampMessage, signDocument, signTimestamp } from './signing'
 
 export type { VerifyOfflineResult } from './chain'
 export { readCertPublicKey, verifyOffline } from './chain'

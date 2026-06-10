@@ -18,8 +18,9 @@ const PUBLIC_API = [
 ] as const
 
 // Методы, ещё не реализованные (бросают not_implemented). По мере реализации
-// историй метод уходит отсюда: getWallet/unlockWallet — Story 2.2 (реализованы).
-const STILL_STUBBED = PUBLIC_API.filter(m => m !== 'getWallet')
+// историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4 (реализованы).
+const IMPLEMENTED = new Set(['getWallet', 'signTimestamp'])
+const STILL_STUBBED = PUBLIC_API.filter(m => !IMPLEMENTED.has(m))
 
 describe('@coopenomics/auth — скелет SDK', () => {
   it('экспортирует всю публичную поверхность', () => {

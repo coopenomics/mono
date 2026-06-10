@@ -16,6 +16,7 @@ export enum AuthV2ErrorCode {
   CooposDegraded = 'coopos_degraded',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
+  ClientWalletMismatch = 'client_wallet_mismatch',
 }
 
 /**
