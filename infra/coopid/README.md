@@ -106,6 +106,41 @@ docker compose exec postgres psql -U coop_app_user -d authentik_db -c 'select 1'
 Учётка администратора authentik: `akadmin`, пароль — в
 `infra/coopid/secrets/authentik_bootstrap_password`.
 
+## Бэкапы (Story 9.8)
+
+Ежедневный `pg_basebackup` всего PG-кластера (обе БД сразу) → один gzip-tar → S3
+`s3://{bucket}/{coopname}/{YYYY-MM-DD}.tar.gz` с SSE-S3. Retention 30 дней — через
+S3 lifecycle rule (не ручным удалением). На каждый прогон — строка `audit_events`
+(`coopid.backup.created`: `s3_key`, `size_bytes`, `duration_seconds`).
+
+Скрипт: `infra/coopid/scripts/coopid-backup.sh`. Env:
+
+```bash
+export COOPNAME=voskhod                       # имя кооператива (обязательно)
+export AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...
+export S3_BUCKET=coopid-backups               # дефолт
+export S3_ENDPOINT=                           # пусто = реальный AWS S3; для MinIO: http://minio:9000
+export RETENTION_DAYS=30                       # дефолт
+export PG_CONTAINER=coop-postgres             # имя контейнера postgres
+```
+
+Один раз при деплое — создать bucket и поставить lifecycle:
+
+```bash
+COOPNAME=voskhod ./infra/coopid/scripts/coopid-backup.sh --setup
+```
+
+Cron (ставит прод-плейбук `~/playbooks`; локально — в crontab хоста), 03:00 UTC daily:
+
+```cron
+0 3 * * *  cd /path/to/mono && COOPNAME=voskhod AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+           ./infra/coopid/scripts/coopid-backup.sh >> /var/log/coopid-backup.log 2>&1
+```
+
+`--dry-run` печатает команды без выполнения. Восстановление — runbook
+`docs/operations/disaster-recovery.md` (Story 9.9). Требования к PG: `wal_level>=replica`
+(дефолт) и replication-доступ суперпользователя по локальному сокету контейнера.
+
 ## Troubleshooting
 
 - **Init-скрипт postgres выполняется только при пустом data dir.** На живом томе
