@@ -3,3 +3,12 @@ export * as CreateBranch from './createBranch'
 export * as DeleteBranch from './deleteBranch'
 export * as DeleteTrusted from './deleteTrusted'
 export * as EditBranch from './editBranch'
+
+// ── Экономика кооперативного участка (requirement b6) ────────────────────
+export * as SetWeight from './setWeight'
+export * as DelWeight from './delWeight'
+export * as Distribute from './distribute'
+export * as Convert from './convert'
+export * as CreateAid from './createAid'
+export * as AidConfirm from './aidConfirm'
+export * as AidDecline from './aidDecline'

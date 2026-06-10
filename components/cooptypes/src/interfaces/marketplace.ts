@@ -72,6 +72,27 @@ export interface IMarkdown {
   amount: IAsset
 }
 
+export interface ISetFee {
+  coopname: IName
+  membership_fee_percent: IUint64
+}
+
+export interface ISetSplit {
+  coopname: IName
+  initiator: IName
+  braname: IName
+  personal_percent: IUint64
+}
+
+export interface IMktConfig {
+  membership_fee_percent: IUint64
+}
+
+export interface IBranchSplit {
+  braname: IName
+  personal_percent: IUint64
+}
+
 export interface ICancelOrder {
   coopname: IName
   orderer: IName
@@ -265,6 +286,8 @@ export interface IOrder {
   return_request_id: IUint64
   /** Списанная уценка по заказу из остатка (binary_extension; у старых строк отсутствует). */
   markdown_cost?: IAsset
+  /** Членский взнос по заказу (requirement b6; binary_extension; у старых строк отсутствует). */
+  membership_fee?: IAsset
 }
 
 export interface IReturnRequest {

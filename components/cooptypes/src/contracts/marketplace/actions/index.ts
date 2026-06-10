@@ -89,6 +89,18 @@ export * as SignIss1 from './signIss1'
  */
 export * as SignIss2 from './signIss2'
 
+/**
+ * Единая ставка членского взноса кооператива (requirement b6, «Экономика КУ»).
+ * Задаёт администратор; новые заказы блокируют взнос операцией o.mkt.fee.
+ */
+export * as SetFee from './setFee'
+
+/**
+ * Отсечка персонального распределения членского взноса КУ (requirement b6).
+ * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
+ */
+export * as SetSplit from './setSplit'
+
 // ── p.mkt.return (5 actions) — Stories Эпика 7 ─────────────────────────
 
 /**
