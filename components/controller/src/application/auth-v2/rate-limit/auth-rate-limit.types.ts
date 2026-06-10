@@ -1,4 +1,5 @@
 import type { Request } from 'express';
+import type { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 
 /** Окна (мс): см. Story 9.1 AC / NFR10. */
 export const RATE_LIMIT_WINDOW_15M = 15 * 60 * 1000;
@@ -23,6 +24,12 @@ export type AccountKeyExtractor = (req: Request) => string | null | undefined;
 export interface AuthRateLimitConfig {
   ip: RateLimitRule;
   account?: RateLimitRule & { key: AccountKeyExtractor };
+  /**
+   * Кастомный код/сообщение ошибки при превышении (OAuth2-формат). Если не задан —
+   * guard бросает дефолтный `TooManyAttempts`. Recovery-эндпоинт (Story 3.1) задаёт
+   * `TooManyRecoveryAttempts` — AC различает его и общий лимит контура входа.
+   */
+  error?: { code: AuthV2ErrorCode; message: string };
 }
 
 /** Ключ метаданных, под которым `@AuthRateLimit` кладёт конфиг для guard'а. */

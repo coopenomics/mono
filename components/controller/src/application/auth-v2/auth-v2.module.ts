@@ -15,6 +15,8 @@ import { CertificateController } from './certificate/certificate.controller';
 import { LogoutService } from './logout/logout.service';
 import { LogoutController } from './logout/logout.controller';
 import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
+import { RecoveryService } from './recovery/recovery.service';
+import { RecoveryController } from './recovery/recovery.controller';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -24,8 +26,8 @@ import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController],
-  providers: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController],
+  providers: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService],
   exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService],
 })
 export class AuthV2Module {}

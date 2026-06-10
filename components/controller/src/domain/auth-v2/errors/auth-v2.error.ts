@@ -9,6 +9,7 @@ export enum AuthV2ErrorCode {
   ChainVerificationFailed = 'chain_verification_failed',
   CooposDegraded = 'coopos_degraded',
   TooManyAttempts = 'too_many_attempts',
+  TooManyRecoveryAttempts = 'too_many_recovery_attempts',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */

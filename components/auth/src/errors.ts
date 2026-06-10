@@ -15,6 +15,7 @@ export enum AuthV2ErrorCode {
   ChainVerificationFailed = 'chain_verification_failed',
   CooposDegraded = 'coopos_degraded',
   TooManyAttempts = 'too_many_attempts',
+  TooManyRecoveryAttempts = 'too_many_recovery_attempts',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -141,6 +142,11 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     message: 'Слишком много попыток. Подождите немного и попробуйте снова.',
     action: 'retry',
     // временный троттлинг — не разлогиниваем пайщика, просто просим подождать.
+    keepSession: true,
+  },
+  [AuthV2ErrorCode.TooManyRecoveryAttempts]: {
+    message: 'Слишком много запросов на восстановление. Подождите и попробуйте позже.',
+    action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.NetworkError]: {

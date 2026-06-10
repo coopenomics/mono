@@ -52,9 +52,10 @@ export class AuthRateLimitGuard implements CanActivate {
     }
 
     if (exceeded) {
+      // Кастомный код эндпоинта (напр. recovery → TooManyRecoveryAttempts) либо дефолт.
       throw new AuthV2Error(
-        AuthV2ErrorCode.TooManyAttempts,
-        'Слишком много попыток. Подождите и повторите позже.',
+        config.error?.code ?? AuthV2ErrorCode.TooManyAttempts,
+        config.error?.message ?? 'Слишком много попыток. Подождите и повторите позже.',
       );
     }
     return true;

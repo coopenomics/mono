@@ -90,4 +90,18 @@ describe('AuthRateLimitGuard (Story 9.1)', () => {
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
     expect(increment).toHaveBeenCalledWith('unknown', LOGIN_IP_RULE.ttl, LOGIN_IP_RULE.limit, LOGIN_IP_RULE.ttl, 'ip');
   });
+
+  it('кастомный error-код в конфиге (Story 3.1) → бросается он, не дефолт', async () => {
+    const increment = jest.fn().mockResolvedValue(record(LOGIN_IP_RULE.limit + 1));
+    const cfg: AuthRateLimitConfig = {
+      ip: LOGIN_IP_RULE,
+      error: { code: AuthV2ErrorCode.TooManyRecoveryAttempts, message: 'recovery limit' },
+    };
+    const { guard } = makeGuard(cfg, increment);
+    const ctx = makeContext(cfg, { ip: '1.2.3.4' });
+    await expect(guard.canActivate(ctx)).rejects.toMatchObject({
+      code: AuthV2ErrorCode.TooManyRecoveryAttempts,
+      message: 'recovery limit',
+    });
+  });
 });
