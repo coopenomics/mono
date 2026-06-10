@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
@@ -11,9 +10,8 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchChairmanSignablePayloads,
-  signAsChairman,
+  signReceptionGroupAsChairman,
   type MarketplaceAplReceptionView,
-  type SignedDocumentInput,
 } from '../api';
 
 /**
@@ -21,10 +19,9 @@ import {
  *
  * Председатель видит и подписывает доставку целиком — все акты приёмки одного
  * поставщика на этом КУ с одним способом доставки. Под капотом по каждому акту
- * отдельная транзакция (блокчейн не проведёт всё одной tx): цикл по receptions
- * группы, по каждому — закрывающая подпись поверх подписи поставщика тем же
- * ключом активной сессии (документ не перегенерируется). Прогресс показываем
- * пользователю; после закрытия всех актов партии приняты в кооператив.
+ * отдельная транзакция (блокчейн не проведёт всё одной tx); крипто-флоу вынесен
+ * в api (signReceptionGroupAsChairman), акты подписываются параллельно. Прогресс
+ * показываем пользователю; после закрытия всех актов партии приняты в кооператив.
  */
 
 const props = defineProps<{
@@ -97,37 +94,24 @@ async function confirm(): Promise<void> {
 
   signing.value = true;
   done.value = 0;
-  const signer = new Classes.Document(wif);
-  let failed = 0;
   try {
-    // По каждому акту группы — отдельная закрывающая подпись и отдельная
-    // транзакция. Идём последовательно: ошибка по одному не теряет уже
-    // подписанные, остальные продолжаем.
-    for (const r of props.group.receptions) {
-      try {
-        const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: r.id });
-        if (aggregates.length === 0) {
-          throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
-        }
-        const signed_documents: SignedDocumentInput[] = [];
-        for (const aggregate of aggregates) {
-          const signed = await signer.signDocument(
-            aggregate.rawDocument,
-            globalStore.username,
-            2,
-            [aggregate.document],
-          );
-          signed_documents.push(signed);
-        }
-        await signAsChairman({ apl_reception_id: r.id, signed_documents });
-        done.value += 1;
-      } catch (e) {
-        failed += 1;
-        FailAlert(e, `Не удалось закрыть один из актов поставки (${r.id.slice(0, 8)})`);
-      }
+    // Крипто-флоу закрывающей подписи вынесен в api (signReceptionGroupAsChairman) —
+    // зеркало поставщика: акты подписываются параллельно, ошибка по одному не
+    // теряет уже подписанные. Прогресс прокидываем в счётчик кнопки.
+    const { errors } = await signReceptionGroupAsChairman(
+      props.group.receptions,
+      wif,
+      globalStore.username,
+      (d) => {
+        done.value = d;
+      },
+    );
+
+    for (const { receptionId, error } of errors) {
+      FailAlert(error, `Не удалось закрыть один из актов поставки (${receptionId.slice(0, 8)})`);
     }
 
-    if (failed === 0) {
+    if (errors.length === 0) {
       SuccessAlert(
         done.value > 1
           ? `Поставка принята в кооператив: подписано актов — ${done.value}.`
@@ -136,12 +120,12 @@ async function confirm(): Promise<void> {
     } else {
       FailAlert(
         new Error(
-          `Подписано ${done.value} из ${deliveriesCount.value}; по ${failed} осталась ошибка — повторите.`,
+          `Подписано ${done.value} из ${deliveriesCount.value}; по ${errors.length} осталась ошибка — повторите.`,
         ),
       );
     }
     emit('signed');
-    if (failed === 0) emit('update:modelValue', false);
+    if (errors.length === 0) emit('update:modelValue', false);
   } finally {
     signing.value = false;
   }
