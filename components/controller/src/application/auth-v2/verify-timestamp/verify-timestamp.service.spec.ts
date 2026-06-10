@@ -61,6 +61,7 @@ function makeService(overrides: {
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const certificate = { issueForUsername: jest.fn().mockResolvedValue('cert-jws') };
+  const deviceTracking = { recordLogin: jest.fn().mockResolvedValue({ isNewDevice: false, fingerprint: 'fp' }) };
   const service = new VerifyTimestampService(
     redis as any,
     blockchain as any,
@@ -68,8 +69,9 @@ function makeService(overrides: {
     tokens as any,
     audit as any,
     certificate as any,
+    deviceTracking as any,
   );
-  return { service, redis, blockchain, user, tokens, audit, certificate };
+  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking };
 }
 
 beforeEach(() => {
@@ -100,6 +102,40 @@ describe('VerifyTimestampService.verify', () => {
     expect(redis.consumeSingleUse).toHaveBeenCalledWith('coopid:binding:jti-1');
     expect(tokens.generateAuthTokens).toHaveBeenCalledWith('user-uuid-1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ result: 'success' }));
+  });
+
+  it('успех → device tracking вызван с subjectId/ip/UA (Story 3.8)', async () => {
+    const { service, deviceTracking } = makeService({ hasActiveKey: true });
+    const token = await makeToken(ACCOUNT, 'jti-dev');
+    const signature = signCanonical(TS, 'jti-dev', ACCOUNT);
+
+    await service.verify({
+      signature,
+      timestamp: TS,
+      bindingToken: token,
+      ip: '1.2.3.4',
+      userAgent: 'UA/1',
+      acceptLanguage: 'ru',
+    });
+
+    expect(deviceTracking.recordLogin).toHaveBeenCalledWith({
+      subjectId: 'user-uuid-1',
+      username: ACCOUNT,
+      ip: '1.2.3.4',
+      userAgent: 'UA/1',
+      acceptLanguage: 'ru',
+    });
+  });
+
+  it('сбой device tracking best-effort: вход всё равно завершается токенами', async () => {
+    const { service, deviceTracking } = makeService({ hasActiveKey: true });
+    deviceTracking.recordLogin.mockRejectedValue(new Error('redis down'));
+    const token = await makeToken(ACCOUNT, 'jti-devfail');
+    const signature = signCanonical(TS, 'jti-devfail', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
   });
 
   it('сбой выпуска сертификата best-effort: токены выдаются без participant_certificate', async () => {

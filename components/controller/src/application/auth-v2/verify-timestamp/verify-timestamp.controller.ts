@@ -58,6 +58,8 @@ export class VerifyTimestampController {
       timestamp,
       bindingToken,
       ip: req.ip ?? null,
+      userAgent: req.headers['user-agent'] ?? null,
+      acceptLanguage: req.headers['accept-language'] ?? null,
     });
   }
 

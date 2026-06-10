@@ -11,6 +11,7 @@ import { TokenApplicationService } from '~/application/token/services/token-appl
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
 import { CertificateService } from '../certificate/certificate.service';
+import { DeviceTrackingService } from '../device-tracking/device-tracking.service';
 
 /** Окно свежести метки времени против head_block_time, сек (epic AC Story 1.7). */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -22,6 +23,8 @@ export interface VerifyTimestampInput {
   timestamp: string;
   bindingToken: string;
   ip?: string | null;
+  userAgent?: string | null;
+  acceptLanguage?: string | null;
 }
 
 export interface VerifyTimestampResult {
@@ -61,6 +64,7 @@ export class VerifyTimestampService {
     private readonly tokens: TokenApplicationService,
     private readonly audit: AuditService,
     private readonly certificate: CertificateService,
+    private readonly deviceTracking: DeviceTrackingService,
   ) {}
 
   async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
@@ -135,6 +139,19 @@ export class VerifyTimestampService {
     }
 
     await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, actor: sub, result: 'success', ip: input.ip });
+
+    // Device tracking (Story 3.8) — best-effort: сбой не валит выданный вход.
+    try {
+      await this.deviceTracking.recordLogin({
+        subjectId: user.id,
+        username: sub,
+        ip: input.ip ?? null,
+        userAgent: input.userAgent ?? null,
+        acceptLanguage: input.acceptLanguage ?? null,
+      });
+    } catch (e) {
+      this.logger.warn(`device tracking не записан на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
+    }
 
     return { access_token: pair.access.token, refresh_token: pair.refresh.token, participant_certificate };
   }
