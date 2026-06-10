@@ -1,66 +1,35 @@
 <template lang="pug">
+//- Профиль участника Благороста: шапка-удостоверение, кошельки программ,
+//- редактируемые параметры участия и взносы по ролям
+.capital-profile(v-if='contributorStore.self')
+  IdentityPanel(:identity='identity')
+    template(#actions)
+      ContributorGamificationWidget
 
-.profile-container
+  CapitalWalletsCardsWidget
 
-  // Заголовок профиля
-  .profile-header
-    .header-content
-      .avatar-section
+  BaseCard(title='Параметры участия')
+    .capital-profile__fields
+      EditAboutInput(@about-updated='handleFieldUpdated')
+      EditHoursPerDayInput(@hours-updated='handleFieldUpdated')
+      EditRatePerHourInput(@rate-updated='handleFieldUpdated')
 
-        AutoAvatar(:username="username")
+  BaseCard(title='Взносы по ролям')
+    DataRow(label='Общая сумма взносов', :value='totalContributions', mono)
+    DataRow(
+      v-for='role in roleContributions',
+      :key='role.key',
+      :label='role.name',
+      :value='role.value',
+      mono
+    )
 
-      .identity-section
-        .display-name {{ contributorStore?.self?.display_name }}
-      .gamification-section
-
-        ContributorGamificationWidget
-    // Кошельки программ
-    CapitalWalletsCardsWidget(v-if="contributorStore?.self")
-
-    .about-section
-      EditAboutInput(color='teal' :transparent="false" @about-updated="handleFieldUpdated")
-    .work-section
-      .row
-
-        .col-md-12.col-xs-12
-          EditHoursPerDayInput(color="teal" :transparent="false" @hours-updated="handleFieldUpdated")
-        .col-md-12.col-xs-12
-          EditRatePerHourInput(color="teal" :transparent="false" @rate-updated="handleFieldUpdated")
-  // Финансовая информация
-  .financial-section
-    // Загрузка данных
-    template(v-if="!contributorStore?.self")
-      .loading-container
-        q-spinner(color='grey-5' size='1.5em')
-        .loading-label Загрузка данных профиля...
-
-
-    // Данные загружены
-    template(v-else)
-
-
-      ColorCard(color='teal' :transparent="true")
-        // Вклады по ролям
-        .contributions-section
-          // Общая сумма как первый элемент
-          .total-row
-            .total-icon
-              q-icon(name="bar_chart", size="16px", color="grey-7")
-            .total-content
-              .total-name Общая сумма взносов
-              .total-amount {{ totalContributions }}
-
-          // Детализация по ролям
-          .role-row(
-            v-for="role in roleContributions"
-            :key="role.key"
-          ).q-ml-md
-            .role-icon
-              q-icon(:name="role.icon", size="16px", color="grey-7")
-            .role-content
-              .role-name {{ role.name }}
-              .role-value {{ role.value }}
-
+//- Скелетон первичной загрузки (poll обновляет данные молча)
+.capital-profile(v-else)
+  .capital-profile__skel-head
+    .skel.skel--circle.capital-profile__skel-avatar
+    .skel.skel--title.capital-profile__skel-name
+  .skel.capital-profile__skel-card(v-for='i in 3', :key='i')
 </template>
 
 <script lang="ts" setup>
@@ -71,17 +40,28 @@ import { useDataPoller } from 'src/shared/lib/composables';
 import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { useSystemStore } from 'src/entities/System/model';
+import { useHeaderActions } from 'src/shared/hooks/useHeaderActions';
 import { EditAboutInput, EditHoursPerDayInput, EditRatePerHourInput } from 'app/extensions/capital/features/Contributor/EditContributor';
+import { CreateProgramInvestButton } from 'app/extensions/capital/features/ProgramInvest/CreateProgramInvest/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import {ColorCard} from 'src/shared/ui';
-import { AutoAvatar } from 'src/shared/ui/domain/AutoAvatar';
+import { BaseCard } from 'src/shared/ui/base';
+import { IdentityPanel, type Identity } from 'src/shared/ui/domain/IdentityPanel';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { CapitalWalletsCardsWidget } from 'app/extensions/capital/widgets/CapitalWalletsCardsWidget';
+
 const contributorStore = useContributorStore();
 const system = useSystemStore();
 const { username } = useSessionStore();
+const { registerAction } = useHeaderActions();
 
 // Вычисляемые свойства
 const governSymbol = computed(() => system.info?.symbols?.root_govern_symbol || 'GOV');
+
+// Шапка-удостоверение: имя участника + аккаунт
+const identity = computed<Identity>(() => ({
+  fullName: contributorStore.self?.display_name || '',
+  accountName: username,
+}));
 
 // Форматированные вклады по ролям
 const formattedInvestor = computed(() => {
@@ -107,7 +87,6 @@ const formattedCoordinator = computed(() => {
   const value = contributorStore.self?.contributed_as_coordinator || '0';
   return formatAsset2Digits(`${value} ${governSymbol.value}`);
 });
-
 
 const formattedContributor = computed(() => {
   if (!contributorStore.self) return '0.00';
@@ -144,37 +123,27 @@ const roleContributions = computed(() => {
       key: 'author',
       name: 'Соавтор',
       value: formattedAuthor.value,
-      icon: 'lightbulb',
-      color: 'orange'
     },
     {
       key: 'creator',
       name: 'Исполнитель',
       value: formattedCreator.value,
-      icon: 'build',
-      color: 'blue'
     },
     {
       key: 'investor',
       name: 'Инвестор',
       value: formattedInvestor.value,
-      icon: 'account_balance_wallet',
-      color: 'green'
     },
     {
       key: 'coordinator',
       name: 'Координатор',
       value: formattedCoordinator.value,
-      icon: 'campaign',
-      color: 'purple'
     },
     {
       key: 'contributor',
       name: 'Получено в Благорост',
       value: formattedContributor.value,
-      icon: 'local_florist',
-      color: 'purple'
-    }
+    },
   ];
 });
 
@@ -204,9 +173,16 @@ const { start: startProfilePoll, stop: stopProfilePoll } = useDataPoller(
 
 // Проверяем при монтировании
 onMounted(async () => {
+  // Главное действие страницы — в правом верхнем углу топбара
+  registerAction({
+    id: 'capital-profile-invest',
+    component: CreateProgramInvestButton,
+    order: 1,
+  });
+
   // Загружаем данные текущего участника аналогично CapitalBase
   await contributorStore.loadSelf({ username });
-  
+
   // Запускаем poll обновление данных
   startProfilePoll();
 });
@@ -218,211 +194,45 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.profile-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px 20px;
+.capital-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-6, 24px);
+}
 
-  @media (max-width: 768px) {
-    padding: 20px 16px;
+@media (max-width: 768px) {
+  .capital-profile {
+    padding: var(--p-4, 16px);
   }
 }
 
-// Заголовок профиля
-.profile-header {
-  margin-bottom: 32px;
-
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 24px;
-
-    @media (max-width: 768px) {
-      flex-direction: column;
-      gap: 16px;
-      text-align: center;
-      margin-bottom: 16px;
-    }
-  }
-
-  .avatar-section {
-    .avatar-circle {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--q-grey-1, #f5f5f5);
-      border: 1px solid var(--q-grey-3, #e0e0e0);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .q-dark & {
-        background: var(--q-grey-9, #1a1a1a);
-        border-color: var(--q-grey-7, #424242);
-      }
-    }
-  }
-
-  .identity-section {
-    flex: 1;
-
-    .display-name {
-      font-size: 24px;
-      font-weight: 400;
-      letter-spacing: -0.01em;
-      margin-bottom: 4px;
-
-      @media (max-width: 768px) {
-        font-size: 20px;
-      }
-    }
-
-    .identity-label {
-      font-size: 14px;
-      font-weight: 400;
-    }
-  }
-
-  .gamification-section {
-    display: flex;
-    align-items: center;
-  }
-
-  .about-section {
-    margin-top: 16px;
-  }
+// Редактируемые поля внутри карточки «Параметры участия»
+.capital-profile__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
 }
 
-// Финансовая информация
-.financial-section {
-  margin-bottom: 48px;
-
-  .loading-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px 0;
-
-    .loading-label {
-      font-size: 14px;
-      font-weight: 400;
-    }
-  }
-
-  .contributions-section {
-    .total-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 20px 0;
-      border-bottom: 1px solid var(--q-grey-3, #e0e0e0);
-      margin-bottom: 8px;
-
-      .q-dark & {
-        border-color: var(--q-grey-7, #424242);
-      }
-
-      .total-icon {
-        flex-shrink: 0;
-      }
-
-      .total-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex: 1;
-
-        .total-name {
-          font-size: 14px;
-          font-weight: 400;
-
-        }
-
-        .total-amount {
-          font-size: 18px;
-          font-weight: 400;
-
-        }
-      }
-    }
-
-    .role-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--q-grey-2, #e0e0e0);
-
-      .q-dark & {
-        border-color: var(--q-grey-8, #424242);
-      }
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      .role-icon {
-        flex-shrink: 0;
-      }
-
-      .role-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex: 1;
-
-        .role-name {
-          font-size: 14px;
-          font-weight: 400;
-        }
-
-        .role-value {
-          font-size: 16px;
-          font-weight: 400;
-        }
-      }
-    }
-  }
+// Скелетон первичной загрузки
+.capital-profile__skel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
 }
 
-// Разделители
-.section-separator {
-  height: 1px;
-  background: var(--q-grey-2, #e0e0e0);
-  margin: 48px 0;
-
-  .q-dark & {
-    background: var(--q-grey-8, #424242);
-  }
+.capital-profile__skel-avatar {
+  width: var(--p-9);
+  height: var(--p-9);
+  flex-shrink: 0;
 }
 
-// Секции с контентом
-.personal-section,
-.work-section {
-  margin-bottom: 48px;
+.capital-profile__skel-name {
+  width: 40%;
+}
 
-  .section-label {
-    font-size: 18px;
-    font-weight: 400;
-    margin-bottom: 24px;
-
-    @media (max-width: 768px) {
-      font-size: 16px;
-    }
-  }
-
-  .section-input,
-  .work-inputs {
-    .input-group {
-      margin-bottom: 16px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  }
+.capital-profile__skel-card {
+  height: var(--p-10);
+  border-radius: var(--p-r-md);
 }
 </style>
-

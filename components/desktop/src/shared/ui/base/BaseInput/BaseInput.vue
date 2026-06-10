@@ -12,6 +12,7 @@
     :error-message="error"
     :placeholder="placeholder"
     :type="type"
+    :autogrow="autogrow"
     :prefix="prefix"
     :suffix="suffix"
     :readonly="readonly"
