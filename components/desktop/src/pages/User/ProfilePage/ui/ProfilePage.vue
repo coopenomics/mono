@@ -3,6 +3,46 @@
   //- Шапка-удостоверение: ФИО/наименование пайщика + роль в кооперативе.
   IdentityPanel(:identity='identity')
 
+  //- Криптографическое удостоверение пайщика (CoopID): серийник, срок,
+  //- статус, цепочка подписей и собранные подтверждения.
+  BaseCard(title='Удостоверение пайщика')
+    template(v-if='certificate')
+      .cert__head
+        BaseChip(:variant='certStatus.variant') {{ certStatus.label }}
+      DataRow(label='Серийный номер', :value='certificate.jti', copyable, mono)
+      DataRow(label='Действует до', :value='formatExp(certificate.exp)')
+
+      .cert__block
+        .cert__block-label Цепочка подписей
+        .cert__chain
+          template(v-for='(step, i) in chainSteps', :key='i')
+            BaseChip(:variant='step.variant') {{ step.label }}
+            q-icon.cert__chain-arrow(
+              v-if='i < chainSteps.length - 1',
+              name='arrow_forward',
+              size='16px'
+            )
+
+      .cert__block(v-if='verificationLabels.length')
+        .cert__block-label Подтверждения
+        .cert__verifications
+          BaseChip(
+            v-for='(label, i) in verificationLabels',
+            :key='i',
+            variant='info'
+          ) {{ label }}
+
+      .cert__actions
+        BaseButton(variant='secondary', @click='onDownloadQr')
+          template(#icon-left)
+            q-icon(name='qr_code', size='18px')
+          | Скачать как QR
+    EmptyState(
+      v-else,
+      title='Удостоверение недоступно',
+      body='Войдите в кооператив, чтобы получить криптографическое удостоверение пайщика.'
+    )
+
   //- Учётная запись: имя аккаунта и публичный ключ — копируемые,
   //- моноширинные (это технические идентификаторы блокчейн-аккаунта).
   BaseCard(title='Учётная запись')
@@ -117,15 +157,85 @@ import type {
   IIndividualData,
   IOrganizationData,
 } from 'src/shared/lib/types/user/IUserData';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { Notify } from 'quasar';
 import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { IdentityPanel } from 'src/shared/ui/domain/IdentityPanel';
 import type { Identity } from 'src/shared/ui/domain/IdentityPanel';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { BaseCard } from 'src/shared/ui/base/BaseCard';
+import { BaseChip } from 'src/shared/ui/base/BaseChip';
+import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { fetchParticipantCertificate } from '../api';
+import type { ParticipantCertificate } from '../api';
 
 const session = useSessionStore();
+
+// ── Криптографическое удостоверение пайщика (CoopID, Story 1.9) ──
+const certificate = ref<ParticipantCertificate | null>(null);
+
+onMounted(async () => {
+  // Best-effort: отсутствие удостоверения (старый контур входа / сбой) не должно
+  // ломать страницу профиля — карточка просто покажет EmptyState.
+  try {
+    certificate.value = await fetchParticipantCertificate();
+  } catch {
+    certificate.value = null;
+  }
+});
+
+// Статус по сроку действия (зеркало @coopenomics/auth.certificateStatus).
+const EXPIRING_WINDOW_MS = 60 * 60 * 1000;
+const certStatus = computed<{ label: string; variant: BaseChipVariant }>(() => {
+  const exp = (certificate.value?.exp ?? 0) * 1000;
+  const now = Date.now();
+  if (!exp || now >= exp) return { label: 'Истекло', variant: 'neg' };
+  if (exp - now <= EXPIRING_WINDOW_MS) return { label: 'Истекает', variant: 'warn' };
+  return { label: 'Активно', variant: 'pos' };
+});
+
+// Человекочитаемые имена звеньев цепи подписей + сам пайщик в конце.
+const CHAIN_LABELS: Record<string, string> = {
+  ano: 'АНО',
+  voskhod: 'Восход',
+  vostok: 'Восток',
+};
+const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() => {
+  const links = (certificate.value?.coop_chain ?? []).map((l) => ({
+    label: CHAIN_LABELS[l.account] ?? l.account,
+    variant: 'neutral' as BaseChipVariant,
+  }));
+  return [...links, { label: 'Вы', variant: 'accent' as BaseChipVariant }];
+});
+
+// Описания типов верификации (зеркало @coopenomics/auth.verificationTypeLabel).
+const VERIFICATION_LABELS: Record<string, string> = {
+  coop_baseline: 'Базовое подтверждение кооперативом',
+};
+const verificationLabels = computed(() =>
+  (certificate.value?.verification_types ?? []).map((t) => VERIFICATION_LABELS[t] ?? t),
+);
+
+const formatExp = (exp: number): string => {
+  if (!exp) return '';
+  return new Date(exp * 1000).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+// Экспорт в QR — функция Vision (SDK exportToQR пока stub); сообщаем мягко.
+const onDownloadQr = () => {
+  Notify.create({
+    type: 'info',
+    message: 'Экспорт удостоверения в QR станет доступен в составе приложения Vision.',
+  });
+};
 
 const userType = computed(() => {
   return session.privateAccount?.type;
@@ -263,6 +373,36 @@ const getRepresentativeName = (representative: any) => {
   flex-direction: column;
   gap: var(--p-3, 12px);
   padding: var(--p-6, 24px);
+}
+
+.cert__head {
+  margin-bottom: var(--p-3, 12px);
+}
+
+.cert__block {
+  margin-top: var(--p-4, 16px);
+}
+
+.cert__block-label {
+  margin-bottom: var(--p-2, 8px);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-sm, 13px);
+}
+
+.cert__chain,
+.cert__verifications {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-2, 8px);
+}
+
+.cert__chain-arrow {
+  color: var(--p-ink-3);
+}
+
+.cert__actions {
+  margin-top: var(--p-4, 16px);
 }
 
 @media (max-width: 768px) {
