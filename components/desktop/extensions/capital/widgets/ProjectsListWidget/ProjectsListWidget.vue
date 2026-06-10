@@ -80,6 +80,8 @@ div
                       size='sm',
                       @click.stop
                     )
+                  // Мастер — ответственный за проект (зеркально исполнителям задач)
+                  SetMasterAvatar(:project='props.row')
 
         // Слот для дополнительного контента проекта (ComponentsListWidget)
         q-tr.q-virtual-scroll--with-prev(
@@ -105,6 +107,7 @@ import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
+import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
 import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
 
@@ -409,9 +412,11 @@ const columns = [
 }
 
 .cell-actions {
-  width: 120px;
+  width: 160px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--p-2);
 }
 
 @media (max-width: 640px) {
@@ -476,6 +481,7 @@ tr:hover .row-add,
   vertical-align: top;
   word-wrap: break-word;
   white-space: normal;
+  font-size: var(--p-fs-body);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;

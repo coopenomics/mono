@@ -192,7 +192,8 @@ const saveEstimate = async () => {
   height: 22px;
   box-sizing: border-box;
   border-radius: 4px;
-  font-size: 11px;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
   font-weight: 500;
   color: var(--p-ink-2);
   cursor: pointer;

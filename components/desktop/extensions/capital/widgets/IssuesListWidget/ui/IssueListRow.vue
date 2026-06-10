@@ -178,9 +178,11 @@ const canChangeEstimate = computed(
 }
 
 .cell-actions {
-  width: 120px;
+  width: 160px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--p-2);
 }
 
 // Mobile: meta + title в первой строке (title справа от меты), actions

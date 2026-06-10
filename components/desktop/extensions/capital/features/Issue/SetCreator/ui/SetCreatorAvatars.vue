@@ -222,11 +222,11 @@ watch(
   box-sizing: border-box;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 12px;
+  border-radius: var(--p-r-md);
   transition: background-color 0.15s ease;
 
   &:hover:not(.readonly) {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--p-surface-2);
   }
 
   &.readonly {
@@ -252,9 +252,9 @@ watch(
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: var(--q-primary, #1976d2);
+  background-color: var(--p-primary);
   color: #fff;
-  border: 2px solid var(--q-color-white, #fff);
+  border: 2px solid var(--p-surface);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -267,8 +267,8 @@ watch(
   }
 
   &.more-avatar {
-    background-color: #e0e0e0;
-    color: #424242;
+    background-color: var(--p-surface-2);
+    color: var(--p-ink-2);
     font-size: 11px;
     font-weight: 500;
   }

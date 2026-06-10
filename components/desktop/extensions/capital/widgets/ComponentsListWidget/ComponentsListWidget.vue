@@ -70,6 +70,8 @@ div
                     size='sm',
                     label='Задача'
                   )
+                // Мастер — ответственный за компонент (зеркально исполнителям задач)
+                SetMasterAvatar(:project='props.row')
                 //- ProjectMenuWidget(:project='props.row', @click.stop)
 
       // Слот для дополнительного контента компонента
@@ -99,6 +101,7 @@ import {
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
 import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
+import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
@@ -270,9 +273,11 @@ const columns = [
 }
 
 .cell-actions {
-  width: 120px;
+  width: 160px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--p-2);
 }
 
 @media (max-width: 640px) {
@@ -344,6 +349,7 @@ tr:hover .row-add,
   vertical-align: top;
   word-wrap: break-word;
   white-space: normal;
+  font-size: var(--p-fs-body);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
