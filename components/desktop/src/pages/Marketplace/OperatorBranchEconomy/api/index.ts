@@ -50,13 +50,43 @@ export async function listAids(data?: IListAidsInput): Promise<MarketplaceAidVie
   return result;
 }
 
-// ─── Настройка распределения (председатель КУ) ───
+// ─── Распределение (председатель КУ) ───
 
-export type ISetBranchSplitInput = Mutations.Marketplace.SetBranchSplit.IInput['data'];
+export type IDistributeBranchFundsInput = Mutations.Marketplace.DistributeBranchFunds.IInput['data'];
 
-export async function setBranchSplit(data: ISetBranchSplitInput): Promise<boolean> {
-  const { [Mutations.Marketplace.SetBranchSplit.name]: result } = await client.Mutation(
-    Mutations.Marketplace.SetBranchSplit.mutation,
+export async function distributeBranchFunds(data: IDistributeBranchFundsInput): Promise<boolean> {
+  const { [Mutations.Marketplace.DistributeBranchFunds.name]: result } = await client.Mutation(
+    Mutations.Marketplace.DistributeBranchFunds.mutation,
+    { variables: { data } },
+  );
+  return Boolean(result);
+}
+
+// ─── Плановые расходы — общесистемный реестр (Expenses) ───
+
+export type ExpensePlanView = Queries.Expenses.ListExpensePlans.IOutput['listExpensePlans'][number];
+
+export async function listExpensePlans(braname: string): Promise<ExpensePlanView[]> {
+  const { [Queries.Expenses.ListExpensePlans.name]: result } = await client.Query(
+    Queries.Expenses.ListExpensePlans.query,
+    { variables: { data: { braname } } },
+  );
+  return result;
+}
+
+export type ICreateExpensePlanInput = Mutations.Expenses.CreateExpensePlan.IInput['data'];
+
+export async function createExpensePlan(data: ICreateExpensePlanInput): Promise<void> {
+  await client.Mutation(Mutations.Expenses.CreateExpensePlan.mutation, {
+    variables: { data },
+  });
+}
+
+export type IDeleteExpensePlanInput = Mutations.Expenses.DeleteExpensePlan.IInput['data'];
+
+export async function deleteExpensePlan(data: IDeleteExpensePlanInput): Promise<boolean> {
+  const { [Mutations.Expenses.DeleteExpensePlan.name]: result } = await client.Mutation(
+    Mutations.Expenses.DeleteExpensePlan.mutation,
     { variables: { data } },
   );
   return Boolean(result);
