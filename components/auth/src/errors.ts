@@ -18,6 +18,7 @@ export enum AuthV2ErrorCode {
   TooManyRecoveryAttempts = 'too_many_recovery_attempts',
   InvalidTwoFactorCode = 'invalid_2fa_code',
   TwoFactorNotEnrolled = 'two_factor_not_enrolled',
+  InvalidRecoveryToken = 'invalid_recovery_token',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -160,6 +161,11 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     message: 'Второй фактор не подключён.',
     action: 'retry',
     keepSession: true,
+  },
+  [AuthV2ErrorCode.InvalidRecoveryToken]: {
+    message: 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+    action: 'recover',
+    keepSession: false,
   },
   [AuthV2ErrorCode.NetworkError]: {
     message: 'Нет связи с кооперативом. Проверьте интернет.',

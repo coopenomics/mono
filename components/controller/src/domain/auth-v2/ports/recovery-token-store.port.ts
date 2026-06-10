@@ -26,8 +26,16 @@ export interface IRecoveryTokenStore {
   /** Положить токен с TTL (сек). Перезапись существующего ключа допустима. */
   issue(token: string, payload: RecoveryTokenPayload, ttlSec: number): Promise<void>;
   /**
+   * Неразрушающее чтение токена (Story 3.2). Возвращает payload либо null.
+   * Нужно, чтобы проверить владельца запроса и второй фактор (TOTP) ДО потребления
+   * токена: неверный TOTP-код не должен сжигать magic-link (UX). Потребление —
+   * отдельным `consume` уже после успешной проверки.
+   */
+  peek(token: string): Promise<RecoveryTokenPayload | null>;
+  /**
    * Прочитать и сразу удалить токен (single-use). Возвращает payload либо null,
-   * если токен не найден/истёк/уже потреблён. Используется в Story 3.2.
+   * если токен не найден/истёк/уже потреблён. Используется в Story 3.2 как claim
+   * перед финализацией (защита от двойного использования) и в cancel.
    */
   consume(token: string): Promise<RecoveryTokenPayload | null>;
 }

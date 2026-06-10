@@ -37,6 +37,16 @@ return v
     await this.redis.publisher.set(this.key(token), JSON.stringify(payload), 'PX', ttlSec * 1000);
   }
 
+  async peek(token: string): Promise<RecoveryTokenPayload | null> {
+    const raw = await this.redis.publisher.get(this.key(token));
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as RecoveryTokenPayload;
+    } catch {
+      return null;
+    }
+  }
+
   async consume(token: string): Promise<RecoveryTokenPayload | null> {
     const raw = (await this.redis.publisher.eval(
       RedisRecoveryTokenStore.CONSUME_LUA,

@@ -11,15 +11,34 @@ import {
 import type { Request } from 'express';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
+import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
-import { MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
+import { LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE, MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
 import { RecoveryService } from './recovery.service';
+import { RecoveryConfirmService } from './recovery-confirm.service';
 
 interface RecoveryRequestBody {
   email?: string;
 }
+
+interface RecoveryConfirmBody {
+  token?: string;
+  code?: string;
+  public_key?: string;
+  vault?: EncryptedVaultBlob;
+  password?: string;
+}
+
+interface RecoveryCancelBody {
+  token?: string;
+}
+
+const TOO_MANY_RECOVERY = {
+  code: AuthV2ErrorCode.TooManyRecoveryAttempts,
+  message: 'Слишком много попыток подтверждения. Попробуйте позже.',
+};
 
 /**
  * Инициация восстановления доступа magic-link'ом (CoopID, Story 3.1).
@@ -33,7 +52,10 @@ interface RecoveryRequestBody {
  */
 @Controller('coop/recovery')
 export class RecoveryController {
-  constructor(private readonly recovery: RecoveryService) {}
+  constructor(
+    private readonly recovery: RecoveryService,
+    private readonly confirmService: RecoveryConfirmService,
+  ) {}
 
   @Post('request')
   @HttpCode(202)
@@ -53,6 +75,62 @@ export class RecoveryController {
     // Исход константен (всегда 202): сервис сам решает, слать письмо или нет.
     await this.recovery.requestByEmail(email, req.ip ?? null);
   }
+
+  /**
+   * Двухканальное подтверждение (Story 3.2): magic-link токен + TOTP-код + новый
+   * ключевой материал и пароль одним запросом. Rate-limit per-IP и per-token —
+   * против brute-force TOTP при удержанной ссылке; превышение → `429`.
+   */
+  @Post('confirm')
+  @HttpCode(200)
+  @UseFilters(AuthV2ExceptionFilter)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({
+    ip: LOGIN_IP_RULE,
+    account: { ...LOGIN_ACCOUNT_RULE, key: (req) => tokenFromBody(req) },
+    error: TOO_MANY_RECOVERY,
+  })
+  async confirm(@Body() body: RecoveryConfirmBody, @Req() req: Request): Promise<void> {
+    const token = requireString(body?.token, 'token');
+    const code = requireString(body?.code, 'code');
+    const newPublicKey = requireString(body?.public_key, 'public_key');
+    const newPassword = requireString(body?.password, 'password');
+    const vaultBlob = body?.vault;
+    if (!vaultBlob || typeof vaultBlob !== 'object') {
+      throw new BadRequestException('Требуется зашифрованный vault-блоб');
+    }
+    await this.confirmService.confirm(
+      { token, code, newPublicKey, vaultBlob, newPassword },
+      req.ip ?? null,
+    );
+  }
+
+  /** Отмена восстановления (Story 3.2): сжигает magic-link токен. */
+  @Post('cancel')
+  @HttpCode(202)
+  @UseFilters(AuthV2ExceptionFilter)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({
+    ip: LOGIN_IP_RULE,
+    account: { ...LOGIN_ACCOUNT_RULE, key: (req) => tokenFromBody(req) },
+    error: TOO_MANY_RECOVERY,
+  })
+  async cancel(@Body() body: RecoveryCancelBody, @Req() req: Request): Promise<void> {
+    const token = requireString(body?.token, 'token');
+    await this.confirmService.cancel(token, req.ip ?? null);
+  }
+}
+
+/** Достать непустую строку из тела или 400. */
+function requireString(value: unknown, field: string): string {
+  if (!value || typeof value !== 'string') throw new BadRequestException(`Требуется ${field}`);
+  return value;
+}
+
+/** per-token ключ rate-limit для confirm/cancel. */
+function tokenFromBody(req: Request): string | null {
+  const token = (req.body as RecoveryConfirmBody | undefined)?.token;
+  return token && typeof token === 'string' ? token : null;
 }
 
 /** per-account ключ rate-limit = нормализованный email (совпадает с ключом lookup'а). */

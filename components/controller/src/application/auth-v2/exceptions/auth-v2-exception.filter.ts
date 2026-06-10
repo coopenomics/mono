@@ -30,6 +30,8 @@ const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   [AuthV2ErrorCode.InvalidTwoFactorCode]: HttpStatus.UNAUTHORIZED,
   // 400: второй фактор не подключён, а операция его требует (Story 3.6).
   [AuthV2ErrorCode.TwoFactorNotEnrolled]: HttpStatus.BAD_REQUEST,
+  // 400: recovery-токен недействителен/истёк/уже использован (Story 3.2).
+  [AuthV2ErrorCode.InvalidRecoveryToken]: HttpStatus.BAD_REQUEST,
   // 403: серверная расшифровка ключа запрещена инвариантом (не «не авторизован»).
   [AuthV2ErrorCode.VaultServerDecryptionForbidden]: HttpStatus.FORBIDDEN,
   // 400: некорректный ввод/данные клиента (AC Story 1.11 — invalid_credentials → 400).
