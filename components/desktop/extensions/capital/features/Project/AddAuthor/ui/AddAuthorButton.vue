@@ -1,12 +1,15 @@
 <template lang="pug">
-div
-  q-btn(
+span
+  BaseButton(
+    variant='ghost',
     size='sm',
-    color='primary',
-    @click='showDialog = true',
     :loading='isSubmitting',
-    label='Добавить соавтора'
+    aria-label='Добавить соавтора',
+    @click.stop='showDialog = true'
   )
+    template(#icon-left)
+      q-icon(name='add', size='18px')
+    | Соавтор
 
   BaseDialog(
     v-model='showDialog',
@@ -45,6 +48,7 @@ import { ref, watch } from 'vue';
 import { useAddAuthor } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { ContributorSelector } from '../../../../entities/Contributor';
+import { BaseButton } from 'src/shared/ui/base';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import type { IProject } from '../../../../entities/Project/model';
@@ -123,6 +127,12 @@ const handleAddAuthors = async () => {
     isSubmitting.value = false;
   }
 };
+
+defineExpose({
+  openDialog: () => {
+    showDialog.value = true;
+  },
+});
 </script>
 
 <style lang="scss" scoped>

@@ -32,3 +32,24 @@ const emit = defineEmits<{
   select: [tab: PageTab];
 }>();
 </script>
+
+<style scoped>
+/* Режим router-link: нейтрализуем глобальные стили ссылок, чтобы таб-ссылка
+   выглядела так же, как таб-кнопка (цвета задаёт канонный .tab) */
+a.tab,
+a.tab:visited {
+  color: var(--p-ink-2);
+  text-decoration: none;
+}
+
+a.tab:hover {
+  color: var(--p-ink);
+  text-decoration: none;
+}
+
+a.tab--active,
+a.tab--active:visited,
+a.tab--active:hover {
+  color: var(--p-ink);
+}
+</style>

@@ -66,6 +66,10 @@ const handleSuccess = () => {
   // После успешного создания компонента отправляем событие для закрытия меню
   emit('onClick');
 };
+
+defineExpose({
+  openDialog: () => dialogRef.value?.openDialog(),
+});
 </script>
 
 <style lang="scss" scoped>
