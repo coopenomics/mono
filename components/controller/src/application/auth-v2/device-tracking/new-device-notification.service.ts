@@ -7,6 +7,8 @@ import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service'
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import { NEW_DEVICE_NOTIFICATION_THROTTLE } from '~/domain/auth-v2/ports/new-device-notification-throttle.port';
 import type { INewDeviceNotificationThrottle } from '~/domain/auth-v2/ports/new-device-notification-throttle.port';
+import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.port';
+import type { INotMeTokenStore } from '~/domain/auth-v2/ports/not-me-token-store.port';
 
 export interface NewDeviceNotificationInput {
   /** subject_id пайщика (user.id) — для резолва получателя и троттла. */
@@ -28,8 +30,9 @@ export interface NewDeviceNotificationInput {
  * Всё best-effort: любая ошибка (троттл/резолв/notify) логируется и проглатывается —
  * уведомление не должно валить успешный вход (как device tracking в 3.8).
  *
- * Ссылка «это не я» ведёт на страницу безопасности ЛК; выделенный one-click endpoint
- * массового отзыва сессий — Story 3.10 (тогда `securityUrl` станет deep-link).
+ * Письмо несёт one-click ссылку «Это не я» (Story 3.10): одноразовый токен (порт
+ * {@link INotMeTokenStore}) → отзыв всех сессий без входа. `securityUrl` остаётся ссылкой
+ * на штатную страницу безопасности ЛК.
  */
 @Injectable()
 export class NewDeviceNotificationService {
@@ -40,6 +43,7 @@ export class NewDeviceNotificationService {
     @Inject(USER_DOMAIN_SERVICE) private readonly users: UserDomainService,
     @Inject(NEW_DEVICE_NOTIFICATION_THROTTLE)
     private readonly throttle: INewDeviceNotificationThrottle,
+    @Inject(NOT_ME_TOKEN_STORE) private readonly notMeTokens: INotMeTokenStore,
   ) {}
 
   /**
@@ -61,6 +65,10 @@ export class NewDeviceNotificationService {
         return;
       }
 
+      // One-click токен «Это не я» (3.10) — ссылка ведёт на фронт-роут, который дёргает
+      // POST /coop/security/not-me/:token и отзывает все сессии без входа.
+      const notMeToken = await this.notMeTokens.issue(input.subjectId);
+
       await this.notifications.notify({
         coopname: config.coopname,
         workflowId: Workflows.NewDeviceLogin.id,
@@ -75,6 +83,7 @@ export class NewDeviceNotificationService {
           ip: input.ip ?? 'неизвестен',
           time: new Date().toISOString(),
           securityUrl: `${config.frontend_url}/settings/security`,
+          notMeUrl: `${config.frontend_url}/security/not-me/${notMeToken}`,
         },
       });
     } catch (e) {

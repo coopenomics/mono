@@ -31,6 +31,8 @@ import { TwoFactorService } from './two-factor/two-factor.service';
 import { TwoFactorController } from './two-factor/two-factor.controller';
 import { SessionsService } from './sessions/sessions.service';
 import { SessionsController } from './sessions/sessions.controller';
+import { SecurityIncidentService } from './security/security-incident.service';
+import { SecurityIncidentController } from './security/security-incident.controller';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -40,9 +42,9 @@ import { SessionsController } from './sessions/sessions.controller';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController],
   providers: [
-    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService,
+    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (ротация ключа) — сейм Story 3.3: пока placeholder (503).

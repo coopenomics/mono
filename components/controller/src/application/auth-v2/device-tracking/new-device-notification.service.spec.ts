@@ -13,12 +13,14 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     const notifications = { notify: jest.fn().mockResolvedValue({ acknowledged: true, outboxIds: ['o1'] }) };
     const users = { findUserById: jest.fn() };
     const throttle = { tryAcquire: jest.fn().mockResolvedValue(true) };
+    const notMeTokens = { issue: jest.fn().mockResolvedValue('not-me-token-abc'), consume: jest.fn() };
     const service = new NewDeviceNotificationService(
       notifications as never,
       users as never,
       throttle as never,
+      notMeTokens as never,
     );
-    return { service, notifications, users, throttle };
+    return { service, notifications, users, throttle, notMeTokens };
   }
 
   const verifiedUser = {
@@ -47,6 +49,16 @@ describe('NewDeviceNotificationService (Story 3.9 — уведомление о 
     expect(payload.payload.ip).toBe('1.2.3.4');
     expect(payload.payload.securityUrl).toBe('https://app.test/settings/security');
     expect(typeof payload.payload.time).toBe('string');
+  });
+
+  it('письмо несёт one-click ссылку «Это не я» с выпущенным токеном (Story 3.10)', async () => {
+    const { service, notifications, users, notMeTokens } = setup();
+    users.findUserById.mockResolvedValueOnce(verifiedUser);
+
+    await service.maybeNotify(input);
+
+    expect(notMeTokens.issue).toHaveBeenCalledWith('user-uuid-1');
+    expect(notifications.notify.mock.calls[0][0].payload.notMeUrl).toBe('https://app.test/security/not-me/not-me-token-abc');
   });
 
   it('bundling NFR10: окно занято (троттл false) → уведомление НЕ шлётся и пользователь не резолвится', async () => {

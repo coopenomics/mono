@@ -14,6 +14,8 @@ export const newDeviceLoginPayloadSchema = z.object({
   time: z.string(),
   /** Ссылка на защиту аккаунта (отзыв сессий + смена пароля). */
   securityUrl: z.string(),
+  /** One-click ссылка «Это не я» — мгновенный отзыв всех сессий без входа (Story 3.10). */
+  notMeUrl: z.string(),
 });
 
 export type IPayload = z.infer<typeof newDeviceLoginPayloadSchema>;
@@ -39,9 +41,10 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
       '<strong>IP-адрес:</strong> {{payload.ip}}<br>' +
       '<strong>Время:</strong> {{payload.time}}<br><br>' +
       'Если это были вы — ничего делать не нужно.<br>' +
-      'Если нет — немедленно защитите аккаунт: ' +
-      '<a href="{{payload.securityUrl}}">{{payload.securityUrl}}</a> ' +
-      '(отзыв активных сессий и смена пароля).'
+      'Если нет — нажмите «Это не я», чтобы немедленно завершить все сессии: ' +
+      '<a href="{{payload.notMeUrl}}">Это не я</a>.<br>' +
+      'Управлять безопасностью аккаунта: ' +
+      '<a href="{{payload.securityUrl}}">{{payload.securityUrl}}</a>.'
     ),
     createInAppStep(
       'new-device-login-notification',
