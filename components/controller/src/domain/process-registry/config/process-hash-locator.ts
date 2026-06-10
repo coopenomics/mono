@@ -125,6 +125,17 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.return': [{ code: 'marketplace', table: 'retrequests', field: 'hash' }],
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
+  // requirement b6 «Экономика КУ».
+  // p.brn.fees — распределение членских взносов КУ при финализации заказа
+  // (o.brn.person / o.brn.common: process_hash = order.hash) и перевод
+  // персональных средств доверенного (o.brn.conv: process_hash = convert_hash,
+  // генерится backend'ом, в сущностных таблицах не хранится — поэтому ещё и
+  // якорь заказа). Основной якорь — заказ.
+  'p.brn.fees': [{ code: 'marketplace', table: 'orders', field: 'hash' }],
+
+  // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
+  'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],
+
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).
   'p.sov.axncnv': [],

@@ -97,10 +97,15 @@ import {
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
 import { MarketplaceStockResolver } from './resolvers/marketplace-stock.resolver';
+import { MarketplaceEconomyResolver } from './resolvers/marketplace-economy.resolver';
 import {
   MarketplaceStockService,
   MARKETPLACE_STOCK_SERVICE,
 } from './services/marketplace-stock.service';
+import {
+  MarketplaceEconomyService,
+  MARKETPLACE_ECONOMY_SERVICE,
+} from './services/marketplace-economy.service';
 import {
   MarketplaceStockProposalService,
   MARKETPLACE_STOCK_PROPOSAL_SERVICE,
@@ -217,6 +222,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
     MarketplaceStockResolver,
+    MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
@@ -366,6 +372,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceStockService,
     },
     MarketplaceStockService,
+    // requirement b6 «Экономика КУ» — ставка взноса, распределение, матпомощь.
+    {
+      provide: MARKETPLACE_ECONOMY_SERVICE,
+      useClass: MarketplaceEconomyService,
+    },
+    MarketplaceEconomyService,
     {
       provide: MARKETPLACE_STOCK_PROPOSAL_SERVICE,
       useClass: MarketplaceStockProposalService,
@@ -469,6 +481,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,
     MARKETPLACE_STOCK_SERVICE,
+    MARKETPLACE_ECONOMY_SERVICE,
     MarketplaceStockService,
     MARKETPLACE_STOCK_PROPOSAL_SERVICE,
     MarketplaceStockProposalService,

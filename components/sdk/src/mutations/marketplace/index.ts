@@ -108,3 +108,11 @@ export * as AcceptStockProposal from './acceptStockProposal'
 export * as DeclineStockProposal from './declineStockProposal'
 /** Склад кооператива: отмена заказа со склада до открытия выдачи */
 export * as CancelStockOrder from './cancelStockOrder'
+
+// requirement b6 «Экономика КУ»
+export * as SetMembershipFee from './setMembershipFee'
+export * as SetBranchSplit from './setBranchSplit'
+export * as SetTrusteeWeight from './setTrusteeWeight'
+export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
+export * as ConvertBranchFunds from './convertBranchFunds'
+export * as CreateAid from './createAid'

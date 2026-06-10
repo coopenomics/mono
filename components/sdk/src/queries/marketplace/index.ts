@@ -86,3 +86,9 @@ export * as GetCart from './getCart'
 export * as ListStock from './listStock'
 /** Докладка: предложения со склада кооператива (стойка оператора / входящие пайщика) */
 export * as ListStockProposals from './listStockProposals'
+
+// requirement b6 «Экономика КУ»
+export * as GetEconomyConfig from './getEconomyConfig'
+export * as GetBranchEconomy from './getBranchEconomy'
+export * as GetPersonalEconomy from './getPersonalEconomy'
+export * as ListAids from './listAids'

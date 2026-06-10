@@ -691,6 +691,12 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
+	MarketplaceConvertBranchFundsInput:{
+
+	},
+	MarketplaceCreateAidInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
 	MarketplaceCreateAplReceptionInput:{
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntryInput"
 	},
@@ -720,6 +726,9 @@ export const AllTypesProps: Record<string,any> = {
 		items:"MarketplaceWriteoffItemInput"
 	},
 	MarketplaceDeclineOrdersBatchInput:{
+
+	},
+	MarketplaceDeleteTrusteeWeightInput:{
 
 	},
 	MarketplaceDetailKUInput:{
@@ -757,6 +766,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceKUStatus: "enum" as const,
+	MarketplaceListAidsInput:{
+
+	},
 	MarketplaceListAplReceptionsByBranameInput:{
 
 	},
@@ -858,11 +870,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReturnStatementSignedMetaDocumentInput:{
 
 	},
+	MarketplaceSetBranchSplitInput:{
+
+	},
 	MarketplaceSetCartDeliveryPointInput:{
 
 	},
 	MarketplaceSetKUStatusInput:{
 		status:"MarketplaceKUStatus"
+	},
+	MarketplaceSetMembershipFeeInput:{
+
+	},
+	MarketplaceSetTrusteeWeightInput:{
+
 	},
 	MarketplaceShipmentDeliveryVariant: "enum" as const,
 	MarketplaceShipmentGroupInput:{
@@ -1422,6 +1443,12 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceClearInventoryLabel:{
 			data:"MarketplaceClearInventoryLabelInput"
 		},
+		marketplaceConvertBranchFunds:{
+			data:"MarketplaceConvertBranchFundsInput"
+		},
+		marketplaceCreateAid:{
+			data:"MarketplaceCreateAidInput"
+		},
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
 		},
@@ -1460,6 +1487,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceDeleteCustomCategory:{
 
+		},
+		marketplaceDeleteTrusteeWeight:{
+			data:"MarketplaceDeleteTrusteeWeightInput"
 		},
 		marketplaceDetailKU:{
 			data:"MarketplaceDetailKUInput"
@@ -1506,11 +1536,20 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceRetryKUGeocode:{
 
 		},
+		marketplaceSetBranchSplit:{
+			data:"MarketplaceSetBranchSplitInput"
+		},
 		marketplaceSetCartDeliveryPoint:{
 			input:"MarketplaceSetCartDeliveryPointInput"
 		},
 		marketplaceSetKUStatus:{
 			data:"MarketplaceSetKUStatusInput"
+		},
+		marketplaceSetMembershipFee:{
+			data:"MarketplaceSetMembershipFeeInput"
+		},
+		marketplaceSetTrusteeWeight:{
+			data:"MarketplaceSetTrusteeWeightInput"
 		},
 		marketplaceSignAplReceptionAsChairman:{
 			data:"MarketplaceSignAplReceptionInput"
@@ -2034,6 +2073,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceFindPotentialMatches:{
 			data:"FindPotentialMatchesInput"
 		},
+		marketplaceGetBranchEconomy:{
+
+		},
 		marketplaceGetCategoryById:{
 			data:"GetCategoryByIdInput"
 		},
@@ -2078,6 +2120,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceIssueActOrdererSignablePayload:{
 			data:"MarketplaceIssueActPayloadInput"
+		},
+		marketplaceListAids:{
+			data:"MarketplaceListAidsInput"
 		},
 		marketplaceListAplReceptionsByBraname:{
 			data:"MarketplaceListAplReceptionsByBranameInput"
@@ -3997,6 +4042,13 @@ export const ReturnTypes: Record<string,any> = {
 		chartOfAccounts:"ChartOfAccountsItem",
 		coopname:"String"
 	},
+	MarketplaceAid:{
+		amount:"String",
+		decline_reason:"String",
+		hash:"String",
+		status:"String",
+		username:"String"
+	},
 	MarketplaceAplReception:{
 		braname:"String",
 		chairman_account:"String",
@@ -4091,6 +4143,13 @@ export const ReturnTypes: Record<string,any> = {
 		isForSpecificType:"Boolean",
 		typeId:"Int",
 		updatedAt:"DateTime"
+	},
+	MarketplaceBranchEconomy:{
+		braname:"String",
+		common_balance:"String",
+		personal_percent:"Float",
+		total_weight:"Int",
+		weights:"MarketplaceTrusteeWeight"
 	},
 	MarketplaceCancelOrderResult:{
 		order:"MarketplaceOrder",
@@ -4229,6 +4288,9 @@ export const ReturnTypes: Record<string,any> = {
 		info:"String",
 		picture:"String",
 		value:"String"
+	},
+	MarketplaceEconomyConfig:{
+		membership_fee_percent:"Float"
 	},
 	MarketplaceEvent:{
 		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
@@ -4485,6 +4547,9 @@ export const ReturnTypes: Record<string,any> = {
 		payment_request_id:"String",
 		status:"MarketplaceOutgoingPaymentRequestStatus"
 	},
+	MarketplacePersonalEconomy:{
+		personal_balance:"String"
+	},
 	MarketplaceProductType:{
 		descriptionCategoryId:"Int",
 		disabled:"Boolean",
@@ -4709,6 +4774,12 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		orders:"MarketplaceOrder",
 		tx_hashes:"String"
+	},
+	MarketplaceTrusteeWeight:{
+		personal_balance:"String",
+		share_percent:"Float",
+		username:"String",
+		weight:"Int"
 	},
 	MarketplaceUnpublishStockResult:{
 		affected:"Int"
@@ -5042,6 +5113,8 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceConvertBranchFunds:"Boolean",
+		marketplaceCreateAid:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
@@ -5055,6 +5128,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDeclineOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceDeclineStockProposal:"MarketplaceStockProposal",
 		marketplaceDeleteCustomCategory:"Boolean",
+		marketplaceDeleteTrusteeWeight:"Boolean",
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
@@ -5070,8 +5144,11 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
 		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
+		marketplaceSetBranchSplit:"Boolean",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
+		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
+		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
 		marketplaceSignOnboardingOffer:"MarketplaceOnboardingState",
@@ -5680,14 +5757,17 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailabilityStats:"MarketplaceAvailabilityStats",
 		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
+		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
 		marketplaceGetCart:"MarketplaceCart",
 		marketplaceGetCategoryById:"MarketplaceCategoryTreeNode",
 		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",
 		marketplaceGetCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetCategoryTreeStats:"MarketplaceCategoryTreeStats",
 		marketplaceGetCoopRequests:"MarketplaceRequest",
+		marketplaceGetEconomyConfig:"MarketplaceEconomyConfig",
 		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
+		marketplaceGetPersonalEconomy:"MarketplacePersonalEconomy",
 		marketplaceGetProductTypeById:"MarketplaceProductType",
 		marketplaceGetRequest:"MarketplaceRequest",
 		marketplaceGetRequestByHash:"MarketplaceRequest",
@@ -5698,6 +5778,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",
+		marketplaceListAids:"MarketplaceAid",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListAvailableCategories:"MarketplaceCategory",

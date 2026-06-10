@@ -1,4 +1,4 @@
-import type { MarketContract } from 'cooptypes';
+import type { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 
 /**
@@ -257,6 +257,46 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `items[item_index].braname`.
    */
   execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult>;
+
+  // ── Экономика КУ (requirement b6): членский взнос и распределение ────
+
+  /** Единая ставка членского взноса кооператива (администратор). */
+  setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<TransactResult>;
+
+  /** Отсечка персонального распределения членского взноса КУ (председатель). */
+  setSplit(data: MarketContract.Actions.SetSplit.ISetSplit): Promise<TransactResult>;
+
+  /** Вес участника распределения членских взносов КУ (branch::setweight). */
+  setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<TransactResult>;
+
+  /** Исключение участника из распределения (branch::delweight). */
+  delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<TransactResult>;
+
+  /** Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (branch::convert). */
+  convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<TransactResult>;
+
+  /** Заявка на материальную помощь доверенного (branch::createaid → gateway). */
+  createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<TransactResult>;
+
+  // ── Чтение on-chain состояния экономики КУ ───────────────────────────
+
+  /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */
+  getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null>;
+
+  /** Отсечки персонального распределения по КУ. */
+  getBranchSplits(coopname: string): Promise<MarketContract.Tables.BranchSplits.IBranchSplit[]>;
+
+  /** Реестр весов распределения (branch::weights). */
+  getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
+
+  /** Агрегаты Σ весов (branch::weighttotals). */
+  getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]>;
+
+  /** Заявки на материальную помощь (branch::aids). */
+  listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]>;
+
+  /** L3-балансы кошельков экономики КУ (w.brn.person / w.brn.common) из ledger2. */
+  listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]>;
 }
 
 export const MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT = Symbol('MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT');
