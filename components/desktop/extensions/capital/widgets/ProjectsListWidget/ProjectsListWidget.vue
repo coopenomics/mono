@@ -20,8 +20,7 @@ div
       :virtual-scroll-target='".projects-scroll-area"',
       :virtual-scroll-item-size='48',
       :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]',
-      :no-data-label='hasFiltersApplied ? "Нет результатов по фильтрам" : "Нет проектов"'
+      :rows-per-page-options='[0]'
     )
       template(#body='props')
         q-tr(
@@ -59,8 +58,19 @@ div
                   ).q-mr-sm
                   span {{ props.row.title }}
 
+              // Метрики: часы факт/план и привлечённые инвестиции
+              .col-auto.row-meta-block
+                .row-meta
+                  q-icon(name='schedule', size='14px')
+                  span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
+                  q-tooltip Часы исполнителей: факт / план
+                .row-meta(v-if='hasInvestMeta(props.row.fact?.total_received_investments, props.row.plan?.invest_pool)')
+                  q-icon(name='payments', size='14px')
+                  span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
+                  q-tooltip Инвестиции: привлечено / план
+
               // Actions - только CreateComponentButton (выравнивание по правому краю)
-              .col-auto.ml-auto.project-row__actions(
+              .col-auto.project-row__actions(
                 v-if='props.row.permissions?.can_edit_project'
               )
                 .row.items-center.justify-end.q-gutter-xs
@@ -77,8 +87,14 @@ div
           v-if='expanded[props.row.project_hash]',
           :key='`${props.row.project_hash}`'
         )
-          q-td(colspan='100%', style='padding: 0px !important')
+          q-td.project-row__nested(colspan='100%')
             slot(name='project-content', :project='props.row')
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет проектов' }}
 </template>
 
 <script lang="ts" setup>
@@ -90,6 +106,7 @@ import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
+import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
 
 const props = defineProps<{
   coopname?: string;
@@ -356,6 +373,47 @@ const columns = [
 
 .project-row__actions {
   width: 140px;
+}
+
+// Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,
+// сами виджеты при одиночном использовании отступа не имеют
+.project-row__nested {
+  padding: 0 0 0 var(--p-7) !important;
+
+  @media (max-width: 640px) {
+    padding-left: var(--p-3) !important;
+  }
+}
+
+// Компактные метрики строки: часы факт/план, инвестиции
+.row-meta-block {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  margin-right: var(--p-3);
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 
 .q-table {

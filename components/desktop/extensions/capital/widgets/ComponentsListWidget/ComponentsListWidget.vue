@@ -10,7 +10,6 @@ div
     square,
     hide-header,
     hide-pagination,
-    no-data-label='Нет компонентов'
   )
     template(#body='props')
       q-tr(
@@ -48,8 +47,19 @@ div
                 ).q-mr-sm
                 span {{ props.row.title }}
 
+            // Метрики: часы факт/план и привлечённые инвестиции
+            .col-auto.row-meta-block
+              .row-meta
+                q-icon(name='schedule', size='14px')
+                span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
+                q-tooltip Часы исполнителей: факт / план
+              .row-meta(v-if='hasInvestMeta(props.row.fact?.total_received_investments, props.row.plan?.invest_pool)')
+                q-icon(name='payments', size='14px')
+                span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
+                q-tooltip Инвестиции: привлечено / план
+
             // Actions - только CreateIssueButton (выравнивание по правому краю)
-            .col-auto.ml-auto.component-row__actions
+            .col-auto.component-row__actions
               .row.items-center.justify-end.q-gutter-xs
                 CreateIssueButton(
                   @click.stop,
@@ -65,12 +75,18 @@ div
         v-if='expanded[props.row.project_hash]',
         :key='`e_${props.row.project_hash}`'
       )
-        q-td(colspan='100%')
+        q-td.component-row__nested(colspan='100%')
           // Скелетон загрузки задач компонента
           .component-row__skeleton(v-if='loadingComponents[props.row.project_hash]')
             .skel.skel--num(v-for='i in 4', :key='i')
           // Реальный контент
           slot(v-else, name='component-content', :component='props.row')
+
+    // Канон-пустое состояние вместо дефолтного q-table no-data
+    template(#no-data)
+      .list-empty
+        q-icon(name='inbox', size='20px')
+        span Нет компонентов
 </template>
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
@@ -79,6 +95,7 @@ import {
   getProjectStatusIcon,
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
+import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
@@ -196,10 +213,10 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
-// Структурные ширины колонок строки компонента (общая сетка со строкой
-// проекта; вложенный уровень — больший левый отступ)
+// Структурные ширины колонок строки компонента. Собственного отступа
+// уровня нет — каскадный отступ задаёт родительский виджет, чтобы при
+// одиночном использовании список начинался от края
 .component-row {
-  padding-left: var(--p-6);
   min-height: 48px;
 }
 
@@ -219,6 +236,46 @@ const columns = [
 
 .component-row__actions {
   width: 140px;
+}
+
+// Вложенный уровень (задачи компонента) — отступ каскада
+.component-row__nested {
+  padding: 0 0 0 var(--p-7) !important;
+
+  @media (max-width: 640px) {
+    padding-left: var(--p-3) !important;
+  }
+}
+
+// Компактные метрики строки: часы факт/план, инвестиции
+.row-meta-block {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  margin-right: var(--p-3);
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 
 .component-row__skeleton {

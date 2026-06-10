@@ -18,8 +18,7 @@ div
       :virtual-scroll-target='".issues-scroll-area"',
       :virtual-scroll-item-size='48',
       :virtual-scroll-sticky-size-start='48',
-      :rows-per-page-options='[0]',
-      no-data-label="Нет задач"
+      :rows-per-page-options='[0]'
     )
       template(#body='props')
         q-tr(:props='props')
@@ -28,6 +27,12 @@ div
               :issue='props.row'
               @click='handleIssueClick'
             )
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   div(v-else)
@@ -41,8 +46,7 @@ div
       square,
       hide-header,
       hide-pagination,
-      :rows-per-page-options='[0]',
-      no-data-label="Нет задач"
+      :rows-per-page-options='[0]'
     )
       template(#body='props')
         q-tr(:props='props')
@@ -51,6 +55,12 @@ div
               :issue='props.row'
               @click='handleIssueClick'
             )
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
 
 </template>
 <script lang="ts" setup>
@@ -287,5 +297,16 @@ onMounted(async () => {
     padding: 0; // строка живёт в IssueListRow.vue со своими отступами
     overflow: hidden;
   }
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 </style>
