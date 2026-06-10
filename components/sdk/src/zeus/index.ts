@@ -27,16 +27,13 @@ export const apiSubscription = (options: chainOptions) => {
     },
   );
 
-  // keep(zeus-patch): variables ОБЯЗАНЫ доходить до client.subscribe — без них
-  // сервер падает на коэрции $input до резолвера и подписка молча не открывается.
-  // Накладывается generate-client.cjs (patchZeusWsVariables), не править руками.
-  return (query: string, variables?: Record<string, unknown>) => {
+  return (query: string) => {
     let onMessage: ((event: any) => void) | undefined;
     let onError: Sink['error'] | undefined;
     let onClose: Sink['complete'] | undefined;
 
     client.subscribe(
-      { query, variables },
+      { query },
       {
         next({ data }) {
           onMessage && onMessage(data);

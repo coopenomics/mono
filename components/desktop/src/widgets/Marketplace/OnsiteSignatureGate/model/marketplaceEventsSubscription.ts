@@ -56,11 +56,8 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       });
 
       // graphql-ws сам реконнектит; на каждый (ре)коннект — catch-up, чтобы
-      // подхватить то, что прилетело, пока сокет был оборван. Тип Zeus
-      // объявляет open() без аргумента, но реализация принимает listener
-      // ('opened'-событие ws) — приводим к фактической сигнатуре.
-      const onReopen = stream.open as unknown as (listener: () => void) => void;
-      onReopen(() => {
+      // подхватить то, что прилетело, пока сокет был оборван.
+      stream.open(() => {
         void gate.refresh('ПОДПИСКА (ws-реконнект)');
         resyncMarketplaceConsumers('ws-реконнект');
       });

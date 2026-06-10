@@ -71,47 +71,12 @@ if (!fs.existsSync(path.join(localZeusDir, 'index.ts'))) {
   process.exit(1);
 }
 
-patchZeusWsVariables(path.join(localZeusDir, 'index.ts'));
-
+// Внимание: сгенерированный zeus ws-путь подписок (apiSubscription +
+// SubscriptionThunder) теряет variables и НЕ используется. Боевой транспорт —
+// sdk/src/utils/wsSubscription.ts (негенерируемый), Client.Subscription собран
+// на нём. Не переключать SDK обратно на zeus Subscription без фикса upstream.
 fs.rmSync(sdkZeusDir, { recursive: true, force: true });
 fs.cpSync(localZeusDir, sdkZeusDir, { recursive: true });
-
-/**
- * Баг graphql-zeus (7.x, --subscriptions graphql-ws): SubscriptionThunder передаёт
- * `ops?.variables` вторым аргументом, но сгенерированный ws-`apiSubscription`
- * принимает только `(query: string)` и молча роняет variables. Документ при этом
- * объявляет переменные ($input: Type!) — сервер падает на коэрции «переменная не
- * предоставлена» ещё ДО резолвера: подписка тихо не открывается, publish уходит
- * в пустоту. Ручная правка zeus/index.ts стирается каждой регенерацией (так уже
- * ломали realtime 2026-06-09), поэтому патч наложен здесь и падает с ошибкой,
- * если zeus сменил шаблон — чтобы поломку увидели на codegen, а не в проде.
- */
-function patchZeusWsVariables(zeusIndexPath) {
-  const src = fs.readFileSync(zeusIndexPath, 'utf8');
-  if (src.includes('keep(zeus-patch)')) return; // уже наложен
-
-  const signature = 'return (query: string) => {';
-  const subscribeCall = 'client.subscribe(\n      { query },';
-  if (!src.includes(signature) || !src.includes(subscribeCall)) {
-    console.error(
-      'generate-client: zeus сменил шаблон apiSubscription — патч variables не наложился. ' +
-        'Без него ws-подписки молча не работают; обновите patchZeusWsVariables.'
-    );
-    process.exit(1);
-  }
-
-  const patched = src
-    .replace(
-      signature,
-      '// keep(zeus-patch): variables ОБЯЗАНЫ доходить до client.subscribe — без них\n' +
-        '  // сервер падает на коэрции $input до резолвера и подписка молча не открывается.\n' +
-        '  // Накладывается generate-client.cjs (patchZeusWsVariables), не править руками.\n' +
-        '  return (query: string, variables?: Record<string, unknown>) => {'
-    )
-    .replace(subscribeCall, 'client.subscribe(\n      { query, variables },');
-  fs.writeFileSync(zeusIndexPath, patched);
-  console.log('generate-client: наложен патч zeus ws-variables (patchZeusWsVariables).');
-}
 
 const zeusMtime = fs.statSync(sdkZeusIndex).mtimeMs;
 if (zeusMtime < startedAt - 2000) {
