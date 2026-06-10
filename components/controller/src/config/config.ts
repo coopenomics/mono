@@ -128,10 +128,11 @@ const envVarsSchema = z.object({
     .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
     .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
-  // coop_domain_db (CoopID, Story 1.4): отдельная БД в coop-postgres (Story 1.1).
+  // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
   // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
+  // Дефолт-порт 5532 = host-маппинг существующего postgres (PG_HOST_PORT) для запуска вне контейнера.
   COOP_DOMAIN_DB_HOST: z.string().default('127.0.0.1'),
-  COOP_DOMAIN_DB_PORT: z.coerce.number().default(5632),
+  COOP_DOMAIN_DB_PORT: z.coerce.number().default(5532),
   COOP_DOMAIN_DB_USERNAME: z.string().default('coop_app_user'),
   COOP_DOMAIN_DB_DATABASE: z.string().default('coop_domain_db'),
   COOP_DOMAIN_DB_PASSWORD: z.string().optional(),

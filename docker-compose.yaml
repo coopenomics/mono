@@ -46,8 +46,23 @@ services:
       POSTGRES_DB: voskhod
     volumes:
       - postgres_data:/var/lib/postgresql
+      # init-скрипт CoopID выполняется ТОЛЬКО при пустом data dir: на свежей
+      # машине создаёт authentik_db + coop_domain_db с ролевой изоляцией. На уже
+      # инициализированном томе БД заводятся вручную (см. infra/coopid/README.md).
+      - ./infra/coopid/postgres/init:/docker-entrypoint-initdb.d:ro
+    secrets:
+      # пароли прикладных ролей CoopID — init-скрипт читает их из /run/secrets.
+      - coop_pg_authentik_password
+      - coop_pg_app_password
     ports:
       - "127.0.0.1:${PG_HOST_PORT:-5532}:5432"
+    healthcheck:
+      # authentik стартует только после готовности обеих БД CoopID; pg_isready
+      # их бы не проверил и замаскировал недоинициализированный том.
+      test: ["CMD-SHELL", "psql -U postgres -d authentik_db -c 'select 1' >/dev/null 2>&1 && psql -U postgres -d coop_domain_db -c 'select 1' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   coopback:
     build:
@@ -69,6 +84,14 @@ services:
       - "0.0.0.0:${COOPBACK_HOST_PORT:-2998}:2998"
     working_dir: /app
     command: pnpm --filter @coopenomics/controller run dev
+    # CoopID: ключ подписи participant_certificate (Stories 1.7–1.8), vault-ключ
+    # кооператива, пароль роли coop_domain_db, токены вебхука и session_binding.
+    secrets:
+      - coop_cert_key
+      - coop_vault_key
+      - coop_pg_app_password
+      - authentik_webhook_token
+      - auth_v2_session_binding_secret
 
   cooparser:
     build:
@@ -124,7 +147,120 @@ services:
       timeout: 3s
       retries: 10
 
+  # ── CoopID: per-coop OIDC (authentik) ──────────────────────────────────────
+  # Данные authentik живут отдельной БД authentik_db в общем сервисе postgres
+  # (роль authentik_user, ролевая изоляция от coop_domain_db). Redis — общий
+  # monoredis, DB-индекс 1 (controller сидит в индексе 0).
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.2
+    restart: unless-stopped
+    command: server
+    environment: &authentik-env
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__HOST: postgres
+      AUTHENTIK_POSTGRESQL__PORT: 5432
+      AUTHENTIK_POSTGRESQL__NAME: authentik_db
+      AUTHENTIK_POSTGRESQL__USER: authentik_user
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/coop_pg_authentik_password
+      AUTHENTIK_REDIS__HOST: monoredis
+      AUTHENTIK_REDIS__DB: ${AUTHENTIK_REDIS_DB:-1}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: file:///run/secrets/authentik_bootstrap_password
+      AUTHENTIK_BOOTSTRAP_TOKEN: file:///run/secrets/authentik_bootstrap_token
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      # Подставляется blueprint'ом coopid-password-policy в headers-mapping вебхука.
+      COOPID_WEBHOOK_TOKEN: ${COOPID_WEBHOOK_TOKEN:-}
+    volumes: &authentik-volumes
+      - ./infra/coopid/authentik/blueprints:/blueprints/custom:ro
+    secrets: &authentik-secrets
+      - authentik_secret_key
+      - authentik_bootstrap_password
+      - authentik_bootstrap_token
+      - coop_pg_authentik_password
+    ports:
+      - "127.0.0.1:${AUTHENTIK_HOST_PORT:-9008}:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      monoredis:
+        condition: service_started
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.2
+    restart: unless-stopped
+    command: worker
+    environment: *authentik-env
+    volumes: *authentik-volumes
+    secrets: *authentik-secrets
+    depends_on:
+      postgres:
+        condition: service_healthy
+      monoredis:
+        condition: service_started
+
+  # ── CoopID edge: внешний TLS 1.3 (caddy) + разбор access-логов (crowdsec) ───
+  caddy:
+    image: caddy:2.11
+    restart: unless-stopped
+    environment:
+      # localhost → self-signed (внутренний CA caddy); реальный домен → Let's Encrypt.
+      COOPID_DOMAIN: ${COOPID_DOMAIN:-localhost}
+    ports:
+      # Прод с реальным доменом: CADDY_BIND=0.0.0.0, порты 80/443 — иначе ACME
+      # HTTP-01 challenge недостижим снаружи и Let's Encrypt не выдаст сертификат.
+      - "${CADDY_BIND:-127.0.0.1}:${CADDY_HTTP_PORT:-8088}:80"
+      - "${CADDY_BIND:-127.0.0.1}:${CADDY_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./infra/coopid/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    depends_on:
+      - authentik-server
+      - coopback
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.7.8
+    restart: unless-stopped
+    environment:
+      COLLECTIONS: "crowdsecurity/caddy crowdsecurity/http-cve"
+    volumes:
+      - ./infra/coopid/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - crowdsec_db:/var/lib/crowdsec/data
+      - crowdsec_config:/etc/crowdsec
+      - caddy_logs:/var/log/caddy:ro
+    depends_on:
+      - caddy
+
+# Все секреты CoopID — file-based из infra/coopid/secrets/ (каталог в .gitignore).
+# На свежей машине: bash scripts/coopid-gen-secrets.sh. На prod раскладывает плейбук.
+secrets:
+  coop_pg_authentik_password:
+    file: ./infra/coopid/secrets/coop_pg_authentik_password
+  coop_pg_app_password:
+    file: ./infra/coopid/secrets/coop_pg_app_password
+  authentik_secret_key:
+    file: ./infra/coopid/secrets/authentik_secret_key
+  authentik_bootstrap_password:
+    file: ./infra/coopid/secrets/authentik_bootstrap_password
+  authentik_bootstrap_token:
+    file: ./infra/coopid/secrets/authentik_bootstrap_token
+  authentik_webhook_token:
+    file: ./infra/coopid/secrets/authentik_webhook_token
+  auth_v2_session_binding_secret:
+    file: ./infra/coopid/secrets/auth_v2_session_binding_secret
+  coop_cert_key:
+    file: ./infra/coopid/secrets/coop_cert_key
+  coop_vault_key:
+    file: ./infra/coopid/secrets/coop_vault_key
+
 volumes:
   mongo_data:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
+  crowdsec_db:
+  crowdsec_config:

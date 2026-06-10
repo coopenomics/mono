@@ -45,11 +45,12 @@ if ! grep -q '^COOPID_WEBHOOK_TOKEN=' "$ROOT/.env" 2>/dev/null; then
 	printf '\n# Webhook-токен authentik→coopback (= infra/coopid/secrets/authentik_webhook_token)\nCOOPID_WEBHOOK_TOKEN=%s\n' "$(cat "$SECRETS_DIR/authentik_webhook_token")" >> "$ROOT/.env"
 	echo "  + COOPID_WEBHOOK_TOKEN добавлен в .env"
 fi
-# postgres: file-секреты в plain compose — bind-mount с хостовыми правами,
-# а init-скрипты официального образа выполняются под uid 999 (postgres) —
-# поэтому пароли postgres world-readable. Только для dev; prod-права — плейбук.
-gen 0444 coop_pg_superuser_password rand_pass
+# postgres: пароли прикладных ролей CoopID (authentik_user, coop_app_user).
+# Суперюзер postgres использует inline-пароль из docker-compose.yaml — отдельный
+# секрет ему не нужен. file-секреты в plain compose монтируются bind-mount'ом с
+# хостовыми правами, а init-скрипты официального образа выполняются под uid 999
+# (postgres) — поэтому пароли world-readable. Только dev; prod-права (0400) — плейбук.
 gen 0444 coop_pg_authentik_password rand_pass
 gen 0444 coop_pg_app_password rand_pass
 
-echo "Готово. Дальше: docker compose -f docker-compose.yaml -f docker-compose.authentik.yml -f docker-compose.edge.yml up -d"
+echo "Готово. Дальше: docker compose up -d (весь стек одной командой)."
