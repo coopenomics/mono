@@ -15,8 +15,8 @@ export { getAccessToken, getParticipantCertificate, login, loginWithMagicLink, l
 export type { EncryptedVaultBlob, VaultSubject } from './vault'
 export { ARGON2ID_PARAMS, decryptPrivateKey, deriveKey, encryptPrivateKey } from './vault'
 
-export type { Wallet } from './wallet'
-export { getWallet, rotateKey } from './wallet'
+export type { StorageAdapter } from './wallet'
+export { clearPinProtected, fetchVaultBlob, getWallet, isWalletUnlocked, lockWallet, rotateKey, unlockWallet, unlockWithPin, Wallet } from './wallet'
 
 export type { SignedDocument, TimestampSignature } from './signing'
 export { signDocument, signTimestamp } from './signing'

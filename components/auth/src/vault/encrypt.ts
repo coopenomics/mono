@@ -21,8 +21,8 @@ export function fromB64Url(s: string): Uint8Array {
 }
 
 /** AAD GCM привязывает шифртекст к субъекту: подмена subject_id ломает расшифровку. */
-function aad(subject: VaultSubject): Uint8Array {
-  return new TextEncoder().encode(`${subject.subject_type}|${subject.subject_id}`)
+function aad(subject: VaultSubject): string {
+  return `${subject.subject_type}|${subject.subject_id}`
 }
 
 /** WebCrypto в strict-TS требует ArrayBuffer-backed view; нормализуем Uint8Array. */
@@ -31,14 +31,14 @@ function buf(u: Uint8Array): ArrayBuffer {
 }
 
 /**
- * Клиентское шифрование приватного ключа пайщика (Story 2.1).
- * Argon2id(пароль, salt) → AES-256-GCM(ключ, nonce, AAD=субъект). Сервер
- * получает только результат — расшифровать может лишь владелец пароля.
+ * Subject-агностичное ядро (Story 2.2): Argon2id(пароль, salt) → AES-256-GCM с
+ * произвольной AAD-строкой. Поверх него работают и vault приватного ключа
+ * (AAD=субъект), и PIN-storage (AAD=`pin|<account>`) — без дублирования крипто.
  */
-export async function encryptPrivateKey(
-  privateKey: string,
+export async function encryptWithPassword(
+  plaintext: string,
   password: string,
-  subject: VaultSubject,
+  additionalData: string,
 ): Promise<EncryptedVaultBlob> {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN))
   const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LEN))
@@ -47,9 +47,9 @@ export async function encryptPrivateKey(
   const key = await crypto.subtle.importKey('raw', buf(keyBytes), { name: 'AES-GCM' }, false, ['encrypt'])
   const sealed = new Uint8Array(
     await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: buf(nonce), additionalData: buf(aad(subject)) },
+      { name: 'AES-GCM', iv: buf(nonce), additionalData: buf(new TextEncoder().encode(additionalData)) },
       key,
-      buf(new TextEncoder().encode(privateKey)),
+      buf(new TextEncoder().encode(plaintext)),
     ),
   )
   // WebCrypto склеивает ciphertext+tag; tag GCM — последние 16 байт.
@@ -67,26 +67,47 @@ export async function encryptPrivateKey(
   }
 }
 
-/**
- * Локальная расшифровка (для round-trip тестов и будущего keystore 2.2).
- * Серверу недоступна — type-driven ban (см. controller VaultService).
- */
-export async function decryptPrivateKey(
+/** Парная расшифровка ядра; неверный пароль/AAD → `VaultDecryptionFailed`. */
+export async function decryptWithPassword(
   blob: EncryptedVaultBlob,
   password: string,
-  subject: VaultSubject,
+  additionalData: string,
 ): Promise<string> {
   const keyBytes = deriveKey(password, fromB64Url(blob.salt))
   const key = await crypto.subtle.importKey('raw', buf(keyBytes), { name: 'AES-GCM' }, false, ['decrypt'])
   const sealed = new Uint8Array([...fromB64Url(blob.ciphertext), ...fromB64Url(blob.auth_tag)])
   try {
     const plain = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: buf(fromB64Url(blob.nonce)), additionalData: buf(aad(subject)) },
+      { name: 'AES-GCM', iv: buf(fromB64Url(blob.nonce)), additionalData: buf(new TextEncoder().encode(additionalData)) },
       key,
       buf(sealed),
     )
     return new TextDecoder().decode(plain)
   } catch {
-    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, 'Не удалось расшифровать ключ: неверный пароль или повреждённые данные')
+    throw new AuthV2Error(AuthV2ErrorCode.VaultDecryptionFailed, 'Не удалось расшифровать: неверный пароль или повреждённые данные')
   }
+}
+
+/**
+ * Клиентское шифрование приватного ключа пайщика (Story 2.1). Сервер получает
+ * только результат — расшифровать может лишь владелец пароля (AAD=субъект).
+ */
+export async function encryptPrivateKey(
+  privateKey: string,
+  password: string,
+  subject: VaultSubject,
+): Promise<EncryptedVaultBlob> {
+  return encryptWithPassword(privateKey, password, aad(subject))
+}
+
+/**
+ * Локальная расшифровка (round-trip тесты и keystore 2.2). Серверу недоступна —
+ * type-driven ban (см. controller VaultService).
+ */
+export async function decryptPrivateKey(
+  blob: EncryptedVaultBlob,
+  password: string,
+  subject: VaultSubject,
+): Promise<string> {
+  return decryptWithPassword(blob, password, aad(subject))
 }

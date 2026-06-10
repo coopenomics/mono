@@ -17,6 +17,10 @@ const PUBLIC_API = [
   'exportToQR',
 ] as const
 
+// Методы, ещё не реализованные (бросают not_implemented). По мере реализации
+// историй метод уходит отсюда: getWallet/unlockWallet — Story 2.2 (реализованы).
+const STILL_STUBBED = PUBLIC_API.filter(m => m !== 'getWallet')
+
 describe('@coopenomics/auth — скелет SDK', () => {
   it('экспортирует всю публичную поверхность', () => {
     for (const method of PUBLIC_API)
@@ -24,7 +28,7 @@ describe('@coopenomics/auth — скелет SDK', () => {
   })
 
   it('stub\'ы отказывают типизированной AuthV2Error(not_implemented), а не молчат', async () => {
-    for (const method of PUBLIC_API) {
+    for (const method of STILL_STUBBED) {
       const err = await (api[method] as () => Promise<unknown>)().then(
         () => null,
         e => e,
