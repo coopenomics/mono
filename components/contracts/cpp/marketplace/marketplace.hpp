@@ -27,9 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (11 actions): createorder, stockorder, cancelorder,
+ *  - **p.mkt.supply** (13 actions): createorder, stockorder, cancelorder,
  *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2, markdown.
+ *    signiss2, markdown, setfee, setsplit.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -264,6 +264,27 @@ public:
                                    eosio::asset actual_unit_price,
                                    eosio::name delivery_signer,
                                    document2 act);
+
+  /**
+   * @brief Установка единой ставки членского взноса «Стола заказов»
+   * (requirement b6). Одна ставка на весь кооператив (HUNDR_PERCENTS = 100%);
+   * задаёт администратор. Применяется к новым заказам; в созданных заказах
+   * взнос зафиксирован полем Order.membership_fee.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void setfee(eosio::name coopname,
+                                 uint64_t membership_fee_percent);
+
+  /**
+   * @brief Отсечка персонального распределения членского взноса КУ
+   * (requirement b6): доля взноса, распределяемая между председателем и
+   * доверенными по весам branch::weights; остальное — в общий кошелёк КУ.
+   * Меняет председатель КУ.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void setsplit(eosio::name coopname, eosio::name initiator,
+                                   eosio::name braname,
+                                   uint64_t personal_percent);
 
   // ── p.mkt.return ─────────────────────────────────────────────────────
 

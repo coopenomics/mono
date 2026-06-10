@@ -9,6 +9,8 @@
 #include "src/p.mkt.supply/createorder.cpp"
 #include "src/p.mkt.supply/stockorder.cpp"
 #include "src/p.mkt.supply/markdown.cpp"
+#include "src/p.mkt.supply/setfee.cpp"
+#include "src/p.mkt.supply/setsplit.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
 #include "src/p.mkt.supply/expireorder.cpp"
 #include "src/p.mkt.supply/acceptorder.cpp"

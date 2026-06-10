@@ -1,5 +1,11 @@
 #pragma once
 
+#include <string>
+#include <tuple>
+
+#include <eosio/action.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 
 #include "../../consts.hpp"
@@ -38,6 +44,23 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
   }
 
   return branch_itr->is_account_in_trusted(username);
+}
+
+/**
+ * @brief Inline-вызов branch::distribute от контракта-источника членских
+ * взносов (requirement b6 «Экономика КУ»): раскладка поступившего взноса по
+ * кошелькам КУ — персональная часть по весам доверенных (o.brn.person),
+ * остальное в общий кошелёк КУ (o.brn.common).
+ */
+inline void distribute(eosio::name actor, eosio::name coopname, eosio::name braname,
+                       eosio::asset total_amount, eosio::asset personal_amount,
+                       eosio::checksum256 process_hash, std::string memo) {
+  eosio::action(
+    eosio::permission_level{actor, "active"_n},
+    _branch,
+    "distribute"_n,
+    std::make_tuple(coopname, braname, actor, total_amount, personal_amount, process_hash, memo)
+  ).send();
 }
 
 } // namespace Branch

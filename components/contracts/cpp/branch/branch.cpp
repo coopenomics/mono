@@ -1,10 +1,17 @@
 #include "branch.hpp"
 
 #include "src/addtrusted.cpp"
+#include "src/aidconfirm.cpp"
+#include "src/aiddecline.cpp"
+#include "src/convert.cpp"
+#include "src/createaid.cpp"
 #include "src/createbranch.cpp"
 #include "src/deletebranch.cpp"
 #include "src/deltrusted.cpp"
+#include "src/delweight.cpp"
+#include "src/distribute.cpp"
 #include "src/editbranch.cpp"
+#include "src/setweight.cpp"
 
 using namespace eosio;
 

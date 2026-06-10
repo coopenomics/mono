@@ -65,6 +65,12 @@ namespace processes {
     inline constexpr eosio::name WRITEOFF  = "p.mkt.wroff"_n;    ///< Утилизация скоропорта со склада КУ (o.mkt.wroff, по протоколу совета).
   }
 
+  // branch — экономика кооперативного участка (requirement b6)
+  namespace branch {
+    inline constexpr eosio::name FEES = "p.brn.fees"_n;  ///< Распределение членских взносов КУ при финализации заказа (o.brn.person + o.brn.common) и использование персональных средств доверенным (o.brn.conv).
+    inline constexpr eosio::name AID  = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
+  }
+
   // soviet
   namespace soviet {
     inline constexpr eosio::name AXN_CONVERT = "p.sov.axncnv"_n; ///< Конвертация паевого RUB → делегатский ЧВ (одноактовый).

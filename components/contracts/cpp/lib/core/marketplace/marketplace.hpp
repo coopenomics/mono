@@ -10,6 +10,9 @@
 #include "../../consts.hpp"
 #include "../../domain/document_core.hpp"
 #include "../../domain/table_ledger2_userwallets.hpp"
+#include "../../domain/table_marketplace_fee_config.hpp"
+#include "../ledger2/ledger2.hpp"
+#include "memo.hpp"
 #include "../../domain/table_marketplace_orders.hpp"
 #include "../../domain/table_marketplace_return_requests.hpp"
 #include "../../domain/table_marketplace_writeoff_proposals.hpp"
@@ -135,6 +138,49 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
     return UserWalletAvailable{};
   }
   return UserWalletAvailable{ it->available, it->blocked, true };
+}
+
+// ── Членский взнос «Стола заказов» (requirement b6 «Экономика КУ») ──────
+
+/// Единая ставка членского взноса кооператива (HUNDR_PERCENTS = 100%);
+/// 0 — взнос не настроен и не начисляется.
+inline uint64_t get_membership_fee_percent(eosio::name coopname) {
+  mkt_config_singleton cfg(_marketplace, coopname.value);
+  return cfg.exists() ? cfg.get().membership_fee_percent : 0;
+}
+
+/// Отсечка персонального распределения КУ (HUNDR_PERCENTS = 100%);
+/// 0 — весь взнос уходит в общий кошелёк КУ.
+inline uint64_t get_branch_personal_percent(eosio::name coopname, eosio::name braname) {
+  branch_splits_index splits(_marketplace, coopname.value);
+  auto it = splits.find(braname.value);
+  return it == splits.end() ? 0 : it->personal_percent;
+}
+
+/// Сумма членского взноса от базы по ставке (целочисленно, вниз).
+inline eosio::asset calc_membership_fee(const eosio::asset& base, uint64_t fee_percent) {
+  const int64_t amount = static_cast<int64_t>(
+      static_cast<uint128_t>(base.amount) * fee_percent / HUNDR_PERCENTS);
+  return eosio::asset(amount, _root_govern_symbol);
+}
+
+/// Членский взнос заказа (binary_extension: для исторических Order'ов — 0).
+inline eosio::asset get_order_membership_fee(const order& o) {
+  return o.membership_fee.has_value()
+      ? o.membership_fee.value()
+      : eosio::asset(0, _root_govern_symbol);
+}
+
+/// Полный возврат членского взноса заказа на членский кошелёк «Стола
+/// заказов» (o.mkt.refund) при отмене/отклонении/истечении; no-op для
+/// заказов без взноса. Частичный возврат при недовыдаче — в signiss2.
+inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
+  const eosio::asset fee = get_order_membership_fee(o);
+  if (fee.amount <= 0) return;
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                 fee, o.orderer, o.hash,
+                 Marketplace::Memo::get_membership_fee_refund_memo(o.id));
 }
 
 } // namespace Marketplace

@@ -39,6 +39,9 @@ void marketplace::cancelorder(eosio::name coopname,
                  o.total_cost, orderer, o.hash,
                  Marketplace::Memo::get_cancel_order_memo(o.id));
 
+  // Членский взнос возвращается полностью (o.mkt.refund, requirement b6).
+  Marketplace::refund_membership_fee_if_any(coopname, o);
+
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.status = OrderStatus::CANCELLED;
   });
