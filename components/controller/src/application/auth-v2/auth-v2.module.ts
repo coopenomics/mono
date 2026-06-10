@@ -12,6 +12,8 @@ import { VerifyTimestampService } from './verify-timestamp/verify-timestamp.serv
 import { VerifyTimestampController } from './verify-timestamp/verify-timestamp.controller';
 import { CertificateService } from './certificate/certificate.service';
 import { CertificateController } from './certificate/certificate.controller';
+import { LogoutService } from './logout/logout.service';
+import { LogoutController } from './logout/logout.controller';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -21,8 +23,8 @@ import { CertificateController } from './certificate/certificate.controller';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController],
-  providers: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService],
-  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController],
+  providers: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService],
+  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService],
 })
 export class AuthV2Module {}

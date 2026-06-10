@@ -22,7 +22,7 @@ export { TRUST_ANCHOR_ANO_CERT_JWK } from './config/trust-anchor'
 export { AuthV2Error, AuthV2ErrorCode } from './errors'
 
 export { exportToQR } from './export'
-export type { LoginParams, LoginResult } from './oidc'
+export type { LoginParams, LoginResult, LogoutParams } from './oidc'
 
 export { getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, recover } from './oidc'
 export type { SignedDocument, TimestampSignature } from './signing'

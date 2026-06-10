@@ -3,6 +3,7 @@
  * magic-link, recovery и работа с токенами (oidc-client-ts).
  */
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
+import { clearPinProtected, lockWallet, type StorageAdapter } from '../wallet'
 
 export interface LoginParams {
   /** Issuer кооператива, например `https://coop.example/application/o/coopid/` */
@@ -59,7 +60,38 @@ export async function getParticipantCertificate(apiUrl: string, accessToken: str
   return body.participant_certificate
 }
 
-/** RP-initiated logout: revoke refresh_token, очистка сессии и keystore. Story 1.10. */
-export async function logout(): Promise<void> {
-  notImplemented('logout')
+export interface LogoutParams {
+  /** Базовый URL controller'а кооператива (например `https://coop.example`). */
+  apiUrl: string
+  /** refresh_token текущей сессии — отзывается на сервере. */
+  refreshToken: string
+  /** access_token (опционально) — тоже отзывается. */
+  accessToken?: string
+  /** Хранилище PIN-protected ключа — стирается, если вход по PIN был включён. */
+  pinStorage?: StorageAdapter
+}
+
+/**
+ * RP-initiated logout (Story 1.10): отзыв токенов на сервере + затирание локального
+ * keystore. Серверный вызов — best-effort; локальное затирание ключа выполняется
+ * ВСЕГДА (в `finally`), даже если сервер недоступен — безопасность важнее «чистого»
+ * logout: расшифрованный ключ не должен остаться в памяти браузера при сетевом сбое.
+ * Редирект на login — на стороне вызывающего. Стандартный OIDC end-session — Story 5.1.
+ */
+export async function logout(params: LogoutParams): Promise<void> {
+  try {
+    await fetch(`${params.apiUrl.replace(/\/$/, '')}/coop/logout`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refresh_token: params.refreshToken, access_token: params.accessToken }),
+    })
+  }
+  catch {
+    // best-effort: недоступность сервера не должна блокировать локальное затирание ключа
+  }
+  finally {
+    lockWallet()
+    if (params.pinStorage)
+      await clearPinProtected(params.pinStorage)
+  }
 }
