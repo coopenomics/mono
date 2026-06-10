@@ -1,7 +1,6 @@
 <template lang="pug">
 .issue-row(role='row')
-  // 1. Метаблок (горизонтально): приоритет → ID → инлайн-чип времени.
-  // Чип фиксированной ширины — title не «прыгает» между задачами с разным estimate/fact.
+  // 1. Метаблок (горизонтально): приоритет → ID.
   .meta-block
     q-icon.priority-icon(
       :name='priorityIcon'
@@ -16,12 +15,6 @@
     )
       template(#prefix)
         q-icon(name='task', size='xs')
-    IssueTimeChip(
-      :issue-hash='issue.issue_hash'
-      :estimate='issue.estimate'
-      :fact='issue.fact'
-      :readonly='!canChangeEstimate'
-    )
 
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
@@ -33,8 +26,15 @@
       size='sm'
     ) {{ tag }}
 
-  // 3. Действия: компактный chip статуса + аватарки исполнителей.
+  // 3. Действия: время (в одной вертикали с план/фактом проекта и
+  // компонента) + компактный chip статуса + аватарки исполнителей.
   .actions-block(@click.stop)
+    IssueTimeChip(
+      :issue-hash='issue.issue_hash'
+      :estimate='issue.estimate'
+      :fact='issue.fact'
+      :readonly='!canChangeEstimate'
+    )
     IssueStatusChip(
       :model-value='issue.status'
       :issue-hash='issue.issue_hash'
