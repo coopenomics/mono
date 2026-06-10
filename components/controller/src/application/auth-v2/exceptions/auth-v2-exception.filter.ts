@@ -26,6 +26,10 @@ const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   [AuthV2ErrorCode.TooManyAttempts]: HttpStatus.TOO_MANY_REQUESTS,
   // 429: rate-limit recovery (Story 3.1) — слишком много запросов восстановления.
   [AuthV2ErrorCode.TooManyRecoveryAttempts]: HttpStatus.TOO_MANY_REQUESTS,
+  // 401: неверный код второго фактора (Story 3.6) — TOTP не прошёл.
+  [AuthV2ErrorCode.InvalidTwoFactorCode]: HttpStatus.UNAUTHORIZED,
+  // 400: второй фактор не подключён, а операция его требует (Story 3.6).
+  [AuthV2ErrorCode.TwoFactorNotEnrolled]: HttpStatus.BAD_REQUEST,
   // 403: серверная расшифровка ключа запрещена инвариантом (не «не авторизован»).
   [AuthV2ErrorCode.VaultServerDecryptionForbidden]: HttpStatus.FORBIDDEN,
   // 400: некорректный ввод/данные клиента (AC Story 1.11 — invalid_credentials → 400).

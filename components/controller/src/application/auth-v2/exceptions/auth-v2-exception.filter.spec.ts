@@ -28,6 +28,8 @@ describe('AuthV2ExceptionFilter (Story 1.11)', () => {
     [AuthV2ErrorCode.ChainVerificationFailed, HttpStatus.UNAUTHORIZED],
     [AuthV2ErrorCode.TooManyAttempts, HttpStatus.TOO_MANY_REQUESTS],
     [AuthV2ErrorCode.TooManyRecoveryAttempts, HttpStatus.TOO_MANY_REQUESTS],
+    [AuthV2ErrorCode.InvalidTwoFactorCode, HttpStatus.UNAUTHORIZED],
+    [AuthV2ErrorCode.TwoFactorNotEnrolled, HttpStatus.BAD_REQUEST],
   ])('маппит %s → HTTP %d', (code, status) => {
     const { host, res } = mockHost();
     filter.catch(new AuthV2Error(code, 'описание'), host);

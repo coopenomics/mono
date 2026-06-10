@@ -10,6 +10,8 @@ export enum AuthV2ErrorCode {
   CooposDegraded = 'coopos_degraded',
   TooManyAttempts = 'too_many_attempts',
   TooManyRecoveryAttempts = 'too_many_recovery_attempts',
+  InvalidTwoFactorCode = 'invalid_2fa_code',
+  TwoFactorNotEnrolled = 'two_factor_not_enrolled',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */

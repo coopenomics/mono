@@ -16,6 +16,8 @@ export enum AuthV2ErrorCode {
   CooposDegraded = 'coopos_degraded',
   TooManyAttempts = 'too_many_attempts',
   TooManyRecoveryAttempts = 'too_many_recovery_attempts',
+  InvalidTwoFactorCode = 'invalid_2fa_code',
+  TwoFactorNotEnrolled = 'two_factor_not_enrolled',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -146,6 +148,16 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
   },
   [AuthV2ErrorCode.TooManyRecoveryAttempts]: {
     message: 'Слишком много запросов на восстановление. Подождите и попробуйте позже.',
+    action: 'retry',
+    keepSession: true,
+  },
+  [AuthV2ErrorCode.InvalidTwoFactorCode]: {
+    message: 'Неверный код из приложения-аутентификатора. Проверьте код и попробуйте снова.',
+    action: 'retry',
+    keepSession: true,
+  },
+  [AuthV2ErrorCode.TwoFactorNotEnrolled]: {
+    message: 'Второй фактор не подключён.',
     action: 'retry',
     keepSession: true,
   },

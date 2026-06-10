@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
 import { TokenApplicationModule } from '~/application/token/token-application.module';
+import { TWO_FACTOR_VERIFIER } from '~/domain/auth-v2/ports/two-factor.port';
 import { AuditService } from './audit/audit.service';
 import { AuthentikEventsController } from './authentik-events.controller';
 import { SessionBindingService } from './session-binding/session-binding.service';
@@ -17,6 +18,8 @@ import { LogoutController } from './logout/logout.controller';
 import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
 import { RecoveryService } from './recovery/recovery.service';
 import { RecoveryController } from './recovery/recovery.controller';
+import { TwoFactorService } from './two-factor/two-factor.service';
+import { TwoFactorController } from './two-factor/two-factor.controller';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -26,8 +29,12 @@ import { RecoveryController } from './recovery/recovery.controller';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController],
-  providers: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService],
-  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, TwoFactorController],
+  providers: [
+    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, TwoFactorService,
+    // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
+    { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
+  ],
+  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
 })
 export class AuthV2Module {}
