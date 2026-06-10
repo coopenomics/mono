@@ -300,6 +300,9 @@ defineExpose({
 .easymde-editor-container .milkdown {
   max-width: 100%;
   min-width: 0;
+  /* Фон наследуется от подложки страницы/диалога: белый блок crepe-темы
+     выбивался из канвы (канон: поверхности задаёт страница, не редактор) */
+  background: transparent;
 }
 
 /*
@@ -324,10 +327,10 @@ defineExpose({
   --crepe-color-hover: #e0e0e0;
   --crepe-color-selected: #d5d5d5;
   --crepe-color-inline-area: #cacaca;
-  --crepe-font-title: 'Noto Serif', Cambria, 'Times New Roman', Times, serif;
-  --crepe-font-default: 'Noto Sans', Arial, Helvetica, sans-serif;
-  --crepe-font-code:
-    'Space Mono', Fira Code, Menlo, Monaco, 'Courier New', Courier, monospace;
+  /* Канон-инвариант: Inter + JetBrains Mono, никаких serif/Noto/Space Mono */
+  --crepe-font-title: var(--p-sans);
+  --crepe-font-default: var(--p-sans);
+  --crepe-font-code: var(--p-mono);
   --crepe-shadow-1:
     0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
   --crepe-shadow-2:
@@ -352,10 +355,10 @@ defineExpose({
   --crepe-color-hover: #232323;
   --crepe-color-selected: #2f2f2f;
   --crepe-color-inline-area: #2b2b2b;
-  --crepe-font-title: 'Noto Serif', Cambria, 'Times New Roman', Times, serif;
-  --crepe-font-default: 'Noto Sans', Arial, Helvetica, sans-serif;
-  --crepe-font-code:
-    'Space Mono', Fira Code, Menlo, Monaco, 'Courier New', Courier, monospace;
+  /* Канон-инвариант: Inter + JetBrains Mono, никаких serif/Noto/Space Mono */
+  --crepe-font-title: var(--p-sans);
+  --crepe-font-default: var(--p-sans);
+  --crepe-font-code: var(--p-mono);
   --crepe-shadow-1:
     0px 1px 2px 0px rgba(255, 255, 255, 0.3),
     0px 1px 3px 1px rgba(255, 255, 255, 0.15);

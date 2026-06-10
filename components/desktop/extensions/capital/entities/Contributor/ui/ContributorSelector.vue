@@ -6,7 +6,7 @@ q-select(
   :color='outlined ? "primary" : undefined'
   v-model='selectedValue'
   :options='filteredContributors'
-  :loading='isSearching'
+  :loading='isSearching || loading'
   :label='label'
   :placeholder='placeholder'
   :multiple='multiSelect'

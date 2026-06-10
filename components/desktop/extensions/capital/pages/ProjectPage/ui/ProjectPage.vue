@@ -54,8 +54,16 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
             @action-completed="handleInvestCompleted"
           )
 
+  // Скелетон первичной загрузки проекта — каркас вместо пустой страницы
+  .project-page-skeleton(v-if="!project")
+    .project-page-skeleton__side
+      .skel(v-for="i in 4", :key="i")
+    .project-page-skeleton__main
+      .skel.skel--title
+      .skel.skel--text(v-for="i in 3", :key="i")
+
   // Мобильный layout - колонки одна под другой
-  div(v-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
+  div(v-else-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
     div
       ProjectSidebarWidget(
         :project="project"
@@ -289,3 +297,45 @@ onMounted(async () => {
   await loadProject();
 });
 </script>
+
+<style lang="scss" scoped>
+// Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
+.project-page-skeleton {
+  display: flex;
+  gap: var(--p-4);
+  padding: var(--p-4);
+
+  &__side {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel {
+      height: 40px;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel--title {
+      width: 240px;
+      max-width: 60%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    &__side {
+      width: 100%;
+    }
+  }
+}
+</style>
