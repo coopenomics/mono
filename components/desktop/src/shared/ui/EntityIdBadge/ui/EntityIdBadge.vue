@@ -1,6 +1,7 @@
 <template lang="pug">
 span.entity-id-badge__pill(
   v-if="displayLabel"
+  :class='{ "entity-id-badge__pill--flat": flat }'
   @click.stop="onActivate"
 )
   span.entity-id-badge__prefix(v-if="$slots.prefix")
@@ -31,8 +32,11 @@ const props = withDefaults(
     /** Что именно класть в буфер (если отличается от отображаемого id —
         например показываем короткий хеш, а копируем полный) */
     copyValue?: string | null;
+    /** Плоский вариант для плотных строк списков: без плашки,
+        muted-текст, иконка копирования появляется по hover */
+    flat?: boolean;
   }>(),
-  { copyOnClick: false, addressClipboard: false, copyValue: null },
+  { copyOnClick: false, addressClipboard: false, copyValue: null, flat: false },
 );
 
 const sessionStore = useSessionStore();
@@ -118,5 +122,26 @@ const onActivate = async (e: MouseEvent) => {
 }
 .entity-id-badge__pill:hover .entity-id-badge__copy {
   color: var(--p-primary);
+}
+
+// Плоский вариант для плотных строк (Linear-style ID)
+.entity-id-badge__pill--flat {
+  background: transparent;
+  padding: 2px 0;
+  color: var(--p-ink-3);
+
+  &:hover {
+    background: transparent;
+    color: var(--p-ink-1);
+  }
+
+  .entity-id-badge__copy {
+    opacity: 0;
+    transition: opacity var(--p-dur-fast, 120ms) ease;
+  }
+
+  &:hover .entity-id-badge__copy {
+    opacity: 1;
+  }
 }
 </style>

@@ -22,12 +22,13 @@ const hoursFormatter = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 1,
 });
 
-/** Часы «факт / план ч» по пулам проекта */
+/** Часы «фактч / планч» по пулам проекта — формат синхронен с
+ *  инлайн-чипом времени задачи (IssueTimeChip) */
 export const formatHoursFactPlan = (
   fact?: string | number | null,
   plan?: string | number | null,
 ): string =>
-  `${hoursFormatter.format(parseAssetAmount(fact))} / ${hoursFormatter.format(parseAssetAmount(plan))} ч`;
+  `${hoursFormatter.format(parseAssetAmount(fact))}ч / ${hoursFormatter.format(parseAssetAmount(plan))}ч`;
 
 /** Инвестиции «факт / план» компактно */
 export const formatInvestFactPlan = (

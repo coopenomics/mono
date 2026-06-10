@@ -24,27 +24,29 @@ div
                 @click='handleToggleComponent(props.row.project_hash)'
               )
 
-            // ID с иконкой типа внутри бейджа
+            // ID — плоский muted-текст фиксированной колонки (Linear-style)
             .col-auto.component-row__id
               EntityIdBadge(
                 v-if='props.row.id'
                 :raw-id='props.row.id'
                 copy-on-click
                 address-clipboard
+                flat
               )
-                template(#prefix)
-                  q-icon(name='code', size='xs')
 
-            // Title со статусом
+            // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+            .col-auto.row-status
+              q-icon(
+                :name='getProjectStatusIcon(props.row.status)',
+                :color='getProjectStatusDotColor(props.row.status)',
+                size='xs'
+              )
+
+            // Title
             .col.component-row__title-col
               .list-item-title(
                 @click.stop='handleOpenComponent(props.row.project_hash)'
               )
-                q-icon(
-                  :name='getProjectStatusIcon(props.row.status)',
-                  :color='getProjectStatusDotColor(props.row.status)',
-                  size='xs'
-                ).q-mr-sm
                 span {{ props.row.title }}
 
             // Правая сетка строки: время | инвестиции | действие —
@@ -218,21 +220,25 @@ const columns = [
 // уровня нет — каскадный отступ задаёт родительский виджет, чтобы при
 // одиночном использовании список начинался от края
 .component-row {
+  padding-right: var(--p-3);
   min-height: 48px;
 }
 
 .component-row__toggle {
-  width: 35px;
+  width: 28px;
   flex-shrink: 0;
 }
 
 .component-row__id {
-  width: 100px;
+  width: 96px;
   flex-shrink: 0;
 }
 
-.component-row__title-col {
-  padding-left: var(--p-2);
+.row-status {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 // Вложенный уровень (задачи компонента) — отступ каскада

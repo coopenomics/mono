@@ -35,27 +35,29 @@ div
                   @click='handleToggleExpand(props.row.project_hash)'
                 )
 
-              // ID с иконкой типа внутри бейджа
+              // ID — плоский muted-текст фиксированной колонки (Linear-style)
               .col-auto.project-row__id
                 EntityIdBadge(
                   v-if='props.row.id'
                   :raw-id='props.row.id'
                   copy-on-click
                   address-clipboard
+                  flat
                 )
-                  template(#prefix)
-                    q-icon(name='work', size='xs')
 
-              // Title со статусом
+              // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+              .col-auto.row-status
+                q-icon(
+                  :name='getProjectStatusIcon(props.row.status)',
+                  :color='getProjectStatusDotColor(props.row.status)',
+                  size='xs'
+                )
+
+              // Title
               .col.project-row__title-col
                 .list-item-title(
                   @click.stop='handleOpenProject(props.row.project_hash)'
                 )
-                  q-icon(
-                    :name='getProjectStatusIcon(props.row.status)',
-                    :color='getProjectStatusDotColor(props.row.status)',
-                    size='xs'
-                  ).q-mr-sm
                   span {{ props.row.title }}
 
               // Правая сетка строки: время | инвестиции | действие —
@@ -356,17 +358,25 @@ const columns = [
 // virtual-scroll-item-size=48 — не spacing, токенам не подлежат)
 .project-row {
   padding-left: var(--p-3);
+  padding-right: var(--p-3);
   min-height: 48px;
 }
 
 .project-row__toggle {
-  width: 35px;
+  width: 28px;
   flex-shrink: 0;
 }
 
 .project-row__id {
-  width: 100px;
+  width: 96px;
   flex-shrink: 0;
+}
+
+.row-status {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 // Вложенный уровень (компоненты проекта) — отступ каскада задаёт родитель,

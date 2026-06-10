@@ -118,7 +118,7 @@ function formatHours(h: number | null | undefined): string {
 
 const inlineLabel = computed(() => {
   if (hasFact.value && hasEstimate.value) {
-    return `${formatHours(props.fact)}/${formatHours(props.estimate)}`;
+    return `${formatHours(props.fact)} / ${formatHours(props.estimate)}`;
   }
   if (hasFact.value) return formatHours(props.fact);
   if (hasEstimate.value) return formatHours(props.estimate);
@@ -181,15 +181,15 @@ const saveEstimate = async () => {
   align-items: center;
 }
 
-// Триггер фиксированной ширины — title не прыгает между задачами
-// с разными значениями времени.
+// Триггер живёт в фиксированной колонке строки (.cell-time) и
+// прижимается к её правому краю — время всех уровней в одной вертикали.
 .time-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
   padding: 2px 6px;
   height: 22px;
-  width: 86px;
   box-sizing: border-box;
   border-radius: 4px;
   font-size: 11px;

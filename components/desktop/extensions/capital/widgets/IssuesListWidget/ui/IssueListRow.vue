@@ -1,20 +1,21 @@
 <template lang="pug">
 .issue-row(role='row')
-  // 1. Метаблок (горизонтально): приоритет → ID.
-  .meta-block
+  // 1. Левые колонки — та же сетка, что у проектов/компонентов:
+  // приоритет (на месте chevron) → плоский ID фиксированной ширины.
+  .row-lead
     q-icon.priority-icon(
       :name='priorityIcon'
       :color='priorityColor'
       size='18px'
     )
       q-tooltip(anchor='bottom middle', self='top middle') Приоритет: {{ priorityLabel }}
+  .row-id
     EntityIdBadge(
       :raw-id='issue.id'
       copy-on-click
       address-clipboard
+      flat
     )
-      template(#prefix)
-        q-icon(name='task', size='xs')
 
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
@@ -89,20 +90,27 @@ const canChangeEstimate = computed(
   // мигрирует на вторую строку, не клипается за правый край.
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--p-2) var(--p-3);
+  row-gap: var(--p-2);
   min-height: 48px;
-  padding: var(--p-2) var(--p-3);
+  padding: var(--p-2) var(--p-3) var(--p-2) 0;
   width: 100%;
   box-sizing: border-box;
 }
 
-// 1. Meta — горизонтальная цепочка приоритет → ID → время.
-.meta-block {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+// 1. Левые колонки — сетка, синхронная со строками проектов/компонентов.
+.row-lead {
+  width: 28px;
   flex-shrink: 0;
-  gap: var(--p-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-id {
+  width: 96px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .priority-icon {
@@ -180,11 +188,7 @@ const canChangeEstimate = computed(
 @media (max-width: 640px) {
   .issue-row {
     flex-wrap: wrap;
-    row-gap: 6px;
-  }
-
-  .meta-block {
-    gap: 6px;
+    row-gap: var(--p-2);
   }
 
   .title-block {
