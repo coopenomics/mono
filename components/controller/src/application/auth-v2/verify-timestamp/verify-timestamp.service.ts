@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { jwtVerify } from 'jose';
 import config from '~/config/config';
 import { REDIS_PORT } from '~/domain/common/ports/redis.port';
@@ -10,6 +10,7 @@ import type { UserDomainService } from '~/domain/user/services/user-domain.servi
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
+import { CertificateService } from '../certificate/certificate.service';
 
 /** Окно свежести метки времени против head_block_time, сек (epic AC Story 1.7). */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -26,6 +27,9 @@ export interface VerifyTimestampInput {
 export interface VerifyTimestampResult {
   access_token: string;
   refresh_token: string;
+  /** participant_certificate (Story 1.8). Best-effort: при сбое выпуска вход не
+   *  ломается — клиент дозапросит через GET /coop/certificate (там ошибка явная). */
+  participant_certificate?: string;
 }
 
 /**
@@ -48,12 +52,15 @@ export function canonicalTimestampMessage(payload: { ts: string; binding_token_j
  */
 @Injectable()
 export class VerifyTimestampService {
+  private readonly logger = new Logger(VerifyTimestampService.name);
+
   constructor(
     @Inject(REDIS_PORT) private readonly redis: RedisPort,
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     private readonly tokens: TokenApplicationService,
     private readonly audit: AuditService,
+    private readonly certificate: CertificateService,
   ) {}
 
   async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
@@ -118,9 +125,18 @@ export class VerifyTimestampService {
     // успех → выпуск токенов платформенным механизмом (id_token/certificate — Story 1.8).
     const user = await this.userDomainService.getUserByUsername(sub);
     const pair = await this.tokens.generateAuthTokens(user.id);
+
+    // participant_certificate (Story 1.8) — best-effort: сбой выпуска не валит логин.
+    let participant_certificate: string | undefined;
+    try {
+      participant_certificate = await this.certificate.issueForUsername(sub);
+    } catch (e) {
+      this.logger.warn(`participant_certificate не выпущен на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
+    }
+
     await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, actor: sub, result: 'success', ip: input.ip });
 
-    return { access_token: pair.access.token, refresh_token: pair.refresh.token };
+    return { access_token: pair.access.token, refresh_token: pair.refresh.token, participant_certificate };
   }
 
   /** Аудит не должен валить успешный вход (coop_domain_db недоступен → degraded-лог, не 500). */

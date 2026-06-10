@@ -169,6 +169,22 @@ export class BlockchainService implements BlockchainPort {
   }
 
   // Authentication related methods
+  public async getCertPublicKey(accountName: string): Promise<string | null> {
+    const account = await this.getAccount(accountName);
+    if (!account) return null;
+    const accountJson = JSON.parse(JSON.stringify(account));
+    const certPerm = accountJson.permissions?.find((p: any) => p.perm_name === 'cert');
+    const auth = certPerm?.required_auth;
+    // строго single-key cert-permission: один ключ, без делегирования (accounts/waits)
+    if (!auth || auth.threshold !== 1 || auth.keys?.length !== 1 || auth.accounts?.length || auth.waits?.length)
+      return null;
+    try {
+      return PublicKey.from(auth.keys[0].key).toString();
+    } catch {
+      return auth.keys[0].key ?? null;
+    }
+  }
+
   public recoverPublicKey(message: string, signature: string): string {
     // recoverMessage хэширует utf8-байты (Checksum256) и восстанавливает pubkey —
     // байт-в-байт зеркало клиентского PrivateKey.signMessage (SDK signTimestamp).

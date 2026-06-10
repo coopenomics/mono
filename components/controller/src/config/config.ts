@@ -144,6 +144,11 @@ const envVarsSchema = z.object({
   AUTH_V2_SESSION_BINDING_SECRET: z.string().optional(),
   AUTH_V2_SESSION_BINDING_SECRET_FILE: z.string().optional(),
   AUTHENTIK_INTERNAL_URL: z.string().default('http://authentik-server:9000'),
+  // auth-v2 (CoopID, Story 1.8): PEM приватного ключа (ES256K/secp256k1) permission `cert`
+  // аккаунта vostok — им подписывается participant_certificate. Тот же ключ дериватится
+  // в vostok.cert миграцией 052 (on-chain цепь обязана совпасть с ключом подписи).
+  COOP_CERT_KEY: z.string().optional(),
+  COOP_CERT_KEY_FILE: z.string().optional(),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
@@ -285,6 +290,20 @@ export default {
         }
       }
       return envVars.data!.AUTH_V2_SESSION_BINDING_SECRET ?? '';
+    },
+    // PEM cert-ключа: многострочный, .trim() убирает только хвостовой перевод строки
+    // (createPrivateKey терпим к нему). '' при отсутствии — потребитель (CertificateService)
+    // отдаёт явную ошибку конфигурации, не падая на импорте config.
+    get certKey(): string {
+      const file = envVars.data!.COOP_CERT_KEY_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.COOP_CERT_KEY ?? '';
     },
   },
   blockchain: {

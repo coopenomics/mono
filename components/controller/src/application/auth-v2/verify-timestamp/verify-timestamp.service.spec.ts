@@ -60,14 +60,16 @@ function makeService(overrides: {
     }),
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  const certificate = { issueForUsername: jest.fn().mockResolvedValue('cert-jws') };
   const service = new VerifyTimestampService(
     redis as any,
     blockchain as any,
     user as any,
     tokens as any,
     audit as any,
+    certificate as any,
   );
-  return { service, redis, blockchain, user, tokens, audit };
+  return { service, redis, blockchain, user, tokens, audit, certificate };
 }
 
 beforeEach(() => {
@@ -94,10 +96,22 @@ describe('VerifyTimestampService.verify', () => {
 
     const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
 
-    expect(res).toEqual({ access_token: 'access-jwt', refresh_token: 'refresh-jwt' });
+    expect(res).toEqual({ access_token: 'access-jwt', refresh_token: 'refresh-jwt', participant_certificate: 'cert-jws' });
     expect(redis.consumeSingleUse).toHaveBeenCalledWith('coopid:binding:jti-1');
     expect(tokens.generateAuthTokens).toHaveBeenCalledWith('user-uuid-1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ result: 'success' }));
+  });
+
+  it('сбой выпуска сертификата best-effort: токены выдаются без participant_certificate', async () => {
+    const { service, certificate } = makeService({ hasActiveKey: true });
+    certificate.issueForUsername.mockRejectedValue(new Error('cert key missing'));
+    const token = await makeToken(ACCOUNT, 'jti-nocert');
+    const signature = signCanonical(TS, 'jti-nocert', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
+    expect(res.participant_certificate).toBeUndefined();
   });
 
   it('recover round-trip: восстановленный pubkey передан в hasActiveKey', async () => {

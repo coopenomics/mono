@@ -41,6 +41,13 @@ export interface BlockchainPort {
    * application/auth-v2 не импортирует wharfkit напрямую (гексагональный инвариант).
    */
   recoverPublicKey(message: string, signature: string): string;
+  /**
+   * Публичный ключ permission `cert` аккаунта (нормализованный `PUB_K1_…`) — звено
+   * cert-цепи доверия CoopID (ano→voskhod→vostok). Требует строго single-key
+   * (threshold=1, один ключ, без accounts/waits). null — если cert-permission нет
+   * или он не single-key. Используется при сборке claim `coop_chain` сертификата.
+   */
+  getCertPublicKey(accountName: string): Promise<string | null>;
   getCooperative(coopname: string): Promise<any>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 
