@@ -7,9 +7,9 @@ export {
   verificationTypeLabel,
 } from './certificate'
 
-export type { VerifyOfflineResult } from './chain'
+export type { KeyValidityWindow, VerifyDocumentParams, VerifyDocumentReason, VerifyDocumentResult, VerifyOfflineResult } from './chain'
 
-export { readCertPublicKey, verifyOffline } from './chain'
+export { readCertPublicKey, verifyDocumentOffline, verifyOffline } from './chain'
 /**
  * @coopenomics/auth — SDK аутентификации CoopID.
  *
