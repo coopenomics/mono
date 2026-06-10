@@ -39,6 +39,8 @@ gen 0400 authentik_bootstrap_token rand_pass
 # Shared-токен вебхука authentik → controller (audit weak-password, Story 1.5).
 # Дублируется в .env (COOPID_WEBHOOK_TOKEN) для blueprint'а authentik.
 gen 0400 authentik_webhook_token rand_pass
+# Секрет подписи session_binding_token (HS256, Story 1.6).
+gen 0400 auth_v2_session_binding_secret rand_pass
 if ! grep -q '^COOPID_WEBHOOK_TOKEN=' "$ROOT/.env" 2>/dev/null; then
 	printf '\n# Webhook-токен authentik→coopback (= infra/coopid/secrets/authentik_webhook_token)\nCOOPID_WEBHOOK_TOKEN=%s\n' "$(cat "$SECRETS_DIR/authentik_webhook_token")" >> "$ROOT/.env"
 	echo "  + COOPID_WEBHOOK_TOKEN добавлен в .env"

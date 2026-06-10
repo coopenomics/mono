@@ -87,11 +87,14 @@ services:
   coopback:
     environment:
       AUTH_V2_WEBHOOK_TOKEN_FILE: /run/secrets/authentik_webhook_token
+      AUTH_V2_SESSION_BINDING_SECRET_FILE: /run/secrets/auth_v2_session_binding_secret
+      AUTHENTIK_INTERNAL_URL: http://authentik-server:9000
     secrets:
       - coop_cert_key
       - coop_vault_key
       - coop_pg_app_password
       - authentik_webhook_token
+      - auth_v2_session_binding_secret
 
 secrets:
   coop_pg_superuser_password:
@@ -108,6 +111,8 @@ secrets:
     file: ./infra/coopid/secrets/authentik_bootstrap_token
   authentik_webhook_token:
     file: ./infra/coopid/secrets/authentik_webhook_token
+  auth_v2_session_binding_secret:
+    file: ./infra/coopid/secrets/auth_v2_session_binding_secret
   coop_cert_key:
     file: ./infra/coopid/secrets/coop_cert_key
   coop_vault_key:

@@ -139,6 +139,10 @@ const envVarsSchema = z.object({
   // auth-v2 (CoopID): shared-токен вебхука authentik→controller (Story 1.5).
   AUTH_V2_WEBHOOK_TOKEN: z.string().optional(),
   AUTH_V2_WEBHOOK_TOKEN_FILE: z.string().optional(),
+  // auth-v2 (CoopID, Story 1.6): секрет подписи session_binding_token (HS256) + адрес authentik.
+  AUTH_V2_SESSION_BINDING_SECRET: z.string().optional(),
+  AUTH_V2_SESSION_BINDING_SECRET_FILE: z.string().optional(),
+  AUTHENTIK_INTERNAL_URL: z.string().default('http://authentik-server:9000'),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
@@ -258,6 +262,7 @@ export default {
     },
   },
   authV2: {
+    authentikInternalUrl: envVars.data.AUTHENTIK_INTERNAL_URL,
     get webhookToken(): string {
       const file = envVars.data!.AUTH_V2_WEBHOOK_TOKEN_FILE;
       if (file) {
@@ -268,6 +273,17 @@ export default {
         }
       }
       return envVars.data!.AUTH_V2_WEBHOOK_TOKEN ?? '';
+    },
+    get sessionBindingSecret(): string {
+      const file = envVars.data!.AUTH_V2_SESSION_BINDING_SECRET_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_SESSION_BINDING_SECRET ?? '';
     },
   },
   blockchain: {
