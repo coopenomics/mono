@@ -6,8 +6,9 @@ function setup() {
   const repo = { get: jest.fn(), set: jest.fn().mockResolvedValue(undefined) };
   const twoFactor = { isEnabled: jest.fn(), verify: jest.fn() };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const service = new RecoveryStrategyService(repo as never, twoFactor as never, audit as never);
-  return { service, repo, twoFactor, audit };
+  const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
+  const service = new RecoveryStrategyService(repo as never, twoFactor as never, audit as never, securityEvents as never);
+  return { service, repo, twoFactor, audit, securityEvents };
 }
 
 describe('RecoveryStrategyService (Story 3.5)', () => {
@@ -23,8 +24,8 @@ describe('RecoveryStrategyService (Story 3.5)', () => {
     expect(await service.getStrategy('u1')).toBe(RecoveryStrategy.OfflineCode);
   });
 
-  it('setStrategy: 2FA + верный код → set + audit strategy_changed', async () => {
-    const { service, repo, twoFactor, audit } = setup();
+  it('setStrategy: 2FA + верный код → set + audit strategy_changed + security-уведомление (3.11)', async () => {
+    const { service, repo, twoFactor, audit, securityEvents } = setup();
     twoFactor.isEnabled.mockResolvedValueOnce(true);
     twoFactor.verify.mockResolvedValueOnce(true);
     await service.setStrategy('u1', RecoveryStrategy.OfflineCode, '123456', '1.2.3.4');
@@ -37,6 +38,7 @@ describe('RecoveryStrategyService (Story 3.5)', () => {
         context: { strategy: RecoveryStrategy.OfflineCode },
       }),
     );
+    expect(securityEvents.notify).toHaveBeenCalledWith({ subjectId: 'u1', kind: 'recovery_strategy_changed', ip: '1.2.3.4' });
   });
 
   it('setStrategy: нет 2FA → TwoFactorNotEnrolled, без set', async () => {

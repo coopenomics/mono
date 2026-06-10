@@ -5,7 +5,9 @@ import type { IRecoveryStrategyRepository } from '~/domain/auth-v2/ports/recover
 import { TWO_FACTOR_VERIFIER } from '~/domain/auth-v2/ports/two-factor.port';
 import type { ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port';
 import { DEFAULT_RECOVERY_STRATEGY, RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
+import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
+import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 
 /**
  * Управление стратегией восстановления (CoopID, Story 3.5). Активна ровно одна
@@ -19,6 +21,7 @@ export class RecoveryStrategyService {
     @Inject(RECOVERY_STRATEGY_REPOSITORY) private readonly repo: IRecoveryStrategyRepository,
     @Inject(TWO_FACTOR_VERIFIER) private readonly twoFactor: ITwoFactorVerifier,
     private readonly audit: AuditService,
+    private readonly securityEvents: SecurityEventNotificationService,
   ) {}
 
   /** Текущая стратегия пайщика (дефолт — email magic-link, если не задавалась). */
@@ -57,6 +60,8 @@ export class RecoveryStrategyService {
       context: { strategy },
       ip,
     });
+    // Story 3.11: уведомить пайщика о смене способа восстановления (best-effort).
+    await this.securityEvents.notify({ subjectId, kind: SecurityEventKind.RecoveryStrategyChanged, ip });
   }
 
   /** Активен ли канал восстановления `channel` у пайщика (для гейтинга 3.1/3.4). */

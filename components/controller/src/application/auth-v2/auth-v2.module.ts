@@ -14,6 +14,7 @@ import { VerifyTimestampService } from './verify-timestamp/verify-timestamp.serv
 import { VerifyTimestampController } from './verify-timestamp/verify-timestamp.controller';
 import { DeviceTrackingService } from './device-tracking/device-tracking.service';
 import { NewDeviceNotificationService } from './device-tracking/new-device-notification.service';
+import { SecurityEventNotificationService } from './security-events/security-event-notification.service';
 import { CertificateService } from './certificate/certificate.service';
 import { CertificateController } from './certificate/certificate.controller';
 import { LogoutService } from './logout/logout.service';
@@ -39,7 +40,7 @@ import { TwoFactorController } from './two-factor/two-factor.controller';
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController],
   providers: [
-    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService,
+    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (ротация ключа) — сейм Story 3.3: пока placeholder (503).

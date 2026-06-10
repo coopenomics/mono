@@ -5,7 +5,9 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 import { TWO_FACTOR_REPOSITORY } from '~/domain/auth-v2/ports/two-factor.port';
 import type { ITwoFactorRepository, ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port';
 import { buildOtpauthUri, generateTotpSecret, verifyTotp } from '~/domain/auth-v2/totp/totp';
+import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
+import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 
 export interface EnrollmentChallenge {
   /** Base32-секрет для ручного ввода в приложение-аутентификатор. */
@@ -24,6 +26,7 @@ export class TwoFactorService implements ITwoFactorVerifier {
   constructor(
     @Inject(TWO_FACTOR_REPOSITORY) private readonly repo: ITwoFactorRepository,
     private readonly audit: AuditService,
+    private readonly securityEvents: SecurityEventNotificationService,
   ) {}
 
   /**
@@ -45,6 +48,8 @@ export class TwoFactorService implements ITwoFactorVerifier {
     }
     await this.repo.enable(subjectId);
     await this.audit.record({ event: 'coopid.2fa.enabled', subjectId, actor: 'self', result: 'success', ip });
+    // Story 3.11: уведомить пайщика о подключении 2FA (best-effort).
+    await this.securityEvents.notify({ subjectId, kind: SecurityEventKind.TwoFactorEnabled, ip });
   }
 
   /** Отключить второй фактор — требует валидный код (защита от отключения без устройства). */
@@ -58,6 +63,8 @@ export class TwoFactorService implements ITwoFactorVerifier {
     }
     await this.repo.remove(subjectId);
     await this.audit.record({ event: 'coopid.2fa.disabled', subjectId, actor: 'self', result: 'success', ip });
+    // Story 3.11: уведомить пайщика об отключении 2FA (best-effort).
+    await this.securityEvents.notify({ subjectId, kind: SecurityEventKind.TwoFactorDisabled, ip });
   }
 
   async isEnabled(subjectId: string): Promise<boolean> {

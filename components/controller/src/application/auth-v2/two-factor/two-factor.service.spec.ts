@@ -24,8 +24,9 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
       remove: jest.fn().mockResolvedValue(undefined),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
-    const service = new TwoFactorService(repo as never, audit as never);
-    return { service, repo, audit };
+    const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
+    const service = new TwoFactorService(repo as never, audit as never, securityEvents as never);
+    return { service, repo, audit, securityEvents };
   }
 
   beforeEach(() => verifyMock.mockReset());
@@ -38,14 +39,15 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
     expect(challenge.otpauthUri).toContain('otpauth://totp/');
   });
 
-  it('activate: верный код → enable + audit coopid.2fa.enabled', async () => {
-    const { service, repo, audit } = setup();
+  it('activate: верный код → enable + audit coopid.2fa.enabled + security-уведомление (3.11)', async () => {
+    const { service, repo, audit, securityEvents } = setup();
     repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: false });
     verifyMock.mockReturnValueOnce(true);
     await service.activate('u1', '123456', '1.2.3.4');
     expect(verifyMock).toHaveBeenCalledWith('SECRET32', '123456');
     expect(repo.enable).toHaveBeenCalledWith('u1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ event: 'coopid.2fa.enabled', result: 'success' }));
+    expect(securityEvents.notify).toHaveBeenCalledWith({ subjectId: 'u1', kind: 'two_factor_enabled', ip: '1.2.3.4' });
   });
 
   it('activate: неверный код → InvalidTwoFactorCode, без enable', async () => {
@@ -62,13 +64,14 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
     await expect(service.activate('u1', '123456', null)).rejects.toMatchObject({ code: AuthV2ErrorCode.TwoFactorNotEnrolled });
   });
 
-  it('disable: требует enabled + валидный код → remove + audit', async () => {
-    const { service, repo, audit } = setup();
+  it('disable: требует enabled + валидный код → remove + audit + security-уведомление (3.11)', async () => {
+    const { service, repo, audit, securityEvents } = setup();
     repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
     verifyMock.mockReturnValueOnce(true);
     await service.disable('u1', '123456', null);
     expect(repo.remove).toHaveBeenCalledWith('u1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ event: 'coopid.2fa.disabled' }));
+    expect(securityEvents.notify).toHaveBeenCalledWith({ subjectId: 'u1', kind: 'two_factor_disabled', ip: null });
   });
 
   it('disable: не подключён → TwoFactorNotEnrolled', async () => {
