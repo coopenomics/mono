@@ -19,7 +19,7 @@ const PUBLIC_API = [
 
 // Методы, ещё не реализованные (бросают not_implemented). По мере реализации
 // историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4 (реализованы).
-const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout'])
+const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument'])
 const STILL_STUBBED = PUBLIC_API.filter(m => !IMPLEMENTED.has(m))
 
 describe('@coopenomics/auth — скелет SDK', () => {

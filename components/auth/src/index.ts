@@ -26,7 +26,7 @@ export { exportToQR } from './export'
 export type { LoginParams, LoginResult, LogoutParams } from './oidc'
 
 export { getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, recover } from './oidc'
-export type { SignedDocument, TimestampSignature } from './signing'
+export type { SignDocumentParams, TimestampSignature } from './signing'
 
 export { canonicalTimestampMessage, signDocument, signTimestamp } from './signing'
 export type { EncryptedVaultBlob, VaultSubject } from './vault'

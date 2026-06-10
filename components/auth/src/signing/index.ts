@@ -3,14 +3,15 @@
  * (Story 2.4). Полностью локальные операции (без сети); подпись timestamp НЕ
  * создаёт audit_events.
  */
-import { decodeJwt } from 'jose'
-import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
+import { base64url, decodeJwt } from 'jose'
+import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 import { currentView, readUnlockedKey } from '../wallet/storage'
 
-export interface SignedDocument {
-  hash: string
-  signature: string
-  public_key: string
+export interface SignDocumentParams {
+  /** Содержимое документа: байты или строка (кодируется UTF-8). */
+  payload: Uint8Array | string
+  /** Алгоритм подписи; поддерживается ES256K (COOPOS-кривая secp256k1). */
+  alg?: 'ES256K'
 }
 
 export interface TimestampSignature {
@@ -31,9 +32,40 @@ export function canonicalTimestampMessage(payload: { ts: string, binding_token_j
   return JSON.stringify({ binding_token_jti: payload.binding_token_jti, sub: payload.sub, ts: payload.ts })
 }
 
-/** Подпись документа приватным ключом пайщика (client-side). Story 2.3. */
-export async function signDocument(_document: unknown): Promise<SignedDocument> {
-  notImplemented('signDocument')
+/**
+ * Локальная подпись документа ключом пайщика (Story 2.3). Возвращает compact JWS
+ * `<header>.<payload>.<signature>` (alg=ES256K). Полностью офлайн: без сети и без
+ * `audit_events` — сервер о подписи не знает (AC: подпись неоспорима и не зависит
+ * от состояния сервера).
+ *
+ * Подпись делается тем же кросс-рантайм secp256k1-примитивом, что и `signTimestamp`
+ * (`@wharfkit/antelope`): jose в браузере ES256K не умеет (WebCrypto без secp256k1),
+ * поэтому compact JWS собирается вручную, а K1-подпись сериализуется в JWS-формат
+ * R||S (recovery-байт отбрасывается — верификация по pubkey, не recover). `kid` в
+ * заголовке = COOPOS-аккаунт подписанта (разрешение ключа при верификации, Story 2.5).
+ */
+export async function signDocument(params: SignDocumentParams): Promise<string> {
+  const alg = params.alg ?? 'ES256K'
+  if (alg !== 'ES256K')
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, `Неподдерживаемый алгоритм подписи: ${alg}`)
+
+  const { account } = currentView() // бросает WalletLocked, если заперт
+  const wif = readUnlockedKey()
+
+  const payloadBytes = typeof params.payload === 'string'
+    ? new TextEncoder().encode(params.payload)
+    : params.payload
+
+  const header = base64url.encode(JSON.stringify({ alg, kid: account }))
+  const payloadB64 = base64url.encode(payloadBytes)
+  const signingInput = `${header}.${payloadB64}`
+
+  const { PrivateKey } = await import('@wharfkit/antelope')
+  const sig = PrivateKey.from(wif).signMessage(new TextEncoder().encode(signingInput))
+  // K1-подпись сериализуется как [recovery(1), r(32), s(32)] = 65б; JWS ES256K = R||S
+  // (64б) — recovery-байт не нужен (верификация по pubkey, не recover).
+  const rs = sig.data.array.slice(1)
+  return `${signingInput}.${base64url.encode(rs)}`
 }
 
 /**
