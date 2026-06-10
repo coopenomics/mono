@@ -21,6 +21,6 @@ export type { SignedDocument, TimestampSignature } from './signing'
 export { signDocument, signTimestamp } from './signing'
 
 export type { VerifyOfflineResult } from './chain'
-export { verifyOffline } from './chain'
+export { readCertPublicKey, verifyOffline } from './chain'
 
 export { exportToQR } from './export'

@@ -15,6 +15,9 @@
   "license": "ISC",
   "dependencies": {
     "@coopenomics/factory": "workspace:*",
+    "@wharfkit/antelope": "^1.1.1",
+    "@wharfkit/session": "^1.4.0",
+    "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
     "cooptypes": "workspace:*",
     "dotenv": "^16.4.5",
     "eosjs": "^22.1.0",

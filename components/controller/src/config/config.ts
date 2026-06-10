@@ -119,6 +119,13 @@ const envVarsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
   REDIS_PASSWORD: z.string(),
   BLOCKCHAIN_RPC: z.string().min(1, { message: 'Не должно быть пустым' }),
+  // CSV-список RPC-endpoint'ов COOPOS (CoopID, Story 1.3): на prod ≥2 для
+  // failover (механика — Story 9.4). Не задан — используется [BLOCKCHAIN_RPC].
+  BLOCKCHAIN_RPC_LIST: z
+    .string()
+    .optional()
+    .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
+    .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
@@ -221,6 +228,9 @@ export default {
   timezone: envVars.data.TIMEZONE,
   blockchain: {
     url: envVars.data.BLOCKCHAIN_RPC,
+    rpcList: envVars.data.BLOCKCHAIN_RPC_LIST.length
+      ? envVars.data.BLOCKCHAIN_RPC_LIST
+      : [envVars.data.BLOCKCHAIN_RPC],
     id: envVars.data.CHAIN_ID,
     root_symbol: envVars.data.ROOT_SYMBOL,
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,

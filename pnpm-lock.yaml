@@ -1218,6 +1218,15 @@ importers:
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:../factory
+      '@wharfkit/antelope':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@wharfkit/session':
+        specifier: ^1.4.0
+        version: 1.6.1
+      '@wharfkit/wallet-plugin-privatekey':
+        specifier: ^1.1.0
+        version: 1.1.0(@wharfkit/session@1.6.1)
       cooptypes:
         specifier: workspace:*
         version: link:../cooptypes
