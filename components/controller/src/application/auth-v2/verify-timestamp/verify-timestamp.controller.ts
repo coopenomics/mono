@@ -3,14 +3,12 @@ import {
   Body,
   Controller,
   HttpCode,
-  HttpException,
   Post,
   Req,
-  ServiceUnavailableException,
-  UnauthorizedException,
+  UseFilters,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
+import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { VerifyTimestampService } from './verify-timestamp.service';
 import type { VerifyTimestampResult } from './verify-timestamp.service';
 
@@ -32,6 +30,7 @@ interface VerifyTimestampBody {
  * cookie-хранением и client-side декодированием claims разрешается на стыке 1.6/2.x.
  */
 @Controller('coop/verify')
+@UseFilters(AuthV2ExceptionFilter)
 export class VerifyTimestampController {
   constructor(private readonly verifyService: VerifyTimestampService) {}
 
@@ -45,17 +44,14 @@ export class VerifyTimestampController {
     if (!signature || !timestamp || !bindingToken)
       throw new BadRequestException('Требуются signature, timestamp и binding_token');
 
-    try {
-      return await this.verifyService.verify({
-        signature,
-        timestamp,
-        bindingToken,
-        ip: req.ip ?? null,
-      });
-    } catch (e) {
-      if (e instanceof AuthV2Error) throw this.toHttp(e);
-      throw e;
-    }
+    // AuthV2Error из сервиса пробрасывается контурному AuthV2ExceptionFilter
+    // (Story 1.11) — единый маппинг код→HTTP/OAuth2.
+    return this.verifyService.verify({
+      signature,
+      timestamp,
+      bindingToken,
+      ip: req.ip ?? null,
+    });
   }
 
   private readBindingCookie(req: Request): string | undefined {
@@ -64,23 +60,5 @@ export class VerifyTimestampController {
     const header = req.headers.cookie ?? '';
     const match = header.split(';').map((c) => c.trim()).find((c) => c.startsWith(`${BINDING_COOKIE_NAME}=`));
     return match ? decodeURIComponent(match.slice(BINDING_COOKIE_NAME.length + 1)) : undefined;
-  }
-
-  /**
-   * Маппинг типизированной ошибки auth-v2 в HTTP с телом OAuth 2.0. Inline до
-   * Story 1.11 (там — глобальный ExceptionFilter единым контуром).
-   */
-  private toHttp(e: AuthV2Error): HttpException {
-    const body = e.toResponse();
-    switch (e.code) {
-      case AuthV2ErrorCode.CooposDegraded:
-        return new ServiceUnavailableException(body);
-      case AuthV2ErrorCode.SessionBindingExpired:
-      case AuthV2ErrorCode.SessionBindingReused:
-      case AuthV2ErrorCode.TimestampTooOld:
-      case AuthV2ErrorCode.ChainVerificationFailed:
-      default:
-        return new UnauthorizedException(body);
-    }
   }
 }

@@ -1,5 +1,6 @@
 /** Зеркало enum'а ошибок SDK @coopenomics/auth (источник контракта един). */
 export enum AuthV2ErrorCode {
+  InvalidCredentials = 'invalid_credentials',
   VaultDecryptionFailed = 'vault_decryption_failed',
   VaultServerDecryptionForbidden = 'vault_server_decryption_forbidden',
   TimestampTooOld = 'timestamp_too_old',

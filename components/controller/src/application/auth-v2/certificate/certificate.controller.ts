@@ -1,15 +1,14 @@
 import {
   Controller,
   Get,
-  HttpException,
   Req,
-  ServiceUnavailableException,
   UnauthorizedException,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { HttpJwtAuthGuard } from '~/application/auth/guards/http-jwt-auth.guard';
-import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
+import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { CertificateService } from './certificate.service';
 
 interface AuthedRequest extends Request {
@@ -22,6 +21,7 @@ interface AuthedRequest extends Request {
  * Сертификат выпускается для текущего пайщика (req.user.username).
  */
 @Controller('coop/certificate')
+@UseFilters(AuthV2ExceptionFilter)
 export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}
 
@@ -30,18 +30,8 @@ export class CertificateController {
   async getCertificate(@Req() req: AuthedRequest): Promise<{ participant_certificate: string }> {
     const username = req.user?.username;
     if (!username) throw new UnauthorizedException();
-    try {
-      const participant_certificate = await this.certificateService.issueForUsername(username);
-      return { participant_certificate };
-    } catch (e) {
-      if (e instanceof AuthV2Error) throw this.toHttp(e);
-      throw e;
-    }
-  }
-
-  private toHttp(e: AuthV2Error): HttpException {
-    const body = e.toResponse();
-    if (e.code === AuthV2ErrorCode.CooposDegraded) return new ServiceUnavailableException(body);
-    return new UnauthorizedException(body);
+    // AuthV2Error пробрасывается контурному AuthV2ExceptionFilter (Story 1.11).
+    const participant_certificate = await this.certificateService.issueForUsername(username);
+    return { participant_certificate };
   }
 }

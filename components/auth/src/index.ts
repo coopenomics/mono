@@ -19,7 +19,8 @@ export { readCertPublicKey, verifyOffline } from './chain'
 export { COOPOS_PUBLIC_NODES } from './config/coopos-public-nodes'
 
 export { TRUST_ANCHOR_ANO_CERT_JWK } from './config/trust-anchor'
-export { AuthV2Error, AuthV2ErrorCode } from './errors'
+export { AUTH_V2_ERROR_VIEWS, AuthV2Error, AuthV2ErrorCode, describeAuthV2Error } from './errors'
+export type { AuthV2ErrorAction, AuthV2ErrorView } from './errors'
 
 export { exportToQR } from './export'
 export type { LoginParams, LoginResult, LogoutParams } from './oidc'
