@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@coopenomics/auth':
+        specifier: workspace:*
+        version: link:components/auth
       '@coopenomics/blago-cli':
         specifier: workspace:*
         version: link:components/blago-cli
@@ -69,6 +72,46 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  components/auth:
+    dependencies:
+      '@wharfkit/antelope':
+        specifier: ^1.1.1
+        version: 1.1.1
+      '@wharfkit/session':
+        specifier: ^1.4.0
+        version: 1.6.1
+      cooptypes:
+        specifier: workspace:*
+        version: link:../cooptypes
+      jose:
+        specifier: ^6.2.2
+        version: 6.2.3
+      oidc-client-ts:
+        specifier: ^3.1.0
+        version: 3.5.0
+    devDependencies:
+      '@antfu/eslint-config':
+        specifier: ^3.3.2
+        version: 3.16.0(@typescript-eslint/utils@8.57.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(@vue/compiler-sfc@3.5.31)(eslint-import-resolver-node@0.3.9)(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)(vitest@2.1.9(@types/node@22.19.15)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1))
+      '@types/node':
+        specifier: ^22.5.4
+        version: 22.19.15
+      eslint:
+        specifier: ^9.9.1
+        version: 9.39.4(jiti@2.6.1)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      unbuild:
+        specifier: ^2.0.0
+        version: 2.0.0(sass@1.98.0)(typescript@5.9.3)(vue-tsc@2.2.12(typescript@5.9.3))
+      vite:
+        specifier: ^5.4.3
+        version: 5.4.21(@types/node@22.19.15)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1)
+      vitest:
+        specifier: ^2.0.5
+        version: 2.1.9(@types/node@22.19.15)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1)
 
   components/blago-cli:
     dependencies:
@@ -12991,6 +13034,9 @@ packages:
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
+  jose@6.2.3:
+    resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
+
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
@@ -13176,6 +13222,10 @@ packages:
 
   jws@4.0.1:
     resolution: {integrity: sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==}
+
+  jwt-decode@4.0.0:
+    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
+    engines: {node: '>=18'}
 
   kareem@3.2.0:
     resolution: {integrity: sha512-VS8MWZz/cT+SqBCpVfNN4zoVz5VskR3N4+sTmUXme55e9avQHntpwpNq0yjnosISXqwJ3AQVjlbI4Dyzv//JtA==}
@@ -14722,6 +14772,10 @@ packages:
 
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
+
+  oidc-client-ts@3.5.0:
+    resolution: {integrity: sha512-l2q8l9CTCTOlbX+AnK4p3M+4CEpKpyQhle6blQkdFhm0IsBqsxm15bYaSa11G7pWdsYr6epdsRZxJpCyCRbT8A==}
+    engines: {node: '>=18'}
 
   ol-contextmenu@5.5.0:
     resolution: {integrity: sha512-IglB0OfzSmcP++dykqrQU62lJAn/4O61hxyD0s5V03HE70Efm6EgSaNq8YOlgEbnqfUL+7F3fS7VI3UV+0+NZg==}
@@ -34276,6 +34330,8 @@ snapshots:
 
   jose@5.10.0: {}
 
+  jose@6.2.3: {}
+
   joycon@3.1.1: {}
 
   js-beautify@1.14.11:
@@ -34483,6 +34539,8 @@ snapshots:
     dependencies:
       jwa: 2.0.1
       safe-buffer: 5.2.1
+
+  jwt-decode@4.0.0: {}
 
   kareem@3.2.0: {}
 
@@ -36408,6 +36466,10 @@ snapshots:
   obug@2.1.1: {}
 
   ohash@2.0.11: {}
+
+  oidc-client-ts@3.5.0:
+    dependencies:
+      jwt-decode: 4.0.0
 
   ol-contextmenu@5.5.0(ol@9.2.4):
     dependencies:
