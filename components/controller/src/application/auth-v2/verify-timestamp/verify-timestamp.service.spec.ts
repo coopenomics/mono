@@ -62,6 +62,7 @@ function makeService(overrides: {
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const certificate = { issueForUsername: jest.fn().mockResolvedValue('cert-jws') };
   const deviceTracking = { recordLogin: jest.fn().mockResolvedValue({ isNewDevice: false, fingerprint: 'fp' }) };
+  const sessionMetadata = { record: jest.fn().mockResolvedValue(undefined), get: jest.fn(), delete: jest.fn() };
   const service = new VerifyTimestampService(
     redis as any,
     blockchain as any,
@@ -70,8 +71,9 @@ function makeService(overrides: {
     audit as any,
     certificate as any,
     deviceTracking as any,
+    sessionMetadata as any,
   );
-  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking };
+  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata };
 }
 
 beforeEach(() => {
@@ -125,6 +127,27 @@ describe('VerifyTimestampService.verify', () => {
       userAgent: 'UA/1',
       acceptLanguage: 'ru',
     });
+  });
+
+  it('успех → метаданные сессии записаны на refresh-токен с ip/UA (Story 3.7)', async () => {
+    const { service, sessionMetadata } = makeService({ hasActiveKey: true });
+    const token = await makeToken(ACCOUNT, 'jti-sess');
+    const signature = signCanonical(TS, 'jti-sess', ACCOUNT);
+
+    await service.verify({ signature, timestamp: TS, bindingToken: token, ip: '9.9.9.9', userAgent: 'UA/2' });
+
+    expect(sessionMetadata.record).toHaveBeenCalledWith('refresh-jwt', expect.objectContaining({ ip: '9.9.9.9', device: 'UA/2' }));
+  });
+
+  it('сбой записи метаданных сессии best-effort: вход завершается токенами (Story 3.7)', async () => {
+    const { service, sessionMetadata } = makeService({ hasActiveKey: true });
+    sessionMetadata.record.mockRejectedValue(new Error('redis down'));
+    const token = await makeToken(ACCOUNT, 'jti-sessfail');
+    const signature = signCanonical(TS, 'jti-sessfail', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
   });
 
   it('сбой device tracking best-effort: вход всё равно завершается токенами', async () => {

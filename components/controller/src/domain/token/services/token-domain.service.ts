@@ -191,10 +191,24 @@ export class TokenDomainService {
   }
 
   /**
+   * Находит токены пользователя заданного типа (напр. все refresh-сессии)
+   */
+  async findByUserIdAndType(userId: string, type: TokenType): Promise<TokenDomainInterface[]> {
+    return this.tokenRepository.findByUserIdAndType(userId, type);
+  }
+
+  /**
    * Удаляет токены по критериям
    */
   async deleteTokens(criteria: Partial<TokenDomainInterface>): Promise<number> {
     return this.tokenRepository.deleteMany(criteria);
+  }
+
+  /**
+   * Удаляет токен по его идентификатору (отзыв конкретной сессии)
+   */
+  async deleteById(id: string): Promise<boolean> {
+    return this.tokenRepository.deleteById(id);
   }
 
   /**

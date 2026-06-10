@@ -7,6 +7,8 @@ import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
+import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
+import type { ISessionMetadataStore } from '~/domain/auth-v2/ports/session-metadata.port';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
@@ -65,6 +67,7 @@ export class VerifyTimestampService {
     private readonly audit: AuditService,
     private readonly certificate: CertificateService,
     private readonly deviceTracking: DeviceTrackingService,
+    @Inject(SESSION_METADATA_PORT) private readonly sessionMetadata: ISessionMetadataStore,
   ) {}
 
   async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
@@ -151,6 +154,18 @@ export class VerifyTimestampService {
       });
     } catch (e) {
       this.logger.warn(`device tracking не записан на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
+    }
+
+    // Метаданные сессии (Story 3.7) — best-effort: сбой side-store не валит выданный вход.
+    // Привязаны к выпущенному refresh-токену → видны/отзываемы в «Активных сессиях».
+    try {
+      await this.sessionMetadata.record(pair.refresh.token, {
+        ip: input.ip ?? null,
+        device: input.userAgent ?? null,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      this.logger.warn(`session metadata не записаны на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
     }
 
     return { access_token: pair.access.token, refresh_token: pair.refresh.token, participant_certificate };

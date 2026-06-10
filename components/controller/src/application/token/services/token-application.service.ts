@@ -71,12 +71,31 @@ export class TokenApplicationService {
   }
 
   /**
+   * Находит активные токены пользователя заданного типа (напр. refresh-сессии для Story 3.7)
+   * @param userId - ID пользователя
+   * @param type - тип токена
+   * @returns Список токенов пользователя
+   */
+  async findActiveByUser(userId: string, type: TokenType): Promise<TokenDomainInterface[]> {
+    return this.tokenDomainService.findByUserIdAndType(userId, type);
+  }
+
+  /**
    * Удаляет токены по критериям
    * @param criteria - критерии для удаления
    * @returns Количество удаленных токенов
    */
   async deleteTokens(criteria: Partial<TokenDomainInterface>): Promise<number> {
     return this.tokenDomainService.deleteTokens(criteria);
+  }
+
+  /**
+   * Удаляет токен по его идентификатору (отзыв конкретной сессии, Story 3.7)
+   * @param id - ID строки токена
+   * @returns true, если запись была удалена
+   */
+  async deleteById(id: string): Promise<boolean> {
+    return this.tokenDomainService.deleteById(id);
   }
 
   /**
