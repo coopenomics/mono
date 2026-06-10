@@ -111,7 +111,7 @@ export * as CancelStockOrder from './cancelStockOrder'
 
 // requirement b6 «Экономика КУ»
 export * as SetMembershipFee from './setMembershipFee'
-export * as SetBranchSplit from './setBranchSplit'
+export * as DistributeBranchFunds from './distributeBranchFunds'
 export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
 export * as ConvertBranchFunds from './convertBranchFunds'

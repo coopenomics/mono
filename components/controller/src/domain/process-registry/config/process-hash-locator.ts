@@ -131,10 +131,18 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // персональных средств доверенного (o.brn.conv: process_hash = convert_hash,
   // генерится backend'ом, в сущностных таблицах не хранится — поэтому ещё и
   // якорь заказа). Основной якорь — заказ.
-  'p.brn.fees': [{ code: 'marketplace', table: 'orders', field: 'hash' }],
+  // При зачислении (branch::accrue) process_hash = orders.hash; при ручном
+  // распределении (branch::distribute) — rounds.hash.
+  'p.brn.fees': [
+    { code: 'marketplace', table: 'orders', field: 'hash' },
+    { code: 'branch', table: 'rounds', field: 'hash' },
+  ],
 
   // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
   'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],
+
+  // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
+  'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
 
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).

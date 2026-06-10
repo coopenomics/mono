@@ -444,13 +444,13 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
-  async setSplit(data: MarketContract.Actions.SetSplit.ISetSplit): Promise<TransactResult> {
+  async distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<TransactResult> {
     return this.submitAsCoop(
       data.coopname,
-      MarketContract.contractName.production,
-      MarketContract.Actions.SetSplit.actionName,
+      BranchContract.contractName.production,
+      BranchContract.Actions.Distribute.actionName,
       data,
-      'setsplit'
+      'distribute'
     );
   }
 
@@ -505,11 +505,11 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return (rows[0] as MarketContract.Tables.Config.IMktConfig | undefined) ?? null;
   }
 
-  async getBranchSplits(coopname: string): Promise<MarketContract.Tables.BranchSplits.IBranchSplit[]> {
+  async listRounds(coopname: string): Promise<BranchContract.Tables.Rounds.IBranchRound[]> {
     return this.blockchainService.getAllRows(
-      MarketContract.contractName.production,
+      BranchContract.contractName.production,
       coopname,
-      MarketContract.Tables.BranchSplits.tableName
+      BranchContract.Tables.Rounds.tableName
     );
   }
 

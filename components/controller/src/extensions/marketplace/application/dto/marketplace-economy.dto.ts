@@ -62,17 +62,11 @@ export class MarketplaceTrusteeWeightDTO {
 
 @ObjectType('MarketplaceBranchEconomy', {
   description:
-    'Экономика кооперативного участка: отсечка персонального распределения, веса участников и балансы кошельков членских взносов.',
+    'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков.',
 })
 export class MarketplaceBranchEconomyDTO {
   @Field({ description: 'Кооперативный участок.' })
   braname!: string;
-
-  @Field(() => Float, {
-    description:
-      'Доля членского взноса, распределяемая персонально между председателем и доверенными, проценты. Остальное — в общий кошелёк участка.',
-  })
-  personal_percent!: number;
 
   @Field(() => Int, { description: 'Сумма весов участников распределения.' })
   total_weight!: number;
@@ -82,22 +76,30 @@ export class MarketplaceBranchEconomyDTO {
 
   @Field({ description: 'Баланс общего кошелька членских взносов участка.' })
   common_balance!: string;
+
+  @Field({
+    description:
+      'Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению.',
+  })
+  reserve_amount!: string;
+
+  @Field({ description: 'Доступно к распределению: общий кошелёк за вычетом резерва.' })
+  available_to_distribute!: string;
 }
 
-@InputType('MarketplaceSetBranchSplitInput')
-export class MarketplaceSetBranchSplitInputDTO {
+@InputType('MarketplaceDistributeBranchFundsInput')
+export class MarketplaceDistributeBranchFundsInputDTO {
   @Field({ description: 'Кооперативный участок.' })
   @IsString()
   @IsNotEmpty()
   braname!: string;
 
   @Field(() => Float, {
-    description: 'Доля персонального распределения, проценты (от 0 до 100).',
+    description: 'Сумма распределения из общего кошелька участка (раскладывается по весам).',
   })
   @IsNumber()
-  @Min(0)
-  @Max(100)
-  personal_percent!: number;
+  @Min(0.0001)
+  amount!: number;
 }
 
 @InputType('MarketplaceSetTrusteeWeightInput')
@@ -225,10 +227,11 @@ export function toMarketplaceBranchEconomyDTO(
 ): MarketplaceBranchEconomyDTO {
   return {
     braname: view.braname,
-    personal_percent: view.personal_percent,
     total_weight: view.total_weight,
     weights: view.weights.map((w: MarketplaceTrusteeWeightView) => ({ ...w })),
     common_balance: view.common_balance,
+    reserve_amount: view.reserve_amount,
+    available_to_distribute: view.available_to_distribute,
   };
 }
 

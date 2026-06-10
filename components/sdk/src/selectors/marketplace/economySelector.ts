@@ -13,10 +13,11 @@ export const marketplaceTrusteeWeightSelector = Selector('MarketplaceTrusteeWeig
 
 export const marketplaceBranchEconomySelector = Selector('MarketplaceBranchEconomy')({
   braname: true,
-  personal_percent: true,
   total_weight: true,
   weights: marketplaceTrusteeWeightSelector,
   common_balance: true,
+  reserve_amount: true,
+  available_to_distribute: true,
 })
 
 export const marketplacePersonalEconomySelector = Selector('MarketplacePersonalEconomy')({

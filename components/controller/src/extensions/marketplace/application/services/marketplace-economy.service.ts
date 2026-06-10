@@ -26,6 +26,11 @@ import {
   type MarketplaceKuChairmanService,
 } from './marketplace-ku-chairman.service';
 import { rethrowChainError } from '../shared/chain-tx.util';
+import {
+  EXPENSE_PLANS_SERVICE,
+  EXPENSE_RESERVE_HORIZON_DAYS,
+  type ExpensePlansService,
+} from '../../../expenses/application/services/expense-plans.service';
 
 export const MARKETPLACE_ECONOMY_SERVICE = Symbol('MARKETPLACE_ECONOMY_SERVICE');
 
@@ -46,24 +51,29 @@ export interface MarketplaceTrusteeWeightView {
 
 export interface MarketplaceBranchEconomyView {
   braname: string;
-  /** Отсечка персонального распределения, проценты (0 — всё в общий кошелёк). */
-  personal_percent: number;
   total_weight: number;
   weights: MarketplaceTrusteeWeightView[];
   /** Баланс общего кошелька КУ (w.brn.common), asset-строка. */
   common_balance: string;
+  /** Плановый резерв расходов ближайших 30 дней, asset-строка. */
+  reserve_amount: string;
+  /** Доступно к распределению: общий кошелёк минус резерв, asset-строка. */
+  available_to_distribute: string;
 }
 
 /**
- * requirement b6 «Экономика КУ»: единая ставка членского взноса (стол
- * администратора), отсечка и веса распределения (стол ПВЗ, председатель),
- * персональные кошельки доверенных (перевод в «Стол заказов» и
- * материальная помощь).
+ * requirement b6 «Экономика КУ» (раунд 5 — приоритет общего кошелька):
+ * единая ставка членского взноса (стол администратора), веса распределения
+ * и ручное распределение из общего кошелька (стол ПВЗ, председатель),
+ * оффчейн-реестр плановых расходов с 30-дневным резервом, персональные
+ * кошельки доверенных (перевод в «Стол заказов» и материальная помощь).
  *
  * Источник истины конфигурации — on-chain (marketplace::config /
- * marketplace::branchsplits / branch::weights / branch::weighttotals);
- * балансы — ledger2::userwallets. Backend ничего не кеширует в PG —
- * объёмы маленькие, конфигурация меняется редко.
+ * branch::weights / branch::weighttotals); балансы — ledger2::userwallets.
+ * Плановые расходы — общесистемный реестр расширения `expenses` (решение
+ * владельца 2026-06-10: расходы относятся к кооперативу, не к Столу
+ * заказов); здесь — только потребление резерва: гард распределения на
+ * бэкенде, все пути идут через контроллер.
  */
 @Injectable()
 export class MarketplaceEconomyService {
@@ -74,7 +84,9 @@ export class MarketplaceEconomyService {
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
-    private readonly documentDomainService: DocumentDomainService
+    private readonly documentDomainService: DocumentDomainService,
+    @Inject(EXPENSE_PLANS_SERVICE)
+    private readonly expensePlansService: ExpensePlansService
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -121,14 +133,13 @@ export class MarketplaceEconomyService {
   // ── Экономика конкретного КУ: отсечка, веса, балансы ─────────────────
 
   async getBranchEconomy(coopname: string, braname: string): Promise<MarketplaceBranchEconomyView> {
-    const [splits, weights, totals, balances] = await Promise.all([
-      this.chainPort.getBranchSplits(coopname),
+    const [weights, totals, balances, reserve] = await Promise.all([
       this.chainPort.getBranchWeights(coopname),
       this.chainPort.getBranchWeightTotals(coopname),
       this.chainPort.listBranchWalletBalances(coopname),
+      this.expensePlansService.getReservedAmount(coopname, braname),
     ]);
 
-    const split = splits.find((s) => s.braname === braname);
     const branchWeights = weights.filter(
       (w) => w.braname === braname && w.contract === MARKETPLACE_SOURCE_CONTRACT
     );
@@ -145,9 +156,10 @@ export class MarketplaceEconomyService {
       balances.find((b) => b.wallet_name === 'w.brn.common' && b.username === braname)
         ?.available ?? this.zeroAsset();
 
+    const available = Math.max(0, this.assetToNumber(commonBalance) - reserve);
+
     return {
       braname,
-      personal_percent: split ? this.toHumanPercent(split.personal_percent) : 0,
       total_weight: totalWeight,
       weights: branchWeights.map((w) => ({
         username: w.username,
@@ -156,7 +168,61 @@ export class MarketplaceEconomyService {
         personal_balance: personalBalanceOf(w.username),
       })),
       common_balance: commonBalance,
+      reserve_amount: this.formatAsset(reserve),
+      available_to_distribute: this.formatAsset(available),
     };
+  }
+
+  /**
+   * Ручное распределение средств общего кошелька КУ по весам (раунд 5).
+   * Гард планового резерва — здесь, на бэкенде: все пути идут через
+   * контроллер (прямых пользовательских транзакций нет); он-чейн гард
+   * приедет вместе с шасси расходов.
+   */
+  async distributeBranchFunds(
+    coopname: string,
+    initiator: string,
+    braname: string,
+    amount: number
+  ): Promise<string> {
+    await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new BadRequestException('Сумма распределения должна быть больше нуля');
+    }
+
+    const economy = await this.getBranchEconomy(coopname, braname);
+    if (economy.total_weight <= 0) {
+      throw new BadRequestException(
+        'Распределение не настроено: задайте веса участников распределения'
+      );
+    }
+    const common = this.assetToNumber(economy.common_balance);
+    const reserve = this.assetToNumber(economy.reserve_amount);
+    if (common - amount < reserve) {
+      throw new BadRequestException(
+        `Распределение нарушает плановый резерв расходов на ${EXPENSE_RESERVE_HORIZON_DAYS} дней: ` +
+          `в общем кошельке ${economy.common_balance}, резерв ${economy.reserve_amount}, ` +
+          `доступно к распределению ${economy.available_to_distribute}`
+      );
+    }
+
+    const asset = this.formatAsset(amount);
+    const round_hash = createHash('sha256')
+      .update(`${coopname}:${braname}:distribute:${randomBytes(16).toString('hex')}`)
+      .digest('hex');
+    try {
+      await this.chainPort.distribute({
+        coopname,
+        braname,
+        source_contract: MARKETPLACE_SOURCE_CONTRACT,
+        round_hash,
+        amount: asset,
+        memo: 'Распределение членских взносов кооперативного участка',
+      });
+    } catch (e) {
+      rethrowChainError(e);
+    }
+    return asset;
   }
 
   /** Баланс персонального кошелька (w.brn.person) одного доверенного. */
@@ -178,24 +244,6 @@ export class MarketplaceEconomyService {
       throw new ForbiddenException(
         'Настройки распределения членских взносов меняет только председатель этого кооперативного участка'
       );
-    }
-  }
-
-  async setBranchSplit(
-    coopname: string,
-    initiator: string,
-    braname: string,
-    personalPercentHuman: number
-  ): Promise<void> {
-    await this.assertIsTrusteeOfBranch(coopname, braname, initiator);
-    const personal_percent = this.toContractPercent(
-      personalPercentHuman,
-      'Доля персонального распределения'
-    );
-    try {
-      await this.chainPort.setSplit({ coopname, initiator, braname, personal_percent });
-    } catch (e) {
-      rethrowChainError(e);
     }
   }
 

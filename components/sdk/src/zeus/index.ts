@@ -4215,6 +4215,20 @@ export type ValueTypes = {
 	/** Служебная записка о расходе */
 	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
+	["CreateExpensePlanInput"]: {
+	/** Сумма расхода. */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Срок оплаты — обязателен для расходов с оплатой к дате. */
+	due_date?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
+	pay_to: string | Variable<any, string>,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: ValueTypes["ExpensePlanPriority"] | Variable<any, string>,
+	/** Назначение расхода. */
+	title: string | Variable<any, string>
+};
 	["CreateIndividualDataInput"]: {
 	/** Дата рождения */
 	birthdate: string | Variable<any, string>,
@@ -4681,6 +4695,10 @@ export type ValueTypes = {
 	/** Хеш истории для удаления */
 	story_hash: string | Variable<any, string>
 };
+	["DeleteExpensePlanInput"]: {
+	/** Идентификатор плановой записи. */
+	plan_id: number | Variable<any, string>
+};
 	["DeletePaymentMethodInput"]: {
 	/** Идентификатор метода оплаты */
 	method_id: string | Variable<any, string>,
@@ -4932,6 +4950,31 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Плановый расход кооператива: что, когда, на какую сумму и по каким реквизитам предстоит оплатить. Привязан к кооперативному участку либо к кооперативу в целом. */
+["ExpensePlan"]: AliasType<{
+	/** Сумма расхода. */
+	amount?:boolean | `@${string}`,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Когда добавлена запись. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил запись. */
+	creator?:boolean | `@${string}`,
+	/** Срок оплаты (для расходов с оплатой к дате). */
+	due_date?:boolean | `@${string}`,
+	/** Идентификатор записи. */
+	id?:boolean | `@${string}`,
+	/** Реквизиты получателя платежа. */
+	pay_to?:boolean | `@${string}`,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority?:boolean | `@${string}`,
+	/** Назначение расхода. */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ExpensePlan']?: Omit<ValueTypes["ExpensePlan"], "...on ExpensePlan">
+}>;
+	/** Приоритет планового расхода: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+["ExpensePlanPriority"]:ExpensePlanPriority;
 	/** Статус расхода в системе CAPITAL */
 ["ExpenseStatus"]:ExpenseStatus;
 	/** Расширенное действие блокчейна с сертификатом пользователя, совершившего его. */
@@ -6016,6 +6059,10 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on LedgerState']?: Omit<ValueTypes["LedgerState"], "...on LedgerState">
 }>;
+	["ListExpensePlansInput"]: {
+	/** Показать планы только этого кооперативного участка. */
+	braname?: string | undefined | null | Variable<any, string>
+};
 	["ListMarketplaceKUInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -6428,14 +6475,16 @@ export type ValueTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: ValueTypes["ID"] | Variable<any, string>
 };
-	/** Экономика кооперативного участка: отсечка персонального распределения, веса участников и балансы кошельков членских взносов. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
-	/** Доля членского взноса, распределяемая персонально между председателем и доверенными, проценты. Остальное — в общий кошелёк участка. */
-	personal_percent?:boolean | `@${string}`,
+	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
 	/** Участники распределения и их веса. */
@@ -6831,6 +6880,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
+	["MarketplaceDistributeBranchFundsInput"]: {
+	/** Сумма распределения из общего кошелька участка (раскладывается по весам). */
+	amount: number | Variable<any, string>,
+	/** Кооперативный участок. */
+	braname: string | Variable<any, string>
+};
 	/** Экономика «Стола заказов»: единая ставка членского взноса кооператива (процент от стоимости заказа, одинаковый для всех кооперативных участков). */
 ["MarketplaceEconomyConfig"]: AliasType<{
 	/** Ставка членского взноса, проценты (1.5 = 1,5%). 0 — взнос не начисляется. */
@@ -8012,12 +8067,6 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
-	["MarketplaceSetBranchSplitInput"]: {
-	/** Кооперативный участок. */
-	braname: string | Variable<any, string>,
-	/** Доля персонального распределения, проценты (от 0 до 100). */
-	personal_percent: number | Variable<any, string>
-};
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -8722,6 +8771,7 @@ createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | 
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 createCategory?: [{	data: ValueTypes["CreateCategoryInput"] | Variable<any, string>},ValueTypes["Category"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
+createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createProductCard?: [{	data: ValueTypes["CreateProductCardInput"] | Variable<any, string>},ValueTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
@@ -8731,6 +8781,7 @@ deactivateWebPushSubscriptionById?: [{	data: ValueTypes["DeactivateSubscriptionI
 declineAgreement?: [{	data: ValueTypes["DeclineAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteCategory?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
+deleteExpensePlan?: [{	data: ValueTypes["DeleteExpensePlanInput"] | Variable<any, string>},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
@@ -8803,6 +8854,7 @@ marketplaceDeclineStockProposal?: [{	data: ValueTypes["MarketplaceResolveStockPr
 marketplaceDeleteCustomCategory?: [{	categoryId: number | Variable<any, string>},boolean | `@${string}`],
 marketplaceDeleteTrusteeWeight?: [{	data: ValueTypes["MarketplaceDeleteTrusteeWeightInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceDetailKU?: [{	data: ValueTypes["MarketplaceDetailKUInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
+marketplaceDistributeBranchFunds?: [{	data: ValueTypes["MarketplaceDistributeBranchFundsInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceFinalizeIssuance?: [{	data: ValueTypes["MarketplaceFinalizeIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ValueTypes["MarketplaceGenerateInventoryLabelInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceOpenIssuance?: [{	data: ValueTypes["MarketplaceOpenIssuanceInput"] | Variable<any, string>},ValueTypes["MarketplaceIssuanceResult"]],
@@ -8817,7 +8869,6 @@ marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhit
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
-marketplaceSetBranchSplit?: [{	data: ValueTypes["MarketplaceSetBranchSplitInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ValueTypes["MarketplaceSetMembershipFeeInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomyConfig"]],
@@ -10183,6 +10234,7 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
+listExpensePlans?: [{	data?: ValueTypes["ListExpensePlansInput"] | undefined | null | Variable<any, string>},ValueTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
 marketplaceAidStatementSignablePayload?: [{	data: ValueTypes["MarketplaceAidStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
@@ -14923,6 +14975,20 @@ export type ResolverInputTypes = {
 	/** Служебная записка о расходе */
 	statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
+	["CreateExpensePlanInput"]: {
+	/** Сумма расхода. */
+	amount: number,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null,
+	/** Срок оплаты — обязателен для расходов с оплатой к дате. */
+	due_date?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
+	pay_to: string,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: ResolverInputTypes["ExpensePlanPriority"],
+	/** Назначение расхода. */
+	title: string
+};
 	["CreateIndividualDataInput"]: {
 	/** Дата рождения */
 	birthdate: string,
@@ -15383,6 +15449,10 @@ export type ResolverInputTypes = {
 	/** Хеш истории для удаления */
 	story_hash: string
 };
+	["DeleteExpensePlanInput"]: {
+	/** Идентификатор плановой записи. */
+	plan_id: number
+};
 	["DeletePaymentMethodInput"]: {
 	/** Идентификатор метода оплаты */
 	method_id: string,
@@ -15624,6 +15694,30 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Плановый расход кооператива: что, когда, на какую сумму и по каким реквизитам предстоит оплатить. Привязан к кооперативному участку либо к кооперативу в целом. */
+["ExpensePlan"]: AliasType<{
+	/** Сумма расхода. */
+	amount?:boolean | `@${string}`,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?:boolean | `@${string}`,
+	/** Когда добавлена запись. */
+	created_at?:boolean | `@${string}`,
+	/** Кто добавил запись. */
+	creator?:boolean | `@${string}`,
+	/** Срок оплаты (для расходов с оплатой к дате). */
+	due_date?:boolean | `@${string}`,
+	/** Идентификатор записи. */
+	id?:boolean | `@${string}`,
+	/** Реквизиты получателя платежа. */
+	pay_to?:boolean | `@${string}`,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority?:boolean | `@${string}`,
+	/** Назначение расхода. */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Приоритет планового расхода: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+["ExpensePlanPriority"]:ExpensePlanPriority;
 	/** Статус расхода в системе CAPITAL */
 ["ExpenseStatus"]:ExpenseStatus;
 	/** Расширенное действие блокчейна с сертификатом пользователя, совершившего его. */
@@ -16680,6 +16774,10 @@ export type ResolverInputTypes = {
 	coopname?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["ListExpensePlansInput"]: {
+	/** Показать планы только этого кооперативного участка. */
+	braname?: string | undefined | null
+};
 	["ListMarketplaceKUInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -17081,14 +17179,16 @@ export type ResolverInputTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: ResolverInputTypes["ID"]
 };
-	/** Экономика кооперативного участка: отсечка персонального распределения, веса участников и балансы кошельков членских взносов. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: AliasType<{
+	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+	available_to_distribute?:boolean | `@${string}`,
 	/** Кооперативный участок. */
 	braname?:boolean | `@${string}`,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance?:boolean | `@${string}`,
-	/** Доля членского взноса, распределяемая персонально между председателем и доверенными, проценты. Остальное — в общий кошелёк участка. */
-	personal_percent?:boolean | `@${string}`,
+	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	reserve_amount?:boolean | `@${string}`,
 	/** Сумма весов участников распределения. */
 	total_weight?:boolean | `@${string}`,
 	/** Участники распределения и их веса. */
@@ -17464,6 +17564,12 @@ export type ResolverInputTypes = {
 	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceDistributeBranchFundsInput"]: {
+	/** Сумма распределения из общего кошелька участка (раскладывается по весам). */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
+};
 	/** Экономика «Стола заказов»: единая ставка членского взноса кооператива (процент от стоимости заказа, одинаковый для всех кооперативных участков). */
 ["MarketplaceEconomyConfig"]: AliasType<{
 	/** Ставка членского взноса, проценты (1.5 = 1,5%). 0 — взнос не начисляется. */
@@ -18607,12 +18713,6 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceSetBranchSplitInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Доля персонального распределения, проценты (от 0 до 100). */
-	personal_percent: number
-};
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -19290,6 +19390,7 @@ createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetIn
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
 createCategory?: [{	data: ResolverInputTypes["CreateCategoryInput"]},ResolverInputTypes["Category"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
+createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createProductCard?: [{	data: ResolverInputTypes["CreateProductCardInput"]},ResolverInputTypes["ProductCard"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
@@ -19299,6 +19400,7 @@ deactivateWebPushSubscriptionById?: [{	data: ResolverInputTypes["DeactivateSubsc
 declineAgreement?: [{	data: ResolverInputTypes["DeclineAgreementInput"]},ResolverInputTypes["Transaction"]],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
 deleteCategory?: [{	id: string},boolean | `@${string}`],
+deleteExpensePlan?: [{	data: ResolverInputTypes["DeleteExpensePlanInput"]},boolean | `@${string}`],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
 deleteProductCard?: [{	id: string},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
@@ -19371,6 +19473,7 @@ marketplaceDeclineStockProposal?: [{	data: ResolverInputTypes["MarketplaceResolv
 marketplaceDeleteCustomCategory?: [{	categoryId: number},boolean | `@${string}`],
 marketplaceDeleteTrusteeWeight?: [{	data: ResolverInputTypes["MarketplaceDeleteTrusteeWeightInput"]},boolean | `@${string}`],
 marketplaceDetailKU?: [{	data: ResolverInputTypes["MarketplaceDetailKUInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
+marketplaceDistributeBranchFunds?: [{	data: ResolverInputTypes["MarketplaceDistributeBranchFundsInput"]},boolean | `@${string}`],
 marketplaceFinalizeIssuance?: [{	data: ResolverInputTypes["MarketplaceFinalizeIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
 marketplaceGenerateInventoryLabel?: [{	data: ResolverInputTypes["MarketplaceGenerateInventoryLabelInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceOpenIssuance?: [{	data: ResolverInputTypes["MarketplaceOpenIssuanceInput"]},ResolverInputTypes["MarketplaceIssuanceResult"]],
@@ -19385,7 +19488,6 @@ marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemove
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
-marketplaceSetBranchSplit?: [{	data: ResolverInputTypes["MarketplaceSetBranchSplitInput"]},boolean | `@${string}`],
 marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ResolverInputTypes["MarketplaceSetMembershipFeeInput"]},ResolverInputTypes["MarketplaceEconomyConfig"]],
@@ -20694,6 +20796,7 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
+listExpensePlans?: [{	data?: ResolverInputTypes["ListExpensePlansInput"] | undefined | null},ResolverInputTypes["ExpensePlan"]],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
 marketplaceAidStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceAidStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceAplReceptionChairmanSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["DocumentAggregate"]],
@@ -25299,6 +25402,20 @@ export type ModelTypes = {
 	/** Служебная записка о расходе */
 	statement: ModelTypes["SignedDigitalDocumentInput"]
 };
+	["CreateExpensePlanInput"]: {
+	/** Сумма расхода. */
+	amount: number,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null,
+	/** Срок оплаты — обязателен для расходов с оплатой к дате. */
+	due_date?: ModelTypes["DateTime"] | undefined | null,
+	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
+	pay_to: string,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: ModelTypes["ExpensePlanPriority"],
+	/** Назначение расхода. */
+	title: string
+};
 	["CreateIndividualDataInput"]: {
 	/** Дата рождения */
 	birthdate: string,
@@ -25751,6 +25868,10 @@ export type ModelTypes = {
 	/** Хеш истории для удаления */
 	story_hash: string
 };
+	["DeleteExpensePlanInput"]: {
+	/** Идентификатор плановой записи. */
+	plan_id: number
+};
 	["DeletePaymentMethodInput"]: {
 	/** Идентификатор метода оплаты */
 	method_id: string,
@@ -25981,6 +26102,28 @@ export type ModelTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Плановый расход кооператива: что, когда, на какую сумму и по каким реквизитам предстоит оплатить. Привязан к кооперативному участку либо к кооперативу в целом. */
+["ExpensePlan"]: {
+		/** Сумма расхода. */
+	amount: string,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null,
+	/** Когда добавлена запись. */
+	created_at: ModelTypes["DateTime"],
+	/** Кто добавил запись. */
+	creator: string,
+	/** Срок оплаты (для расходов с оплатой к дате). */
+	due_date?: ModelTypes["DateTime"] | undefined | null,
+	/** Идентификатор записи. */
+	id: number,
+	/** Реквизиты получателя платежа. */
+	pay_to: string,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: ModelTypes["ExpensePlanPriority"],
+	/** Назначение расхода. */
+	title: string
+};
+	["ExpensePlanPriority"]:ExpensePlanPriority;
 	["ExpenseStatus"]:ExpenseStatus;
 	/** Расширенное действие блокчейна с сертификатом пользователя, совершившего его. */
 ["ExtendedBlockchainAction"]: {
@@ -27003,6 +27146,10 @@ export type ModelTypes = {
 	/** Имя кооператива */
 	coopname: string
 };
+	["ListExpensePlansInput"]: {
+	/** Показать планы только этого кооперативного участка. */
+	braname?: string | undefined | null
+};
 	["ListMarketplaceKUInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -27385,14 +27532,16 @@ export type ModelTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: ModelTypes["ID"]
 };
-	/** Экономика кооперативного участка: отсечка персонального распределения, веса участников и балансы кошельков членских взносов. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
-		/** Кооперативный участок. */
+		/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+	available_to_distribute: string,
+	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
-	/** Доля членского взноса, распределяемая персонально между председателем и доверенными, проценты. Остальное — в общий кошелёк участка. */
-	personal_percent: number,
+	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	reserve_amount: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
 	/** Участники распределения и их веса. */
@@ -27746,6 +27895,12 @@ export type ModelTypes = {
 	picture?: string | undefined | null,
 	/** Значение */
 	value: string
+};
+	["MarketplaceDistributeBranchFundsInput"]: {
+	/** Сумма распределения из общего кошелька участка (раскладывается по весам). */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
 };
 	/** Экономика «Стола заказов»: единая ставка членского взноса кооператива (процент от стоимости заказа, одинаковый для всех кооперативных участков). */
 ["MarketplaceEconomyConfig"]: {
@@ -28826,12 +28981,6 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceSetBranchSplitInput"]: {
-	/** Кооперативный участок. */
-	braname: string,
-	/** Доля персонального распределения, проценты (от 0 до 100). */
-	personal_percent: number
-};
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -29759,6 +29908,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	createDepositPayment: ModelTypes["GatewayPayment"],
+	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Планы кооперативного участка ведёт его председатель. */
+	createExpensePlan: ModelTypes["ExpensePlan"],
 	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -29795,6 +29946,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteCategory: boolean,
+	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
+	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
 	/** Удалить черновик карточки
@@ -29995,6 +30148,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: ModelTypes["MarketplaceKUDetails"],
+	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
+	marketplaceDistributeBranchFunds: boolean,
 	/** Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции. */
 	marketplaceFinalizeIssuance: ModelTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
@@ -30031,8 +30186,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRetryKUGeocode: ModelTypes["MarketplaceKUDetails"],
-	/** Настроить отсечку распределения членского взноса участка: какая доля взноса с каждого исполненного заказа распределяется персонально между председателем и доверенными, а какая уходит в общий кошелёк участка. Доступно председателю участка. */
-	marketplaceSetBranchSplit: boolean,
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
 	marketplaceSetCartDeliveryPoint: ModelTypes["MarketplaceCart"],
 	/** Активирует или деактивирует ПВЗ Стола заказов.
@@ -31533,6 +31686,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Срочные и расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
 Требуемые роли: chairman.  */
@@ -31571,7 +31726,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree: Array<ModelTypes["MarketplaceCategoryTreeNode"]>,
-	/** Экономика кооперативного участка: отсечка персонального распределения членского взноса, веса участников и балансы кошельков членских средств участка. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: ModelTypes["MarketplaceBranchEconomy"],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
 	marketplaceGetCart: ModelTypes["MarketplaceCart"],
@@ -36332,6 +36487,20 @@ export type GraphQLTypes = {
 	/** Служебная записка о расходе */
 	statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
+	["CreateExpensePlanInput"]: {
+		/** Сумма расхода. */
+	amount: number,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null,
+	/** Срок оплаты — обязателен для расходов с оплатой к дате. */
+	due_date?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Реквизиты получателя платежа (передаются в платёжку кассиру). */
+	pay_to: string,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: GraphQLTypes["ExpensePlanPriority"],
+	/** Назначение расхода. */
+	title: string
+};
 	["CreateIndividualDataInput"]: {
 		/** Дата рождения */
 	birthdate: string,
@@ -36798,6 +36967,10 @@ export type GraphQLTypes = {
 		/** Хеш истории для удаления */
 	story_hash: string
 };
+	["DeleteExpensePlanInput"]: {
+		/** Идентификатор плановой записи. */
+	plan_id: number
+};
 	["DeletePaymentMethodInput"]: {
 		/** Идентификатор метода оплаты */
 	method_id: string,
@@ -37049,6 +37222,31 @@ export type GraphQLTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Плановый расход кооператива: что, когда, на какую сумму и по каким реквизитам предстоит оплатить. Привязан к кооперативному участку либо к кооперативу в целом. */
+["ExpensePlan"]: {
+	__typename: "ExpensePlan",
+	/** Сумма расхода. */
+	amount: string,
+	/** Кооперативный участок; пусто — расход уровня кооператива. */
+	braname?: string | undefined | null,
+	/** Когда добавлена запись. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Кто добавил запись. */
+	creator: string,
+	/** Срок оплаты (для расходов с оплатой к дате). */
+	due_date?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Идентификатор записи. */
+	id: number,
+	/** Реквизиты получателя платежа. */
+	pay_to: string,
+	/** Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+	priority: GraphQLTypes["ExpensePlanPriority"],
+	/** Назначение расхода. */
+	title: string,
+	['...on ExpensePlan']: Omit<GraphQLTypes["ExpensePlan"], "...on ExpensePlan">
+};
+	/** Приоритет планового расхода: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+["ExpensePlanPriority"]: ExpensePlanPriority;
 	/** Статус расхода в системе CAPITAL */
 ["ExpenseStatus"]: ExpenseStatus;
 	/** Расширенное действие блокчейна с сертификатом пользователя, совершившего его. */
@@ -38133,6 +38331,10 @@ export type GraphQLTypes = {
 	coopname: string,
 	['...on LedgerState']: Omit<GraphQLTypes["LedgerState"], "...on LedgerState">
 };
+	["ListExpensePlansInput"]: {
+		/** Показать планы только этого кооперативного участка. */
+	braname?: string | undefined | null
+};
 	["ListMarketplaceKUInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -38545,15 +38747,17 @@ export type GraphQLTypes = {
 	/** Позиция склада, к которой привязывается отсканированный штрих-код. */
 	inventory_id: GraphQLTypes["ID"]
 };
-	/** Экономика кооперативного участка: отсечка персонального распределения, веса участников и балансы кошельков членских взносов. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы с резервом на 30 дней, веса участников распределения и балансы персональных кошельков. */
 ["MarketplaceBranchEconomy"]: {
 	__typename: "MarketplaceBranchEconomy",
+	/** Доступно к распределению: общий кошелёк за вычетом резерва. */
+	available_to_distribute: string,
 	/** Кооперативный участок. */
 	braname: string,
 	/** Баланс общего кошелька членских взносов участка. */
 	common_balance: string,
-	/** Доля членского взноса, распределяемая персонально между председателем и доверенными, проценты. Остальное — в общий кошелёк участка. */
-	personal_percent: number,
+	/** Плановый резерв расходов ближайших 30 дней: срочные расходы и расходы со сроком внутри горизонта. Эта часть общего кошелька недоступна распределению. */
+	reserve_amount: string,
 	/** Сумма весов участников распределения. */
 	total_weight: number,
 	/** Участники распределения и их веса. */
@@ -38947,6 +39151,12 @@ export type GraphQLTypes = {
 	/** Значение */
 	value: string,
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
+};
+	["MarketplaceDistributeBranchFundsInput"]: {
+		/** Сумма распределения из общего кошелька участка (раскладывается по весам). */
+	amount: number,
+	/** Кооперативный участок. */
+	braname: string
 };
 	/** Экономика «Стола заказов»: единая ставка членского взноса кооператива (процент от стоимости заказа, одинаковый для всех кооперативных участков). */
 ["MarketplaceEconomyConfig"]: {
@@ -40130,12 +40340,6 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
-	["MarketplaceSetBranchSplitInput"]: {
-		/** Кооперативный участок. */
-	braname: string,
-	/** Доля персонального распределения, проценты (от 0 до 100). */
-	personal_percent: number
-};
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 		/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -41123,6 +41327,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
+	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Планы кооперативного участка ведёт его председатель. */
+	createExpensePlan: GraphQLTypes["ExpensePlan"],
 	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
 
 Требуемые роли: chairman, member.  */
@@ -41159,6 +41365,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteCategory: boolean,
+	/** Удалить плановый расход (например, оплаченный вне системы или отменённый). Планы кооперативного участка ведёт его председатель. */
+	deleteExpensePlan: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
 	/** Удалить черновик карточки
@@ -41359,6 +41567,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceDetailKU: GraphQLTypes["MarketplaceKUDetails"],
+	/** Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка. */
+	marketplaceDistributeBranchFunds: boolean,
 	/** Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции. */
 	marketplaceFinalizeIssuance: GraphQLTypes["MarketplaceIssuanceResult"],
 	/** Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке. */
@@ -41395,8 +41605,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceRetryKUGeocode: GraphQLTypes["MarketplaceKUDetails"],
-	/** Настроить отсечку распределения членского взноса участка: какая доля взноса с каждого исполненного заказа распределяется персонально между председателем и доверенными, а какая уходит в общий кошелёк участка. Доступно председателю участка. */
-	marketplaceSetBranchSplit: boolean,
 	/** Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ. */
 	marketplaceSetCartDeliveryPoint: GraphQLTypes["MarketplaceCart"],
 	/** Активирует или деактивирует ПВЗ Стола заказов.
@@ -43032,6 +43240,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Срочные и расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
 Требуемые роли: chairman.  */
@@ -43070,7 +43280,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceGetAvailableCategoryTree: Array<GraphQLTypes["MarketplaceCategoryTreeNode"]>,
-	/** Экономика кооперативного участка: отсечка персонального распределения членского взноса, веса участников и балансы кошельков членских средств участка. */
+	/** Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков. */
 	marketplaceGetBranchEconomy: GraphQLTypes["MarketplaceBranchEconomy"],
 	/** Корзина текущего заказчика (создаётся пустой при первом обращении). */
 	marketplaceGetCart: GraphQLTypes["MarketplaceCart"],
@@ -44939,6 +45149,12 @@ export enum DocumentAction {
 	REGCOOP = "REGCOOP",
 	WITHDRAW = "WITHDRAW"
 }
+/** Приоритет планового расхода: к дате / срочный (всегда в резерве) / необязательный (не в резерве). */
+export enum ExpensePlanPriority {
+	OPTIONAL = "OPTIONAL",
+	SCHEDULED = "SCHEDULED",
+	URGENT = "URGENT"
+}
 /** Статус расхода в системе CAPITAL */
 export enum ExpenseStatus {
 	APPROVED = "APPROVED",
@@ -45514,6 +45730,7 @@ type ZEUS_VARIABLES = {
 	["CreateDepositPaymentInput"]: ValueTypes["CreateDepositPaymentInput"];
 	["CreateEntrepreneurDataInput"]: ValueTypes["CreateEntrepreneurDataInput"];
 	["CreateExpenseInput"]: ValueTypes["CreateExpenseInput"];
+	["CreateExpensePlanInput"]: ValueTypes["CreateExpensePlanInput"];
 	["CreateIndividualDataInput"]: ValueTypes["CreateIndividualDataInput"];
 	["CreateInitOrganizationDataInput"]: ValueTypes["CreateInitOrganizationDataInput"];
 	["CreateInitialPaymentInput"]: ValueTypes["CreateInitialPaymentInput"];
@@ -45545,6 +45762,7 @@ type ZEUS_VARIABLES = {
 	["DeleteBranchInput"]: ValueTypes["DeleteBranchInput"];
 	["DeleteCapitalIssueByHashInput"]: ValueTypes["DeleteCapitalIssueByHashInput"];
 	["DeleteCapitalStoryByHashInput"]: ValueTypes["DeleteCapitalStoryByHashInput"];
+	["DeleteExpensePlanInput"]: ValueTypes["DeleteExpensePlanInput"];
 	["DeletePaymentMethodInput"]: ValueTypes["DeletePaymentMethodInput"];
 	["DeleteProjectInput"]: ValueTypes["DeleteProjectInput"];
 	["DeleteTrustedAccountInput"]: ValueTypes["DeleteTrustedAccountInput"];
@@ -45556,6 +45774,7 @@ type ZEUS_VARIABLES = {
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];
+	["ExpensePlanPriority"]: ValueTypes["ExpensePlanPriority"];
 	["ExpenseStatus"]: ValueTypes["ExpenseStatus"];
 	["ExtendedMeetStatus"]: ValueTypes["ExtendedMeetStatus"];
 	["ExtensionInput"]: ValueTypes["ExtensionInput"];
@@ -45629,6 +45848,7 @@ type ZEUS_VARIABLES = {
 	["IssueStatus"]: ValueTypes["IssueStatus"];
 	["JSON"]: ValueTypes["JSON"];
 	["JSONObject"]: ValueTypes["JSONObject"];
+	["ListExpensePlansInput"]: ValueTypes["ListExpensePlansInput"];
 	["ListMarketplaceKUInput"]: ValueTypes["ListMarketplaceKUInput"];
 	["ListReportDraftsFilterInput"]: ValueTypes["ListReportDraftsFilterInput"];
 	["ListUtcDatesWithNewRoomMessagesInput"]: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"];
@@ -45676,6 +45896,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceDeclineOrdersBatchInput"]: ValueTypes["MarketplaceDeclineOrdersBatchInput"];
 	["MarketplaceDeleteTrusteeWeightInput"]: ValueTypes["MarketplaceDeleteTrusteeWeightInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
+	["MarketplaceDistributeBranchFundsInput"]: ValueTypes["MarketplaceDistributeBranchFundsInput"];
 	["MarketplaceEventsInput"]: ValueTypes["MarketplaceEventsInput"];
 	["MarketplaceFinalizeIssuanceInput"]: ValueTypes["MarketplaceFinalizeIssuanceInput"];
 	["MarketplaceGenerateInventoryLabelInput"]: ValueTypes["MarketplaceGenerateInventoryLabelInput"];
@@ -45728,7 +45949,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
 	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
 	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
-	["MarketplaceSetBranchSplitInput"]: ValueTypes["MarketplaceSetBranchSplitInput"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];

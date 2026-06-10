@@ -25,10 +25,10 @@ import {
   MarketplaceConvertBranchFundsInputDTO,
   MarketplaceCreateAidInputDTO,
   MarketplaceDeleteTrusteeWeightInputDTO,
+  MarketplaceDistributeBranchFundsInputDTO,
   MarketplaceEconomyConfigDTO,
   MarketplaceListAidsInputDTO,
   MarketplacePersonalEconomyDTO,
-  MarketplaceSetBranchSplitInputDTO,
   MarketplaceSetMembershipFeeInputDTO,
   MarketplaceSetTrusteeWeightInputDTO,
   MarketplaceAidStatementSignablePayloadInputDTO,
@@ -47,9 +47,10 @@ function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
 }
 
 /**
- * requirement b6 «Экономика КУ»: единая ставка членского взноса, отсечка и
- * веса распределения, персональные кошельки доверенных (перевод в «Стол
- * заказов» и материальная помощь).
+ * requirement b6 «Экономика КУ» (раунд 5 — приоритет общего кошелька):
+ * единая ставка членского взноса, веса и ручное распределение из общего
+ * кошелька, плановые расходы с 30-дневным резервом, персональные кошельки
+ * доверенных (перевод в «Стол заказов» и материальная помощь).
  */
 @Resolver()
 @Injectable()
@@ -99,7 +100,7 @@ export class MarketplaceEconomyResolver {
   @Query(() => MarketplaceBranchEconomyDTO, {
     name: 'marketplaceGetBranchEconomy',
     description:
-      'Экономика кооперативного участка: отсечка персонального распределения членского взноса, веса участников и балансы кошельков членских средств участка.',
+      'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Economy', 'read:own-KU')
@@ -113,21 +114,21 @@ export class MarketplaceEconomyResolver {
   }
 
   @Mutation(() => Boolean, {
-    name: 'marketplaceSetBranchSplit',
+    name: 'marketplaceDistributeBranchFunds',
     description:
-      'Настроить отсечку распределения членского взноса участка: какая доля взноса с каждого исполненного заказа распределяется персонально между председателем и доверенными, а какая уходит в общий кошелёк участка. Доступно председателю участка.',
+      'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Economy', 'configure:own-KU')
-  async marketplaceSetBranchSplit(
+  async marketplaceDistributeBranchFunds(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceSetBranchSplitInputDTO
+    @Args('data') data: MarketplaceDistributeBranchFundsInputDTO
   ): Promise<boolean> {
-    await this.economyService.setBranchSplit(
+    await this.economyService.distributeBranchFunds(
       config.coopname,
       member.username,
       data.braname,
-      data.personal_percent
+      data.amount
     );
     return true;
   }

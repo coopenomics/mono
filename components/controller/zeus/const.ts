@@ -265,6 +265,10 @@ export const AllTypesProps: Record<string,any> = {
 	CreateExpenseInput:{
 		statement:"SignedDigitalDocumentInput"
 	},
+	CreateExpensePlanInput:{
+		due_date:"DateTime",
+		priority:"ExpensePlanPriority"
+	},
 	CreateIndividualDataInput:{
 		passport:"PassportInput"
 	},
@@ -364,6 +368,9 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteCapitalStoryByHashInput:{
 
 	},
+	DeleteExpensePlanInput:{
+
+	},
 	DeletePaymentMethodInput:{
 
 	},
@@ -393,6 +400,7 @@ export const AllTypesProps: Record<string,any> = {
 	ExpenseFilter:{
 
 	},
+	ExpensePlanPriority: "enum" as const,
 	ExpenseStatus: "enum" as const,
 	ExtendedMeetStatus: "enum" as const,
 	ExtensionInput:{
@@ -607,6 +615,9 @@ export const AllTypesProps: Record<string,any> = {
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
+	ListExpensePlansInput:{
+
+	},
 	ListMarketplaceKUInput:{
 
 	},
@@ -736,6 +747,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceDetailKUInput:{
 		workingHours:"WorkingHoursInput"
+	},
+	MarketplaceDistributeBranchFundsInput:{
+
 	},
 	MarketplaceEventsInput:{
 
@@ -871,9 +885,6 @@ export const AllTypesProps: Record<string,any> = {
 		signatures:"SignatureInfoInput"
 	},
 	MarketplaceReturnStatementSignedMetaDocumentInput:{
-
-	},
-	MarketplaceSetBranchSplitInput:{
 
 	},
 	MarketplaceSetCartDeliveryPointInput:{
@@ -1255,6 +1266,9 @@ export const AllTypesProps: Record<string,any> = {
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
+		createExpensePlan:{
+			data:"CreateExpensePlanInput"
+		},
 		createInitialPayment:{
 			data:"CreateInitialPaymentInput"
 		},
@@ -1281,6 +1295,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		deleteCategory:{
 
+		},
+		deleteExpensePlan:{
+			data:"DeleteExpensePlanInput"
 		},
 		deletePaymentMethod:{
 			data:"DeletePaymentMethodInput"
@@ -1497,6 +1514,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceDetailKU:{
 			data:"MarketplaceDetailKUInput"
 		},
+		marketplaceDistributeBranchFunds:{
+			data:"MarketplaceDistributeBranchFundsInput"
+		},
 		marketplaceFinalizeIssuance:{
 			data:"MarketplaceFinalizeIssuanceInput"
 		},
@@ -1538,9 +1558,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceRetryKUGeocode:{
 
-		},
-		marketplaceSetBranchSplit:{
-			data:"MarketplaceSetBranchSplitInput"
 		},
 		marketplaceSetCartDeliveryPoint:{
 			input:"MarketplaceSetCartDeliveryPointInput"
@@ -2051,6 +2068,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
+		},
+		listExpensePlans:{
+			data:"ListExpensePlansInput"
 		},
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
@@ -3786,6 +3806,17 @@ export const ReturnTypes: Record<string,any> = {
 		inn:"String",
 		ogrn:"String"
 	},
+	ExpensePlan:{
+		amount:"String",
+		braname:"String",
+		created_at:"DateTime",
+		creator:"String",
+		due_date:"DateTime",
+		id:"Int",
+		pay_to:"String",
+		priority:"ExpensePlanPriority",
+		title:"String"
+	},
 	ExtendedBlockchainAction:{
 		account:"String",
 		account_ram_deltas:"AccountRamDelta",
@@ -4151,9 +4182,10 @@ export const ReturnTypes: Record<string,any> = {
 		updatedAt:"DateTime"
 	},
 	MarketplaceBranchEconomy:{
+		available_to_distribute:"String",
 		braname:"String",
 		common_balance:"String",
-		personal_percent:"Float",
+		reserve_amount:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
 	},
@@ -5059,6 +5091,7 @@ export const ReturnTypes: Record<string,any> = {
 		createBranch:"Branch",
 		createCategory:"Category",
 		createDepositPayment:"GatewayPayment",
+		createExpensePlan:"ExpensePlan",
 		createInitialPayment:"GatewayPayment",
 		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
@@ -5068,6 +5101,7 @@ export const ReturnTypes: Record<string,any> = {
 		declineAgreement:"Transaction",
 		deleteBranch:"Boolean",
 		deleteCategory:"Boolean",
+		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
 		deleteProductCard:"Boolean",
 		deleteReportDraft:"Boolean",
@@ -5136,6 +5170,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDeleteCustomCategory:"Boolean",
 		marketplaceDeleteTrusteeWeight:"Boolean",
 		marketplaceDetailKU:"MarketplaceKUDetails",
+		marketplaceDistributeBranchFunds:"Boolean",
 		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceOpenIssuance:"MarketplaceIssuanceResult",
@@ -5150,7 +5185,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
 		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
-		marketplaceSetBranchSplit:"Boolean",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
@@ -5749,6 +5783,7 @@ export const ReturnTypes: Record<string,any> = {
 		getSystemInfo:"SystemInfo",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
+		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
 		marketplaceAplReceptionChairmanSignablePayloads:"DocumentAggregate",

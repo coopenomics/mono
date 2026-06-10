@@ -263,8 +263,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Единая ставка членского взноса кооператива (администратор). */
   setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<TransactResult>;
 
-  /** Отсечка персонального распределения членского взноса КУ (председатель). */
-  setSplit(data: MarketContract.Actions.SetSplit.ISetSplit): Promise<TransactResult>;
+  /** Ручное распределение средств общего кошелька КУ по весам (branch::distribute; председатель). */
+  distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<TransactResult>;
 
   /** Вес участника распределения членских взносов КУ (branch::setweight). */
   setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<TransactResult>;
@@ -283,8 +283,8 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */
   getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null>;
 
-  /** Отсечки персонального распределения по КУ. */
-  getBranchSplits(coopname: string): Promise<MarketContract.Tables.BranchSplits.IBranchSplit[]>;
+  /** Раунды ручного распределения средств общего кошелька КУ (branch::rounds). */
+  listRounds(coopname: string): Promise<BranchContract.Tables.Rounds.IBranchRound[]>;
 
   /** Реестр весов распределения (branch::weights). */
   getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
