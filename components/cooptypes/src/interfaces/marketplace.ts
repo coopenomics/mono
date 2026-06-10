@@ -66,6 +66,12 @@ export interface IStockOrder {
   batch_hash: IChecksum256
 }
 
+export interface IMarkdown {
+  coopname: IName
+  order_hash: IChecksum256
+  amount: IAsset
+}
+
 export interface ICancelOrder {
   coopname: IName
   orderer: IName
@@ -257,6 +263,8 @@ export interface IOrder {
   payout_status: IName
   payout_decline_reason: string
   return_request_id: IUint64
+  /** Списанная уценка по заказу из остатка (binary_extension; у старых строк отсутствует). */
+  markdown_cost?: IAsset
 }
 
 export interface IReturnRequest {

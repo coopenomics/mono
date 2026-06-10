@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -142,6 +143,15 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   std::string payout_decline_reason;                          ///< Заполняется только при payout_status == DECLINED (текст причины из gateway::outdecline)
 
   uint64_t return_request_id = 0;                             ///< 0 если активного гарантийного возврата нет
+
+  /**
+   * Списанная уценка по заказу из остатка кооператива (o.mkt.loss, Дт 91 / Кт 10):
+   * разница между стоимостью прибытия выданного и фактической суммой выдачи.
+   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
+   * старых строк эквивалентно «уценка не списывалась». Guard идемпотентности
+   * action'а `markdown` (повторное списание по заказу не пройдёт).
+   */
+  eosio::binary_extension<eosio::asset> markdown_cost;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

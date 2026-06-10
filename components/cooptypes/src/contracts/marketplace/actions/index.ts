@@ -18,6 +18,12 @@ export * as CreateOrder from './createOrder'
 export * as StockOrder from './stockOrder'
 
 /**
+ * Списание уценки по заказу из остатка (requirement 76): o.mkt.loss (Дт 91 / Кт 10)
+ * после финализации выдачи — выбытие со склада по полной стоимости прибытия.
+ */
+export * as Markdown from './markdown'
+
+/**
  * Заказчик отменяет заказ до акцепта поставщиком (Story 4.4). Триггерит o.mkt.unblk.
  * Stock-ордер (продавец — кооператив) отменяется и в acceptcoop — до первой подписи акта выдачи.
  */

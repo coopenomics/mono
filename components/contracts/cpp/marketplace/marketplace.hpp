@@ -27,9 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (10 actions): createorder, stockorder, cancelorder,
+ *  - **p.mkt.supply** (11 actions): createorder, stockorder, cancelorder,
  *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2.
+ *    signiss2, markdown.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -222,6 +222,20 @@ public:
   [[eosio::action]] void paydecline(eosio::name coopname,
                                      checksum256 outcome_hash,
                                      std::string reason);
+
+  /**
+   * @brief Списание уценки по заказу из остатка кооператива (requirement 76).
+   * Разница между стоимостью прибытия выданного и фактической суммой выдачи
+   * выбывает со счёта 10 в прочие расходы: o.mkt.loss (NONE, Дт 91 / Кт 10).
+   * Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на
+   * складе ничего не зависает. Вызывает backend после финализации выдачи
+   * (сумму считает по выданным позициям). Погашение накопленного на 91
+   * (Дт 86 / Кт 91) — будущий процесс по образцу списания скоропорта.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void markdown(eosio::name coopname,
+                                   checksum256 order_hash,
+                                   eosio::asset amount);
 
   /**
    * @brief Председатель КУ выдачи открывает выдачу первой подписью АПП-выдачи

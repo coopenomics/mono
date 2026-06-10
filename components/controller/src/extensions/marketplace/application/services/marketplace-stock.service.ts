@@ -149,6 +149,17 @@ export class MarketplaceStockService {
       if (Number.isNaN(price) || price <= 0) {
         throw new BadRequestException('Цена публикации должна быть больше нуля.');
       }
+      // Только уценка (requirement 76, решение 12): продажа выше цены прибытия
+      // потребовала бы доходной проводки, которой в модели нет; уценка же
+      // закрывается расходом o.mkt.loss при выдаче.
+      const tooHigh = positions.find(
+        (p) => p.arrival_price !== null && price > Number.parseFloat(p.arrival_price) + 1e-9
+      );
+      if (tooHigh) {
+        throw new BadRequestException(
+          `Цена публикации выше цены прибытия позиции «${tooHigh.product_name_snapshot}» (${tooHigh.arrival_price}) — допускается только уценка.`
+        );
+      }
     }
     const braname = positions[0].braname;
     if (positions.some((p) => p.braname !== braname)) {

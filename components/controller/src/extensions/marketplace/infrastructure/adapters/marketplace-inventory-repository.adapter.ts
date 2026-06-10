@@ -315,8 +315,10 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
   async finalizeReservedIssue(
     coopname: string,
     order_id: string,
-    issued_quantity: number
-  ): Promise<number> {
+    issued_quantity: number,
+    fallback_arrival_price: string
+  ): Promise<{ released: number; issued_arrival_cost: string }> {
+    const fallbackPrice = Number.parseFloat(fallback_arrival_price) || 0;
     return this.repo.manager.transaction(async (em) => {
       const rows = await em.getRepository(MarketplaceInventoryEntity).find({
         where: {
@@ -329,14 +331,22 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       });
       let remainingToIssue = issued_quantity;
       let released = 0;
+      // Стоимость выданного по ценам прибытия — основание для списания
+      // уценки (o.mkt.loss): цены прибытия у позиций одного заказа могут
+      // отличаться (FIFO-резерв).
+      let issuedArrivalCost = 0;
+      const arrivalOf = (row: MarketplaceInventoryEntity): number =>
+        row.arrival_price !== null ? Number.parseFloat(row.arrival_price) : fallbackPrice;
       for (const row of rows) {
         if (remainingToIssue >= row.quantity_per_label) {
           remainingToIssue -= row.quantity_per_label;
+          issuedArrivalCost += arrivalOf(row) * row.quantity_per_label;
           await em.update(MarketplaceInventoryEntity, { id: row.id }, {
             status: MarketplaceInventoryStatuses.ISSUED,
           });
         } else if (remainingToIssue > 0) {
           const releaseQty = row.quantity_per_label - remainingToIssue;
+          issuedArrivalCost += arrivalOf(row) * remainingToIssue;
           await em.update(MarketplaceInventoryEntity, { id: row.id }, {
             status: MarketplaceInventoryStatuses.ISSUED,
             quantity_per_label: remainingToIssue,
@@ -353,7 +363,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
           released += row.quantity_per_label;
         }
       }
-      return released;
+      return { released, issued_arrival_cost: issuedArrivalCost.toFixed(4) };
     });
   }
 

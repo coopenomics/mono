@@ -156,13 +156,16 @@ export interface MarketplaceInventoryDomainRepository {
    * Выдача по заказу из остатка: перевод зарезервированных позиций в ISSUED
    * (greedy до issued_quantity со split пограничной), невыданный резерв
    * освобождается обратно в свободный остаток (позиция остаётся
-   * опубликованной). Возвращает число освобождённых единиц.
+   * опубликованной). Возвращает число освобождённых единиц и стоимость
+   * выданного по ценам прибытия (для списания уценки o.mkt.loss); у позиций
+   * без цены прибытия берётся fallback_arrival_price.
    */
   finalizeReservedIssue(
     coopname: string,
     order_id: string,
-    issued_quantity: number
-  ): Promise<number>;
+    issued_quantity: number,
+    fallback_arrival_price: string
+  ): Promise<{ released: number; issued_arrival_cost: string }>;
 
   /** Публикация/снятие с публикации позиций остатка (привязка к офферу кооператива). */
   setPublication(

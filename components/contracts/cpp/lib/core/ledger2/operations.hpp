@@ -94,6 +94,7 @@ namespace operations {
     inline constexpr eosio::name CONSUME_BY_MEMBER      = "o.mkt.consum"_n;   ///< Выдача имущества пайщику по АПП выдачи (BURN с w.mkt.order, Dr 86 / Cr 10 — сжигание резерва заказа и выбытие имущества со склада через целевое финансирование).
     inline constexpr eosio::name RETURN_BY_MEMBER       = "o.mkt.return"_n;   ///< Гарантийный возврат имущества пайщиком — compensating forward к CONSUME_BY_MEMBER (ISSUE ∅ → w.mkt.member, Dr 10 / Cr 86 — восстановление средств на членском «Стола заказов» заказчика и возврат имущества на склад). Реверты ledger2::revert в Столе заказов не используются.
     inline constexpr eosio::name WRITE_OFF_PERISHABLE   = "o.mkt.wroff"_n;    ///< Утилизация скоропорта со склада (NONE Dr 86 / Cr 10). По протоколу совета.
+    inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает. Накопленный расход на 91 погашается позже отдельным процессом (Dr 86 / Cr 91, аналогично списанию скоропорта через совет — пока не реализован, requirement 76 вопрос 4).
   }
 
   // soviet
@@ -349,6 +350,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     eosio::name{}, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::MATERIALS,
     "Утилизация скоропорта" },
+
+  // 12h. p.mkt.supply: Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10).
+  //      Имущество выбывает со склада по полной стоимости прибытия: фактическую
+  //      сумму выдачи закрывает o.mkt.consum, разницу уценки — эта операция в
+  //      прочие расходы. Погашение накопленного на 91 (Dr 86 / Cr 91) — будущий
+  //      отдельный процесс по образцу списания скоропорта (requirement 76, в. 4).
+  { operations::marketplace::MARKDOWN_LOSS, processes::marketplace::SUPPLY, WalletOp::NONE,
+    eosio::name{}, eosio::name{},
+    ledger2_accounts::OTHER_INCOME_EXPENSES, ledger2_accounts::MATERIALS,
+    "Уценка имущества при выдаче со склада кооператива" },
 
   // 14. Конвертация в AXN: Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY → DELEGATE_FEES
   { operations::soviet::CONVERT_AXN, processes::soviet::AXN_CONVERT, WalletOp::TRANSFER,
