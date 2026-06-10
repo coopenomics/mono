@@ -31,6 +31,7 @@ describe('AuthV2ExceptionFilter (Story 1.11)', () => {
     [AuthV2ErrorCode.InvalidTwoFactorCode, HttpStatus.UNAUTHORIZED],
     [AuthV2ErrorCode.TwoFactorNotEnrolled, HttpStatus.BAD_REQUEST],
     [AuthV2ErrorCode.InvalidRecoveryToken, HttpStatus.BAD_REQUEST],
+    [AuthV2ErrorCode.InvalidOfflineCode, HttpStatus.BAD_REQUEST],
   ])('маппит %s → HTTP %d', (code, status) => {
     const { host, res } = mockHost();
     filter.catch(new AuthV2Error(code, 'описание'), host);

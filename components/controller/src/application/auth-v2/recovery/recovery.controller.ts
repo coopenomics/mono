@@ -18,9 +18,14 @@ import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
 import { LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE, MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
 import { RecoveryService } from './recovery.service';
 import { RecoveryConfirmService } from './recovery-confirm.service';
+import { OfflineRecoveryService } from './offline-recovery.service';
 
 interface RecoveryRequestBody {
   email?: string;
+}
+
+interface OfflineCodeBody {
+  code?: string;
 }
 
 interface RecoveryConfirmBody {
@@ -55,6 +60,7 @@ export class RecoveryController {
   constructor(
     private readonly recovery: RecoveryService,
     private readonly confirmService: RecoveryConfirmService,
+    private readonly offlineRecovery: OfflineRecoveryService,
   ) {}
 
   @Post('request')
@@ -74,6 +80,26 @@ export class RecoveryController {
     if (!email || typeof email !== 'string') throw new BadRequestException('Требуется email');
     // Исход константен (всегда 202): сервис сам решает, слать письмо или нет.
     await this.recovery.requestByEmail(email, req.ip ?? null);
+  }
+
+  /**
+   * Альтернативный первый канал (Story 3.4): offline-код вместо email-magic-link.
+   * При совпадении выдаёт recovery-токен — клиент несёт его в `/confirm` (TOTP +
+   * новый материал, Story 3.2). Rate-limit per-IP и per-code (`MAGIC_LINK_RULE`).
+   */
+  @Post('offline-code')
+  @HttpCode(200)
+  @UseFilters(AuthV2ExceptionFilter)
+  @UseGuards(AuthRateLimitGuard)
+  @AuthRateLimit({
+    ip: MAGIC_LINK_RULE,
+    account: { ...MAGIC_LINK_RULE, key: (req) => codeFromBody(req) },
+    error: TOO_MANY_RECOVERY,
+  })
+  async offlineCode(@Body() body: OfflineCodeBody, @Req() req: Request): Promise<{ recovery_token: string }> {
+    const code = requireString(body?.code, 'code');
+    const recovery_token = await this.offlineRecovery.requestByOfflineCode(code, req.ip ?? null);
+    return { recovery_token };
   }
 
   /**
@@ -131,6 +157,12 @@ function requireString(value: unknown, field: string): string {
 function tokenFromBody(req: Request): string | null {
   const token = (req.body as RecoveryConfirmBody | undefined)?.token;
   return token && typeof token === 'string' ? token : null;
+}
+
+/** per-code ключ rate-limit для offline-code (нормализованный код). */
+function codeFromBody(req: Request): string | null {
+  const code = (req.body as OfflineCodeBody | undefined)?.code;
+  return code && typeof code === 'string' ? code.replace(/\D/g, '') : null;
 }
 
 /** per-account ключ rate-limit = нормализованный email (совпадает с ключом lookup'а). */

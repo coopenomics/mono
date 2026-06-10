@@ -19,6 +19,7 @@ export enum AuthV2ErrorCode {
   InvalidTwoFactorCode = 'invalid_2fa_code',
   TwoFactorNotEnrolled = 'two_factor_not_enrolled',
   InvalidRecoveryToken = 'invalid_recovery_token',
+  InvalidOfflineCode = 'invalid_offline_code',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -165,6 +166,11 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
   [AuthV2ErrorCode.InvalidRecoveryToken]: {
     message: 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
     action: 'recover',
+    keepSession: false,
+  },
+  [AuthV2ErrorCode.InvalidOfflineCode]: {
+    message: 'Код восстановления неверен или уже использован.',
+    action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.NetworkError]: {

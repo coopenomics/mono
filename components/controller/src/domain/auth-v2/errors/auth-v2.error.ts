@@ -13,6 +13,7 @@ export enum AuthV2ErrorCode {
   InvalidTwoFactorCode = 'invalid_2fa_code',
   TwoFactorNotEnrolled = 'two_factor_not_enrolled',
   InvalidRecoveryToken = 'invalid_recovery_token',
+  InvalidOfflineCode = 'invalid_offline_code',
 }
 
 /** Ошибки auth-v2 в формате OAuth 2.0 ({ error, error_description }). */
