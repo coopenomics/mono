@@ -5,11 +5,31 @@ import type { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 export const RATE_LIMIT_WINDOW_15M = 15 * 60 * 1000;
 export const RATE_LIMIT_WINDOW_1H = 60 * 60 * 1000;
 
+/**
+ * Политика нарастающей блокировки (Story 3.12, NFR13). При каждом повторном
+ * срабатывании лимита по одному трекеру длительность блока растёт по `tiers`
+ * (последний тир — потолок). `memoryTtl` — скользящее окно памяти страйков:
+ * после простоя длиной `memoryTtl` счётчик страйков забывается и эскалация
+ * начинается с первого тира заново.
+ */
+export interface EscalationPolicy {
+  /** длительности блока по номеру страйка (мс): [1ч, 4ч, 12ч, 24ч]. */
+  tiers: number[];
+  /** окно памяти страйков (мс). */
+  memoryTtl: number;
+}
+
 /** Одно правило лимита: не более `limit` обращений за окно `ttl` (мс). */
 export interface RateLimitRule {
   limit: number;
   /** окно в миллисекундах */
   ttl: number;
+  /**
+   * Необязательная нарастающая блокировка (Story 3.12). Если задана — при превышении
+   * лимита блок ставится не на длину окна, а на тир из `escalating.tiers` по номеру
+   * страйка трекера. Не задана → поведение Story 9.1 (фиксированный блок = окно).
+   */
+  escalating?: EscalationPolicy;
 }
 
 /**
@@ -48,3 +68,24 @@ export const LOGIN_ACCOUNT_RULE: RateLimitRule = { limit: 5, ttl: RATE_LIMIT_WIN
  * (ещё нет); пресет готов и навешивается на него при появлении.
  */
 export const MAGIC_LINK_RULE: RateLimitRule = { limit: 3, ttl: RATE_LIMIT_WINDOW_1H };
+
+// --- Нарастающая блокировка (Story 3.12, NFR13) ---
+
+/** Тиры длительности блока по номеру страйка: 1ч → 4ч → 12ч → 24ч (потолок). */
+export const LOCKOUT_TIERS_MS = [
+  1 * RATE_LIMIT_WINDOW_1H,
+  4 * RATE_LIMIT_WINDOW_1H,
+  12 * RATE_LIMIT_WINDOW_1H,
+  24 * RATE_LIMIT_WINDOW_1H,
+];
+
+/**
+ * Пресет эскалации для контура восстановления доступа (Story 3.12). Память страйков
+ * — сутки: повторные злоупотребления в пределах 24ч продолжают наращивать блок до
+ * потолка 24ч; после суток простоя счётчик сбрасывается. «Включает 24h-cooldown
+ * recovery» из заголовка истории — это верхний тир, выставляемый на recovery-гейте.
+ */
+export const ESCALATING_LOCKOUT: EscalationPolicy = {
+  tiers: LOCKOUT_TIERS_MS,
+  memoryTtl: 24 * RATE_LIMIT_WINDOW_1H,
+};

@@ -15,7 +15,7 @@ import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
 import { AuthRateLimitGuard } from '../rate-limit/auth-rate-limit.guard';
-import { LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE, MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
+import { ESCALATING_LOCKOUT, LOGIN_ACCOUNT_RULE, LOGIN_IP_RULE, MAGIC_LINK_RULE } from '../rate-limit/auth-rate-limit.types';
 import { RecoveryService } from './recovery.service';
 import { RecoveryConfirmService } from './recovery-confirm.service';
 import { OfflineRecoveryService } from './offline-recovery.service';
@@ -68,8 +68,8 @@ export class RecoveryController {
   @UseFilters(AuthV2ExceptionFilter)
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({
-    ip: MAGIC_LINK_RULE,
-    account: { ...MAGIC_LINK_RULE, key: (req) => keyFromEmail(req) },
+    ip: { ...MAGIC_LINK_RULE, escalating: ESCALATING_LOCKOUT },
+    account: { ...MAGIC_LINK_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => keyFromEmail(req) },
     error: {
       code: AuthV2ErrorCode.TooManyRecoveryAttempts,
       message: 'Слишком много запросов на восстановление. Попробуйте позже.',
@@ -92,8 +92,8 @@ export class RecoveryController {
   @UseFilters(AuthV2ExceptionFilter)
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({
-    ip: MAGIC_LINK_RULE,
-    account: { ...MAGIC_LINK_RULE, key: (req) => codeFromBody(req) },
+    ip: { ...MAGIC_LINK_RULE, escalating: ESCALATING_LOCKOUT },
+    account: { ...MAGIC_LINK_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => codeFromBody(req) },
     error: TOO_MANY_RECOVERY,
   })
   async offlineCode(@Body() body: OfflineCodeBody, @Req() req: Request): Promise<{ recovery_token: string }> {
@@ -112,8 +112,8 @@ export class RecoveryController {
   @UseFilters(AuthV2ExceptionFilter)
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({
-    ip: LOGIN_IP_RULE,
-    account: { ...LOGIN_ACCOUNT_RULE, key: (req) => tokenFromBody(req) },
+    ip: { ...LOGIN_IP_RULE, escalating: ESCALATING_LOCKOUT },
+    account: { ...LOGIN_ACCOUNT_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => tokenFromBody(req) },
     error: TOO_MANY_RECOVERY,
   })
   async confirm(@Body() body: RecoveryConfirmBody, @Req() req: Request): Promise<void> {
@@ -137,8 +137,8 @@ export class RecoveryController {
   @UseFilters(AuthV2ExceptionFilter)
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({
-    ip: LOGIN_IP_RULE,
-    account: { ...LOGIN_ACCOUNT_RULE, key: (req) => tokenFromBody(req) },
+    ip: { ...LOGIN_IP_RULE, escalating: ESCALATING_LOCKOUT },
+    account: { ...LOGIN_ACCOUNT_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => tokenFromBody(req) },
     error: TOO_MANY_RECOVERY,
   })
   async cancel(@Body() body: RecoveryCancelBody, @Req() req: Request): Promise<void> {
