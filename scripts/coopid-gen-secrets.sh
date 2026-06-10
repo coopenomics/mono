@@ -36,6 +36,13 @@ gen 0400 coop_vault_key rand_hex
 gen 0400 authentik_secret_key rand_pass
 gen 0400 authentik_bootstrap_password rand_pass
 gen 0400 authentik_bootstrap_token rand_pass
+# Shared-токен вебхука authentik → controller (audit weak-password, Story 1.5).
+# Дублируется в .env (COOPID_WEBHOOK_TOKEN) для blueprint'а authentik.
+gen 0400 authentik_webhook_token rand_pass
+if ! grep -q '^COOPID_WEBHOOK_TOKEN=' "$ROOT/.env" 2>/dev/null; then
+	printf '\n# Webhook-токен authentik→coopback (= infra/coopid/secrets/authentik_webhook_token)\nCOOPID_WEBHOOK_TOKEN=%s\n' "$(cat "$SECRETS_DIR/authentik_webhook_token")" >> "$ROOT/.env"
+	echo "  + COOPID_WEBHOOK_TOKEN добавлен в .env"
+fi
 # postgres: file-секреты в plain compose — bind-mount с хостовыми правами,
 # а init-скрипты официального образа выполняются под uid 999 (postgres) —
 # поэтому пароли postgres world-readable. Только для dev; prod-права — плейбук.

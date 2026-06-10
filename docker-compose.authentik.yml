@@ -51,6 +51,10 @@ services:
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
       AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      # Подставляется blueprint'ом coopid-password-policy в headers-mapping вебхука.
+      COOPID_WEBHOOK_TOKEN: ${COOPID_WEBHOOK_TOKEN:-}
+    volumes: &authentik-volumes
+      - ./infra/coopid/authentik/blueprints:/blueprints/custom:ro
     secrets: &authentik-secrets
       - authentik_secret_key
       - authentik_bootstrap_password
@@ -69,6 +73,7 @@ services:
     restart: unless-stopped
     command: worker
     environment: *authentik-env
+    volumes: *authentik-volumes
     secrets: *authentik-secrets
     depends_on:
       coop-postgres:
@@ -80,10 +85,13 @@ services:
   # participant_certificate и vault-ключ кооператива монтируются в controller
   # (читаются CryptoService начиная со Stories 1.7–1.8).
   coopback:
+    environment:
+      AUTH_V2_WEBHOOK_TOKEN_FILE: /run/secrets/authentik_webhook_token
     secrets:
       - coop_cert_key
       - coop_vault_key
       - coop_pg_app_password
+      - authentik_webhook_token
 
 secrets:
   coop_pg_superuser_password:
@@ -98,6 +106,8 @@ secrets:
     file: ./infra/coopid/secrets/authentik_bootstrap_password
   authentik_bootstrap_token:
     file: ./infra/coopid/secrets/authentik_bootstrap_token
+  authentik_webhook_token:
+    file: ./infra/coopid/secrets/authentik_webhook_token
   coop_cert_key:
     file: ./infra/coopid/secrets/coop_cert_key
   coop_vault_key:

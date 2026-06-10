@@ -29,6 +29,7 @@ import { FreeDecisionDomainModule } from './domain/free-decision/free-decision.m
 import { AgreementDomainModule } from './domain/agreement/agreement-domain.module';
 import { ParticipantDomainModule } from './domain/participant/participant-domain.module';
 import { AuthDomainModule } from './domain/auth/auth.module';
+import { AuthV2Module } from './application/auth-v2/auth-v2.module';
 import { AgendaDomainModule } from './domain/agenda/agenda-domain.module';
 import { CooplaceDomainModule } from './domain/cooplace/cooplace.module';
 import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
@@ -113,6 +114,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     }),
     // Domain modules
     AuthDomainModule,
+    AuthV2Module,
     RegistrationDomainModule,
     OnboardingDomainModule,
     AgendaDomainModule,

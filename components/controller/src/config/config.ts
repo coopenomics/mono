@@ -136,6 +136,9 @@ const envVarsSchema = z.object({
   COOP_DOMAIN_DB_DATABASE: z.string().default('coop_domain_db'),
   COOP_DOMAIN_DB_PASSWORD: z.string().optional(),
   COOP_DOMAIN_DB_PASSWORD_FILE: z.string().optional(),
+  // auth-v2 (CoopID): shared-токен вебхука authentik→controller (Story 1.5).
+  AUTH_V2_WEBHOOK_TOKEN: z.string().optional(),
+  AUTH_V2_WEBHOOK_TOKEN_FILE: z.string().optional(),
   /** Задержка (мс) перед get_table_rows после мутации; 0 — отключить */
   POST_TRANSACT_CHAIN_READ_DELAY_MS: z
     .string()
@@ -252,6 +255,19 @@ export default {
         }
       }
       return envVars.data!.COOP_DOMAIN_DB_PASSWORD ?? '';
+    },
+  },
+  authV2: {
+    get webhookToken(): string {
+      const file = envVars.data!.AUTH_V2_WEBHOOK_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTH_V2_WEBHOOK_TOKEN ?? '';
     },
   },
   blockchain: {
