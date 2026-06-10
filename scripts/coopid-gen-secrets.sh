@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Генерация file-based Docker Secrets для CoopID-стека (dev).
+# Идемпотентен: существующие непустые файлы не перезаписывает.
+# На prod секреты раскладывает плейбук — этот скрипт только для локальной разработки.
+set -euo pipefail
+
+command -v openssl >/dev/null || { echo "Нужен openssl (генерация ключей/паролей)"; exit 1; }
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SECRETS_DIR="$ROOT/infra/coopid/secrets"
+mkdir -p "$SECRETS_DIR"
+
+gen() {
+	local mode="$1" name="$2"
+	shift 2
+	local file="$SECRETS_DIR/$name"
+	if [[ -s "$file" ]]; then
+		echo "  = $name — уже существует, пропущен"
+		return
+	fi
+	"$@" > "$file"
+	chmod "$mode" "$file"
+	echo "  + $name — создан"
+}
+
+rand_hex() { openssl rand -hex 32; }
+rand_pass() { openssl rand -base64 36 | tr -d '\n=/+'; }
+secp256k1_pem() { openssl ecparam -genkey -name secp256k1 -noout; }
+
+echo "Секреты CoopID → $SECRETS_DIR"
+# Ключ подписи participant_certificate (ES256K, secp256k1).
+gen 0400 coop_cert_key secp256k1_pem
+# AES-ключ vault'а кооператива (subject_type='coop').
+gen 0400 coop_vault_key rand_hex
+# authentik: secret key + bootstrap-учётка akadmin (образ работает под uid 1000 = владелец файлов).
+gen 0400 authentik_secret_key rand_pass
+gen 0400 authentik_bootstrap_password rand_pass
+gen 0400 authentik_bootstrap_token rand_pass
+# postgres: file-секреты в plain compose — bind-mount с хостовыми правами,
+# а init-скрипты официального образа выполняются под uid 999 (postgres) —
+# поэтому пароли postgres world-readable. Только для dev; prod-права — плейбук.
+gen 0444 coop_pg_superuser_password rand_pass
+gen 0444 coop_pg_authentik_password rand_pass
+gen 0444 coop_pg_app_password rand_pass
+
+echo "Готово. Дальше: docker compose -f docker-compose.yaml -f docker-compose.authentik.yml -f docker-compose.edge.yml up -d"

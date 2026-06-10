@@ -1,0 +1,6 @@
+# Источники логов для crowdsec: JSON access-лог caddy (shared volume caddy_logs).
+# Активные блокировки (bouncer в caddy) подключаются в Story 9.2.
+filenames:
+  - /var/log/caddy/access.log
+labels:
+  type: caddy

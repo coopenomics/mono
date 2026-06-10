@@ -1,0 +1,32 @@
+# Edge-вход кооператива (CoopID). TLS 1.3 минимум; внутрь сети — plain HTTP.
+# COOPID_DOMAIN=localhost (dev) даёт self-signed сертификат внутреннего CA;
+# реальный домен автоматически получает Let's Encrypt.
+
+{
+	admin off
+}
+
+{$COOPID_DOMAIN:localhost} {
+	tls {
+		protocols tls1.3
+	}
+
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		format json
+	}
+
+	# REST/GraphQL controller'а — до общего catch-all.
+	handle /api/coopback/* {
+		uri strip_prefix /api/coopback
+		reverse_proxy coopback:2998
+	}
+
+	# Всё остальное — OIDC Provider (authentik UI, /application/o/*, flows).
+	handle {
+		reverse_proxy authentik-server:9000
+	}
+}

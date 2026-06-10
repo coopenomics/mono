@@ -25,3 +25,6 @@ components/contracts/cpp/ledger2/scripts/out/
 .pnpm-store
 schema.gql
 .claude
+
+# CoopID: file-based Docker Secrets (генерируются scripts/coopid-gen-secrets.sh)
+infra/coopid/secrets/

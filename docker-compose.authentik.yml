@@ -1,0 +1,106 @@
+# Overlay CoopID: authentik OIDC Provider (per-coop) + выделенный postgres:16.
+#
+# Запуск вместе с базовым стеком:
+#   bash scripts/coopid-gen-secrets.sh   # один раз, генерирует infra/coopid/secrets/
+#   docker compose -f docker-compose.yaml -f docker-compose.authentik.yml -f docker-compose.edge.yml up -d
+#
+# Существующий сервис postgres (18, БД voskhod) намеренно не используется:
+# смена его образа на 16 сделала бы data dir нечитаемым. Две новые БД
+# (authentik_db + coop_domain_db) живут в отдельном coop-postgres c ролевой
+# изоляцией. Redis не дублируем — authentik работает в monoredis, DB-индекс 1.
+# Подробности: infra/coopid/README.md
+
+services:
+  coop-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/coop_pg_superuser_password
+    secrets:
+      - coop_pg_superuser_password
+      - coop_pg_authentik_password
+      - coop_pg_app_password
+    volumes:
+      - coop_postgres_data:/var/lib/postgresql/data
+      - ./infra/coopid/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${COOP_PG_HOST_PORT:-5632}:5432"
+    healthcheck:
+      # Не pg_isready: он не проверяет существование БД и маскирует упавший init-скрипт.
+      test: ["CMD-SHELL", "psql -U postgres -d authentik_db -c 'select 1' >/dev/null 2>&1 && psql -U postgres -d coop_domain_db -c 'select 1' >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.2
+    restart: unless-stopped
+    command: server
+    environment: &authentik-env
+      AUTHENTIK_SECRET_KEY: file:///run/secrets/authentik_secret_key
+      AUTHENTIK_POSTGRESQL__HOST: coop-postgres
+      AUTHENTIK_POSTGRESQL__PORT: 5432
+      AUTHENTIK_POSTGRESQL__NAME: authentik_db
+      AUTHENTIK_POSTGRESQL__USER: authentik_user
+      AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/coop_pg_authentik_password
+      AUTHENTIK_REDIS__HOST: monoredis
+      # controller использует DB 0; при шаринге одного redis несколькими коопами — развести индексы.
+      AUTHENTIK_REDIS__DB: ${AUTHENTIK_REDIS_DB:-1}
+      AUTHENTIK_BOOTSTRAP_PASSWORD: file:///run/secrets/authentik_bootstrap_password
+      AUTHENTIK_BOOTSTRAP_TOKEN: file:///run/secrets/authentik_bootstrap_token
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+    secrets: &authentik-secrets
+      - authentik_secret_key
+      - authentik_bootstrap_password
+      - authentik_bootstrap_token
+      - coop_pg_authentik_password
+    ports:
+      - "127.0.0.1:${AUTHENTIK_HOST_PORT:-9008}:9000"
+    depends_on:
+      coop-postgres:
+        condition: service_healthy
+      monoredis:
+        condition: service_started
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.2
+    restart: unless-stopped
+    command: worker
+    environment: *authentik-env
+    secrets: *authentik-secrets
+    depends_on:
+      coop-postgres:
+        condition: service_healthy
+      monoredis:
+        condition: service_started
+
+  # Аддитивное расширение сервиса из базового compose: ключ подписи
+  # participant_certificate и vault-ключ кооператива монтируются в controller
+  # (читаются CryptoService начиная со Stories 1.7–1.8).
+  coopback:
+    secrets:
+      - coop_cert_key
+      - coop_vault_key
+
+secrets:
+  coop_pg_superuser_password:
+    file: ./infra/coopid/secrets/coop_pg_superuser_password
+  coop_pg_authentik_password:
+    file: ./infra/coopid/secrets/coop_pg_authentik_password
+  coop_pg_app_password:
+    file: ./infra/coopid/secrets/coop_pg_app_password
+  authentik_secret_key:
+    file: ./infra/coopid/secrets/authentik_secret_key
+  authentik_bootstrap_password:
+    file: ./infra/coopid/secrets/authentik_bootstrap_password
+  authentik_bootstrap_token:
+    file: ./infra/coopid/secrets/authentik_bootstrap_token
+  coop_cert_key:
+    file: ./infra/coopid/secrets/coop_cert_key
+  coop_vault_key:
+    file: ./infra/coopid/secrets/coop_vault_key
+
+volumes:
+  coop_postgres_data:
