@@ -15,14 +15,16 @@
       EditRatePerHourInput(@rate-updated='handleFieldUpdated')
 
   BaseCard(title='Взносы по ролям')
-    DataRow(label='Общая сумма взносов', :value='totalContributions', mono)
-    DataRow(
-      v-for='role in roleContributions',
-      :key='role.key',
-      :label='role.name',
-      :value='role.value',
-      mono
-    )
+    //- Итог — выделенной плашкой, детализация — строками с иконками ролей
+    .contrib-total
+      .contrib-total__label.t-sm.t-muted Общая сумма взносов
+      .contrib-total__value {{ totalContributions }}
+    .contrib-rows
+      .contrib-row(v-for='role in roleContributions', :key='role.key')
+        span.contrib-row__icon
+          q-icon(:name='role.icon', size='20px')
+        .contrib-row__name {{ role.name }}
+        .contrib-row__value.t-mono {{ role.value }}
 
 //- Скелетон первичной загрузки (poll обновляет данные молча)
 .capital-profile(v-else)
@@ -46,7 +48,6 @@ import { CreateProgramInvestButton } from 'app/extensions/capital/features/Progr
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseCard } from 'src/shared/ui/base';
 import { IdentityPanel, type Identity } from 'src/shared/ui/domain/IdentityPanel';
-import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { CapitalWalletsCardsWidget } from 'app/extensions/capital/widgets/CapitalWalletsCardsWidget';
 
 const contributorStore = useContributorStore();
@@ -123,26 +124,31 @@ const roleContributions = computed(() => {
       key: 'author',
       name: 'Соавтор',
       value: formattedAuthor.value,
+      icon: 'lightbulb',
     },
     {
       key: 'creator',
       name: 'Исполнитель',
       value: formattedCreator.value,
+      icon: 'build',
     },
     {
       key: 'investor',
       name: 'Инвестор',
       value: formattedInvestor.value,
+      icon: 'account_balance_wallet',
     },
     {
       key: 'coordinator',
       name: 'Координатор',
       value: formattedCoordinator.value,
+      icon: 'campaign',
     },
     {
       key: 'contributor',
       name: 'Получено в Благорост',
       value: formattedContributor.value,
+      icon: 'local_florist',
     },
   ];
 });
@@ -207,11 +213,77 @@ onBeforeUnmount(() => {
   }
 }
 
-// Редактируемые поля внутри карточки «Параметры участия»
+// Редактируемые поля внутри карточки «Параметры участия» —
+// hairline-разделители между строками
 .capital-profile__fields {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
+
+  > * {
+    padding: var(--p-3) 0;
+    border-bottom: 1px solid var(--p-line);
+  }
+
+  > *:first-child {
+    padding-top: 0;
+  }
+
+  > *:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+// Взносы по ролям: плашка итога + строки с иконками
+.contrib-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--p-3);
+  padding: var(--p-3) var(--p-4);
+  margin-bottom: var(--p-2);
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-md);
+}
+
+.contrib-total__value {
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-h2);
+  font-weight: 600;
+}
+
+.contrib-row {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3);
+  padding: var(--p-3) 0;
+  border-bottom: 1px solid var(--p-line);
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.contrib-row__icon {
+  width: var(--p-8);
+  height: var(--p-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-canvas-2);
+  color: var(--p-ink-2);
+}
+
+.contrib-row__name {
+  flex: 1;
+  min-width: 0;
+}
+
+.contrib-row__value {
+  font-weight: 600;
 }
 
 // Скелетон первичной загрузки

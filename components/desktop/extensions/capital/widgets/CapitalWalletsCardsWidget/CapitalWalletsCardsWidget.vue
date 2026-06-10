@@ -1,19 +1,20 @@
 <template lang="pug">
-//- Кошельки программ Благороста — канон-карточки WalletCard
-//- (одна колонка во всю ширину, как на столе пайщика)
-.capital-wallets
-  WalletCard(
-    program='generator',
-    :balance='generatorWallet.amount',
-    :symbol='generatorWallet.symbol',
-    balance-label='Всего'
-  )
-  WalletCard(
-    program='blagorost',
-    :balance='blagorostWallet.amount',
-    :symbol='blagorostWallet.symbol',
-    balance-label='Всего'
-  )
+//- Кошельки программ Благороста — канон-карточки WalletCard в две колонки
+.row.q-col-gutter-md
+  .col-12.col-md-6
+    WalletCard(
+      program='generator',
+      :balance='generatorWallet.amount',
+      :symbol='generatorWallet.symbol',
+      balance-label='Всего'
+    )
+  .col-12.col-md-6
+    WalletCard(
+      program='blagorost',
+      :balance='blagorostWallet.amount',
+      :symbol='blagorostWallet.symbol',
+      balance-label='Всего'
+    )
 </template>
 
 <script lang="ts" setup>
@@ -54,10 +55,3 @@ const blagorostWallet = computed(() =>
 );
 </script>
 
-<style lang="scss" scoped>
-.capital-wallets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-}
-</style>

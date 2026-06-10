@@ -1,37 +1,40 @@
 <template lang="pug">
 .edit-field
-  template(v-if='!isEditing')
-    .edit-field__view
-      .edit-field__main
-        .edit-field__label.t-sm.t-muted Часов в день
+  .edit-field__view
+    span.edit-field__icon
+      q-icon(name='schedule', size='20px')
+    .edit-field__main
+      template(v-if='!isEditing')
+        .edit-field__head
+          span.t-sm.t-muted Часов в день
+          BaseButton(
+            v-if='isOwnProfile',
+            variant='ghost',
+            size='sm',
+            icon-only,
+            aria-label='Редактировать количество часов в день',
+            @click='startEditing'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='16px')
         .edit-field__value(:class='{ "t-muted": !hasHours }') {{ hasHours ? contributorStore.self?.hours_per_day : 'Не указано' }}
-      BaseButton(
-        v-if='isOwnProfile',
-        variant='ghost',
-        size='sm',
-        icon-only,
-        aria-label='Редактировать количество часов в день',
-        @click='startEditing'
-      )
-        template(#icon-left)
-          q-icon(name='edit', size='18px')
-  template(v-else)
-    BaseForm(:loading='isSaving', @submit='saveHours')
-      BaseInput(
-        v-model.number='localHours',
-        type='number',
-        label='Часов в день',
-        :error='hoursError'
-      )
-      template(#footer)
-        BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
-        BaseButton(
-          variant='primary',
-          size='sm',
-          type='submit',
-          :loading='isSaving',
-          :disabled='!hasChanges || !!hoursError'
-        ) Сохранить
+      template(v-else)
+        BaseForm(:loading='isSaving', @submit='saveHours')
+          BaseInput(
+            v-model.number='localHours',
+            type='number',
+            label='Часов в день',
+            :error='hoursError'
+          )
+          template(#footer)
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(
+              variant='primary',
+              size='sm',
+              type='submit',
+              :loading='isSaving',
+              :disabled='!hasChanges || !!hoursError'
+            ) Сохранить
 </template>
 
 <script setup lang="ts">
@@ -124,7 +127,19 @@ watch(() => contributorStore.self?.hours_per_day, (newHours) => {
 .edit-field__view {
   display: flex;
   align-items: flex-start;
-  gap: var(--p-2);
+  gap: var(--p-3);
+}
+
+.edit-field__icon {
+  width: var(--p-8);
+  height: var(--p-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-canvas-2);
+  color: var(--p-ink-2);
 }
 
 .edit-field__main {
@@ -132,7 +147,14 @@ watch(() => contributorStore.self?.hours_per_day, (newHours) => {
   min-width: 0;
 }
 
-.edit-field__label {
-  margin-bottom: var(--p-1);
+.edit-field__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+.edit-field__value {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
 }
 </style>
