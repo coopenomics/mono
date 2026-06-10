@@ -234,7 +234,10 @@ services:
       - caddy
 
 # Все секреты CoopID — file-based из infra/coopid/secrets/ (каталог в .gitignore).
-# На свежей машине: bash scripts/coopid-gen-secrets.sh. На prod раскладывает плейбук.
+# ⚠️ Файлов нет → `docker compose up -d` ПАДАЕТ на валидации ("secret not found")
+# и не поднимает НИЧЕГО, включая базовый стек. Перед первым запуском на любом
+# чекауте/ноде ОБЯЗАТЕЛЬНО: bash scripts/coopid-gen-secrets.sh.
+# На prod секреты раскладывает плейбук ~/playbooks. Подробности: infra/coopid/README.md
 secrets:
   coop_pg_authentik_password:
     file: ./infra/coopid/secrets/coop_pg_authentik_password
