@@ -34,6 +34,7 @@
       v-model='selectedCreator',
       :multi-select='false',
       dense,
+      outlined,
       label='Исполнитель',
       placeholder=''
     )
@@ -42,6 +43,7 @@
       v-model='selectedMaster',
       :multi-select='false',
       dense,
+      outlined,
       label='Мастер',
       placeholder=''
     )

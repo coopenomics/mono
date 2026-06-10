@@ -1,7 +1,7 @@
 <template lang="pug">
 .projects-list-page
-  // Панель фильтров — компактные инпуты под шапкой
-  ProjectsFilterPanel
+  //- Панель фильтров (ProjectsFilterPanel) намеренно скрыта со страницы —
+  //- фильтрами пока не пользуемся; виджет остаётся в проекте на будущее
 
   // Виджет списка проектов
   ProjectsListWidget(
@@ -44,7 +44,7 @@ import { useRouter } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Project/CreateProject';
-import { ProjectsListWidget, ProjectsFilterPanel, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
+import { ProjectsListWidget, ComponentsListWidget, IssuesListWidget } from 'app/extensions/capital/widgets';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
