@@ -1,8 +1,12 @@
 <template lang="pug">
-//- Объединённый бейдж уровня и энергии: вариант чипа отражает запас энергии
+//- Объединённый бейдж уровня и энергии: вариант чипа отражает запас энергии.
+//- Мигающий красный «тик» влево — энергия затухает со временем, и требуемый
+//- для следующего уровня взнос растёт.
 BaseChip(:variant='energyVariant')
   q-icon.q-mr-xs(name='local_fire_department', size='14px')
-  | Уровень {{ Number(contributorStore.self?.level) || 1 }} · {{ currentEnergy.toFixed(0) }}%
+  | Уровень {{ Number(contributorStore.self?.level) || 1 }} ·
+  q-icon.energy-decay-tick(name='arrow_left', color='negative', size='16px')
+  | {{ currentEnergy.toFixed(0) }}%
   q-tooltip До следующего уровня: {{ nextLevelRequirement }} {{ info.symbols.root_govern_symbol }}
 </template>
 
@@ -120,4 +124,27 @@ onUnmounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.energy-decay-tick {
+  animation: energy-decay-blink 1s ease-in-out infinite;
+}
+
+@keyframes energy-decay-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .energy-decay-tick {
+    animation: none;
+  }
+}
+</style>
 
