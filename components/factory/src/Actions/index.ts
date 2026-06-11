@@ -65,6 +65,16 @@ export * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNot
 export * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVotingBallot'
 export * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
 
+// самоорганизация кооперативных участков
+export * as BranchMeetingProposal from './320.BranchMeetingProposal'
+export * as BranchMeetingJoinStatement from './321.BranchMeetingJoinStatement'
+export * as BranchMeetingBallot from './322.BranchMeetingBallot'
+export * as BranchMeetingDecision from './323.BranchMeetingDecision'
+export * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
+export * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
+export * as BranchTrustedStatement from './326.BranchTrustedStatement'
+export * as BranchLiabilityAgreement from './327.BranchLiabilityAgreement'
+
 // ЦПП БЛАГОРОСТ
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'
 export * as GeneratorOfferTemplate from './995.GeneratorOfferTemplate'

@@ -4,14 +4,13 @@ import type { ICooperativeData, IVars } from '../../model'
 export const registry_id = 325
 
 /**
- * Интерфейс генерации решения совета об учреждении кооперативного участка
+ * Интерфейс генерации решения совета об учреждении кооперативного участка.
+ * Реквизиты участка (наименование, адрес, председатель) фабрика извлекает
+ * из решения собрания пайщиков по его хэшу.
  */
 export interface Action extends IGenerate {
   decision_id: number
   hash: string
-  braname: string
-  address: string
-  chairman_full_name: string
 }
 
 export type Meta = IMetaDocument & Action

@@ -24,12 +24,14 @@ export interface IQuestion {
 }
 
 /**
- * Интерфейс генерации бюллетеня для голосования на собрании пайщиков участка
+ * Интерфейс генерации бюллетеня для голосования на собрании пайщиков участка.
+ * Вопросы повестки передаются вместе с данными (источник — проекция решения).
  */
 export interface Action extends IGenerate {
   hash: string
   username: string
   answers: IAnswer[]
+  questions: IQuestion[]
 }
 
 export type Meta = IMetaDocument & Action
