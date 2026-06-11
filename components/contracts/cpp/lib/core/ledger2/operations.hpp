@@ -97,9 +97,9 @@ namespace operations {
   // ВНИМАНИЕ: имя константы НЕ `FUND` — `FUND` занят макросом `#define FUND "fund"`
   // в consts.hpp (имя контракта fund). Используем `CONVERT` (бэкенд-имя действия).
   namespace billing {
-    inline constexpr eosio::name CONVERT    = "o.bil.fund"_n;  ///< Трансляция паевого взноса в членский на биллинг-кошелёк пайщика-кооператива (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY[username] → BILLING_FUND_PAY[coopname], Epic 13: USER_SHARED→COOPERATIVE).
+    inline constexpr eosio::name CONVERT    = "o.bil.fund"_n;  ///< Трансляция паевого взноса в членский на биллинг-кошелёк пайщика (Dr 80 / Cr 86, TRANSFER SHARE_FUND_PAY[username] → BILLING_FUND_PAY[username], оба USER_SHARED в леджере оператора).
     inline constexpr eosio::name PAY        = "o.bil.pay"_n;   ///< Оплата time-подписки членскими взносами (TRANSFER BILLING_FUND_PAY → INFRA_FEES, без Dr/Cr — реклассификация внутри 86).
-    inline constexpr eosio::name CONVERT_TO_AXON = "o.bil.axn"_n;   ///< Epic 13 v5.1: конвертация членского взноса в AXON (BURN BILLING_FUND_PAY, без Dr/Cr — реклассификация внутри 86). Бездокументарно; реальный AXON эмитируется eosio::injection; идемпотентность по payment_hash на стороне provider.
+    inline constexpr eosio::name CONVERT_TO_AXON = "o.bil.axn"_n;   ///< Epic 13 v5.1: конвертация членского взноса в AXON (BURN BILLING_FUND_PAY[username], без Dr/Cr — реклассификация внутри 86). Бездокументарно; реальный AXON эмитируется eosio::injection; повтор payment_hash отклоняется on-chain (anti-replay контракта billing).
   }
 
   // migration (только из migrate.cpp)
@@ -350,7 +350,7 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     "Оплата подписки за инфраструктуру членскими взносами пайщика" },
 
   // 22. Биллинг — конвертация членского взноса в AXON (Epic 13 v5.1).
-  // BURN с BILLING_FUND_PAY (kind=COOPERATIVE; scope=coopname-пайщик) — фиксация
+  // BURN с BILLING_FUND_PAY (USER_SHARED, разрез по кооперативу-пайщику) — фиксация
   // расхода членских взносов на инфраструктуру/ресурсы. Без destination —
   // реальный токен AXON эмитируется eosio::injection из фонда eosio.saving
   // отдельным inline-action'ом billing::converttoaxn (L1 eosio.token-уровень).

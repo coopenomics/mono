@@ -128,10 +128,12 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
 
       // Шаг 3: on-chain списание. Подписывает оператор (аккаунт узла-хаба);
       // username — пайщик-кооператив, владелец биллинг-кошелька.
+      // coopname контракта = кооператив-оператор (его леджер: w.wal.bill —
+      // USER_SHARED с L3-разрезом по пайщику, решение @ant 2026-06-11).
       let transactionId = '';
       try {
         const result = await this.blockchainPort.pay({
-          coopname,
+          coopname: config.coopname,
           username: coopname,
           quantity,
           paymentHash: invoice.payment_hash,

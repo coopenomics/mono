@@ -9,9 +9,10 @@ export type IPaySubscriptionsOutput =
 /**
  * Списание стоимости подписок с биллинг-кошелька пайщика (Epic 12, billing::pay).
  *
- * ОТКРЫТО: `username` — пайщик-плательщик, чей USER_SHARED-кошелёк `w.wal.bill`
- * дебетуется. Реестр оператора не знает плательщика целевого коопа автоматически,
- * поэтому он указывается явно (та же конфиг-точка, что BILLING_CRON_PAYER в coopback).
+ * Семантика (решение @ant 2026-06-11): `coopname` — кооператив-оператор (его
+ * леджер, на хабе = текущий узел), `username` — пайщик-плательщик, чей
+ * USER_SHARED-разрез `w.wal.bill` дебетуется; для кооперативов-спиц
+ * username = их coopname. Подписывает мутацию оператор (бэкенд-релей).
  */
 export function usePaySubscriptions() {
   const pay = async (input: IPaySubscriptionsInput): Promise<IPaySubscriptionsOutput> => {

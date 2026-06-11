@@ -46,7 +46,7 @@ struct ledger2_wallets {
   // wallet — паевой фонд + возвраты + ЦК
   static constexpr eosio::name SHARE_FUND_PAY       = "w.wal.share"_n;   ///< Паевой взнос пайщика (USER_SHARED)
   static constexpr eosio::name CK_MEMBER            = "w.wal.member"_n;  ///< ЦК — членская часть пайщика (USER_SHARED)
-  static constexpr eosio::name BILLING_FUND_PAY     = "w.wal.bill"_n;    ///< ЦК — биллинг (COOPERATIVE, scope=coopname-пайщик). Epic 13 v5.1: единый кооперативный билинг-фонд пайщика (raisedown coopname@active = ключ PowerUp). o.bil.fund зачисляет share→bill[coopname] (USER_SHARED→COOPERATIVE), o.bil.pay списывает bill[coopname]→sov.infra, новый o.bil.axn — bill[coopname]→axon[coopname] (action billing::topup_axon без документа).
+  static constexpr eosio::name BILLING_FUND_PAY     = "w.wal.bill"_n;    ///< ЦК — биллинг пайщика (USER_SHARED). Решение @ant 2026-06-11: биллинг живёт в леджере оператора (_provider), где каждый кооператив-пайщик — обычный username, поэтому L3-разрез по пайщику. o.bil.fund зачисляет share[username]→bill[username], o.bil.pay списывает bill[username]→sov.infra оператора, o.bil.axn — BURN bill[username] + инъекция AXON кооперативу.
   static constexpr eosio::name WITHDRAWALS_SINK     = "w.wal.wthdrw"_n;  ///< DEPRECATED 2026-05-21: исторический sink возвратов. Оставлен в реестре для исторических L2-балансов (накопленные возвраты до перехода). Не использовать в новых операциях.
   static constexpr eosio::name WITHDRAW_PENDING     = "w.wal.wpend"_n;   ///< Резерв паевого под заявку на возврат (COOPERATIVE-пул). o.wal.wthreq переводит сюда с w.wal.share, o.wal.wthdec возвращает обратно, o.wal.wthcpl сжигает отсюда. Заменил механику blocked/BLOCK/UNBLOCK 2026-05-24.
 
@@ -97,25 +97,24 @@ struct Ledger2WalletMeta {
 };
 
 inline constexpr std::array<Ledger2WalletMeta, 16> LEDGER2_WALLET_REGISTRY = {{
-  // USER_SHARED (5) — L3-разрез по пайщику
+  // USER_SHARED (6) — L3-разрез по пайщику
   { ledger2_wallets::MIN_SHARE_FUND,    "Минимальный паевой взнос",                                 WalletKind::USER_SHARED },
   { ledger2_wallets::SHARE_FUND_PAY,    "ЦК — паевой",                                              WalletKind::USER_SHARED },
   { ledger2_wallets::CK_MEMBER,         "ЦК — членский",                                            WalletKind::USER_SHARED },
+  { ledger2_wallets::BILLING_FUND_PAY,  "ЦК — биллинг пайщика (в леджере оператора)",               WalletKind::USER_SHARED },
   { ledger2_wallets::BLAGOROST_FUND,    "ЦПП «Благорост» — единый кошелёк программы у пайщика",     WalletKind::USER_SHARED },
   { ledger2_wallets::PREIMP_FUND,       "Первичный учёт РИД-взносов до перехода на электронный учёт", WalletKind::USER_SHARED },
 
-  // COOPERATIVE (11) — единый кооперативный баланс, без L3
+  // COOPERATIVE (10) — единый кооперативный баланс, без L3
   // GENERATOR_FUND переведён сюда из USER_SHARED (см. wallets.hpp:64) —
   // CRPS-распределение между сегментами проекта не поддерживает per-user
   // компенсирующие TRANSFER на approvecmmt, поэтому L3-проверка walletop
   // ломала convertsegm у пайщиков, чья доля выросла через CRPS.
-  // BILLING_FUND_PAY переведён сюда из USER_SHARED (Epic 13 v5.1) — биллинг
-  // пайщика-кооператива (раз scope=coopname-пайщик) принципиально совпадает
-  // с ключом PowerUp (coopname@active), от имени которого PowerupPlugin делает
-  // billing::topup_axon. L3-разрез по индивидуальному пайщику в этой модели
-  // не нужен и противоречит источнику авторизации.
+  // BILLING_FUND_PAY возвращён в USER_SHARED (решение @ant 2026-06-11):
+  // COOPERATIVE-вариант Epic 13 не смыкал поток — конвертация на хабе
+  // пополняла bill@voskhod, а расход смотрел bill@спица. В леджере оператора
+  // каждый кооператив-пайщик — обычный username, разрез L3 по нему.
   { ledger2_wallets::GENERATOR_FUND,    "ЦПП «Генератор» — единый кошелёк программы",               WalletKind::COOPERATIVE },
-  { ledger2_wallets::BILLING_FUND_PAY,  "ЦК — биллинг (Epic 13 v5.1: COOPERATIVE, scope=пайщик-кооператив)", WalletKind::COOPERATIVE },
   { ledger2_wallets::ENTRANCE_FEES,     "Вступительные взносы",                                     WalletKind::COOPERATIVE },
   { ledger2_wallets::WITHDRAWALS_SINK,  "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", WalletKind::COOPERATIVE },
   { ledger2_wallets::WITHDRAW_PENDING,  "Резерв паевого под заявку на возврат",                     WalletKind::COOPERATIVE },
@@ -237,12 +236,11 @@ struct Ledger2WalletProgramMapping {
   uint64_t    required_program_id; // 0 = исключение (без проверки)
 };
 
-inline constexpr std::array<Ledger2WalletProgramMapping, 6> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
+inline constexpr std::array<Ledger2WalletProgramMapping, 7> LEDGER2_USER_SHARED_PROGRAM_MAPPING = {{
   { ledger2_wallets::MIN_SHARE_FUND,    0 /* w.reg.minshr — без проверки */    },
   { ledger2_wallets::SHARE_FUND_PAY,    1 /* ЦК — паевой */                     },
   { ledger2_wallets::CK_MEMBER,         1 /* ЦК — членский */                   },
-  // BILLING_FUND_PAY убран отсюда в Epic 13 v5.1: w.wal.bill перевёлся
-  // на COOPERATIVE-уровень (scope=coopname-пайщик); programms-check не нужен.
+  { ledger2_wallets::BILLING_FUND_PAY,  1 /* ЦК — биллинг (возвращён в USER_SHARED, решение @ant 2026-06-11) */ },
   { ledger2_wallets::BLAGOROST_FUND,    4 /* Благорост */                       },
   { ledger2_wallets::GENERATOR_FUND,    3 /* Генератор — оставлено для исторических L3-записей программных кошельков, фактически kind=COOPERATIVE */ },
   { ledger2_wallets::PREIMP_FUND,       0 /* w.cap.preimp — РИД-учёт до перехода на электронный учёт, без проверки */ },

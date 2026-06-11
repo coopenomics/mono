@@ -15,13 +15,16 @@ using namespace eosio;
  * `payment_hash` (ссылка на запись в БД провайдера) и memo.
  *
  * Anti-replay: повтор `payment_hash` отклоняется on-chain (таблица
- * `paidpayments`). Это страхует средства пайщика от двойного списания, если
+ * `payments`). Это страхует средства пайщика от двойного списания, если
  * инициатор (cron coopback'а Восхода) не получил подтверждение и повторил
  * вызов — упавший парсер или backend между transact и callback провайдеру
  * больше не приводят к спаму повторных оплат.
  *
- * @param coopname     Кооператив-плательщик.
- * @param username     Пайщик, с чьего биллинг-кошелька списываем.
+ * @param coopname     Кооператив-оператор, в чьём леджере живёт биллинг
+ *                     (на платформе — Восход/_provider).
+ * @param username     Пайщик-плательщик, с чьего биллинг-кошелька списываем
+ *                     (L3-разрез `w.wal.bill` USER_SHARED; для
+ *                     кооперативов-спиц username = их coopname).
  * @param amount       Сумма к оплате (RUB, > 0).
  * @param payment_hash Идентификатор платежа из БД провайдера (обязателен).
  * @param memo         Произвольный комментарий (< 256 символов).
@@ -36,8 +39,10 @@ void billing::pay(name coopname, name username, asset amount,
   // оператора нет и быть не должно.
   require_auth(_provider);
 
-  // Плательщик должен быть кооперативом (presence-only, без статуса).
+  // coopname — кооператив-оператор (его леджер), username — пайщик-плательщик
+  // (кооператив-спица). Оба presence-only, без статуса.
   Billing::assert_payer_is_cooperative(coopname);
+  Billing::assert_payer_is_cooperative(username);
 
   check(amount.is_valid() && amount.amount > 0, "Сумма оплаты должна быть положительной");
   check(amount.symbol == _root_govern_symbol, "Неверный символ валюты для оплаты");

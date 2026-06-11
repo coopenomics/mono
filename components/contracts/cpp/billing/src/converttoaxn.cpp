@@ -4,9 +4,9 @@ using namespace eosio;
  * @brief Epic 13 v5.1 — бездокументарная конвертация членского взноса в AXON.
  *
  * Списывает с биллинг-кошелька кооператива-пайщика `w.wal.bill[coopname]`
- * (COOPERATIVE) сумму членского взноса в RUB и эмитирует кооперативу
- * эквивалент в AXON по курсу 10 ₽ = 1 AXON (`eosio::injection` из фонда
- * eosio.saving). Это второй шаг двухшаговой модели:
+ * (USER_SHARED, L3-разрез в леджере оператора `_provider`) сумму членского
+ * взноса в RUB и эмитирует кооперативу эквивалент в AXON по курсу 10 ₽ = 1 AXON
+ * (`eosio::injection` из фонда eosio.saving). Это второй шаг двухшаговой модели:
  *   1) паевой → членский — `billing::convert` (документарно, по заявлению пайщика);
  *   2) членский → AXON    — этот action (бездокументарно, автономно).
  *
@@ -52,15 +52,19 @@ void billing::converttoaxn(name coopname, asset amount, checksum256 payment_hash
   const std::string memo =
       "Конвертация членского взноса в AXON, кооператив " + coopname.to_string();
 
-  // BURN членского с биллинг-кошелька кооператива (kind=COOPERATIVE, scope=coopname):
-  // членский взнос потрачен на инфраструктуру/ресурсы. Без destination —
-  // реальный токен AXON эмитируется отдельной инъекцией ниже (L1 eosio.token).
+  // BURN членского с биллинг-кошелька пайщика (USER_SHARED, разрез по
+  // кооперативу-пайщику) В ЛЕДЖЕРЕ ОПЕРАТОРА (_provider): биллинг живёт у
+  // оператора, где каждый кооператив-пайщик — обычный username (решение @ant
+  // 2026-06-11). Спица авторизует трату своего членского своим ключом, но
+  // средства лежат на её L3-разрезе в учёте Восхода — там же, куда их положил
+  // billing::convert. Без destination — реальный токен AXON эмитируется
+  // отдельной инъекцией ниже (L1 eosio.token).
   Ledger2::apply(
     _billing,
-    coopname,
+    _provider,
     operations::billing::CONVERT_TO_AXON,
     amount,
-    coopname,    // L3 игнорируется для COOPERATIVE; передаём coopname для совместимости сигнатуры.
+    coopname,    // L3-разрез: кооператив-пайщик, владелец биллинг-кошелька.
     payment_hash,
     memo
   );
