@@ -28,6 +28,8 @@ import { workflow as trialEndingWorkflow } from './trial-ending';
 import { workflow as subscriptionPaymentDueWorkflow } from './subscription-payment-due';
 import { workflow as subscriptionPastDueWorkflow } from './subscription-past-due';
 import { workflow as subscriptionSuspendedWorkflow } from './subscription-suspended';
+// Epic 13 v5.1 — квота докупки пакетов документооборота исчерпана
+import { workflow as packageQuotaExceededWorkflow } from './package-quota-exceeded';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -58,6 +60,7 @@ export * as TrialEnding from './trial-ending';
 export * as SubscriptionPaymentDue from './subscription-payment-due';
 export * as SubscriptionPastDue from './subscription-past-due';
 export * as SubscriptionSuspended from './subscription-suspended';
+export * as PackageQuotaExceeded from './package-quota-exceeded';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -89,6 +92,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   subscriptionPaymentDueWorkflow,
   subscriptionPastDueWorkflow,
   subscriptionSuspendedWorkflow,
+  packageQuotaExceededWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
