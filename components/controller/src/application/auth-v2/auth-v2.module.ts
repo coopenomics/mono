@@ -20,6 +20,7 @@ import { CertSettingsService } from './certificate/cert-settings.service';
 import { CertificateController } from './certificate/certificate.controller';
 import { CoopIdClaimsPolicyController } from './certificate/coopid-claims-policy.controller';
 import { CoopIdSchemaPolicyController } from './certificate/coopid-schema-policy.controller';
+import { AuthorizationModule } from './authorization/authorization.module';
 import { VerificationTypesService } from './verification/verification-types.service';
 import { VerificationRulesService } from './verification/verification-rules.service';
 import { VerificationRuleGuard } from './verification/verification-rule.guard';
@@ -47,7 +48,7 @@ import { SecurityIncidentController } from './security/security-incident.control
  * certificate/id_token — Story 1.8. BLOCKCHAIN_PORT/USER_DOMAIN_SERVICE — @Global.
  */
 @Module({
-  imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
+  imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule],
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController],
   providers: [
     AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService,
