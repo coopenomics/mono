@@ -27,5 +27,7 @@ import { CaAuthOciTokenClient } from './oci-token-client.impl';
       useFactory: () => new CaAuthOciTokenClient(process.env.CA_AUTH_BASE_URL ?? 'http://ca-auth:3000'),
     },
   ],
+  // WatcherModule инжектит install-pipeline в on-chain watcher.
+  exports: [InstallOrchestratorService],
 })
 export class OrchestratorModule {}
