@@ -6,6 +6,7 @@ import type { CoopChainLink } from '../certificate'
  */
 import { APIClient } from '@wharfkit/antelope'
 import { base64url } from 'jose'
+import { compareSchemaVersions } from '../certificate/schema-policy'
 import { TRUST_ANCHOR_ANO_CERT_PUBKEY } from '../config/trust-anchor'
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 
@@ -49,6 +50,7 @@ export type VerifyOfflineReason =
   | 'untrusted_anchor' // coop_chain не укоренён в известном trust-anchor `ano`
   | 'untrusted_issuer' // звено цепи (в т.ч. издатель) не совпало с доверенным кэшем ключей
   | 'signature_mismatch' // подпись не сходится с ключом издателя
+  | 'unsupported_schema_version' // claim_schema_version старее min_supported_version политики
 
 export interface VerifyOfflineResult {
   valid: boolean
@@ -75,6 +77,13 @@ export interface VerifyOfflineOptions {
   trustAnchor?: string
   /** «Сейчас» в мс для проверки exp (инъекция для детерминизма/тестов). */
   now?: number
+  /**
+   * Минимально поддерживаемая версия схемы claims (Story 4.10). Резолвится хостом
+   * из кэша политики (`createSchemaPolicyCache().getMinSupportedVersion`, TTL 24ч).
+   * Если задана и `cert.claim_schema_version` старее неё → `unsupported_schema_version`.
+   * Не задана → ось версии схемы не гейтит (крипто/exp/цепь остаются fail-closed).
+   */
+  minSchemaVersion?: string
 }
 
 /** Порядок группы secp256k1 (n) и его половина — для low-S нормализации подписи. */
@@ -104,7 +113,7 @@ function normalizeLowS(rs: Uint8Array): Uint8Array {
 }
 
 interface CertHead { alg?: string }
-interface CertPayload { coop_chain?: CoopChainLink[], exp?: number }
+interface CertPayload { coop_chain?: CoopChainLink[], exp?: number, claim_schema_version?: string }
 
 /**
  * Офлайн-валидация удостоверения `participant_certificate` без обращения к сети
@@ -141,6 +150,14 @@ export async function verifyOffline(certificate: string, options: VerifyOfflineO
   const now = options.now ?? Date.now()
   if (now >= payload.exp * 1000)
     return { valid: false, reason: 'expired' }
+
+  // Версия схемы (Story 4.10): если хост передал минимально поддерживаемую версию
+  // (из кэша политики, TTL 24ч), отвергаем сертификаты старее неё — устаревшая схема
+  // claims не должна проходить как валидная. Без minSchemaVersion ось не гейтит.
+  if (options.minSchemaVersion !== undefined
+    && compareSchemaVersions(payload.claim_schema_version ?? '0', options.minSchemaVersion) < 0) {
+    return { valid: false, reason: 'unsupported_schema_version' }
+  }
 
   // Якорь: цепь обязана начинаться с известного `ano`.
   const root = chain[0]

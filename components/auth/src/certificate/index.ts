@@ -7,6 +7,8 @@
 import { decodeJwt } from 'jose'
 import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 
+export * from './schema-policy'
+
 export interface CoopChainLink {
   account: string
   public_key: string

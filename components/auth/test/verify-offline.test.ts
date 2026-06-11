@@ -31,6 +31,7 @@ interface CertOpts {
   exp?: number
   alg?: string
   signWith?: PrivateKeyType
+  schemaVersion?: string
 }
 
 /** Собрать compact JWS-сертификат (формат CertificateService, Story 1.8). */
@@ -43,6 +44,7 @@ function makeCert(opts: CertOpts = {}): string {
     exp: opts.exp ?? FUTURE_EXP,
     sub: 'uuid-1',
     jti: 'serial-123',
+    claim_schema_version: opts.schemaVersion ?? '1',
   }))
   const signingInput = `${header}.${payload}`
   const sig = signer.signMessage(new TextEncoder().encode(signingInput))
@@ -130,6 +132,23 @@ describe('verifyOffline: офлайн-проверка удостоверени�
   it('пустой coop_chain → malformed_certificate', async () => {
     const res = await verifyOffline(makeCert({ chain: [] }), { trustedKeys: TRUSTED, now: NOW })
     expect(res.reason).toBe('malformed_certificate')
+  })
+
+  it('версия схемы старее min_supported_version → unsupported_schema_version (Story 4.10)', async () => {
+    const res = await verifyOffline(makeCert({ schemaVersion: '0' }), { trustedKeys: TRUSTED, now: NOW, minSchemaVersion: '1' })
+    expect(res.valid).toBe(false)
+    expect(res.reason).toBe('unsupported_schema_version')
+  })
+
+  it('версия схемы = min_supported_version → ось схемы пройдена, cert валиден (Story 4.10)', async () => {
+    const res = await verifyOffline(makeCert({ schemaVersion: '1' }), { trustedKeys: TRUSTED, now: NOW, minSchemaVersion: '1' })
+    expect(res.valid).toBe(true)
+    expect(res.issuer).toBe('vostok')
+  })
+
+  it('без minSchemaVersion ось схемы не гейтит — даже старая версия проходит (Story 4.10)', async () => {
+    const res = await verifyOffline(makeCert({ schemaVersion: '0' }), { trustedKeys: TRUSTED, now: NOW })
+    expect(res.valid).toBe(true)
   })
 
   it('не делает сетевых запросов (fetch недоступен) → всё равно verdict', async () => {

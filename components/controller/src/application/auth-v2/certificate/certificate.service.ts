@@ -15,10 +15,10 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
 import { CertSettingsService } from '~/application/auth-v2/certificate/cert-settings.service';
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
+import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
 
 /** Звенья cert-цепи доверия CoopID (миграция 052): ano → voskhod → vostok. */
 const CERT_CHAIN_ACCOUNTS = ['ano', 'voskhod', 'vostok'] as const;
-const CLAIM_SCHEMA_VERSION = '1';
 /** Лимит размера JWS — Vision/MIFARE DESFire EV3 (AC Story 1.8). */
 const MAX_CERT_BYTES = 5 * 1024;
 
@@ -77,7 +77,7 @@ export class CertificateService {
         source: entry.source,
       })),
       identification: identification ?? null,
-      claim_schema_version: CLAIM_SCHEMA_VERSION,
+      claim_schema_version: CURRENT_SCHEMA_VERSION,
       // 152-ФЗ-обязательство RP (Story 4.8): удалить данные при исключении и не позже дедлайна.
       // Дедлайн привязан к моменту выпуска (тот же nowSeconds, что у iat/exp).
       data_retention_contract: DATA_RETENTION_CONTRACT,
