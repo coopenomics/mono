@@ -24,6 +24,25 @@ export default {
     });
     try {
       await db.initialize();
+      // V2.4.0 init создал плейсхолдер access_rules со старой схемой (role/action/subject)
+      // без колонки subject_type. На такой БД `CREATE TABLE IF NOT EXISTS` ниже = no-op,
+      // а индекс по subject_type упал бы. Сносим пустой плейсхолдер (Layer 2 ещё ниоткуда
+      // не пишется → DROP безопасен). Идемпотентно: при правильной схеме DROP не выполняется.
+      await db.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'access_rules'
+          ) AND NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'access_rules' AND column_name = 'subject_type'
+          ) THEN
+            DROP TABLE access_rules;
+            RAISE NOTICE 'access_rules: снесён плейсхолдер V2.4.0';
+          END IF;
+        END $$;
+      `);
       await db.query(`
         CREATE TABLE IF NOT EXISTS access_rules (
           id bigserial PRIMARY KEY,
