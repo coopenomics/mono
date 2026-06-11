@@ -59,6 +59,16 @@ export interface MarketplaceCanonicalBlockchainPort {
   expireOrder(data: MarketContract.Actions.ExpireOrder.IExpireOrder): Promise<TransactResult>;
 
   /**
+   * Закрытие выданного заказа после выхода гарантийного срока (cron-driven):
+   * C++ `marketplace::closeorder` стирает запись заказа из RAM (терминал
+   * жизненного цикла). Контракт отклоняет закрытие до выхода гарантийного
+   * срока, при незавершённой выплате поставщику или открытом возврате.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<TransactResult>;
+
+  /**
    * Story 4.4: заказчик отменяет Order до акцепта поставщиком. Триггерит
    * C++ `marketplace::cancelorder` → `UNLOCK_ORDER` (o.mkt.unlock) на
    * `order.total_cost` + on-chain Order.status: ACTIVE → CANCELLED.

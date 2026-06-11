@@ -12,6 +12,7 @@
 #include "src/p.mkt.supply/setfee.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
 #include "src/p.mkt.supply/expireorder.cpp"
+#include "src/p.mkt.supply/closeorder.cpp"
 #include "src/p.mkt.supply/acceptorder.cpp"
 #include "src/p.mkt.supply/declineorder.cpp"
 #include "src/p.mkt.supply/signsupp.cpp"

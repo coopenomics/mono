@@ -141,6 +141,9 @@ import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
+// Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
+import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
 import {
@@ -196,8 +199,9 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.
       MarketplaceOfferImagesService,
     ]),
-    // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory
-    TypeOrmModule.forFeature([MarketplaceInventoryEntity], 'marketplace'),
+    // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
+    // крон-закрытие выданных заказов — marketplace_orders
+    TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
     PubSubModule,
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
@@ -399,6 +403,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
     MarketplaceWriteoffResolver,
+    // Конечный жизненный цикл заказов: закрытие выданных после гарантии
+    MarketplaceOrderCloseCronService,
     // Эпик 16 — корзина заказчика
     {
       provide: MARKETPLACE_CART_SERVICE,

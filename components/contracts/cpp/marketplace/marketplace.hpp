@@ -27,9 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (12 actions): createorder, stockorder, cancelorder,
+ *  - **p.mkt.supply** (13 actions): createorder, stockorder, cancelorder,
  *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2, markdown, setfee.
+ *    signiss2, closeorder, markdown, setfee.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -135,6 +135,17 @@ public:
    */
   [[eosio::action]] void expireorder(eosio::name coopname,
                                       checksum256 order_hash);
+
+  /**
+   * @brief Закрыть выданный заказ после выхода гарантийного срока:
+   * терминал жизненного цикла, запись стирается из RAM. Вызывается
+   * автоматизированной службой по расписанию; до выхода гарантийного
+   * срока, при незавершённой выплате поставщику или открытом возврате
+   * закрытие отклоняется.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void closeorder(eosio::name coopname,
+                                     checksum256 order_hash);
 
   /**
    * @brief Поставщик акцептует один Order (Story 4.5).

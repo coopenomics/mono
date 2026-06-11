@@ -33,6 +33,7 @@ export * as CancelOrder from './cancelOrder'
  * Backend закрывает Order по таймауту цикла отсечки (Story 4.3). Per-Order: o.mkt.unblk + cancellation.
  */
 export * as ExpireOrder from './expireOrder'
+export * as CloseOrder from './closeOrder'
 
 /**
  * Поставщик акцептует один Order (Story 4.5). Без ledger2-операций — статус active → accepted.

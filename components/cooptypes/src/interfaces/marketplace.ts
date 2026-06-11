@@ -92,6 +92,11 @@ export interface IExpireOrder {
   order_hash: IChecksum256
 }
 
+export interface ICloseOrder {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
 export interface IAcceptOrder {
   coopname: IName
   offerer: IName
