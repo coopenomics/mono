@@ -40,10 +40,6 @@ void billing::converttoaxn(name coopname, asset amount, checksum256 payment_hash
   check(amount.symbol == _root_govern_symbol, "Неверный символ валюты. Ожидается RUB");
   check(payment_hash != checksum256{}, "payment_hash обязателен (детерминированный якорь конвертации)");
 
-  // Anti-replay: повтор того же payment_hash (например, PowerupPlugin повторил
-  // вызов, не получив подтверждение) не должен повторно жечь членские взносы.
-  Billing::assert_first_payment_and_register(_billing, payment_hash);
-
   // Курс 10:1 (10 RUB = 1 AXON).
   int64_t axon_amount = amount.amount / 10;
   check(axon_amount > 0, "После конвертации сумма AXON должна быть положительной");

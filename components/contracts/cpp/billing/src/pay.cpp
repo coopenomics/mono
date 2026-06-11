@@ -14,11 +14,8 @@ using namespace eosio;
  * Состав подписок on-chain не раскрывается: контракт несёт только сумму,
  * `payment_hash` (ссылка на запись в БД провайдера) и memo.
  *
- * Anti-replay: повтор `payment_hash` отклоняется on-chain (таблица
- * `payments`). Это страхует средства пайщика от двойного списания, если
- * инициатор (cron coopback'а Восхода) не получил подтверждение и повторил
- * вызов — упавший парсер или backend между transact и callback провайдеру
- * больше не приводят к спаму повторных оплат.
+ * Дедуп повторов `payment_hash` — в журнале PG оператора (запись до transact):
+ * контракт своих таблиц не ведёт, RAM чейна на платежи не тратится.
  *
  * @param coopname     Кооператив-оператор, в чьём леджере живёт биллинг
  *                     (на платформе — Восход/_provider).
@@ -48,9 +45,6 @@ void billing::pay(name coopname, name username, asset amount,
   check(amount.symbol == _root_govern_symbol, "Неверный символ валюты для оплаты");
   check(payment_hash != checksum256{}, "payment_hash обязателен");
   check(memo.size() < 256, "memo не должен превышать 255 символов");
-
-  // Anti-replay: первый и единственный проход для этого payment_hash.
-  Billing::assert_first_payment_and_register(_billing, payment_hash);
 
   const std::string ledger_memo =
       memo.empty() ? std::string("Оплата подписки за инфраструктуру") : memo;

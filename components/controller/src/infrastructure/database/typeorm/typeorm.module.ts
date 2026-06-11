@@ -63,6 +63,7 @@ import { VaultEntity } from './entities/vault.entity';
 import { VAULT_REPOSITORY } from '~/domain/vault/repositories/vault.repository';
 import { VaultTypeormRepository } from './repositories/vault.typeorm-repository';
 import { IpnEntity } from './entities/ipn.entity';
+import { BillingPaymentLogEntity } from '~/infrastructure/billing/entities/billing-payment-log.entity';
 import { IPN_REPOSITORY } from '~/domain/gateway/repositories/ipn.repository';
 import { TypeormIpnRepository } from './repositories/typeorm-ipn.repository';
 import { SystemStatusEntity } from './entities/system-status.entity';
@@ -134,6 +135,7 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
+      BillingPaymentLogEntity,
     ]),
   ],
   providers: [

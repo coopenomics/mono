@@ -4,6 +4,7 @@ import { BillingContract } from 'cooptypes';
 import config from '~/config/config';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { BillingProviderClient } from './billing-provider.client';
+import { BillingPaymentLogService } from './billing-payment-log.service';
 
 /**
  * Single-Hub v5 (Story 12.11, проект «Облачный провайдер») — реактивный мост
@@ -18,8 +19,9 @@ import { BillingProviderClient } from './billing-provider.client';
  * BillingCronService сразу после transact. Дублирование намеренное (провайдер
  * идемпотентен по `payment_hash`): если backend упал между transact и
  * подтверждением, факт оплаты доносит парсер; если парсер завис — синхронный
- * confirm уже прошёл. Повторного списания средств при любом сценарии не
- * происходит — контракт billing отклоняет повтор `payment_hash` (anti-replay).
+ * confirm уже прошёл. Повторное списание средств исключает журнал платежей
+ * в PG хаба (BillingPaymentLogService, запись до transact) — контракт
+ * on-chain таблиц не ведёт.
  *
  * Включается только на хабе (Восход, BILLING_HUB_MODE=true): на спицах
  * BillingModule не подключается вовсе.
@@ -33,7 +35,10 @@ import { BillingProviderClient } from './billing-provider.client';
 export class BillingPaymentListener {
   private readonly logger = new Logger(BillingPaymentListener.name);
 
-  constructor(private readonly providerClient: BillingProviderClient) {}
+  constructor(
+    private readonly providerClient: BillingProviderClient,
+    private readonly paymentLog: BillingPaymentLogService,
+  ) {}
 
   @OnEvent(
     `action::${BillingContract.contractName.production}::${BillingContract.Actions.Pay.actionName}`,
@@ -60,6 +65,9 @@ export class BillingPaymentListener {
         paymentHash,
         blockchainTransactionId: txId,
       });
+      // Доводим журнал до терминального статуса — в т.ч. записи, зависшие в
+      // SUBMITTING после сетевой ошибки transact (транзакция всё же прошла).
+      await this.paymentLog.markConfirmed(paymentHash, txId);
     } catch (err: any) {
       // Не пробрасываем: on-chain состояние уже консистентно, подтверждение
       // продублирует синхронный путь cron'а (см. docstring класса).

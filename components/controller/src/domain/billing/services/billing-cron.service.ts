@@ -6,6 +6,8 @@ import {
   type BillingBlockchainPort,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { BillingProviderClient } from '~/infrastructure/billing/billing-provider.client';
+import { BillingPaymentLogService } from '~/infrastructure/billing/billing-payment-log.service';
+import { BillingPaymentLogStatus } from '~/infrastructure/billing/entities/billing-payment-log.entity';
 import { ProviderService } from '~/application/provider/services/provider.service';
 
 /**
@@ -19,15 +21,17 @@ import { ProviderService } from '~/application/provider/services/provider.servic
  *   2. POST /billing/invoice — провайдер фиксирует PENDING-invoice и отдаёт
  *      детерминированный `payment_hash`. БЕЗ этого шага подтверждение оплаты
  *      не найдёт invoice и подписки не продлятся;
- *   3. on-chain `billing::pay` — подписывает ОПЕРАТОР (`_provider`, аккаунт
- *      узла-хаба). Контракт отклоняет повтор `payment_hash` (anti-replay
- *      таблица `paidpayments`) — повторное списание тех же средств невозможно
- *      даже при потере подтверждения;
- *   4. POST /billing/payment-confirmed — провайдер переводит invoice в PAID и
+ *   3. запись в журнал платежей (PG хаба, BillingPaymentLogService) ДО
+ *      transact — единственный источник идемпотентности: контракт on-chain
+ *      таблиц не ведёт (RAM чейна на платежи не тратится, решение @ant
+ *      2026-06-11). Существующая запись блокирует повторное списание при
+ *      любом сценарии: зависший парсер, упавший backend, наложение тиков;
+ *   4. on-chain `billing::pay` — подписывает ОПЕРАТОР (`_provider`, аккаунт
+ *      узла-хаба);
+ *   5. POST /billing/payment-confirmed — провайдер переводит invoice в PAID и
  *      продлевает подписки. Идемпотентно; этот же callback реактивно шлёт
- *      BillingPaymentListener по событию парсера, так что зависший парсер или
- *      упавший между шагами 3-4 backend не теряют оплату: при следующем тике
- *      контракт ответит «уже проведён», и тик отправит подтверждение повторно.
+ *      BillingPaymentListener по событию парсера — упавший между шагами 4-5
+ *      backend не теряет оплату.
  *
  * Инварианты:
  * - сумма = 0 (все подписки free) → on-chain списание НЕ выполняется;
@@ -44,6 +48,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     @Inject(BILLING_BLOCKCHAIN_PORT) private readonly blockchainPort: BillingBlockchainPort,
     private readonly providerClient: BillingProviderClient,
     private readonly providerService: ProviderService,
+    private readonly paymentLog: BillingPaymentLogService,
   ) {}
 
   onModuleInit() {
@@ -126,7 +131,17 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
 
       const quantity = `${invoice.total_amount.toFixed(config.blockchain.root_govern_precision)} ${summary.currency || config.blockchain.root_govern_symbol}`;
 
-      // Шаг 3: on-chain списание. Подписывает оператор (аккаунт узла-хаба);
+      // Шаг 3: журнал платежей (PG хаба) ДО transact — единственный источник
+      // идемпотентности: контракт on-chain таблиц не ведёт (RAM чейна на
+      // платежи не тратится, решение @ant 2026-06-11). Существующая запись
+      // блокирует повторное списание при любом сценарии.
+      const begin = await this.paymentLog.begin(invoice.payment_hash, coopname, quantity);
+      if (!begin.started) {
+        await this.handleExistingPayment(coopname, invoice.payment_hash, begin.existing?.status, begin.existing?.tx_id);
+        return;
+      }
+
+      // Шаг 4: on-chain списание. Подписывает оператор (аккаунт узла-хаба);
       // username — пайщик-кооператив, владелец биллинг-кошелька.
       // coopname контракта = кооператив-оператор (его леджер: w.wal.bill —
       // USER_SHARED с L3-разрезом по пайщику, решение @ant 2026-06-11).
@@ -144,27 +159,27 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
             ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
             : '';
       } catch (error: any) {
-        if (this.isAlreadyPaidOnChain(error)) {
-          // Списание уже в чейне (прошлый тик не дошёл до подтверждения) —
-          // деньги второй раз НЕ списаны (anti-replay), доносим подтверждение.
-          this.logger.warn(
-            `billing::pay ${coopname}: payment_hash=${invoice.payment_hash} уже проведён on-chain — отправляю подтверждение провайдеру`,
-          );
-          await this.providerClient.confirmPayment({
-            paymentHash: invoice.payment_hash,
-            blockchainTransactionId: '',
-          });
-          return;
+        if (this.isDomainRejection(error)) {
+          // Нода отклонила транзакцию по делу (assert контракта, нехватка
+          // средств) — деньги не списаны, повтор в следующий тик безопасен.
+          await this.paymentLog.markFailed(invoice.payment_hash, String(error?.message ?? error));
+        } else {
+          // Сетевая ошибка/timeout: транзакция МОГЛА пройти. Запись остаётся
+          // SUBMITTING — автоповтор заблокирован; если pay попал в блок,
+          // реактивный листенер парсера доведёт запись до CONFIRMED.
+          await this.paymentLog.recordError(invoice.payment_hash, String(error?.message ?? error));
         }
         throw error;
       }
+      await this.paymentLog.markSubmitted(invoice.payment_hash, transactionId);
 
-      // Шаг 4: синхронное подтверждение (реактивный BillingPaymentListener
+      // Шаг 5: синхронное подтверждение (реактивный BillingPaymentListener
       // продублирует — провайдер идемпотентен по payment_hash).
       await this.providerClient.confirmPayment({
         paymentHash: invoice.payment_hash,
         blockchainTransactionId: transactionId,
       });
+      await this.paymentLog.markConfirmed(invoice.payment_hash);
 
       this.logger.log(`Списано ${quantity} за подписки ${coopname} (payment_hash=${invoice.payment_hash})`);
     } catch (error: any) {
@@ -175,10 +190,41 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Ошибка anti-replay контракта billing: этот payment_hash уже проведён. */
-  private isAlreadyPaidOnChain(error: any): boolean {
+  /**
+   * Запись по payment_hash уже есть в журнале — повторного списания не будет.
+   * SUBMITTED — доносим подтверждение провайдеру; SUBMITTING — платёж в полёте
+   * либо завис в crash-окне (нужна сверка с историей чейна, НЕ автоповтор);
+   * CONFIRMED — гонка с PENDING-invoice, подтверждение уже было.
+   */
+  private async handleExistingPayment(
+    coopname: string,
+    paymentHash: string,
+    status?: BillingPaymentLogStatus,
+    txId?: string | null,
+  ): Promise<void> {
+    if (status === BillingPaymentLogStatus.SUBMITTED) {
+      this.logger.warn(
+        `billing::pay ${coopname}: payment_hash=${paymentHash} уже отправлен (tx=${txId ?? '?'}) — доношу подтверждение провайдеру`,
+      );
+      await this.providerClient.confirmPayment({
+        paymentHash,
+        blockchainTransactionId: txId ?? '',
+      });
+      await this.paymentLog.markConfirmed(paymentHash);
+      return;
+    }
+    this.logger.warn(
+      `billing::pay ${coopname}: payment_hash=${paymentHash} уже в журнале (status=${status ?? '?'}) — повторное списание заблокировано` +
+        (status === BillingPaymentLogStatus.SUBMITTING
+          ? '; запись зависла в SUBMITTING — нужна сверка с историей чейна, автоповтора не будет'
+          : ''),
+    );
+  }
+
+  /** Доменный отказ ноды (assert контракта / walletop): транзакция точно не прошла. */
+  private isDomainRejection(error: any): boolean {
     const message = String(error?.message ?? error ?? '');
-    return message.includes('уже проведён') || message.includes('anti-replay');
+    return message.includes('assertion failure') || message.includes('eosio_assert') || message.includes('недостаточно');
   }
 
   /**
