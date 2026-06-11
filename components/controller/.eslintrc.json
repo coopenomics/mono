@@ -74,6 +74,27 @@
           }
         ]
       }
+    },
+    {
+      "files": [
+        "src/application/auth-v2/**/*.ts"
+      ],
+      "excludedFiles": [
+        "src/**/*.spec.ts"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ImportSpecifier[imported.name='AuthRoles']",
+            "message": "no-authroles-in-authv2: в auth-v2 запрещён роле-ориентированный @AuthRoles — используйте capability-ориентированный @CheckAbility + AuthorizationGuard (Эпик 6). Legacy auth/ сохраняет @AuthRoles до Phase-3 cleanup."
+          },
+          {
+            "selector": "Decorator[expression.callee.name='AuthRoles']",
+            "message": "no-authroles-in-authv2: в auth-v2 запрещён роле-ориентированный @AuthRoles — используйте capability-ориентированный @CheckAbility + AuthorizationGuard (Эпик 6). Legacy auth/ сохраняет @AuthRoles до Phase-3 cleanup."
+          }
+        ]
+      }
     }
   ]
 }
