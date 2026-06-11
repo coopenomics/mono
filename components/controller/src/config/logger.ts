@@ -16,6 +16,11 @@ const enumerateErrorFormat = winston.format((info) => {
  * context/ms/splat) не трогаем — чистим только пользовательский meta (own
  * string-ключи и их вложенность через redactSensitive). message-строку не
  * трогаем (риск порчи; интерполированный секрет в message ловит ESLint-правило).
+ *
+ * ВАЖНО: redactionFormat обязан стоять ПОСЛЕ winston.format.splat(). splat() при
+ * сообщении без %-токенов делает Object.assign(info, ...исходный meta) из info[SPLAT],
+ * повторно вмёрживая сырой meta-объект поверх полей info. Если редактировать ДО splat(),
+ * эта повторная сборка затрёт маскировку исходными значениями (поймано тестом 8.8).
  */
 const RESERVED_LOG_FIELDS = new Set(['level', 'message', 'timestamp', 'context', 'ms', 'splat']);
 const redactionFormat = winston.format((info) => {
@@ -31,9 +36,9 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     enumerateErrorFormat(),
-    redactionFormat(),
     winston.format.colorize(),
     winston.format.splat(),
+    redactionFormat(),
     winston.format.printf(({ timestamp, level, message, context, meta, ...restMeta }) => {
       // Проверяем, является ли meta строкой
       const contextString = typeof meta === 'string' ? `[${meta}]` : context ? `[${context}]` : '';
