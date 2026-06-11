@@ -1,9 +1,21 @@
 import { subject } from '@casl/ability';
+import {
+  AccessRuleEffect,
+  AccessRulePrincipalKind,
+  type AccessRuleRecord,
+  type IAccessRulesRepository,
+} from '~/domain/auth-v2/ports/access-rules.port';
 import { AbilityFactory } from './ability.factory';
 import { deserializeAbility, serializeAbility } from './ability.serialization';
 
+/** Stub репозитория Layer 2 — для тестов Layer 1 (правил нет). */
+const emptyRepo: IAccessRulesRepository = {
+  findForPrincipal: async () => [],
+  insert: async () => undefined,
+};
+
 describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
-  const factory = new AbilityFactory();
+  const factory = new AbilityFactory(emptyRepo);
   const ownCert = subject('Certificate', { owner: 'ant' });
   const foreignCert = subject('Certificate', { owner: 'bob' });
 
@@ -52,7 +64,6 @@ describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
       expect(ability.can('update', 'Participant')).toBe(true);
       expect(ability.can('create', 'Capability')).toBe(true);
       expect(ability.can('create', 'CriticalAction')).toBe(true);
-      // наследование
       expect(ability.can('confirm', 'CriticalAction')).toBe(true);
       expect(ability.can('read', subject('Certificate', { owner: 'chief' }))).toBe(true);
     });
@@ -77,5 +88,58 @@ describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
       expect(restored.can('read', subject('Certificate', { owner: 'chief' }))).toBe(true);
       expect(restored.can('read', subject('Certificate', { owner: 'other' }))).toBe(false);
     });
+  });
+});
+
+describe('AbilityFactory — Layer 2 access_rules merge (Story 6.2)', () => {
+  const factory = new AbilityFactory(emptyRepo);
+
+  function rule(partial: Partial<AccessRuleRecord> & Pick<AccessRuleRecord, 'action' | 'resourceType'>): AccessRuleRecord {
+    return {
+      subjectType: AccessRulePrincipalKind.Role,
+      subjectId: 'User',
+      effect: AccessRuleEffect.Allow,
+      conditions: null,
+      ...partial,
+    };
+  }
+
+  it('allow-правило добавляет возможность сверх статической матрицы', () => {
+    const ability = factory.createForParticipant(
+      { username: 'ant', role: 'user' },
+      [rule({ action: 'vote', resourceType: 'CriticalAction' })],
+    );
+    expect(ability.can('vote', 'CriticalAction')).toBe(true);
+  });
+
+  it('deny-правило перекрывает статический allow (precedence)', () => {
+    const ability = factory.createForParticipant(
+      { username: 'chief', role: 'chairman' },
+      [rule({ effect: AccessRuleEffect.Deny, action: 'manage', resourceType: 'VerificationRule' })],
+    );
+    expect(ability.can('manage', 'VerificationRule')).toBe(false);
+    expect(ability.can('read', 'VerificationRule')).toBe(false);
+  });
+
+  it('conditions сужают доступ до совпадающих экземпляров', () => {
+    const ability = factory.createForParticipant(
+      { username: 'ant', role: 'user' },
+      [rule({ action: 'vote', resourceType: 'CriticalAction', conditions: { branch: 'b1' } })],
+    );
+    expect(ability.can('vote', subject('CriticalAction', { branch: 'b1' }))).toBe(true);
+    expect(ability.can('vote', subject('CriticalAction', { branch: 'b2' }))).toBe(false);
+  });
+
+  it('createForParticipantWithRules читает репозиторий по core-ролям+username и мерджит', async () => {
+    const repo: IAccessRulesRepository = {
+      findForPrincipal: jest.fn(async () => [rule({ action: 'vote', resourceType: 'CriticalAction' })]),
+      insert: async () => undefined,
+    };
+    const f = new AbilityFactory(repo);
+    const ability = await f.createForParticipantWithRules({ username: 'eve', role: 'member' });
+
+    expect(repo.findForPrincipal).toHaveBeenCalledWith(['User', 'Member'], 'eve');
+    expect(ability.can('vote', 'CriticalAction')).toBe(true);
+    expect(ability.can('read', 'Participant')).toBe(true); // статика Member сохранена
   });
 });

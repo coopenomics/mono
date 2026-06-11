@@ -1,6 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AbilityBuilder, createMongoAbility } from '@casl/ability';
-import type { AppAbility } from './ability.types';
+import {
+  AccessRuleEffect,
+  ACCESS_RULES_REPOSITORY,
+  type AccessRuleRecord,
+  type IAccessRulesRepository,
+} from '~/domain/auth-v2/ports/access-rules.port';
+import type { AppAbility, CoopAction, CoopSubject } from './ability.types';
 import { mapUserRoleToCoreRoles } from './core-roles';
 
 /** Пайщик, для которого собирается Ability (минимум из JWT-сессии). */
@@ -10,23 +16,31 @@ export interface IAbilitySubjectUser {
 }
 
 /**
- * Layer 1 (Static Ability) CASL-авторизации (Story 6.1). По логину пайщика
- * собирает его `AppAbility` из core-ролей (`mapUserRoleToCoreRoles`) по статической
- * матрице «роль→возможности». Матрица аддитивна: Chairman наследует права Member,
- * Member — права User (иерархия core-ролей).
+ * CASL-авторизация (Эпик 6). Layer 1 (Story 6.1) — статическая матрица «роль→
+ * возможности». Layer 2 (Story 6.2) — декларативные `access_rules` из coop_domain_db,
+ * мерджатся поверх статики. Матрица аддитивна: Chairman наследует Member, Member — User.
  *
- * Ownership self-субъектов (свой Certificate/Session/RecoveryStrategy) вшит в
- * условие `{ owner: username }` прямо в Ability — это даёт реальный CASL (в отличие
- * от marketplace `canAccess`, где ownership проверял resolver). DB-зависимые
- * политики (например «голосовать только в своём кооперативе») — Layer 3 (Story 6.3).
+ * Ownership self-субъектов (свой Certificate/Session/RecoveryStrategy) вшит в условие
+ * `{ owner: username }` прямо в Ability — реальный CASL (в отличие от marketplace
+ * `canAccess`, где ownership проверял resolver). DB-зависимые политики — Layer 3 (Story 6.3).
  */
 @Injectable()
 export class AbilityFactory {
-  createForParticipant(user: IAbilitySubjectUser): AppAbility {
+  constructor(
+    @Inject(ACCESS_RULES_REPOSITORY)
+    private readonly accessRules: IAccessRulesRepository,
+  ) {}
+
+  /**
+   * Синхронная сборка: Layer 1 static + merge переданных `access_rules` (Layer 2).
+   * Чистая (без IO) — `accessRules` инжектится вызывающим, что делает merge тестируемым.
+   */
+  createForParticipant(user: IAbilitySubjectUser, accessRules: AccessRuleRecord[] = []): AppAbility {
     const coreRoles = mapUserRoleToCoreRoles(user.role);
-    const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+    const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
     const owner = { owner: user.username };
 
+    // --- Layer 1: статическая матрица ---
     // User — любой пайщик: полный контроль над собственными сущностями.
     if (coreRoles.includes('User')) {
       can('read', 'Certificate', owner);
@@ -52,6 +66,42 @@ export class AbilityFactory {
       can('create', 'CriticalAction'); // инициатор; финал — только 2 подписи (Story 6.8)
     }
 
+    // --- Layer 2: access_rules. allow — первыми, deny — последними, чтобы deny
+    // перекрывал любой предыдущий allow (CASL берёт последнее матчащее правило). ---
+    const apply = (rule: AccessRuleRecord, kind: 'allow' | 'deny'): void => {
+      const action = rule.action as CoopAction;
+      const subject = rule.resourceType as CoopSubject;
+      const fn = kind === 'allow' ? can : cannot;
+      if (rule.conditions) {
+        fn(action, subject, rule.conditions);
+      }
+      else {
+        fn(action, subject);
+      }
+    };
+    for (const rule of accessRules) {
+      if (rule.effect === AccessRuleEffect.Allow) {
+        apply(rule, 'allow');
+      }
+    }
+    for (const rule of accessRules) {
+      if (rule.effect === AccessRuleEffect.Deny) {
+        apply(rule, 'deny');
+      }
+    }
+
     return build();
+  }
+
+  /**
+   * Полная сборка Ability пайщика: читает `access_rules` (Layer 2) из БД и мерджит
+   * поверх Layer 1. Это «AbilityFactory читает access_rules» из AC. Свежие правила
+   * видит при каждой сборке (= новый логин/пересборка); активные сессии инвалидируются
+   * через Redis pub/sub (publisher Story 6.2, подписчик Story 6.4).
+   */
+  async createForParticipantWithRules(user: IAbilitySubjectUser): Promise<AppAbility> {
+    const coreRoles = mapUserRoleToCoreRoles(user.role);
+    const rules = await this.accessRules.findForPrincipal(coreRoles, user.username);
+    return this.createForParticipant(user, rules);
   }
 }

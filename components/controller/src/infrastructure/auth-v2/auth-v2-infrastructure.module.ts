@@ -12,6 +12,7 @@ import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.p
 import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.port';
 import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import { COOP_SETTINGS_REPOSITORY } from '~/domain/auth-v2/ports/coop-settings.port';
+import { ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER } from '~/domain/auth-v2/ports/access-rules.port';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
@@ -28,6 +29,8 @@ import { RedisSessionMetadataStore } from './redis-session-metadata.store';
 import { RedisNotMeTokenStore } from './redis-not-me-token.store';
 import { RedisChainManifestsStore } from './redis-chain-manifests.store';
 import { PostgresCoopSettingsRepository } from './postgres-coop-settings.repository';
+import { PostgresAccessRulesRepository } from './postgres-access-rules.repository';
+import { RedisAccessRulesInvalidationPublisher } from './redis-access-rules-invalidation.publisher';
 
 /** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код + recovery-стратегия + known-devices + метаданные сессий. */
 @Module({
@@ -47,7 +50,9 @@ import { PostgresCoopSettingsRepository } from './postgres-coop-settings.reposit
     { provide: NOT_ME_TOKEN_STORE, useClass: RedisNotMeTokenStore },
     { provide: CHAIN_MANIFESTS_CACHE, useClass: RedisChainManifestsStore },
     { provide: COOP_SETTINGS_REPOSITORY, useClass: PostgresCoopSettingsRepository },
+    { provide: ACCESS_RULES_REPOSITORY, useClass: PostgresAccessRulesRepository },
+    { provide: ACCESS_RULES_INVALIDATION_PUBLISHER, useClass: RedisAccessRulesInvalidationPublisher },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER],
 })
 export class AuthV2InfrastructureModule {}
