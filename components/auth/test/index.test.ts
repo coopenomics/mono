@@ -14,12 +14,13 @@ const PUBLIC_API = [
   'signTimestamp',
   'getWallet',
   'rotateKey',
-  'exportToQR',
+  'exportFullQR',
 ] as const
 
 // Методы, ещё не реализованные (бросают not_implemented). По мере реализации
-// историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4, verifyOffline — 4.4.
-const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument', 'verifyOffline'])
+// историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4, verifyOffline — 4.4,
+// exportFullQR — 4.9 (гейтится unlocked vault + consent, не not_implemented).
+const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument', 'verifyOffline', 'exportFullQR'])
 const STILL_STUBBED = PUBLIC_API.filter(m => !IMPLEMENTED.has(m))
 
 describe('@coopenomics/auth — скелет SDK', () => {
@@ -45,6 +46,10 @@ describe('@coopenomics/auth — скелет SDK', () => {
       error: 'invalid_credentials',
       error_description: 'Неверный email или пароль',
     })
+  })
+
+  it('exportProofQR НЕ экспортируется в MVP (anonymous-форма — Growth, Story 4.9)', () => {
+    expect((api as Record<string, unknown>).exportProofQR).toBeUndefined()
   })
 
   it('trust anchor и список нод доступны (placeholder до release-pin/9.5)', () => {

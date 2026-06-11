@@ -25,7 +25,8 @@ export { TRUST_ANCHOR_ANO_CERT_PUBKEY } from './config/trust-anchor'
 export { AUTH_V2_ERROR_VIEWS, AuthV2Error, AuthV2ErrorCode, describeAuthV2Error } from './errors'
 export type { AuthV2ErrorAction, AuthV2ErrorView } from './errors'
 
-export { exportToQR } from './export'
+export type { ExportFullQROptions } from './export'
+export { exportFullQR } from './export'
 export type { LoginParams, LoginResult, LogoutParams } from './oidc'
 
 export { getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, recover } from './oidc'

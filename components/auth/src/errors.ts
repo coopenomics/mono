@@ -24,6 +24,8 @@ export enum AuthV2ErrorCode {
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
+  /** Клиентский код: high-stakes-действие (экспорт удостоверения с PII) не подтверждено. */
+  ConsentRequired = 'consent_required',
 }
 
 /**
@@ -194,6 +196,11 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     message: 'Ключ в этом браузере не соответствует аккаунту. Войдите заново.',
     action: 'retry',
     keepSession: false,
+  },
+  [AuthV2ErrorCode.ConsentRequired]: {
+    message: 'Для экспорта удостоверения нужно подтверждение.',
+    action: 'retry',
+    keepSession: true,
   },
 }
 
