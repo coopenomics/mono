@@ -13,7 +13,14 @@ import { GraphQLModule } from '@nestjs/graphql';
 import config from '~/config/config';
 import { ApolloFederationDriver, ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { docDirectiveTransformer } from './directives/doc.directive';
-import { GraphQLError, GraphQLFormattedError } from 'graphql';
+import {
+  DirectiveLocation,
+  GraphQLDirective,
+  GraphQLError,
+  GraphQLFormattedError,
+  GraphQLList,
+  GraphQLString,
+} from 'graphql';
 import { fieldAuthDirectiveTransformer } from './directives/fieldAuth.directive';
 import logger from '~/config/logger';
 
@@ -28,6 +35,18 @@ import logger from '~/config/logger';
         federation: 2,
       },
       sortSchema: true,
+      // buildSubgraphSchema (federation v2) валидирует SDL строго: директива
+      // @auth из AuthRoles-декоратора должна быть ОБЪЯВЛЕНА в схеме, иначе
+      // композиция падает «Unknown directive "@auth"» ещё до transformSchema.
+      buildSchemaOptions: {
+        directives: [
+          new GraphQLDirective({
+            name: 'auth',
+            args: { roles: { type: new GraphQLList(GraphQLString) } },
+            locations: [DirectiveLocation.FIELD_DEFINITION, DirectiveLocation.OBJECT],
+          }),
+        ],
+      },
       debug: config.env !== 'production',
       // context: ({ req }) => req,
       playground: { endpoint: '/v1/graphql', settings: { 'request.credentials': 'same-origin' } },
