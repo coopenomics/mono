@@ -12,11 +12,10 @@ import { USER_CERTIFICATE_DOMAIN_SERVICE } from '~/domain/user/services/user-cer
 import type { UserCertificateDomainService } from '~/domain/user/services/user-certificate-domain.service';
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
+import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
 
 /** Звенья cert-цепи доверия CoopID (миграция 052): ano → voskhod → vostok. */
 const CERT_CHAIN_ACCOUNTS = ['ano', 'voskhod', 'vostok'] as const;
-/** Базовый уровень верификации — присутствует у всех (минимум). */
-const VERIFICATION_BASELINE = ['coop_baseline'] as const;
 const CLAIM_SCHEMA_VERSION = '1';
 /** Срок жизни сертификата. Технический дефолт (24ч) — уточняется продуктовой политикой. */
 const CERTIFICATE_TTL = '24h';
@@ -45,6 +44,7 @@ export class CertificateService {
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
     @Inject(USER_CERTIFICATE_DOMAIN_SERVICE) private readonly certDomainService: UserCertificateDomainService,
+    private readonly verificationTypesService: VerificationTypesService,
   ) {}
 
   /**
@@ -57,11 +57,14 @@ export class CertificateService {
     const coopname = config.coopname;
     const coopChain = await this.getCoopChain();
     const vostokKey = coopChain[coopChain.length - 1]?.public_key;
+    // Типы верификации выводятся из реального членства (Story 4.1); claim — плоский
+    // список type-строк, структурная форма [{type,verified_at,source}] — Story 4.3.
+    const verificationTypes = await this.verificationTypesService.resolveForUsername(username, coopname);
 
     const jws = await new SignJWT({
       coopname,
       coop_chain: coopChain,
-      verification_types: [...VERIFICATION_BASELINE],
+      verification_types: verificationTypes.map((entry) => entry.type),
       identification: identification ?? null,
       claim_schema_version: CLAIM_SCHEMA_VERSION,
     })

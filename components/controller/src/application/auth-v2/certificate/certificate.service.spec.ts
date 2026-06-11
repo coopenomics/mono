@@ -22,10 +22,18 @@ beforeAll(() => {
   pubKey = kp.publicKey;
 });
 
+const BASELINE_ENTRY = {
+  type: 'coop_baseline',
+  status: 'verified',
+  source: 'cooperative_decision',
+  verified_at: '2026-01-01T00:00:00.000Z',
+};
+
 function makeService(opts: {
   certKey?: string;
   identification?: any;
   certKeyFor?: (acc: string) => string | null;
+  verificationTypes?: any[];
 } = {}) {
   jest.spyOn(config.authV2, 'certKey', 'get').mockReturnValue(opts.certKey ?? pemPriv);
   const blockchain = {
@@ -40,8 +48,11 @@ function makeService(opts: {
     ),
   };
   const certDomain = new UserCertificateDomainService();
-  const service = new CertificateService(blockchain as any, user as any, account as any, certDomain as any);
-  return { service, blockchain, user, account };
+  const verification = {
+    resolveForUsername: jest.fn().mockResolvedValue(opts.verificationTypes ?? [BASELINE_ENTRY]),
+  };
+  const service = new CertificateService(blockchain as any, user as any, account as any, certDomain as any, verification as any);
+  return { service, blockchain, user, account, verification };
 }
 
 afterEach(() => jest.restoreAllMocks());
@@ -72,6 +83,14 @@ describe('CertificateService.issueForUsername', () => {
       { account: 'vostok', public_key: VOSTOK_KEY },
     ]);
     expect(payload.identification).toMatchObject({ type: 'individual', username: 'ant', first_name: 'Иван' });
+  });
+
+  it('verification_types берётся из резолвера: не-член → claim пустой (Story 4.1)', async () => {
+    const { service, verification } = makeService({ verificationTypes: [] });
+    const jws = await service.issueForUsername('ant');
+    const { payload } = await jwtVerify(jws, pubKey, { algorithms: ['ES256K'] });
+    expect(verification.resolveForUsername).toHaveBeenCalledWith('ant', COOPNAME);
+    expect(payload.verification_types).toEqual([]);
   });
 
   it('размер JWS ≤ 5 КБ (Vision/MIFARE)', async () => {
