@@ -48,6 +48,7 @@
 #include "table_branch_branches.hpp"
 #include "table_branch_branchstat.hpp"
 #include "table_branch_decisions.hpp"
+#include "table_branch_trustreqs.hpp"
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"

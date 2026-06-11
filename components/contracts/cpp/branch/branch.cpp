@@ -15,6 +15,9 @@
 #include "src/confirmdec.cpp"
 #include "src/declinedec.cpp"
 #include "src/canceldec.cpp"
+#include "src/reqtrusted.cpp"
+#include "src/apprtrusted.cpp"
+#include "src/decltrusted.cpp"
 
 using namespace eosio;
 

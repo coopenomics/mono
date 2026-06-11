@@ -78,5 +78,10 @@ public:
   [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
   [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
 
+  // Доверенные лица по заявлению (с договором о полной материальной ответственности)
+  [[eosio::action]] void reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application);
+  [[eosio::action]] void apprtrusted(eosio::name coopname, eosio::checksum256 hash, document2 countersigned);
+  [[eosio::action]] void decltrusted(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+
 
 };
