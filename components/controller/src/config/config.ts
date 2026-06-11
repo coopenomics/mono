@@ -213,7 +213,18 @@ const envVarsSchema = z.object({
   APPS_CATALOG_TENANT_JWT: z
     .string()
     .optional()
-    .describe('Tenant JWT кооператива-партнёра для активации подписок. Пусто = degraded mode.'),
+    .describe(
+      'Статический tenant JWT (только отладка: ca-auth выписывает их на 30 минут). ' +
+        'В production использовать COOPERATIVE_WIF — coopback сам выпускает и обновляет JWT.'
+    ),
+  COOPERATIVE_WIF: z
+    .string()
+    .optional()
+    .describe(
+      'Приватный ключ coopname@active. Coopback выпускает tenant JWT сам через ' +
+        'challenge→verify ca-auth и обновляет его по истечении. Пусто и без ' +
+        'APPS_CATALOG_TENANT_JWT = subscribe mutation в degraded mode.'
+    ),
 
   // E12-3: доставка фронт-частей расширений. install.js берётся из
   // volume-кэша orchestrator'а (только реально установленные у кооператива
@@ -359,6 +370,7 @@ export default {
   apps_catalog_auth: {
     url: envVars.data.APPS_CATALOG_AUTH_URL,
     tenant_jwt: envVars.data.APPS_CATALOG_TENANT_JWT,
+    cooperative_wif: envVars.data.COOPERATIVE_WIF,
   },
   orchestrator: {
     url: envVars.data.ORCHESTRATOR_URL,

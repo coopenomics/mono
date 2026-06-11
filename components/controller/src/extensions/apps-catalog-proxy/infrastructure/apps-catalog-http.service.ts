@@ -1,7 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrivateKey } from '@wharfkit/antelope';
 import axios, { type AxiosInstance, AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import config from '~/config/config';
+
+/**
+ * Достать `exp` (мс) из JWT без проверки подписи — нужен только для
+ * планирования обновления токена, доверие к содержимому даёт ca-auth.
+ * `null`, если токен не разбирается или `exp` отсутствует.
+ */
+function decodeJwtExpMs(token: string): number | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as {
+      exp?: unknown;
+    };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
 
 interface PublicPackageWireFormat {
   package_id: string;
@@ -210,6 +229,14 @@ export class AppsCatalogHttpService {
    */
   private readonly orchestratorClient: AxiosInstance | null;
 
+  /**
+   * Кэш авто-выпущенного tenant JWT (ca-auth выдаёт их на 30 минут) и
+   * его `exp` в миллисекундах. Обновляется лениво в
+   * {@link ensureTenantJwt} с минутным запасом до истечения.
+   */
+  private tenantJwt: string | null = null;
+  private tenantJwtExpMs = 0;
+
   constructor() {
     if (config.apps_catalog.url && config.apps_catalog.api_key) {
       this.client = axios.create({
@@ -227,19 +254,27 @@ export class AppsCatalogHttpService {
     }
     if (
       config.apps_catalog_auth.url &&
-      config.apps_catalog_auth.tenant_jwt
+      (config.apps_catalog_auth.tenant_jwt || config.apps_catalog_auth.cooperative_wif)
     ) {
       this.authClient = axios.create({
         baseURL: config.apps_catalog_auth.url,
         timeout: 5000,
-        headers: {
-          Authorization: `Bearer ${config.apps_catalog_auth.tenant_jwt}`,
-        },
+      });
+      // Tenant JWT живёт 30 минут — статический токен из env умирает
+      // через полчаса после деплоя. Поэтому заголовок ставится
+      // interceptor'ом: статический APPS_CATALOG_TENANT_JWT (если задан —
+      // отладочный режим) или авто-выпущенный через challenge→verify
+      // подписью COOPERATIVE_WIF, с кэшем и обновлением по истечении.
+      this.authClient.interceptors.request.use(async (req) => {
+        const jwt =
+          config.apps_catalog_auth.tenant_jwt ?? (await this.ensureTenantJwt());
+        req.headers.Authorization = `Bearer ${jwt}`;
+        return req;
       });
     } else {
       this.authClient = null;
       this.logger.warn(
-        'APPS_CATALOG_AUTH_URL/APPS_CATALOG_TENANT_JWT не заданы — subscribe mutation в degraded mode',
+        'APPS_CATALOG_AUTH_URL + (COOPERATIVE_WIF или APPS_CATALOG_TENANT_JWT) не заданы — subscribe mutation в degraded mode',
       );
     }
     if (config.orchestrator.url) {
@@ -665,6 +700,53 @@ export class AppsCatalogHttpService {
    *  - `unavailable` — HTTP 423 KE_UNAVAILABLE (катаклиз с key-escrow);
    *  - `failed` — прочие ошибки (network, 400, 401, degraded mode).
    */
+  /**
+   * Вернуть валидный tenant JWT кооператива, выпустив новый при
+   * необходимости: `POST /v1/auth/challenge` → подпись challenge-строки
+   * ключом `coopname@active` (COOPERATIVE_WIF) → `POST /v1/auth/verify`.
+   * Токен кэшируется до `exp` с минутным запасом — при штатной работе
+   * выпуск происходит раз в ~29 минут, а не на каждый запрос.
+   *
+   * Запросы идут чистым axios, не через `authClient`, — иначе
+   * interceptor зациклится на самом себе.
+   */
+  private async ensureTenantJwt(): Promise<string> {
+    const REFRESH_MARGIN_MS = 60_000;
+    if (this.tenantJwt && Date.now() + REFRESH_MARGIN_MS < this.tenantJwtExpMs) {
+      return this.tenantJwt;
+    }
+    const wif = config.apps_catalog_auth.cooperative_wif;
+    if (!wif) {
+      throw new Error('COOPERATIVE_WIF не задан — tenant JWT выпустить нечем');
+    }
+    const base = config.apps_catalog_auth.url;
+    const challengeRes = await axios.post<{ challenge_string?: string }>(
+      `${base}/v1/auth/challenge`,
+      { coopname: config.coopname },
+      { timeout: 5000 },
+    );
+    const challenge = challengeRes.data?.challenge_string;
+    if (typeof challenge !== 'string' || challenge.length === 0) {
+      throw new Error('ca-auth /v1/auth/challenge: пустой challenge_string');
+    }
+    const signature = PrivateKey.from(wif).signMessage(Buffer.from(challenge)).toString();
+    const verifyRes = await axios.post<{ token?: string }>(
+      `${base}/v1/auth/verify`,
+      { coopname: config.coopname, challenge_string: challenge, signature },
+      { timeout: 5000 },
+    );
+    const token = verifyRes.data?.token;
+    if (typeof token !== 'string' || token.length === 0) {
+      throw new Error('ca-auth /v1/auth/verify: пустой token');
+    }
+    this.tenantJwt = token;
+    this.tenantJwtExpMs = decodeJwtExpMs(token) ?? Date.now() + 5 * 60_000;
+    this.logger.log(
+      `tenant JWT обновлён (exp ${new Date(this.tenantJwtExpMs).toISOString()})`,
+    );
+    return token;
+  }
+
   async activateSubscription(
     input: ActivateSubscriptionInput,
   ): Promise<ActivateSubscriptionOutcome> {
