@@ -1743,6 +1743,15 @@ export type ValueTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	/** Одобрение заявки доверенного встречной подписью председателя участка */
+["ApproveKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Договор материальной ответственности со встречной подписью председателя участка */
+	countersigned: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
+	/** Хэш заявки */
+	hash: string | Variable<any, string>
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string | Variable<any, string>,
@@ -2278,6 +2287,526 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
 }>;
+	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchEstablishmentPetitionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления в совет об учреждении участка */
+	meta: ValueTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация договора материальной ответственности */
+	meta: ValueTypes["BranchLiabilityAgreementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingBallotGenerateDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ValueTypes["KuBallotAnswerInput"]> | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Вопросы повестки собрания */
+	questions: Array<ValueTypes["KuBallotQuestionInput"]> | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchMeetingBallotSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация бюллетеня голосования */
+	meta: ValueTypes["BranchMeetingBallotSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingBallotSignedMetaDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ValueTypes["KuBallotAnswerInput"]> | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Вопросы повестки собрания */
+	questions: Array<ValueTypes["KuBallotQuestionInput"]> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** ФИО председателя собрания */
+	chairman_full_name: string | Variable<any, string>,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Кворум собрания, % */
+	current_quorum_percent: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string | Variable<any, string>,
+	/** Номер протокола */
+	protocol_number: string | Variable<any, string>,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ValueTypes["KuProtocolQuestionInput"]> | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchMeetingDecisionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация протокола решения собрания */
+	meta: ValueTypes["BranchMeetingDecisionSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** ФИО председателя собрания */
+	chairman_full_name: string | Variable<any, string>,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Кворум собрания, % */
+	current_quorum_percent: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string | Variable<any, string>,
+	/** Номер протокола */
+	protocol_number: string | Variable<any, string>,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ValueTypes["KuProtocolQuestionInput"]> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingJoinStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchMeetingJoinStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления о присоединении к собранию */
+	meta: ValueTypes["BranchMeetingJoinStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingJoinStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingProposalGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Вопросы повестки */
+	questions: Array<ValueTypes["KuAgendaQuestionInput"]> | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Тип решения собрания (createbranch | free) */
+	type: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchMeetingProposalSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация предложения повестки собрания */
+	meta: ValueTypes["BranchMeetingProposalSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchMeetingProposalSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Вопросы повестки */
+	questions: Array<ValueTypes["KuAgendaQuestionInput"]> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Тип решения собрания (createbranch | free) */
+	type: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["BranchTrustedStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchTrustedStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация заявления доверенного лица */
+	meta: ValueTypes["BranchTrustedStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchTrustedStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ValueTypes["BalanceRowEdits"],
 	cash?:ValueTypes["BalanceRowEdits"],
@@ -2366,6 +2895,15 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CallTranscriptionWithSegments']?: Omit<ValueTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
 }>;
+	/** Отмена собрания пайщиков участка */
+["CancelKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Причина отмены */
+	reason: string | Variable<any, string>
+};
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -3914,6 +4452,15 @@ export type ValueTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string | Variable<any, string>
 };
+	/** Закрытие голосования и утверждение протокола собрания участка */
+["CloseKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Протокол собрания, утверждённый подписью председателя */
+	protocol: ValueTypes["BranchMeetingDecisionSignedDocumentInput"] | Variable<any, string>
+};
 	["CloseProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -4514,6 +5061,23 @@ export type ValueTypes = {
 	/** Название задачи */
 	title: string | Variable<any, string>
 };
+	/** Объявление собрания пайщиков кооперативного участка */
+["CreateKuDecisionInput"]: {
+	/** Повестка собрания */
+	agenda: Array<ValueTypes["KuAgendaPointInput"]> | Variable<any, string>,
+	/** Имя аккаунта будущего кооперативного участка (для учреждения) */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания (якорь процесса) */
+	hash: string | Variable<any, string>,
+	/** Инициатор собрания */
+	initiator: string | Variable<any, string>,
+	/** Подписанное предложение повестки */
+	proposal: ValueTypes["BranchMeetingProposalSignedDocumentInput"] | Variable<any, string>,
+	/** Тип решения собрания */
+	type: ValueTypes["KuDecisionType"] | Variable<any, string>
+};
 	["CreateMatrixAccountInputDTO"]: {
 	password: string | Variable<any, string>,
 	username: string | Variable<any, string>
@@ -4841,6 +5405,15 @@ export type ValueTypes = {
 	/** Идентификатор решения */
 	decision_id: number | Variable<any, string>
 };
+	/** Отклонение заявки доверенного лица */
+["DeclineKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш заявки */
+	hash: string | Variable<any, string>,
+	/** Причина отклонения */
+	reason: string | Variable<any, string>
+};
 	["DeclineRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -5126,6 +5699,15 @@ export type ValueTypes = {
 	inn: string | Variable<any, string>,
 	/** ОГРН */
 	ogrn: string | Variable<any, string>
+};
+	/** Направление заявления председателя собрания в совет */
+["ExecKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Подписанное заявление председателя в совет */
+	petition: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"] | Variable<any, string>
 };
 	["ExpenseFilter"]: {
 	/** Фильтр по ID фонда */
@@ -6040,6 +6622,17 @@ export type ValueTypes = {
 ["JSON"]:unknown;
 	/** The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
 ["JSONObject"]:unknown;
+	/** Присоединение пайщика к собранию участка */
+["JoinKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Подписанное заявление о присоединении */
+	statement: ValueTypes["BranchMeetingJoinStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Пайщик, присоединяющийся к собранию */
+	username: string | Variable<any, string>
+};
 	["KeyWeight"]: AliasType<{
 	/** Ключ */
 	key?:boolean | `@${string}`,
@@ -6048,6 +6641,207 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on KeyWeight']?: Omit<ValueTypes["KeyWeight"], "...on KeyWeight">
 }>;
+	/** Пункт повестки собрания пайщиков участка */
+["KuAgendaPointInput"]: {
+	/** Дополнительная информация по вопросу */
+	context: string | Variable<any, string>,
+	/** Проект решения по вопросу */
+	decision: string | Variable<any, string>,
+	/** Заголовок вопроса */
+	title: string | Variable<any, string>
+};
+	/** Вопрос повестки собрания пайщиков участка */
+["KuAgendaQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null | Variable<any, string>,
+	/** Проект решения по вопросу */
+	decision: string | Variable<any, string>,
+	/** Номер вопроса */
+	number: string | Variable<any, string>,
+	/** Заголовок вопроса */
+	title: string | Variable<any, string>
+};
+	/** Волеизъявление по вопросу повестки */
+["KuBallotAnswerInput"]: {
+	/** ID вопроса */
+	id: string | Variable<any, string>,
+	/** Номер вопроса */
+	number: string | Variable<any, string>,
+	/** Голос (за/против/воздержался) */
+	vote: string | Variable<any, string>
+};
+	/** Вопрос собрания участка для бюллетеня */
+["KuBallotQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null | Variable<any, string>,
+	/** Проект решения по вопросу */
+	decision: string | Variable<any, string>,
+	/** ID вопроса */
+	id: string | Variable<any, string>,
+	/** Номер вопроса */
+	number: string | Variable<any, string>,
+	/** Заголовок вопроса */
+	title: string | Variable<any, string>
+};
+	/** Решение собрания пайщиков кооперативного участка */
+["KuDecision"]: AliasType<{
+	/** Адрес привязки кооперативного участка */
+	address?:boolean | `@${string}`,
+	/** Решение совета */
+	authorization?:boolean | `@${string}`,
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Наименование кооперативного участка */
+	braname?:boolean | `@${string}`,
+	/** Председатель собрания */
+	chairman?:boolean | `@${string}`,
+	/** Дата и время закрытия голосования */
+	close_at?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата и время объявления собрания */
+	created_at?:boolean | `@${string}`,
+	/** Хэш решения (якорь процесса) */
+	hash?:boolean | `@${string}`,
+	/** Идентификатор решения в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Инициатор собрания */
+	initiator?:boolean | `@${string}`,
+	/** Дата и время открытия голосования */
+	open_at?:boolean | `@${string}`,
+	/** Участники собрания */
+	participants?:boolean | `@${string}`,
+	/** Заявление председателя в совет */
+	petition?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
+	present?:boolean | `@${string}`,
+	/** Подписанное предложение повестки */
+	proposal?:boolean | `@${string}`,
+	/** Утверждённый протокол собрания */
+	protocol?:boolean | `@${string}`,
+	/** Вопросы повестки собрания */
+	questions?:ValueTypes["KuDecisionQuestion"],
+	/** Количество поданных бюллетеней */
+	signed_ballots?:boolean | `@${string}`,
+	/** Статус решения */
+	status?:boolean | `@${string}`,
+	/** Тип решения */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on KuDecision']?: Omit<ValueTypes["KuDecision"], "...on KuDecision">
+}>;
+	/** Фильтр решений собраний кооперативных участков */
+["KuDecisionFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null | Variable<any, string>,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null | Variable<any, string>,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null | Variable<any, string>,
+	/** Статус решения */
+	status?: ValueTypes["KuDecisionStatus"] | undefined | null | Variable<any, string>,
+	/** Тип решения */
+	type?: ValueTypes["KuDecisionType"] | undefined | null | Variable<any, string>
+};
+	/** Вопрос повестки собрания пайщиков кооперативного участка */
+["KuDecisionQuestion"]: AliasType<{
+	/** Дополнительная информация по вопросу */
+	context?:boolean | `@${string}`,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained?:boolean | `@${string}`,
+	/** Количество голосов «против» */
+	counter_votes_against?:boolean | `@${string}`,
+	/** Количество голосов «за» */
+	counter_votes_for?:boolean | `@${string}`,
+	/** Проект решения по вопросу */
+	decision?:boolean | `@${string}`,
+	/** Идентификатор решения собрания */
+	decision_id?:boolean | `@${string}`,
+	/** Идентификатор вопроса в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Порядковый номер вопроса в повестке */
+	number?:boolean | `@${string}`,
+	/** Заголовок вопроса */
+	title?:boolean | `@${string}`,
+	/** Проголосовавшие «воздержался» */
+	voters_abstained?:boolean | `@${string}`,
+	/** Проголосовавшие «против» */
+	voters_against?:boolean | `@${string}`,
+	/** Проголосовавшие «за» */
+	voters_for?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on KuDecisionQuestion']?: Omit<ValueTypes["KuDecisionQuestion"], "...on KuDecisionQuestion">
+}>;
+	/** Статус решения собрания пайщиков кооперативного участка */
+["KuDecisionStatus"]:KuDecisionStatus;
+	/** Тип решения собрания пайщиков кооперативного участка */
+["KuDecisionType"]:KuDecisionType;
+	/** Вопрос протокола с результатами голосования */
+["KuProtocolQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null | Variable<any, string>,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained: string | Variable<any, string>,
+	/** Количество голосов «против» */
+	counter_votes_against: string | Variable<any, string>,
+	/** Количество голосов «за» */
+	counter_votes_for: string | Variable<any, string>,
+	/** Текст решения по вопросу */
+	decision: string | Variable<any, string>,
+	/** Принято ли решение по вопросу */
+	is_accepted: boolean | Variable<any, string>,
+	/** Номер вопроса */
+	number: string | Variable<any, string>,
+	/** Заголовок вопроса */
+	title: string | Variable<any, string>,
+	/** Процент голосов «воздержался» */
+	votes_abstained_percent: number | Variable<any, string>,
+	/** Процент голосов «против» */
+	votes_against_percent: number | Variable<any, string>,
+	/** Процент голосов «за» */
+	votes_for_percent: number | Variable<any, string>
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["KuTrustRequest"]: AliasType<{
+	/** Заявление и договор о полной материальной ответственности */
+	application?:boolean | `@${string}`,
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Наименование кооперативного участка */
+	braname?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Хэш заявки */
+	hash?:boolean | `@${string}`,
+	/** Идентификатор заявки в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне (false — рассмотрена и стёрта) */
+	present?:boolean | `@${string}`,
+	/** Пайщик-заявитель */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on KuTrustRequest']?: Omit<ValueTypes["KuTrustRequest"], "...on KuTrustRequest">
+}>;
+	/** Фильтр заявок доверенных лиц кооперативных участков */
+["KuTrustRequestFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null | Variable<any, string>,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null | Variable<any, string>,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null | Variable<any, string>
+};
+	/** Волеизъявление по вопросу повестки собрания участка */
+["KuVoteItemInput"]: {
+	/** Идентификатор вопроса повестки */
+	question_id: number | Variable<any, string>,
+	/** Голос по вопросу (for | against | abstained) */
+	vote: string | Variable<any, string>
+};
 	["Ledger2Account"]: AliasType<{
 	/** 0 = active (дебетовый), 1 = passive (кредитовый) */
 	accountType?:boolean | `@${string}`,
@@ -6620,6 +7414,24 @@ generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variabl
 initSystem?: [{	data: ValueTypes["Init"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 installExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTypes["SystemInfo"]],
+kuApproveTrusted?: [{	data: ValueTypes["ApproveKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuCancelDecision?: [{	data: ValueTypes["CancelKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuCloseDecision?: [{	data: ValueTypes["CloseKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuCreateDecision?: [{	data: ValueTypes["CreateKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuDeclineTrusted?: [{	data: ValueTypes["DeclineKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuExecDecision?: [{	data: ValueTypes["ExecKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuGenerateEstablishmentPetition?: [{	data: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateLiabilityAgreement?: [{	data: ValueTypes["BranchLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateMeetingBallot?: [{	data: ValueTypes["BranchMeetingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateMeetingDecision?: [{	data: ValueTypes["BranchMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateMeetingJoinStatement?: [{	data: ValueTypes["BranchMeetingJoinStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateMeetingProposal?: [{	data: ValueTypes["BranchMeetingProposalGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateTrustedStatement?: [{	data: ValueTypes["BranchTrustedStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuJoinDecision?: [{	data: ValueTypes["JoinKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuRequestTrusted?: [{	data: ValueTypes["RequestKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuSetDecisionChairman?: [{	data: ValueTypes["SetKuDecisionChairmanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuStartDecision?: [{	data: ValueTypes["StartKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuVoteOnDecision?: [{	data: ValueTypes["VoteOnKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 login?: [{	data: ValueTypes["LoginInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 logout?: [{	data: ValueTypes["LogoutInput"] | Variable<any, string>},boolean | `@${string}`],
 markAllNotificationsRead?: [{	coopname: string | Variable<any, string>},ValueTypes["UnreadNotificationsCount"]],
@@ -7178,6 +7990,30 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedGatewayPaymentsPaginationResult']?: Omit<ValueTypes["PaginatedGatewayPaymentsPaginationResult"], "...on PaginatedGatewayPaymentsPaginationResult">
+}>;
+	["PaginatedKuDecisionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["KuDecision"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedKuDecisionsPaginationResult']?: Omit<ValueTypes["PaginatedKuDecisionsPaginationResult"], "...on PaginatedKuDecisionsPaginationResult">
+}>;
+	["PaginatedKuTrustRequestsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["KuTrustRequest"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedKuTrustRequestsPaginationResult']?: Omit<ValueTypes["PaginatedKuTrustRequestsPaginationResult"], "...on PaginatedKuTrustRequestsPaginationResult">
 }>;
 	["PaginationInput"]: {
 	/** Количество элементов на странице */
@@ -8063,6 +8899,9 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
+kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
+kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
+kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
@@ -8420,6 +9259,19 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	last_name: string | Variable<any, string>,
 	middle_name: string | Variable<any, string>,
 	position: string | Variable<any, string>
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["RequestKuTrustedInput"]: {
+	/** Подписанное заявление о приёме доверенным лицом */
+	application: ValueTypes["BranchTrustedStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш заявки */
+	hash: string | Variable<any, string>,
+	/** Пайщик-заявитель */
+	username: string | Variable<any, string>
 };
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
@@ -8928,6 +9780,15 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
 };
+	/** Назначение председателя собрания участка */
+["SetKuDecisionChairmanInput"]: {
+	/** Председатель собрания из числа участников */
+	chairman: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -9130,6 +9991,19 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 		__typename?: boolean | `@${string}`,
 	['...on StartInstallResult']?: Omit<ValueTypes["StartInstallResult"], "...on StartInstallResult">
 }>;
+	/** Открытие голосования на собрании участка */
+["StartKuDecisionInput"]: {
+	/** Адрес привязки кооперативного участка (для учреждения) */
+	address: string | Variable<any, string>,
+	/** Дата и время закрытия голосования (ISO) */
+	close_at: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Дата и время открытия голосования (ISO) */
+	open_at: string | Variable<any, string>
+};
 	["StartProcessInput"]: {
 	project_hash: string | Variable<any, string>,
 	template_id: string | Variable<any, string>
@@ -9668,6 +10542,19 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	username: string | Variable<any, string>,
 	/** Бюллетень с решениями по вопросам повестки */
 	votes: Array<ValueTypes["VoteItemInput"]> | Variable<any, string>
+};
+	/** Подача бюллетеня на собрании участка */
+["VoteOnKuDecisionInput"]: {
+	/** Подписанный бюллетень */
+	ballot: ValueTypes["BranchMeetingBallotSignedDocumentInput"] | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш решения собрания */
+	hash: string | Variable<any, string>,
+	/** Голосующий участник собрания */
+	username: string | Variable<any, string>,
+	/** Волеизъявления по вопросам повестки */
+	votes: Array<ValueTypes["KuVoteItemInput"]> | Variable<any, string>
 };
 	["WaitWeight"]: AliasType<{
 	/** Время ожидания в секундах */
@@ -10389,6 +11276,15 @@ export type ResolverInputTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	/** Одобрение заявки доверенного встречной подписью председателя участка */
+["ApproveKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Договор материальной ответственности со встречной подписью председателя участка */
+	countersigned: ResolverInputTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	/** Хэш заявки */
+	hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -10910,6 +11806,526 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchEstablishmentPetitionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления в совет об учреждении участка */
+	meta: ResolverInputTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности */
+	meta: ResolverInputTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingBallotGenerateDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ResolverInputTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки собрания */
+	questions: Array<ResolverInputTypes["KuBallotQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingBallotSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация бюллетеня голосования */
+	meta: ResolverInputTypes["BranchMeetingBallotSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingBallotSignedMetaDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ResolverInputTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки собрания */
+	questions: Array<ResolverInputTypes["KuBallotQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ResolverInputTypes["KuProtocolQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingDecisionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация протокола решения собрания */
+	meta: ResolverInputTypes["BranchMeetingDecisionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ResolverInputTypes["KuProtocolQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingJoinStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingJoinStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о присоединении к собранию */
+	meta: ResolverInputTypes["BranchMeetingJoinStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingJoinStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingProposalGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки */
+	questions: Array<ResolverInputTypes["KuAgendaQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingProposalSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация предложения повестки собрания */
+	meta: ResolverInputTypes["BranchMeetingProposalSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingProposalSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки */
+	questions: Array<ResolverInputTypes["KuAgendaQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchTrustedStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления доверенного лица */
+	meta: ResolverInputTypes["BranchTrustedStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ResolverInputTypes["BalanceRowEdits"],
 	cash?:ResolverInputTypes["BalanceRowEdits"],
@@ -10990,6 +12406,15 @@ export type ResolverInputTypes = {
 	transcription?:ResolverInputTypes["CallTranscription"],
 		__typename?: boolean | `@${string}`
 }>;
+	/** Отмена собрания пайщиков участка */
+["CancelKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Причина отмены */
+	reason: string
+};
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -12495,6 +13920,15 @@ export type ResolverInputTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
+	/** Закрытие голосования и утверждение протокола собрания участка */
+["CloseKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Протокол собрания, утверждённый подписью председателя */
+	protocol: ResolverInputTypes["BranchMeetingDecisionSignedDocumentInput"]
+};
 	["CloseProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -13090,6 +14524,23 @@ export type ResolverInputTypes = {
 	/** Название задачи */
 	title: string
 };
+	/** Объявление собрания пайщиков кооперативного участка */
+["CreateKuDecisionInput"]: {
+	/** Повестка собрания */
+	agenda: Array<ResolverInputTypes["KuAgendaPointInput"]>,
+	/** Имя аккаунта будущего кооперативного участка (для учреждения) */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания (якорь процесса) */
+	hash: string,
+	/** Инициатор собрания */
+	initiator: string,
+	/** Подписанное предложение повестки */
+	proposal: ResolverInputTypes["BranchMeetingProposalSignedDocumentInput"],
+	/** Тип решения собрания */
+	type: ResolverInputTypes["KuDecisionType"]
+};
 	["CreateMatrixAccountInputDTO"]: {
 	password: string,
 	username: string
@@ -13411,6 +14862,15 @@ export type ResolverInputTypes = {
 	/** Идентификатор решения */
 	decision_id: number
 };
+	/** Отклонение заявки доверенного лица */
+["DeclineKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Причина отклонения */
+	reason: string
+};
 	["DeclineRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -13686,6 +15146,15 @@ export type ResolverInputTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	/** Направление заявления председателя собрания в совет */
+["ExecKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление председателя в совет */
+	petition: ResolverInputTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
 	["ExpenseFilter"]: {
 	/** Фильтр по ID фонда */
@@ -14581,6 +16050,17 @@ export type ResolverInputTypes = {
 ["JSON"]:unknown;
 	/** The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
 ["JSONObject"]:unknown;
+	/** Присоединение пайщика к собранию участка */
+["JoinKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление о присоединении */
+	statement: ResolverInputTypes["BranchMeetingJoinStatementSignedDocumentInput"],
+	/** Пайщик, присоединяющийся к собранию */
+	username: string
+};
 	["KeyWeight"]: AliasType<{
 	/** Ключ */
 	key?:boolean | `@${string}`,
@@ -14588,6 +16068,204 @@ export type ResolverInputTypes = {
 	weight?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Пункт повестки собрания пайщиков участка */
+["KuAgendaPointInput"]: {
+	/** Дополнительная информация по вопросу */
+	context: string,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Вопрос повестки собрания пайщиков участка */
+["KuAgendaQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Волеизъявление по вопросу повестки */
+["KuBallotAnswerInput"]: {
+	/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Голос (за/против/воздержался) */
+	vote: string
+};
+	/** Вопрос собрания участка для бюллетеня */
+["KuBallotQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Решение собрания пайщиков кооперативного участка */
+["KuDecision"]: AliasType<{
+	/** Адрес привязки кооперативного участка */
+	address?:boolean | `@${string}`,
+	/** Решение совета */
+	authorization?:boolean | `@${string}`,
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Наименование кооперативного участка */
+	braname?:boolean | `@${string}`,
+	/** Председатель собрания */
+	chairman?:boolean | `@${string}`,
+	/** Дата и время закрытия голосования */
+	close_at?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Дата и время объявления собрания */
+	created_at?:boolean | `@${string}`,
+	/** Хэш решения (якорь процесса) */
+	hash?:boolean | `@${string}`,
+	/** Идентификатор решения в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Инициатор собрания */
+	initiator?:boolean | `@${string}`,
+	/** Дата и время открытия голосования */
+	open_at?:boolean | `@${string}`,
+	/** Участники собрания */
+	participants?:boolean | `@${string}`,
+	/** Заявление председателя в совет */
+	petition?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
+	present?:boolean | `@${string}`,
+	/** Подписанное предложение повестки */
+	proposal?:boolean | `@${string}`,
+	/** Утверждённый протокол собрания */
+	protocol?:boolean | `@${string}`,
+	/** Вопросы повестки собрания */
+	questions?:ResolverInputTypes["KuDecisionQuestion"],
+	/** Количество поданных бюллетеней */
+	signed_ballots?:boolean | `@${string}`,
+	/** Статус решения */
+	status?:boolean | `@${string}`,
+	/** Тип решения */
+	type?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Фильтр решений собраний кооперативных участков */
+["KuDecisionFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Статус решения */
+	status?: ResolverInputTypes["KuDecisionStatus"] | undefined | null,
+	/** Тип решения */
+	type?: ResolverInputTypes["KuDecisionType"] | undefined | null
+};
+	/** Вопрос повестки собрания пайщиков кооперативного участка */
+["KuDecisionQuestion"]: AliasType<{
+	/** Дополнительная информация по вопросу */
+	context?:boolean | `@${string}`,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained?:boolean | `@${string}`,
+	/** Количество голосов «против» */
+	counter_votes_against?:boolean | `@${string}`,
+	/** Количество голосов «за» */
+	counter_votes_for?:boolean | `@${string}`,
+	/** Проект решения по вопросу */
+	decision?:boolean | `@${string}`,
+	/** Идентификатор решения собрания */
+	decision_id?:boolean | `@${string}`,
+	/** Идентификатор вопроса в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Порядковый номер вопроса в повестке */
+	number?:boolean | `@${string}`,
+	/** Заголовок вопроса */
+	title?:boolean | `@${string}`,
+	/** Проголосовавшие «воздержался» */
+	voters_abstained?:boolean | `@${string}`,
+	/** Проголосовавшие «против» */
+	voters_against?:boolean | `@${string}`,
+	/** Проголосовавшие «за» */
+	voters_for?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус решения собрания пайщиков кооперативного участка */
+["KuDecisionStatus"]:KuDecisionStatus;
+	/** Тип решения собрания пайщиков кооперативного участка */
+["KuDecisionType"]:KuDecisionType;
+	/** Вопрос протокола с результатами голосования */
+["KuProtocolQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained: string,
+	/** Количество голосов «против» */
+	counter_votes_against: string,
+	/** Количество голосов «за» */
+	counter_votes_for: string,
+	/** Текст решения по вопросу */
+	decision: string,
+	/** Принято ли решение по вопросу */
+	is_accepted: boolean,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string,
+	/** Процент голосов «воздержался» */
+	votes_abstained_percent: number,
+	/** Процент голосов «против» */
+	votes_against_percent: number,
+	/** Процент голосов «за» */
+	votes_for_percent: number
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["KuTrustRequest"]: AliasType<{
+	/** Заявление и договор о полной материальной ответственности */
+	application?:boolean | `@${string}`,
+	/** Номер блока последнего обновления */
+	block_num?:boolean | `@${string}`,
+	/** Наименование кооперативного участка */
+	braname?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Хэш заявки */
+	hash?:boolean | `@${string}`,
+	/** Идентификатор заявки в блокчейне */
+	id?:boolean | `@${string}`,
+	/** Существует ли запись в блокчейне (false — рассмотрена и стёрта) */
+	present?:boolean | `@${string}`,
+	/** Пайщик-заявитель */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Фильтр заявок доверенных лиц кооперативных участков */
+["KuTrustRequestFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null
+};
+	/** Волеизъявление по вопросу повестки собрания участка */
+["KuVoteItemInput"]: {
+	/** Идентификатор вопроса повестки */
+	question_id: number,
+	/** Голос по вопросу (for | against | abstained) */
+	vote: string
+};
 	["Ledger2Account"]: AliasType<{
 	/** 0 = active (дебетовый), 1 = passive (кредитовый) */
 	accountType?:boolean | `@${string}`,
@@ -15141,6 +16819,24 @@ generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	
 initSystem?: [{	data: ResolverInputTypes["Init"]},ResolverInputTypes["SystemInfo"]],
 installExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["SystemInfo"]],
+kuApproveTrusted?: [{	data: ResolverInputTypes["ApproveKuTrustedInput"]},ResolverInputTypes["Transaction"]],
+kuCancelDecision?: [{	data: ResolverInputTypes["CancelKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuCloseDecision?: [{	data: ResolverInputTypes["CloseKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuCreateDecision?: [{	data: ResolverInputTypes["CreateKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuDeclineTrusted?: [{	data: ResolverInputTypes["DeclineKuTrustedInput"]},ResolverInputTypes["Transaction"]],
+kuExecDecision?: [{	data: ResolverInputTypes["ExecKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuGenerateEstablishmentPetition?: [{	data: ResolverInputTypes["BranchEstablishmentPetitionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateLiabilityAgreement?: [{	data: ResolverInputTypes["BranchLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateMeetingBallot?: [{	data: ResolverInputTypes["BranchMeetingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateMeetingDecision?: [{	data: ResolverInputTypes["BranchMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateMeetingJoinStatement?: [{	data: ResolverInputTypes["BranchMeetingJoinStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateMeetingProposal?: [{	data: ResolverInputTypes["BranchMeetingProposalGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateTrustedStatement?: [{	data: ResolverInputTypes["BranchTrustedStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuJoinDecision?: [{	data: ResolverInputTypes["JoinKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuRequestTrusted?: [{	data: ResolverInputTypes["RequestKuTrustedInput"]},ResolverInputTypes["Transaction"]],
+kuSetDecisionChairman?: [{	data: ResolverInputTypes["SetKuDecisionChairmanInput"]},ResolverInputTypes["Transaction"]],
+kuStartDecision?: [{	data: ResolverInputTypes["StartKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuVoteOnDecision?: [{	data: ResolverInputTypes["VoteOnKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 login?: [{	data: ResolverInputTypes["LoginInput"]},ResolverInputTypes["RegisteredAccount"]],
 logout?: [{	data: ResolverInputTypes["LogoutInput"]},boolean | `@${string}`],
 markAllNotificationsRead?: [{	coopname: string},ResolverInputTypes["UnreadNotificationsCount"]],
@@ -15660,6 +17356,28 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["GatewayPayment"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedKuDecisionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["KuDecision"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedKuTrustRequestsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["KuTrustRequest"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -16525,6 +18243,9 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
+kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
+kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
+kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
@@ -16863,6 +18584,19 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["RequestKuTrustedInput"]: {
+	/** Подписанное заявление о приёме доверенным лицом */
+	application: ResolverInputTypes["BranchTrustedStatementSignedDocumentInput"],
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Пайщик-заявитель */
+	username: string
 };
 	["RequisiteFieldView"]: AliasType<{
 	source?:boolean | `@${string}`,
@@ -17366,6 +19100,15 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	/** Назначение председателя собрания участка */
+["SetKuDecisionChairmanInput"]: {
+	/** Председатель собрания из числа участников */
+	chairman: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -17563,6 +19306,19 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	install_code?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Открытие голосования на собрании участка */
+["StartKuDecisionInput"]: {
+	/** Адрес привязки кооперативного участка (для учреждения) */
+	address: string,
+	/** Дата и время закрытия голосования (ISO) */
+	close_at: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Дата и время открытия голосования (ISO) */
+	open_at: string
+};
 	["StartProcessInput"]: {
 	project_hash: string,
 	template_id: string
@@ -18089,6 +19845,19 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	username: string,
 	/** Бюллетень с решениями по вопросам повестки */
 	votes: Array<ResolverInputTypes["VoteItemInput"]>
+};
+	/** Подача бюллетеня на собрании участка */
+["VoteOnKuDecisionInput"]: {
+	/** Подписанный бюллетень */
+	ballot: ResolverInputTypes["BranchMeetingBallotSignedDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Голосующий участник собрания */
+	username: string,
+	/** Волеизъявления по вопросам повестки */
+	votes: Array<ResolverInputTypes["KuVoteItemInput"]>
 };
 	["WaitWeight"]: AliasType<{
 	/** Время ожидания в секундах */
@@ -18794,6 +20563,15 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ApprovalStatus"]:ApprovalStatus;
+	/** Одобрение заявки доверенного встречной подписью председателя участка */
+["ApproveKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Договор материальной ответственности со встречной подписью председателя участка */
+	countersigned: ModelTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	/** Хэш заявки */
+	hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -19025,7 +20803,7 @@ export type ModelTypes = {
 	/** Корреспондентский счет */
 	corr: string,
 	/** КПП (устар.) */
-	kpp?: string
+	kpp?: string | undefined | null
 };
 	["BankAccountDetailsInput"]: {
 	/** БИК банка */
@@ -19301,6 +21079,526 @@ export type ModelTypes = {
 	/** Тип организации */
 	type: string
 };
+	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchEstablishmentPetitionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления в совет об учреждении участка */
+	meta: ModelTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности */
+	meta: ModelTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingBallotGenerateDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ModelTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки собрания */
+	questions: Array<ModelTypes["KuBallotQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingBallotSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация бюллетеня голосования */
+	meta: ModelTypes["BranchMeetingBallotSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingBallotSignedMetaDocumentInput"]: {
+	/** Волеизъявления по вопросам повестки */
+	answers: Array<ModelTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки собрания */
+	questions: Array<ModelTypes["KuBallotQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ModelTypes["KuProtocolQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingDecisionSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация протокола решения собрания */
+	meta: ModelTypes["BranchMeetingDecisionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<ModelTypes["KuProtocolQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingJoinStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingJoinStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о присоединении к собранию */
+	meta: ModelTypes["BranchMeetingJoinStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingJoinStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingProposalGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки */
+	questions: Array<ModelTypes["KuAgendaQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingProposalSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация предложения повестки собрания */
+	meta: ModelTypes["BranchMeetingProposalSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingProposalSignedMetaDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки */
+	questions: Array<ModelTypes["KuAgendaQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchTrustedStatementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedStatementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления доверенного лица */
+	meta: ModelTypes["BranchTrustedStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedStatementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BuhotchBalanceEdits"]: {
 		assetsTotal: ModelTypes["BalanceRowEdits"],
 	cash?: ModelTypes["BalanceRowEdits"] | undefined | null,
@@ -19370,6 +21668,15 @@ export type ModelTypes = {
 	["CallTranscriptionWithSegments"]: {
 		segments: Array<ModelTypes["TranscriptionSegment"]>,
 	transcription: ModelTypes["CallTranscription"]
+};
+	/** Отмена собрания пайщиков участка */
+["CancelKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Причина отмены */
+	reason: string
 };
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -20832,6 +23139,15 @@ export type ModelTypes = {
 	["CheckMatrixUsernameInput"]: {
 	username: string
 };
+	/** Закрытие голосования и утверждение протокола собрания участка */
+["CloseKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Протокол собрания, утверждённый подписью председателя */
+	protocol: ModelTypes["BranchMeetingDecisionSignedDocumentInput"]
+};
 	["CloseProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -21419,6 +23735,23 @@ export type ModelTypes = {
 	/** Название задачи */
 	title: string
 };
+	/** Объявление собрания пайщиков кооперативного участка */
+["CreateKuDecisionInput"]: {
+	/** Повестка собрания */
+	agenda: Array<ModelTypes["KuAgendaPointInput"]>,
+	/** Имя аккаунта будущего кооперативного участка (для учреждения) */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания (якорь процесса) */
+	hash: string,
+	/** Инициатор собрания */
+	initiator: string,
+	/** Подписанное предложение повестки */
+	proposal: ModelTypes["BranchMeetingProposalSignedDocumentInput"],
+	/** Тип решения собрания */
+	type: ModelTypes["KuDecisionType"]
+};
 	["CreateMatrixAccountInputDTO"]: {
 	password: string,
 	username: string
@@ -21732,6 +24065,15 @@ export type ModelTypes = {
 	/** Идентификатор решения */
 	decision_id: number
 };
+	/** Отклонение заявки доверенного лица */
+["DeclineKuTrustedInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Причина отклонения */
+	reason: string
+};
 	["DeclineRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -21996,6 +24338,15 @@ export type ModelTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	/** Направление заявления председателя собрания в совет */
+["ExecKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление председателя в совет */
+	petition: ModelTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
 	["ExpenseFilter"]: {
 	/** Фильтр по ID фонда */
@@ -22866,11 +25217,215 @@ export type ModelTypes = {
 ["JSON"]:any;
 	/** The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
 ["JSONObject"]:any;
+	/** Присоединение пайщика к собранию участка */
+["JoinKuDecisionInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление о присоединении */
+	statement: ModelTypes["BranchMeetingJoinStatementSignedDocumentInput"],
+	/** Пайщик, присоединяющийся к собранию */
+	username: string
+};
 	["KeyWeight"]: {
 		/** Ключ */
 	key: string,
 	/** Вес */
 	weight: number
+};
+	/** Пункт повестки собрания пайщиков участка */
+["KuAgendaPointInput"]: {
+	/** Дополнительная информация по вопросу */
+	context: string,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Вопрос повестки собрания пайщиков участка */
+["KuAgendaQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Волеизъявление по вопросу повестки */
+["KuBallotAnswerInput"]: {
+	/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Голос (за/против/воздержался) */
+	vote: string
+};
+	/** Вопрос собрания участка для бюллетеня */
+["KuBallotQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Решение собрания пайщиков кооперативного участка */
+["KuDecision"]: {
+		/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Решение совета */
+	authorization?: ModelTypes["JSON"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Председатель собрания */
+	chairman?: string | undefined | null,
+	/** Дата и время закрытия голосования */
+	close_at?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Дата и время объявления собрания */
+	created_at?: string | undefined | null,
+	/** Хэш решения (якорь процесса) */
+	hash: string,
+	/** Идентификатор решения в блокчейне */
+	id?: number | undefined | null,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null,
+	/** Дата и время открытия голосования */
+	open_at?: string | undefined | null,
+	/** Участники собрания */
+	participants?: Array<string> | undefined | null,
+	/** Заявление председателя в совет */
+	petition?: ModelTypes["JSON"] | undefined | null,
+	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
+	present: boolean,
+	/** Подписанное предложение повестки */
+	proposal?: ModelTypes["JSON"] | undefined | null,
+	/** Утверждённый протокол собрания */
+	protocol?: ModelTypes["JSON"] | undefined | null,
+	/** Вопросы повестки собрания */
+	questions?: Array<ModelTypes["KuDecisionQuestion"]> | undefined | null,
+	/** Количество поданных бюллетеней */
+	signed_ballots?: number | undefined | null,
+	/** Статус решения */
+	status?: ModelTypes["KuDecisionStatus"] | undefined | null,
+	/** Тип решения */
+	type?: ModelTypes["KuDecisionType"] | undefined | null
+};
+	/** Фильтр решений собраний кооперативных участков */
+["KuDecisionFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Статус решения */
+	status?: ModelTypes["KuDecisionStatus"] | undefined | null,
+	/** Тип решения */
+	type?: ModelTypes["KuDecisionType"] | undefined | null
+};
+	/** Вопрос повестки собрания пайщиков кооперативного участка */
+["KuDecisionQuestion"]: {
+		/** Дополнительная информация по вопросу */
+	context?: string | undefined | null,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained?: number | undefined | null,
+	/** Количество голосов «против» */
+	counter_votes_against?: number | undefined | null,
+	/** Количество голосов «за» */
+	counter_votes_for?: number | undefined | null,
+	/** Проект решения по вопросу */
+	decision?: string | undefined | null,
+	/** Идентификатор решения собрания */
+	decision_id?: number | undefined | null,
+	/** Идентификатор вопроса в блокчейне */
+	id?: number | undefined | null,
+	/** Порядковый номер вопроса в повестке */
+	number?: number | undefined | null,
+	/** Заголовок вопроса */
+	title?: string | undefined | null,
+	/** Проголосовавшие «воздержался» */
+	voters_abstained?: Array<string> | undefined | null,
+	/** Проголосовавшие «против» */
+	voters_against?: Array<string> | undefined | null,
+	/** Проголосовавшие «за» */
+	voters_for?: Array<string> | undefined | null
+};
+	["KuDecisionStatus"]:KuDecisionStatus;
+	["KuDecisionType"]:KuDecisionType;
+	/** Вопрос протокола с результатами голосования */
+["KuProtocolQuestionInput"]: {
+	/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained: string,
+	/** Количество голосов «против» */
+	counter_votes_against: string,
+	/** Количество голосов «за» */
+	counter_votes_for: string,
+	/** Текст решения по вопросу */
+	decision: string,
+	/** Принято ли решение по вопросу */
+	is_accepted: boolean,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string,
+	/** Процент голосов «воздержался» */
+	votes_abstained_percent: number,
+	/** Процент голосов «против» */
+	votes_against_percent: number,
+	/** Процент голосов «за» */
+	votes_for_percent: number
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["KuTrustRequest"]: {
+		/** Заявление и договор о полной материальной ответственности */
+	application?: ModelTypes["JSON"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Хэш заявки */
+	hash: string,
+	/** Идентификатор заявки в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне (false — рассмотрена и стёрта) */
+	present: boolean,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null
+};
+	/** Фильтр заявок доверенных лиц кооперативных участков */
+["KuTrustRequestFilterInput"]: {
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null
+};
+	/** Волеизъявление по вопросу повестки собрания участка */
+["KuVoteItemInput"]: {
+	/** Идентификатор вопроса повестки */
+	question_id: number,
+	/** Голос по вопросу (for | against | abstained) */
+	vote: string
 };
 	["Ledger2Account"]: {
 		/** 0 = active (дебетовый), 1 = passive (кредитовый) */
@@ -23810,6 +26365,78 @@ export type ModelTypes = {
 	installExtension: ModelTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: ModelTypes["SystemInfo"],
+	/** Одобрить заявку доверенного встречной подписью председателя участка
+
+Требуемые роли: user, member, chairman.  */
+	kuApproveTrusted: ModelTypes["Transaction"],
+	/** Отменить собрание пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuCancelDecision: ModelTypes["Transaction"],
+	/** Закрыть голосование и утвердить протокол собрания
+
+Требуемые роли: user, member, chairman.  */
+	kuCloseDecision: ModelTypes["Transaction"],
+	/** Объявить собрание пайщиков кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuCreateDecision: ModelTypes["Transaction"],
+	/** Отклонить заявку доверенного лица
+
+Требуемые роли: user, member, chairman.  */
+	kuDeclineTrusted: ModelTypes["Transaction"],
+	/** Направить заявление председателя собрания в совет об учреждении участка
+
+Требуемые роли: user, member, chairman.  */
+	kuExecDecision: ModelTypes["Transaction"],
+	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateEstablishmentPetition: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной материальной ответственности доверенного лица
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateLiabilityAgreement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать бюллетень голосования на собрании участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingBallot: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать протокол решения собрания пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingDecision: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о присоединении к собранию
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingJoinStatement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать предложение повестки собрания пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingProposal: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о приёме доверенным лицом участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrustedStatement: ModelTypes["GeneratedDocument"],
+	/** Присоединиться к собранию пайщиков кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuJoinDecision: ModelTypes["Transaction"],
+	/** Подать заявку на приём доверенным лицом кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuRequestTrusted: ModelTypes["Transaction"],
+	/** Назначить председателя собрания из числа участников
+
+Требуемые роли: user, member, chairman.  */
+	kuSetDecisionChairman: ModelTypes["Transaction"],
+	/** Открыть голосование на собрании пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuStartDecision: ModelTypes["Transaction"],
+	/** Подать бюллетень на собрании пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuVoteOnDecision: ModelTypes["Transaction"],
 	/** Войти в систему с помощью цифровой подписи и получить JWT-токены доступа */
 	login: ModelTypes["RegisteredAccount"],
 	/** Выйти из системы и заблокировать JWT-токены */
@@ -24378,6 +27005,26 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["GatewayPayment"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedKuDecisionsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["KuDecision"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedKuTrustRequestsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["KuTrustRequest"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -25393,6 +28040,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
+	/** Получить решение собрания участка по хэшу (с вопросами повестки)
+
+Требуемые роли: user, member, chairman.  */
+	kuDecision: ModelTypes["KuDecision"],
+	/** Получить список решений собраний кооперативных участков
+
+Требуемые роли: user, member, chairman.  */
+	kuDecisions: ModelTypes["PaginatedKuDecisionsPaginationResult"],
+	/** Получить список заявок доверенных лиц кооперативных участков
+
+Требуемые роли: user, member, chairman.  */
+	kuTrustRequests: ModelTypes["PaginatedKuTrustRequestsPaginationResult"],
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
 Требуемые роли: chairman.  */
@@ -25728,6 +28387,19 @@ export type ModelTypes = {
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["RequestKuTrustedInput"]: {
+	/** Подписанное заявление о приёме доверенным лицом */
+	application: ModelTypes["BranchTrustedStatementSignedDocumentInput"],
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Пайщик-заявитель */
+	username: string
 };
 	["RequisiteFieldView"]: {
 		source: ModelTypes["RequisiteSource"],
@@ -26223,6 +28895,15 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	/** Назначение председателя собрания участка */
+["SetKuDecisionChairmanInput"]: {
+	/** Председатель собрания из числа участников */
+	chairman: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -26414,6 +29095,19 @@ export type ModelTypes = {
 	coopname: string,
 	/** Код установки для дальнейших операций */
 	install_code: string
+};
+	/** Открытие голосования на собрании участка */
+["StartKuDecisionInput"]: {
+	/** Адрес привязки кооперативного участка (для учреждения) */
+	address: string,
+	/** Дата и время закрытия голосования (ISO) */
+	close_at: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Дата и время открытия голосования (ISO) */
+	open_at: string
 };
 	["StartProcessInput"]: {
 	project_hash: string,
@@ -26919,6 +29613,19 @@ export type ModelTypes = {
 	username: string,
 	/** Бюллетень с решениями по вопросам повестки */
 	votes: Array<ModelTypes["VoteItemInput"]>
+};
+	/** Подача бюллетеня на собрании участка */
+["VoteOnKuDecisionInput"]: {
+	/** Подписанный бюллетень */
+	ballot: ModelTypes["BranchMeetingBallotSignedDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Голосующий участник собрания */
+	username: string,
+	/** Волеизъявления по вопросам повестки */
+	votes: Array<ModelTypes["KuVoteItemInput"]>
 };
 	["WaitWeight"]: {
 		/** Время ожидания в секундах */
@@ -27649,6 +30356,15 @@ export type GraphQLTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]: ApprovalStatus;
+	/** Одобрение заявки доверенного встречной подписью председателя участка */
+["ApproveKuTrustedInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Договор материальной ответственности со встречной подписью председателя участка */
+	countersigned: GraphQLTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	/** Хэш заявки */
+	hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 		/** Идентификатор акта */
 	act_id: string,
@@ -27891,7 +30607,7 @@ export type GraphQLTypes = {
 	/** Корреспондентский счет */
 	corr: string,
 	/** КПП (устар.) */
-	kpp?: string,
+	kpp?: string | undefined | null,
 	['...on BankAccountDetails']: Omit<GraphQLTypes["BankAccountDetails"], "...on BankAccountDetails">
 };
 	["BankAccountDetailsInput"]: {
@@ -28184,6 +30900,526 @@ export type GraphQLTypes = {
 	type: string,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
+	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
+		/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchEstablishmentPetitionSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления в совет об учреждении участка */
+	meta: GraphQLTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: {
+		/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchLiabilityAgreementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchLiabilityAgreementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности */
+	meta: GraphQLTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** ФИО председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingBallotGenerateDocumentInput"]: {
+		/** Волеизъявления по вопросам повестки */
+	answers: Array<GraphQLTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки собрания */
+	questions: Array<GraphQLTypes["KuBallotQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingBallotSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация бюллетеня голосования */
+	meta: GraphQLTypes["BranchMeetingBallotSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingBallotSignedMetaDocumentInput"]: {
+		/** Волеизъявления по вопросам повестки */
+	answers: Array<GraphQLTypes["KuBallotAnswerInput"]>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки собрания */
+	questions: Array<GraphQLTypes["KuBallotQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingDecisionGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<GraphQLTypes["KuProtocolQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingDecisionSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация протокола решения собрания */
+	meta: GraphQLTypes["BranchMeetingDecisionSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** ФИО председателя собрания */
+	chairman_full_name: string,
+	/** Дата и время закрытия собрания */
+	close_at_datetime: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Кворум собрания, % */
+	current_quorum_percent: number,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Дата и время открытия собрания */
+	open_at_datetime: string,
+	/** Номер протокола */
+	protocol_number: string,
+	/** Вопросы повестки с результатами голосования */
+	questions: Array<GraphQLTypes["KuProtocolQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingJoinStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingJoinStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления о присоединении к собранию */
+	meta: GraphQLTypes["BranchMeetingJoinStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingJoinStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchMeetingProposalGenerateDocumentInput"]: {
+		/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Вопросы повестки */
+	questions: Array<GraphQLTypes["KuAgendaQuestionInput"]>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchMeetingProposalSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация предложения повестки собрания */
+	meta: GraphQLTypes["BranchMeetingProposalSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchMeetingProposalSignedMetaDocumentInput"]: {
+		/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Кандидат в председатели кооперативного участка */
+	chairman_candidate?: string | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Вопросы повестки */
+	questions: Array<GraphQLTypes["KuAgendaQuestionInput"]>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Тип решения собрания (createbranch | free) */
+	type: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["BranchTrustedStatementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedStatementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация заявления доверенного лица */
+	meta: GraphQLTypes["BranchTrustedStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedStatementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	braname: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BuhotchBalanceEdits"]: {
 	__typename: "BuhotchBalanceEdits",
 	assetsTotal: GraphQLTypes["BalanceRowEdits"],
@@ -28271,6 +31507,15 @@ export type GraphQLTypes = {
 	segments: Array<GraphQLTypes["TranscriptionSegment"]>,
 	transcription: GraphQLTypes["CallTranscription"],
 	['...on CallTranscriptionWithSegments']: Omit<GraphQLTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
+};
+	/** Отмена собрания пайщиков участка */
+["CancelKuDecisionInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Причина отмены */
+	reason: string
 };
 	["CancelRequestInput"]: {
 		/** Имя аккаунта кооператива */
@@ -29820,6 +33065,15 @@ export type GraphQLTypes = {
 	["CheckMatrixUsernameInput"]: {
 		username: string
 };
+	/** Закрытие голосования и утверждение протокола собрания участка */
+["CloseKuDecisionInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Протокол собрания, утверждённый подписью председателя */
+	protocol: GraphQLTypes["BranchMeetingDecisionSignedDocumentInput"]
+};
 	["CloseProjectInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -30420,6 +33674,23 @@ export type GraphQLTypes = {
 	/** Название задачи */
 	title: string
 };
+	/** Объявление собрания пайщиков кооперативного участка */
+["CreateKuDecisionInput"]: {
+		/** Повестка собрания */
+	agenda: Array<GraphQLTypes["KuAgendaPointInput"]>,
+	/** Имя аккаунта будущего кооперативного участка (для учреждения) */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания (якорь процесса) */
+	hash: string,
+	/** Инициатор собрания */
+	initiator: string,
+	/** Подписанное предложение повестки */
+	proposal: GraphQLTypes["BranchMeetingProposalSignedDocumentInput"],
+	/** Тип решения собрания */
+	type: GraphQLTypes["KuDecisionType"]
+};
 	["CreateMatrixAccountInputDTO"]: {
 		password: string,
 	username: string
@@ -30747,6 +34018,15 @@ export type GraphQLTypes = {
 	/** Идентификатор решения */
 	decision_id: number
 };
+	/** Отклонение заявки доверенного лица */
+["DeclineKuTrustedInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Причина отклонения */
+	reason: string
+};
 	["DeclineRequestInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -31032,6 +34312,15 @@ export type GraphQLTypes = {
 	inn: string,
 	/** ОГРН */
 	ogrn: string
+};
+	/** Направление заявления председателя собрания в совет */
+["ExecKuDecisionInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление председателя в совет */
+	petition: GraphQLTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
 	["ExpenseFilter"]: {
 		/** Фильтр по ID фонда */
@@ -31946,6 +35235,17 @@ export type GraphQLTypes = {
 ["JSON"]: "scalar" & { name: "JSON" };
 	/** The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
 ["JSONObject"]: "scalar" & { name: "JSONObject" };
+	/** Присоединение пайщика к собранию участка */
+["JoinKuDecisionInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Подписанное заявление о присоединении */
+	statement: GraphQLTypes["BranchMeetingJoinStatementSignedDocumentInput"],
+	/** Пайщик, присоединяющийся к собранию */
+	username: string
+};
 	["KeyWeight"]: {
 	__typename: "KeyWeight",
 	/** Ключ */
@@ -31953,6 +35253,207 @@ export type GraphQLTypes = {
 	/** Вес */
 	weight: number,
 	['...on KeyWeight']: Omit<GraphQLTypes["KeyWeight"], "...on KeyWeight">
+};
+	/** Пункт повестки собрания пайщиков участка */
+["KuAgendaPointInput"]: {
+		/** Дополнительная информация по вопросу */
+	context: string,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Вопрос повестки собрания пайщиков участка */
+["KuAgendaQuestionInput"]: {
+		/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Волеизъявление по вопросу повестки */
+["KuBallotAnswerInput"]: {
+		/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Голос (за/против/воздержался) */
+	vote: string
+};
+	/** Вопрос собрания участка для бюллетеня */
+["KuBallotQuestionInput"]: {
+		/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Проект решения по вопросу */
+	decision: string,
+	/** ID вопроса */
+	id: string,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string
+};
+	/** Решение собрания пайщиков кооперативного участка */
+["KuDecision"]: {
+	__typename: "KuDecision",
+	/** Адрес привязки кооперативного участка */
+	address?: string | undefined | null,
+	/** Решение совета */
+	authorization?: GraphQLTypes["JSON"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Председатель собрания */
+	chairman?: string | undefined | null,
+	/** Дата и время закрытия голосования */
+	close_at?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Дата и время объявления собрания */
+	created_at?: string | undefined | null,
+	/** Хэш решения (якорь процесса) */
+	hash: string,
+	/** Идентификатор решения в блокчейне */
+	id?: number | undefined | null,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null,
+	/** Дата и время открытия голосования */
+	open_at?: string | undefined | null,
+	/** Участники собрания */
+	participants?: Array<string> | undefined | null,
+	/** Заявление председателя в совет */
+	petition?: GraphQLTypes["JSON"] | undefined | null,
+	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
+	present: boolean,
+	/** Подписанное предложение повестки */
+	proposal?: GraphQLTypes["JSON"] | undefined | null,
+	/** Утверждённый протокол собрания */
+	protocol?: GraphQLTypes["JSON"] | undefined | null,
+	/** Вопросы повестки собрания */
+	questions?: Array<GraphQLTypes["KuDecisionQuestion"]> | undefined | null,
+	/** Количество поданных бюллетеней */
+	signed_ballots?: number | undefined | null,
+	/** Статус решения */
+	status?: GraphQLTypes["KuDecisionStatus"] | undefined | null,
+	/** Тип решения */
+	type?: GraphQLTypes["KuDecisionType"] | undefined | null,
+	['...on KuDecision']: Omit<GraphQLTypes["KuDecision"], "...on KuDecision">
+};
+	/** Фильтр решений собраний кооперативных участков */
+["KuDecisionFilterInput"]: {
+		/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Инициатор собрания */
+	initiator?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Статус решения */
+	status?: GraphQLTypes["KuDecisionStatus"] | undefined | null,
+	/** Тип решения */
+	type?: GraphQLTypes["KuDecisionType"] | undefined | null
+};
+	/** Вопрос повестки собрания пайщиков кооперативного участка */
+["KuDecisionQuestion"]: {
+	__typename: "KuDecisionQuestion",
+	/** Дополнительная информация по вопросу */
+	context?: string | undefined | null,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained?: number | undefined | null,
+	/** Количество голосов «против» */
+	counter_votes_against?: number | undefined | null,
+	/** Количество голосов «за» */
+	counter_votes_for?: number | undefined | null,
+	/** Проект решения по вопросу */
+	decision?: string | undefined | null,
+	/** Идентификатор решения собрания */
+	decision_id?: number | undefined | null,
+	/** Идентификатор вопроса в блокчейне */
+	id?: number | undefined | null,
+	/** Порядковый номер вопроса в повестке */
+	number?: number | undefined | null,
+	/** Заголовок вопроса */
+	title?: string | undefined | null,
+	/** Проголосовавшие «воздержался» */
+	voters_abstained?: Array<string> | undefined | null,
+	/** Проголосовавшие «против» */
+	voters_against?: Array<string> | undefined | null,
+	/** Проголосовавшие «за» */
+	voters_for?: Array<string> | undefined | null,
+	['...on KuDecisionQuestion']: Omit<GraphQLTypes["KuDecisionQuestion"], "...on KuDecisionQuestion">
+};
+	/** Статус решения собрания пайщиков кооперативного участка */
+["KuDecisionStatus"]: KuDecisionStatus;
+	/** Тип решения собрания пайщиков кооперативного участка */
+["KuDecisionType"]: KuDecisionType;
+	/** Вопрос протокола с результатами голосования */
+["KuProtocolQuestionInput"]: {
+		/** Дополнительная информация */
+	context?: string | undefined | null,
+	/** Количество голосов «воздержался» */
+	counter_votes_abstained: string,
+	/** Количество голосов «против» */
+	counter_votes_against: string,
+	/** Количество голосов «за» */
+	counter_votes_for: string,
+	/** Текст решения по вопросу */
+	decision: string,
+	/** Принято ли решение по вопросу */
+	is_accepted: boolean,
+	/** Номер вопроса */
+	number: string,
+	/** Заголовок вопроса */
+	title: string,
+	/** Процент голосов «воздержался» */
+	votes_abstained_percent: number,
+	/** Процент голосов «против» */
+	votes_against_percent: number,
+	/** Процент голосов «за» */
+	votes_for_percent: number
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["KuTrustRequest"]: {
+	__typename: "KuTrustRequest",
+	/** Заявление и договор о полной материальной ответственности */
+	application?: GraphQLTypes["JSON"] | undefined | null,
+	/** Номер блока последнего обновления */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Хэш заявки */
+	hash: string,
+	/** Идентификатор заявки в блокчейне */
+	id?: number | undefined | null,
+	/** Существует ли запись в блокчейне (false — рассмотрена и стёрта) */
+	present: boolean,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null,
+	['...on KuTrustRequest']: Omit<GraphQLTypes["KuTrustRequest"], "...on KuTrustRequest">
+};
+	/** Фильтр заявок доверенных лиц кооперативных участков */
+["KuTrustRequestFilterInput"]: {
+		/** Наименование кооперативного участка */
+	braname?: string | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname?: string | undefined | null,
+	/** Только записи, существующие в блокчейне */
+	present?: boolean | undefined | null,
+	/** Пайщик-заявитель */
+	username?: string | undefined | null
+};
+	/** Волеизъявление по вопросу повестки собрания участка */
+["KuVoteItemInput"]: {
+		/** Идентификатор вопроса повестки */
+	question_id: number,
+	/** Голос по вопросу (for | against | abstained) */
+	vote: string
 };
 	["Ledger2Account"]: {
 	__typename: "Ledger2Account",
@@ -32934,6 +36435,78 @@ export type GraphQLTypes = {
 	installExtension: GraphQLTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: GraphQLTypes["SystemInfo"],
+	/** Одобрить заявку доверенного встречной подписью председателя участка
+
+Требуемые роли: user, member, chairman.  */
+	kuApproveTrusted: GraphQLTypes["Transaction"],
+	/** Отменить собрание пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuCancelDecision: GraphQLTypes["Transaction"],
+	/** Закрыть голосование и утвердить протокол собрания
+
+Требуемые роли: user, member, chairman.  */
+	kuCloseDecision: GraphQLTypes["Transaction"],
+	/** Объявить собрание пайщиков кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuCreateDecision: GraphQLTypes["Transaction"],
+	/** Отклонить заявку доверенного лица
+
+Требуемые роли: user, member, chairman.  */
+	kuDeclineTrusted: GraphQLTypes["Transaction"],
+	/** Направить заявление председателя собрания в совет об учреждении участка
+
+Требуемые роли: user, member, chairman.  */
+	kuExecDecision: GraphQLTypes["Transaction"],
+	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateEstablishmentPetition: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной материальной ответственности доверенного лица
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать бюллетень голосования на собрании участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingBallot: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать протокол решения собрания пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingDecision: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о присоединении к собранию
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingJoinStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать предложение повестки собрания пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateMeetingProposal: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать заявление о приёме доверенным лицом участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrustedStatement: GraphQLTypes["GeneratedDocument"],
+	/** Присоединиться к собранию пайщиков кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuJoinDecision: GraphQLTypes["Transaction"],
+	/** Подать заявку на приём доверенным лицом кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuRequestTrusted: GraphQLTypes["Transaction"],
+	/** Назначить председателя собрания из числа участников
+
+Требуемые роли: user, member, chairman.  */
+	kuSetDecisionChairman: GraphQLTypes["Transaction"],
+	/** Открыть голосование на собрании пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuStartDecision: GraphQLTypes["Transaction"],
+	/** Подать бюллетень на собрании пайщиков участка
+
+Требуемые роли: user, member, chairman.  */
+	kuVoteOnDecision: GraphQLTypes["Transaction"],
 	/** Войти в систему с помощью цифровой подписи и получить JWT-токены доступа */
 	login: GraphQLTypes["RegisteredAccount"],
 	/** Выйти из системы и заблокировать JWT-токены */
@@ -33578,6 +37151,30 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedGatewayPaymentsPaginationResult']: Omit<GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"], "...on PaginatedGatewayPaymentsPaginationResult">
+};
+	["PaginatedKuDecisionsPaginationResult"]: {
+	__typename: "PaginatedKuDecisionsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["KuDecision"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedKuDecisionsPaginationResult']: Omit<GraphQLTypes["PaginatedKuDecisionsPaginationResult"], "...on PaginatedKuDecisionsPaginationResult">
+};
+	["PaginatedKuTrustRequestsPaginationResult"]: {
+	__typename: "PaginatedKuTrustRequestsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["KuTrustRequest"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedKuTrustRequestsPaginationResult']: Omit<GraphQLTypes["PaginatedKuTrustRequestsPaginationResult"], "...on PaginatedKuTrustRequestsPaginationResult">
 };
 	["PaginationInput"]: {
 		/** Количество элементов на странице */
@@ -34659,6 +38256,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
+	/** Получить решение собрания участка по хэшу (с вопросами повестки)
+
+Требуемые роли: user, member, chairman.  */
+	kuDecision: GraphQLTypes["KuDecision"],
+	/** Получить список решений собраний кооперативных участков
+
+Требуемые роли: user, member, chairman.  */
+	kuDecisions: GraphQLTypes["PaginatedKuDecisionsPaginationResult"],
+	/** Получить список заявок доверенных лиц кооперативных участков
+
+Требуемые роли: user, member, chairman.  */
+	kuTrustRequests: GraphQLTypes["PaginatedKuTrustRequestsPaginationResult"],
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
 
 Требуемые роли: chairman.  */
@@ -35032,6 +38641,19 @@ export type GraphQLTypes = {
 	last_name: string,
 	middle_name: string,
 	position: string
+};
+	/** Заявка на приём доверенным лицом кооперативного участка */
+["RequestKuTrustedInput"]: {
+		/** Подписанное заявление о приёме доверенным лицом */
+	application: GraphQLTypes["BranchTrustedStatementSignedDocumentInput"],
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш заявки */
+	hash: string,
+	/** Пайщик-заявитель */
+	username: string
 };
 	["RequisiteFieldView"]: {
 	__typename: "RequisiteFieldView",
@@ -35540,6 +39162,15 @@ export type GraphQLTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	/** Назначение председателя собрания участка */
+["SetKuDecisionChairmanInput"]: {
+		/** Председатель собрания из числа участников */
+	chairman: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string
+};
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -35741,6 +39372,19 @@ export type GraphQLTypes = {
 	/** Код установки для дальнейших операций */
 	install_code: string,
 	['...on StartInstallResult']: Omit<GraphQLTypes["StartInstallResult"], "...on StartInstallResult">
+};
+	/** Открытие голосования на собрании участка */
+["StartKuDecisionInput"]: {
+		/** Адрес привязки кооперативного участка (для учреждения) */
+	address: string,
+	/** Дата и время закрытия голосования (ISO) */
+	close_at: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Дата и время открытия голосования (ISO) */
+	open_at: string
 };
 	["StartProcessInput"]: {
 		project_hash: string,
@@ -36282,6 +39926,19 @@ export type GraphQLTypes = {
 	/** Бюллетень с решениями по вопросам повестки */
 	votes: Array<GraphQLTypes["VoteItemInput"]>
 };
+	/** Подача бюллетеня на собрании участка */
+["VoteOnKuDecisionInput"]: {
+		/** Подписанный бюллетень */
+	ballot: GraphQLTypes["BranchMeetingBallotSignedDocumentInput"],
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш решения собрания */
+	hash: string,
+	/** Голосующий участник собрания */
+	username: string,
+	/** Волеизъявления по вопросам повестки */
+	votes: Array<GraphQLTypes["KuVoteItemInput"]>
+};
 	["WaitWeight"]: {
 	__typename: "WaitWeight",
 	/** Время ожидания в секундах */
@@ -36535,6 +40192,19 @@ export enum IssueStatus {
 	ON_REVIEW = "ON_REVIEW",
 	TODO = "TODO"
 }
+/** Статус решения собрания пайщиков кооперативного участка */
+export enum KuDecisionStatus {
+	APPROVED = "APPROVED",
+	COMPLETED = "COMPLETED",
+	ONAPPROVAL = "ONAPPROVAL",
+	OPENED = "OPENED",
+	VOTING = "VOTING"
+}
+/** Тип решения собрания пайщиков кооперативного участка */
+export enum KuDecisionType {
+	CREATEBRANCH = "CREATEBRANCH",
+	FREE = "FREE"
+}
 /** Типы сущностей в логах */
 export enum LogEntityType {
 	CONTRIBUTOR = "CONTRIBUTOR",
@@ -36776,6 +40446,7 @@ export enum UserStatus {
 	Joined = "Joined",
 	Payed = "Payed",
 	Refunded = "Refunded",
+	Refunding = "Refunding",
 	Registered = "Registered"
 }
 /** Тип подписанта для нулевых форм: руководитель или представитель */
@@ -36815,6 +40486,7 @@ type ZEUS_VARIABLES = {
 	["AnswerInput"]: ValueTypes["AnswerInput"];
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
+	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
 	["AssetContributionActGenerateDocumentInput"]: ValueTypes["AssetContributionActGenerateDocumentInput"];
 	["AssetContributionActSignedDocumentInput"]: ValueTypes["AssetContributionActSignedDocumentInput"];
 	["AssetContributionActSignedMetaDocumentInput"]: ValueTypes["AssetContributionActSignedMetaDocumentInput"];
@@ -36825,9 +40497,31 @@ type ZEUS_VARIABLES = {
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BranchEstablishmentPetitionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"];
+	["BranchEstablishmentPetitionSignedDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"];
+	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"];
+	["BranchLiabilityAgreementGenerateDocumentInput"]: ValueTypes["BranchLiabilityAgreementGenerateDocumentInput"];
+	["BranchLiabilityAgreementSignedDocumentInput"]: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"];
+	["BranchLiabilityAgreementSignedMetaDocumentInput"]: ValueTypes["BranchLiabilityAgreementSignedMetaDocumentInput"];
+	["BranchMeetingBallotGenerateDocumentInput"]: ValueTypes["BranchMeetingBallotGenerateDocumentInput"];
+	["BranchMeetingBallotSignedDocumentInput"]: ValueTypes["BranchMeetingBallotSignedDocumentInput"];
+	["BranchMeetingBallotSignedMetaDocumentInput"]: ValueTypes["BranchMeetingBallotSignedMetaDocumentInput"];
+	["BranchMeetingDecisionGenerateDocumentInput"]: ValueTypes["BranchMeetingDecisionGenerateDocumentInput"];
+	["BranchMeetingDecisionSignedDocumentInput"]: ValueTypes["BranchMeetingDecisionSignedDocumentInput"];
+	["BranchMeetingDecisionSignedMetaDocumentInput"]: ValueTypes["BranchMeetingDecisionSignedMetaDocumentInput"];
+	["BranchMeetingJoinStatementGenerateDocumentInput"]: ValueTypes["BranchMeetingJoinStatementGenerateDocumentInput"];
+	["BranchMeetingJoinStatementSignedDocumentInput"]: ValueTypes["BranchMeetingJoinStatementSignedDocumentInput"];
+	["BranchMeetingJoinStatementSignedMetaDocumentInput"]: ValueTypes["BranchMeetingJoinStatementSignedMetaDocumentInput"];
+	["BranchMeetingProposalGenerateDocumentInput"]: ValueTypes["BranchMeetingProposalGenerateDocumentInput"];
+	["BranchMeetingProposalSignedDocumentInput"]: ValueTypes["BranchMeetingProposalSignedDocumentInput"];
+	["BranchMeetingProposalSignedMetaDocumentInput"]: ValueTypes["BranchMeetingProposalSignedMetaDocumentInput"];
+	["BranchTrustedStatementGenerateDocumentInput"]: ValueTypes["BranchTrustedStatementGenerateDocumentInput"];
+	["BranchTrustedStatementSignedDocumentInput"]: ValueTypes["BranchTrustedStatementSignedDocumentInput"];
+	["BranchTrustedStatementSignedMetaDocumentInput"]: ValueTypes["BranchTrustedStatementSignedMetaDocumentInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];
+	["CancelKuDecisionInput"]: ValueTypes["CancelKuDecisionInput"];
 	["CancelRequestInput"]: ValueTypes["CancelRequestInput"];
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];
@@ -36849,6 +40543,7 @@ type ZEUS_VARIABLES = {
 	["ChairmanOnboardingAgendaStep"]: ValueTypes["ChairmanOnboardingAgendaStep"];
 	["ChairmanOnboardingGeneralMeetInput"]: ValueTypes["ChairmanOnboardingGeneralMeetInput"];
 	["CheckMatrixUsernameInput"]: ValueTypes["CheckMatrixUsernameInput"];
+	["CloseKuDecisionInput"]: ValueTypes["CloseKuDecisionInput"];
 	["CloseProjectInput"]: ValueTypes["CloseProjectInput"];
 	["CommitApproveInput"]: ValueTypes["CommitApproveInput"];
 	["CommitDeclineInput"]: ValueTypes["CommitDeclineInput"];
@@ -36885,6 +40580,7 @@ type ZEUS_VARIABLES = {
 	["CreateInitOrganizationDataInput"]: ValueTypes["CreateInitOrganizationDataInput"];
 	["CreateInitialPaymentInput"]: ValueTypes["CreateInitialPaymentInput"];
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
+	["CreateKuDecisionInput"]: ValueTypes["CreateKuDecisionInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateParentOfferInput"]: ValueTypes["CreateParentOfferInput"];
@@ -36909,6 +40605,7 @@ type ZEUS_VARIABLES = {
 	["DeclineAgreementInput"]: ValueTypes["DeclineAgreementInput"];
 	["DeclineApproveInput"]: ValueTypes["DeclineApproveInput"];
 	["DeclineDecisionInput"]: ValueTypes["DeclineDecisionInput"];
+	["DeclineKuTrustedInput"]: ValueTypes["DeclineKuTrustedInput"];
 	["DeclineRequestInput"]: ValueTypes["DeclineRequestInput"];
 	["DeleteAccountInput"]: ValueTypes["DeleteAccountInput"];
 	["DeleteBranchInput"]: ValueTypes["DeleteBranchInput"];
@@ -36925,6 +40622,7 @@ type ZEUS_VARIABLES = {
 	["EditContributorInput"]: ValueTypes["EditContributorInput"];
 	["EditProjectInput"]: ValueTypes["EditProjectInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
+	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseFilter"]: ValueTypes["ExpenseFilter"];
 	["ExpenseStatus"]: ValueTypes["ExpenseStatus"];
 	["ExtendedMeetStatus"]: ValueTypes["ExtendedMeetStatus"];
@@ -36988,6 +40686,17 @@ type ZEUS_VARIABLES = {
 	["IssueStatus"]: ValueTypes["IssueStatus"];
 	["JSON"]: ValueTypes["JSON"];
 	["JSONObject"]: ValueTypes["JSONObject"];
+	["JoinKuDecisionInput"]: ValueTypes["JoinKuDecisionInput"];
+	["KuAgendaPointInput"]: ValueTypes["KuAgendaPointInput"];
+	["KuAgendaQuestionInput"]: ValueTypes["KuAgendaQuestionInput"];
+	["KuBallotAnswerInput"]: ValueTypes["KuBallotAnswerInput"];
+	["KuBallotQuestionInput"]: ValueTypes["KuBallotQuestionInput"];
+	["KuDecisionFilterInput"]: ValueTypes["KuDecisionFilterInput"];
+	["KuDecisionStatus"]: ValueTypes["KuDecisionStatus"];
+	["KuDecisionType"]: ValueTypes["KuDecisionType"];
+	["KuProtocolQuestionInput"]: ValueTypes["KuProtocolQuestionInput"];
+	["KuTrustRequestFilterInput"]: ValueTypes["KuTrustRequestFilterInput"];
+	["KuVoteItemInput"]: ValueTypes["KuVoteItemInput"];
 	["ListReportDraftsFilterInput"]: ValueTypes["ListReportDraftsFilterInput"];
 	["ListUtcDatesWithNewRoomMessagesInput"]: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"];
 	["LogEntityType"]: ValueTypes["LogEntityType"];
@@ -37055,6 +40764,7 @@ type ZEUS_VARIABLES = {
 	["ReportSubmissionMark"]: ValueTypes["ReportSubmissionMark"];
 	["ReportType"]: ValueTypes["ReportType"];
 	["RepresentedByInput"]: ValueTypes["RepresentedByInput"];
+	["RequestKuTrustedInput"]: ValueTypes["RequestKuTrustedInput"];
 	["RequisiteSource"]: ValueTypes["RequisiteSource"];
 	["ResetKeyInput"]: ValueTypes["ResetKeyInput"];
 	["RestartAnnualGeneralMeetInput"]: ValueTypes["RestartAnnualGeneralMeetInput"];
@@ -37087,6 +40797,7 @@ type ZEUS_VARIABLES = {
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
+	["SetKuDecisionChairmanInput"]: ValueTypes["SetKuDecisionChairmanInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];
@@ -37100,6 +40811,7 @@ type ZEUS_VARIABLES = {
 	["SignedDigitalDocumentInput"]: ValueTypes["SignedDigitalDocumentInput"];
 	["SovietMemberInput"]: ValueTypes["SovietMemberInput"];
 	["StartInstallInput"]: ValueTypes["StartInstallInput"];
+	["StartKuDecisionInput"]: ValueTypes["StartKuDecisionInput"];
 	["StartProcessInput"]: ValueTypes["StartProcessInput"];
 	["StartProjectInput"]: ValueTypes["StartProjectInput"];
 	["StartResetKeyInput"]: ValueTypes["StartResetKeyInput"];
@@ -37134,6 +40846,7 @@ type ZEUS_VARIABLES = {
 	["VoteFilter"]: ValueTypes["VoteFilter"];
 	["VoteItemInput"]: ValueTypes["VoteItemInput"];
 	["VoteOnAnnualGeneralMeetInput"]: ValueTypes["VoteOnAnnualGeneralMeetInput"];
+	["VoteOnKuDecisionInput"]: ValueTypes["VoteOnKuDecisionInput"];
 	["WalmoveInput"]: ValueTypes["WalmoveInput"];
 	["WebPushSubscriptionDataInput"]: ValueTypes["WebPushSubscriptionDataInput"];
 	["WebPushSubscriptionKeysInput"]: ValueTypes["WebPushSubscriptionKeysInput"];

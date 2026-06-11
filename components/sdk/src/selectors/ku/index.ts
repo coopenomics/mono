@@ -1,0 +1,89 @@
+import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+import { paginationSelector } from '../../utils/paginationSelector'
+import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
+
+// Вопрос повестки собрания пайщиков кооперативного участка
+export const rawKuDecisionQuestionSelector = {
+  id: true,
+  decision_id: true,
+  number: true,
+  title: true,
+  decision: true,
+  context: true,
+  counter_votes_for: true,
+  counter_votes_against: true,
+  counter_votes_abstained: true,
+  voters_for: true,
+  voters_against: true,
+  voters_abstained: true,
+}
+
+const _validateQuestion: MakeAllFieldsRequired<ValueTypes['KuDecisionQuestion']> = rawKuDecisionQuestionSelector
+
+export type kuDecisionQuestionModel = ModelTypes['KuDecisionQuestion']
+export const kuDecisionQuestionSelector = Selector('KuDecisionQuestion')(rawKuDecisionQuestionSelector)
+
+// Решение собрания пайщиков кооперативного участка
+export const rawKuDecisionSelector = {
+  hash: true,
+  id: true,
+  coopname: true,
+  type: true,
+  initiator: true,
+  chairman: true,
+  status: true,
+  present: true,
+  proposal: true,
+  protocol: true,
+  petition: true,
+  authorization: true,
+  open_at: true,
+  close_at: true,
+  signed_ballots: true,
+  braname: true,
+  address: true,
+  participants: true,
+  created_at: true,
+  questions: rawKuDecisionQuestionSelector,
+  block_num: true,
+}
+
+const _validateDecision: MakeAllFieldsRequired<ValueTypes['KuDecision']> = rawKuDecisionSelector
+
+export type kuDecisionModel = ModelTypes['KuDecision']
+export const kuDecisionSelector = Selector('KuDecision')(rawKuDecisionSelector)
+
+// Заявка на приём доверенным лицом кооперативного участка
+export const rawKuTrustRequestSelector = {
+  hash: true,
+  id: true,
+  coopname: true,
+  braname: true,
+  username: true,
+  present: true,
+  application: true,
+  block_num: true,
+}
+
+const _validateTrustRequest: MakeAllFieldsRequired<ValueTypes['KuTrustRequest']> = rawKuTrustRequestSelector
+
+export type kuTrustRequestModel = ModelTypes['KuTrustRequest']
+export const kuTrustRequestSelector = Selector('KuTrustRequest')(rawKuTrustRequestSelector)
+
+// Пагинированный селектор решений собраний участков
+const rawKuDecisionsPaginationSelector = { ...paginationSelector, items: rawKuDecisionSelector }
+const _validateDecisionsPagination: MakeAllFieldsRequired<ValueTypes['PaginatedKuDecisionsPaginationResult']>
+  = rawKuDecisionsPaginationSelector
+export type kuDecisionsPaginationModel = ModelTypes['PaginatedKuDecisionsPaginationResult']
+export const kuDecisionsPaginationSelector = Selector('PaginatedKuDecisionsPaginationResult')(
+  rawKuDecisionsPaginationSelector,
+)
+
+// Пагинированный селектор заявок доверенных
+const rawKuTrustRequestsPaginationSelector = { ...paginationSelector, items: rawKuTrustRequestSelector }
+const _validateTrustRequestsPagination: MakeAllFieldsRequired<ValueTypes['PaginatedKuTrustRequestsPaginationResult']>
+  = rawKuTrustRequestsPaginationSelector
+export type kuTrustRequestsPaginationModel = ModelTypes['PaginatedKuTrustRequestsPaginationResult']
+export const kuTrustRequestsPaginationSelector = Selector('PaginatedKuTrustRequestsPaginationResult')(
+  rawKuTrustRequestsPaginationSelector,
+)

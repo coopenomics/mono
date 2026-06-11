@@ -59,7 +59,7 @@ export class DomainToBlockchainUtils {
     const usernameValue = usernameName.value.value;
 
     // Комбинируем: (truncatedHash << 64) | usernameValue
-    return (BigInt(truncatedHash) << 64n) | BigInt(usernameValue);
+    return (BigInt(truncatedHash) << 64n) | BigInt(usernameValue.toString());
   }
 
   /**
