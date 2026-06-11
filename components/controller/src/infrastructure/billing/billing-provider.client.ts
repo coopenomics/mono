@@ -28,6 +28,20 @@ export interface ProviderBillingSummary {
 }
 
 /**
+ * Invoice на батч-оплату подписок (Single-Hub v5, POST /billing/invoice).
+ * `payment_hash` провайдер считает детерминированно; повторный запрос с теми же
+ * позициями возвращает существующий PENDING-invoice. `status === 'PAID'` —
+ * платить нечего (оплата уже зафиксирована ранее).
+ */
+export interface ProviderBillingInvoice {
+  payment_hash: string;
+  coopname: string;
+  total_amount: number;
+  status: string;
+  expires_at: string;
+}
+
+/**
  * HTTP-клиент к provider backend (Восход) для биллинга подписок
  * (Epic 12/13, проект «Облачный провайдер»).
  *
@@ -70,31 +84,46 @@ export class BillingProviderClient {
   }
 
   /**
-   * Подтверждение проведённого on-chain платежа: провайдер фиксирует факт и
-   * продлевает (`extend`) все подписки, входившие в `payment_hash`. Идемпотентно
-   * по `transaction_id = payment_hash` (Epic 3 / Story 12.5).
+   * Выписать invoice на батч-оплату подписок (Single-Hub v5).
+   *
+   * Вызывается ПЕРЕД on-chain `billing::pay`: провайдер фиксирует PENDING-invoice
+   * с TTL и отдаёт детерминированный `payment_hash`, который уходит в чейн.
+   * Без этого шага `POST /billing/payment-confirmed` не найдёт invoice и оплата
+   * не продлит подписки. Идемпотентно: повтор с теми же позициями возвращает
+   * существующий invoice.
    */
-  async confirmPayment(input: {
-    coopname: string;
-    paymentHash: string;
-    amount: number;
-    blockchainTransactionId: string;
-    periodDays?: number;
-  }): Promise<void> {
-    const url = `${this.baseUrl}/subscriptions/confirm-batch-payment`;
+  async createInvoice(
+    coopname: string,
+    items: Array<{ subscription_id: number; period_days: number }>,
+  ): Promise<ProviderBillingInvoice> {
+    const url = `${this.baseUrl}/billing/invoice`;
+    const { data } = await axios.post<ProviderBillingInvoice>(
+      url,
+      { coopname, items },
+      { headers: this.headers(), timeout: 10_000 },
+    );
+    this.logger.log(`createInvoice ${coopname} payment_hash=${data.payment_hash} status=${data.status}`);
+    return data;
+  }
+
+  /**
+   * Подтверждение проведённого on-chain платежа (Single-Hub v5): провайдер
+   * переводит invoice в PAID и продлевает (`extend`) все входившие в него
+   * подписки. Идемпотентно по `payment_hash` (повтор → no-op), поэтому зовётся
+   * с двух сторон: синхронно из BillingCronService сразу после transact и
+   * реактивно из BillingPaymentListener по событию парсера.
+   */
+  async confirmPayment(input: { paymentHash: string; blockchainTransactionId: string }): Promise<void> {
+    const url = `${this.baseUrl}/billing/payment-confirmed`;
     await axios.post(
       url,
       {
-        coopname: input.coopname,
-        transaction_id: input.paymentHash,
         payment_hash: input.paymentHash,
-        amount: input.amount,
-        blockchain_transaction_id: input.blockchainTransactionId,
-        period_days: input.periodDays ?? 30,
+        tx_id: input.blockchainTransactionId,
       },
-      { headers: this.headers() },
+      { headers: this.headers(), timeout: 10_000 },
     );
-    this.logger.log(`confirmPayment ${input.coopname} payment_hash=${input.paymentHash}`);
+    this.logger.log(`confirmPayment payment_hash=${input.paymentHash} tx=${input.blockchainTransactionId}`);
   }
 
   /**

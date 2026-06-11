@@ -9,23 +9,30 @@ import { BillingProviderClient } from '~/infrastructure/billing/billing-provider
 import { ProviderService } from '~/application/provider/services/provider.service';
 
 /**
- * Периодическое списание подписок (Epic 12, Story 12.6) — oracle-паттерн.
+ * Периодическое списание подписок (Epic 12, Single-Hub v5) — oracle-паттерн.
  *
  * Antelope не поддерживает deferred_trx, поэтому рекуррентность инициирует
- * backend: на каждый тик узел запрашивает у провайдера «сумму к оплате»
- * (источник истины по составу/ценам — provider, on-chain их нет), и если есть
- * что списывать и срок подошёл — проводит on-chain `billing::pay`, затем
- * подтверждает платёж провайдеру (тот продлевает подписки по `payment_hash`).
+ * backend Восхода. Полный цикл на каждый кооператив:
+ *
+ *   1. GET /subscriptions/billing-summary — сумма к оплате и срок (источник
+ *      истины по составу/ценам — provider, on-chain их нет);
+ *   2. POST /billing/invoice — провайдер фиксирует PENDING-invoice и отдаёт
+ *      детерминированный `payment_hash`. БЕЗ этого шага подтверждение оплаты
+ *      не найдёт invoice и подписки не продлятся;
+ *   3. on-chain `billing::pay` — подписывает ОПЕРАТОР (`_provider`, аккаунт
+ *      узла-хаба). Контракт отклоняет повтор `payment_hash` (anti-replay
+ *      таблица `paidpayments`) — повторное списание тех же средств невозможно
+ *      даже при потере подтверждения;
+ *   4. POST /billing/payment-confirmed — провайдер переводит invoice в PAID и
+ *      продлевает подписки. Идемпотентно; этот же callback реактивно шлёт
+ *      BillingPaymentListener по событию парсера, так что зависший парсер или
+ *      упавший между шагами 3-4 backend не теряют оплату: при следующем тике
+ *      контракт ответит «уже проведён», и тик отправит подтверждение повторно.
  *
  * Инварианты:
  * - сумма = 0 (все подписки free) → on-chain списание НЕ выполняется;
- * - идемпотентность по `payment_hash` (контракт no-op + провайдер идемпотентен);
  * - падение `pay` не зацикливает узел: ошибка логируется, тик продолжает
- *   следующий кооператив (grace/уведомления — на стороне провайдера/Epic 9).
- *
- * Плательщик (`config.billing.payer`) — пайщик, чей USER_SHARED-кошелёк
- * `w.wal.bill` дебетуется. Списание per-пайщик, поэтому без указанного
- * плательщика тик пропускается (см. конфиг `BILLING_CRON_PAYER`).
+ *   следующий кооператив (grace/уведомления — на стороне провайдера).
  */
 @Injectable()
 export class BillingCronService implements OnModuleInit, OnModuleDestroy {
@@ -81,23 +88,18 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn('BillingCronService: предыдущий тик ещё выполняется — пропуск');
       return;
     }
-    const payer = config.billing.payer;
-    if (!payer) {
-      this.logger.warn('BillingCronService: BILLING_CRON_PAYER не задан — нечего дебетовать, пропуск тика');
-      return;
-    }
     this.running = true;
     try {
       const coopnames = await this.activeCoopnames();
       for (const coopname of coopnames) {
-        await this.processCoop(coopname, payer);
+        await this.processCoop(coopname);
       }
     } finally {
       this.running = false;
     }
   }
 
-  private async processCoop(coopname: string, payer: string): Promise<void> {
+  private async processCoop(coopname: string): Promise<void> {
     try {
       const summary = await this.providerClient.getBillingSummary(coopname);
 
@@ -108,36 +110,73 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
         return; // срок ещё не подошёл
       }
 
-      const quantity = `${summary.total_amount.toFixed(config.blockchain.root_govern_precision)} ${summary.currency || config.blockchain.root_govern_symbol}`;
+      const payableItems = (summary.items ?? [])
+        .filter((item) => !item.is_free && item.amount > 0)
+        .map((item) => ({ subscription_id: item.subscription_id, period_days: summary.period_days }));
+      if (!payableItems.length) {
+        return;
+      }
 
-      const result = await this.blockchainPort.pay({
-        coopname,
-        username: payer,
-        quantity,
-        paymentHash: summary.payment_hash,
-        memo: `Оплата подписок за ${summary.period_days} дн.`,
-      });
+      // Шаг 2: PENDING-invoice у провайдера (идемпотентно).
+      const invoice = await this.providerClient.createInvoice(coopname, payableItems);
+      if (invoice.status === 'PAID') {
+        this.logger.log(`Invoice ${invoice.payment_hash} (${coopname}) уже PAID — пропуск`);
+        return;
+      }
 
-      const transactionId =
-        result && typeof result === 'object' && 'transaction_id' in result
-          ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
-          : '';
+      const quantity = `${invoice.total_amount.toFixed(config.blockchain.root_govern_precision)} ${summary.currency || config.blockchain.root_govern_symbol}`;
 
+      // Шаг 3: on-chain списание. Подписывает оператор (аккаунт узла-хаба);
+      // username — пайщик-кооператив, владелец биллинг-кошелька.
+      let transactionId = '';
+      try {
+        const result = await this.blockchainPort.pay({
+          coopname,
+          username: coopname,
+          quantity,
+          paymentHash: invoice.payment_hash,
+          memo: `Оплата подписок за ${summary.period_days} дн.`,
+        });
+        transactionId =
+          result && typeof result === 'object' && 'transaction_id' in result
+            ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
+            : '';
+      } catch (error: any) {
+        if (this.isAlreadyPaidOnChain(error)) {
+          // Списание уже в чейне (прошлый тик не дошёл до подтверждения) —
+          // деньги второй раз НЕ списаны (anti-replay), доносим подтверждение.
+          this.logger.warn(
+            `billing::pay ${coopname}: payment_hash=${invoice.payment_hash} уже проведён on-chain — отправляю подтверждение провайдеру`,
+          );
+          await this.providerClient.confirmPayment({
+            paymentHash: invoice.payment_hash,
+            blockchainTransactionId: '',
+          });
+          return;
+        }
+        throw error;
+      }
+
+      // Шаг 4: синхронное подтверждение (реактивный BillingPaymentListener
+      // продублирует — провайдер идемпотентен по payment_hash).
       await this.providerClient.confirmPayment({
-        coopname,
-        paymentHash: summary.payment_hash,
-        amount: summary.total_amount,
+        paymentHash: invoice.payment_hash,
         blockchainTransactionId: transactionId,
-        periodDays: summary.period_days,
       });
 
-      this.logger.log(`Списано ${quantity} за подписки ${coopname} (payment_hash=${summary.payment_hash})`);
+      this.logger.log(`Списано ${quantity} за подписки ${coopname} (payment_hash=${invoice.payment_hash})`);
     } catch (error: any) {
       // Падение списания (например, недостаток средств на w.wal.bill) не должно
       // зацикливать узел: фиксируем и продолжаем. Перевод подписки в past_due/grace
-      // и уведомления — на стороне провайдера (Epic 4/9).
+      // и уведомления — на стороне провайдера (Epic 4/14).
       this.logger.error(`BillingCronService: списание для ${coopname} не выполнено: ${error?.message ?? error}`);
     }
+  }
+
+  /** Ошибка anti-replay контракта billing: этот payment_hash уже проведён. */
+  private isAlreadyPaidOnChain(error: any): boolean {
+    const message = String(error?.message ?? error ?? '');
+    return message.includes('уже проведён') || message.includes('anti-replay');
   }
 
   /**

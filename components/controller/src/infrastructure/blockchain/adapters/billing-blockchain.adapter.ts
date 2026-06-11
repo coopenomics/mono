@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { BillingContract } from 'cooptypes';
+import config from '~/config/config';
 import { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '../blockchain.service';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
@@ -16,7 +17,12 @@ import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.uti
 /**
  * Блокчейн-адаптер billing (Epic 12) — оплата подписок членскими взносами.
  *
- * Подпись `coopname@active` через `BlockchainService.transact` с WIF из vault.
+ * Подпись через `BlockchainService.transact` с WIF из vault:
+ * - `convert` — релей подписи кооператива (`coopname@active`) после JWT пайщика;
+ * - `pay` — ОПЕРАТОР платформы (аккаунт узла-хаба `config.coopname`, на Восходе
+ *   = `_provider` контрактов): рекуррентные списания авторизует он, ключей
+ *   кооперативов-спиц в vault хаба нет.
+ *
  * Имена действий и payload — из cooptypes (`BillingContract.Actions.{Convert,Pay}`),
  * без сырых строк. Состав/цены подписок on-chain не передаются — только сумма,
  * payment_hash и memo.
@@ -37,6 +43,17 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
       throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для подписания биллинг-операции');
     }
     this.blockchainService.initialize(coopname, wif);
+  }
+
+  /** Подпись оператором платформы — аккаунтом узла-хаба (см. docstring класса). */
+  private async initForOperator(): Promise<string> {
+    const operator = config.coopname;
+    const wif = await this.vaultDomainService.getWif(operator);
+    if (!wif) {
+      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ оператора для подписания биллинг-операции');
+    }
+    this.blockchainService.initialize(operator, wif);
+    return operator;
   }
 
   async convert(data: BillingConvertBlockchainDomainInterface): Promise<TransactionResult> {
@@ -62,7 +79,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
   }
 
   async pay(data: BillingPayBlockchainDomainInterface): Promise<TransactionResult> {
-    await this.initForCoop(data.coopname);
+    const operator = await this.initForOperator();
     const formattedQuantity = this.domainToBlockchainUtils.formatQuantityWithPrecision(data.quantity);
 
     const payload: BillingContract.Actions.Pay.IPay = {
@@ -76,7 +93,7 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
     const result = (await this.blockchainService.transact({
       account: BillingContract.contractName.production,
       name: BillingContract.Actions.Pay.actionName,
-      authorization: [{ actor: data.coopname, permission: 'active' }],
+      authorization: [{ actor: operator, permission: 'active' }],
       data: payload,
     })) as TransactResult;
 
