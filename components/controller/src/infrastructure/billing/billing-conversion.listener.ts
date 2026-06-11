@@ -4,20 +4,23 @@ import { BillingContract } from 'cooptypes';
 import config from '~/config/config';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { BillingProviderClient } from './billing-provider.client';
+import { BillingPaymentLogService } from './billing-payment-log.service';
 
 /**
  * Epic 13 v5.1 (проект «Облачный провайдер») — реактивный мост on-chain → провайдер для аренды вычислительных ресурсов (PowerUp).
  *
  * Ловит событие шины `action::billing::converttoaxn` (членский взнос → AXON,
- * бездокументарно; см. {@link BillingContract.Actions.ConvertToAxn}) и
- * пересылает факт провайдеру через {@link BillingProviderClient.confirmTopupAxon}.
+ * бездокументарно; см. {@link BillingContract.Actions.ConvertToAxn}),
+ * пересылает факт провайдеру через {@link BillingProviderClient.confirmTopupAxon}
+ * и доводит запись PG-журнала платежей до CONFIRMED.
  *
- * Почему так, а не push из PowerupPlugin: провайдер обязан оставаться
- * необязательным на горячем пути — кооператив-спица подписывает и шлёт
- * `converttoaxn` сам (coopname@active), даже если провайдер лежит. Провайдер
- * узнаёт о конвертации РЕАКТИВНО, из блокчейна, а не синхронным вызовом. Шина
- * `action::` — единая точка для обоих парсеров (легаси `components/parser` и
- * `@coopenomics/parser2`), поэтому листенер от парсера не зависит.
+ * Докупку инициирует и подписывает сам хаб (BillingCronService.processPackageTopup,
+ * `_provider` — решение @ant 2026-06-11), поэтому листенер — страховочный
+ * контур: он дозакрывает платежи, зависшие в SUBMITTING (backend упал между
+ * transact и callback провайдеру), и фиксирует конвертации, проведённые вне
+ * cron'а (онбординговые/ручные). Шина `action::` — единая точка для обоих
+ * парсеров (легаси `components/parser` и `@coopenomics/parser2`), поэтому
+ * листенер от парсера не зависит.
  *
  * Включается только на хабе (Воскход, BILLING_HUB_MODE=true): на спицах
  * BillingModule не подключается вовсе, а сам провайдер есть только у хаба.
@@ -30,14 +33,19 @@ import { BillingProviderClient } from './billing-provider.client';
  * (см. BlockchainConsumerService.processActionDelayed), поэтому при падении
  * хаб-coopback'а в окне между ACK и эмитом уведомление провайдеру теряется
  * безвозвратно — реплея сохранённого billing-action в шину сейчас нет.
- * Реконсиляция `billing::converttoaxn` без PAID-invoice — отдельный follow-up
- * (BillingCronService покрывает только time-поток `billing::pay`).
+ * Для hub-инициированных докупок это окно закрыто PG-журналом: запись
+ * SUBMITTED донесёт подтверждение сам hub-cron на следующем тике
+ * (handleExistingPackageTopup); потеря эмита критична только для конвертаций
+ * вне cron'а.
  */
 @Injectable()
 export class BillingConversionListener {
   private readonly logger = new Logger(BillingConversionListener.name);
 
-  constructor(private readonly providerClient: BillingProviderClient) {}
+  constructor(
+    private readonly providerClient: BillingProviderClient,
+    private readonly paymentLog: BillingPaymentLogService,
+  ) {}
 
   @OnEvent(
     `action::${BillingContract.contractName.production}::${BillingContract.Actions.ConvertToAxn.actionName}`,
@@ -71,6 +79,9 @@ export class BillingConversionListener {
         coopname,
         amountRub,
       });
+      // Дозакрываем PG-журнал: конвертация точно в блоке. Если записи нет
+      // (конвертация вне hub-cron'а) — no-op.
+      await this.paymentLog.markConfirmed(paymentHash, txId);
     } catch (err: any) {
       this.logger.error(`converttoaxn → provider: ${err?.message}`, err?.stack);
       // намеренно не пробрасываем — см. docstring класса

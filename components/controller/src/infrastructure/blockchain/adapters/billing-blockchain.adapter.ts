@@ -10,6 +10,7 @@ import type { TransactionResult } from '~/domain/blockchain/types/transaction-re
 import type {
   BillingBlockchainPort,
   BillingConvertBlockchainDomainInterface,
+  BillingConvertToAxnBlockchainDomainInterface,
   BillingPayBlockchainDomainInterface,
 } from '~/domain/billing/ports/billing-blockchain.port';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
@@ -19,9 +20,10 @@ import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.uti
  *
  * Подпись через `BlockchainService.transact` с WIF из vault:
  * - `convert` — релей подписи кооператива (`coopname@active`) после JWT пайщика;
- * - `pay` — ОПЕРАТОР платформы (аккаунт узла-хаба `config.coopname`, на Восходе
- *   = `_provider` контрактов): рекуррентные списания авторизует он, ключей
- *   кооперативов-спиц в vault хаба нет.
+ * - `pay` и `convertToAxn` — ОПЕРАТОР платформы (аккаунт узла-хаба
+ *   `config.coopname`, на Восходе = `_provider` контрактов): операции с
+ *   членскими взносами авторизует только он, ключей кооперативов-спиц в vault
+ *   хаба нет; спицы своими ключами управляют лишь полученным AXON.
  *
  * Имена действий и payload — из cooptypes (`BillingContract.Actions.{Convert,Pay}`),
  * без сырых строк. Состав/цены подписок on-chain не передаются — только сумма,
@@ -99,5 +101,32 @@ export class BillingBlockchainAdapter implements BillingBlockchainPort {
 
     this.logger.log(`billing::pay ${data.coopname}/${data.username} ${formattedQuantity}, payment_hash=${data.paymentHash}`);
     return result;
+  }
+
+  async convertToAxn(data: BillingConvertToAxnBlockchainDomainInterface): Promise<TransactionResult> {
+    const operator = await this.initForOperator();
+    const formattedQuantity = this.domainToBlockchainUtils.formatQuantityWithPrecision(data.quantity);
+
+    const payload: BillingContract.Actions.ConvertToAxn.IConvertToAxn = {
+      coopname: data.username,
+      amount: formattedQuantity,
+      payment_hash: data.paymentHash,
+    };
+
+    const result = (await this.blockchainService.transact({
+      account: BillingContract.contractName.production,
+      name: BillingContract.Actions.ConvertToAxn.actionName,
+      authorization: [{ actor: operator, permission: 'active' }],
+      data: payload,
+    })) as TransactResult;
+
+    this.logger.log(
+      `billing::converttoaxn ${data.username} ${formattedQuantity}, payment_hash=${data.paymentHash}`,
+    );
+    return result;
+  }
+
+  async getAxonBalance(username: string): Promise<number> {
+    return this.blockchainService.getCurrencyBalance(username, config.blockchain.root_symbol);
   }
 }

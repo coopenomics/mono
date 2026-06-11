@@ -42,6 +42,22 @@ export interface ProviderBillingInvoice {
 }
 
 /**
+ * Ответ POST /billing/package-invoice (Epic 13 v5.1, hub-инициированная докупка).
+ * `PENDING` — invoice выписан (или возвращён существующий), можно конвертировать;
+ * `BLOCKED` — провайдер отказал по тарифным guard'ам (`reason`: quota_exceeded /
+ * cooldown), уведомление кооперативу шлёт сам провайдер;
+ * `NO_PACKAGE` — у кооператива нет активной package-подписки.
+ */
+export interface ProviderPackageInvoice {
+  status: 'PENDING' | 'BLOCKED' | 'NO_PACKAGE';
+  reason?: string | null;
+  payment_hash?: string;
+  coopname?: string;
+  total_amount?: number;
+  expires_at?: string;
+}
+
+/**
  * HTTP-клиент к provider backend (Восход) для биллинга подписок
  * (Epic 12/13, проект «Облачный провайдер»).
  *
@@ -103,6 +119,30 @@ export class BillingProviderClient {
       { headers: this.headers(), timeout: 10_000 },
     );
     this.logger.log(`createInvoice ${coopname} payment_hash=${data.payment_hash} status=${data.status}`);
+    return data;
+  }
+
+  /**
+   * Выписать package-invoice на докупку пакета документооборота (Epic 13 v5.1).
+   *
+   * Вызывается hub-cron'ом ПЕРЕД on-chain `billing::converttoaxn`, когда
+   * ликвидный AXON-баланс спицы упал ниже порога. Тарифные guard'ы (месячная
+   * квота, cooldown) — на стороне провайдера: при отказе он возвращает BLOCKED
+   * и сам уведомляет кооператив («квота исчерпана — поднимите лимит»).
+   * Идемпотентно: повтор при неоплаченном PENDING возвращает тот же invoice.
+   */
+  async createPackageInvoice(coopname: string): Promise<ProviderPackageInvoice> {
+    const url = `${this.baseUrl}/billing/package-invoice`;
+    const { data } = await axios.post<ProviderPackageInvoice>(
+      url,
+      { coopname },
+      { headers: this.headers(), timeout: 10_000 },
+    );
+    this.logger.log(
+      `createPackageInvoice ${coopname} status=${data.status}` +
+        (data.payment_hash ? ` payment_hash=${data.payment_hash}` : '') +
+        (data.reason ? ` reason=${data.reason}` : ''),
+    );
     return data;
   }
 

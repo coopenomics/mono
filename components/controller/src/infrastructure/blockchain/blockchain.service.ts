@@ -4,7 +4,7 @@ import { Action, API, APIClient, Name, PrivateKey, PublicKey } from '@wharfkit/a
 import { ContractKit, Table } from '@wharfkit/contract';
 import { Session, TransactResult } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
-import { BillingContract, RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
+import { RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -62,6 +62,20 @@ export class BlockchainService implements BlockchainPort {
     } catch (e) {
       return null;
     }
+  }
+
+  /**
+   * Ликвидный баланс токена на аккаунте (get_currency_balance), числом.
+   * Отсутствие строки баланса = 0. Используется hub-cron'ом биллинга для
+   * мониторинга остатка AXON у кооперативов-спиц (Epic 13 v5.1).
+   */
+  public async getCurrencyBalance(account: string, symbol: string, contract = 'eosio.token'): Promise<number> {
+    const rows = (await this.apiClient.v1.chain.get_currency_balance(contract, account, symbol)).map((a) =>
+      a.toString(),
+    );
+    if (!rows.length) return 0;
+    const value = parseFloat(rows[0].split(' ')[0]);
+    return Number.isFinite(value) ? value : 0;
   }
 
   public async transact(actionOrActions: any | any[], broadcast = true): Promise<TransactResult> {
@@ -278,59 +292,6 @@ export class BlockchainService implements BlockchainPort {
     // history никогда не сматчит этот платёж (HIGH #4 round 2).
     if (!txId) {
       throw new Error(`powerUp(${username}, ${quantity}): tx_id отсутствует в ответе chain'а`);
-    }
-    return txId as string;
-  }
-
-  public async packagePowerUp(
-    coopname: string,
-    rubAmount: string,
-    axonQuantity: string,
-    paymentHash: string
-  ): Promise<string> {
-    const wif = await this.vaultDomainService.getWif(coopname);
-    if (!wif) throw new Error(`Не найден приватный ключ для аккаунта ${coopname}`);
-
-    this.initialize(coopname, wif);
-
-    // Atomic two-action transaction (coopname@active):
-    //  1) billing::converttoaxn — BURN членского с w.wal.bill + инъекция AXON (10₽=1AXON);
-    //  2) eosio::powerup        — конвертация AXON в CPU/NET/RAM.
-    // Атомарность исключает окно «AXON эмитирован, но powerup не сделан».
-    const convertData: BillingContract.Actions.ConvertToAxn.IConvertToAxn = {
-      coopname,
-      amount: rubAmount,
-      payment_hash: paymentHash,
-    };
-    const powerupData: SystemContract.Actions.Powerup.IPowerup = {
-      payer: coopname,
-      receiver: coopname,
-      days: 1,
-      payment: axonQuantity,
-      transfer: false,
-    };
-
-    const actions = [
-      {
-        account: BillingContract.contractName.production,
-        name: BillingContract.Actions.ConvertToAxn.actionName,
-        authorization: [{ actor: coopname, permission: 'active' }],
-        data: convertData,
-      },
-      {
-        account: 'eosio',
-        name: 'powerup',
-        authorization: [{ actor: coopname, permission: 'active' }],
-        data: powerupData,
-      },
-    ];
-
-    // Исключения пробрасываем наружу — PowerupPlugin не должен инкрементить
-    // счётчики при отказе (см. adversarial review 2026-05-30).
-    const result = await this.transact(actions);
-    const txId = (result as any)?.response?.transaction_id ?? (result as any)?.transaction_id;
-    if (!txId) {
-      throw new Error(`packagePowerUp(${coopname}): tx_id отсутствует в ответе chain'а`);
     }
     return txId as string;
   }

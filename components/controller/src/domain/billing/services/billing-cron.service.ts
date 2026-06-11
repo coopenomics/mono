@@ -37,6 +37,16 @@ import { ProviderService } from '~/application/provider/services/provider.servic
  * - сумма = 0 (все подписки free) → on-chain списание НЕ выполняется;
  * - падение `pay` не зацикливает узел: ошибка логируется, тик продолжает
  *   следующий кооператив (grace/уведомления — на стороне провайдера).
+ *
+ * Package-нога (Epic 13 v5.1, решение @ant 2026-06-11): докупку пакета
+ * документооборота тоже инициирует и подписывает ОПЕРАТОР — членские взносы
+ * лежат в его леджере, спицы своими ключами управляют только полученным AXON.
+ * На каждом тике хаб читает ликвидный AXON-баланс спицы; если он ниже порога
+ * (`billing.package_low_water_axon`) — просит у провайдера package-invoice
+ * (тарифные guard'ы: месячная квота, cooldown — на стороне провайдера) и
+ * проводит `billing::converttoaxn` через тот же PG-журнал идемпотентности.
+ * Скорость расхода ограничена самой спицей (powerup её минимальной квоты),
+ * потолок — месячной квотой тарифа у провайдера.
  */
 @Injectable()
 export class BillingCronService implements OnModuleInit, OnModuleDestroy {
@@ -98,6 +108,7 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       const coopnames = await this.activeCoopnames();
       for (const coopname of coopnames) {
         await this.processCoop(coopname);
+        await this.processPackageTopup(coopname);
       }
     } finally {
       this.running = false;
@@ -188,6 +199,117 @@ export class BillingCronService implements OnModuleInit, OnModuleDestroy {
       // и уведомления — на стороне провайдера (Epic 4/14).
       this.logger.error(`BillingCronService: списание для ${coopname} не выполнено: ${error?.message ?? error}`);
     }
+  }
+
+  /**
+   * Package-нога тика (Epic 13 v5.1): докупка пакета документооборота за
+   * кооператив-спицу. Порядок повторяет time-поток: provider-invoice →
+   * PG-журнал ДО transact → on-chain `converttoaxn` (подпись оператора) →
+   * подтверждение провайдеру (реактивный BillingConversionListener дублирует).
+   */
+  private async processPackageTopup(coopname: string): Promise<void> {
+    try {
+      // Триггер — исчерпание ликвидного AXON у спицы. Расход AXON контролирует
+      // сама спица (powerup минимальной квоты), поэтому баланс — честный сигнал.
+      const balance = await this.blockchainPort.getAxonBalance(coopname);
+      if (balance >= config.billing.package_low_water_axon) {
+        return;
+      }
+
+      // Тарифные guard'ы (квота месяца, cooldown, наличие package-подписки) —
+      // у провайдера; при BLOCKED он сам уведомляет кооператив.
+      const invoice = await this.providerClient.createPackageInvoice(coopname);
+      if (invoice.status !== 'PENDING' || !invoice.payment_hash || !invoice.total_amount) {
+        if (invoice.status === 'BLOCKED') {
+          this.logger.warn(
+            `Пакет для ${coopname} не докуплен: провайдер заблокировал (${invoice.reason ?? 'без причины'}), AXON=${balance}`,
+          );
+        }
+        return;
+      }
+
+      const quantity = `${invoice.total_amount.toFixed(config.blockchain.root_govern_precision)} ${config.blockchain.root_govern_symbol}`;
+
+      // Журнал платежей ДО transact — та же идемпотентность, что и в pay-потоке.
+      const begin = await this.paymentLog.begin(invoice.payment_hash, coopname, quantity);
+      if (!begin.started) {
+        await this.handleExistingPackageTopup(coopname, invoice.payment_hash, invoice.total_amount, begin.existing?.status, begin.existing?.tx_id);
+        return;
+      }
+
+      let transactionId = '';
+      try {
+        const result = await this.blockchainPort.convertToAxn({
+          username: coopname,
+          quantity,
+          paymentHash: invoice.payment_hash,
+        });
+        transactionId =
+          result && typeof result === 'object' && 'transaction_id' in result
+            ? String((result as { transaction_id?: unknown }).transaction_id ?? '')
+            : '';
+      } catch (error: any) {
+        if (this.isDomainRejection(error)) {
+          // Доменный отказ (например, на w.wal.bill спицы меньше 1500 ₽) —
+          // деньги не списаны, повтор в следующий тик безопасен.
+          await this.paymentLog.markFailed(invoice.payment_hash, String(error?.message ?? error));
+        } else {
+          // Сетевая ошибка: tx могла пройти. Запись остаётся SUBMITTING,
+          // листенер парсера доведёт до CONFIRMED.
+          await this.paymentLog.recordError(invoice.payment_hash, String(error?.message ?? error));
+        }
+        throw error;
+      }
+      await this.paymentLog.markSubmitted(invoice.payment_hash, transactionId);
+
+      await this.providerClient.confirmTopupAxon({
+        paymentHash: invoice.payment_hash,
+        blockchainTransactionId: transactionId,
+        coopname,
+        amountRub: invoice.total_amount,
+      });
+      await this.paymentLog.markConfirmed(invoice.payment_hash);
+
+      this.logger.log(
+        `Докуплен пакет документооборота для ${coopname}: ${quantity} (payment_hash=${invoice.payment_hash}, AXON был ${balance})`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `BillingCronService: докупка пакета для ${coopname} не выполнена: ${error?.message ?? error}`,
+      );
+    }
+  }
+
+  /**
+   * Package-аналог handleExistingPayment: SUBMITTED — доносим подтверждение
+   * провайдеру; SUBMITTING — нет автоповтора (доведёт листенер парсера).
+   */
+  private async handleExistingPackageTopup(
+    coopname: string,
+    paymentHash: string,
+    amountRub: number,
+    status?: BillingPaymentLogStatus,
+    txId?: string | null,
+  ): Promise<void> {
+    if (status === BillingPaymentLogStatus.SUBMITTED) {
+      this.logger.warn(
+        `billing::converttoaxn ${coopname}: payment_hash=${paymentHash} уже отправлен (tx=${txId ?? '?'}) — доношу подтверждение провайдеру`,
+      );
+      await this.providerClient.confirmTopupAxon({
+        paymentHash,
+        blockchainTransactionId: txId ?? '',
+        coopname,
+        amountRub,
+      });
+      await this.paymentLog.markConfirmed(paymentHash);
+      return;
+    }
+    this.logger.warn(
+      `billing::converttoaxn ${coopname}: payment_hash=${paymentHash} уже в журнале (status=${status ?? '?'}) — повторная докупка заблокирована` +
+        (status === BillingPaymentLogStatus.SUBMITTING
+          ? '; запись зависла в SUBMITTING — нужна сверка с историей чейна, автоповтора не будет'
+          : ''),
+    );
   }
 
   /**

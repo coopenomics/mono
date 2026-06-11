@@ -21,8 +21,10 @@
 *                    оператора (on-chain таблиц нет);
 *   - `converttoaxn` (Epic 13 v5.1) — бездокументарная конвертация членского
 *                    взноса в AXON: BURN с `w.wal.bill[coopname]` + инъекция
-*                    AXON (10₽=1AXON). Авторизация — `coopname@active` (без
-*                    оператора-релея); runaway-guards — на стороне PowerupPlugin.
+*                    AXON (10₽=1AXON). Авторизует оператор платформы
+*                    (`_provider`): членские взносы — его леджер, спицы своими
+*                    ключами управляют только полученным AXON. Квоту/cooldown
+*                    enforce'ит провайдер при выписке package-invoice.
 *
 * Состав, цены и даты подписок on-chain НЕ хранятся — это зона оператора
 * (provider backend); контракт несёт только сумму + `payment_hash` + memo.
@@ -35,8 +37,8 @@
 * Архитектура кошелька (решение @ant 2026-06-11): `w.wal.bill` — USER_SHARED
 * в леджере кооператива-оператора (`_provider`). Для оператора каждый
 * кооператив-пайщик — обычный username, его биллинг-баланс лежит на L3-разрезе.
-* Пополнение (`convert`, релей оператора) и расход (`pay` оператором,
-* `converttoaxn` спицей своим ключом) работают с одним и тем же разрезом —
+* Пополнение (`convert`, релей оператора) и расход (`pay` и `converttoaxn`
+* оператором `_provider`) работают с одним и тем же разрезом —
 * COOPERATIVE-вариант Epic 13 не смыкал поток (пополнение шло в scope
 * оператора, расход искал scope спицы).
 */
@@ -98,9 +100,10 @@ public:
   // как расход на инфраструктуру (operations::billing::CONVERT_TO_AXON,
   // WalletOp::BURN) и эмитирует кооперативу AXON по курсу 10₽=1AXON через
   // eosio::injection. Второй шаг двухшаговой модели (после billing::convert).
-  // Авторизация — coopname@active (PowerupPlugin coopback'а пайщика подписывает сам,
-  // без relay через оператора). Идемпотентность по payment_hash — у provider'а
-  // и в guards PowerupPlugin (контракт таблиц не ведёт).
+  // Авторизация — _provider (оператор платформы): членские взносы — его леджер,
+  // инициирует hub-cron Восхода по исчерпанию AXON у спицы. Идемпотентность по
+  // payment_hash — журнал PG оператора; квота/cooldown — у provider'а
+  // (контракт таблиц не ведёт).
   [[eosio::action]] void converttoaxn(eosio::name coopname, eosio::asset amount,
                                       eosio::checksum256 payment_hash);
 };

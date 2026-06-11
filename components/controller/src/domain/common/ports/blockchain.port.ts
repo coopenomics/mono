@@ -38,27 +38,13 @@ export interface BlockchainPort {
 
   // Powerup related methods
   /**
-   * Epic 13 v5.1: возвращает on-chain transaction_id успешного powerUp.
-   * Используется PowerupPlugin'ом для последующего confirmTopupAxon у провайдера.
-   * Бросает исключение при отказе — caller обязан НЕ инкрементить счётчики, иначе
-   * runaway-сценарий (см. adversarial review 2026-05-30, BLOCKER #1).
+   * Аренда вычислительных ресурсов из ликвидного AXON-баланса кооператива
+   * (подпись coopname@active). Возвращает on-chain transaction_id; бросает
+   * исключение при отказе — в т.ч. при нехватке AXON: тогда пакет докупит
+   * hub-cron Восхода через billing::converttoaxn подписью _provider
+   * (Epic 13 v5.1, решение @ant 2026-06-11).
    */
   powerUp(username: string, quantity: string): Promise<string>;
-
-  /**
-   * Epic 13 v5.1: атомарная пакетная докупка — одна транзакция coopname@active
-   * из двух действий: billing::converttoaxn (членский RUB → AXON 10:1, BURN +
-   * inline injection) и eosio::powerup (AXON → CPU/NET/RAM). Возвращает on-chain
-   * transaction_id; бросает исключение при отказе — caller (PowerupPlugin) обязан
-   * НЕ инкрементить счётчики (см. adversarial review 2026-05-30, BLOCKER #1).
-   * Атомарность исключает окно «AXON эмитирован, но powerup не сделан».
-   */
-  packagePowerUp(
-    coopname: string,
-    rubAmount: string,
-    axonQuantity: string,
-    paymentHash: string,
-  ): Promise<string>;
 
   // System installation methods
   addUser(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void>;

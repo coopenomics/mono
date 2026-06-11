@@ -100,6 +100,14 @@ const envVarsSchema = z.object({
     .string()
     .default('0 * * * *')
     .describe('cron-выражение тика биллинга (по умолчанию ежечасно)'),
+  BILLING_PACKAGE_LOW_WATER_AXON: z
+    .string()
+    .default('15')
+    .transform((v) => Number(v))
+    .pipe(z.number().min(0))
+    .describe(
+      'порог ликвидного AXON-баланса спицы, ниже которого хаб докупает пакет документооборота (≈3 дня минимальной квоты по 5 AXON/день)',
+    ),
   // Параметры союза кооперативов
   UNION_LINK: z
     .string()
@@ -278,6 +286,9 @@ export default {
   billing: {
     hub_mode: envVars.data.BILLING_HUB_MODE,
     cron_expression: envVars.data.BILLING_CRON_EXPRESSION,
+    // Порог докупки пакета: hub-cron конвертирует членский → AXON, когда
+    // ликвидный AXON-баланс спицы опускается ниже (Epic 13 v5.1).
+    package_low_water_axon: envVars.data.BILLING_PACKAGE_LOW_WATER_AXON,
     // Список коопов — из on-chain `registrator.coops` через ProviderService
     // (см. BillingCronService.activeCoopnames). Env-override отсутствует.
     // Подписант списаний — оператор платформы (аккаунт узла, config.coopname);
