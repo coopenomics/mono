@@ -34,6 +34,7 @@ function makeService(opts: {
   identification?: any;
   certKeyFor?: (acc: string) => string | null;
   verificationTypes?: any[];
+  ttl?: number;
 } = {}) {
   jest.spyOn(config.authV2, 'certKey', 'get').mockReturnValue(opts.certKey ?? pemPriv);
   const blockchain = {
@@ -51,8 +52,11 @@ function makeService(opts: {
   const verification = {
     resolveForUsername: jest.fn().mockResolvedValue(opts.verificationTypes ?? [BASELINE_ENTRY]),
   };
-  const service = new CertificateService(blockchain as any, user as any, account as any, certDomain as any, verification as any);
-  return { service, blockchain, user, account, verification };
+  const certSettings = {
+    getCertTtlSeconds: jest.fn().mockResolvedValue(opts.ttl ?? 3600),
+  };
+  const service = new CertificateService(blockchain as any, user as any, account as any, certDomain as any, verification as any, certSettings as any);
+  return { service, blockchain, user, account, verification, certSettings };
 }
 
 afterEach(() => jest.restoreAllMocks());
@@ -86,6 +90,19 @@ describe('CertificateService.issueForUsername', () => {
       { account: 'vostok', public_key: VOSTOK_KEY },
     ]);
     expect(payload.identification).toMatchObject({ type: 'individual', username: 'ant', first_name: 'Иван' });
+  });
+
+  it('exp = iat + cert_ttl_seconds (дефолт 3600 = 1ч, Story 4.6)', async () => {
+    const { service } = makeService();
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect((payload.exp as number) - (payload.iat as number)).toBe(3600);
+  });
+
+  it('exp следует конфигурируемому TTL кооператива (Story 4.6)', async () => {
+    const { service, certSettings } = makeService({ ttl: 1800 });
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect(certSettings.getCertTtlSeconds).toHaveBeenCalled();
+    expect((payload.exp as number) - (payload.iat as number)).toBe(1800);
   });
 
   it('verification_types берётся из резолвера: не-член → claim пустой (Story 4.1)', async () => {

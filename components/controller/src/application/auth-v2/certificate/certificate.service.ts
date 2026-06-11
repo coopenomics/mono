@@ -13,12 +13,11 @@ import type { UserCertificateDomainService } from '~/domain/user/services/user-c
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
+import { CertSettingsService } from '~/application/auth-v2/certificate/cert-settings.service';
 
 /** Звенья cert-цепи доверия CoopID (миграция 052): ano → voskhod → vostok. */
 const CERT_CHAIN_ACCOUNTS = ['ano', 'voskhod', 'vostok'] as const;
 const CLAIM_SCHEMA_VERSION = '1';
-/** Срок жизни сертификата. Технический дефолт (24ч) — уточняется продуктовой политикой. */
-const CERTIFICATE_TTL = '24h';
 /** Лимит размера JWS — Vision/MIFARE DESFire EV3 (AC Story 1.8). */
 const MAX_CERT_BYTES = 5 * 1024;
 
@@ -45,6 +44,7 @@ export class CertificateService {
     @Inject(ACCOUNT_DOMAIN_SERVICE) private readonly accountDomainService: AccountDomainService,
     @Inject(USER_CERTIFICATE_DOMAIN_SERVICE) private readonly certDomainService: UserCertificateDomainService,
     private readonly verificationTypesService: VerificationTypesService,
+    private readonly certSettingsService: CertSettingsService,
   ) {}
 
   /**
@@ -62,6 +62,11 @@ export class CertificateService {
     // экономия байт под лимит 5 КБ). RP получает её через OIDC userinfo в Epic 5.
     const verificationTypes = await this.verificationTypesService.resolveForUsername(username, coopname);
 
+    // Срок жизни — продуктовая настройка кооператива (Story 4.6): короткий TTL (дефолт 1ч)
+    // ограничивает окно атаки при компрометации ключа. iat/exp выставляем явно.
+    const ttlSeconds = await this.certSettingsService.getCertTtlSeconds();
+    const nowSeconds = Math.floor(Date.now() / 1000);
+
     const jws = await new SignJWT({
       coopname,
       coop_chain: coopChain,
@@ -77,8 +82,8 @@ export class CertificateService {
       .setIssuer(`https://${coopname}.coop`)
       .setSubject(user.id)
       .setJti(randomUUID()) // серийный номер удостоверения (ЛК показывает его, Story 1.9)
-      .setIssuedAt()
-      .setExpirationTime(CERTIFICATE_TTL)
+      .setIssuedAt(nowSeconds)
+      .setExpirationTime(nowSeconds + ttlSeconds)
       .sign(this.getSigningKey());
 
     const size = Buffer.byteLength(jws, 'utf8');

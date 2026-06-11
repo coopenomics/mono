@@ -105,3 +105,82 @@ export function certificateStatus(claims: Pick<ParticipantCertificateClaims, 'ex
     return 'expiring'
   return 'active'
 }
+
+/**
+ * Окно упреждающего перезапроса сертификата (Story 4.6): за 5 минут до `exp` SDK
+ * молча обновляет удостоверение, чтобы у короткоживущего cert (дефолт 1ч) не было
+ * разрыва доступа на стыке.
+ */
+export const CERTIFICATE_RENEWAL_LEAD_MS = 5 * 60 * 1000
+
+/**
+ * Сколько миллисекунд ждать до момента перезапроса (`exp − lead`). Никогда не
+ * отрицательно: если до `exp` осталось ≤ lead (или cert уже истёк) — 0 (перезапрос сразу).
+ */
+export function computeRenewalDelayMs(claims: Pick<ParticipantCertificateClaims, 'exp'>, nowMs: number = Date.now()): number {
+  const renewAtMs = claims.exp * 1000 - CERTIFICATE_RENEWAL_LEAD_MS
+  return Math.max(0, renewAtMs - nowMs)
+}
+
+/** Управление запланированным авто-обновлением сертификата. */
+export interface CertificateRenewalHandle {
+  /** Отменить запланированный перезапрос (например, при logout). */
+  cancel: () => void
+}
+
+/** Параметры планировщика — для подмены времени/таймеров в тестах. */
+export interface ScheduleCertificateRenewalOptions {
+  now?: () => number
+  setTimer?: (callback: () => void, delayMs: number) => ReturnType<typeof setTimeout>
+  clearTimer?: (handle: ReturnType<typeof setTimeout>) => void
+}
+
+/**
+ * Запланировать silent renewal сертификата за 5 минут до `exp` (Story 4.6). По
+ * срабатыванию таймера вызывает `renew()` — хост-колбэк, который обновляет access
+ * через `refresh_token` и тянет свежий cert (`getParticipantCertificate`), — затем
+ * перепланирует от `exp` нового удостоверения. Кросс-рантайм: SDK владеет ЛОГИКОЙ
+ * планирования, а транспорт/refresh — на стороне приложения (как и весь fetch в SDK).
+ * Бесконечный цикл сам себя продлевает, пока не вызван `cancel()`. Ошибка `renew`
+ * не роняет процесс (логируется), но и НЕ перепланирует — повторную попытку инициирует хост.
+ */
+export function scheduleCertificateRenewal(
+  initialJws: string,
+  renew: () => Promise<string>,
+  options: ScheduleCertificateRenewalOptions = {},
+): CertificateRenewalHandle {
+  const now = options.now ?? (() => Date.now())
+  const setTimer = options.setTimer ?? ((cb, ms) => setTimeout(cb, ms))
+  const clearTimer = options.clearTimer ?? (h => clearTimeout(h))
+
+  let timer: ReturnType<typeof setTimeout> | null = null
+  let cancelled = false
+
+  const scheduleFrom = (jws: string): void => {
+    if (cancelled)
+      return
+    const claims = decodeParticipantCertificate(jws)
+    const delay = computeRenewalDelayMs(claims, now())
+    timer = setTimer(() => {
+      void renew()
+        .then((nextJws) => {
+          if (!cancelled)
+            scheduleFrom(nextJws)
+        })
+        .catch(() => {
+          // best-effort: сбой обновления (нет сети/refresh истёк) не роняет цикл;
+          // повторную попытку инициирует приложение (например, при следующем действии).
+        })
+    }, delay)
+  }
+
+  scheduleFrom(initialJws)
+
+  return {
+    cancel: () => {
+      cancelled = true
+      if (timer !== null)
+        clearTimer(timer)
+    },
+  }
+}

@@ -1,8 +1,11 @@
-export type { CertificateStatus, CoopChainLink, ParticipantCertificateClaims } from './certificate'
+export type { CertificateRenewalHandle, CertificateStatus, CoopChainLink, ParticipantCertificateClaims, ScheduleCertificateRenewalOptions, VerificationTypeClaim } from './certificate'
 export {
   CERTIFICATE_EXPIRING_WINDOW_MS,
+  CERTIFICATE_RENEWAL_LEAD_MS,
   certificateStatus,
+  computeRenewalDelayMs,
   decodeParticipantCertificate,
+  scheduleCertificateRenewal,
   VERIFICATION_TYPE_LABELS,
   verificationTypeLabel,
 } from './certificate'
