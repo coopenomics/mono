@@ -35,6 +35,7 @@ function makeService(repoOver: Partial<IPendingCriticalActionsRepository> = {}) 
     findById: async () => null,
     update,
     listExpired: async () => [],
+    listByTarget: async () => [],
     ...repoOver,
   };
   const notify = jest.fn(async () => undefined);
@@ -60,10 +61,17 @@ describe('CriticalActionsService — multi-party (Story 6.8)', () => {
     expect(a.status).toBe(CriticalActionStatus.Confirmed);
     expect(a.confirmations).toHaveLength(REQUIRED_CONFIRMATIONS);
     expect(update).toHaveBeenCalled();
+    // Story 6.10: confirmer_ids — РОВНО один совет (councilor), инициатор (chief) исключён,
+    // вынесен в initiator_id + initiated_at.
     expect(record).toHaveBeenCalledWith(expect.objectContaining({
       event: 'CriticalActionConfirmed',
       result: 'success',
-      context: expect.objectContaining({ initiator_id: 'chief', payload_hash: expect.any(String) }),
+      context: expect.objectContaining({
+        initiator_id: 'chief',
+        initiated_at: expect.any(String),
+        confirmer_ids: [{ by: 'councilor', at: expect.any(String) }],
+        payload_hash: expect.any(String),
+      }),
     }));
   });
 
@@ -105,5 +113,55 @@ describe('CriticalActionsService — multi-party (Story 6.8)', () => {
     expect(update).toHaveBeenCalledTimes(2);
     expect(record).toHaveBeenCalledTimes(2);
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ event: 'CriticalActionExpired' }));
+  });
+});
+
+describe('CriticalActionsService — audit-trail (Story 6.10)', () => {
+  it('getAuditTrail возвращает все действия пайщика с полной атрибуцией', async () => {
+    const confirmed = action({
+      id: 'c1',
+      status: CriticalActionStatus.Confirmed,
+      confirmations: [
+        { by: 'chief', at: '2026-06-11T00:00:00.000Z' },
+        { by: 'councilor', at: '2026-06-11T01:00:00.000Z' },
+      ],
+      finalizedAt: '2026-06-11T01:00:00.000Z',
+    });
+    const expired = action({ id: 'e1', status: CriticalActionStatus.Expired });
+    const { service } = makeService({ listByTarget: async () => [confirmed, expired] });
+
+    const trail = await service.getAuditTrail('victim');
+    expect(trail).toHaveLength(2);
+
+    const c = trail[0];
+    expect(c).toEqual(expect.objectContaining({
+      id: 'c1',
+      actionType: CriticalActionType.ExcludeParticipant,
+      targetId: 'victim',
+      status: CriticalActionStatus.Confirmed,
+      initiatorId: 'chief',
+      initiatedAt: '2026-06-11T00:00:00.000Z',
+      finalizedAt: '2026-06-11T01:00:00.000Z',
+      payloadHash: expect.any(String),
+    }));
+    // confirmer_ids — только совет (без инициатора), с timestamps.
+    expect(c.confirmerIds).toEqual([{ by: 'councilor', at: '2026-06-11T01:00:00.000Z' }]);
+
+    // действие с одной (инициаторской) подписью → пустой список подтверждающих.
+    expect(trail[1].confirmerIds).toEqual([]);
+    expect(trail[1].initiatorId).toBe('chief');
+  });
+
+  it('getAuditTrail без действий пайщика → пустой массив', async () => {
+    const { service } = makeService({ listByTarget: async () => [] });
+    expect(await service.getAuditTrail('nobody')).toEqual([]);
+  });
+
+  it('payload_hash детерминирован (одинаковый payload → одинаковый хэш)', async () => {
+    const a = action({ id: 'h1', payload: { reason: 'fraud', amount: 100 } });
+    const b = action({ id: 'h2', payload: { reason: 'fraud', amount: 100 } });
+    const { service } = makeService({ listByTarget: async () => [a, b] });
+    const trail = await service.getAuditTrail('victim');
+    expect(trail[0].payloadHash).toBe(trail[1].payloadHash);
   });
 });

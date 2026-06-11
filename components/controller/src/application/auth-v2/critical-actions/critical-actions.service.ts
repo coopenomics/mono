@@ -7,6 +7,7 @@ import {
   CriticalActionStatus,
   CriticalActionType,
   PENDING_CRITICAL_ACTIONS_REPOSITORY,
+  type CriticalActionConfirmation,
   type ICriticalActionNotifier,
   type IPendingCriticalActionsRepository,
   type PendingCriticalAction,
@@ -22,6 +23,28 @@ export interface InitiateCriticalActionInput {
   actorId: string;
   targetId: string;
   payload?: Record<string, unknown>;
+}
+
+/** Полная атрибуция критического действия (Story 6.10): кто инициировал, кто подтвердил, хэш payload. */
+export interface CriticalActionAttribution {
+  /** Инициатор (председатель). */
+  initiatorId: string;
+  /** Момент инициации (timestamp первой подписи = инициатора). */
+  initiatedAt: string | null;
+  /** Подтверждающие совета (≠ инициатор), каждый со своим timestamp. */
+  confirmerIds: CriticalActionConfirmation[];
+  /** SHA-256 от payload — гарантия неподменяемости содержимого действия в аудите. */
+  payloadHash: string;
+}
+
+/** Запись audit-trail критических действий пайщика (Story 6.10). */
+export interface CriticalActionAuditEntry extends CriticalActionAttribution {
+  id: string;
+  actionType: CriticalActionType;
+  targetId: string;
+  status: CriticalActionStatus;
+  createdAt: string;
+  finalizedAt: string | null;
 }
 
 /**
@@ -122,19 +145,50 @@ export class CriticalActionsService {
 
   /** Аудит финализированного действия с обоими подписантами + хэш payload (Story 6.10). */
   private async auditConfirmed(action: PendingCriticalAction): Promise<void> {
+    const attribution = this.attribution(action);
     await this.audit.record({
       event: 'CriticalActionConfirmed',
       subjectId: action.targetId,
-      actor: action.confirmations[action.confirmations.length - 1]?.by ?? action.actorId,
+      actor: attribution.confirmerIds[attribution.confirmerIds.length - 1]?.by ?? action.actorId,
       result: 'success',
       context: {
         action_type: action.actionType,
         target_id: action.targetId,
-        initiator_id: action.actorId,
-        confirmer_ids: action.confirmations,
-        payload_hash: this.payloadHash(action.payload),
+        initiator_id: attribution.initiatorId,
+        initiated_at: attribution.initiatedAt,
+        confirmer_ids: attribution.confirmerIds,
+        payload_hash: attribution.payloadHash,
       },
     });
+  }
+
+  /**
+   * Audit-trail критических действий пайщика (Story 6.10): кто инициировал и кто подтвердил
+   * каждое действие, затрагивающее `targetId`, с полной атрибуцией (для расследования
+   * злоупотреблений). Только чтение; гейтинг права (`read CriticalAction`) — на контроллере.
+   */
+  async getAuditTrail(targetId: string): Promise<CriticalActionAuditEntry[]> {
+    const actions = await this.repo.listByTarget(targetId);
+    return actions.map((action) => ({
+      id: action.id,
+      actionType: action.actionType,
+      targetId: action.targetId,
+      status: action.status,
+      createdAt: action.createdAt,
+      finalizedAt: action.finalizedAt ?? null,
+      ...this.attribution(action),
+    }));
+  }
+
+  /** Разделяет инициатора (первая подпись) и подтверждающих совета; считает хэш payload. */
+  private attribution(action: PendingCriticalAction): CriticalActionAttribution {
+    const initiated = action.confirmations.find((c) => c.by === action.actorId);
+    return {
+      initiatorId: action.actorId,
+      initiatedAt: initiated?.at ?? action.createdAt ?? null,
+      confirmerIds: action.confirmations.filter((c) => c.by !== action.actorId),
+      payloadHash: this.payloadHash(action.payload),
+    };
   }
 
   private payloadHash(payload: Record<string, unknown>): string {

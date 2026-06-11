@@ -60,6 +60,8 @@ export interface IPendingCriticalActionsRepository {
   update(action: PendingCriticalAction): Promise<void>;
   /** Pending-действия с истёкшим окном (expires_at <= now). */
   listExpired(nowIso: string): Promise<PendingCriticalAction[]>;
+  /** Все критические действия, затрагивающие пайщика (audit-trail, Story 6.10), новые сверху. */
+  listByTarget(targetId: string): Promise<PendingCriticalAction[]>;
 }
 
 export const CRITICAL_ACTION_NOTIFIER = Symbol('CriticalActionNotifier');

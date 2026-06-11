@@ -99,6 +99,15 @@ export class PostgresPendingCriticalActionsRepository implements IPendingCritica
     return rows.map((r) => this.toDomain(r));
   }
 
+  async listByTarget(targetId: string): Promise<PendingCriticalAction[]> {
+    const ds = await this.getDataSource();
+    const rows: Row[] = await ds.query(
+      `SELECT * FROM pending_critical_actions WHERE target_id = $1 ORDER BY created_at DESC`,
+      [targetId],
+    );
+    return rows.map((r) => this.toDomain(r));
+  }
+
   async onModuleDestroy(): Promise<void> {
     if (this.ds?.isInitialized) await this.ds.destroy();
   }
