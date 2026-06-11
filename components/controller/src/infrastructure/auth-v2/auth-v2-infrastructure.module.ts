@@ -13,6 +13,7 @@ import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.po
 import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import { COOP_SETTINGS_REPOSITORY } from '~/domain/auth-v2/ports/coop-settings.port';
 import { ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER } from '~/domain/auth-v2/ports/access-rules.port';
+import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
@@ -31,6 +32,8 @@ import { RedisChainManifestsStore } from './redis-chain-manifests.store';
 import { PostgresCoopSettingsRepository } from './postgres-coop-settings.repository';
 import { PostgresAccessRulesRepository } from './postgres-access-rules.repository';
 import { RedisAccessRulesInvalidationPublisher } from './redis-access-rules-invalidation.publisher';
+import { PostgresPendingCriticalActionsRepository } from './postgres-pending-critical-actions.repository';
+import { RedisCriticalActionNotifier } from './redis-critical-action.notifier';
 
 /** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код + recovery-стратегия + known-devices + метаданные сессий. */
 @Module({
@@ -52,7 +55,9 @@ import { RedisAccessRulesInvalidationPublisher } from './redis-access-rules-inva
     { provide: COOP_SETTINGS_REPOSITORY, useClass: PostgresCoopSettingsRepository },
     { provide: ACCESS_RULES_REPOSITORY, useClass: PostgresAccessRulesRepository },
     { provide: ACCESS_RULES_INVALIDATION_PUBLISHER, useClass: RedisAccessRulesInvalidationPublisher },
+    { provide: PENDING_CRITICAL_ACTIONS_REPOSITORY, useClass: PostgresPendingCriticalActionsRepository },
+    { provide: CRITICAL_ACTION_NOTIFIER, useClass: RedisCriticalActionNotifier },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER],
 })
 export class AuthV2InfrastructureModule {}
