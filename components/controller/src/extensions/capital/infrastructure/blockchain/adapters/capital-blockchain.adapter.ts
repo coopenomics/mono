@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { CapitalBlockchainPort } from '../../../domain/interfaces/capital-blockchain.port';
-import { Checksum256, Name, UInt128, type TransactResult } from '@wharfkit/session';
+import { Checksum256, Name, type TransactResult } from '@wharfkit/session';
+// UInt128 берём из @wharfkit/antelope напрямую: blockchain.service типизирует
+// primaryKey как API.v1.TableIndexType из antelope, а UInt128 из re-export'а
+// @wharfkit/session после обновления lock-файла указывает на другую инстанцию
+// пакета и перестаёт совпадать по типам.
+import { UInt128 } from '@wharfkit/antelope';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
@@ -841,7 +846,9 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   ): Promise<CapitalContract.Tables.Segments.ISegment | null> {
     // Создаем составной ключ для поиска по индексу by_project_user (позиция 3)
     const compositeKey = this.domainToBlockchainUtils.combineChecksumAndUsername(projectHash, username);
-    const keyUInt128 = UInt128.from(compositeKey);
+    // UInt128.from не имеет перегрузки под bigint (с типизированным BN из
+    // обновлённого lock-файла возврат становится unknown) — передаём строку.
+    const keyUInt128 = UInt128.from(compositeKey.toString());
 
     // Получаем сегмент из таблицы segments контракта capital
     const segment = await this.blockchainService.getSingleRow<CapitalContract.Tables.Segments.ISegment>(
