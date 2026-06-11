@@ -5,6 +5,7 @@ import { TokenApplicationModule } from '~/application/token/token-application.mo
 import { TWO_FACTOR_VERIFIER } from '~/domain/auth-v2/ports/two-factor.port';
 import { RECOVERY_FINALIZATION_PORT } from '~/domain/auth-v2/ports/recovery-finalization.port';
 import { AuditService } from './audit/audit.service';
+import { AuditActionInterceptor } from './audit/audit-action.interceptor';
 import { AuthentikEventsController } from './authentik-events.controller';
 import { SessionBindingService } from './session-binding/session-binding.service';
 import { SessionBindingController } from './session-binding/session-binding.controller';
@@ -57,7 +58,7 @@ import { KeyRevocationController } from './key-revocation/key-revocation.control
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule],
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController],
   providers: [
-    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (ротация ключа) — сейм Story 3.3: пока placeholder (503).
