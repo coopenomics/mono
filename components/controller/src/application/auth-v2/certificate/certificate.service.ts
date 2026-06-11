@@ -14,6 +14,7 @@ import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/us
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
 import { CertSettingsService } from '~/application/auth-v2/certificate/cert-settings.service';
+import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 
 /** Звенья cert-цепи доверия CoopID (миграция 052): ano → voskhod → vostok. */
 const CERT_CHAIN_ACCOUNTS = ['ano', 'voskhod', 'vostok'] as const;
@@ -77,6 +78,10 @@ export class CertificateService {
       })),
       identification: identification ?? null,
       claim_schema_version: CLAIM_SCHEMA_VERSION,
+      // 152-ФЗ-обязательство RP (Story 4.8): удалить данные при исключении и не позже дедлайна.
+      // Дедлайн привязан к моменту выпуска (тот же nowSeconds, что у iat/exp).
+      data_retention_contract: DATA_RETENTION_CONTRACT,
+      retention_deadline_ts: nowSeconds + RETENTION_PERIOD_SECONDS,
     })
       .setProtectedHeader({ alg: 'ES256K', typ: 'JWT', kid: vostokKey })
       .setIssuer(`https://${coopname}.coop`)

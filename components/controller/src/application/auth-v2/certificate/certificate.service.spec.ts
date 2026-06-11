@@ -105,6 +105,13 @@ describe('CertificateService.issueForUsername', () => {
     expect((payload.exp as number) - (payload.iat as number)).toBe(1800);
   });
 
+  it('retention-claims: erase_on_exclusion + дедлайн iat + 30 дней (Story 4.8)', async () => {
+    const { service } = makeService();
+    const { payload } = await jwtVerify(await service.issueForUsername('ant'), pubKey, { algorithms: ['ES256K'] });
+    expect(payload.data_retention_contract).toBe('erase_on_exclusion');
+    expect(payload.retention_deadline_ts).toBe((payload.iat as number) + 30 * 24 * 60 * 60);
+  });
+
   it('verification_types берётся из резолвера: не-член → claim пустой (Story 4.1)', async () => {
     const { service, verification } = makeService({ verificationTypes: [] });
     const jws = await service.issueForUsername('ant');

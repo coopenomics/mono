@@ -37,6 +37,10 @@ export interface ParticipantCertificateClaims {
   verification_types: VerificationTypeClaim[]
   identification: Record<string, unknown> | null
   claim_schema_version: string
+  /** 152-ФЗ-обязательство RP удалить данные пайщика (Story 4.8), напр. `erase_on_exclusion`. */
+  data_retention_contract: string
+  /** Дедлайн удаления данных RP, unix-секунды (`iat + 30 дней`, Story 4.8). */
+  retention_deadline_ts: number
 }
 
 /** Нормализовать сырой claim verification_types в структурную форму (Story 4.3). */
@@ -93,6 +97,8 @@ export function decodeParticipantCertificate(jws: string): ParticipantCertificat
     verification_types: normalizeVerificationTypes(raw.verification_types),
     identification: (raw.identification as Record<string, unknown> | null) ?? null,
     claim_schema_version: String(raw.claim_schema_version ?? ''),
+    data_retention_contract: String(raw.data_retention_contract ?? ''),
+    retention_deadline_ts: Number(raw.retention_deadline_ts ?? 0),
   }
 }
 

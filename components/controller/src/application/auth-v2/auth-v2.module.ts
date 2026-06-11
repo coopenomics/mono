@@ -18,6 +18,7 @@ import { SecurityEventNotificationService } from './security-events/security-eve
 import { CertificateService } from './certificate/certificate.service';
 import { CertSettingsService } from './certificate/cert-settings.service';
 import { CertificateController } from './certificate/certificate.controller';
+import { CoopIdClaimsPolicyController } from './certificate/coopid-claims-policy.controller';
 import { VerificationTypesService } from './verification/verification-types.service';
 import { VerificationRulesService } from './verification/verification-rules.service';
 import { VerificationRuleGuard } from './verification/verification-rule.guard';
@@ -46,7 +47,7 @@ import { SecurityIncidentController } from './security/security-incident.control
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController],
   providers: [
     AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.

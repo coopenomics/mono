@@ -51,6 +51,21 @@ describe('decodeParticipantCertificate', () => {
     expect(claims.identification).toBeNull()
   })
 
+  it('retention-claims читаются (Story 4.8)', async () => {
+    const claims = decodeParticipantCertificate(await makeCert({
+      data_retention_contract: 'erase_on_exclusion',
+      retention_deadline_ts: 1800000000,
+    }))
+    expect(claims.data_retention_contract).toBe('erase_on_exclusion')
+    expect(claims.retention_deadline_ts).toBe(1800000000)
+  })
+
+  it('retention-claims отсутствуют → безопасные дефолты (Story 4.8)', async () => {
+    const claims = decodeParticipantCertificate(await makeCert())
+    expect(claims.data_retention_contract).toBe('')
+    expect(claims.retention_deadline_ts).toBe(0)
+  })
+
   it('verification_types: структурные записи сохраняются, мусор отбрасывается (Story 4.3)', async () => {
     const claims = decodeParticipantCertificate(await makeCert({
       verification_types: [
