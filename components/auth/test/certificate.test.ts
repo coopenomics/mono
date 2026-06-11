@@ -1,12 +1,12 @@
 import { SignJWT } from 'jose'
 import { describe, expect, it } from 'vitest'
-import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
 import {
   CERTIFICATE_EXPIRING_WINDOW_MS,
   certificateStatus,
   decodeParticipantCertificate,
   verificationTypeLabel,
 } from '../src/certificate'
+import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
 
 async function makeCert(overrides: Record<string, unknown> = {}, opts: { jti?: string, exp?: string } = {}): Promise<string> {
   let b = new SignJWT({
@@ -16,7 +16,7 @@ async function makeCert(overrides: Record<string, unknown> = {}, opts: { jti?: s
       { account: 'voskhod', public_key: 'PUB_K1_vos' },
       { account: 'vostok', public_key: 'PUB_K1_vostok' },
     ],
-    verification_types: ['coop_baseline'],
+    verification_types: [{ type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' }],
     identification: { type: 'individual', username: 'ant', first_name: 'Иван' },
     claim_schema_version: '1',
     ...overrides,
@@ -26,7 +26,8 @@ async function makeCert(overrides: Record<string, unknown> = {}, opts: { jti?: s
     .setSubject('uuid-1')
     .setIssuedAt()
     .setExpirationTime(opts.exp ?? '24h')
-  if (opts.jti !== undefined || overrides.jti === undefined) b = b.setJti(opts.jti ?? 'serial-123')
+  if (opts.jti !== undefined || overrides.jti === undefined)
+    b = b.setJti(opts.jti ?? 'serial-123')
   return b.sign(new TextEncoder().encode('test-secret-padding-000000000000000000'))
 }
 
@@ -37,7 +38,9 @@ describe('decodeParticipantCertificate', () => {
     expect(claims.jti).toBe('serial-123')
     expect(claims.coopname).toBe('voskhod')
     expect(claims.claim_schema_version).toBe('1')
-    expect(claims.verification_types).toEqual(['coop_baseline'])
+    expect(claims.verification_types).toEqual([
+      { type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' },
+    ])
     expect(claims.coop_chain.map(l => l.account)).toEqual(['ano', 'voskhod', 'vostok'])
     expect(claims.identification).toMatchObject({ type: 'individual', username: 'ant' })
     expect(claims.exp).toBeGreaterThan(claims.iat)
@@ -48,8 +51,27 @@ describe('decodeParticipantCertificate', () => {
     expect(claims.identification).toBeNull()
   })
 
+  it('verification_types: структурные записи сохраняются, мусор отбрасывается (Story 4.3)', async () => {
+    const claims = decodeParticipantCertificate(await makeCert({
+      verification_types: [
+        { type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' },
+        'legacy_string',
+        { source: 'no_type' },
+      ],
+    }))
+    expect(claims.verification_types).toEqual([
+      { type: 'coop_baseline', verified_at: '2026-01-02T03:04:05.000Z', source: 'cooperative_decision' },
+    ])
+  })
+
   it('не-JWT строка → AuthV2Error(chain_verification_failed)', () => {
-    const err = (() => { try { decodeParticipantCertificate('garbage'); return null } catch (e) { return e } })()
+    let err: unknown
+    try {
+      decodeParticipantCertificate('garbage')
+    }
+    catch (e) {
+      err = e
+    }
     expect(err).toBeInstanceOf(AuthV2Error)
     expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.ChainVerificationFailed)
   })

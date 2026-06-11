@@ -12,6 +12,17 @@ export interface CoopChainLink {
   public_key: string
 }
 
+/**
+ * Подтверждённый тип верификации в удостоверении (Story 4.3). Структурная форма
+ * для RP: что подтверждено (`type`), когда (`verified_at`, ISO-8601 UTC) и на каком
+ * основании (`source`).
+ */
+export interface VerificationTypeClaim {
+  type: string
+  verified_at: string
+  source: string
+}
+
 /** Claims participant_certificate (зеркало payload контроллера, Story 1.8). */
 export interface ParticipantCertificateClaims {
   iss: string
@@ -23,9 +34,22 @@ export interface ParticipantCertificateClaims {
   exp: number
   coopname: string
   coop_chain: CoopChainLink[]
-  verification_types: string[]
+  verification_types: VerificationTypeClaim[]
   identification: Record<string, unknown> | null
   claim_schema_version: string
+}
+
+/** Нормализовать сырой claim verification_types в структурную форму (Story 4.3). */
+function normalizeVerificationTypes(raw: unknown): VerificationTypeClaim[] {
+  if (!Array.isArray(raw))
+    return []
+  return raw
+    .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null && typeof (e as Record<string, unknown>).type === 'string')
+    .map(e => ({
+      type: String(e.type),
+      verified_at: String(e.verified_at ?? ''),
+      source: String(e.source ?? ''),
+    }))
 }
 
 export type CertificateStatus = 'active' | 'expiring' | 'expired'
@@ -66,7 +90,7 @@ export function decodeParticipantCertificate(jws: string): ParticipantCertificat
     exp: raw.exp,
     coopname: String(raw.coopname ?? ''),
     coop_chain: Array.isArray(raw.coop_chain) ? (raw.coop_chain as CoopChainLink[]) : [],
-    verification_types: Array.isArray(raw.verification_types) ? (raw.verification_types as string[]) : [],
+    verification_types: normalizeVerificationTypes(raw.verification_types),
     identification: (raw.identification as Record<string, unknown> | null) ?? null,
     claim_schema_version: String(raw.claim_schema_version ?? ''),
   }

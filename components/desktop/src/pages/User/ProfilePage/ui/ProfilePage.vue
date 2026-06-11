@@ -214,8 +214,10 @@ const chainSteps = computed<{ label: string; variant: BaseChipVariant }[]>(() =>
 const VERIFICATION_LABELS: Record<string, string> = {
   coop_baseline: 'Базовое подтверждение кооперативом',
 };
+// Структурная форма claim (Story 4.3): отображаем лейбл по типу; verified_at/source —
+// в UI пока не выводим (отдельная verstka-история).
 const verificationLabels = computed(() =>
-  (certificate.value?.verification_types ?? []).map((t) => VERIFICATION_LABELS[t] ?? t),
+  (certificate.value?.verification_types ?? []).map((e) => VERIFICATION_LABELS[e.type] ?? e.type),
 );
 
 const formatExp = (exp: number): string => {

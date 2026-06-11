@@ -57,14 +57,19 @@ export class CertificateService {
     const coopname = config.coopname;
     const coopChain = await this.getCoopChain();
     const vostokKey = coopChain[coopChain.length - 1]?.public_key;
-    // Типы верификации выводятся из реального членства (Story 4.1); claim — плоский
-    // список type-строк, структурная форма [{type,verified_at,source}] — Story 4.3.
+    // Типы верификации выводятся из реального членства (Story 4.1). В claim идёт
+    // структурная форма {type, verified_at, source} (Story 4.3) — без status (форма AC,
+    // экономия байт под лимит 5 КБ). RP получает её через OIDC userinfo в Epic 5.
     const verificationTypes = await this.verificationTypesService.resolveForUsername(username, coopname);
 
     const jws = await new SignJWT({
       coopname,
       coop_chain: coopChain,
-      verification_types: verificationTypes.map((entry) => entry.type),
+      verification_types: verificationTypes.map((entry) => ({
+        type: entry.type,
+        verified_at: entry.verified_at,
+        source: entry.source,
+      })),
       identification: identification ?? null,
       claim_schema_version: CLAIM_SCHEMA_VERSION,
     })

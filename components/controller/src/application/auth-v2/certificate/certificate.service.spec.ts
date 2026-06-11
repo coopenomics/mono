@@ -76,7 +76,10 @@ describe('CertificateService.issueForUsername', () => {
     expect(payload.iat).toBeDefined();
     expect(payload.exp).toBeGreaterThan(payload.iat as number);
     expect(payload.claim_schema_version).toBe('1');
-    expect(payload.verification_types).toEqual(['coop_baseline']);
+    // Структурная форма claim (Story 4.3): {type, verified_at, source} без status.
+    expect(payload.verification_types).toEqual([
+      { type: 'coop_baseline', verified_at: '2026-01-01T00:00:00.000Z', source: 'cooperative_decision' },
+    ]);
     expect(payload.coop_chain).toEqual([
       { account: 'ano', public_key: CHAIN.ano },
       { account: 'voskhod', public_key: CHAIN.voskhod },
