@@ -102,7 +102,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   private async recoverOwnPending(): Promise<void> {
     let total = 0;
     // Читаем порциями до тех пор, пока pending не закончится.
-    while (true) {
+    for (;;) {
       const messages = await this.redisStreamService.readOwnPending(
         this.streamName,
         this.consumerGroup,
@@ -110,11 +110,13 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
         100,
       );
       if (messages.length === 0) break;
+      let processedThisPass = 0;
       for (const msg of messages) {
         try {
           await this.handleMessage(msg);
           await this.redisStreamService.acknowledgeMessage(this.streamName, this.consumerGroup, msg.messageId);
           total += 1;
+          processedThisPass += 1;
         } catch (err: any) {
           this.logger.error(
             `recoverOwnPending: не удалось переобработать ${msg.messageId}: ${err?.message}`,
@@ -122,6 +124,17 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
           );
           // Оставляем pending — claim retry по idle разберёт.
         }
+      }
+      // XREADGROUP с '0' перечитывает pending с начала: если за полный проход
+      // не ACK'нуто ни одного сообщения, следующая итерация вернёт тот же
+      // набор — без этого guard'а цикл крутится бесконечно, заливая лог
+      // (инцидент 2026-06-11). Оставшиеся pending переиграет периодический
+      // XAUTOCLAIM с паузой claimIntervalMs.
+      if (processedThisPass === 0) {
+        this.logger.warn(
+          `recoverOwnPending: ${messages.length} pending не удалось переобработать — выходим, retry через XAUTOCLAIM`,
+        );
+        break;
       }
     }
     if (total > 0) this.logger.log(`recoverOwnPending: доиграно ${total} сообщений`);
