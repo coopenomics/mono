@@ -214,6 +214,16 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('Tenant JWT кооператива-партнёра для активации подписок. Пусто = degraded mode.'),
+
+  // E12-3: доставка фронт-частей расширений. install.js берётся из
+  // volume-кэша orchestrator'а (только реально установленные у кооператива
+  // пакеты, sha256 проверен), а не из публичного каталога.
+  ORCHESTRATOR_URL: z
+    .string()
+    .optional()
+    .describe(
+      'Base URL orchestrator-сервиса контура (http://orchestrator:4000). Пусто = fallback на прямой ca-admin путь (degraded, без фильтра установленности).',
+    ),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -349,5 +359,8 @@ export default {
   apps_catalog_auth: {
     url: envVars.data.APPS_CATALOG_AUTH_URL,
     tenant_jwt: envVars.data.APPS_CATALOG_TENANT_JWT,
+  },
+  orchestrator: {
+    url: envVars.data.ORCHESTRATOR_URL,
   },
 };

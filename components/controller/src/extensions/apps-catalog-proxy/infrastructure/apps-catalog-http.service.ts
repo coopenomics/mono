@@ -163,6 +163,27 @@ interface ActivateSubscriptionWireFormat {
 }
 
 /**
+ * Метаданные фронт-части из volume-кэша orchestrator'а (E12-2):
+ * только пакеты, реально установленные у кооператива, sha256 проверен
+ * orchestrator'ом перед записью в кэш.
+ */
+export interface InstalledFrontendMeta {
+  packageId: string;
+  scope: string;
+  name: string;
+  version: string;
+  sha256: string;
+  cachedAt: string;
+}
+
+/** install.js из кэша orchestrator'а + заголовки целостности. */
+export interface InstalledInstallScript {
+  code: string;
+  sha256: string | null;
+  version: string | null;
+}
+
+/**
  * HTTP-клиент к ca-admin (apps-catalog) для Story 9.5.b. Защищён admin-API
  * ключом из env (APPS_CATALOG_API_KEY). Используется только сервером —
  * ключ в браузер не утекает.
@@ -182,6 +203,12 @@ export class AppsCatalogHttpService {
    * выписанный ca-admin'ом отдельно.
    */
   private readonly authClient: AxiosInstance | null;
+  /**
+   * Клиент к orchestrator'у контура (E12-3): список установленных
+   * фронтов и install.js из его volume-кэша. Без auth-заголовков —
+   * orchestrator доступен только внутри docker-сети контура.
+   */
+  private readonly orchestratorClient: AxiosInstance | null;
 
   constructor() {
     if (config.apps_catalog.url && config.apps_catalog.api_key) {
@@ -214,6 +241,80 @@ export class AppsCatalogHttpService {
       this.logger.warn(
         'APPS_CATALOG_AUTH_URL/APPS_CATALOG_TENANT_JWT не заданы — subscribe mutation в degraded mode',
       );
+    }
+    if (config.orchestrator.url) {
+      this.orchestratorClient = axios.create({
+        baseURL: config.orchestrator.url,
+        timeout: 5000,
+      });
+    } else {
+      this.orchestratorClient = null;
+      this.logger.warn(
+        'ORCHESTRATOR_URL не задан — install.js отдаётся напрямую из ca-admin без фильтра установленности (degraded)',
+      );
+    }
+  }
+
+  /** Сконфигурирован ли orchestrator-источник (E12-3 fallback-решение в контроллере). */
+  get orchestratorConfigured(): boolean {
+    return this.orchestratorClient !== null;
+  }
+
+  /**
+   * E12-3: список фактически установленных фронт-частей из кэша
+   * orchestrator'а. Без orchestrator'а (degraded) — пустой список:
+   * расширения в этом режиме всё равно не устанавливаются.
+   */
+  async listInstalledFrontends(): Promise<InstalledFrontendMeta[]> {
+    if (!this.orchestratorClient) return [];
+    try {
+      const res = await this.orchestratorClient.get<{ items: InstalledFrontendMeta[] }>(
+        '/v1/internal/extensions/frontend',
+      );
+      return res.data.items ?? [];
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`listInstalledFrontends failed: ${msg}`);
+      return [];
+    }
+  }
+
+  /**
+   * E12-3: install.js установленного пакета из кэша orchestrator'а
+   * вместе с заголовками целостности (sha256 + версия) — desktop сверяет
+   * sha256 перед eval. `null` — фронт не установлен / orchestrator
+   * недоступен; вызывающий контроллер решает, падать в 404 или в
+   * fallback на прямой ca-admin путь (degraded dev-стенд).
+   */
+  async fetchInstalledInstallScript(
+    scope: string,
+    name: string,
+  ): Promise<InstalledInstallScript | null> {
+    if (!this.orchestratorClient) return null;
+    try {
+      const res = await this.orchestratorClient.get<string>(
+        `/v1/internal/extensions/frontend/${encodeURIComponent(scope)}/${encodeURIComponent(name)}/install.js`,
+        { responseType: 'text', transformResponse: (data) => data as string },
+      );
+      const headers = res.headers as Record<string, unknown>;
+      return {
+        code: typeof res.data === 'string' ? res.data : String(res.data),
+        sha256:
+          typeof headers['x-install-script-sha256'] === 'string'
+            ? (headers['x-install-script-sha256'] as string)
+            : null,
+        version:
+          typeof headers['x-package-version'] === 'string'
+            ? (headers['x-package-version'] as string)
+            : null,
+      };
+    } catch (err) {
+      const status = (err as AxiosError).response?.status;
+      if (status !== 404) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`fetchInstalledInstallScript ${scope}/${name} failed: ${msg}`);
+      }
+      return null;
     }
   }
 

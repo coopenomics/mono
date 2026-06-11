@@ -10,29 +10,45 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { HttpJwtAuthGuard } from '~/application/auth/guards/http-jwt-auth.guard';
-import { AppsCatalogHttpService } from '../../infrastructure/apps-catalog-http.service';
+import {
+  AppsCatalogHttpService,
+  type InstalledFrontendMeta,
+} from '../../infrastructure/apps-catalog-http.service';
 
 const NAME_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 /**
- * Story 9.4.b — REST-проксирование install.js пакета из apps-catalog к
- * desktop'у. Защищён HTTP JWT — пайщик должен быть залогинен в свой
- * кооператив, иначе нельзя загружать remote-расширения. Admin-API ключ
- * apps-catalog'а инкапсулирован в backend'е и не утекает в браузер
- * (см. architecture-choice C в Epic 9.5.b).
+ * Story 9.4.b → E12-3 — доставка install.js remote-расширений desktop'у.
  *
- * Endpoint:
- *   `GET /v1/apps-catalog/install/:scope/:name`
- *   → 200 text/javascript — CJS install.js
- *   → 404 если пакета нет (или ca-admin недоступен в degraded mode).
- *   → 401 без JWT.
+ * Источник — volume-кэш orchestrator'а контура (E12-2): только пакеты,
+ * реально установленные у кооператива (подписка активна, sha256 install.js
+ * сверен orchestrator'ом с декларацией манифеста). Заголовки
+ * `X-Install-Script-Sha256` / `X-Package-Version` пробрасываются —
+ * desktop сверяет sha256 перед eval.
+ *
+ * Защищён HTTP JWT — пайщик должен быть залогинен в свой кооператив.
+ * Orchestrator наружу не торчит (docker-сеть), admin-ключи в браузер
+ * не утекают.
+ *
+ * Degraded fallback: без ORCHESTRATOR_URL (dev-стенд без federation-профиля)
+ * install.js берётся по-старому напрямую из ca-admin — без фильтра
+ * установленности и без sha-заголовков.
+ *
+ * Endpoints:
+ *   `GET /v1/apps-catalog/install/:scope/:name` → 200 text/javascript | 404
+ *   `GET /v1/apps-catalog/installed-frontends`  → 200 {items: [...]}
  */
-@Controller('v1/apps-catalog/install')
+@Controller('v1/apps-catalog')
 @UseGuards(HttpJwtAuthGuard)
 export class AppsCatalogInstallScriptController {
   constructor(private readonly catalog: AppsCatalogHttpService) {}
 
-  @Get(':scope/:name')
+  @Get('installed-frontends')
+  async installedFrontends(): Promise<{ items: InstalledFrontendMeta[] }> {
+    return { items: await this.catalog.listInstalledFrontends() };
+  }
+
+  @Get('install/:scope/:name')
   @Header('Content-Type', 'application/javascript; charset=utf-8')
   @Header('Cache-Control', 'no-store')
   async execute(
@@ -46,6 +62,27 @@ export class AppsCatalogInstallScriptController {
         HttpStatus.NOT_FOUND,
       );
     }
+    if (this.catalog.orchestratorConfigured) {
+      const installed = await this.catalog.fetchInstalledInstallScript(
+        scope,
+        name,
+      );
+      if (installed === null) {
+        throw new HttpException(
+          'frontend not installed',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      if (installed.sha256 !== null) {
+        res.setHeader('X-Install-Script-Sha256', installed.sha256);
+      }
+      if (installed.version !== null) {
+        res.setHeader('X-Package-Version', installed.version);
+      }
+      res.status(HttpStatus.OK);
+      return installed.code;
+    }
+    // Degraded: прямой ca-admin путь — без гарантий установленности.
     const code = await this.catalog.fetchInstallScript(scope, name);
     if (code === null) {
       throw new HttpException(

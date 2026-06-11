@@ -1,19 +1,19 @@
-// Epic 9 stories 9.4 (skeleton) + 9.4.b (real fetch+eval).
+// Epic 9 stories 9.4 (skeleton) + 9.4.b (real fetch+eval) → E12-3.
 //
 // На boot'е desktop'а, после регистрации bundle-extensions, идём в coopback
-// за списком пакетов с активной подпиской у текущего кооператива и пробуем
-// dynamic-eval'ом распаковать install.js из каждого пакета, чтобы получить
+// за списком фронтов, реально УСТАНОВЛЕННЫХ у текущего кооператива, и
+// dynamic-eval'ом распаковываем install.js каждого, чтобы получить
 // `IWorkspaceConfig[]` и добавить роуты в router.
 //
-// MVP (9.4.b)
-//   - Список remote-пакетов читаем из публичного каталога apps-catalog
-//     (Queries.Extensions.AppsCatalogRemotePackages) — это все пакеты,
-//     для пилота demo-app self-sub bypass превращает «всех» в «всё что
-//     должно быть установлено у кооператива-разработчика».
+// E12-3 (заменяет публичный каталог как источник):
+//   - Список — REST `GET /v1/apps-catalog/installed-frontends`: coopback
+//     проксирует volume-кэш orchestrator'а (E12-2), где лежат только
+//     пакеты с активной подпиской кооператива; sha256 install.js там
+//     уже сверен с декларацией манифеста (fail-closed).
 //   - На каждый — REST `GET /v1/apps-catalog/install/:scope/:name` за CJS
-//     install.js (controller-proxy через ca-admin). HTTP JWT desktop'а.
-//   - sha256 пока не проверяем (release-таблица ещё не реализована;
-//     V2 9.4.c добавит manifest+sha256+release-row).
+//     install.js. HTTP JWT desktop'а (JWT-gated доставка).
+//   - Перед eval сверяем sha256 тела с `X-Install-Script-Sha256`
+//     (crypto.subtle); расхождение — отказ установки пакета.
 //   - eval через `new Function('module','exports','require', code)` —
 //     контракт `module.exports = { install: () => Promise<IWorkspaceConfig[]> }`.
 //   - Try/catch per item: падение одного пакета не валит остальные.
@@ -23,8 +23,6 @@
 
 import axios from 'axios';
 import type { Router } from 'vue-router';
-import { Queries } from '@coopenomics/sdk';
-import { client } from 'src/shared/api/client';
 import { env } from 'src/shared/config';
 import { useGlobalStore } from 'src/shared/store';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -58,57 +56,89 @@ function splitPackageId(
   return { scope: match[1], name: match[2] };
 }
 
+interface InstalledFrontendMeta {
+  packageId: string;
+  scope: string;
+  name: string;
+  version: string;
+  sha256: string;
+  cachedAt: string;
+}
+
 /**
- * Запросить у coopback список remote-пакетов через apps-catalog-proxy
- * (Story 9.5.b). На MVP отдаются ВСЕ опубликованные пакеты — фильтр
- * «подписаны / не подписаны» появится в 9.6.c вместе с реальной
- * subscription read-port.
+ * Запросить у coopback список фронтов, фактически установленных у
+ * кооператива (E12-3): coopback проксирует кэш orchestrator'а, где
+ * лежат только пакеты с активной подпиской. Публичный каталог как
+ * источник установки мёртв — он остаётся только витриной.
  */
 export async function fetchInstalledRemotePackages(
   coopname: string,
 ): Promise<RemoteExtensionDescriptor[]> {
-  // coopname зарезервирован для 9.6.c (фильтр по подпискам tenant'а);
-  // сейчас прокси отдаёт публичный каталог без фильтра.
+  // coopname в запрос не передаётся: контур кооператива один, JWT и так
+  // привязан к нему; параметр сохранён в сигнатуре для совместимости.
   void coopname;
+  const { tokens } = useGlobalStore();
   try {
-    const out = await client.Query(
-      Queries.Extensions.AppsCatalogRemotePackages.query,
-      { variables: { page: 1, pageSize: 50 } },
+    const response = await axios.get<{ items: InstalledFrontendMeta[] }>(
+      `${env.BACKEND_URL}/v1/apps-catalog/installed-frontends`,
+      {
+        headers: tokens?.access?.token
+          ? { Authorization: `Bearer ${tokens.access.token}` }
+          : {},
+      },
     );
-    const list =
-      out[Queries.Extensions.AppsCatalogRemotePackages.name] ?? [];
     const result: RemoteExtensionDescriptor[] = [];
-    for (const pkg of list) {
-      const coords = splitPackageId(pkg.packageId);
+    for (const item of response.data.items ?? []) {
+      const coords = splitPackageId(item.packageId);
       if (!coords) {
         console.warn(
-          `[remote-loader] пропуск пакета с неподдерживаемым packageId: ${pkg.packageId}`,
+          `[remote-loader] пропуск пакета с неподдерживаемым packageId: ${item.packageId}`,
         );
         continue;
       }
       result.push({
-        packageId: pkg.packageId,
+        packageId: item.packageId,
         scope: coords.scope,
         name: coords.name,
-        publisher: pkg.publisher,
-        version: pkg.lastActiveVersion ?? null,
-        title: pkg.title,
-        description: pkg.description,
+        publisher: coords.scope,
+        version: item.version ?? null,
+        title: item.packageId,
+        description: '',
       });
     }
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('[remote-loader] не удалось получить каталог:', msg);
+    console.error(
+      '[remote-loader] не удалось получить список установленных фронтов:',
+      msg,
+    );
     return [];
   }
+}
+
+/**
+ * sha256 (hex) строки через WebCrypto — есть и в браузере, и в Node 20
+ * (SSR). null — окружение без crypto.subtle (например http-стенд не на
+ * localhost): сверку пропускаем с warn'ом, не ломая загрузку.
+ */
+async function computeSha256Hex(code: string): Promise<string | null> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return null;
+  const digest = await subtle.digest('SHA-256', new TextEncoder().encode(code));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
  * Скачать install.js пакета и eval'нуть его в plain CJS-обёртке.
  * Возвращает массив workspace'ов, который install() пакета вернул.
  *
- * На MVP sha256 не валидируется; manifest / release-row появятся в 9.4.c.
+ * E12-3: перед eval тело сверяется с `X-Install-Script-Sha256` —
+ * заголовок едет из volume-кэша orchestrator'а, где sha уже проверен
+ * против декларации манифеста. Расхождение = повреждение/подмена по
+ * дороге → пакет не устанавливается.
  */
 export async function loadRemoteExtension(
   desc: RemoteExtensionDescriptor,
@@ -128,6 +158,22 @@ export async function loadRemoteExtension(
   const code: string = response.data;
   if (typeof code !== 'string' || code.length === 0) {
     throw new Error('empty install.js response');
+  }
+
+  const declaredSha = (
+    response.headers as Record<string, unknown>
+  )['x-install-script-sha256'];
+  if (typeof declaredSha === 'string' && declaredSha.length === 64) {
+    const actualSha = await computeSha256Hex(code);
+    if (actualSha === null) {
+      console.warn(
+        `[remote-loader] crypto.subtle недоступен — sha256 install.js пакета ${desc.packageId} не сверен`,
+      );
+    } else if (actualSha !== declaredSha) {
+      throw new Error(
+        `sha256 install.js пакета ${desc.packageId} не совпал: ожидался ${declaredSha}, получен ${actualSha}`,
+      );
+    }
   }
 
   const module: { exports: RemoteInstallModule } = { exports: {} };
