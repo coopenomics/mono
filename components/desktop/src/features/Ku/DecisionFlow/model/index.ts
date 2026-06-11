@@ -23,12 +23,16 @@ export function useKuDecisionFlow() {
 
   const isSubmitting = ref(false);
 
-  /** Объявить собрание: предложение повестки (320) + createdec */
+  /**
+   * Объявить собрание: предложение повестки (320) + createdec.
+   * Председатель собрания (и кандидат в председатели КУ) выбирается позже,
+   * в процессе собрания из присоединившихся участников — в документе повестки
+   * кандидат не указывается; braname — служебный аккаунт, в документ не выводится.
+   */
   async function createDecision(input: {
     type: 'createbranch' | 'free';
     braname: string;
     address: string;
-    chairmanCandidate: string;
     agenda: IKuAgendaPointDraft[];
   }): Promise<string> {
     isSubmitting.value = true;
@@ -42,9 +46,7 @@ export function useKuDecisionFlow() {
         username: session.username,
         type: input.type,
         hash,
-        braname: input.braname || undefined,
         address: input.address || undefined,
-        chairman_candidate: input.chairmanCandidate || undefined,
         questions: input.agenda.map((point, index) => ({
           number: String(index + 1),
           title: point.title,

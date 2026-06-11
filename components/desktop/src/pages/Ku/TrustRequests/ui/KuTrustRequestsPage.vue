@@ -138,16 +138,31 @@ function openDecline(request: IKuTrustRequest) {
   isDeclineOpen.value = true;
 }
 
+/**
+ * Проекция заявок наполняется из блокчейна асинхронно (parser → PG) —
+ * после транзакции опрашиваем список до выполнения предиката.
+ */
+async function pollRequests(predicate: () => boolean, attempts = 8): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    await load();
+    if (predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+}
+
 async function onRequest() {
   try {
-    const branch = branchStore.branches.find((item: any) => item.braname === requestForm.value.braname) as any;
+    const braname = requestForm.value.braname;
+    const branch = branchStore.branches.find((item: any) => item.braname === braname) as any;
     await flow.requestTrusted({
-      braname: requestForm.value.braname,
+      braname,
       chairmanFullName: branch?.trustee?.username || '',
     });
     isRequestOpen.value = false;
     SuccessAlert('Заявка подана');
-    await load();
+    await pollRequests(() =>
+      requests.value.some((request) => request.braname === braname && request.username === session.username),
+    );
   } catch (e: unknown) {
     FailAlert(e);
   }
@@ -157,7 +172,7 @@ async function onApprove(request: IKuTrustRequest) {
   try {
     await flow.approveTrusted(request);
     SuccessAlert('Доверенное лицо принято');
-    await load();
+    await pollRequests(() => !requests.value.some((item) => item.hash === request.hash && item.present));
   } catch (e: unknown) {
     FailAlert(e);
   }
@@ -165,11 +180,12 @@ async function onApprove(request: IKuTrustRequest) {
 
 async function onDecline() {
   if (!declineTarget.value) return;
+  const target = declineTarget.value;
   try {
-    await flow.declineTrusted(declineTarget.value, declineReason.value);
+    await flow.declineTrusted(target, declineReason.value);
     isDeclineOpen.value = false;
     SuccessAlert('Заявка отклонена');
-    await load();
+    await pollRequests(() => !requests.value.some((item) => item.hash === target.hash && item.present));
   } catch (e: unknown) {
     FailAlert(e);
   }

@@ -28,8 +28,7 @@
             @click='openDetails(decision.hash)'
           )
             td
-              .doc-primary {{ decision.braname || '—' }}
-              .t-sm.t-muted(v-if='decision.address') {{ decision.address }}
+              .doc-primary {{ decision.address || 'Адрес уточняется' }}
             td
               BaseBadge(:variant='statusMeta(decision).variant') {{ statusMeta(decision).label }}
             td {{ decision.initiator }}
@@ -47,24 +46,11 @@
 BaseDialog(v-model='isCreateOpen', title='Объявить собрание', size='md')
   BaseForm(@submit='submitCreate')
     BaseInput(
-      v-model='form.braname',
-      label='Имя аккаунта участка',
-      mono,
-      placeholder='например: branchone',
-      hint='12 символов: a-z и 1-5',
-      required
-    )
-    BaseInput(
       v-model='form.address',
       label='Адрес привязки участка',
       placeholder='город, улица, дом',
+      hint='Председатель участка будет избран на собрании из присоединившихся пайщиков',
       required
-    )
-    BaseInput(
-      v-model='form.chairmanCandidate',
-      label='Кандидат в председатели участка',
-      mono,
-      hint='Имя аккаунта пайщика; по умолчанию — вы',
     )
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isCreateOpen = false') Отменить
@@ -79,9 +65,9 @@ import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
+import { generateUsername } from 'src/shared/lib/utils/generateUsername';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
@@ -90,7 +76,6 @@ import { CreateKuMeetingButton } from '../../shared/CreateKuMeetingButton';
 const router = useRouter();
 const kuStore = useKuStore();
 const system = useSystemStore();
-const session = useSessionStore();
 const flow = useKuDecisionFlow();
 const { registerAction } = useHeaderActions();
 const { dismissed, dismiss } = useDismissibleBanner('ku:meetings:banner-dismissed');
@@ -100,9 +85,7 @@ const isCreateOpen = ref(false);
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
 const form = ref({
-  braname: '',
   address: '',
-  chairmanCandidate: '',
 });
 
 const decisions = computed(() => kuStore.decisions);
@@ -135,27 +118,26 @@ function openDetails(hash: string) {
 }
 
 function openCreateDialog() {
-  form.value = { braname: '', address: '', chairmanCandidate: '' };
+  form.value = { address: '' };
   isCreateOpen.value = true;
 }
 
 async function submitCreate() {
   try {
-    const chairmanCandidate = form.value.chairmanCandidate || session.username;
+    // braname — служебное имя аккаунта участка, пайщику не показывается
     const hash = await flow.createDecision({
       type: 'createbranch',
-      braname: form.value.braname,
+      braname: generateUsername(),
       address: form.value.address,
-      chairmanCandidate,
       agenda: [
         {
-          title: `Об организации кооперативного участка «${form.value.braname}»`,
-          decision: `Организовать кооперативный участок «${form.value.braname}» с привязкой к адресу: ${form.value.address}`,
+          title: 'Об организации кооперативного участка',
+          decision: `Организовать кооперативный участок с привязкой к адресу: ${form.value.address}`,
           context: '',
         },
         {
           title: 'Об избрании председателя кооперативного участка',
-          decision: `Избрать председателем кооперативного участка пайщика ${chairmanCandidate}`,
+          decision: 'Избрать председателем кооперативного участка председателя настоящего собрания пайщиков',
           context: '',
         },
       ],

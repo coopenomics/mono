@@ -26,6 +26,7 @@ export const subscribedContracts: string[] = [
   'draft',
   'meet',
   'soviet',
+  'branch',
   'registrator',
   'eosio.token',
   'capital',

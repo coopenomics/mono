@@ -46,8 +46,7 @@
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseCard(title='Собрание')
-          DataRow(label='Участок', :value='decision.braname || "—"')
-          DataRow(label='Адрес', :value='decision.address || "—"')
+          DataRow(label='Адрес участка', :value='decision.address || "—"')
           DataRow(label='Инициатор', :value='decision.initiator || "—"')
           DataRow(label='Председатель собрания', :value='decision.chairman || "—"')
           DataRow(label='Открытие голосования', :value='formatDate(decision.open_at)')
@@ -143,6 +142,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
+import type { IKuDecision } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -251,22 +251,72 @@ function formatDate(value?: string | null): string {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ru-RU');
 }
 
-async function withReload(action: () => Promise<void>, successMessage: string) {
+/**
+ * Проекция собрания наполняется из блокчейна асинхронно (parser → PG),
+ * поэтому после транзакции опрашиваем её до выполнения предиката,
+ * а при первом открытии — до появления записи.
+ */
+async function pollDecision(predicate?: (d: IKuDecision) => boolean, attempts = 10): Promise<boolean> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      const loaded = await kuStore.loadDecision(hash.value);
+      if (!predicate || predicate(loaded)) return true;
+    } catch {
+      // записи ещё нет в проекции — ждём следующую попытку
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  return false;
+}
+
+async function withReload(
+  action: () => Promise<void>,
+  successMessage: string,
+  predicate?: (d: IKuDecision) => boolean,
+) {
   try {
     await action();
-    await kuStore.loadDecision(hash.value);
+    await pollDecision(predicate);
     SuccessAlert(successMessage);
   } catch (e: unknown) {
     FailAlert(e);
   }
 }
 
-const onJoin = () => withReload(() => flow.joinDecision(decision.value!), 'Вы присоединились к собранию');
-const onSetChairman = () =>
-  withReload(() => flow.setChairman(decision.value!, chairmanCandidate.value as string), 'Председатель собрания назначен');
-const onClose = () => withReload(() => flow.closeDecision(decision.value!), 'Протокол утверждён');
-const onExec = () => withReload(() => flow.execDecision(decision.value!), 'Заявление направлено в совет');
-const onVote = () => withReload(() => flow.voteOnDecision(decision.value!, votes.value), 'Бюллетень подан');
+const onJoin = () =>
+  withReload(
+    () => flow.joinDecision(decision.value!),
+    'Вы присоединились к собранию',
+    (d) => (d.participants ?? []).includes(session.username),
+  );
+const onSetChairman = () => {
+  const candidate = chairmanCandidate.value as string;
+  return withReload(
+    () => flow.setChairman(decision.value!, candidate),
+    'Председатель собрания назначен',
+    (d) => d.chairman === candidate,
+  );
+};
+const onClose = () =>
+  withReload(
+    () => flow.closeDecision(decision.value!),
+    'Протокол утверждён',
+    (d) => d.status === Zeus.KuDecisionStatus.APPROVED,
+  );
+const onExec = () =>
+  withReload(
+    () => flow.execDecision(decision.value!),
+    'Заявление направлено в совет',
+    (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
+  );
+const onVote = () => {
+  const ballotsBefore = decision.value?.signed_ballots ?? 0;
+  return withReload(
+    () => flow.voteOnDecision(decision.value!, votes.value),
+    'Бюллетень подан',
+    (d) => (d.signed_ballots ?? 0) > ballotsBefore,
+  );
+};
 
 async function onStart() {
   isStartOpen.value = false;
@@ -278,22 +328,30 @@ async function onStart() {
         closeAt: new Date(`${startForm.value.closeAt}T23:59:59`).toISOString(),
       }),
     'Голосование открыто',
+    (d) => d.status === Zeus.KuDecisionStatus.VOTING,
   );
 }
 
 async function onCancel() {
   isCancelOpen.value = false;
-  await withReload(() => flow.cancelDecision(decision.value!, cancelReason.value), 'Собрание отменено');
+  await withReload(
+    () => flow.cancelDecision(decision.value!, cancelReason.value),
+    'Собрание отменено',
+    (d) => d.status === Zeus.KuDecisionStatus.COMPLETED,
+  );
 }
 
 onMounted(async () => {
   loading.value = true;
   try {
-    const loaded = await kuStore.loadDecision(hash.value);
-    startForm.value.address = loaded.address || '';
-    desktop.setPageTitleOverride(`Собрание: ${loaded.braname || loaded.hash.slice(0, 8)}`);
-  } catch (e: unknown) {
-    FailAlert(e);
+    // после объявления собрания проекция может отставать от блокчейна —
+    // ждём появления записи, не показывая ошибку
+    await pollDecision(undefined, 15);
+    const loaded = decision.value;
+    if (loaded) {
+      startForm.value.address = loaded.address || '';
+      desktop.setPageTitleOverride(`Собрание: ${loaded.address || loaded.hash.slice(0, 8)}`);
+    }
   } finally {
     loading.value = false;
   }
