@@ -31,14 +31,44 @@ const redactionFormat = winston.format((info) => {
   return info;
 });
 
-const logger = winston.createLogger({
-  level: config.env === 'development' ? 'debug' : 'info',
-  format: winston.format.combine(
+/** Имя сервиса в структурированных логах (компонент канонически зовётся coopback). */
+const SERVICE_NAME = 'coopback';
+
+/**
+ * Story 9.12: добавляет поле `service` в структурированный (JSON) вывод. В dev не
+ * применяется — pretty-строка не засоряется служебным полем.
+ */
+const serviceFormat = winston.format((info) => {
+  info.service = SERVICE_NAME;
+  return info;
+});
+
+/**
+ * Story 9.12: единая цепочка форматов, ветвящаяся по среде.
+ * - production: структурированный JSON (`timestamp/level/message/service/request_id/
+ *   ...metadata`) для агрегации любым docker-logs-сборщиком; без colorize (ANSI в JSON
+ *   недопустим).
+ * - dev/test: человекочитаемый printf (с colorize) — поведение разработки не меняется.
+ *
+ * Инвариант 8.8: redactionFormat() обязан стоять ПОСЛЕ splat() (splat повторно
+ * вмёрживает сырой meta из info[SPLAT]); JSON/printf-сериализация — строго ПОСЛЕ
+ * redaction, поэтому секреты не утекают ни в JSON, ни в pretty.
+ */
+export function buildLogFormat(isProduction: boolean): winston.Logform.Format {
+  const prefix = [
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     enumerateErrorFormat(),
-    winston.format.colorize(),
+    ...(isProduction ? [] : [winston.format.colorize()]),
     winston.format.splat(),
     redactionFormat(),
+  ];
+
+  if (isProduction) {
+    return winston.format.combine(...prefix, serviceFormat(), winston.format.json());
+  }
+
+  return winston.format.combine(
+    ...prefix,
     winston.format.printf(({ timestamp, level, message, context, meta, ...restMeta }) => {
       // Проверяем, является ли meta строкой
       const contextString = typeof meta === 'string' ? `[${meta}]` : context ? `[${context}]` : '';
@@ -47,7 +77,12 @@ const logger = winston.createLogger({
 
       return `${timestamp} ${level}: ${contextString} ${message}${metaString}${additionalMetaString}`;
     })
-  ),
+  );
+}
+
+const logger = winston.createLogger({
+  level: config.env === 'development' ? 'debug' : 'info',
+  format: buildLogFormat(config.env === 'production'),
   transports: [
     // При генерации схемы (build-time codegen) файловые транспорты не подключаем:
     // процесс запускается из-под пользователя рядом с работающим контейнером, чей logs/
