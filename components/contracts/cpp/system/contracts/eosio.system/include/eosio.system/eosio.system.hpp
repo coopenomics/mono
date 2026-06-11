@@ -513,8 +513,10 @@ namespace eosiosystem {
 
    /**
     * Параметры финализаторов Savanna (порт setfinalizer из upstream eosio.bios).
-    * Цепь single-producer: политика финализаторов задаётся оператором напрямую,
-    * без машинерии regfinkey/switchtosvnn голосующего DPoS.
+    * Этап 1 (bootstrap): политику финализаторов задаёт оператор напрямую.
+    * Этап 2 — выборная машинерия финализаторов под кооперативную модель
+    * голосования (1 пайщик = 1 голос); upstream-вариант regfinkey/switchtosvnn
+    * (top-21 по stake-весу) нашей модели не соответствует и потому не переносится как есть.
     */
    constexpr size_t max_finalizers = 64*1024;
    constexpr size_t max_finalizer_description_size = 256;

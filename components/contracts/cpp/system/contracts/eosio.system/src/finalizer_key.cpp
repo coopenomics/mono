@@ -11,6 +11,8 @@ namespace eosiosystem {
 // Порт setfinalizer из upstream eosio.bios (reference-contracts):
 // все дорогие проверки выполняются здесь, чтобы хост-функция
 // set_finalizers гарантированно не упала.
+// Это bootstrap-механизм этапа 1 (политика от оператора); выборная
+// машинерия финализаторов под кооперативное голосование — этап 2.
 void system_contract::setfinalizer( const finalizer_policy& finalizer_policy ) {
    require_auth( get_self() );
 
