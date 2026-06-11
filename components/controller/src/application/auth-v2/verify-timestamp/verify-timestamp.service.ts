@@ -9,6 +9,9 @@ import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service'
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
 import type { ISessionMetadataStore } from '~/domain/auth-v2/ports/session-metadata.port';
+import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
+import type { IChainManifestsCache } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
+import { DegradedAuthReason } from '~/domain/auth-v2/degraded/degraded-auth.types';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
@@ -35,6 +38,36 @@ export interface VerifyTimestampResult {
   /** participant_certificate (Story 1.8). Best-effort: при сбое выпуска вход не
    *  ломается — клиент дозапросит через GET /coop/certificate (там ошибка явная). */
   participant_certificate?: string;
+  /** Degraded-вход (Story 4.5): ключ сверен против chain_manifests_cache, а не
+   *  против живого COOPOS. Сигнал для UI/RP; присутствует только в degraded-режиме. */
+  degraded?: boolean;
+  degraded_reason?: DegradedAuthReason;
+}
+
+/** Псевдо-аккаунт для сверки ключа из кэша через blockchainPort.hasActiveKey. */
+interface ActiveKeyAccount {
+  permissions: Array<{ perm_name: string; required_auth: { keys: Array<{ key: string; weight: number }> } }>;
+}
+
+/** Извлечь активные публичные ключи из аккаунта COOPOS (plain JSON, без wharfkit). */
+function extractActiveKeys(account: unknown): string[] {
+  if (!account || typeof account !== 'object') return [];
+  try {
+    const json = JSON.parse(JSON.stringify(account)) as {
+      permissions?: Array<{ perm_name?: string; required_auth?: { keys?: Array<{ key?: string }> } }>;
+    };
+    const active = json.permissions?.find((p) => p.perm_name === 'active');
+    return (active?.required_auth?.keys ?? [])
+      .map((k) => k.key)
+      .filter((k): k is string => typeof k === 'string');
+  } catch {
+    return [];
+  }
+}
+
+/** Собрать псевдо-аккаунт из кэшированных ключей для hasActiveKey (нормализация — в инфраструктуре). */
+function manifestToAccount(keys: string[]): ActiveKeyAccount {
+  return { permissions: [{ perm_name: 'active', required_auth: { keys: keys.map((key) => ({ key, weight: 1 })) } }] };
 }
 
 /**
@@ -68,6 +101,7 @@ export class VerifyTimestampService {
     private readonly certificate: CertificateService,
     private readonly deviceTracking: DeviceTrackingService,
     @Inject(SESSION_METADATA_PORT) private readonly sessionMetadata: ISessionMetadataStore,
+    @Inject(CHAIN_MANIFESTS_CACHE) private readonly chainManifests: IChainManifestsCache,
   ) {}
 
   async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
@@ -118,15 +152,37 @@ export class VerifyTimestampService {
     }
 
     // 5. сверить восстановленный ключ с активными ключами аккаунта в COOPOS.
-    let account: Awaited<ReturnType<BlockchainPort['getAccount']>>;
+    //    Живой узел недоступен → degraded-фолбэк на chain_manifests_cache (Story 4.5).
+    let degraded = false;
+    let degradedReason: DegradedAuthReason | undefined;
+    let liveAccount: Awaited<ReturnType<BlockchainPort['getAccount']>> = null;
+    let liveReadOk = false;
     try {
-      account = await this.blockchainPort.getAccount(sub);
+      liveAccount = await this.blockchainPort.getAccount(sub);
+      liveReadOk = true;
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен: не удалось получить аккаунт');
+      liveReadOk = false;
     }
-    if (!account || !this.blockchainPort.hasActiveKey(account, recoveredKey)) {
-      await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
+
+    if (liveReadOk) {
+      if (!liveAccount || !this.blockchainPort.hasActiveKey(liveAccount, recoveredKey)) {
+        await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
+        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
+      }
+      // свежий снимок активных ключей для будущего degraded-фолбэка (best-effort).
+      await this.safeCacheManifest(sub, liveAccount);
+    } else {
+      // COOPOS down → сверка против последнего снимка кэша манифестов.
+      const manifest = await this.chainManifests.get(sub).catch(() => null);
+      const cacheMatch =
+        !!manifest && this.blockchainPort.hasActiveKey(manifestToAccount(manifest.active_keys), recoveredKey);
+      if (!cacheMatch) {
+        await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'coopos_down_no_cache' }, ip: input.ip });
+        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен и нет валидного кеша ключей для проверки');
+      }
+      degraded = true;
+      degradedReason = DegradedAuthReason.RpcUnavailable;
+      await this.safeAudit({ event: 'coopid.auth.degraded', subjectId: sub, actor: sub, result: 'degraded', context: { reason: degradedReason }, ip: input.ip });
     }
 
     // успех → выпуск токенов платформенным механизмом (id_token/certificate — Story 1.8).
@@ -168,7 +224,12 @@ export class VerifyTimestampService {
       this.logger.warn(`session metadata не записаны на verify для ${sub}: ${e instanceof Error ? e.message : e}`);
     }
 
-    return { access_token: pair.access.token, refresh_token: pair.refresh.token, participant_certificate };
+    return {
+      access_token: pair.access.token,
+      refresh_token: pair.refresh.token,
+      participant_certificate,
+      ...(degraded ? { degraded: true, degraded_reason: degradedReason } : {}),
+    };
   }
 
   /** Аудит не должен валить успешный вход (coop_domain_db недоступен → degraded-лог, не 500). */
@@ -177,6 +238,16 @@ export class VerifyTimestampService {
       await this.audit.record(record);
     } catch {
       // намеренно проглатываем: audit-инфраструктура отдельна от auth-критпути
+    }
+  }
+
+  /** Снимок активных ключей аккаунта в chain_manifests_cache — best-effort (сбой не валит вход). */
+  private async safeCacheManifest(account: string, liveAccount: unknown): Promise<void> {
+    try {
+      const keys = extractActiveKeys(liveAccount);
+      if (keys.length > 0) await this.chainManifests.put(account, keys);
+    } catch (e) {
+      this.logger.warn(`chain_manifests_cache не обновлён для ${account}: ${e instanceof Error ? e.message : e}`);
     }
   }
 }

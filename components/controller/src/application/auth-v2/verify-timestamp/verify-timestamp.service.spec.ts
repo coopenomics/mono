@@ -32,6 +32,7 @@ function makeService(overrides: {
   getInfoThrows?: boolean;
   hasActiveKey?: boolean;
   getAccountThrows?: boolean;
+  manifest?: { account: string; active_keys: string[]; cached_at: string } | null;
 }) {
   const redis = {
     consumeSingleUse: overrides.consume ?? jest.fn().mockResolvedValue(ACCOUNT),
@@ -45,7 +46,10 @@ function makeService(overrides: {
       : jest.fn().mockResolvedValue({ head_block_time: overrides.headBlockTime ?? TS }),
     getAccount: overrides.getAccountThrows
       ? jest.fn().mockRejectedValue(new Error('down'))
-      : jest.fn().mockResolvedValue({ account_name: ACCOUNT }),
+      : jest.fn().mockResolvedValue({
+          account_name: ACCOUNT,
+          permissions: [{ perm_name: 'active', required_auth: { keys: [{ key: PUB, weight: 1 }] } }],
+        }),
     hasActiveKey: jest.fn().mockReturnValue(overrides.hasActiveKey ?? true),
     // настоящий recover — зеркало BlockchainService.recoverPublicKey
     recoverPublicKey: jest.fn((message: string, signature: string) =>
@@ -63,6 +67,10 @@ function makeService(overrides: {
   const certificate = { issueForUsername: jest.fn().mockResolvedValue('cert-jws') };
   const deviceTracking = { recordLogin: jest.fn().mockResolvedValue({ isNewDevice: false, fingerprint: 'fp' }) };
   const sessionMetadata = { record: jest.fn().mockResolvedValue(undefined), get: jest.fn(), delete: jest.fn() };
+  const chainManifests = {
+    get: jest.fn().mockResolvedValue(overrides.manifest ?? null),
+    put: jest.fn().mockResolvedValue(undefined),
+  };
   const service = new VerifyTimestampService(
     redis as any,
     blockchain as any,
@@ -72,8 +80,9 @@ function makeService(overrides: {
     certificate as any,
     deviceTracking as any,
     sessionMetadata as any,
+    chainManifests as any,
   );
-  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata };
+  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata, chainManifests };
 }
 
 beforeEach(() => {
@@ -238,6 +247,60 @@ describe('VerifyTimestampService.verify', () => {
     const { service } = makeService({ getInfoThrows: true });
     const token = await makeToken(ACCOUNT, 'jti-down');
     const signature = signCanonical(TS, 'jti-down', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.CooposDegraded,
+    });
+  });
+
+  it('живой вход → снимок активных ключей кладётся в chain_manifests_cache (Story 4.5)', async () => {
+    const { service, chainManifests } = makeService({ hasActiveKey: true });
+    const token = await makeToken(ACCOUNT, 'jti-cache');
+    const signature = signCanonical(TS, 'jti-cache', ACCOUNT);
+
+    await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(chainManifests.put).toHaveBeenCalledWith(ACCOUNT, [PUB]);
+  });
+
+  it('getAccount недоступен, ключ есть в кэше → degraded-вход + audit degraded (Story 4.5)', async () => {
+    const { service, audit, blockchain } = makeService({
+      getAccountThrows: true,
+      manifest: { account: ACCOUNT, active_keys: [PUB], cached_at: '2026-06-11T00:00:00.000Z' },
+    });
+    // сверка ключа против псевдо-аккаунта из кэша даёт совпадение только для PUB.
+    blockchain.hasActiveKey.mockImplementation((_acc: unknown, key: string) => key === PUB);
+    const token = await makeToken(ACCOUNT, 'jti-degraded');
+    const signature = signCanonical(TS, 'jti-degraded', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
+    expect(res.degraded).toBe(true);
+    expect(res.degraded_reason).toBe('rpc_unavailable');
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'coopid.auth.degraded', result: 'degraded', context: { reason: 'rpc_unavailable' } }),
+    );
+  });
+
+  it('getAccount недоступен, кэша нет → CooposDegraded (fail-closed, Story 4.5)', async () => {
+    const { service } = makeService({ getAccountThrows: true, manifest: null });
+    const token = await makeToken(ACCOUNT, 'jti-nocache');
+    const signature = signCanonical(TS, 'jti-nocache', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.CooposDegraded,
+    });
+  });
+
+  it('getAccount недоступен, кэш есть, но ключ не совпал → CooposDegraded (Story 4.5)', async () => {
+    const { service, blockchain } = makeService({
+      getAccountThrows: true,
+      manifest: { account: ACCOUNT, active_keys: ['PUB_K1_otherkey'], cached_at: '2026-06-11T00:00:00.000Z' },
+    });
+    blockchain.hasActiveKey.mockReturnValue(false); // кэшированный ключ не совпадает
+    const token = await makeToken(ACCOUNT, 'jti-cachemiss');
+    const signature = signCanonical(TS, 'jti-cachemiss', ACCOUNT);
 
     await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
       code: AuthV2ErrorCode.CooposDegraded,
