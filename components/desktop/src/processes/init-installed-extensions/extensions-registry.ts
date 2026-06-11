@@ -7,6 +7,7 @@ import chatcoopInstall from '../../../extensions/chatcoop/install';
 import participantInstall from '../../../extensions/participant/install';
 import powerupInstall from '../../../extensions/powerup/install';
 import sovietInstall from '../../../extensions/soviet/install';
+import kuInstall from '../../../extensions/ku/install';
 import reportsInstall from '../../../extensions/reports/install';
 
 /**
@@ -20,6 +21,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   participant: participantInstall,
   powerup: powerupInstall,
   soviet: sovietInstall,
+  trustee: kuInstall,
   reports: reportsInstall,
 };
 
