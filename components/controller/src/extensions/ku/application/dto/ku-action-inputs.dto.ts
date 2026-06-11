@@ -13,7 +13,6 @@ import type {
   KuAgendaPointInputDomainInterface,
   KuVoteItemInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
-  SetKuDecisionChairmanInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
@@ -81,6 +80,16 @@ export class CreateKuDecisionInputDTO implements CreateKuDecisionInputDomainInte
   @ValidateNested()
   @Type(() => BranchMeetingProposalSignedDocumentInputDTO)
   proposal!: BranchMeetingProposalSignedDocumentInputDTO;
+
+  @Field(() => String, { description: 'Место проведения собрания (видно только пайщикам кооператива)' })
+  @IsString()
+  @IsNotEmpty()
+  meet_place!: string;
+
+  @Field(() => String, { description: 'Дата и время проведения собрания (ISO)' })
+  @IsString()
+  @IsNotEmpty()
+  meet_at!: string;
 }
 
 @InputType('JoinKuDecisionInput', { description: 'Присоединение пайщика к собранию участка' })
@@ -108,24 +117,6 @@ export class JoinKuDecisionInputDTO implements JoinKuDecisionInputDomainInterfac
   statement!: BranchMeetingJoinStatementSignedDocumentInputDTO;
 }
 
-@InputType('SetKuDecisionChairmanInput', { description: 'Назначение председателя собрания участка' })
-export class SetKuDecisionChairmanInputDTO implements SetKuDecisionChairmanInputDomainInterface {
-  @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsString()
-  @IsNotEmpty()
-  coopname!: string;
-
-  @Field(() => String, { description: 'Хэш решения собрания' })
-  @IsString()
-  @IsNotEmpty()
-  hash!: string;
-
-  @Field(() => String, { description: 'Председатель собрания из числа участников' })
-  @IsString()
-  @IsNotEmpty()
-  chairman!: string;
-}
-
 @InputType('StartKuDecisionInput', { description: 'Открытие голосования на собрании участка' })
 export class StartKuDecisionInputDTO implements StartKuDecisionInputDomainInterface {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -138,19 +129,21 @@ export class StartKuDecisionInputDTO implements StartKuDecisionInputDomainInterf
   @IsNotEmpty()
   hash!: string;
 
+  @Field(() => String, { description: 'Председатель собрания из числа присоединившихся участников' })
+  @IsString()
+  @IsNotEmpty()
+  chairman!: string;
+
   @Field(() => String, { description: 'Адрес привязки кооперативного участка (для учреждения)', defaultValue: '' })
   @IsString()
   address!: string;
 
-  @Field(() => String, { description: 'Дата и время открытия голосования (ISO)' })
+  @Field(() => String, {
+    description: 'Наименование кооперативного участка (видно только пайщикам кооператива)',
+    defaultValue: '',
+  })
   @IsString()
-  @IsNotEmpty()
-  open_at!: string;
-
-  @Field(() => String, { description: 'Дата и время закрытия голосования (ISO)' })
-  @IsString()
-  @IsNotEmpty()
-  close_at!: string;
+  branch_name!: string;
 }
 
 @InputType('KuVoteItemInput', { description: 'Волеизъявление по вопросу повестки собрания участка' })

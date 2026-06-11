@@ -33,9 +33,6 @@ export const Schema: JSONSchemaType<Model> = {
     coop: CooperativeSchema,
     user: CommonUserSchema,
     type: { type: 'string', enum: ['createbranch', 'free'] },
-    braname: { type: 'string', nullable: true },
-    address: { type: 'string', nullable: true },
-    chairman_candidate: { type: 'string', nullable: true },
     questions: {
       type: 'array',
       items: QuestionSchema,

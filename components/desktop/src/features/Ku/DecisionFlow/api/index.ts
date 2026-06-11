@@ -6,7 +6,6 @@ import type {
   ICreateKuDecisionInput,
   IExecKuDecisionInput,
   IJoinKuDecisionInput,
-  ISetKuDecisionChairmanInput,
   IStartKuDecisionInput,
   IVoteOnKuDecisionInput,
 } from '../model/types';
@@ -22,14 +21,6 @@ async function joinDecision(data: IJoinKuDecisionInput) {
   const { [Mutations.Ku.JoinDecision.name]: result } = await client.Mutation(Mutations.Ku.JoinDecision.mutation, {
     variables: { data },
   });
-  return result;
-}
-
-async function setDecisionChairman(data: ISetKuDecisionChairmanInput) {
-  const { [Mutations.Ku.SetDecisionChairman.name]: result } = await client.Mutation(
-    Mutations.Ku.SetDecisionChairman.mutation,
-    { variables: { data } },
-  );
   return result;
 }
 
@@ -71,8 +62,7 @@ async function cancelDecision(data: ICancelKuDecisionInput) {
 export const api = {
   createDecision,
   joinDecision,
-  setDecisionChairman,
-  startDecision,
+    startDecision,
   voteOnDecision,
   closeDecision,
   execDecision,

@@ -67,4 +67,14 @@ export class KuDecisionTypeormEntity extends BaseTypeormEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
+
+  // Приватные данные собрания — только БД, в блокчейн не публикуются
+  @Column({ type: 'varchar', nullable: true })
+  meet_place!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  meet_at!: Date | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  branch_name!: string | null;
 }

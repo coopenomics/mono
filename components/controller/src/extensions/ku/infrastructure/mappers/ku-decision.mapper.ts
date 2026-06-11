@@ -17,6 +17,9 @@ export class KuDecisionMapper {
       status: entity.status,
       _created_at: entity._created_at,
       _updated_at: entity._updated_at,
+      meet_place: entity.meet_place ?? undefined,
+      meet_at: entity.meet_at ?? undefined,
+      branch_name: entity.branch_name ?? undefined,
     };
 
     let blockchainData: IKuDecisionBlockchainData | undefined;
@@ -72,6 +75,9 @@ export class KuDecisionMapper {
       address: domain.address as string,
       participants: domain.participants ?? [],
       created_at: domain.created_at ? new Date(domain.created_at) : undefined,
+      meet_place: domain.meet_place ?? null,
+      meet_at: domain.meet_at ?? null,
+      branch_name: domain.branch_name ?? null,
     };
   }
 
@@ -90,6 +96,9 @@ export class KuDecisionMapper {
     if (domain.signed_ballots !== undefined) updateData.signed_ballots = domain.signed_ballots;
     if (domain.address !== undefined) updateData.address = domain.address;
     if (domain.participants !== undefined) updateData.participants = domain.participants;
+    if (domain.meet_place !== undefined) updateData.meet_place = domain.meet_place;
+    if (domain.meet_at !== undefined) updateData.meet_at = domain.meet_at;
+    if (domain.branch_name !== undefined) updateData.branch_name = domain.branch_name;
 
     return updateData;
   }

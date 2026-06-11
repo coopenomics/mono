@@ -33,8 +33,17 @@ export class KuDecisionDomainEntity
   public participants?: string[];
   public created_at?: string;
 
+  // Приватные данные собрания — только БД, в блокчейн не публикуются
+  public meet_place?: string;
+  public meet_at?: Date;
+  public branch_name?: string;
+
   constructor(databaseData: IKuDecisionDatabaseData, blockchainData?: IKuDecisionBlockchainData) {
     super(databaseData);
+
+    this.meet_place = databaseData.meet_place;
+    this.meet_at = databaseData.meet_at;
+    this.branch_name = databaseData.branch_name;
 
     if (blockchainData) {
       this.updateFromBlockchain(blockchainData, databaseData.block_num ?? 0, databaseData.present);

@@ -1301,9 +1301,6 @@ export const AllTypesProps: Record<string,any> = {
 		kuRequestTrusted:{
 			data:"RequestKuTrustedInput"
 		},
-		kuSetDecisionChairman:{
-			data:"SetKuDecisionChairmanInput"
-		},
 		kuStartDecision:{
 			data:"StartKuDecisionInput"
 		},
@@ -2006,9 +2003,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetConfigInput:{
 		config:"ConfigInput"
-	},
-	SetKuDecisionChairmanInput:{
-
 	},
 	SetMasterInput:{
 
@@ -3590,6 +3584,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorization:"JSON",
 		block_num:"Int",
 		braname:"String",
+		branch_name:"String",
 		chairman:"String",
 		close_at:"String",
 		coopname:"String",
@@ -3597,8 +3592,11 @@ export const ReturnTypes: Record<string,any> = {
 		hash:"String",
 		id:"Int",
 		initiator:"String",
+		meet_at:"String",
+		meet_place:"String",
 		open_at:"String",
 		participants:"String",
+		participants_info:"KuMeetingParticipant",
 		petition:"JSON",
 		present:"Boolean",
 		proposal:"JSON",
@@ -3621,6 +3619,10 @@ export const ReturnTypes: Record<string,any> = {
 		voters_abstained:"String",
 		voters_against:"String",
 		voters_for:"String"
+	},
+	KuMeetingParticipant:{
+		display_name:"String",
+		username:"String"
 	},
 	KuTrustRequest:{
 		application:"JSON",
@@ -3984,7 +3986,6 @@ export const ReturnTypes: Record<string,any> = {
 		kuGenerateTrustedStatement:"GeneratedDocument",
 		kuJoinDecision:"Transaction",
 		kuRequestTrusted:"Transaction",
-		kuSetDecisionChairman:"Transaction",
 		kuStartDecision:"Transaction",
 		kuVoteOnDecision:"Transaction",
 		login:"RegisteredAccount",

@@ -5,7 +5,7 @@
  * @param coopname Наименование кооператива
  * @param hash Якорь процесса (внешний идентификатор решения)
  * @param type Тип решения: "free" | "createbranch"
- * @param initiator Инициатор собрания (он же председатель по умолчанию)
+ * @param initiator Организатор собрания
  * @param proposal Подписанное предложение/повестка
  * @param braname Заранее сгенерированный аккаунт будущего КУ (для "createbranch", иначе пустое)
  * @param agenda Вопросы повестки дня
@@ -42,12 +42,12 @@
     d.coopname = coopname;
     d.type = type;
     d.initiator = initiator;
-    d.chairman = initiator;  // по умолчанию председатель — инициатор
+    d.chairman = ""_n;  // председатель выбирается организатором из участников при открытии голосования
     d.status = "opened"_n;
     d.proposal = proposal;
     d.signed_ballots = 0;
     d.braname = braname;
-    d.participants = {initiator};  // инициатор сразу участник
+    d.participants = {initiator};  // организатор сразу участник
     d.created_at = current_time_point();
   });
 

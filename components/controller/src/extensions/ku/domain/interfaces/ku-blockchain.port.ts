@@ -8,7 +8,6 @@ import type {
   ExecKuDecisionInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
-  SetKuDecisionChairmanInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from './ku-action-inputs.interface';
@@ -25,7 +24,6 @@ export interface KuBlockchainPort {
   joinDecision(data: JoinKuDecisionInputDomainInterface): Promise<TransactResult>;
 
   /** Назначение председателя собрания */
-  setDecisionChairman(data: SetKuDecisionChairmanInputDomainInterface): Promise<TransactResult>;
 
   /** Открытие голосования */
   startDecision(data: StartKuDecisionInputDomainInterface): Promise<TransactResult>;

@@ -67,8 +67,7 @@ public:
   // Универсальный механизм «собрание → решение» (L1)
   [[eosio::action]] void createdec(eosio::name coopname, eosio::checksum256 hash, eosio::name type, eosio::name initiator, document2 proposal, eosio::name braname, std::vector<decision_point> agenda);
   [[eosio::action]] void joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 statement);
-  [[eosio::action]] void setchair(eosio::name coopname, eosio::checksum256 hash, eosio::name chairman);
-  [[eosio::action]] void startdec(eosio::name coopname, eosio::checksum256 hash, std::string address, eosio::time_point_sec open_at, eosio::time_point_sec close_at);
+  [[eosio::action]] void startdec(eosio::name coopname, eosio::checksum256 hash, eosio::name chairman, std::string address);
   [[eosio::action]] void votedec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 ballot, std::vector<decision_vote_point> votes);
   [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
 

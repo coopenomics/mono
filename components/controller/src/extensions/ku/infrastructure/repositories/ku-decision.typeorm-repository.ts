@@ -11,6 +11,7 @@ import type {
 import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import type {
   KuDecisionFilterDomainInterface,
+  KuDecisionPrivateDataDomainInterface,
   KuDecisionRepository,
 } from '../../domain/repositories/ku-decision.repository';
 import { KuDecisionDomainEntity } from '../../domain/entities/ku-decision.entity';
@@ -55,6 +56,33 @@ export class KuDecisionTypeormRepository
   async findByHash(hash: string): Promise<KuDecisionDomainEntity | null> {
     const entity = await this.repository.findOne({ where: { hash: hash.toLowerCase() } });
     return entity ? KuDecisionMapper.toDomain(entity) : null;
+  }
+
+  async upsertPrivateData(data: KuDecisionPrivateDataDomainInterface): Promise<void> {
+    const hash = data.hash.toLowerCase();
+    const existing = await this.repository.findOne({ where: { hash } });
+
+    const privateFields: Partial<KuDecisionTypeormEntity> = {};
+    if (data.meet_place !== undefined) privateFields.meet_place = data.meet_place;
+    if (data.meet_at !== undefined) privateFields.meet_at = data.meet_at;
+    if (data.branch_name !== undefined) privateFields.branch_name = data.branch_name;
+
+    if (existing) {
+      await this.repository.update(existing._id, privateFields);
+      return;
+    }
+
+    // Запись из синка ещё не пришла — создаём placeholder, который синк дополнит
+    await this.repository.save(
+      this.repository.create({
+        hash,
+        coopname: data.coopname ?? '',
+        type: data.type ?? '',
+        initiator: data.initiator ?? '',
+        present: false,
+        ...privateFields,
+      })
+    );
   }
 
   async update(entity: KuDecisionDomainEntity): Promise<KuDecisionDomainEntity> {

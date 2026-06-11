@@ -46,35 +46,32 @@
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseCard(title='Собрание')
-          DataRow(label='Адрес участка', :value='decision.address || "—"')
-          DataRow(label='Инициатор', :value='decision.initiator || "—"')
-          DataRow(label='Председатель собрания', :value='decision.chairman || "—"')
-          DataRow(label='Открытие голосования', :value='formatDate(decision.open_at)')
-          DataRow(label='Закрытие голосования', :value='formatDate(decision.close_at)')
-          DataRow(label='Бюллетеней подано', :value='String(decision.signed_ballots ?? 0)')
+          DataRow(label='Место собрания', :value='decision.meet_place || "—"')
+          DataRow(label='Время собрания', :value='formatDate(decision.meet_at)')
+          DataRow(label='Организатор', :value='organizerName')
+          DataRow(
+            v-if='isVotingStarted',
+            label='Наименование участка',
+            :value='decision.branch_name || "—"'
+          )
+          DataRow(v-if='isVotingStarted', label='Адрес участка', :value='decision.address || "—"')
+          DataRow(v-if='isVotingStarted', label='Председатель собрания', :value='chairmanName')
+          DataRow(
+            v-if='isVotingWindow',
+            label='Голосование открыто до',
+            :value='formatDate(decision.close_at)'
+          )
+          DataRow(v-if='isVotingStarted', label='Бюллетеней подано', :value='String(decision.signed_ballots ?? 0)')
 
       .col-12.col-md-6
         BaseCard(title='Участники собрания')
-          template(v-if='participants.length')
+          template(v-if='participantsInfo.length')
             .row.q-gutter-xs.q-pa-sm
               BaseBadge(
-                v-for='participant in participants',
-                :key='participant',
-                :variant='participant === decision.chairman ? "pos" : "neutral"'
-              ) {{ participant }}{{ participant === decision.chairman ? ' (председатель)' : '' }}
-            .q-pa-sm(v-if='canSetChairman')
-              BaseSelect(
-                v-model='chairmanCandidate',
-                label='Назначить председателя собрания',
-                :options='participantOptions'
-              )
-              BaseButton.q-mt-sm(
-                variant='secondary',
-                size='sm',
-                :disabled='!chairmanCandidate',
-                :loading='isSubmitting',
-                @click='onSetChairman'
-              ) Назначить
+                v-for='participant in participantsInfo',
+                :key='participant.username',
+                :variant='participant.username === decision.chairman ? "pos" : "neutral"'
+              ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель)' : '' }}
           EmptyState(v-else, title='Пока никто не присоединился')
 
     //- Повестка и голосование
@@ -118,15 +115,34 @@
 
   EmptyState(v-else, title='Собрание не найдено')
 
-//- Открытие голосования
-BaseDialog(v-model='isStartOpen', title='Открыть голосование', size='sm')
+//- Открытие голосования: организатор фиксирует решения собрания —
+//- наименование/адрес участка и председателя из числа участников
+BaseDialog(v-model='isStartOpen', title='Открыть голосование', size='md')
   BaseForm(@submit='onStart')
-    BaseInput(v-model='startForm.address', label='Адрес привязки участка', required)
-    BaseInput(v-model='startForm.openAt', label='Открытие', type='date', required)
-    BaseInput(v-model='startForm.closeAt', label='Закрытие', type='date', required)
+    BaseInput(
+      v-model='startForm.branchName',
+      label='Наименование кооперативного участка',
+      placeholder='например: РОМАШКА',
+      required
+    )
+    BaseInput(
+      v-model='startForm.address',
+      label='Адрес привязки участка',
+      placeholder='город, улица, дом',
+      required
+    )
+    BaseSelect(
+      v-model='startForm.chairman',
+      label='Председатель собрания',
+      :options='participantOptions',
+      hint='Из числа присоединившихся участников; станет председателем участка',
+      required
+    )
+    .t-sm.t-muted.q-mt-sm
+      | Голосование продлится 15 минут. Участники собрания получат уведомление.
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isStartOpen = false') Отменить
-      BaseButton(variant='primary', type='submit', :loading='isSubmitting') Открыть
+      BaseButton(variant='primary', type='submit', :disabled='!startForm.chairman', :loading='isSubmitting') Открыть
 
 //- Отмена собрания
 BaseDialog(v-model='isCancelOpen', title='Отменить собрание', size='sm')
@@ -172,9 +188,8 @@ const loading = ref(true);
 const isStartOpen = ref(false);
 const isCancelOpen = ref(false);
 const cancelReason = ref('');
-const chairmanCandidate = ref<string | null>(null);
 const votes = ref<Record<number, KuVote>>({});
-const startForm = ref({ address: '', openAt: '', closeAt: '' });
+const startForm = ref({ branchName: '', address: '', chairman: '' });
 
 const hash = computed(() => String(route.params.hash));
 const decision = computed(() => kuStore.currentDecision);
@@ -183,13 +198,31 @@ const isSubmitting = computed(() => flow.isSubmitting.value);
 const skeletonColumns: TableSkeletonColumn[] = [{ label: 'Параметр' }, { label: 'Значение' }];
 
 const participants = computed(() => decision.value?.participants ?? []);
+
+// Участники с отображаемыми именами (ФИО) — пайщики выбираются по имени, не по username
+const participantsInfo = computed(
+  () =>
+    (decision.value?.participants_info ?? []).filter(Boolean) as { username: string; display_name: string }[],
+);
+
+function displayName(username?: string | null): string {
+  if (!username) return '—';
+  return participantsInfo.value.find((participant) => participant.username === username)?.display_name ?? username;
+}
+
+const organizerName = computed(() => displayName(decision.value?.initiator));
+const chairmanName = computed(() => displayName(decision.value?.chairman));
+
 // id вопроса нормализуем в number: голоса индексируются по нему
 const questions = computed(() =>
   (decision.value?.questions ?? []).map((question) => ({ ...question, id: Number(question.id ?? 0) })),
 );
 
 const participantOptions = computed(() =>
-  participants.value.map((participant) => ({ label: participant, value: participant })),
+  participantsInfo.value.map((participant) => ({
+    label: participant.display_name,
+    value: participant.username,
+  })),
 );
 
 const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
@@ -211,9 +244,12 @@ const isInitiator = computed(() => decision.value?.initiator === session.usernam
 const isChairman = computed(() => decision.value?.chairman === session.username);
 const isLive = computed(() => decision.value?.present !== false);
 
+const isVotingWindow = computed(() => status.value === Zeus.KuDecisionStatus.VOTING);
+const isVotingStarted = computed(() => !!status.value && status.value !== Zeus.KuDecisionStatus.OPENED);
+
 const canJoin = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && !isParticipant.value);
-const canSetChairman = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isInitiator.value);
-const canStart = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isChairman.value);
+// Голосование открывает организатор собрания, назначая председателя из участников
+const canStart = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isInitiator.value);
 const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isChairman.value);
 const canExec = computed(
   () =>
@@ -289,14 +325,6 @@ const onJoin = () =>
     'Вы присоединились к собранию',
     (d) => (d.participants ?? []).includes(session.username),
   );
-const onSetChairman = () => {
-  const candidate = chairmanCandidate.value as string;
-  return withReload(
-    () => flow.setChairman(decision.value!, candidate),
-    'Председатель собрания назначен',
-    (d) => d.chairman === candidate,
-  );
-};
 const onClose = () =>
   withReload(
     () => flow.closeDecision(decision.value!),
@@ -323,9 +351,9 @@ async function onStart() {
   await withReload(
     () =>
       flow.startDecision(decision.value!, {
+        chairman: startForm.value.chairman,
         address: startForm.value.address,
-        openAt: new Date(startForm.value.openAt).toISOString(),
-        closeAt: new Date(`${startForm.value.closeAt}T23:59:59`).toISOString(),
+        branchName: startForm.value.branchName,
       }),
     'Голосование открыто',
     (d) => d.status === Zeus.KuDecisionStatus.VOTING,
@@ -350,7 +378,10 @@ onMounted(async () => {
     const loaded = decision.value;
     if (loaded) {
       startForm.value.address = loaded.address || '';
-      desktop.setPageTitleOverride(`Собрание: ${loaded.address || loaded.hash.slice(0, 8)}`);
+      startForm.value.branchName = loaded.branch_name || '';
+      desktop.setPageTitleOverride(
+        `Собрание: ${loaded.branch_name || loaded.meet_place || loaded.hash.slice(0, 8)}`,
+      );
     }
   } finally {
     loading.value = false;

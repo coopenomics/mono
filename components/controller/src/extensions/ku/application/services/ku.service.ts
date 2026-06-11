@@ -8,6 +8,7 @@ import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
+import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { PaginationResult } from '~/application/common/dto/pagination.dto';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
@@ -34,7 +35,6 @@ import type {
   ExecKuDecisionInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
-  SetKuDecisionChairmanInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
@@ -54,6 +54,7 @@ export class KuService {
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
+    @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     private readonly documentDomainService: DocumentDomainService
   ) {}
 
@@ -115,6 +116,18 @@ export class KuService {
   ): Promise<TransactionDTO> {
     this.assertSameUser(currentUser, data.initiator);
     const result = await this.kuBlockchainPort.createDecision(data);
+
+    // Место и время проведения собрания — приватные данные пайщиков,
+    // в блокчейн не публикуются и сохраняются только в БД платформы
+    await this.decisionRepository.upsertPrivateData({
+      hash: data.hash,
+      coopname: data.coopname,
+      type: data.type,
+      initiator: data.initiator,
+      meet_place: data.meet_place,
+      meet_at: new Date(data.meet_at),
+    });
+
     return result as unknown as TransactionDTO;
   }
 
@@ -127,20 +140,28 @@ export class KuService {
     return result as unknown as TransactionDTO;
   }
 
-  async setDecisionChairman(
-    data: SetKuDecisionChairmanInputDomainInterface,
-    currentUser: MonoAccountDomainInterface
-  ): Promise<TransactionDTO> {
-    await this.assertIsDecisionInitiator(currentUser, data.hash);
-    const result = await this.kuBlockchainPort.setDecisionChairman(data);
-    return result as unknown as TransactionDTO;
-  }
-
   async startDecision(
     data: StartKuDecisionInputDomainInterface,
     currentUser: MonoAccountDomainInterface
   ): Promise<TransactionDTO> {
-    await this.assertIsDecisionChairman(currentUser, data.hash);
+    // Голосование открывает организатор собрания, назначая председателя
+    // из числа присоединившихся участников
+    await this.assertIsDecisionInitiator(currentUser, data.hash);
+
+    const decision = await this.getDecisionOrFail(data.hash);
+    if (!(decision.participants ?? []).includes(data.chairman)) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Председатель должен быть участником собрания');
+    }
+    if (decision.type === 'createbranch' && !data.branch_name) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите наименование кооперативного участка');
+    }
+
+    // Наименование участка — приватные данные, в блокчейн не публикуются
+    await this.decisionRepository.upsertPrivateData({
+      hash: data.hash,
+      branch_name: data.branch_name,
+    });
+
     const result = await this.kuBlockchainPort.startDecision(data);
     return result as unknown as TransactionDTO;
   }
@@ -299,9 +320,26 @@ export class KuService {
       address: entity.address,
       participants: entity.participants,
       created_at: entity.created_at,
+      meet_place: entity.meet_place,
+      meet_at: entity.meet_at?.toISOString(),
+      branch_name: entity.branch_name,
       questions: questions?.map((question) => this.toQuestionDTO(question)),
       block_num: entity.block_num,
     };
+  }
+
+  /** Отображаемые имена участников собрания (для выбора председателя по ФИО) */
+  private async resolveParticipantsInfo(participants: string[]): Promise<{ username: string; display_name: string }[]> {
+    return Promise.all(
+      participants.map(async (username) => {
+        try {
+          const display_name = await this.accountPort.getDisplayName(username);
+          return { username, display_name: display_name || username };
+        } catch {
+          return { username, display_name: username };
+        }
+      })
+    );
   }
 
   private toQuestionDTO(entity: KuDecisionQuestionDomainEntity): KuDecisionQuestionDTO {
@@ -354,7 +392,9 @@ export class KuService {
       questions = await this.questionRepository.findByDecisionId(decision.coopname, decision.id);
     }
 
-    return this.toDecisionDTO(decision, questions);
+    const dto = this.toDecisionDTO(decision, questions);
+    dto.participants_info = await this.resolveParticipantsInfo(decision.participants ?? []);
+    return dto;
   }
 
   async getTrustRequests(

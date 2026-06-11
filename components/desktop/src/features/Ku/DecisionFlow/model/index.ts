@@ -25,14 +25,16 @@ export function useKuDecisionFlow() {
 
   /**
    * Объявить собрание: предложение повестки (320) + createdec.
-   * Председатель собрания (и кандидат в председатели КУ) выбирается позже,
-   * в процессе собрания из присоединившихся участников — в документе повестки
-   * кандидат не указывается; braname — служебный аккаунт, в документ не выводится.
+   * Председатель собрания и адрес/наименование участка определяются позже,
+   * на собрании при открытии голосования. Место и время проведения собрания —
+   * приватные данные пайщиков: уходят в БД платформы, в подписываемый документ
+   * (он публикуется в блокчейне) не входят; braname — служебный аккаунт.
    */
   async function createDecision(input: {
     type: 'createbranch' | 'free';
     braname: string;
-    address: string;
+    meetPlace: string;
+    meetAt: string;
     agenda: IKuAgendaPointDraft[];
   }): Promise<string> {
     isSubmitting.value = true;
@@ -46,7 +48,6 @@ export function useKuDecisionFlow() {
         username: session.username,
         type: input.type,
         hash,
-        address: input.address || undefined,
         questions: input.agenda.map((point, index) => ({
           number: String(index + 1),
           title: point.title,
@@ -65,6 +66,8 @@ export function useKuDecisionFlow() {
         braname: input.braname,
         agenda: input.agenda,
         proposal,
+        meet_place: input.meetPlace,
+        meet_at: input.meetAt,
       });
 
       return hash;
@@ -101,30 +104,23 @@ export function useKuDecisionFlow() {
     }
   }
 
-  /** Назначить председателя собрания (без документа) */
-  async function setChairman(decision: IKuDecision, chairman: string): Promise<void> {
-    isSubmitting.value = true;
-    try {
-      await api.setDecisionChairman({
-        coopname: system.info.coopname,
-        hash: decision.hash,
-        chairman,
-      });
-    } finally {
-      isSubmitting.value = false;
-    }
-  }
-
-  /** Открыть голосование (без документа) */
-  async function startDecision(decision: IKuDecision, input: { address: string; openAt: string; closeAt: string }): Promise<void> {
+  /**
+   * Открыть голосование (без документа): организатор назначает председателя
+   * из участников собрания и фиксирует адрес/наименование участка, определённые
+   * собранием. Окно голосования отмеряет контракт (15 минут).
+   */
+  async function startDecision(
+    decision: IKuDecision,
+    input: { chairman: string; address: string; branchName: string },
+  ): Promise<void> {
     isSubmitting.value = true;
     try {
       await api.startDecision({
         coopname: system.info.coopname,
         hash: decision.hash,
+        chairman: input.chairman,
         address: input.address,
-        open_at: input.openAt,
-        close_at: input.closeAt,
+        branch_name: input.branchName,
       });
     } finally {
       isSubmitting.value = false;
@@ -193,7 +189,11 @@ export function useKuDecisionFlow() {
         username: session.username,
         hash: decision.hash,
         protocol_number: String(decision.id ?? decision.hash.slice(0, 8)),
-        chairman_full_name: decision.chairman ?? session.username,
+        chairman_full_name:
+          decision.participants_info?.find((participant) => participant?.username === decision.chairman)
+            ?.display_name ??
+          decision.chairman ??
+          session.username,
         open_at_datetime: formatDateTime(decision.open_at),
         close_at_datetime: formatDateTime(decision.close_at),
         current_quorum_percent: quorumPercent,
@@ -283,7 +283,6 @@ export function useKuDecisionFlow() {
     isSubmitting,
     createDecision,
     joinDecision,
-    setChairman,
     startDecision,
     voteOnDecision,
     closeDecision,

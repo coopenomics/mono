@@ -19,6 +19,10 @@ export interface CreateKuDecisionInputDomainInterface {
   braname: string;
   agenda: KuAgendaPointInputDomainInterface[];
   proposal: ISignedDocumentDomainInterface;
+  /** Место проведения собрания — приватные данные пайщиков, хранятся только в БД */
+  meet_place: string;
+  /** Время проведения собрания — приватные данные пайщиков, хранятся только в БД */
+  meet_at: string;
 }
 
 export interface JoinKuDecisionInputDomainInterface {
@@ -28,18 +32,15 @@ export interface JoinKuDecisionInputDomainInterface {
   statement: ISignedDocumentDomainInterface;
 }
 
-export interface SetKuDecisionChairmanInputDomainInterface {
-  coopname: string;
-  hash: string;
-  chairman: string;
-}
-
 export interface StartKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
+  /** Председатель собрания — выбирается организатором из присоединившихся участников */
+  chairman: string;
+  /** Адрес привязки кооперативного участка, определённый собранием */
   address: string;
-  open_at: string;
-  close_at: string;
+  /** Человекочитаемое наименование участка («РОМАШКА») — в блокчейн не публикуется */
+  branch_name: string;
 }
 
 export interface KuVoteItemInputDomainInterface {

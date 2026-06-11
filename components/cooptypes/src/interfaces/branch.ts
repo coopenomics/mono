@@ -178,12 +178,6 @@ export interface IReqtrusted {
   application: IDocument2
 }
 
-export interface ISetchair {
-  coopname: IName
-  hash: IChecksum256
-  chairman: IName
-}
-
 export interface ISignatureInfo {
   id: IUint32
   signed_hash: IChecksum256
@@ -197,9 +191,8 @@ export interface ISignatureInfo {
 export interface IStartdec {
   coopname: IName
   hash: IChecksum256
+  chairman: IName
   address: string
-  open_at: ITimePointSec
-  close_at: ITimePointSec
 }
 
 export interface ITrustreq {

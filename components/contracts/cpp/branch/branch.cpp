@@ -7,7 +7,6 @@
 #include "src/editbranch.cpp"
 #include "src/createdec.cpp"
 #include "src/joindec.cpp"
-#include "src/setchair.cpp"
 #include "src/startdec.cpp"
 #include "src/votedec.cpp"
 #include "src/closedec.cpp"

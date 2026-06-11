@@ -2,7 +2,6 @@ import type { Mutations } from '@coopenomics/sdk';
 
 export type ICreateKuDecisionInput = Mutations.Ku.CreateDecision.IInput['data'];
 export type IJoinKuDecisionInput = Mutations.Ku.JoinDecision.IInput['data'];
-export type ISetKuDecisionChairmanInput = Mutations.Ku.SetDecisionChairman.IInput['data'];
 export type IStartKuDecisionInput = Mutations.Ku.StartDecision.IInput['data'];
 export type IVoteOnKuDecisionInput = Mutations.Ku.VoteOnDecision.IInput['data'];
 export type ICloseKuDecisionInput = Mutations.Ku.CloseDecision.IInput['data'];

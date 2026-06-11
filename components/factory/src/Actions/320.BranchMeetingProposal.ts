@@ -30,9 +30,6 @@ export class Factory extends DocFactory<BranchMeetingProposal.Action> {
       vars,
       user,
       type: data.type,
-      braname: data.braname,
-      address: data.address,
-      chairman_candidate: data.chairman_candidate,
       questions: data.questions,
     }
 

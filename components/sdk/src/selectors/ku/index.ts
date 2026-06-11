@@ -23,6 +23,17 @@ const _validateQuestion: MakeAllFieldsRequired<ValueTypes['KuDecisionQuestion']>
 export type kuDecisionQuestionModel = ModelTypes['KuDecisionQuestion']
 export const kuDecisionQuestionSelector = Selector('KuDecisionQuestion')(rawKuDecisionQuestionSelector)
 
+// Участник собрания с отображаемым именем (для выбора председателя по ФИО)
+export const rawKuMeetingParticipantSelector = {
+  username: true,
+  display_name: true,
+}
+
+const _validateParticipant: MakeAllFieldsRequired<ValueTypes['KuMeetingParticipant']> =
+  rawKuMeetingParticipantSelector
+
+export type kuMeetingParticipantModel = ModelTypes['KuMeetingParticipant']
+
 // Решение собрания пайщиков кооперативного участка
 export const rawKuDecisionSelector = {
   hash: true,
@@ -43,7 +54,11 @@ export const rawKuDecisionSelector = {
   braname: true,
   address: true,
   participants: true,
+  participants_info: rawKuMeetingParticipantSelector,
   created_at: true,
+  meet_place: true,
+  meet_at: true,
+  branch_name: true,
   questions: rawKuDecisionQuestionSelector,
   block_num: true,
 }

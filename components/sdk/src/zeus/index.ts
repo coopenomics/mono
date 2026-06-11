@@ -5073,6 +5073,10 @@ export type ValueTypes = {
 	hash: string | Variable<any, string>,
 	/** Инициатор собрания */
 	initiator: string | Variable<any, string>,
+	/** Дата и время проведения собрания (ISO) */
+	meet_at: string | Variable<any, string>,
+	/** Место проведения собрания (видно только пайщикам кооператива) */
+	meet_place: string | Variable<any, string>,
 	/** Подписанное предложение повестки */
 	proposal: ValueTypes["BranchMeetingProposalSignedDocumentInput"] | Variable<any, string>,
 	/** Тип решения собрания */
@@ -6691,8 +6695,10 @@ export type ValueTypes = {
 	authorization?:boolean | `@${string}`,
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
-	/** Наименование кооперативного участка */
+	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (видно только пайщикам) */
+	branch_name?:boolean | `@${string}`,
 	/** Председатель собрания */
 	chairman?:boolean | `@${string}`,
 	/** Дата и время закрытия голосования */
@@ -6707,10 +6713,16 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Инициатор собрания */
 	initiator?:boolean | `@${string}`,
+	/** Дата и время проведения собрания (видно только пайщикам) */
+	meet_at?:boolean | `@${string}`,
+	/** Место проведения собрания (видно только пайщикам) */
+	meet_place?:boolean | `@${string}`,
 	/** Дата и время открытия голосования */
 	open_at?:boolean | `@${string}`,
 	/** Участники собрания */
 	participants?:boolean | `@${string}`,
+	/** Участники собрания с отображаемыми именами */
+	participants_info?:ValueTypes["KuMeetingParticipant"],
 	/** Заявление председателя в совет */
 	petition?:boolean | `@${string}`,
 	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
@@ -6778,6 +6790,15 @@ export type ValueTypes = {
 ["KuDecisionStatus"]:KuDecisionStatus;
 	/** Тип решения собрания пайщиков кооперативного участка */
 ["KuDecisionType"]:KuDecisionType;
+	/** Участник собрания пайщиков кооперативного участка */
+["KuMeetingParticipant"]: AliasType<{
+	/** Отображаемое имя участника (ФИО) */
+	display_name?:boolean | `@${string}`,
+	/** Имя аккаунта участника */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on KuMeetingParticipant']?: Omit<ValueTypes["KuMeetingParticipant"], "...on KuMeetingParticipant">
+}>;
 	/** Вопрос протокола с результатами голосования */
 ["KuProtocolQuestionInput"]: {
 	/** Дополнительная информация */
@@ -7429,7 +7450,6 @@ kuGenerateMeetingProposal?: [{	data: ValueTypes["BranchMeetingProposalGenerateDo
 kuGenerateTrustedStatement?: [{	data: ValueTypes["BranchTrustedStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuJoinDecision?: [{	data: ValueTypes["JoinKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuRequestTrusted?: [{	data: ValueTypes["RequestKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-kuSetDecisionChairman?: [{	data: ValueTypes["SetKuDecisionChairmanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuStartDecision?: [{	data: ValueTypes["StartKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuVoteOnDecision?: [{	data: ValueTypes["VoteOnKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 login?: [{	data: ValueTypes["LoginInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
@@ -9780,15 +9800,6 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
 };
-	/** Назначение председателя собрания участка */
-["SetKuDecisionChairmanInput"]: {
-	/** Председатель собрания из числа участников */
-	chairman: string | Variable<any, string>,
-	/** Имя аккаунта кооператива */
-	coopname: string | Variable<any, string>,
-	/** Хэш решения собрания */
-	hash: string | Variable<any, string>
-};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -9995,14 +10006,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string | Variable<any, string>,
-	/** Дата и время закрытия голосования (ISO) */
-	close_at: string | Variable<any, string>,
+	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
+	branch_name: string | Variable<any, string>,
+	/** Председатель собрания из числа присоединившихся участников */
+	chairman: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Хэш решения собрания */
-	hash: string | Variable<any, string>,
-	/** Дата и время открытия голосования (ISO) */
-	open_at: string | Variable<any, string>
+	hash: string | Variable<any, string>
 };
 	["StartProcessInput"]: {
 	project_hash: string | Variable<any, string>,
@@ -14536,6 +14547,10 @@ export type ResolverInputTypes = {
 	hash: string,
 	/** Инициатор собрания */
 	initiator: string,
+	/** Дата и время проведения собрания (ISO) */
+	meet_at: string,
+	/** Место проведения собрания (видно только пайщикам кооператива) */
+	meet_place: string,
 	/** Подписанное предложение повестки */
 	proposal: ResolverInputTypes["BranchMeetingProposalSignedDocumentInput"],
 	/** Тип решения собрания */
@@ -16118,8 +16133,10 @@ export type ResolverInputTypes = {
 	authorization?:boolean | `@${string}`,
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
-	/** Наименование кооперативного участка */
+	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?:boolean | `@${string}`,
+	/** Наименование кооперативного участка (видно только пайщикам) */
+	branch_name?:boolean | `@${string}`,
 	/** Председатель собрания */
 	chairman?:boolean | `@${string}`,
 	/** Дата и время закрытия голосования */
@@ -16134,10 +16151,16 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Инициатор собрания */
 	initiator?:boolean | `@${string}`,
+	/** Дата и время проведения собрания (видно только пайщикам) */
+	meet_at?:boolean | `@${string}`,
+	/** Место проведения собрания (видно только пайщикам) */
+	meet_place?:boolean | `@${string}`,
 	/** Дата и время открытия голосования */
 	open_at?:boolean | `@${string}`,
 	/** Участники собрания */
 	participants?:boolean | `@${string}`,
+	/** Участники собрания с отображаемыми именами */
+	participants_info?:ResolverInputTypes["KuMeetingParticipant"],
 	/** Заявление председателя в совет */
 	petition?:boolean | `@${string}`,
 	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
@@ -16203,6 +16226,14 @@ export type ResolverInputTypes = {
 ["KuDecisionStatus"]:KuDecisionStatus;
 	/** Тип решения собрания пайщиков кооперативного участка */
 ["KuDecisionType"]:KuDecisionType;
+	/** Участник собрания пайщиков кооперативного участка */
+["KuMeetingParticipant"]: AliasType<{
+	/** Отображаемое имя участника (ФИО) */
+	display_name?:boolean | `@${string}`,
+	/** Имя аккаунта участника */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Вопрос протокола с результатами голосования */
 ["KuProtocolQuestionInput"]: {
 	/** Дополнительная информация */
@@ -16834,7 +16865,6 @@ kuGenerateMeetingProposal?: [{	data: ResolverInputTypes["BranchMeetingProposalGe
 kuGenerateTrustedStatement?: [{	data: ResolverInputTypes["BranchTrustedStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuJoinDecision?: [{	data: ResolverInputTypes["JoinKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 kuRequestTrusted?: [{	data: ResolverInputTypes["RequestKuTrustedInput"]},ResolverInputTypes["Transaction"]],
-kuSetDecisionChairman?: [{	data: ResolverInputTypes["SetKuDecisionChairmanInput"]},ResolverInputTypes["Transaction"]],
 kuStartDecision?: [{	data: ResolverInputTypes["StartKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 kuVoteOnDecision?: [{	data: ResolverInputTypes["VoteOnKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 login?: [{	data: ResolverInputTypes["LoginInput"]},ResolverInputTypes["RegisteredAccount"]],
@@ -19100,15 +19130,6 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
-	/** Назначение председателя собрания участка */
-["SetKuDecisionChairmanInput"]: {
-	/** Председатель собрания из числа участников */
-	chairman: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Хэш решения собрания */
-	hash: string
-};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -19310,14 +19331,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
-	/** Дата и время закрытия голосования (ISO) */
-	close_at: string,
+	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
+	branch_name: string,
+	/** Председатель собрания из числа присоединившихся участников */
+	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Дата и время открытия голосования (ISO) */
-	open_at: string
+	hash: string
 };
 	["StartProcessInput"]: {
 	project_hash: string,
@@ -23747,6 +23768,10 @@ export type ModelTypes = {
 	hash: string,
 	/** Инициатор собрания */
 	initiator: string,
+	/** Дата и время проведения собрания (ISO) */
+	meet_at: string,
+	/** Место проведения собрания (видно только пайщикам кооператива) */
+	meet_place: string,
 	/** Подписанное предложение повестки */
 	proposal: ModelTypes["BranchMeetingProposalSignedDocumentInput"],
 	/** Тип решения собрания */
@@ -25284,8 +25309,10 @@ export type ModelTypes = {
 	authorization?: ModelTypes["JSON"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
+	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?: string | undefined | null,
+	/** Наименование кооперативного участка (видно только пайщикам) */
+	branch_name?: string | undefined | null,
 	/** Председатель собрания */
 	chairman?: string | undefined | null,
 	/** Дата и время закрытия голосования */
@@ -25300,10 +25327,16 @@ export type ModelTypes = {
 	id?: number | undefined | null,
 	/** Инициатор собрания */
 	initiator?: string | undefined | null,
+	/** Дата и время проведения собрания (видно только пайщикам) */
+	meet_at?: string | undefined | null,
+	/** Место проведения собрания (видно только пайщикам) */
+	meet_place?: string | undefined | null,
 	/** Дата и время открытия голосования */
 	open_at?: string | undefined | null,
 	/** Участники собрания */
 	participants?: Array<string> | undefined | null,
+	/** Участники собрания с отображаемыми именами */
+	participants_info?: Array<ModelTypes["KuMeetingParticipant"]> | undefined | null,
 	/** Заявление председателя в совет */
 	petition?: ModelTypes["JSON"] | undefined | null,
 	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
@@ -25365,6 +25398,13 @@ export type ModelTypes = {
 };
 	["KuDecisionStatus"]:KuDecisionStatus;
 	["KuDecisionType"]:KuDecisionType;
+	/** Участник собрания пайщиков кооперативного участка */
+["KuMeetingParticipant"]: {
+		/** Отображаемое имя участника (ФИО) */
+	display_name: string,
+	/** Имя аккаунта участника */
+	username: string
+};
 	/** Вопрос протокола с результатами голосования */
 ["KuProtocolQuestionInput"]: {
 	/** Дополнительная информация */
@@ -26425,10 +26465,6 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuRequestTrusted: ModelTypes["Transaction"],
-	/** Назначить председателя собрания из числа участников
-
-Требуемые роли: user, member, chairman.  */
-	kuSetDecisionChairman: ModelTypes["Transaction"],
 	/** Открыть голосование на собрании пайщиков участка
 
 Требуемые роли: user, member, chairman.  */
@@ -28895,15 +28931,6 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
-	/** Назначение председателя собрания участка */
-["SetKuDecisionChairmanInput"]: {
-	/** Председатель собрания из числа участников */
-	chairman: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Хэш решения собрания */
-	hash: string
-};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -29100,14 +29127,14 @@ export type ModelTypes = {
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
-	/** Дата и время закрытия голосования (ISO) */
-	close_at: string,
+	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
+	branch_name: string,
+	/** Председатель собрания из числа присоединившихся участников */
+	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Дата и время открытия голосования (ISO) */
-	open_at: string
+	hash: string
 };
 	["StartProcessInput"]: {
 	project_hash: string,
@@ -33686,6 +33713,10 @@ export type GraphQLTypes = {
 	hash: string,
 	/** Инициатор собрания */
 	initiator: string,
+	/** Дата и время проведения собрания (ISO) */
+	meet_at: string,
+	/** Место проведения собрания (видно только пайщикам кооператива) */
+	meet_place: string,
 	/** Подписанное предложение повестки */
 	proposal: GraphQLTypes["BranchMeetingProposalSignedDocumentInput"],
 	/** Тип решения собрания */
@@ -35305,8 +35336,10 @@ export type GraphQLTypes = {
 	authorization?: GraphQLTypes["JSON"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
+	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?: string | undefined | null,
+	/** Наименование кооперативного участка (видно только пайщикам) */
+	branch_name?: string | undefined | null,
 	/** Председатель собрания */
 	chairman?: string | undefined | null,
 	/** Дата и время закрытия голосования */
@@ -35321,10 +35354,16 @@ export type GraphQLTypes = {
 	id?: number | undefined | null,
 	/** Инициатор собрания */
 	initiator?: string | undefined | null,
+	/** Дата и время проведения собрания (видно только пайщикам) */
+	meet_at?: string | undefined | null,
+	/** Место проведения собрания (видно только пайщикам) */
+	meet_place?: string | undefined | null,
 	/** Дата и время открытия голосования */
 	open_at?: string | undefined | null,
 	/** Участники собрания */
 	participants?: Array<string> | undefined | null,
+	/** Участники собрания с отображаемыми именами */
+	participants_info?: Array<GraphQLTypes["KuMeetingParticipant"]> | undefined | null,
 	/** Заявление председателя в совет */
 	petition?: GraphQLTypes["JSON"] | undefined | null,
 	/** Существует ли запись в блокчейне (false — завершено и стёрто) */
@@ -35391,6 +35430,15 @@ export type GraphQLTypes = {
 ["KuDecisionStatus"]: KuDecisionStatus;
 	/** Тип решения собрания пайщиков кооперативного участка */
 ["KuDecisionType"]: KuDecisionType;
+	/** Участник собрания пайщиков кооперативного участка */
+["KuMeetingParticipant"]: {
+	__typename: "KuMeetingParticipant",
+	/** Отображаемое имя участника (ФИО) */
+	display_name: string,
+	/** Имя аккаунта участника */
+	username: string,
+	['...on KuMeetingParticipant']: Omit<GraphQLTypes["KuMeetingParticipant"], "...on KuMeetingParticipant">
+};
 	/** Вопрос протокола с результатами голосования */
 ["KuProtocolQuestionInput"]: {
 		/** Дополнительная информация */
@@ -36495,10 +36543,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuRequestTrusted: GraphQLTypes["Transaction"],
-	/** Назначить председателя собрания из числа участников
-
-Требуемые роли: user, member, chairman.  */
-	kuSetDecisionChairman: GraphQLTypes["Transaction"],
 	/** Открыть голосование на собрании пайщиков участка
 
 Требуемые роли: user, member, chairman.  */
@@ -39162,15 +39206,6 @@ export type GraphQLTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
-	/** Назначение председателя собрания участка */
-["SetKuDecisionChairmanInput"]: {
-		/** Председатель собрания из числа участников */
-	chairman: string,
-	/** Имя аккаунта кооператива */
-	coopname: string,
-	/** Хэш решения собрания */
-	hash: string
-};
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -39377,14 +39412,14 @@ export type GraphQLTypes = {
 ["StartKuDecisionInput"]: {
 		/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
-	/** Дата и время закрытия голосования (ISO) */
-	close_at: string,
+	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
+	branch_name: string,
+	/** Председатель собрания из числа присоединившихся участников */
+	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Дата и время открытия голосования (ISO) */
-	open_at: string
+	hash: string
 };
 	["StartProcessInput"]: {
 		project_hash: string,
@@ -40797,7 +40832,6 @@ type ZEUS_VARIABLES = {
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
-	["SetKuDecisionChairmanInput"]: ValueTypes["SetKuDecisionChairmanInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];

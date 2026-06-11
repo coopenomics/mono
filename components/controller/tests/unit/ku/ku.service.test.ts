@@ -21,7 +21,6 @@ function makePorts() {
   const kuPort = {
     createDecision: jest.fn(async () => transactResult),
     joinDecision: jest.fn(async () => transactResult),
-    setDecisionChairman: jest.fn(async () => transactResult),
     startDecision: jest.fn(async () => transactResult),
     voteOnDecision: jest.fn(async () => transactResult),
     closeDecision: jest.fn(async () => transactResult),
@@ -59,6 +58,7 @@ function makeDecision(overrides: Record<string, any> = {}) {
 function makeRepos(decision: any = makeDecision(), trustRequest: any = null) {
   const decisionRepository = {
     findByHash: jest.fn(async () => decision),
+    upsertPrivateData: jest.fn(async () => undefined),
     findAllPaginated: jest.fn(async () => ({
       items: decision ? [decision] : [],
       totalCount: decision ? 1 : 0,
@@ -85,25 +85,44 @@ function makeDocumentService() {
   } as any;
 }
 
+function makeAccountPort() {
+  return {
+    getAccount: jest.fn(async (username: string) => ({ provider_account: { email: `${username}@x`, subscriber_id: 's' } })),
+    getDisplayName: jest.fn(async (username: string) => `ФИО ${username}`),
+  } as any;
+}
+
 function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
   const { kuPort, branchPort } = makePorts();
   const repos = makeRepos(opts.decision === undefined ? makeDecision() : opts.decision, opts.trustRequest ?? null);
   const documentService = makeDocumentService();
+  const accountPort = makeAccountPort();
   const service = new KuService(
     kuPort,
     branchPort,
     repos.decisionRepository,
     repos.questionRepository,
     repos.trustRequestRepository,
+    accountPort,
     documentService
   );
-  return { service, kuPort, branchPort, repos, documentService };
+  return { service, kuPort, branchPort, repos, documentService, accountPort };
 }
 
 describe('KuService — проверки прав', () => {
   it('createDecision проходит только от имени инициатора', async () => {
     const { service, kuPort } = makeService();
-    const data = { coopname: COOP, hash: HASH, type: 'free', initiator: 'alice', braname: '', agenda: [], proposal: {} } as any;
+    const data = {
+      coopname: COOP,
+      hash: HASH,
+      type: 'free',
+      initiator: 'alice',
+      braname: '',
+      agenda: [],
+      proposal: {},
+      meet_place: 'Москва, ул. Мира, 1',
+      meet_at: '2026-06-12T10:00:00.000Z',
+    } as any;
 
     await expect(service.createDecision(data, makeUser('bob'))).rejects.toThrow();
     expect(kuPort.createDecision).not.toHaveBeenCalled();
@@ -128,34 +147,46 @@ describe('KuService — проверки прав', () => {
     expect(kuPort.voteOnDecision).toHaveBeenCalledTimes(1);
   });
 
-  it('setDecisionChairman и cancelDecision доступны только инициатору собрания', async () => {
+  it('cancelDecision доступна только организатору собрания', async () => {
     const { service, kuPort } = makeService();
-    const setChair = { coopname: COOP, hash: HASH, chairman: 'chairman1' } as any;
     const cancel = { coopname: COOP, hash: HASH, reason: 'передумали' } as any;
 
-    await expect(service.setDecisionChairman(setChair, makeUser('chairman1'))).rejects.toThrow();
     await expect(service.cancelDecision(cancel, makeUser('chairman1'))).rejects.toThrow();
 
-    await service.setDecisionChairman(setChair, makeUser('initiator1'));
     await service.cancelDecision(cancel, makeUser('initiator1'));
-    expect(kuPort.setDecisionChairman).toHaveBeenCalledTimes(1);
     expect(kuPort.cancelDecision).toHaveBeenCalledTimes(1);
   });
 
-  it('startDecision/closeDecision/execDecision доступны только председателю собрания', async () => {
+  it('startDecision доступна только организатору; председатель — из участников; для учреждения нужно наименование', async () => {
+    const { service, kuPort, repos } = makeService();
+    const start = { coopname: COOP, hash: HASH, chairman: 'chairman1', address: 'адрес', branch_name: 'РОМАШКА' } as any;
+
+    await expect(service.startDecision(start, makeUser('chairman1'))).rejects.toThrow();
+    await expect(
+      service.startDecision({ ...start, chairman: 'stranger' }, makeUser('initiator1'))
+    ).rejects.toThrow('участником собрания');
+    await expect(
+      service.startDecision({ ...start, branch_name: '' }, makeUser('initiator1'))
+    ).rejects.toThrow('наименование');
+
+    await service.startDecision(start, makeUser('initiator1'));
+    expect(kuPort.startDecision).toHaveBeenCalledTimes(1);
+    // наименование участка ушло в приватные данные БД, не в блокчейн
+    expect(repos.decisionRepository.upsertPrivateData).toHaveBeenCalledWith(
+      expect.objectContaining({ hash: HASH, branch_name: 'РОМАШКА' })
+    );
+  });
+
+  it('closeDecision/execDecision доступны только председателю собрания', async () => {
     const { service, kuPort } = makeService();
-    const start = { coopname: COOP, hash: HASH, address: 'адрес', open_at: 'a', close_at: 'b' } as any;
     const close = { coopname: COOP, hash: HASH, protocol: {} } as any;
     const exec = { coopname: COOP, hash: HASH, petition: {} } as any;
 
-    await expect(service.startDecision(start, makeUser('initiator1'))).rejects.toThrow();
     await expect(service.closeDecision(close, makeUser('initiator1'))).rejects.toThrow();
     await expect(service.execDecision(exec, makeUser('initiator1'))).rejects.toThrow();
 
-    await service.startDecision(start, makeUser('chairman1'));
     await service.closeDecision(close, makeUser('chairman1'));
     await service.execDecision(exec, makeUser('chairman1'));
-    expect(kuPort.startDecision).toHaveBeenCalledTimes(1);
     expect(kuPort.closeDecision).toHaveBeenCalledTimes(1);
     expect(kuPort.execDecision).toHaveBeenCalledTimes(1);
   });
@@ -179,7 +210,7 @@ describe('KuService — проверки прав', () => {
 
   it('операции над несуществующим решением отклоняются с понятной ошибкой', async () => {
     const { service } = makeService({ decision: null });
-    const start = { coopname: COOP, hash: 'missing', address: '', open_at: 'a', close_at: 'b' } as any;
+    const start = { coopname: COOP, hash: 'missing', chairman: 'x', address: '', branch_name: '' } as any;
 
     await expect(service.startDecision(start, makeUser('anyone'))).rejects.toThrow('не найдено');
   });
@@ -203,6 +234,10 @@ describe('KuService — маппинг DTO', () => {
     expect(dto.present).toBe(true);
     expect(dto.status).toBe('voting');
     expect(dto.hash).toBe(HASH);
+    // участники обогащены отображаемыми именами для выбора председателя по ФИО
+    expect(dto.participants_info).toEqual(
+      expect.arrayContaining([{ username: 'chairman1', display_name: 'ФИО chairman1' }])
+    );
   });
 
   it('getDecision подтягивает вопросы повестки по decision_id', async () => {

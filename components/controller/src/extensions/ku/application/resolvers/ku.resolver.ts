@@ -21,7 +21,6 @@ import {
   ExecKuDecisionInputDTO,
   JoinKuDecisionInputDTO,
   RequestKuTrustedInputDTO,
-  SetKuDecisionChairmanInputDTO,
   StartKuDecisionInputDTO,
   VoteOnKuDecisionInputDTO,
 } from '../dto/ku-action-inputs.dto';
@@ -74,19 +73,6 @@ export class KuResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<TransactionDTO> {
     return this.kuService.joinDecision(data, currentUser);
-  }
-
-  @Mutation(() => TransactionDTO, {
-    name: 'kuSetDecisionChairman',
-    description: 'Назначить председателя собрания из числа участников',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
-  async kuSetDecisionChairman(
-    @Args('data', { type: () => SetKuDecisionChairmanInputDTO }) data: SetKuDecisionChairmanInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
-  ): Promise<TransactionDTO> {
-    return this.kuService.setDecisionChairman(data, currentUser);
   }
 
   @Mutation(() => TransactionDTO, {

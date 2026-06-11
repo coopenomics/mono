@@ -44,7 +44,6 @@ export * as JoinDecision from './joinDecision'
 export * as RequestTrusted from './requestTrusted'
 
 /** Назначить председателя собрания из числа участников */
-export * as SetDecisionChairman from './setDecisionChairman'
 
 /** Открыть голосование на собрании пайщиков участка */
 export * as StartDecision from './startDecision'

@@ -16,7 +16,6 @@ import type {
   ExecKuDecisionInputDomainInterface,
   JoinKuDecisionInputDomainInterface,
   RequestKuTrustedInputDomainInterface,
-  SetKuDecisionChairmanInputDomainInterface,
   StartKuDecisionInputDomainInterface,
   VoteOnKuDecisionInputDomainInterface,
 } from '../../../domain/interfaces/ku-action-inputs.interface';
@@ -70,22 +69,13 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
     return this.transactAs(data.coopname, BranchContract.Actions.JoinDec.actionName, blockchainData as any);
   }
 
-  async setDecisionChairman(data: SetKuDecisionChairmanInputDomainInterface): Promise<TransactResult> {
-    const blockchainData: BranchContract.Actions.SetChairman.ISetChairman = {
-      coopname: data.coopname,
-      hash: data.hash,
-      chairman: data.chairman,
-    };
-    return this.transactAs(data.coopname, BranchContract.Actions.SetChairman.actionName, blockchainData as any);
-  }
-
   async startDecision(data: StartKuDecisionInputDomainInterface): Promise<TransactResult> {
+    // branch_name в блокчейн не уходит — приватное наименование хранится в БД
     const blockchainData: BranchContract.Actions.StartDec.IStartDec = {
       coopname: data.coopname,
       hash: data.hash,
+      chairman: data.chairman,
       address: data.address,
-      open_at: data.open_at,
-      close_at: data.close_at,
     };
     return this.transactAs(data.coopname, BranchContract.Actions.StartDec.actionName, blockchainData as any);
   }

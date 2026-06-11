@@ -17,8 +17,14 @@ export type IKuDecisionQuestionBlockchainData = BranchContract.Tables.DecisionQu
 export type IKuTrustRequestBlockchainData = BranchContract.Tables.TrustReqs.ITrustRequest;
 
 /**
- * Интерфейсы данных из базы данных
+ * Интерфейсы данных из базы данных.
+ * Приватные данные собрания (место/время проведения, наименование участка)
+ * в блокчейн не публикуются — доступны только пайщикам кооператива через БД.
  */
-export type IKuDecisionDatabaseData = IBaseDatabaseData;
+export type IKuDecisionDatabaseData = IBaseDatabaseData & {
+  meet_place?: string;
+  meet_at?: Date;
+  branch_name?: string;
+};
 export type IKuDecisionQuestionDatabaseData = IBaseDatabaseData;
 export type IKuTrustRequestDatabaseData = IBaseDatabaseData;

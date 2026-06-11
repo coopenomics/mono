@@ -43,6 +43,15 @@ export class KuDecisionQuestionDTO {
   voters_abstained?: string[];
 }
 
+@ObjectType('KuMeetingParticipant', { description: 'Участник собрания пайщиков кооперативного участка' })
+export class KuMeetingParticipantDTO {
+  @Field(() => String, { description: 'Имя аккаунта участника' })
+  username!: string;
+
+  @Field(() => String, { description: 'Отображаемое имя участника (ФИО)' })
+  display_name!: string;
+}
+
 @ObjectType('KuDecision', { description: 'Решение собрания пайщиков кооперативного участка' })
 export class KuDecisionDTO {
   @Field(() => String, { description: 'Хэш решения (якорь процесса)' })
@@ -90,7 +99,7 @@ export class KuDecisionDTO {
   @Field(() => Int, { nullable: true, description: 'Количество поданных бюллетеней' })
   signed_ballots?: number;
 
-  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка' })
+  @Field(() => String, { nullable: true, description: 'Имя аккаунта кооперативного участка (служебное)' })
   braname?: string;
 
   @Field(() => String, { nullable: true, description: 'Адрес привязки кооперативного участка' })
@@ -99,8 +108,23 @@ export class KuDecisionDTO {
   @Field(() => [String], { nullable: true, description: 'Участники собрания' })
   participants?: string[];
 
+  @Field(() => [KuMeetingParticipantDTO], {
+    nullable: true,
+    description: 'Участники собрания с отображаемыми именами',
+  })
+  participants_info?: KuMeetingParticipantDTO[];
+
   @Field(() => String, { nullable: true, description: 'Дата и время объявления собрания' })
   created_at?: string;
+
+  @Field(() => String, { nullable: true, description: 'Место проведения собрания (видно только пайщикам)' })
+  meet_place?: string;
+
+  @Field(() => String, { nullable: true, description: 'Дата и время проведения собрания (видно только пайщикам)' })
+  meet_at?: string;
+
+  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка (видно только пайщикам)' })
+  branch_name?: string;
 
   @Field(() => [KuDecisionQuestionDTO], { nullable: true, description: 'Вопросы повестки собрания' })
   questions?: KuDecisionQuestionDTO[];

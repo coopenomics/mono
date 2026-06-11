@@ -36,7 +36,9 @@ import { KuDecisionQuestionSyncService } from './application/syncers/ku-decision
 import { KuTrustRequestSyncService } from './application/syncers/ku-trust-request-sync.service';
 
 // Application
+import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { KuService } from './application/services/ku.service';
+import { KuEventsService } from './application/services/ku-events.service';
 import { KuResolver } from './application/resolvers/ku.resolver';
 
 // Дефолтные параметры конфигурации
@@ -71,7 +73,7 @@ export class KuPlugin extends BaseExtModule {
 }
 
 @Module({
-  imports: [KuDatabaseModule, DocumentDomainModule, VaultDomainModule],
+  imports: [KuDatabaseModule, DocumentDomainModule, VaultDomainModule, AccountInfrastructureModule],
   providers: [
     // Plugin
     KuPlugin,
@@ -114,6 +116,7 @@ export class KuPlugin extends BaseExtModule {
 
     // Application
     KuService,
+    KuEventsService,
     KuResolver,
   ],
   exports: [KuPlugin, KuDecisionSyncService, KuDecisionQuestionSyncService, KuTrustRequestSyncService],

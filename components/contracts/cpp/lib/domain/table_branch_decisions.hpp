@@ -22,6 +22,11 @@
 /// Минимальный кворум учредительного собрания (число подписанных бюллетеней).
 static constexpr uint64_t MIN_DECISION_QUORUM = 3;
 
+/// Длительность окна голосования собрания пайщиков участка (секунд).
+/// Голосование короткое — проходит прямо на собрании: организатор открывает
+/// его кнопкой, дедлайн отмеряется автоматически.
+static constexpr uint32_t DECISION_VOTING_WINDOW_SECONDS = 15 * 60;
+
 /// Точка повестки дня собрания (вход действия createdec).
 struct decision_point {
   std::string title;     ///< Текст вопроса
@@ -45,8 +50,8 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coodecision {
   eosio::checksum256 hash;                ///< Якорь процесса (внешний идентификатор)
   eosio::name coopname;                   ///< Имя кооператива
   eosio::name type;                       ///< Тип решения: "free" | "createbranch"
-  eosio::name initiator;                  ///< Инициатор собрания
-  eosio::name chairman;                   ///< Председатель собрания (для createbranch — он же кандидат в председатели КУ)
+  eosio::name initiator;                  ///< Организатор собрания
+  eosio::name chairman;                   ///< Председатель собрания — выбирается организатором из участников при открытии голосования (для createbranch — он же кандидат в председатели КУ)
   eosio::name status;                     ///< opened | voting | approved | onapproval
 
   document2 proposal;                     ///< Подписанное предложение/повестка инициатора
@@ -63,6 +68,8 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coodecision {
 
   std::vector<eosio::name> participants;  ///< Присоединившиеся участники собрания
   eosio::time_point_sec created_at;       ///< Дата создания
+  // Место и время проведения собрания НЕ публикуются в блокчейн —
+  // это приватные данные пайщиков, живут в БД платформы (composite db-слой).
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

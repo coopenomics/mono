@@ -28,7 +28,9 @@
             @click='openDetails(decision.hash)'
           )
             td
-              .doc-primary {{ decision.address || 'Адрес уточняется' }}
+              .doc-primary {{ decision.branch_name || decision.address || 'Учреждение участка' }}
+              .t-sm.t-muted(v-if='decision.meet_place')
+                | {{ decision.meet_place }}{{ formatMeetAt(decision.meet_at) }}
             td
               BaseBadge(:variant='statusMeta(decision).variant') {{ statusMeta(decision).label }}
             td {{ decision.initiator }}
@@ -46,12 +48,20 @@
 BaseDialog(v-model='isCreateOpen', title='Объявить собрание', size='md')
   BaseForm(@submit='submitCreate')
     BaseInput(
-      v-model='form.address',
-      label='Адрес привязки участка',
+      v-model='form.meetPlace',
+      label='Место проведения собрания',
       placeholder='город, улица, дом',
-      hint='Председатель участка будет избран на собрании из присоединившихся пайщиков',
       required
     )
+    BaseInput(
+      v-model='form.meetAt',
+      label='Дата и время собрания',
+      type='datetime-local',
+      required
+    )
+    .t-sm.t-muted.q-mt-sm
+      | Решение о месте основания кооперативного участка и его председателе
+      | будет принято на собрании. Место и время собрания видны только пайщикам.
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isCreateOpen = false') Отменить
       BaseButton(variant='primary', type='submit', :loading='isSubmitting') Подписать и объявить
@@ -85,7 +95,8 @@ const isCreateOpen = ref(false);
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
 const form = ref({
-  address: '',
+  meetPlace: '',
+  meetAt: '',
 });
 
 const decisions = computed(() => kuStore.decisions);
@@ -113,12 +124,18 @@ function statusMeta(decision: IKuDecision) {
   );
 }
 
+function formatMeetAt(value?: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : `, ${date.toLocaleString('ru-RU')}`;
+}
+
 function openDetails(hash: string) {
   router.push({ name: 'ku-meeting-details', params: { coopname: system.info.coopname, hash } });
 }
 
 function openCreateDialog() {
-  form.value = { address: '' };
+  form.value = { meetPlace: '', meetAt: '' };
   isCreateOpen.value = true;
 }
 
@@ -128,11 +145,12 @@ async function submitCreate() {
     const hash = await flow.createDecision({
       type: 'createbranch',
       braname: generateUsername(),
-      address: form.value.address,
+      meetPlace: form.value.meetPlace,
+      meetAt: new Date(form.value.meetAt).toISOString(),
       agenda: [
         {
           title: 'Об организации кооперативного участка',
-          decision: `Организовать кооперативный участок с привязкой к адресу: ${form.value.address}`,
+          decision: 'Организовать кооперативный участок по адресу привязки, определённому собранием пайщиков',
           context: '',
         },
         {
