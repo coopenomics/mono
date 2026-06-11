@@ -84,6 +84,14 @@ export class KuDecisionMapper {
   static toUpdateEntity(domain: Partial<KuDecisionDomainEntity>): Partial<KuDecisionTypeormEntity> {
     const updateData: Partial<KuDecisionTypeormEntity> = {};
 
+    // запись могла быть создана placeholder'ом (upsertPrivateData) до прихода синка —
+    // bc-поля первой дельты обязаны материализоваться при обновлении
+    if (domain.id !== undefined) updateData.id = domain.id as number;
+    if (domain.type !== undefined) updateData.type = domain.type as string;
+    if (domain.initiator !== undefined) updateData.initiator = domain.initiator as string;
+    if (domain.proposal !== undefined) updateData.proposal = domain.proposal as object;
+    if (domain.braname !== undefined) updateData.braname = domain.braname as string;
+    if (domain.created_at !== undefined && domain.created_at) updateData.created_at = new Date(domain.created_at);
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;
     if (domain.present !== undefined) updateData.present = domain.present;
     if (domain.status !== undefined) updateData.status = domain.status;

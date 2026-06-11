@@ -18,6 +18,8 @@
 
   auto dec = get_decision_or_fail(coopname, hash);
   eosio::check(dec.status == "opened"_n, "Голосование уже начато или собрание закрыто");
+  eosio::check(dec.participants.size() >= MIN_DECISION_QUORUM,
+               "Для открытия голосования требуется не менее 3 участников собрания");
   eosio::check(dec.is_participant(chairman), "Председатель должен быть участником собрания");
 
   if (dec.type == "createbranch"_n) {

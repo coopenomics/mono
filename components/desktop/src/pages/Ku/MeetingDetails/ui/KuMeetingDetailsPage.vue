@@ -14,13 +14,17 @@
           :loading='isSubmitting',
           @click='onJoin'
         ) Присоединиться
-        BaseButton(
-          v-if='canStart',
-          variant='primary',
-          size='sm',
-          :loading='isSubmitting',
-          @click='isStartOpen = true'
-        ) Открыть голосование
+        span(v-if='canStart')
+          BaseButton(
+            variant='primary',
+            size='sm',
+            :disabled='!hasQuorum',
+            :loading='isSubmitting',
+            @click='isStartOpen = true'
+          ) Открыть голосование
+          q-tooltip(v-if='!hasQuorum')
+            | Для открытия голосования нужно не менее 3 участников собрания.
+            | Пока их меньше — собрание можно только отменить.
         BaseButton(
           v-if='canClose',
           variant='primary',
@@ -47,7 +51,7 @@
       .col-12.col-md-6
         BaseCard(title='Собрание')
           DataRow(label='Место собрания', :value='decision.meet_place || "—"')
-          DataRow(label='Время собрания', :value='formatDate(decision.meet_at)')
+          DataRow(:label='`Время собрания (${timezoneLabel})`', :value='formatDate(decision.meet_at)')
           DataRow(label='Организатор', :value='organizerName')
           DataRow(
             v-if='isVotingStarted',
@@ -58,7 +62,7 @@
           DataRow(v-if='isVotingStarted', label='Председатель собрания', :value='chairmanName')
           DataRow(
             v-if='isVotingWindow',
-            label='Голосование открыто до',
+            :label='`Голосование открыто до (${timezoneLabel})`',
             :value='formatDate(decision.close_at)'
           )
           DataRow(v-if='isVotingStarted', label='Бюллетеней подано', :value='String(decision.signed_ballots ?? 0)')
@@ -127,7 +131,7 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
     )
     BaseInput(
       v-model='startForm.address',
-      label='Адрес привязки участка',
+      label='Адрес кооперативного участка',
       placeholder='город, улица, дом',
       required
     )
@@ -138,7 +142,7 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
       hint='Из числа присоединившихся участников; станет председателем участка',
       required
     )
-    .t-sm.t-muted.q-mt-sm
+    .t-sm.t-muted.q-mt-md
       | Голосование продлится 15 минут. Участники собрания получат уведомление.
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isStartOpen = false') Отменить
@@ -177,6 +181,7 @@ import {
 } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
+import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
 
 const route = useRoute();
 const kuStore = useKuStore();
@@ -240,6 +245,8 @@ const statusMeta = computed(
 );
 
 const isParticipant = computed(() => participants.value.includes(session.username));
+// контракт требует не менее 3 участников для открытия голосования (MIN_DECISION_QUORUM)
+const hasQuorum = computed(() => participants.value.length >= 3);
 const isInitiator = computed(() => decision.value?.initiator === session.username);
 const isChairman = computed(() => decision.value?.chairman === session.username);
 const isLive = computed(() => decision.value?.present !== false);
@@ -281,10 +288,11 @@ const canVote = computed(
 
 const allVoted = computed(() => questions.value.every((question) => votes.value[question.id]));
 
+const timezoneLabel = getTimezoneLabel();
+
 function formatDate(value?: string | null): string {
   if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ru-RU');
+  return formatDateToLocalTimezone(value) || '—';
 }
 
 /**
@@ -372,9 +380,10 @@ async function onCancel() {
 onMounted(async () => {
   loading.value = true;
   try {
-    // после объявления собрания проекция может отставать от блокчейна —
-    // ждём появления записи, не показывая ошибку
-    await pollDecision(undefined, 15);
+    // после объявления собрания запись появляется сразу (placeholder с местом/временем),
+    // но участники приходят из блокчейна асинхронно — ждём полной материализации,
+    // иначе организатор увидит пустую страницу без себя в участниках
+    await pollDecision((d) => (d.participants ?? []).length > 0, 15);
     const loaded = decision.value;
     if (loaded) {
       startForm.value.address = loaded.address || '';

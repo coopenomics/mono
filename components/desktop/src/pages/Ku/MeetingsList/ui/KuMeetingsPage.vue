@@ -50,12 +50,12 @@ BaseDialog(v-model='isCreateOpen', title='Объявить собрание', si
     BaseInput(
       v-model='form.meetPlace',
       label='Место проведения собрания',
-      placeholder='город, улица, дом',
+      placeholder='город, улица, дом — или ссылка на онлайн-комнату',
       required
     )
     BaseInput(
       v-model='form.meetAt',
-      label='Дата и время собрания',
+      :label='`Дата и время собрания (${timezoneLabel})`',
       type='datetime-local',
       required
     )
@@ -78,6 +78,11 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { generateUsername } from 'src/shared/lib/utils/generateUsername';
+import {
+  convertLocalDateToUTC,
+  formatDateToLocalTimezone,
+  getTimezoneLabel,
+} from 'src/shared/lib/utils/dates/timezone';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
@@ -124,10 +129,12 @@ function statusMeta(decision: IKuDecision) {
   );
 }
 
+const timezoneLabel = getTimezoneLabel();
+
 function formatMeetAt(value?: string | null): string {
   if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : `, ${date.toLocaleString('ru-RU')}`;
+  const formatted = formatDateToLocalTimezone(value);
+  return formatted ? `, ${formatted} (${timezoneLabel})` : '';
 }
 
 function openDetails(hash: string) {
@@ -146,7 +153,8 @@ async function submitCreate() {
       type: 'createbranch',
       braname: generateUsername(),
       meetPlace: form.value.meetPlace,
-      meetAt: new Date(form.value.meetAt).toISOString(),
+      // ввод формы трактуется в часовом поясе платформы (TIMEZONE), не браузера
+      meetAt: convertLocalDateToUTC(form.value.meetAt),
       agenda: [
         {
           title: 'Об организации кооперативного участка',
