@@ -1,10 +1,27 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import config from './config';
+import { isSensitiveLogKey, redactSensitive, REDACTED } from './log-redaction';
 
 const enumerateErrorFormat = winston.format((info) => {
   if (info instanceof Error) {
     Object.assign(info, { message: info.stack });
+  }
+  return info;
+});
+
+/**
+ * Story 8.7: маскирует sensitive-значения в meta лог-события до сериализации
+ * (NFR9, защита в глубину). Служебные поля winston (level/message/timestamp/
+ * context/ms/splat) не трогаем — чистим только пользовательский meta (own
+ * string-ключи и их вложенность через redactSensitive). message-строку не
+ * трогаем (риск порчи; интерполированный секрет в message ловит ESLint-правило).
+ */
+const RESERVED_LOG_FIELDS = new Set(['level', 'message', 'timestamp', 'context', 'ms', 'splat']);
+const redactionFormat = winston.format((info) => {
+  for (const key of Object.keys(info)) {
+    if (RESERVED_LOG_FIELDS.has(key)) continue;
+    info[key] = isSensitiveLogKey(key) ? REDACTED : redactSensitive(info[key]);
   }
   return info;
 });
@@ -14,6 +31,7 @@ const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     enumerateErrorFormat(),
+    redactionFormat(),
     winston.format.colorize(),
     winston.format.splat(),
     winston.format.printf(({ timestamp, level, message, context, meta, ...restMeta }) => {

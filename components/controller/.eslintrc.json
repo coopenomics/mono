@@ -92,6 +92,52 @@
           {
             "selector": "Decorator[expression.callee.name='AuthRoles']",
             "message": "no-authroles-in-authv2: в auth-v2 запрещён роле-ориентированный @AuthRoles — используйте capability-ориентированный @CheckAbility + AuthorizationGuard (Эпик 6). Legacy auth/ сохраняет @AuthRoles до Phase-3 cleanup."
+          },
+          {
+            "selector": "CallExpression[callee.object.name='console'][callee.property.name=/^(log|info|warn|error|debug)$/] > Identifier.arguments[name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать переменную с секрет-именем напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.object.name='console'][callee.property.name=/^(log|info|warn|error|debug)$/] > MemberExpression.arguments[property.name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать секрет-поле напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.property.name=/^(log|info|warn|error|debug|verbose)$/] > Identifier.arguments[name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать переменную с секрет-именем напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.property.name=/^(log|info|warn|error|debug|verbose)$/] > MemberExpression.arguments[property.name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать секрет-поле напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.ts"
+      ],
+      "excludedFiles": [
+        "src/**/*.spec.ts",
+        "src/application/auth-v2/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.object.name='console'][callee.property.name=/^(log|info|warn|error|debug)$/] > Identifier.arguments[name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать переменную с секрет-именем напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.object.name='console'][callee.property.name=/^(log|info|warn|error|debug)$/] > MemberExpression.arguments[property.name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать секрет-поле напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.property.name=/^(log|info|warn|error|debug|verbose)$/] > Identifier.arguments[name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать переменную с секрет-именем напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
+          },
+          {
+            "selector": "CallExpression[callee.property.name=/^(log|info|warn|error|debug|verbose)$/] > MemberExpression.arguments[property.name=/(password|passwd|privatekey|private_key|secret|token|signature|wif|mnemonic|seed|credential)/i]",
+            "message": "no-sensitive-in-log (Story 8.7): нельзя логировать секрет-поле напрямую — секрет утечёт в production-логи. Не логируй секрет вовсе либо передавай объект (runtime-маскирование log-redaction замаскирует значение)."
           }
         ]
       }
