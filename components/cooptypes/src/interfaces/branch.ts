@@ -180,16 +180,6 @@ export interface IBranchAid {
   decline_reason: string
 }
 
-export interface IBranchRound {
-  id: IUint64
-  hash: IChecksum256
-  braname: IName
-  contract: IName
-  amount: IAsset
-  distributed: IAsset
-  created_at: ITimePointSec
-}
-
 export interface IBranchSpend {
   id: IUint64
   hash: IChecksum256

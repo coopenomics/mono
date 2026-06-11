@@ -283,9 +283,6 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */
   getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null>;
 
-  /** Раунды ручного распределения средств общего кошелька КУ (branch::rounds). */
-  listRounds(coopname: string): Promise<BranchContract.Tables.Rounds.IBranchRound[]>;
-
   /** Реестр весов распределения (branch::weights). */
   getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]>;
 

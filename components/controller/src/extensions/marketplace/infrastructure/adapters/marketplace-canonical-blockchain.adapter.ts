@@ -505,14 +505,6 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return (rows[0] as MarketContract.Tables.Config.IMktConfig | undefined) ?? null;
   }
 
-  async listRounds(coopname: string): Promise<BranchContract.Tables.Rounds.IBranchRound[]> {
-    return this.blockchainService.getAllRows(
-      BranchContract.contractName.production,
-      coopname,
-      BranchContract.Tables.Rounds.tableName
-    );
-  }
-
   async getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
     return this.blockchainService.getAllRows(
       BranchContract.contractName.production,

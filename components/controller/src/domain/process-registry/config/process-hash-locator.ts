@@ -126,17 +126,13 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   'p.mkt.wroff':  [{ code: 'marketplace', table: 'wroffprops',  field: 'hash' }],
 
   // requirement b6 «Экономика КУ».
-  // p.brn.fees — распределение членских взносов КУ при финализации заказа
-  // (o.brn.person / o.brn.common: process_hash = order.hash) и перевод
-  // персональных средств доверенного (o.brn.conv: process_hash = convert_hash,
-  // генерится backend'ом, в сущностных таблицах не хранится — поэтому ещё и
-  // якорь заказа). Основной якорь — заказ.
-  // При зачислении (branch::accrue) process_hash = orders.hash; при ручном
-  // распределении (branch::distribute) — rounds.hash.
-  'p.brn.fees': [
-    { code: 'marketplace', table: 'orders', field: 'hash' },
-    { code: 'branch', table: 'rounds', field: 'hash' },
-  ],
+  // p.brn.fees — распределение членских взносов КУ. Единственный сущностный
+  // якорь — заказ: при зачислении (branch::accrue) process_hash = orders.hash.
+  // Ручное распределение (branch::distribute) и перевод персональных средств
+  // (o.brn.conv) — одноактовые команды: их process_hash (round_hash /
+  // convert_hash, генерятся backend'ом) в сущностных таблицах не хранится,
+  // данные читаются из blockchain_actions (как у p.adj.fix).
+  'p.brn.fees': [{ code: 'marketplace', table: 'orders', field: 'hash' }],
 
   // p.brn.aid — материальная помощь доверенного: process_hash = aids.hash.
   'p.brn.aid': [{ code: 'branch', table: 'aids', field: 'hash' }],

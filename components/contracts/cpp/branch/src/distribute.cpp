@@ -18,15 +18,15 @@
  *
  * Обе ноги выполняются на фактическую долю (целочисленно, вниз), поэтому
  * транзитный пул w.brn.pool в нуле после транзакции, а остаток округления
- * вообще не покидает общий кошелёк. Запись раунда в `rounds` — история
- * распределений и якорь process_hash.
+ * вообще не покидает общий кошелёк. Состояния в RAM раунд не оставляет:
+ * история распределений собирается парсером из самого действия (таблица
+ * blockchain_actions), round_hash — process_hash ledger2-операций.
  *
  * Guards:
  *  - авторизация: кооператив либо системный контракт из whitelist
  *    (председательство проверяет бэкенд — все пути идут через контроллер);
  *  - сумма в валюте кооператива, больше нуля;
  *  - веса настроены (Σ весов > 0);
- *  - раунд с таким hash не существует;
  *  - достаточность общего кошелька проверяет сам ledger2 при o.brn.release.
  *
  * @ingroup public_branch_actions
@@ -50,11 +50,6 @@
   const uint64_t total_weight = get_weight_total(coopname, braname, source_contract);
   eosio::check(total_weight > 0,
                "Распределение не настроено: задайте веса участников реестра распределения");
-
-  branch_rounds_index rounds(_branch, coopname.value);
-  auto byhash = rounds.get_index<"byhash"_n>();
-  eosio::check(byhash.find(round_hash) == byhash.end(),
-               "Раунд распределения с таким идентификатором уже существует");
 
   branch_weights_index weights(_branch, coopname.value);
   auto idx = weights.get_index<"bycontrbra"_n>();
@@ -83,14 +78,4 @@
 
   eosio::check(distributed > 0,
                "Сумма распределения слишком мала: доли всех участников округлились до нуля");
-
-  rounds.emplace(coopname, [&](auto& r) {
-    r.id          = rounds.available_primary_key();
-    r.hash        = round_hash;
-    r.braname     = braname;
-    r.contract    = source_contract;
-    r.amount      = amount;
-    r.distributed = eosio::asset(distributed, _root_govern_symbol);
-    r.created_at  = eosio::time_point_sec(eosio::current_time_point());
-  });
 }
