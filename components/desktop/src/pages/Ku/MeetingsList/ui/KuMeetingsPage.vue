@@ -16,11 +16,10 @@
         thead
           tr
             th Участок
+            th Дата и время ({{ timezoneLabel }})
             th Статус
-            th Инициатор
-            th Председатель
             th.t-num Участники
-            th.t-num Бюллетени
+            th.col-action
         tbody
           tr.data-row(
             v-for='decision in decisions',
@@ -29,14 +28,18 @@
           )
             td
               .doc-primary {{ decision.branch_name || decision.address || 'Учреждение участка' }}
-              .t-sm.t-muted(v-if='decision.meet_place')
-                | {{ decision.meet_place }}{{ formatMeetAt(decision.meet_at) }}
+              .t-sm.t-muted(v-if='decision.meet_place') {{ decision.meet_place }}
+            td {{ formatMeetAt(decision.meet_at) }}
             td
               BaseBadge(:variant='statusMeta(decision).variant') {{ statusMeta(decision).label }}
-            td {{ decision.initiator }}
-            td {{ decision.chairman || '—' }}
             td.t-num {{ decision.participants?.length || 0 }}
-            td.t-num {{ decision.signed_ballots || 0 }}
+            td.col-action
+              button.icon-btn(
+                type='button',
+                aria-label='Открыть собрание',
+                @click.stop='openDetails(decision.hash)'
+              )
+                q-icon(name='chevron_right')
   EmptyState(
     v-else,
     title='Собраний пока нет',
@@ -108,11 +111,10 @@ const decisions = computed(() => kuStore.decisions);
 
 const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Участок' },
+  { label: 'Дата и время' },
   { label: 'Статус', cell: 'badge' },
-  { label: 'Инициатор' },
-  { label: 'Председатель' },
   { label: 'Участники', class: 't-num' },
-  { label: 'Бюллетени', class: 't-num' },
+  { label: '', class: 'col-action', cell: 'icon' },
 ];
 
 const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
@@ -132,9 +134,8 @@ function statusMeta(decision: IKuDecision) {
 const timezoneLabel = getTimezoneLabel();
 
 function formatMeetAt(value?: string | null): string {
-  if (!value) return '';
-  const formatted = formatDateToLocalTimezone(value);
-  return formatted ? `, ${formatted} (${timezoneLabel})` : '';
+  if (!value) return '—';
+  return formatDateToLocalTimezone(value) || '—';
 }
 
 function openDetails(hash: string) {
@@ -200,3 +201,10 @@ onMounted(() => {
   load();
 });
 </script>
+
+<style scoped>
+/* строка ведёт в карточку собрания — показываем кликабельность */
+.data-row {
+  cursor: pointer;
+}
+</style>
