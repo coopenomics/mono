@@ -56,9 +56,9 @@ export class DeviceTrackingService {
       actor: input.username,
       result: 'success',
       ip: input.ip,
+      userAgent: input.userAgent,
       context: {
         device_new: !known,
-        user_agent: input.userAgent,
         accept_language: input.acceptLanguage,
       },
     });

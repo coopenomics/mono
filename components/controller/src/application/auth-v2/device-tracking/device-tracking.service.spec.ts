@@ -41,7 +41,8 @@ describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
         actor: 'ant',
         result: 'success',
         ip: '1.2.3.4',
-        context: { device_new: true, user_agent: UA, accept_language: LANG },
+        userAgent: UA,
+        context: { device_new: true, accept_language: LANG },
       }),
     );
     // Story 3.9: новое устройство → триггерится уведомление (best-effort).
@@ -70,7 +71,7 @@ describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
     // Story 3.9: известное устройство — уведомление не шлётся.
     expect(newDeviceNotifier.maybeNotify).not.toHaveBeenCalled();
     expect(audit.record).toHaveBeenCalledWith(
-      expect.objectContaining({ context: { device_new: false, user_agent: UA, accept_language: LANG } }),
+      expect.objectContaining({ userAgent: UA, context: { device_new: false, accept_language: LANG } }),
     );
   });
 
@@ -94,7 +95,7 @@ describe('DeviceTrackingService (Story 3.8 — device tracking)', () => {
 
     expect(res.fingerprint).toBe(fpOf(null, null));
     expect(audit.record).toHaveBeenCalledWith(
-      expect.objectContaining({ context: { device_new: true, user_agent: null, accept_language: null } }),
+      expect.objectContaining({ userAgent: null, context: { device_new: true, accept_language: null } }),
     );
   });
 
