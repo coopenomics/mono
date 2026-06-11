@@ -54,9 +54,11 @@ export class DomainToBlockchainUtils {
     const hashBytes = Buffer.from(hash.replace(/^0x/, ''), 'hex');
     const truncatedHash = hashBytes.readBigUInt64LE(0);
 
-    // Используем Name.from() для правильного преобразования имени в число
+    // Используем Name.from() для правильного преобразования имени в число.
+    // UInt64.value — это BN, и BigInt(BN) не компилируется с @types/bn.js
+    // из общего lock-файла — конвертируем через десятичную строку.
     const usernameName = Name.from(username);
-    const usernameValue = usernameName.value.value;
+    const usernameValue = usernameName.value.toString();
 
     // Комбинируем: (truncatedHash << 64) | usernameValue
     return (BigInt(truncatedHash) << 64n) | BigInt(usernameValue);
