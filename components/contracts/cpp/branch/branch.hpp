@@ -72,5 +72,11 @@ public:
   [[eosio::action]] void votedec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 ballot, std::vector<decision_vote_point> votes);
   [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
 
+  // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет
+  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition);
+  [[eosio::action]] void confirmdec(eosio::name coopname, eosio::checksum256 hash, document2 authorization);
+  [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+  [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+
 
 };

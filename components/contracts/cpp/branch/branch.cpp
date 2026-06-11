@@ -11,6 +11,10 @@
 #include "src/startdec.cpp"
 #include "src/votedec.cpp"
 #include "src/closedec.cpp"
+#include "src/exec.cpp"
+#include "src/confirmdec.cpp"
+#include "src/declinedec.cpp"
+#include "src/canceldec.cpp"
 
 using namespace eosio;
 
