@@ -52,14 +52,15 @@
         BaseCard(title='Собрание')
           DataRow(label='Место собрания', :value='decision.meet_place || "—"')
           DataRow(:label='`Время собрания (${timezoneLabel})`', :value='formatDate(decision.meet_at)')
-          DataRow(label='Организатор', :value='organizerName')
+          //- организатор собрания автоматически является его председателем
+          DataRow(label='Председатель собрания', :value='organizerName')
           DataRow(
             v-if='isVotingStarted',
             label='Наименование участка',
             :value='decision.branch_name || "—"'
           )
           DataRow(v-if='isVotingStarted', label='Адрес участка', :value='decision.address || "—"')
-          DataRow(v-if='isVotingStarted', label='Председатель собрания', :value='chairmanName')
+          DataRow(v-if='isVotingStarted', label='Председатель участка', :value='chairmanName')
           DataRow(
             v-if='isVotingWindow',
             :label='`Голосование открыто до (${timezoneLabel})`',
@@ -75,7 +76,7 @@
                 v-for='participant in participantsInfo',
                 :key='participant.username',
                 :variant='participant.username === decision.chairman ? "pos" : "neutral"'
-              ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель)' : '' }}
+              ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель участка)' : '' }}
           EmptyState(v-else, title='Пока никто не присоединился')
 
     //- Повестка и голосование
@@ -123,6 +124,8 @@
 //- наименование/адрес участка и председателя из числа участников
 BaseDialog(v-model='isStartOpen', title='Открыть голосование', size='md')
   BaseForm(@submit='onStart')
+    .t-sm.t-muted.q-mb-md
+      | Голосование продлится 15 минут. Участники собрания получат уведомление.
     BaseInput(
       v-model='startForm.branchName',
       label='Наименование кооперативного участка',
@@ -137,13 +140,11 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
     )
     BaseSelect(
       v-model='startForm.chairman',
-      label='Председатель собрания',
+      label='Председатель кооперативного участка',
       :options='participantOptions',
-      hint='Из числа присоединившихся участников; станет председателем участка',
+      hint='Избирается собранием из числа присоединившихся участников',
       required
     )
-    .t-sm.t-muted.q-mt-md
-      | Голосование продлится 15 минут. Участники собрания получат уведомление.
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isStartOpen = false') Отменить
       BaseButton(variant='primary', type='submit', :disabled='!startForm.chairman', :loading='isSubmitting') Открыть
@@ -248,7 +249,6 @@ const isParticipant = computed(() => participants.value.includes(session.usernam
 // контракт требует не менее 3 участников для открытия голосования (MIN_DECISION_QUORUM)
 const hasQuorum = computed(() => participants.value.length >= 3);
 const isInitiator = computed(() => decision.value?.initiator === session.username);
-const isChairman = computed(() => decision.value?.chairman === session.username);
 const isLive = computed(() => decision.value?.present !== false);
 
 const isVotingWindow = computed(() => status.value === Zeus.KuDecisionStatus.VOTING);
@@ -257,12 +257,13 @@ const isVotingStarted = computed(() => !!status.value && status.value !== Zeus.K
 const canJoin = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && !isParticipant.value);
 // Голосование открывает организатор собрания, назначая председателя из участников
 const canStart = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isInitiator.value);
-const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isChairman.value);
+// протокол утверждает и направляет в совет председатель собрания — им является организатор
+const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isInitiator.value);
 const canExec = computed(
   () =>
     isLive.value &&
     status.value === Zeus.KuDecisionStatus.APPROVED &&
-    isChairman.value &&
+    isInitiator.value &&
     decision.value?.type === Zeus.KuDecisionType.CREATEBRANCH,
 );
 const canCancel = computed(

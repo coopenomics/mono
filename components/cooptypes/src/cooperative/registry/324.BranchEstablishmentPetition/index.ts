@@ -9,8 +9,9 @@ export const registry_id = 324
  */
 export interface Action extends IGenerate {
   hash: string
-  braname: string
+  branch_name: string
   address: string
+  chairman_full_name: string
 }
 
 export type Meta = IMetaDocument & Action
@@ -20,14 +21,15 @@ export interface Model {
   meta: IMetaDocument
   coop: ICooperativeData
   user: ICommonUser
-  braname: string
+  branch_name: string
   address: string
+  chairman_full_name: string
   vars: IVars
 }
 
 export const title = 'Заявление председателя собрания в совет об учреждении кооперативного участка'
 export const description = 'Форма заявления председателя собрания пайщиков в совет кооператива об учреждении кооперативного участка'
-export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;}.digital-document {padding: 20px;white-space: pre-wrap;}table {width: 100%;border-collapse: collapse;}th, td {border: 1px solid #ccc;padding: 8px;text-align: left;}th {background-color: #f4f4f4;width: 30% !important;}.signature {padding-top: 30px;}</style><div class="digital-document"><h1 class="header">{% trans 'PETITION_TITLE' %}</h1><p style="text-align: center">{{vars.full_abbr_genitive}} «{{vars.name}}»</p><p style="text-align: right">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'TO_COUNCIL' %} {{vars.full_abbr_genitive}} «{{vars.name}}» {% trans 'FROM_CHAIRMAN' %} {{ user.full_name_or_short_name }}.</p><p>{% trans 'PETITION_TEXT' %}:</p><table><tbody><tr><th>{% trans 'BRANCH_NAME_LABEL' %}</th><td>{{ braname }}</td></tr><tr><th>{% trans 'BRANCH_ADDRESS_LABEL' %}</th><td>{{ address }}</td></tr><tr><th>{% trans 'CHAIRMAN_LABEL' %}</th><td>{{ user.full_name_or_short_name }}</td></tr></tbody></table><p>{% trans 'ATTACHMENTS_NOTE' %}</p><div class="signature"><p>{% trans 'CHAIRMAN_SIGNATURE_LABEL' %} {{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
+export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;}.digital-document {padding: 20px;white-space: pre-wrap;}table {width: 100%;border-collapse: collapse;}th, td {border: 1px solid #ccc;padding: 8px;text-align: left;}th {background-color: #f4f4f4;width: 30% !important;}.signature {padding-top: 30px;}</style><div class="digital-document"><h1 class="header">{% trans 'PETITION_TITLE' %}</h1><p style="text-align: center">{{vars.full_abbr_genitive}} «{{vars.name}}»</p><p style="text-align: right">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'TO_COUNCIL' %} {{vars.full_abbr_genitive}} «{{vars.name}}» {% trans 'FROM_CHAIRMAN' %} {{ user.full_name_or_short_name }}.</p><p>{% trans 'PETITION_TEXT' %}:</p><table><tbody><tr><th>{% trans 'BRANCH_NAME_LABEL' %}</th><td>{{ branch_name }}</td></tr><tr><th>{% trans 'BRANCH_ADDRESS_LABEL' %}</th><td>{{ address }}</td></tr><tr><th>{% trans 'CHAIRMAN_LABEL' %}</th><td>{{ chairman_full_name }}</td></tr></tbody></table><p>{% trans 'ATTACHMENTS_NOTE' %}</p><div class="signature"><p>{% trans 'CHAIRMAN_SIGNATURE_LABEL' %} {{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
 
 export const translations = {
   ru: {
@@ -54,8 +56,9 @@ export const exampleData = {
   user: {
     full_name_or_short_name: 'Иванов Петр Сидорович',
   },
-  braname: 'РОМАШКА',
+  branch_name: 'РОМАШКА',
   address: 'г. Красногорск, ул. Ленина, д. 1',
+  chairman_full_name: 'Сидоров Николай Петрович',
   vars: {
     full_abbr_genitive: 'Потребительского Кооператива',
     name: 'ВОСХОД',

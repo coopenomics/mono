@@ -29,8 +29,9 @@ export class Factory extends DocFactory<BranchEstablishmentPetition.Action> {
       coop,
       vars,
       user,
-      braname: data.braname,
+      branch_name: data.branch_name,
       address: data.address,
+      chairman_full_name: data.chairman_full_name,
     }
 
     await super.validate(combinedData, template.model)

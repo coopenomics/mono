@@ -179,7 +179,8 @@ export class KuService {
     data: CloseKuDecisionInputDomainInterface,
     currentUser: MonoAccountDomainInterface
   ): Promise<TransactionDTO> {
-    await this.assertIsDecisionChairman(currentUser, data.hash);
+    // протокол утверждает председатель собрания — им автоматически является организатор
+    await this.assertIsDecisionInitiator(currentUser, data.hash);
     const result = await this.kuBlockchainPort.closeDecision(data);
     return result as unknown as TransactionDTO;
   }
@@ -188,7 +189,7 @@ export class KuService {
     data: ExecKuDecisionInputDomainInterface,
     currentUser: MonoAccountDomainInterface
   ): Promise<TransactionDTO> {
-    await this.assertIsDecisionChairman(currentUser, data.hash);
+    await this.assertIsDecisionInitiator(currentUser, data.hash);
     const result = await this.kuBlockchainPort.execDecision(data);
     return result as unknown as TransactionDTO;
   }

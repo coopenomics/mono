@@ -2293,7 +2293,9 @@ export type ValueTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
 	/** Наименование кооперативного участка */
-	braname: string | Variable<any, string>,
+	branch_name: string | Variable<any, string>,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2335,7 +2337,9 @@ export type ValueTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
-	braname: string | Variable<any, string>,
+	branch_name: string | Variable<any, string>,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -11823,7 +11827,9 @@ export type ResolverInputTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -11865,7 +11871,9 @@ export type ResolverInputTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21106,7 +21114,9 @@ export type ModelTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21148,7 +21158,9 @@ export type ModelTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30933,7 +30945,9 @@ export type GraphQLTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -30975,7 +30989,9 @@ export type GraphQLTypes = {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
 	/** Наименование кооперативного участка */
-	braname: string,
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */

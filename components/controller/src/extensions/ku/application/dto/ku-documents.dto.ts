@@ -370,7 +370,12 @@ class BaseBranchEstablishmentPetitionMetaDocumentInputDTO implements ExcludeComm
   @Field(() => String, { description: 'Наименование кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  braname!: string;
+  branch_name!: string;
+
+  @Field(() => String, { description: 'ФИО избранного председателя кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  chairman_full_name!: string;
 
   @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
   @IsString()

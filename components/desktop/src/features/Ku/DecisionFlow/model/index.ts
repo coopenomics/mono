@@ -179,7 +179,8 @@ export function useKuDecisionFlow() {
       const ballots = decision.signed_ballots || 0;
       const quorumPercent = participantsCount > 0 ? Math.round((ballots / participantsCount) * 100) : 0;
 
-      const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString('ru-RU') : '—');
+      const formatDateTime = (value?: string | null) =>
+        value ? `${formatDateToLocalTimezone(value)} (${getTimezoneLabel()})` : '—';
 
       const digitalDocument = new DigitalDocument();
 
@@ -189,10 +190,11 @@ export function useKuDecisionFlow() {
         username: session.username,
         hash: decision.hash,
         protocol_number: String(decision.id ?? decision.hash.slice(0, 8)),
+        // протокол подписывает председатель собрания — им является организатор
         chairman_full_name:
-          decision.participants_info?.find((participant) => participant?.username === decision.chairman)
+          decision.participants_info?.find((participant) => participant?.username === decision.initiator)
             ?.display_name ??
-          decision.chairman ??
+          decision.initiator ??
           session.username,
         open_at_datetime: formatDateTime(decision.open_at),
         close_at_datetime: formatDateTime(decision.close_at),
@@ -242,8 +244,14 @@ export function useKuDecisionFlow() {
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
-        braname: decision.braname ?? '',
+        // человекочитаемое наименование участка, служебный braname в документы не попадает
+        branch_name: decision.branch_name ?? '',
         address: decision.address ?? '',
+        chairman_full_name:
+          decision.participants_info?.find((participant) => participant?.username === decision.chairman)
+            ?.display_name ??
+          decision.chairman ??
+          '',
       });
 
       const petition = await digitalDocument.sign<Cooperative.Registry.BranchEstablishmentPetition.Meta>(

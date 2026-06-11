@@ -177,16 +177,16 @@ describe('KuService — проверки прав', () => {
     );
   });
 
-  it('closeDecision/execDecision доступны только председателю собрания', async () => {
+  it('closeDecision/execDecision доступны только организатору (председателю собрания)', async () => {
     const { service, kuPort } = makeService();
     const close = { coopname: COOP, hash: HASH, protocol: {} } as any;
     const exec = { coopname: COOP, hash: HASH, petition: {} } as any;
 
-    await expect(service.closeDecision(close, makeUser('initiator1'))).rejects.toThrow();
-    await expect(service.execDecision(exec, makeUser('initiator1'))).rejects.toThrow();
+    await expect(service.closeDecision(close, makeUser('chairman1'))).rejects.toThrow();
+    await expect(service.execDecision(exec, makeUser('chairman1'))).rejects.toThrow();
 
-    await service.closeDecision(close, makeUser('chairman1'));
-    await service.execDecision(exec, makeUser('chairman1'));
+    await service.closeDecision(close, makeUser('initiator1'));
+    await service.execDecision(exec, makeUser('initiator1'));
     expect(kuPort.closeDecision).toHaveBeenCalledTimes(1);
     expect(kuPort.execDecision).toHaveBeenCalledTimes(1);
   });

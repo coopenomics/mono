@@ -19,11 +19,12 @@ export const Schema: JSONSchemaType<Model> = {
     meta: IMetaJSONSchema,
     coop: CooperativeSchema,
     user: CommonUserSchema,
-    braname: { type: 'string' },
+    branch_name: { type: 'string' },
     address: { type: 'string' },
+    chairman_full_name: { type: 'string' },
     vars: VarsSchema,
   },
-  required: ['meta', 'coop', 'user', 'braname', 'address', 'vars'],
+  required: ['meta', 'coop', 'user', 'branch_name', 'address', 'chairman_full_name', 'vars'],
   additionalProperties: true,
 }
 
