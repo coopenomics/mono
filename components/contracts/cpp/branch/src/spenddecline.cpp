@@ -4,11 +4,12 @@
  *
  * Ledger2-операция НЕ применяется: средства остаются на общем кошельке
  * кооперативного участка (w.brn.common), команду можно подать повторно с
- * новым идентификатором.
+ * новым идентификатором. Терминал жизненного цикла: запись команды стирается
+ * из RAM, причина отказа остаётся в журнале действий (аргумент reason).
  *
  * Guards:
  *  - require_auth(_gateway);
- *  - команда найдена по outcome_hash и в статусе pending.
+ *  - команда найдена по outcome_hash.
  *
  * @ingroup public_branch_actions
  */
@@ -22,11 +23,6 @@
   auto it = byhash.find(outcome_hash);
   eosio::check(it != byhash.end(),
                "Команда оплаты расхода не найдена по outcome_hash из callback'а gateway");
-  eosio::check(it->status == BranchSpendStatus::PENDING,
-               "Callback gateway::outdecline получен на команду не в статусе ожидания оплаты");
 
-  byhash.modify(it, eosio::same_payer, [&](auto& s) {
-    s.status         = BranchSpendStatus::DECLINED;
-    s.decline_reason = reason;
-  });
+  byhash.erase(it);
 }

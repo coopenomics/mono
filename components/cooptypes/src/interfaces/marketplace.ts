@@ -292,10 +292,6 @@ export interface IReturnRequest {
   photos: IChecksum256[]
   status: IName
   statement: IDocument2
-  decision_remote: IDocument2
-  decision_visit: IDocument2
-  reason_remote: string
-  reason_visit: string
 }
 
 export interface IWroffItem {
@@ -316,5 +312,4 @@ export interface IWriteoffProposal {
   total_amount: IAsset
   status: IName
   protocol: IDocument2
-  reject_reason: string
 }

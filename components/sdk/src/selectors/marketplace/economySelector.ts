@@ -28,6 +28,4 @@ export const marketplaceAidSelector = Selector('MarketplaceAid')({
   hash: true,
   username: true,
   amount: true,
-  status: true,
-  decline_reason: true,
 })

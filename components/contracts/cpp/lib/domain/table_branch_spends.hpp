@@ -8,28 +8,15 @@
 #include "../consts.hpp"
 
 /**
- * @brief Состояние команды оплаты расхода КУ из общего кошелька
- * (requirement b6 «Экономика КУ», раунд 5; процесс p.brn.spend).
+ * @brief Команда оплаты расхода кооперативного участка из общего кошелька
+ * членских взносов (w.brn.common); requirement b6 «Экономика КУ», раунд 5;
+ * процесс p.brn.spend.
  *
  * Выплата идёт через gateway::createoutpay → действие кассира → callback
  * `branch::spendconfirm` / `branch::spenddecline` (по образцу материальной
- * помощи p.brn.aid).
- *
- * Допустимые переходы:
- *   pending → completed — gateway::outcomplete → callback `spendconfirm`.
- *                         Здесь применяется o.brn.spend (Дт 86 / Кт 51).
- *   pending → declined  — gateway::outdecline → callback `spenddecline`.
- *                         Без ledger-движения; средства остаются на w.brn.common.
- */
-namespace BranchSpendStatus {
-  inline constexpr eosio::name PENDING   = "pending"_n;
-  inline constexpr eosio::name COMPLETED = "completed"_n;
-  inline constexpr eosio::name DECLINED  = "declined"_n;
-}
-
-/**
- * @brief Команда оплаты расхода кооперативного участка из общего кошелька
- * членских взносов (w.brn.common).
+ * помощи p.brn.aid). Запись живёт ТОЛЬКО на время ожидания решения кассира
+ * (наличие записи = pending): оба callback'а — терминал жизненного цикла,
+ * запись стирается из RAM, история — в журнале действий.
  *
  * Плановый реестр расходов и резерв 30 дней ведёт бэкенд (решение владельца
  * 2026-06-10: плановая информация — оффчейн, контракт лишь исполняет
@@ -51,9 +38,7 @@ struct [[eosio::table, eosio::contract(BRANCH)]] branch_spend {
   eosio::checksum256 hash;            ///< идентификатор команды (= outcome_hash в gateway, = process_hash в ledger2)
   eosio::name        braname;         ///< кооперативный участок — владелец общего кошелька
   eosio::asset       amount;          ///< сумма оплаты
-  eosio::name        status = BranchSpendStatus::PENDING;  ///< см. BranchSpendStatus
   std::string        memo;            ///< назначение платежа
-  std::string        decline_reason;  ///< заполняется только при status == declined
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

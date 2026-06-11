@@ -42,7 +42,7 @@ void marketplace::cancelorder(eosio::name coopname,
   // Членский взнос возвращается полностью (o.mkt.refund, requirement b6).
   Marketplace::refund_membership_fee_if_any(coopname, o);
 
-  Marketplace::update_order(coopname, o.id, [&](auto& upd) {
-    upd.status = OrderStatus::CANCELLED;
-  });
+  // Отмена — терминал жизненного цикла заказа: запись стирается из RAM,
+  // история остаётся в журнале действий.
+  Marketplace::erase_order(coopname, o.id);
 }

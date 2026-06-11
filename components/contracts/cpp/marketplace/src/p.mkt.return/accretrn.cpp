@@ -9,8 +9,10 @@
  * journal с прикладным полем `original_consume_op_id` (заполняется backend'ом
  * в submretrn) для трассировки. Исходная o.mkt.consum в журнале НЕ модифицируется.
  *
- * Status: approved_for_visit → return_accepted (final). Имущество возвращается
- * на склад КУ; средства восстанавливаются на w.mkt.member.available заказчика.
+ * Терминал жизненного цикла: запись заявления стирается из RAM, история
+ * (включая со-подписанное заявление) остаётся в журнале действий. Имущество
+ * возвращается на склад КУ; средства восстанавливаются на
+ * w.mkt.member.available заказчика.
  *
  * Принятие возврата оформляется второй подписью председателя на заявлении
  * пайщика (канон двухподписных актов): на вход приходит тот же документ
@@ -52,8 +54,5 @@ void marketplace::accretrn(eosio::name coopname,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
-  Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status    = ReturnStatus::RETURN_ACCEPTED;
-    upd.statement = statement;
-  });
+  Marketplace::erase_return_request(coopname, r.id);
 }

@@ -50,7 +50,6 @@
     a.hash      = aid_hash;
     a.username  = username;
     a.amount    = amount;
-    a.status    = BranchAidStatus::PENDING;
     a.statement = statement;
   });
 

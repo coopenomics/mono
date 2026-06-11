@@ -9,9 +9,12 @@
  *  - Ledger2::apply(o.brn.spend, amount, …, hash=spend.hash) — BURN с
  *    w.brn.common участка, Дт 86 / Кт 51.
  *
+ * Оплата подтверждена — терминал жизненного цикла: запись команды стирается
+ * из RAM (наличие записи = ожидание оплаты), история — в журнале действий.
+ *
  * Guards:
  *  - require_auth(_gateway) — callback легитимен только от gateway-контракта;
- *  - команда найдена по outcome_hash и в статусе pending.
+ *  - команда найдена по outcome_hash.
  *
  * @ingroup public_branch_actions
  */
@@ -24,16 +27,11 @@
   auto it = byhash.find(outcome_hash);
   eosio::check(it != byhash.end(),
                "Команда оплаты расхода не найдена по outcome_hash из callback'а gateway");
-  eosio::check(it->status == BranchSpendStatus::PENDING,
-               "Callback gateway::outcomplete получен на команду не в статусе ожидания оплаты");
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::SPEND_COMMON,
                  it->amount, it->braname, it->hash,
                  "Оплата расхода кооперативного участка из общего кошелька");
 
-  byhash.modify(it, eosio::same_payer, [&](auto& s) {
-    s.status = BranchSpendStatus::COMPLETED;
-    s.decline_reason.clear();
-  });
+  byhash.erase(it);
 }

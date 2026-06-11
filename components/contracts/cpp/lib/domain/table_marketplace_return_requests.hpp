@@ -15,20 +15,18 @@ namespace Marketplace {
 using namespace eosio;
 
 /**
- * @brief Статусы заявления на гарантийный возврат (процесс p.mkt.return).
+ * @brief Рабочие статусы заявления на гарантийный возврат (процесс p.mkt.return).
  *
- * Граф: ∅ → pending_review → approved_for_visit → return_accepted (final)
- *                                              → rejected_at_ku  (final)
- *                          → rejected_remote (final)
+ * Граф: ∅ → pending_review → approved_for_visit → терминал
+ *                          → терминал
  *
- * Источник правды — `p.mkt.return.standard.yaml` секция `states:`.
+ * Терминалы (accretrn / rejretrn / rejretrem) запись СТИРАЮТ из RAM —
+ * финальных статусов в таблице не бывает, история и причины отказов — в
+ * журнале действий. Источник правды — `p.mkt.return.standard.yaml`.
  */
 namespace ReturnStatus {
   inline constexpr eosio::name PENDING_REVIEW       = "pendrev"_n;
   inline constexpr eosio::name APPROVED_FOR_VISIT   = "approvvisit"_n;
-  inline constexpr eosio::name RETURN_ACCEPTED      = "accepted"_n;
-  inline constexpr eosio::name REJECTED_REMOTE      = "rejremote"_n;
-  inline constexpr eosio::name REJECTED_AT_KU       = "rejatku"_n;
 }
 
 /**
@@ -54,16 +52,13 @@ namespace ReturnStatus {
  * (Story 7.1, AR32). Реальные изображения off-chain в file-storage (PR #359);
  * on-chain — только ссылки (hash для дедупликации + URL восстанавливает backend).
  *
- * `statement` — заявление пайщика на возврат. При подаче (submretrn) несёт
- * подпись пайщика; при принятии возврата (accretrn) председатель накладывает
- * на тот же документ вторую подпись (канон двухподписных актов — без
- * регенерации), и поле перезаписывается версией с обеими подписями. Отдельных
- * документов решения председателя нет: удалённое рассмотрение и отказы —
- * процедурные действия (статус + текстовая причина), подпись на документе
- * нужна только в точке принятия возврата.
- *
- * `reason_remote` / `reason_visit` — текстовые причины отказа для
- * пользовательского UI (заполняются в rejretrem / rejretrn соответственно).
+ * `statement` — заявление пайщика на возврат (его подпись с submretrn).
+ * При принятии возврата (accretrn) председатель накладывает на тот же
+ * документ вторую подпись (канон двухподписных актов — без регенерации);
+ * со-подписанная версия фиксируется аргументом действия в журнале, запись
+ * при этом стирается. Отдельных документов решения председателя нет:
+ * удалённое рассмотрение и отказы — процедурные действия с текстовой
+ * причиной в аргументе действия.
  */
 struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   uint64_t id;
@@ -82,9 +77,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images
 
   eosio::name status = ReturnStatus::PENDING_REVIEW;
-  document2 statement;                                        ///< заявление пайщика; при accretrn перезаписывается версией с со-подписью председателя
-  std::string reason_remote;                                  ///< причина отказа удалённо (для rejretrem)
-  std::string reason_visit;                                   ///< причина отказа на очном осмотре (для rejretrn)
+  document2 statement;                                        ///< заявление пайщика (его подпись)
 
   // Timestamp'ы submretrn/aprretrem/rejretrem/accretrn/rejretrn — на бэкенде
   // из blockchain_actions[at]. В контракте никаких guard'ов по датам нет.

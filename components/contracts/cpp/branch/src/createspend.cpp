@@ -50,7 +50,6 @@
     s.hash    = spend_hash;
     s.braname = braname;
     s.amount  = amount;
-    s.status  = BranchSpendStatus::PENDING;
     s.memo    = memo;
   });
 

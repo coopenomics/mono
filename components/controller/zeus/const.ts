@@ -4081,9 +4081,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceAid:{
 		amount:"String",
-		decline_reason:"String",
 		hash:"String",
-		status:"String",
 		username:"String"
 	},
 	MarketplaceAplReception:{

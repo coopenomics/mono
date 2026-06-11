@@ -56,6 +56,15 @@ inline void update_order(eosio::name coopname, uint64_t order_id, const std::fun
   orders.modify(it, _marketplace, [&](auto& o) { fn(o); });
 }
 
+// Терминал жизненного цикла: запись стирается из RAM, история процесса
+// остаётся в журнале действий (blockchain_actions парсера).
+inline void erase_order(eosio::name coopname, uint64_t order_id) {
+  orders_index orders(_marketplace, coopname.value);
+  auto it = orders.find(order_id);
+  eosio::check(it != orders.end(), "Заказ не найден по id");
+  orders.erase(it);
+}
+
 // ── Return requests ─────────────────────────────────────────────────────
 
 inline std::optional<return_request> get_return_request_by_hash(eosio::name coopname,
@@ -83,6 +92,16 @@ inline void update_return_request(eosio::name coopname, uint64_t request_id,
   requests.modify(it, _marketplace, [&](auto& r) { fn(r); });
 }
 
+// Терминал жизненного цикла: запись стирается из RAM (история — в журнале
+// действий). order.return_request_id НЕ сбрасывается — повторный возврат по
+// тому же заказу не открывается.
+inline void erase_return_request(eosio::name coopname, uint64_t request_id) {
+  return_requests_index requests(_marketplace, coopname.value);
+  auto it = requests.find(request_id);
+  eosio::check(it != requests.end(), "Заявление на возврат не найдено по id");
+  requests.erase(it);
+}
+
 // ── Writeoff proposals ──────────────────────────────────────────────────
 
 inline std::optional<writeoff_proposal> get_writeoff_proposal_by_hash(eosio::name coopname,
@@ -108,6 +127,15 @@ inline void update_writeoff_proposal(eosio::name coopname, uint64_t proposal_id,
   auto it = proposals.find(proposal_id);
   eosio::check(it != proposals.end(), "Проект списания не найден по id");
   proposals.modify(it, _marketplace, [&](auto& p) { fn(p); });
+}
+
+// Терминал жизненного цикла: запись стирается из RAM, история процесса —
+// в журнале действий (blockchain_actions парсера).
+inline void erase_writeoff_proposal(eosio::name coopname, uint64_t proposal_id) {
+  writeoff_proposals_index proposals(_marketplace, coopname.value);
+  auto it = proposals.find(proposal_id);
+  eosio::check(it != proposals.end(), "Проект списания не найден по id");
+  proposals.erase(it);
 }
 
 // ── Cross-contract read: ledger2 wallet/userwallet balances ─────────────

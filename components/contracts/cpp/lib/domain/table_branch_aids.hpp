@@ -9,28 +9,16 @@
 #include "../core/document.hpp"
 
 /**
- * @brief Состояние заявки на материальную помощь доверенного КУ
- * (requirement b6 «Экономика КУ», процесс p.brn.aid).
+ * @brief Заявка на материальную помощь доверенного/председателя КУ из его
+ * персонального кошелька членских средств (w.brn.person); requirement b6
+ * «Экономика КУ», процесс p.brn.aid.
  *
  * Выплата идёт через gateway::createoutpay → действие кассира → callback
  * `branch::aidconfirm` / `branch::aiddecline` (по образцу выплаты поставщику
- * marketplace::payout, Locked Decision L12).
- *
- * Допустимые переходы:
- *   pending → completed — gateway::outcomplete → callback `aidconfirm`.
- *                         Здесь применяется o.brn.aid (Дт 86 / Кт 51).
- *   pending → declined  — gateway::outdecline → callback `aiddecline`.
- *                         Без ledger-движения; средства остаются на w.brn.person.
- */
-namespace BranchAidStatus {
-  inline constexpr eosio::name PENDING   = "pending"_n;
-  inline constexpr eosio::name COMPLETED = "completed"_n;
-  inline constexpr eosio::name DECLINED  = "declined"_n;
-}
-
-/**
- * @brief Заявка на материальную помощь доверенного/председателя КУ из его
- * персонального кошелька членских средств (w.brn.person).
+ * marketplace::payout, Locked Decision L12). Запись живёт ТОЛЬКО на время
+ * ожидания решения кассира (наличие записи = pending): оба callback'а —
+ * терминал жизненного цикла, запись стирается из RAM, история — в журнале
+ * действий.
  *
  * Доверенный сам подписывает заявление (statement) и сам платит НДФЛ с
  * полученной суммы — кооператив налог не удерживает (решение владельца
@@ -50,9 +38,7 @@ struct [[eosio::table, eosio::contract(BRANCH)]] branch_aid {
   eosio::checksum256 hash;            ///< идентификатор заявки (= outcome_hash в gateway, = process_hash в ledger2)
   eosio::name        username;        ///< доверенный/председатель КУ — получатель помощи
   eosio::asset       amount;          ///< сумма выплаты
-  eosio::name        status = BranchAidStatus::PENDING;  ///< см. BranchAidStatus
   document2          statement;       ///< заявление получателя (его подпись)
-  std::string        decline_reason;  ///< заполняется только при status == declined
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

@@ -190,7 +190,8 @@ export class MarketplaceCreateAidInputDTO {
 }
 
 @ObjectType('MarketplaceAid', {
-  description: 'Заявка на материальную помощь доверенного кооперативного участка.',
+  description:
+    'Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку.',
 })
 export class MarketplaceAidDTO {
   @Field({ description: 'Идентификатор заявки.' })
@@ -201,12 +202,6 @@ export class MarketplaceAidDTO {
 
   @Field({ description: 'Сумма выплаты.' })
   amount!: string;
-
-  @Field({ description: 'Состояние заявки: ожидает выплаты / выплачена / отклонена.' })
-  status!: string;
-
-  @Field({ nullable: true, description: 'Причина отказа (для отклонённых).' })
-  decline_reason?: string;
 }
 
 @InputType('MarketplaceListAidsInput')
@@ -242,7 +237,5 @@ export function toMarketplaceAidDTO(
     hash: String(aid.hash),
     username: aid.username,
     amount: aid.amount,
-    status: aid.status,
-    decline_reason: aid.decline_reason || undefined,
   };
 }

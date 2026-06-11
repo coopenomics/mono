@@ -9,9 +9,12 @@
  *  - Ledger2::apply(o.brn.aid, amount, …, hash=aid.hash) — BURN с
  *    w.brn.person получателя, Дт 86 / Кт 51.
  *
+ * Выплата подтверждена — терминал жизненного цикла: запись заявки стирается
+ * из RAM (наличие записи = ожидание выплаты), история — в журнале действий.
+ *
  * Guards:
  *  - require_auth(_gateway) — callback легитимен только от gateway-контракта;
- *  - заявка найдена по outcome_hash и в статусе pending.
+ *  - заявка найдена по outcome_hash.
  *
  * @ingroup public_branch_actions
  */
@@ -24,16 +27,11 @@
   auto it = byhash.find(outcome_hash);
   eosio::check(it != byhash.end(),
                "Заявка на материальную помощь не найдена по outcome_hash из callback'а gateway");
-  eosio::check(it->status == BranchAidStatus::PENDING,
-               "Callback gateway::outcomplete получен на заявку не в статусе ожидания выплаты");
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::FINANCIAL_AID,
                  it->amount, it->username, it->hash,
                  "Материальная помощь доверенному кооперативного участка");
 
-  byhash.modify(it, eosio::same_payer, [&](auto& a) {
-    a.status = BranchAidStatus::COMPLETED;
-    a.decline_reason.clear();
-  });
+  byhash.erase(it);
 }

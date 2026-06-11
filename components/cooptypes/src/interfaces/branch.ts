@@ -175,9 +175,7 @@ export interface IBranchAid {
   hash: IChecksum256
   username: IName
   amount: IAsset
-  status: IName
   statement: IDocument2
-  decline_reason: string
 }
 
 export interface IBranchSpend {
@@ -185,7 +183,5 @@ export interface IBranchSpend {
   hash: IChecksum256
   braname: IName
   amount: IAsset
-  status: IName
   memo: string
-  decline_reason: string
 }

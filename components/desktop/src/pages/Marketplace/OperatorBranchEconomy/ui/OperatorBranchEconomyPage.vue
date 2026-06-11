@@ -7,7 +7,7 @@ import { useSessionStore } from 'src/entities/Session'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
+import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AmountInput, DataRow, PageHint, WalletCard } from 'src/shared/ui/domain'
 import {
   type AidStatementDocumentView,
@@ -374,18 +374,6 @@ async function onSignAndSubmitAid(): Promise<void> {
   }
 }
 
-// ─── Мои заявки ───
-
-function aidBadge(a: MarketplaceAidView): { label: string; variant: BaseBadgeVariant } {
-  switch (a.status) {
-    case 'completed':
-      return { label: 'Выплачена', variant: 'pos' }
-    case 'declined':
-      return { label: 'Отклонена', variant: 'neg' }
-    default:
-      return { label: 'Ожидает выплаты', variant: 'warn' }
-  }
-}
 </script>
 
 <template lang="pug">
@@ -589,7 +577,8 @@ q-page.economy
           @click='onAddWeight'
         ) Добавить в распределение
 
-    //- Мои заявки на материальную помощь
+    //- Заявки на материальную помощь, ожидающие выплаты (выплаченные и
+    //- отклонённые исчезают из списка — итог виден в движениях по кошельку)
     .economy__section(v-if='aids.length')
       .economy__section-title Мои заявки на материальную помощь
       .table-wrap
@@ -599,13 +588,11 @@ q-page.economy
               tr
                 th Сумма
                 th Состояние
-                th Причина отказа
             tbody
               tr(v-for='a in aids', :key='a.hash')
                 td.t-mono {{ a.amount }}
                 td
-                  BaseBadge(:variant='aidBadge(a).variant') {{ aidBadge(a).label }}
-                td {{ a.decline_reason || '—' }}
+                  BaseBadge(variant='warn') Ожидает выплаты
 
   //- Диалог перевода
   BaseDialog(v-model='convertOpen', title='Перевод в Стол заказов', size='sm')

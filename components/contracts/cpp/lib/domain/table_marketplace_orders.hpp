@@ -17,7 +17,9 @@ using namespace eosio;
 /**
  * @brief Статусы Order'а в процессе p.mkt.supply.
  *
- * Граф: ∅ → active → cancelled (canceled by orderer | expireorder | declineorder)
+ * Граф: ∅ → active → терминал-отмена (cancelorder | expireorder | declineorder
+ *                    стирают запись из RAM — статуса «отменён» в таблице нет,
+ *                    история в журнале действий)
  *                  → accepted → supply_prepared → accepted_to_coop
  *                                               → ready_to_receive → received
  *
@@ -31,7 +33,6 @@ using namespace eosio;
  */
 namespace OrderStatus {
   inline constexpr eosio::name ACTIVE           = "active"_n;
-  inline constexpr eosio::name CANCELLED        = "cancelled"_n;
   inline constexpr eosio::name ACCEPTED         = "accepted"_n;
   inline constexpr eosio::name SUPPLY_PREPARED  = "supplyprep"_n;
   inline constexpr eosio::name ACCEPTED_TO_COOP = "acceptcoop"_n;

@@ -4,11 +4,12 @@
  *
  * Ledger2-операция НЕ применяется: средства остаются на персональном
  * кошельке получателя (w.brn.person), он может подать заявку повторно с
- * новым идентификатором.
+ * новым идентификатором. Терминал жизненного цикла: запись заявки стирается
+ * из RAM, причина отказа остаётся в журнале действий (аргумент reason).
  *
  * Guards:
  *  - require_auth(_gateway);
- *  - заявка найдена по outcome_hash и в статусе pending.
+ *  - заявка найдена по outcome_hash.
  *
  * @ingroup public_branch_actions
  */
@@ -22,11 +23,6 @@
   auto it = byhash.find(outcome_hash);
   eosio::check(it != byhash.end(),
                "Заявка на материальную помощь не найдена по outcome_hash из callback'а gateway");
-  eosio::check(it->status == BranchAidStatus::PENDING,
-               "Callback gateway::outdecline получен на заявку не в статусе ожидания выплаты");
 
-  byhash.modify(it, eosio::same_payer, [&](auto& a) {
-    a.status         = BranchAidStatus::DECLINED;
-    a.decline_reason = reason;
-  });
+  byhash.erase(it);
 }

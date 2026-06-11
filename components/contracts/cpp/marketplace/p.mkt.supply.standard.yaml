@@ -300,16 +300,10 @@ states:
       программном членском кошельке Стола заказов.
     kind: normal
 
-  - name: cancelled
-    human: Заказ отменён
-    description: >
-      Заказ отменён по одному из трёх оснований: заказчиком до акцепта,
-      кооперативом по итогам закрытия цикла без достижения минимального
-      порога поставки, поставщиком при отказе от консолидированной
-      заявки. Во всех трёх случаях резерв со средств заказчика снимается,
-      и заказчик снова свободно ими распоряжается в рамках программы.
-    kind: final
-
+  # Отмена заказа (заказчиком до акцепта / кооперативом по итогам закрытия
+  # цикла без достижения порога / поставщиком при отказе от заявки) —
+  # терминал жизненного цикла: запись заказа удаляется, резерв со средств
+  # заказчика снимается, история заказа сохраняется в журнале действий.
   - name: accepted
     human: Заявка акцептована
     description: >
@@ -396,7 +390,7 @@ transitions:
       - Пункт выдачи — тот же участок, на складе которого лежит остаток.
 
   - from: active
-    to: cancelled
+    to: "∅"
     action: marketplace::cancelorder
     actor: orderer
     ledger_code: p.mkt.supply
@@ -407,7 +401,7 @@ transitions:
       - Заказ ещё не вошёл в акцептованную поставщиком консолидированную заявку.
 
   - from: accepted_to_coop
-    to: cancelled
+    to: "∅"
     action: marketplace::cancelorder
     actor: orderer
     ledger_code: p.mkt.supply
@@ -419,7 +413,7 @@ transitions:
       - Выдача по заказу ещё не открыта — оператор участка не поставил свою подпись на акте выдачи.
 
   - from: active
-    to: cancelled
+    to: "∅"
     action: marketplace::expireorder
     actor: backend
     ledger_code: p.mkt.supply
@@ -439,7 +433,7 @@ transitions:
       - Действие выполняет тот поставщик, чьё предложение лежит в основе консолидированной заявки.
 
   - from: active
-    to: cancelled
+    to: "∅"
     action: marketplace::declinebatch
     actor: offerer
     ledger_code: p.mkt.supply

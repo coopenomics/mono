@@ -146,7 +146,7 @@ export * as OnMktWoAuth from './onMktWoAuth'
 
 /**
  * Callback от `soviet::cancelexprd` или decline-эффекта (Story 8.4).
- * PROPOSED → REJECTED, сохраняет reason в wroffprops.reject_reason.
+ * Терминал: стирает запись проекта из RAM, reason — в журнале действий.
  */
 export * as OnMktWoDecl from './onMktWoDecl'
 
