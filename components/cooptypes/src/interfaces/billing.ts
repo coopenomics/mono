@@ -75,14 +75,13 @@ export interface IMigrate {
 }
 
 /**
- * Строка таблицы платежей (`payments`, scope = коопнейм). Хранит факт оплаты
- * подписок: сумму, идентификатор платежа и время.
+ * Строка реестра проведённых платежей (`payments`, scope = аккаунт контракта).
+ * Anti-replay: повтор транзакции с тем же `payment_hash` отклоняется on-chain,
+ * что исключает двойное списание средств при потере подтверждения инициатором.
+ * Записи старше TTL подчищаются скользящим окном при каждой новой записи.
  */
 export interface IPayment {
   id: IUint64
-  coopname: IName
-  username: IName
-  amount: IAsset
   payment_hash: IChecksum256
   paid_at: ITimePointSec
 }

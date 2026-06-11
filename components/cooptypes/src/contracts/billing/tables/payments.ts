@@ -1,5 +1,5 @@
 import type * as Billing from '../../../interfaces/billing'
-import { Actors } from '../../../common'
+import * as ContractNames from '../../../common/names'
 
 /**
  * Имя таблицы
@@ -7,12 +7,15 @@ import { Actors } from '../../../common'
 export const tableName = 'payments'
 
 /**
- * Таблица хранится в {@link Actors._coopname | области памяти кооператива}.
+ * Таблица хранится в {@link ContractNames._billing | области памяти контракта}.
  */
-export const scope = Actors._coopname
+export const scope = ContractNames._billing
 
 /**
  * @interface
- * Факты оплаты подписок: сумма, идентификатор платежа (`payment_hash`) и время.
+ * Реестр проведённых платежей (anti-replay): идентификатор платежа
+ * (`payment_hash`) и время проведения. Повтор `payment_hash` отклоняется
+ * on-chain — двойное списание средств невозможно даже при потере
+ * подтверждения инициатором (cron Восхода / PowerupPlugin).
  */
 export type IPayment = Billing.IPayment

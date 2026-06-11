@@ -3,17 +3,22 @@ using namespace eosio;
 /**
  * @brief Списание стоимости подписок с биллинг-кошелька пайщика (оплата).
  *
- * Оператор (Восход) одним действием списывает с биллинг-кошелька `w.wal.bill`
- * пайщика суммарную стоимость его активных подписок и зачисляет её в
- * инфраструктурный кошелёк кооператива `w.sov.infra` (ledger2 `o.bil.pay`).
- * Отдельная подпись пайщика не требуется — авторизация обеспечена нахождением
- * контракта в `contracts_whitelist` + фактом конвертации (`convert` = согласие).
+ * Оператор платформы (`_provider`, Восход) одним действием списывает с
+ * биллинг-кошелька `w.wal.bill` суммарную стоимость активных time-подписок
+ * кооператива и зачисляет её в инфраструктурный кошелёк `w.sov.infra`
+ * (ledger2 `o.bil.pay`). Отдельная подпись пайщика не требуется: членский
+ * взнос на биллинг-кошельке — целевой (внесён заявлением о конвертации
+ * «прошу сконвертировать паевой взнос в членский» именно на оплату
+ * инфраструктуры), поэтому отдельного распоряжения на каждое списание нет.
  *
  * Состав подписок on-chain не раскрывается: контракт несёт только сумму,
- * `payment_hash` (ссылка на запись в БД провайдера) и memo. Дедуп по
- * `payment_hash` — у provider'а (Single-Hub v5: парсер Восхода ловит pay-event,
- * coopback Восхода дёргает provider `POST /billing/payment-confirmed`, provider
- * сам отвечает на повторы). Контракт своих таблиц не ведёт.
+ * `payment_hash` (ссылка на запись в БД провайдера) и memo.
+ *
+ * Anti-replay: повтор `payment_hash` отклоняется on-chain (таблица
+ * `paidpayments`). Это страхует средства пайщика от двойного списания, если
+ * инициатор (cron coopback'а Восхода) не получил подтверждение и повторил
+ * вызов — упавший парсер или backend между transact и callback провайдеру
+ * больше не приводят к спаму повторных оплат.
  *
  * @param coopname     Кооператив-плательщик.
  * @param username     Пайщик, с чьего биллинг-кошелька списываем.
@@ -22,11 +27,14 @@ using namespace eosio;
  * @param memo         Произвольный комментарий (< 256 символов).
  *
  * @ingroup public_billing_actions
- * @note Авторизация требуется от аккаунта: @p coopname
+ * @note Авторизация требуется от аккаунта: @p _provider
  */
 void billing::pay(name coopname, name username, asset amount,
                   checksum256 payment_hash, std::string memo) {
-  require_auth(coopname);
+  // Списание авторизует оператор платформы: он ведёт учёт подписок (provider
+  // backend) и инициирует рекуррентные платежи. Ключей кооперативов-спиц у
+  // оператора нет и быть не должно.
+  require_auth(_provider);
 
   // Плательщик должен быть кооперативом (presence-only, без статуса).
   Billing::assert_payer_is_cooperative(coopname);
@@ -35,6 +43,9 @@ void billing::pay(name coopname, name username, asset amount,
   check(amount.symbol == _root_govern_symbol, "Неверный символ валюты для оплаты");
   check(payment_hash != checksum256{}, "payment_hash обязателен");
   check(memo.size() < 256, "memo не должен превышать 255 символов");
+
+  // Anti-replay: первый и единственный проход для этого payment_hash.
+  Billing::assert_first_payment_and_register(_billing, payment_hash);
 
   const std::string ledger_memo =
       memo.empty() ? std::string("Оплата подписки за инфраструктуру") : memo;
