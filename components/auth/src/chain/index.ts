@@ -1,3 +1,4 @@
+import type { CoopChainLink } from '../certificate'
 /**
  * Цепочка доверия: офлайн-проверка participant_certificate walk'ом
  * `ano → voskhod → vostok → participant` от embedded trust anchor.
@@ -5,7 +6,8 @@
  */
 import { APIClient } from '@wharfkit/antelope'
 import { base64url } from 'jose'
-import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
+import { TRUST_ANCHOR_ANO_CERT_PUBKEY } from '../config/trust-anchor'
+import { AuthV2Error, AuthV2ErrorCode } from '../errors'
 
 /**
  * Публичный ключ permission `cert` аккаунта в COOPOS (Story 1.3).
@@ -40,15 +42,151 @@ export async function readCertPublicKey(rpcUrl: string, account: string): Promis
   return key.toString()
 }
 
+export type VerifyOfflineReason =
+  | 'malformed_certificate' // не compact JWS / нет обязательных claims (coop_chain, exp)
+  | 'unsupported_alg' // alg ≠ ES256K
+  | 'expired' // exp в прошлом относительно now
+  | 'untrusted_anchor' // coop_chain не укоренён в известном trust-anchor `ano`
+  | 'untrusted_issuer' // звено цепи (в т.ч. издатель) не совпало с доверенным кэшем ключей
+  | 'signature_mismatch' // подпись не сходится с ключом издателя
+
 export interface VerifyOfflineResult {
   valid: boolean
-  /** Причина отказа, если valid=false (expired / revoked / chain broken) */
-  reason?: string
+  /** Причина отказа, если valid=false. Офлайн-отзыв (revoked) — вне MVP (Story 4.7). */
+  reason?: VerifyOfflineReason
+  /** Аккаунт-издатель (последнее звено coop_chain), под чьим ключом сошлась подпись. */
+  issuer?: string
 }
 
-/** Офлайн-валидация удостоверения без обращения к сети. Story 4.4. */
-export async function verifyOffline(_certificate: string): Promise<VerifyOfflineResult> {
-  notImplemented('verifyOffline')
+export interface VerifyOfflineOptions {
+  /**
+   * Офлайн-снимок доверенных cert-ключей известных кооперативов
+   * (`chain_manifests_cache`): `account → Antelope public_key`. Источник доверия —
+   * каждое звено `coop_chain` сертификата сверяется с этим набором (закрывает
+   * подделку «свой leaf-ключ + настоящий ano в root»). Без него издатель не
+   * подтверждается → `untrusted_issuer` (fail-closed). Наполнение кэша
+   * (manifest-sync) — отдельная задача.
+   */
+  trustedKeys?: Record<string, string>
+  /**
+   * Доверенный якорь `ano.cert` (Antelope `PUB_K1_…`). По умолчанию —
+   * `trustedKeys['ano']`, затем вшитый release-pinned `TRUST_ANCHOR_ANO_CERT_PUBKEY`.
+   */
+  trustAnchor?: string
+  /** «Сейчас» в мс для проверки exp (инъекция для детерминизма/тестов). */
+  now?: number
+}
+
+/** Порядок группы secp256k1 (n) и его половина — для low-S нормализации подписи. */
+const SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n
+const SECP256K1_HALF_N = SECP256K1_N >> 1n
+
+/**
+ * Нормализовать S подписи R||S (64 байта) к нижней половине порядка кривой.
+ * cert подписывает controller через jose+Node KeyObject, а Node-ECDSA может выдать
+ * high-S; wharfkit/noble verify по умолчанию отвергает high-S (`lowS:true`).
+ * Верификация secp256k1 инвариантна к `S ↔ n−S`, поэтому приведение к low-S делает
+ * подпись принимаемой независимо от каноничности подписанта.
+ */
+function normalizeLowS(rs: Uint8Array): Uint8Array {
+  let s = 0n
+  for (const byte of rs.slice(32, 64))
+    s = (s << 8n) | BigInt(byte)
+  if (s <= SECP256K1_HALF_N)
+    return rs
+  let low = SECP256K1_N - s
+  const out = new Uint8Array(rs) // копия R||S
+  for (let i = 63; i >= 32; i--) {
+    out[i] = Number(low & 0xFFn)
+    low >>= 8n
+  }
+  return out
+}
+
+interface CertHead { alg?: string }
+interface CertPayload { coop_chain?: CoopChainLink[], exp?: number }
+
+/**
+ * Офлайн-валидация удостоверения `participant_certificate` без обращения к сети
+ * (Story 4.4; Vision: NFC-карты, бумажный QR). Проверяет структуру/alg/exp,
+ * укоренение `coop_chain` в trust-anchor `ano`, принадлежность звеньев доверенному
+ * кэшу ключей и подпись против ключа издателя (последнее звено `coop_chain`).
+ *
+ * Полностью офлайн и fail-closed: без доверенного якоря/кэша вердикт всегда
+ * `valid:false`. Отзыв ключа офлайн не проверяется (вне MVP — Story 4.7, Growth
+ * FR65); компенсируется коротким TTL (Story 4.6).
+ */
+export async function verifyOffline(certificate: string, options: VerifyOfflineOptions = {}): Promise<VerifyOfflineResult> {
+  const parts = certificate.split('.')
+  if (parts.length !== 3)
+    return { valid: false, reason: 'malformed_certificate' }
+  const [h, p, s] = parts
+
+  let head: CertHead
+  let payload: CertPayload
+  try {
+    head = JSON.parse(new TextDecoder().decode(base64url.decode(h)))
+    payload = JSON.parse(new TextDecoder().decode(base64url.decode(p)))
+  }
+  catch {
+    return { valid: false, reason: 'malformed_certificate' }
+  }
+  if (head.alg !== 'ES256K')
+    return { valid: false, reason: 'unsupported_alg' }
+
+  const chain = payload.coop_chain
+  if (!Array.isArray(chain) || chain.length === 0 || typeof payload.exp !== 'number')
+    return { valid: false, reason: 'malformed_certificate' }
+
+  const now = options.now ?? Date.now()
+  if (now >= payload.exp * 1000)
+    return { valid: false, reason: 'expired' }
+
+  // Якорь: цепь обязана начинаться с известного `ano`.
+  const root = chain[0]
+  const anchor = options.trustAnchor ?? options.trustedKeys?.ano ?? TRUST_ANCHOR_ANO_CERT_PUBKEY
+  if (!anchor || root.account !== 'ano' || root.public_key !== anchor)
+    return { valid: false, reason: 'untrusted_anchor' }
+
+  // Звенья: при наличии кэша каждое звено должно совпасть с доверенным ключом.
+  if (options.trustedKeys) {
+    for (const link of chain) {
+      if (options.trustedKeys[link.account] !== link.public_key)
+        return { valid: false, reason: 'untrusted_issuer' }
+    }
+  }
+  else {
+    // Без кэша подтверждён только якорь; издателя доверять нельзя — fail-closed.
+    return { valid: false, reason: 'untrusted_issuer' }
+  }
+
+  // Подпись: против ключа издателя (последнее звено coop_chain, оно же `kid`).
+  const issuer = chain[chain.length - 1]
+  let rs: Uint8Array
+  try {
+    rs = base64url.decode(s)
+  }
+  catch {
+    return { valid: false, reason: 'malformed_certificate' }
+  }
+  if (rs.length !== 64)
+    return { valid: false, reason: 'malformed_certificate' }
+
+  const { PublicKey, Signature } = await import('@wharfkit/antelope')
+  const normalized = normalizeLowS(rs)
+  const signingInput = new TextEncoder().encode(`${h}.${p}`)
+  let ok = false
+  try {
+    const sig = Signature.from({ type: 'K1', r: normalized.slice(0, 32), s: normalized.slice(32, 64), recid: 0 })
+    ok = sig.verifyMessage(signingInput, PublicKey.from(issuer.public_key))
+  }
+  catch {
+    ok = false // некорректный ключ/подпись в сертификате — не валим исключением
+  }
+  if (!ok)
+    return { valid: false, reason: 'signature_mismatch' }
+
+  return { valid: true, issuer: issuer.account }
 }
 
 /**

@@ -7,7 +7,7 @@ export {
   verificationTypeLabel,
 } from './certificate'
 
-export type { KeyValidityWindow, VerifyDocumentParams, VerifyDocumentReason, VerifyDocumentResult, VerifyOfflineResult } from './chain'
+export type { KeyValidityWindow, VerifyDocumentParams, VerifyDocumentReason, VerifyDocumentResult, VerifyOfflineOptions, VerifyOfflineReason, VerifyOfflineResult } from './chain'
 
 export { readCertPublicKey, verifyDocumentOffline, verifyOffline } from './chain'
 /**
@@ -18,7 +18,7 @@ export { readCertPublicKey, verifyDocumentOffline, verifyOffline } from './chain
  */
 export { COOPOS_PUBLIC_NODES } from './config/coopos-public-nodes'
 
-export { TRUST_ANCHOR_ANO_CERT_JWK } from './config/trust-anchor'
+export { TRUST_ANCHOR_ANO_CERT_PUBKEY } from './config/trust-anchor'
 export { AUTH_V2_ERROR_VIEWS, AuthV2Error, AuthV2ErrorCode, describeAuthV2Error } from './errors'
 export type { AuthV2ErrorAction, AuthV2ErrorView } from './errors'
 

@@ -18,8 +18,8 @@ const PUBLIC_API = [
 ] as const
 
 // Методы, ещё не реализованные (бросают not_implemented). По мере реализации
-// историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4 (реализованы).
-const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument'])
+// историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4, verifyOffline — 4.4.
+const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument', 'verifyOffline'])
 const STILL_STUBBED = PUBLIC_API.filter(m => !IMPLEMENTED.has(m))
 
 describe('@coopenomics/auth — скелет SDK', () => {
@@ -47,8 +47,8 @@ describe('@coopenomics/auth — скелет SDK', () => {
     })
   })
 
-  it('trust anchor и список нод доступны (placeholder до Stories 1.3/9.5)', () => {
-    expect(api.TRUST_ANCHOR_ANO_CERT_JWK).toBeNull()
+  it('trust anchor и список нод доступны (placeholder до release-pin/9.5)', () => {
+    expect(api.TRUST_ANCHOR_ANO_CERT_PUBKEY).toBeNull()
     expect(api.COOPOS_PUBLIC_NODES).toEqual([])
   })
 })
