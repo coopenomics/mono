@@ -9,7 +9,7 @@
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
-  TableSkeleton(v-if='loading && !decisions.length', :columns='6', :rows='5')
+  TableSkeleton(v-if='loading && !decisions.length', :columns='skeletonColumns', :rows='5')
   .table-wrap(v-else-if='decisions.length')
     .table-scroll
       table.table
@@ -74,6 +74,7 @@ BaseDialog(v-model='isCreateOpen', title='Объявить собрание', si
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
@@ -83,6 +84,7 @@ import { useHeaderActions } from 'src/shared/hooks';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { CreateKuMeetingButton } from '../../shared/CreateKuMeetingButton';
 
 const router = useRouter();
@@ -105,16 +107,27 @@ const form = ref({
 
 const decisions = computed(() => kuStore.decisions);
 
-const statusMap: Record<string, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
-  opened: { label: 'Сбор участников', variant: 'info' },
-  voting: { label: 'Голосование', variant: 'warn' },
-  approved: { label: 'Протокол утверждён', variant: 'pos' },
-  onapproval: { label: 'На утверждении советом', variant: 'info' },
-  completed: { label: 'Завершено', variant: 'neutral' },
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Участок' },
+  { label: 'Статус', cell: 'badge' },
+  { label: 'Инициатор' },
+  { label: 'Председатель' },
+  { label: 'Участники', class: 't-num' },
+  { label: 'Бюллетени', class: 't-num' },
+];
+
+const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
+  [Zeus.KuDecisionStatus.OPENED]: { label: 'Сбор участников', variant: 'info' },
+  [Zeus.KuDecisionStatus.VOTING]: { label: 'Голосование', variant: 'warn' },
+  [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
+  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
+  [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
 };
 
 function statusMeta(decision: IKuDecision) {
-  return statusMap[decision.status as string] ?? { label: decision.status || '—', variant: 'neutral' as const };
+  return (
+    (decision.status && statusMap[decision.status]) ?? { label: decision.status || '—', variant: 'neutral' as const }
+  );
 }
 
 function openDetails(hash: string) {

@@ -9,7 +9,7 @@
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
-  TableSkeleton(v-if='loading && !requests.length', :columns='4', :rows='4')
+  TableSkeleton(v-if='loading && !requests.length', :columns='skeletonColumns', :rows='4')
   .table-wrap(v-else-if='requests.length')
     .table-scroll
       table.table
@@ -92,7 +92,15 @@ import {
   EmptyState,
   TableSkeleton,
 } from 'src/shared/ui/base';
+import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { RequestKuTrustedButton } from '../../shared/RequestKuTrustedButton';
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Участок' },
+  { label: 'Заявитель' },
+  { label: 'Статус', cell: 'badge' },
+  { label: 'Действия', class: 'col-action', cell: 'icon' },
+];
 
 const kuStore = useKuStore();
 const branchStore = useBranchStore();

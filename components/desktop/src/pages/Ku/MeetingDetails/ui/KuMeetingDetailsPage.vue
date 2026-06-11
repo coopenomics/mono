@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  TableSkeleton(v-if='loading && !decision', :columns='2', :rows='6')
+  TableSkeleton(v-if='loading && !decision', :columns='skeletonColumns', :rows='6')
   template(v-else-if='decision')
     //- Статус + главные действия по статусу и роли
     .row.items-center.q-mb-md
@@ -141,6 +141,7 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
@@ -158,6 +159,7 @@ import {
   EmptyState,
   TableSkeleton,
 } from 'src/shared/ui/base';
+import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 
 const route = useRoute();
@@ -178,23 +180,30 @@ const hash = computed(() => String(route.params.hash));
 const decision = computed(() => kuStore.currentDecision);
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
+const skeletonColumns: TableSkeletonColumn[] = [{ label: 'Параметр' }, { label: 'Значение' }];
+
 const participants = computed(() => decision.value?.participants ?? []);
-const questions = computed(() => decision.value?.questions ?? []);
+// id вопроса нормализуем в number: голоса индексируются по нему
+const questions = computed(() =>
+  (decision.value?.questions ?? []).map((question) => ({ ...question, id: Number(question.id ?? 0) })),
+);
 
 const participantOptions = computed(() =>
   participants.value.map((participant) => ({ label: participant, value: participant })),
 );
 
-const statusMap: Record<string, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
-  opened: { label: 'Сбор участников', variant: 'info' },
-  voting: { label: 'Голосование', variant: 'warn' },
-  approved: { label: 'Протокол утверждён', variant: 'pos' },
-  onapproval: { label: 'На утверждении советом', variant: 'info' },
-  completed: { label: 'Завершено', variant: 'neutral' },
+const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
+  [Zeus.KuDecisionStatus.OPENED]: { label: 'Сбор участников', variant: 'info' },
+  [Zeus.KuDecisionStatus.VOTING]: { label: 'Голосование', variant: 'warn' },
+  [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
+  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
+  [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
 };
 
+const status = computed(() => decision.value?.status ?? null);
+
 const statusMeta = computed(
-  () => statusMap[decision.value?.status as string] ?? { label: decision.value?.status || '—', variant: 'neutral' as const },
+  () => (status.value && statusMap[status.value]) ?? { label: status.value || '—', variant: 'neutral' as const },
 );
 
 const isParticipant = computed(() => participants.value.includes(session.username));
@@ -202,15 +211,23 @@ const isInitiator = computed(() => decision.value?.initiator === session.usernam
 const isChairman = computed(() => decision.value?.chairman === session.username);
 const isLive = computed(() => decision.value?.present !== false);
 
-const canJoin = computed(() => isLive.value && decision.value?.status === 'opened' && !isParticipant.value);
-const canSetChairman = computed(() => isLive.value && decision.value?.status === 'opened' && isInitiator.value);
-const canStart = computed(() => isLive.value && decision.value?.status === 'opened' && isChairman.value);
-const canClose = computed(() => isLive.value && decision.value?.status === 'voting' && isChairman.value);
+const canJoin = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && !isParticipant.value);
+const canSetChairman = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isInitiator.value);
+const canStart = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isChairman.value);
+const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isChairman.value);
 const canExec = computed(
-  () => isLive.value && decision.value?.status === 'approved' && isChairman.value && decision.value?.type === 'createbranch',
+  () =>
+    isLive.value &&
+    status.value === Zeus.KuDecisionStatus.APPROVED &&
+    isChairman.value &&
+    decision.value?.type === Zeus.KuDecisionType.CREATEBRANCH,
 );
 const canCancel = computed(
-  () => isLive.value && isInitiator.value && ['opened', 'voting', 'approved'].includes(String(decision.value?.status)),
+  () =>
+    isLive.value &&
+    isInitiator.value &&
+    !!status.value &&
+    [Zeus.KuDecisionStatus.OPENED, Zeus.KuDecisionStatus.VOTING, Zeus.KuDecisionStatus.APPROVED].includes(status.value),
 );
 
 const hasVoted = computed(() =>
@@ -223,10 +240,10 @@ const hasVoted = computed(() =>
 );
 
 const canVote = computed(
-  () => isLive.value && decision.value?.status === 'voting' && isParticipant.value && !hasVoted.value,
+  () => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isParticipant.value && !hasVoted.value,
 );
 
-const allVoted = computed(() => questions.value.every((question) => votes.value[question.id as number]));
+const allVoted = computed(() => questions.value.every((question) => votes.value[question.id]));
 
 function formatDate(value?: string | null): string {
   if (!value) return '—';

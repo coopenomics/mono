@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { Cooperative } from 'cooptypes';
+import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useKuStore } from 'src/entities/Ku/model';
@@ -57,7 +58,7 @@ export function useKuDecisionFlow() {
       await api.createDecision({
         coopname: system.info.coopname,
         hash,
-        type: input.type,
+        type: input.type === 'createbranch' ? Zeus.KuDecisionType.CREATEBRANCH : Zeus.KuDecisionType.FREE,
         initiator: session.username,
         braname: input.braname,
         agenda: input.agenda,

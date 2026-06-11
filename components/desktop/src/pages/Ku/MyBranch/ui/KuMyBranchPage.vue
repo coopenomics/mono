@@ -9,7 +9,7 @@
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
-  TableSkeleton(v-if='loading && !branches.length', :columns='3', :rows='4')
+  TableSkeleton(v-if='loading && !branches.length', :columns='skeletonColumns', :rows='4')
   .row.q-col-gutter-md(v-else-if='branches.length')
     .col-12.col-md-6(v-for='branch in branches', :key='branch.braname')
       BaseCard(:title='branchTitle(branch)')
@@ -34,7 +34,14 @@ import { useSessionStore } from 'src/entities/Session';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseCard, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { label: 'Участок' },
+  { label: 'Председатель' },
+  { label: 'Роль', cell: 'badge' },
+];
 
 const branchStore = useBranchStore();
 const system = useSystemStore();
