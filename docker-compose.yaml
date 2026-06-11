@@ -136,9 +136,17 @@ services:
       WATCHER_POLL_INTERVAL_MS: ${WATCHER_POLL_INTERVAL_MS:-15000}
       COOPERATIVE_WIF: ${COOPERATIVE_WIF:-}
       EXTENSIONS_DOCKER_NETWORK: ${EXTENSIONS_DOCKER_NETWORK:-}
+      # E12-2: кэш фронт-частей. install.js активного релиза качается из
+      # ca-admin (admin API key контура — те же env-имена, что у coopback),
+      # сверяется по sha256 и складывается в volume; coopback раздаёт его
+      # desktop'у через JWT-gated proxy.
+      APPS_CATALOG_URL: ${APPS_CATALOG_URL:-}
+      APPS_CATALOG_API_KEY: ${APPS_CATALOG_API_KEY:-}
+      FRONTEND_CACHE_DIR: /var/orchestrator/frontend-cache
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
+      - orchestrator_frontend_cache:/var/orchestrator/frontend-cache
     ports:
       - "127.0.0.1:${ORCHESTRATOR_HOST_PORT:-4000}:4000"
     working_dir: /app
@@ -166,3 +174,4 @@ volumes:
   mongo_data:
   postgres_data:
   minio_data:
+  orchestrator_frontend_cache:

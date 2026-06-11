@@ -34,6 +34,7 @@ import {
 } from './ports';
 import { InstallOrchestratorService } from '../orchestrator/install-orchestrator.service';
 import { SubgraphRegistryService } from '../gateway/subgraph-registry.service';
+import { FrontendCacheService } from '../frontend-cache/frontend-cache.service';
 
 export interface OnChainWatcherConfig {
   /** Имя нашего кооператива — нужно для фильтрации scope=cooperatives. */
@@ -59,6 +60,7 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     @Inject('ON_CHAIN_WATCHER_CONFIG') private readonly cfg: OnChainWatcherConfig,
     private readonly orchestrator: InstallOrchestratorService,
     private readonly registry: SubgraphRegistryService,
+    private readonly frontendCache: FrontendCacheService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -95,6 +97,12 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
       );
       return;
     }
+    // E12-2: обновить фронт-часть у уже установленных пакетов. Кэш как
+    // маркер подписки: «не закэширован, но подписан» доезжает на
+    // subscription-activated initial-снапшота при следующем старте.
+    if (await this.frontendCache.isCached(e.packageId)) {
+      await this.frontendCache.syncPackage(e.packageId);
+    }
     const spec = await this.metadata.fetchInstallSpec({
       packageId: e.packageId,
       version: e.version,
@@ -112,6 +120,10 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     e: Extract<AppsContractEvent, { kind: 'subscription-activated' }>,
   ): Promise<void> {
     if (e.coopname !== this.cfg.coopname) return;
+    // E12-2: фронт-часть кэшируется независимо от backend-спеки — для
+    // frontend-only пакетов fetchInstallSpec вернёт null, а install.js
+    // активного релиза всё равно должен попасть в кэш.
+    await this.frontendCache.syncPackage(e.packageId);
     // На subscription-activated нам не приходит конкретная версия —
     // нужно сходить в apps-catalog за active-релизом. fetchInstallSpec
     // с пустой version интерпретируется реальным impl'ом как «дай active».
@@ -135,6 +147,12 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
     e: Extract<AppsContractEvent, { kind: 'release-withdrawn' }>,
   ): Promise<void> {
     await this.registry.deactivate(e.packageId);
+    // E12-2: syncPackage сам разрулит исход — есть другой активный релиз
+    // → фронт обновится на него; активных не осталось → ca-admin отдаст
+    // 404 и кэш-запись будет убрана.
+    if (await this.frontendCache.isCached(e.packageId)) {
+      await this.frontendCache.syncPackage(e.packageId);
+    }
     this.logger.log(`release-withdrawn ${e.packageId}@${e.version} → deactivated`);
   }
 
@@ -143,6 +161,9 @@ export class OnChainWatcherService implements OnApplicationBootstrap, OnApplicat
   ): Promise<void> {
     if (e.coopname !== this.cfg.coopname) return;
     await this.registry.deactivate(e.packageId);
+    // E12-2: подписка кончилась — фронт убирается из кэша, desktop
+    // перестаёт получать install.js этого пакета.
+    await this.frontendCache.evict(e.packageId);
     this.logger.log(`subscription-expired ${e.packageId} → deactivated`);
   }
 

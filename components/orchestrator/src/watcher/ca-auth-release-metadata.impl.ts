@@ -16,6 +16,7 @@
  * возвращаем `null` (desktop подхватит install.js своим поллингом).
  */
 import { Logger } from '@nestjs/common';
+import type { FrontendManifestVerifierPort } from '../frontend-cache/ports';
 import type { ReleaseInstallSpec, ReleaseMetadataPort } from './ports';
 import { SignedRequestSigner } from './signed-request.client';
 
@@ -40,6 +41,10 @@ interface NpmVersionManifest {
       healthcheck?: string;
       env?: string[];
     };
+    frontend?: {
+      tarball?: string;
+      installSha256?: string;
+    };
   };
 }
 
@@ -48,7 +53,9 @@ interface NpmPackumentLike {
   versions?: Record<string, NpmVersionManifest>;
 }
 
-export class CaAuthReleaseMetadata implements ReleaseMetadataPort {
+export class CaAuthReleaseMetadata
+  implements ReleaseMetadataPort, FrontendManifestVerifierPort
+{
   private readonly logger = new Logger(CaAuthReleaseMetadata.name);
   private readonly signer: SignedRequestSigner;
 
@@ -105,6 +112,21 @@ export class CaAuthReleaseMetadata implements ReleaseMetadataPort {
         COOPNAME: this.cfg.coopname,
       },
     };
+  }
+
+  /**
+   * Декларированный sha256 install.js версии (E12-2,
+   * {@link FrontendManifestVerifierPort}): `coopenomics.frontend.installSha256`
+   * из npm-манифеста в ca-auth registry. `null` — пакет/версия не
+   * декларирует sha (поле опционально). Транспортная ошибка — throw:
+   * кэш фронт-частей обязан fail-closed.
+   */
+  async fetchInstallSha256(packageId: string, version: string): Promise<string | null> {
+    const coords = splitPackageId(packageId);
+    if (coords === null) return null;
+    const jwt = await this.issuePackageJwt(coords);
+    const packument = await this.fetchPackument(coords, jwt);
+    return packument.versions?.[version]?.coopenomics?.frontend?.installSha256 ?? null;
   }
 
   private async issuePackageJwt(coords: { scope: string; name: string }): Promise<string> {

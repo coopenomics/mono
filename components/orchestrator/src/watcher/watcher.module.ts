@@ -16,6 +16,7 @@
  * healthcheck → registry → supergraph recompose» без ручных вызовов.
  */
 import { Module } from '@nestjs/common';
+import { FrontendCacheModule } from '../frontend-cache/frontend-cache.module';
 import { GatewayModule } from '../gateway/gateway.module';
 import { OrchestratorModule } from '../orchestrator/orchestrator.module';
 import { OnChainWatcherService, OnChainWatcherConfig } from './on-chain-watcher.service';
@@ -44,7 +45,7 @@ class NoopReleaseMetadata implements ReleaseMetadataPort {
 }
 
 @Module({
-  imports: [GatewayModule, OrchestratorModule],
+  imports: [GatewayModule, OrchestratorModule, FrontendCacheModule],
   providers: [
     OnChainWatcherService,
     {

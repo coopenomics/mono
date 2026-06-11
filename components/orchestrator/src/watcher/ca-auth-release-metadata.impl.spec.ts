@@ -19,6 +19,10 @@ const PACKUMENT = {
           subgraphPort: 3001,
           healthcheck: '/_health',
         },
+        frontend: {
+          tarball: '@voskhod/chatcoop@1.2.0',
+          installSha256: 'c'.repeat(64),
+        },
       },
     },
     '0.9.0': {},
@@ -119,5 +123,26 @@ describe('CaAuthReleaseMetadata', () => {
     const spec = await build().fetchInstallSpec({ packageId: 'demoapp', version: '1.0.0' });
     expect(spec).toBeNull();
     expect(calls).toEqual([]);
+  });
+
+  describe('fetchInstallSha256 (E12-2, FrontendManifestVerifierPort)', () => {
+    it('возвращает coopenomics.frontend.installSha256 версии', async () => {
+      const sha = await build().fetchInstallSha256('@voskhod/chatcoop', '1.2.0');
+      expect(sha).toBe('c'.repeat(64));
+    });
+
+    it('версия без декларации / неизвестная версия / мусорный id → null', async () => {
+      const metadata = build();
+      expect(await metadata.fetchInstallSha256('@voskhod/chatcoop', '0.9.0')).toBeNull();
+      expect(await metadata.fetchInstallSha256('@voskhod/chatcoop', '9.9.9')).toBeNull();
+      expect(await metadata.fetchInstallSha256('demoapp', '1.0.0')).toBeNull();
+    });
+
+    it('транспортная ошибка → throw (fail-closed на стороне кэша)', async () => {
+      global.fetch = (async () => new Response('down', { status: 503 })) as typeof fetch;
+      await expect(
+        build().fetchInstallSha256('@voskhod/chatcoop', '1.2.0'),
+      ).rejects.toThrow(/503/);
+    });
   });
 });
