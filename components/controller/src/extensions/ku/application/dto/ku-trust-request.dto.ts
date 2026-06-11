@@ -1,0 +1,56 @@
+import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { GraphQLJSON } from 'graphql-type-json';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
+
+@ObjectType('KuTrustRequest', { description: 'Заявка на приём доверенным лицом кооперативного участка' })
+export class KuTrustRequestDTO {
+  @Field(() => String, { description: 'Хэш заявки' })
+  hash!: string;
+
+  @Field(() => Int, { nullable: true, description: 'Идентификатор заявки в блокчейне' })
+  id?: number;
+
+  @Field(() => String, { nullable: true, description: 'Имя аккаунта кооператива' })
+  coopname?: string;
+
+  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка' })
+  braname?: string;
+
+  @Field(() => String, { nullable: true, description: 'Пайщик-заявитель' })
+  username?: string;
+
+  @Field(() => Boolean, { description: 'Существует ли запись в блокчейне (false — рассмотрена и стёрта)' })
+  present!: boolean;
+
+  @Field(() => GraphQLJSON, {
+    nullable: true,
+    description: 'Заявление и договор о полной материальной ответственности',
+  })
+  application?: object;
+
+  @Field(() => Int, { nullable: true, description: 'Номер блока последнего обновления' })
+  block_num?: number;
+}
+
+@InputType('KuTrustRequestFilterInput', { description: 'Фильтр заявок доверенных лиц кооперативных участков' })
+export class KuTrustRequestFilterInputDTO {
+  @Field(() => String, { nullable: true, description: 'Имя аккаунта кооператива' })
+  @IsOptional()
+  @IsString()
+  coopname?: string;
+
+  @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка' })
+  @IsOptional()
+  @IsString()
+  braname?: string;
+
+  @Field(() => String, { nullable: true, description: 'Пайщик-заявитель' })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @Field(() => Boolean, { nullable: true, description: 'Только записи, существующие в блокчейне' })
+  @IsOptional()
+  @IsBoolean()
+  present?: boolean;
+}

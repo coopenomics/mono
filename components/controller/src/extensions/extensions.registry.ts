@@ -14,6 +14,7 @@ import { Schema as ParticipantSchema } from './participant/types';
 import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
 import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+import { KuPluginModule, KuPlugin, Schema as KuSchema } from './ku/ku-extension.module';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -141,23 +142,23 @@ export const AppRegistry: INamedExtension = {
   trustee: {
     is_builtin: true,
     is_internal: true,
-    is_available: false,
+    is_available: true,
     desktops: [
       {
         name: 'trustee',
-        title: 'Стол Уполномоченного',
+        title: 'Кооперативный участок',
         icon: 'fa-solid fa-users-cog',
       },
     ],
-    title: 'Стол Уполномоченного',
-    description: 'Приложение для председателя кооперативного участка.',
+    title: 'Кооперативный участок',
+    description: 'Собрания пайщиков кооперативных участков: учреждение участков решением собрания с утверждением советом, свободные решения и приём доверенных лиц по заявлению.',
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: KuPluginModule,
+    pluginClass: KuPlugin,
+    schema: KuSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./ku'),
+    instructions: getInstructionsContent('./ku'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
