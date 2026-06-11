@@ -10,7 +10,8 @@ add_contract(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/powerup.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/voting.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/limit_auth_changes.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/block_info.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/block_info.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/finalizer_key.cpp)
 
 if(IS_TESTNET)
     target_compile_definitions(eosio.system PUBLIC IS_TESTNET=1)

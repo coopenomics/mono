@@ -512,6 +512,30 @@ namespace eosiosystem {
                                > powerup_order_table;
 
    /**
+    * Параметры финализаторов Savanna (порт setfinalizer из upstream eosio.bios).
+    * Цепь single-producer: политика финализаторов задаётся оператором напрямую,
+    * без машинерии regfinkey/switchtosvnn голосующего DPoS.
+    */
+   constexpr size_t max_finalizers = 64*1024;
+   constexpr size_t max_finalizer_description_size = 256;
+
+   struct finalizer_authority {
+      std::string   description; // человеко-читаемое описание финализатора
+      uint64_t      weight = 0;  // вес голоса финализатора для достижения threshold
+      std::string   public_key;  // BLS-ключ финализатора в формате base64 (PUB_BLS...)
+      std::string   pop;         // proof of possession ключа (SIG_BLS...)
+
+      EOSLIB_SERIALIZE(finalizer_authority, (description)(weight)(public_key)(pop))
+   };
+
+   struct finalizer_policy {
+      uint64_t                         threshold = 0; // порог суммарного веса для финализации
+      std::vector<finalizer_authority> finalizers;
+
+      EOSLIB_SERIALIZE(finalizer_policy, (threshold)(finalizers));
+   };
+
+   /**
     * The `eosio.system` smart contract is provided by `block.one` as a sample system contract, and it defines the structures and actions needed for blockchain's core functionality.
     *
     * Just like in the `eosio.bios` sample contract implementation, there are a few actions which are not implemented at the contract level (`newaccount`, `updateauth`, `deleteauth`, `linkauth`, `unlinkauth`, `canceldelay`, `onerror`, `setabi`, `setcode`), they are just declared in the contract so they will show in the contract's ABI and users will be able to push those actions to the chain via the account holding the `eosio.system` contract, but the implementation is at the EOSIO core level. They are referred to as EOSIO native actions.
@@ -615,6 +639,21 @@ namespace eosiosystem {
          void initemission(eosio::asset init_supply, uint64_t tact_duration, double emission_factor);
 
          
+
+         /**
+          * @brief Предложить новую политику финализаторов Savanna.
+          * Проверяет BLS-ключи и proof of possession каждого финализатора и
+          * передаёт политику в хост-функцию set_finalizers. Вступает в силу,
+          * когда не вытеснена более поздней политикой. Первый вызов после
+          * активации протокол-фичи SAVANNA запускает переход цепи на
+          * instant finality.
+          *
+          * @param finalizer_policy - предлагаемая политика финализаторов
+          *
+          * @note Авторизация требуется от аккаунта: @p get_self()
+          */
+         [[eosio::action]]
+         void setfinalizer( const finalizer_policy& finalizer_policy );
 
          [[eosio::action]]
          void onblock( ignore<block_header> header );
