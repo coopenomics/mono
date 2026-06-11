@@ -20,6 +20,7 @@ export enum AuthV2ErrorCode {
   TwoFactorNotEnrolled = 'two_factor_not_enrolled',
   InvalidRecoveryToken = 'invalid_recovery_token',
   InvalidOfflineCode = 'invalid_offline_code',
+  InsufficientVerification = 'insufficient_verification',
   NetworkError = 'network_error',
   WalletLocked = 'wallet_locked',
   ClientWalletMismatch = 'client_wallet_mismatch',
@@ -172,6 +173,12 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
     message: 'Код восстановления неверен или уже использован.',
     action: 'retry',
     keepSession: false,
+  },
+  [AuthV2ErrorCode.InsufficientVerification]: {
+    message: 'Недостаточный уровень верификации для этого действия. Обратитесь в кооператив.',
+    action: 'contact_support',
+    // авторизационное ограничение по уровню доверия — сессия валидна, не разлогиниваем.
+    keepSession: true,
   },
   [AuthV2ErrorCode.NetworkError]: {
     message: 'Нет связи с кооперативом. Проверьте интернет.',

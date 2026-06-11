@@ -5,6 +5,7 @@ import { RECOVERY_TOKEN_STORE } from '~/domain/auth-v2/ports/recovery-token-stor
 import { TWO_FACTOR_REPOSITORY } from '~/domain/auth-v2/ports/two-factor.port';
 import { OFFLINE_RECOVERY_CODE_REPOSITORY } from '~/domain/auth-v2/ports/offline-recovery-code.port';
 import { RECOVERY_STRATEGY_REPOSITORY } from '~/domain/auth-v2/ports/recovery-strategy.port';
+import { VERIFICATION_RULE_REPOSITORY } from '~/domain/auth-v2/ports/verification-rule.port';
 import { KNOWN_DEVICES_STORE } from '~/domain/auth-v2/ports/known-devices-store.port';
 import { NEW_DEVICE_NOTIFICATION_THROTTLE } from '~/domain/auth-v2/ports/new-device-notification-throttle.port';
 import { SESSION_METADATA_PORT } from '~/domain/auth-v2/ports/session-metadata.port';
@@ -18,6 +19,7 @@ import { RedisRecoveryTokenStore } from './redis-recovery-token.store';
 import { PostgresTwoFactorRepository } from './postgres-two-factor.repository';
 import { PostgresOfflineRecoveryCodeRepository } from './postgres-offline-recovery-code.repository';
 import { PostgresRecoveryStrategyRepository } from './postgres-recovery-strategy.repository';
+import { PostgresVerificationRuleRepository } from './postgres-verification-rule.repository';
 import { RedisKnownDevicesStore } from './redis-known-devices.store';
 import { RedisNewDeviceNotificationThrottleStore } from './redis-new-device-notification-throttle.store';
 import { RedisSessionMetadataStore } from './redis-session-metadata.store';
@@ -34,11 +36,12 @@ import { RedisNotMeTokenStore } from './redis-not-me-token.store';
     { provide: TWO_FACTOR_REPOSITORY, useClass: PostgresTwoFactorRepository },
     { provide: OFFLINE_RECOVERY_CODE_REPOSITORY, useClass: PostgresOfflineRecoveryCodeRepository },
     { provide: RECOVERY_STRATEGY_REPOSITORY, useClass: PostgresRecoveryStrategyRepository },
+    { provide: VERIFICATION_RULE_REPOSITORY, useClass: PostgresVerificationRuleRepository },
     { provide: KNOWN_DEVICES_STORE, useClass: RedisKnownDevicesStore },
     { provide: NEW_DEVICE_NOTIFICATION_THROTTLE, useClass: RedisNewDeviceNotificationThrottleStore },
     { provide: SESSION_METADATA_PORT, useClass: RedisSessionMetadataStore },
     { provide: NOT_ME_TOKEN_STORE, useClass: RedisNotMeTokenStore },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE],
 })
 export class AuthV2InfrastructureModule {}

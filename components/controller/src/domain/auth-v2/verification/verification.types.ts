@@ -30,3 +30,14 @@ export interface VerificationTypeEntry {
   /** Момент подтверждения, ISO-8601 (UTC). Для `coop_baseline` — дата приёма в кооператив. */
   verified_at: string;
 }
+
+/**
+ * Per-coop правило применения типов верификации (Story 4.2). Кооператив задаёт,
+ * для какого действия какие типы обязательны. `action_code` — открытый идентификатор
+ * действия (не enum: набор действий расширяется кооперативом произвольно, как
+ * permission/scope-ключ). `required_types` — обязательные типы верификации.
+ */
+export interface VerificationRule {
+  action_code: string;
+  required_types: VerificationType[];
+}

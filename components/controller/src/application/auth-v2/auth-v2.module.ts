@@ -18,6 +18,8 @@ import { SecurityEventNotificationService } from './security-events/security-eve
 import { CertificateService } from './certificate/certificate.service';
 import { CertificateController } from './certificate/certificate.controller';
 import { VerificationTypesService } from './verification/verification-types.service';
+import { VerificationRulesService } from './verification/verification-rules.service';
+import { VerificationRuleGuard } from './verification/verification-rule.guard';
 import { LogoutService } from './logout/logout.service';
 import { LogoutController } from './logout/logout.controller';
 import { AuthRateLimitGuard } from './rate-limit/auth-rate-limit.guard';
@@ -45,12 +47,12 @@ import { SecurityIncidentController } from './security/security-incident.control
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule],
   controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController],
   providers: [
-    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, VerificationTypesService, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService,
+    AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (ротация ключа) — сейм Story 3.3: пока placeholder (503).
     { provide: RECOVERY_FINALIZATION_PORT, useClass: RecoveryFinalizationPlaceholder },
   ],
-  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, VerificationTypesService, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
+  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
 })
 export class AuthV2Module {}
