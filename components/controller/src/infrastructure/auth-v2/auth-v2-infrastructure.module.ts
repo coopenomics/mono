@@ -15,6 +15,7 @@ import { COOP_SETTINGS_REPOSITORY } from '~/domain/auth-v2/ports/coop-settings.p
 import { ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER } from '~/domain/auth-v2/ports/access-rules.port';
 import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER } from '~/domain/auth-v2/ports/force-recovery-consent.port';
+import { KEY_REVOCATION_REPOSITORY } from '~/domain/auth-v2/ports/key-revocation.port';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
@@ -37,6 +38,7 @@ import { PostgresPendingCriticalActionsRepository } from './postgres-pending-cri
 import { RedisCriticalActionNotifier } from './redis-critical-action.notifier';
 import { RedisForceRecoveryConsentStore } from './redis-force-recovery-consent.store';
 import { RedisForceRecoveryConsentNotifier } from './redis-force-recovery-consent.notifier';
+import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repository';
 
 /** Инфраструктурные адаптеры auth-v2 (CoopID): сессия IdP + vault + rate-limit + recovery-token + two-factor + offline-код + recovery-стратегия + known-devices + метаданные сессий. */
 @Module({
@@ -62,7 +64,8 @@ import { RedisForceRecoveryConsentNotifier } from './redis-force-recovery-consen
     { provide: CRITICAL_ACTION_NOTIFIER, useClass: RedisCriticalActionNotifier },
     { provide: FORCE_RECOVERY_CONSENT_STORE, useClass: RedisForceRecoveryConsentStore },
     { provide: FORCE_RECOVERY_CONSENT_NOTIFIER, useClass: RedisForceRecoveryConsentNotifier },
+    { provide: KEY_REVOCATION_REPOSITORY, useClass: PostgresKeyRevocationRepository },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY],
 })
 export class AuthV2InfrastructureModule {}
