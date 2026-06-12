@@ -37,6 +37,8 @@ export class KuDecisionDomainEntity
   public meet_place?: string;
   public meet_at?: Date;
   public branch_name?: string;
+  public branch_email?: string;
+  public branch_phone?: string;
 
   constructor(databaseData: IKuDecisionDatabaseData, blockchainData?: IKuDecisionBlockchainData) {
     super(databaseData);
@@ -44,6 +46,8 @@ export class KuDecisionDomainEntity
     this.meet_place = databaseData.meet_place;
     this.meet_at = databaseData.meet_at;
     this.branch_name = databaseData.branch_name;
+    this.branch_email = databaseData.branch_email;
+    this.branch_phone = databaseData.branch_phone;
 
     if (blockchainData) {
       this.updateFromBlockchain(blockchainData, databaseData.block_num ?? 0, databaseData.present);

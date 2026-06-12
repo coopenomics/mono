@@ -145,6 +145,20 @@ export class StartKuDecisionInputDTO implements StartKuDecisionInputDomainInterf
   @IsString()
   branch_name!: string;
 
+  @Field(() => String, {
+    description: 'Email кооперативного участка (видно только пайщикам кооператива)',
+    defaultValue: '',
+  })
+  @IsString()
+  branch_email!: string;
+
+  @Field(() => String, {
+    description: 'Телефон кооперативного участка (видно только пайщикам кооператива)',
+    defaultValue: '',
+  })
+  @IsString()
+  branch_phone!: string;
+
   @Field(() => [KuAgendaPointInputDTO], {
     description: 'Дополнительные вопросы повестки, внесённые на собрании',
     defaultValue: [],

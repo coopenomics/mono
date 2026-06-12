@@ -159,7 +159,15 @@ describe('KuService — проверки прав', () => {
 
   it('startDecision доступна только организатору; председатель — из участников; для учреждения нужно наименование', async () => {
     const { service, kuPort, repos } = makeService();
-    const start = { coopname: COOP, hash: HASH, chairman: 'chairman1', address: 'адрес', branch_name: 'РОМАШКА' } as any;
+    const start = {
+      coopname: COOP,
+      hash: HASH,
+      chairman: 'chairman1',
+      address: 'адрес',
+      branch_name: 'РОМАШКА',
+      branch_email: 'romashka@example.ru',
+      branch_phone: '+79000000000',
+    } as any;
 
     await expect(service.startDecision(start, makeUser('chairman1'))).rejects.toThrow();
     await expect(
@@ -168,12 +176,20 @@ describe('KuService — проверки прав', () => {
     await expect(
       service.startDecision({ ...start, branch_name: '' }, makeUser('initiator1'))
     ).rejects.toThrow('наименование');
+    await expect(
+      service.startDecision({ ...start, branch_email: '' }, makeUser('initiator1'))
+    ).rejects.toThrow('email и телефон');
 
     await service.startDecision(start, makeUser('initiator1'));
     expect(kuPort.startDecision).toHaveBeenCalledTimes(1);
-    // наименование участка ушло в приватные данные БД, не в блокчейн
+    // наименование и контакты участка ушли в приватные данные БД, не в блокчейн
     expect(repos.decisionRepository.upsertPrivateData).toHaveBeenCalledWith(
-      expect.objectContaining({ hash: HASH, branch_name: 'РОМАШКА' })
+      expect.objectContaining({
+        hash: HASH,
+        branch_name: 'РОМАШКА',
+        branch_email: 'romashka@example.ru',
+        branch_phone: '+79000000000',
+      })
     );
   });
 

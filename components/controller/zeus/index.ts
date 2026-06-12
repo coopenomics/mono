@@ -6731,8 +6731,12 @@ export type ValueTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?:boolean | `@${string}`,
+	/** Email кооперативного участка (видно только пайщикам) */
+	branch_email?:boolean | `@${string}`,
 	/** Наименование кооперативного участка (видно только пайщикам) */
 	branch_name?:boolean | `@${string}`,
+	/** Телефон кооперативного участка (видно только пайщикам) */
+	branch_phone?:boolean | `@${string}`,
 	/** Председатель собрания */
 	chairman?:boolean | `@${string}`,
 	/** Дата и время закрытия голосования */
@@ -10043,8 +10047,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	address: string | Variable<any, string>,
 	/** Дополнительные вопросы повестки, внесённые на собрании */
 	agenda: Array<ValueTypes["KuAgendaPointInput"]> | Variable<any, string>,
+	/** Email кооперативного участка (видно только пайщикам кооператива) */
+	branch_email: string | Variable<any, string>,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string | Variable<any, string>,
+	/** Телефон кооперативного участка (видно только пайщикам кооператива) */
+	branch_phone: string | Variable<any, string>,
 	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
@@ -16206,8 +16214,12 @@ export type ResolverInputTypes = {
 	block_num?:boolean | `@${string}`,
 	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?:boolean | `@${string}`,
+	/** Email кооперативного участка (видно только пайщикам) */
+	branch_email?:boolean | `@${string}`,
 	/** Наименование кооперативного участка (видно только пайщикам) */
 	branch_name?:boolean | `@${string}`,
+	/** Телефон кооперативного участка (видно только пайщикам) */
+	branch_phone?:boolean | `@${string}`,
 	/** Председатель собрания */
 	chairman?:boolean | `@${string}`,
 	/** Дата и время закрытия голосования */
@@ -19405,8 +19417,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	address: string,
 	/** Дополнительные вопросы повестки, внесённые на собрании */
 	agenda: Array<ResolverInputTypes["KuAgendaPointInput"]>,
+	/** Email кооперативного участка (видно только пайщикам кооператива) */
+	branch_email: string,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
+	/** Телефон кооперативного участка (видно только пайщикам кооператива) */
+	branch_phone: string,
 	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */
@@ -25419,8 +25435,12 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?: string | undefined | null,
+	/** Email кооперативного участка (видно только пайщикам) */
+	branch_email?: string | undefined | null,
 	/** Наименование кооперативного участка (видно только пайщикам) */
 	branch_name?: string | undefined | null,
+	/** Телефон кооперативного участка (видно только пайщикам) */
+	branch_phone?: string | undefined | null,
 	/** Председатель собрания */
 	chairman?: string | undefined | null,
 	/** Дата и время закрытия голосования */
@@ -29241,8 +29261,12 @@ export type ModelTypes = {
 	address: string,
 	/** Дополнительные вопросы повестки, внесённые на собрании */
 	agenda: Array<ModelTypes["KuAgendaPointInput"]>,
+	/** Email кооперативного участка (видно только пайщикам кооператива) */
+	branch_email: string,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
+	/** Телефон кооперативного участка (видно только пайщикам кооператива) */
+	branch_phone: string,
 	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */
@@ -35486,8 +35510,12 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Имя аккаунта кооперативного участка (служебное) */
 	braname?: string | undefined | null,
+	/** Email кооперативного участка (видно только пайщикам) */
+	branch_email?: string | undefined | null,
 	/** Наименование кооперативного участка (видно только пайщикам) */
 	branch_name?: string | undefined | null,
+	/** Телефон кооперативного участка (видно только пайщикам) */
+	branch_phone?: string | undefined | null,
 	/** Председатель собрания */
 	chairman?: string | undefined | null,
 	/** Дата и время закрытия голосования */
@@ -39566,8 +39594,12 @@ export type GraphQLTypes = {
 	address: string,
 	/** Дополнительные вопросы повестки, внесённые на собрании */
 	agenda: Array<GraphQLTypes["KuAgendaPointInput"]>,
+	/** Email кооперативного участка (видно только пайщикам кооператива) */
+	branch_email: string,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
+	/** Телефон кооперативного участка (видно только пайщикам кооператива) */
+	branch_phone: string,
 	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */

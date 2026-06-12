@@ -41,6 +41,10 @@ export interface StartKuDecisionInputDomainInterface {
   address: string;
   /** Человекочитаемое наименование участка («РОМАШКА») — в блокчейн не публикуется */
   branch_name: string;
+  /** Email участка — в блокчейн не публикуется */
+  branch_email: string;
+  /** Телефон участка — в блокчейн не публикуется */
+  branch_phone: string;
   /** Дополнительные вопросы повестки, внесённые на собрании */
   agenda: KuAgendaPointInputDomainInterface[];
 }

@@ -20,6 +20,8 @@ export class KuDecisionMapper {
       meet_place: entity.meet_place ?? undefined,
       meet_at: entity.meet_at ?? undefined,
       branch_name: entity.branch_name ?? undefined,
+      branch_email: entity.branch_email ?? undefined,
+      branch_phone: entity.branch_phone ?? undefined,
     };
 
     let blockchainData: IKuDecisionBlockchainData | undefined;
@@ -78,6 +80,8 @@ export class KuDecisionMapper {
       meet_place: domain.meet_place ?? null,
       meet_at: domain.meet_at ?? null,
       branch_name: domain.branch_name ?? null,
+      branch_email: domain.branch_email ?? null,
+      branch_phone: domain.branch_phone ?? null,
     };
   }
 
@@ -107,6 +111,8 @@ export class KuDecisionMapper {
     if (domain.meet_place !== undefined) updateData.meet_place = domain.meet_place;
     if (domain.meet_at !== undefined) updateData.meet_at = domain.meet_at;
     if (domain.branch_name !== undefined) updateData.branch_name = domain.branch_name;
+    if (domain.branch_email !== undefined) updateData.branch_email = domain.branch_email;
+    if (domain.branch_phone !== undefined) updateData.branch_phone = domain.branch_phone;
 
     return updateData;
   }

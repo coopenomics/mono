@@ -22,6 +22,16 @@
             :value='decision.branch_name || "—"'
           )
           DataRow(v-if='isVotingStarted', label='Адрес участка', :value='decision.address || "—"')
+          DataRow(
+            v-if='isVotingStarted && decision.branch_email',
+            label='Email участка',
+            :value='decision.branch_email'
+          )
+          DataRow(
+            v-if='isVotingStarted && decision.branch_phone',
+            label='Телефон участка',
+            :value='decision.branch_phone'
+          )
           DataRow(v-if='isVotingStarted', label='Председатель участка', :value='chairmanName')
           DataRow(
             v-if='isVotingWindow',
@@ -41,8 +51,9 @@
               ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель участка)' : '' }}
           EmptyState(v-else, title='Пока никто не присоединился')
 
-    //- Повестка и голосование (канон meet-agenda-card)
-    BaseCard.q-mt-md(title='Повестка дня')
+    //- Повестка и голосование (канон meet-agenda-card);
+    //- по завершении собрания вопросы стираются контрактом — повестка живёт в протоколе
+    BaseCard.q-mt-md(v-if='questions.length', title='Повестка дня')
       .agenda-items
         .agenda-card(v-for='question in questions', :key='question.id')
           .agenda-card__head
@@ -92,6 +103,20 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
         v-model='startForm.address',
         label='Адрес кооперативного участка',
         placeholder='город, улица, дом',
+        required
+      )
+      //- контакты нужны для добавления участка как подразделения после решения совета
+      BaseInput(
+        v-model='startForm.branchEmail',
+        label='Email кооперативного участка',
+        type='email',
+        placeholder='uchastok@example.ru',
+        required
+      )
+      BaseInput(
+        v-model='startForm.branchPhone',
+        label='Телефон кооперативного участка',
+        placeholder='+7 900 000-00-00',
         required
       )
       BaseSelect(
@@ -176,7 +201,7 @@ const isStartOpen = ref(false);
 const isCancelOpen = ref(false);
 const cancelReason = ref('');
 const votes = ref<Record<number, KuVote>>({});
-const startForm = ref({ branchName: '', address: '', chairman: '' });
+const startForm = ref({ branchName: '', address: '', branchEmail: '', branchPhone: '', chairman: '' });
 // вопросы, внесённые в повестку прямо на собрании (добавляются при открытии голосования)
 const extraAgenda = ref<{ title: string; decision: string; context: string }[]>([]);
 
@@ -407,6 +432,8 @@ async function onStart() {
         chairman: isCreateBranchType.value ? startForm.value.chairman : session.username,
         address: isCreateBranchType.value ? startForm.value.address : '',
         branchName: isCreateBranchType.value ? startForm.value.branchName : '',
+        branchEmail: isCreateBranchType.value ? startForm.value.branchEmail.trim() : '',
+        branchPhone: isCreateBranchType.value ? startForm.value.branchPhone.trim() : '',
         agenda,
       }),
     'Голосование открыто',
@@ -459,6 +486,8 @@ onMounted(async () => {
     if (loaded) {
       startForm.value.address = loaded.address || '';
       startForm.value.branchName = loaded.branch_name || '';
+      startForm.value.branchEmail = loaded.branch_email || '';
+      startForm.value.branchPhone = loaded.branch_phone || '';
       desktop.setPageTitleOverride(
         `Собрание: ${loaded.branch_name || loaded.meet_place || loaded.hash.slice(0, 8)}`,
       );

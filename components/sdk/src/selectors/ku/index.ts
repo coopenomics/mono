@@ -59,6 +59,8 @@ export const rawKuDecisionSelector = {
   meet_place: true,
   meet_at: true,
   branch_name: true,
+  branch_email: true,
+  branch_phone: true,
   questions: rawKuDecisionQuestionSelector,
   block_num: true,
 }

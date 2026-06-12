@@ -155,11 +155,17 @@ export class KuService {
     if (decision.type === 'createbranch' && !data.branch_name) {
       throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите наименование кооперативного участка');
     }
+    // контакты нужны для добавления участка как подразделения после решения совета
+    if (decision.type === 'createbranch' && (!data.branch_email || !data.branch_phone)) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите email и телефон кооперативного участка');
+    }
 
-    // Наименование участка — приватные данные, в блокчейн не публикуются
+    // Наименование и контакты участка — приватные данные, в блокчейн не публикуются
     await this.decisionRepository.upsertPrivateData({
       hash: data.hash,
       branch_name: data.branch_name,
+      branch_email: data.branch_email,
+      branch_phone: data.branch_phone,
     });
 
     const result = await this.kuBlockchainPort.startDecision(data);
@@ -331,6 +337,8 @@ export class KuService {
       meet_place: entity.meet_place,
       meet_at: entity.meet_at?.toISOString(),
       branch_name: entity.branch_name,
+      branch_email: entity.branch_email,
+      branch_phone: entity.branch_phone,
       questions: questions?.map((question) => this.toQuestionDTO(question)),
       block_num: entity.block_num,
     };
@@ -398,6 +406,9 @@ export class KuService {
     let questions: KuDecisionQuestionDomainEntity[] = [];
     if (decision.coopname && decision.id !== undefined) {
       questions = await this.questionRepository.findByDecisionId(decision.coopname, decision.id);
+      // контракт заменяет черновую повестку при открытии голосования (erase + emplace) —
+      // стёртые вопросы остаются в БД с present=false и в повестку не попадают
+      questions = questions.filter((question) => question.present);
     }
 
     const dto = this.toDecisionDTO(decision, questions);

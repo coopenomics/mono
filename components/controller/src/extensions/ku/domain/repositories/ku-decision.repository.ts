@@ -26,6 +26,8 @@ export interface KuDecisionPrivateDataDomainInterface {
   meet_place?: string;
   meet_at?: Date;
   branch_name?: string;
+  branch_email?: string;
+  branch_phone?: string;
 }
 
 export interface KuDecisionRepository extends IBlockchainSyncRepository<KuDecisionDomainEntity> {

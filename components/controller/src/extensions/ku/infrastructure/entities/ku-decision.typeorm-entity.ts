@@ -77,4 +77,10 @@ export class KuDecisionTypeormEntity extends BaseTypeormEntity {
 
   @Column({ type: 'varchar', nullable: true })
   branch_name!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  branch_email!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  branch_phone!: string | null;
 }

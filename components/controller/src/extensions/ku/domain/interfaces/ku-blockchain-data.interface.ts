@@ -25,6 +25,8 @@ export type IKuDecisionDatabaseData = IBaseDatabaseData & {
   meet_place?: string;
   meet_at?: Date;
   branch_name?: string;
+  branch_email?: string;
+  branch_phone?: string;
 };
 export type IKuDecisionQuestionDatabaseData = IBaseDatabaseData;
 export type IKuTrustRequestDatabaseData = IBaseDatabaseData;

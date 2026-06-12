@@ -126,6 +126,12 @@ export class KuDecisionDTO {
   @Field(() => String, { nullable: true, description: 'Наименование кооперативного участка (видно только пайщикам)' })
   branch_name?: string;
 
+  @Field(() => String, { nullable: true, description: 'Email кооперативного участка (видно только пайщикам)' })
+  branch_email?: string;
+
+  @Field(() => String, { nullable: true, description: 'Телефон кооперативного участка (видно только пайщикам)' })
+  branch_phone?: string;
+
   @Field(() => [KuDecisionQuestionDTO], { nullable: true, description: 'Вопросы повестки собрания' })
   questions?: KuDecisionQuestionDTO[];
 
