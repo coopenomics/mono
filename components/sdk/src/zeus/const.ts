@@ -653,6 +653,9 @@ export const AllTypesProps: Record<string,any> = {
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
 		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
+	MarketplaceAcceptStockProposalInput:{
+		lines:"MarketplaceCheckoutSignedLineInput"
+	},
 	MarketplaceAddToCartInput:{
 
 	},
@@ -699,13 +702,23 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceCheckoutCartInput:{
-
+		lines:"MarketplaceCheckoutSignedLineInput"
+	},
+	MarketplaceCheckoutSignedLineInput:{
+		signed_statement:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceClearInventoryLabelInput:{
 
 	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
 	MarketplaceConvertBranchFundsInput:{
+
+	},
+	MarketplaceConvertStatementSignedInput:{
+		meta:"MarketplaceConvertStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MarketplaceConvertStatementSignedMetaDocumentInput:{
 
 	},
 	MarketplaceCreateAidInput:{
@@ -721,9 +734,6 @@ export const AllTypesProps: Record<string,any> = {
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
 		images:"MarketplaceOfferImageUploadInput"
-	},
-	MarketplaceCreateOrderInput:{
-
 	},
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
@@ -1422,7 +1432,7 @@ export const AllTypesProps: Record<string,any> = {
 			data:"MarketplaceAcceptReturnAtVisitInput"
 		},
 		marketplaceAcceptStockProposal:{
-			data:"MarketplaceResolveStockProposalInput"
+			data:"MarketplaceAcceptStockProposalInput"
 		},
 		marketplaceAddAvailableCategories:{
 			input:"AddAvailableCategoriesInput"
@@ -1483,9 +1493,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceCreateOffer:{
 			input:"MarketplaceCreateOfferInput"
-		},
-		marketplaceCreateOrder:{
-			input:"MarketplaceCreateOrderInput"
 		},
 		marketplaceCreateRequest:{
 			data:"CreateRequestInput"
@@ -2243,6 +2250,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSearchRequests:{
 			data:"SearchRequestsInput"
+		},
+		marketplaceStockProposalSignablePayloads:{
+			data:"MarketplaceResolveStockProposalInput"
 		},
 		marketplaceValidateAttributeValues:{
 			input:"ValidateAttributeValuesInput"
@@ -4267,6 +4277,12 @@ export const ReturnTypes: Record<string,any> = {
 		failed_lines:"MarketplaceCheckoutFailedLine",
 		fully_completed:"Boolean"
 	},
+	MarketplaceCheckoutSignableLine:{
+		amount:"String",
+		document:"GeneratedDocument",
+		offer_id:"String",
+		order_hash:"String"
+	},
 	MarketplaceConsolidatedRequest:{
 		accepted_at:"DateTime",
 		coopname:"String",
@@ -4299,10 +4315,6 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCreateExpressReceptionResult:{
 		apl_receptions:"MarketplaceAplReception"
-	},
-	MarketplaceCreateOrderResult:{
-		order:"MarketplaceOrder",
-		tx_snapshot:"MarketplaceOrderCreateTxSnapshot"
 	},
 	MarketplaceCreateShipmentResult:{
 		shipments:"MarketplaceShipment"
@@ -5170,7 +5182,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
-		marketplaceCreateOrder:"MarketplaceCreateOrderResult",
 		marketplaceCreateRequest:"MarketplaceRequest",
 		marketplaceCreateReturnClaim:"MarketplaceReturnClaimResult",
 		marketplaceCreateShipment:"MarketplaceCreateShipmentResult",
@@ -5805,6 +5816,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceCategoryAttributes:"MarketplaceAttribute",
 		marketplaceCategoryAttributesGrouped:"MarketplaceAttributeGroup",
 		marketplaceCategoryOfferCounts:"MarketplaceCategoryOfferCount",
+		marketplaceCheckoutSignablePayloads:"MarketplaceCheckoutSignableLine",
 		marketplaceCppStatus:"MarketplaceCppStatus",
 		marketplaceDefaultVitrine:"MarketplaceVitrine",
 		marketplaceFindPotentialMatches:"MarketplaceRequest",
@@ -5873,6 +5885,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
 		marketplaceSearchRequests:"MarketplaceRequest",
+		marketplaceStockProposalSignablePayloads:"MarketplaceCheckoutSignableLine",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",

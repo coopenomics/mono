@@ -117,6 +117,43 @@ export class MarketplaceEconomyService {
     return config ? this.toHumanPercent(config.membership_fee_percent) : 0;
   }
 
+  /**
+   * Сырая контрактная ставка членского взноса (HUNDR_PERCENTS = 100%) —
+   * для зеркального расчёта суммы взноса той же целочисленной формулой,
+   * что calc_membership_fee в контракте (сумма заявления о конвертации
+   * должна побитово совпадать с фактическим списанием).
+   */
+  async getMembershipFeeContractPercent(coopname: string): Promise<number> {
+    const config = await this.chainPort.getEconomyConfig(coopname);
+    return config ? Number(config.membership_fee_percent) : 0;
+  }
+
+  /** Членский взнос в минимальных единицах валюты — формула контракта. */
+  membershipFeeUnits(totalCostUnits: bigint, contractPercent: number): bigint {
+    return (totalCostUnits * BigInt(contractPercent)) / BigInt(HUNDR_PERCENTS);
+  }
+
+  /**
+   * Сумма конвертации строки заказа = стоимость + членский взнос,
+   * целочисленно в минимальных единицах валюты той же формулой, что
+   * контракт (`calc_membership_fee`): сумма заявления о конвертации
+   * должна побитово совпадать с фактическим списанием on-chain.
+   */
+  convertAmountForLine(pricePerUnit: string, quantity: number, contractPercent: number): string {
+    const decimals = this.assetConfig.decimals;
+    const totalUnits = this.toUnits(pricePerUnit, decimals) * BigInt(quantity);
+    const units = totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
+    const padded = units.toString().padStart(decimals + 1, '0');
+    return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
+  }
+
+  /** Десятичная строка → минимальные единицы валюты (без float-погрешности). */
+  private toUnits(value: string, decimals: number): bigint {
+    const [int, frac = ''] = String(value).trim().split('.');
+    const fracPadded = (frac + '0'.repeat(decimals)).slice(0, decimals);
+    return BigInt(int || '0') * BigInt(10) ** BigInt(decimals) + BigInt(fracPadded || '0');
+  }
+
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {
     const membership_fee_percent = this.toContractPercent(
       feePercentHuman,

@@ -168,4 +168,9 @@ void marketplace::signiss2(eosio::name coopname,
     upd.issue_act_signiss2  = act;
     upd.warranty_until      = warranty_until;
   });
+
+  // Двухподписный АПП выдачи публикуется в реестр документов в пакете
+  // процесса заказа (package = order_hash) — рядом с АПП приёмки.
+  Soviet::make_complete_document(_marketplace, coopname, orderer,
+                                 "signiss2"_n, order_hash, act);
 }

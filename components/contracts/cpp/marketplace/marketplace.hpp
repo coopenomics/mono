@@ -83,6 +83,9 @@ public:
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
    * Один шаг ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order).
+   * `convert_statement` — подписанное заказчиком заявление о конвертации
+   * паевого взноса в членский по программе «Стол заказов»; публикуется в
+   * реестр документов отдельным пакетом (package = hash заявления).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -94,7 +97,8 @@ public:
                                       uint64_t quantity,
                                       eosio::asset unit_price,
                                       uint32_t warranty_period_secs,
-                                      checksum256 batch_hash);
+                                      checksum256 batch_hash,
+                                      document2 convert_statement);
 
   /**
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
@@ -113,7 +117,8 @@ public:
                                      uint64_t quantity,
                                      eosio::asset unit_price,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash);
+                                     checksum256 batch_hash,
+                                     document2 convert_statement);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.

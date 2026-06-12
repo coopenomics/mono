@@ -82,4 +82,12 @@ void marketplace::submretrn(eosio::name coopname,
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
     upd.return_request_id = request_id;
   });
+
+  // Заявление публикуется в реестр документов со статусом «подан» в пакете
+  // процесса заказа (package = order_hash, рядом с актами приёма-передачи).
+  // Итог рассмотрения доводит статус: accretrn → newresolved (со-подписанная
+  // версия), rejretrn/rejretrem → newdeclined.
+  Action::send<newsubmitted_interface>(_soviet, "newsubmitted"_n, _marketplace,
+                                       coopname, orderer, "submretrn"_n,
+                                       o.hash, statement);
 }

@@ -6142,6 +6142,12 @@ export type ValueTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
+	["MarketplaceAcceptStockProposalInput"]: {
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую строку предложения (из превью marketplaceStockProposalSignablePayloads). */
+	lines?: Array<ValueTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null | Variable<any, string>,
+	/** Предложение со склада кооператива. */
+	proposal_id: ValueTypes["ID"] | Variable<any, string>
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -6619,7 +6625,9 @@ export type ValueTypes = {
 	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
-	checkout_id?: string | undefined | null | Variable<any, string>
+	checkout_id?: string | undefined | null | Variable<any, string>,
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины. */
+	lines?: Array<ValueTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null | Variable<any, string>
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
@@ -6651,6 +6659,28 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCheckoutResult']?: Omit<ValueTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
 }>;
+	/** Заявление о конвертации паевого взноса к подписи по одной позиции корзины: подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines. */
+["MarketplaceCheckoutSignableLine"]: AliasType<{
+	/** Сумма конвертации (стоимость позиции + членский взнос), с валютой. */
+	amount?:boolean | `@${string}`,
+	/** Сгенерированное заявление о конвертации для подписи. */
+	document?:ValueTypes["GeneratedDocument"],
+	/** Идентификатор предложения позиции корзины. */
+	offer_id?:boolean | `@${string}`,
+	/** order_hash будущего заказа (зашит в мету заявления). */
+	order_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceCheckoutSignableLine']?: Omit<ValueTypes["MarketplaceCheckoutSignableLine"], "...on MarketplaceCheckoutSignableLine">
+}>;
+	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
+["MarketplaceCheckoutSignedLineInput"]: {
+	/** Идентификатор предложения позиции корзины. */
+	offer_id: string | Variable<any, string>,
+	/** order_hash будущего заказа — тот же, что в мете заявления. */
+	order_hash: string | Variable<any, string>,
+	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
+	signed_statement: ValueTypes["MarketplaceConvertStatementSignedInput"] | Variable<any, string>
+};
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: ValueTypes["ID"] | Variable<any, string>
@@ -6694,6 +6724,50 @@ export type ValueTypes = {
 	["MarketplaceConvertBranchFundsInput"]: {
 	/** Сумма перевода в членский кошелёк «Стола заказов». */
 	amount: number | Variable<any, string>
+};
+	["MarketplaceConvertStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаданные подписанного заявления о конвертации паевого взноса. */
+	meta: ValueTypes["MarketplaceConvertStatementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	amount: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	order_hash: string | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
 };
 	["MarketplaceCppStatus"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
@@ -6754,21 +6828,6 @@ export type ValueTypes = {
 	unlimited_flag: boolean | Variable<any, string>,
 	warranty_days: number | Variable<any, string>
 };
-	/** Параметры оформления нового заказа пайщиком. */
-["MarketplaceCreateOrderInput"]: {
-	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
-	delivery_braname: string | Variable<any, string>,
-	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
-	offer_id: string | Variable<any, string>,
-	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
-	quantity: number | Variable<any, string>
-};
-	["MarketplaceCreateOrderResult"]: AliasType<{
-	order?:ValueTypes["MarketplaceOrder"],
-	tx_snapshot?:ValueTypes["MarketplaceOrderCreateTxSnapshot"],
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceCreateOrderResult']?: Omit<ValueTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
-}>;
 	["MarketplaceCreateReturnClaimInput"]: {
 	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
 	actual_quantity?: number | undefined | null | Variable<any, string>,
@@ -8830,7 +8889,7 @@ markReportPeriod?: [{	data: ValueTypes["MarkReportPeriodInput"] | Variable<any, 
 marketplaceAcceptCpp?: [{	input: ValueTypes["MarketplaceAcceptCppInput"] | Variable<any, string>},ValueTypes["MarketplaceCppStatus"]],
 marketplaceAcceptOrdersBatch?: [{	input: ValueTypes["MarketplaceAcceptOrdersBatchInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
-marketplaceAcceptStockProposal?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposalAcceptResult"]],
+marketplaceAcceptStockProposal?: [{	data: ValueTypes["MarketplaceAcceptStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
@@ -8857,7 +8916,6 @@ marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplRecepti
 marketplaceCreateCustomCategory?: [{	input: ValueTypes["CreateCustomCategoryInput"] | Variable<any, string>},ValueTypes["MarketplaceCategory"]],
 marketplaceCreateExpressReception?: [{	data: ValueTypes["MarketplaceCreateExpressReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
-marketplaceCreateOrder?: [{	input: ValueTypes["MarketplaceCreateOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ValueTypes["CreateRequestInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
 marketplaceCreateReturnClaim?: [{	data: ValueTypes["MarketplaceCreateReturnClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
@@ -10261,6 +10319,8 @@ marketplaceCategoryAttributes?: [{	input: ValueTypes["GetCategoryAttributesInput
 marketplaceCategoryAttributesGrouped?: [{	input: ValueTypes["GetCategoryAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeGroup"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceCategoryOfferCount"]],
+	/** Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart. */
+	marketplaceCheckoutSignablePayloads?:ValueTypes["MarketplaceCheckoutSignableLine"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ValueTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -10359,6 +10419,7 @@ marketplaceReturnClaimSignablePayload?: [{	data: ValueTypes["MarketplaceReturnCl
 marketplaceSearchAttributes?: [{	input: ValueTypes["SearchAttributesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ValueTypes["SearchDictionaryValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ValueTypes["SearchRequestsInput"] | Variable<any, string>},ValueTypes["MarketplaceRequest"]],
+marketplaceStockProposalSignablePayloads?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceCheckoutSignableLine"]],
 marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
@@ -16874,6 +16935,12 @@ export type ResolverInputTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAcceptStockProposalInput"]: {
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую строку предложения (из превью marketplaceStockProposalSignablePayloads). */
+	lines?: Array<ResolverInputTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Предложение со склада кооператива. */
+	proposal_id: ResolverInputTypes["ID"]
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -17331,7 +17398,9 @@ export type ResolverInputTypes = {
 	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
-	checkout_id?: string | undefined | null
+	checkout_id?: string | undefined | null,
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины. */
+	lines?: Array<ResolverInputTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
@@ -17361,6 +17430,27 @@ export type ResolverInputTypes = {
 	fully_completed?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Заявление о конвертации паевого взноса к подписи по одной позиции корзины: подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines. */
+["MarketplaceCheckoutSignableLine"]: AliasType<{
+	/** Сумма конвертации (стоимость позиции + членский взнос), с валютой. */
+	amount?:boolean | `@${string}`,
+	/** Сгенерированное заявление о конвертации для подписи. */
+	document?:ResolverInputTypes["GeneratedDocument"],
+	/** Идентификатор предложения позиции корзины. */
+	offer_id?:boolean | `@${string}`,
+	/** order_hash будущего заказа (зашит в мету заявления). */
+	order_hash?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
+["MarketplaceCheckoutSignedLineInput"]: {
+	/** Идентификатор предложения позиции корзины. */
+	offer_id: string,
+	/** order_hash будущего заказа — тот же, что в мете заявления. */
+	order_hash: string,
+	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
+	signed_statement: ResolverInputTypes["MarketplaceConvertStatementSignedInput"]
+};
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: ResolverInputTypes["ID"]
@@ -17402,6 +17492,50 @@ export type ResolverInputTypes = {
 	["MarketplaceConvertBranchFundsInput"]: {
 	/** Сумма перевода в членский кошелёк «Стола заказов». */
 	amount: number
+};
+	["MarketplaceConvertStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о конвертации паевого взноса. */
+	meta: ResolverInputTypes["MarketplaceConvertStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	order_hash: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["MarketplaceCppStatus"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
@@ -17460,20 +17594,6 @@ export type ResolverInputTypes = {
 	unlimited_flag: boolean,
 	warranty_days: number
 };
-	/** Параметры оформления нового заказа пайщиком. */
-["MarketplaceCreateOrderInput"]: {
-	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
-	delivery_braname: string,
-	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
-	offer_id: string,
-	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
-	quantity: number
-};
-	["MarketplaceCreateOrderResult"]: AliasType<{
-	order?:ResolverInputTypes["MarketplaceOrder"],
-	tx_snapshot?:ResolverInputTypes["MarketplaceOrderCreateTxSnapshot"],
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceCreateReturnClaimInput"]: {
 	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
 	actual_quantity?: number | undefined | null,
@@ -19465,7 +19585,7 @@ markReportPeriod?: [{	data: ResolverInputTypes["MarkReportPeriodInput"]},boolean
 marketplaceAcceptCpp?: [{	input: ResolverInputTypes["MarketplaceAcceptCppInput"]},ResolverInputTypes["MarketplaceCppStatus"]],
 marketplaceAcceptOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceAcceptOrdersBatchInput"]},ResolverInputTypes["MarketplaceSupplierBatchActionResult"]],
 marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
-marketplaceAcceptStockProposal?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposalAcceptResult"]],
+marketplaceAcceptStockProposal?: [{	data: ResolverInputTypes["MarketplaceAcceptStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposalAcceptResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
@@ -19492,7 +19612,6 @@ marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAp
 marketplaceCreateCustomCategory?: [{	input: ResolverInputTypes["CreateCustomCategoryInput"]},ResolverInputTypes["MarketplaceCategory"]],
 marketplaceCreateExpressReception?: [{	data: ResolverInputTypes["MarketplaceCreateExpressReceptionInput"]},ResolverInputTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
-marketplaceCreateOrder?: [{	input: ResolverInputTypes["MarketplaceCreateOrderInput"]},ResolverInputTypes["MarketplaceCreateOrderResult"]],
 marketplaceCreateRequest?: [{	data: ResolverInputTypes["CreateRequestInput"]},ResolverInputTypes["MarketplaceRequest"]],
 marketplaceCreateReturnClaim?: [{	data: ResolverInputTypes["MarketplaceCreateReturnClaimInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceCreateShipment?: [{	data: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
@@ -20839,6 +20958,8 @@ marketplaceCategoryAttributes?: [{	input: ResolverInputTypes["GetCategoryAttribu
 marketplaceCategoryAttributesGrouped?: [{	input: ResolverInputTypes["GetCategoryAttributesInput"]},ResolverInputTypes["MarketplaceAttributeGroup"]],
 marketplaceCategoryOfferCounts?: [{	/** Пункт выдачи (КУ). Задан — считаем только товары, доставимые на него; пусто — по всему кооперативу. */
 	delivery_braname?: string | undefined | null},ResolverInputTypes["MarketplaceCategoryOfferCount"]],
+	/** Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart. */
+	marketplaceCheckoutSignablePayloads?:ResolverInputTypes["MarketplaceCheckoutSignableLine"],
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus?:ResolverInputTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -20937,6 +21058,7 @@ marketplaceReturnClaimSignablePayload?: [{	data: ResolverInputTypes["Marketplace
 marketplaceSearchAttributes?: [{	input: ResolverInputTypes["SearchAttributesInput"]},ResolverInputTypes["MarketplaceAttribute"]],
 marketplaceSearchDictionaryValues?: [{	input: ResolverInputTypes["SearchDictionaryValuesInput"]},ResolverInputTypes["MarketplaceDictionaryValue"]],
 marketplaceSearchRequests?: [{	data: ResolverInputTypes["SearchRequestsInput"]},ResolverInputTypes["MarketplaceRequest"]],
+marketplaceStockProposalSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceCheckoutSignableLine"]],
 marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttributeValuesInput"]},ResolverInputTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
@@ -27259,6 +27381,12 @@ export type ModelTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAcceptStockProposalInput"]: {
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую строку предложения (из превью marketplaceStockProposalSignablePayloads). */
+	lines?: Array<ModelTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Предложение со склада кооператива. */
+	proposal_id: ModelTypes["ID"]
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -27691,7 +27819,9 @@ export type ModelTypes = {
 	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
 ["MarketplaceCheckoutCartInput"]: {
 	/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
-	checkout_id?: string | undefined | null
+	checkout_id?: string | undefined | null,
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины. */
+	lines?: Array<ModelTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
@@ -27718,6 +27848,26 @@ export type ModelTypes = {
 	failed_lines: Array<ModelTypes["MarketplaceCheckoutFailedLine"]>,
 	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
 	fully_completed: boolean
+};
+	/** Заявление о конвертации паевого взноса к подписи по одной позиции корзины: подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines. */
+["MarketplaceCheckoutSignableLine"]: {
+		/** Сумма конвертации (стоимость позиции + членский взнос), с валютой. */
+	amount: string,
+	/** Сгенерированное заявление о конвертации для подписи. */
+	document: ModelTypes["GeneratedDocument"],
+	/** Идентификатор предложения позиции корзины. */
+	offer_id: string,
+	/** order_hash будущего заказа (зашит в мету заявления). */
+	order_hash: string
+};
+	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
+["MarketplaceCheckoutSignedLineInput"]: {
+	/** Идентификатор предложения позиции корзины. */
+	offer_id: string,
+	/** order_hash будущего заказа — тот же, что в мете заявления. */
+	order_hash: string,
+	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
+	signed_statement: ModelTypes["MarketplaceConvertStatementSignedInput"]
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -27757,6 +27907,50 @@ export type ModelTypes = {
 	["MarketplaceConvertBranchFundsInput"]: {
 	/** Сумма перевода в членский кошелёк «Стола заказов». */
 	amount: number
+};
+	["MarketplaceConvertStatementSignedInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о конвертации паевого взноса. */
+	meta: ModelTypes["MarketplaceConvertStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
+	/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	order_hash: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["MarketplaceCppStatus"]: {
 		accepted_at?: string | undefined | null,
@@ -27812,19 +28006,6 @@ export type ModelTypes = {
 	unit_of_measure: string,
 	unlimited_flag: boolean,
 	warranty_days: number
-};
-	/** Параметры оформления нового заказа пайщиком. */
-["MarketplaceCreateOrderInput"]: {
-	/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
-	delivery_braname: string,
-	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
-	offer_id: string,
-	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
-	quantity: number
-};
-	["MarketplaceCreateOrderResult"]: {
-		order: ModelTypes["MarketplaceOrder"],
-	tx_snapshot: ModelTypes["MarketplaceOrderCreateTxSnapshot"]
 };
 	["MarketplaceCreateReturnClaimInput"]: {
 	/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
@@ -30111,7 +30292,7 @@ export type ModelTypes = {
 	marketplaceAcceptOrdersBatch: ModelTypes["MarketplaceSupplierBatchActionResult"],
 	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
 	marketplaceAcceptReturnAtVisit: ModelTypes["MarketplaceReturnClaimResult"],
-	/** Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. */
+	/** Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. Каждая строка сопровождается подписанным заявлением о конвертации паевого взноса (lines). */
 	marketplaceAcceptStockProposal: ModelTypes["MarketplaceStockProposalAcceptResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
@@ -30141,7 +30322,7 @@ export type ModelTypes = {
 	marketplaceCancelStockProposal: ModelTypes["MarketplaceStockProposal"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
-	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. */
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Каждая позиция сопровождается подписанным заявлением о конвертации паевого взноса (lines). */
 	marketplaceCheckoutCart: ModelTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -30165,8 +30346,6 @@ export type ModelTypes = {
 	marketplaceCreateExpressReception: ModelTypes["MarketplaceCreateExpressReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: ModelTypes["MarketplaceOffer"],
-	/** Оформить заказ по предложению и заблокировать средства пайщика. */
-	marketplaceCreateOrder: ModelTypes["MarketplaceCreateOrderResult"],
 	/** Создать новую заявку на поставку или заказ товара
 
 Требуемые роли: member, chairman.  */
@@ -31755,6 +31934,8 @@ export type ModelTypes = {
 	marketplaceCategoryAttributesGrouped: Array<ModelTypes["MarketplaceAttributeGroup"]>,
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<ModelTypes["MarketplaceCategoryOfferCount"]>,
+	/** Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart. */
+	marketplaceCheckoutSignablePayloads: Array<ModelTypes["MarketplaceCheckoutSignableLine"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: ModelTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -31909,6 +32090,8 @@ export type ModelTypes = {
 	marketplaceSearchDictionaryValues: Array<ModelTypes["MarketplaceDictionaryValue"]>,
 	/** Поиск заявок по названию товара */
 	marketplaceSearchRequests: Array<ModelTypes["MarketplaceRequest"]>,
+	/** Заявления о конвертации паевого взноса к подписи по строкам предложения со склада. Подписанные заявления возвращаются строками lines в marketplaceAcceptStockProposal. */
+	marketplaceStockProposalSignablePayloads: Array<ModelTypes["MarketplaceCheckoutSignableLine"]>,
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
@@ -38463,6 +38646,12 @@ export type GraphQLTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAcceptStockProposalInput"]: {
+		/** Подписанные заявления о конвертации паевого взноса — по одному на каждую строку предложения (из превью marketplaceStockProposalSignablePayloads). */
+	lines?: Array<GraphQLTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null,
+	/** Предложение со склада кооператива. */
+	proposal_id: GraphQLTypes["ID"]
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 		/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -38940,7 +39129,9 @@ export type GraphQLTypes = {
 	/** Оформить заказ из корзины (или повторить упавший остаток того же заказа). */
 ["MarketplaceCheckoutCartInput"]: {
 		/** Идентификатор заказа для повтора остатка: при частичном сбое прошлого оформления передаётся тот же checkout_id, чтобы непрошедшие позиции легли в тот же заказ. Пусто — оформляется новый заказ. */
-	checkout_id?: string | undefined | null
+	checkout_id?: string | undefined | null,
+	/** Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины. */
+	lines?: Array<GraphQLTypes["MarketplaceCheckoutSignedLineInput"]> | undefined | null
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
@@ -38971,6 +39162,28 @@ export type GraphQLTypes = {
 	/** true — все позиции оформлены и корзина по этому заказу пуста; false — есть остаток. */
 	fully_completed: boolean,
 	['...on MarketplaceCheckoutResult']: Omit<GraphQLTypes["MarketplaceCheckoutResult"], "...on MarketplaceCheckoutResult">
+};
+	/** Заявление о конвертации паевого взноса к подписи по одной позиции корзины: подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines. */
+["MarketplaceCheckoutSignableLine"]: {
+	__typename: "MarketplaceCheckoutSignableLine",
+	/** Сумма конвертации (стоимость позиции + членский взнос), с валютой. */
+	amount: string,
+	/** Сгенерированное заявление о конвертации для подписи. */
+	document: GraphQLTypes["GeneratedDocument"],
+	/** Идентификатор предложения позиции корзины. */
+	offer_id: string,
+	/** order_hash будущего заказа (зашит в мету заявления). */
+	order_hash: string,
+	['...on MarketplaceCheckoutSignableLine']: Omit<GraphQLTypes["MarketplaceCheckoutSignableLine"], "...on MarketplaceCheckoutSignableLine">
+};
+	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
+["MarketplaceCheckoutSignedLineInput"]: {
+		/** Идентификатор предложения позиции корзины. */
+	offer_id: string,
+	/** order_hash будущего заказа — тот же, что в мете заявления. */
+	order_hash: string,
+	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
+	signed_statement: GraphQLTypes["MarketplaceConvertStatementSignedInput"]
 };
 	["MarketplaceClearInventoryLabelInput"]: {
 		/** Позиция склада, с которой снимается штрих-код (для переклейки). */
@@ -39015,6 +39228,50 @@ export type GraphQLTypes = {
 	["MarketplaceConvertBranchFundsInput"]: {
 		/** Сумма перевода в членский кошелёк «Стола заказов». */
 	amount: number
+};
+	["MarketplaceConvertStatementSignedInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаданные подписанного заявления о конвертации паевого взноса. */
+	meta: GraphQLTypes["MarketplaceConvertStatementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MarketplaceConvertStatementSignedMetaDocumentInput"]: {
+		/** Сумма конвертации (стоимость заказа + членский взнос), с валютой. */
+	amount: string,
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** Канонический order_hash заказа, под который конвертируется взнос. */
+	order_hash: string,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Сформировать документ без сохранения (preview-режим). */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["MarketplaceCppStatus"]: {
 	__typename: "MarketplaceCppStatus",
@@ -39074,21 +39331,6 @@ export type GraphQLTypes = {
 	unit_of_measure: string,
 	unlimited_flag: boolean,
 	warranty_days: number
-};
-	/** Параметры оформления нового заказа пайщиком. */
-["MarketplaceCreateOrderInput"]: {
-		/** Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ. */
-	delivery_braname: string,
-	/** Идентификатор предложения, по которому пайщик оформляет заказ. */
-	offer_id: string,
-	/** Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка). */
-	quantity: number
-};
-	["MarketplaceCreateOrderResult"]: {
-	__typename: "MarketplaceCreateOrderResult",
-	order: GraphQLTypes["MarketplaceOrder"],
-	tx_snapshot: GraphQLTypes["MarketplaceOrderCreateTxSnapshot"],
-	['...on MarketplaceCreateOrderResult']: Omit<GraphQLTypes["MarketplaceCreateOrderResult"], "...on MarketplaceCreateOrderResult">
 };
 	["MarketplaceCreateReturnClaimInput"]: {
 		/** Возвращаемое количество единиц (по умолчанию — выданное количество). */
@@ -41548,7 +41790,7 @@ export type GraphQLTypes = {
 	marketplaceAcceptOrdersBatch: GraphQLTypes["MarketplaceSupplierBatchActionResult"],
 	/** Председатель по результатам очного осмотра принимает гарантийный возврат — атомарно восстанавливает средства на программный кошелёк пайщика и возвращает имущество на склад участка. */
 	marketplaceAcceptReturnAtVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
-	/** Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. */
+	/** Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. Каждая строка сопровождается подписанным заявлением о конвертации паевого взноса (lines). */
 	marketplaceAcceptStockProposal: GraphQLTypes["MarketplaceStockProposalAcceptResult"],
 	/** Добавить категории в доступные для кооператива (целые категории)
 
@@ -41578,7 +41820,7 @@ export type GraphQLTypes = {
 	marketplaceCancelStockProposal: GraphQLTypes["MarketplaceStockProposal"],
 	/** Удалить черновик. Доступно только пока проект в статусе DRAFT. */
 	marketplaceCancelWriteoffDraft: boolean,
-	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. */
+	/** Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. Каждая позиция сопровождается подписанным заявлением о конвертации паевого взноса (lines). */
 	marketplaceCheckoutCart: GraphQLTypes["MarketplaceCheckoutResult"],
 	/** Очистить все доступные категории (сделать доступными все)
 
@@ -41602,8 +41844,6 @@ export type GraphQLTypes = {
 	marketplaceCreateExpressReception: GraphQLTypes["MarketplaceCreateExpressReceptionResult"],
 	/** Поставщик публикует Offer (статус → PENDING_MODERATION) */
 	marketplaceCreateOffer: GraphQLTypes["MarketplaceOffer"],
-	/** Оформить заказ по предложению и заблокировать средства пайщика. */
-	marketplaceCreateOrder: GraphQLTypes["MarketplaceCreateOrderResult"],
 	/** Создать новую заявку на поставку или заказ товара
 
 Требуемые роли: member, chairman.  */
@@ -43327,6 +43567,8 @@ export type GraphQLTypes = {
 	marketplaceCategoryAttributesGrouped: Array<GraphQLTypes["MarketplaceAttributeGroup"]>,
 	/** Число доступных к заказу товаров в каждой категории — чтобы скрыть пустые категории в каталоге. Если задан пункт выдачи, считаются только товары, доставимые на него. */
 	marketplaceCategoryOfferCounts: Array<GraphQLTypes["MarketplaceCategoryOfferCount"]>,
+	/** Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart. */
+	marketplaceCheckoutSignablePayloads: Array<GraphQLTypes["MarketplaceCheckoutSignableLine"]>,
 	/** Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе. */
 	marketplaceCppStatus: GraphQLTypes["MarketplaceCppStatus"],
 	/** Дефолтная витрина кооператива (MVP — единственная) */
@@ -43481,6 +43723,8 @@ export type GraphQLTypes = {
 	marketplaceSearchDictionaryValues: Array<GraphQLTypes["MarketplaceDictionaryValue"]>,
 	/** Поиск заявок по названию товара */
 	marketplaceSearchRequests: Array<GraphQLTypes["MarketplaceRequest"]>,
+	/** Заявления о конвертации паевого взноса к подписи по строкам предложения со склада. Подписанные заявления возвращаются строками lines в marketplaceAcceptStockProposal. */
+	marketplaceStockProposalSignablePayloads: Array<GraphQLTypes["MarketplaceCheckoutSignableLine"]>,
 	/** Валидация значений атрибута marketplace */
 	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
@@ -45930,6 +46174,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptOrdersBatchInput"]: ValueTypes["MarketplaceAcceptOrdersBatchInput"];
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
+	["MarketplaceAcceptStockProposalInput"]: ValueTypes["MarketplaceAcceptStockProposalInput"];
 	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
 	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAidStatementSignablePayloadInput"]: ValueTypes["MarketplaceAidStatementSignablePayloadInput"];
@@ -45949,14 +46194,16 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
 	["MarketplaceCancelStockOrderInput"]: ValueTypes["MarketplaceCancelStockOrderInput"];
 	["MarketplaceCheckoutCartInput"]: ValueTypes["MarketplaceCheckoutCartInput"];
+	["MarketplaceCheckoutSignedLineInput"]: ValueTypes["MarketplaceCheckoutSignedLineInput"];
 	["MarketplaceClearInventoryLabelInput"]: ValueTypes["MarketplaceClearInventoryLabelInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
 	["MarketplaceConvertBranchFundsInput"]: ValueTypes["MarketplaceConvertBranchFundsInput"];
+	["MarketplaceConvertStatementSignedInput"]: ValueTypes["MarketplaceConvertStatementSignedInput"];
+	["MarketplaceConvertStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceConvertStatementSignedMetaDocumentInput"];
 	["MarketplaceCreateAidInput"]: ValueTypes["MarketplaceCreateAidInput"];
 	["MarketplaceCreateAplReceptionInput"]: ValueTypes["MarketplaceCreateAplReceptionInput"];
 	["MarketplaceCreateExpressReceptionInput"]: ValueTypes["MarketplaceCreateExpressReceptionInput"];
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
-	["MarketplaceCreateOrderInput"]: ValueTypes["MarketplaceCreateOrderInput"];
 	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];
 	["MarketplaceCreateShipmentInput"]: ValueTypes["MarketplaceCreateShipmentInput"];
 	["MarketplaceCreateStockProposalInput"]: ValueTypes["MarketplaceCreateStockProposalInput"];

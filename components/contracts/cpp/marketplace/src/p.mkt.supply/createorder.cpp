@@ -32,11 +32,15 @@ void marketplace::createorder(eosio::name coopname,
                                uint64_t quantity,
                                eosio::asset unit_price,
                                uint32_t warranty_period_secs,
-                               checksum256 batch_hash) {
+                               checksum256 batch_hash,
+                               document2 convert_statement) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
   eosio::check(quantity > 0, "Количество должно быть больше нуля");
+  eosio::check(!is_empty_document(convert_statement),
+               "Отсутствует заявление о конвертации паевого взноса");
+  verify_document_or_fail(convert_statement, { orderer });
   eosio::check(unit_price.is_valid() && unit_price.amount > 0,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
@@ -121,4 +125,12 @@ void marketplace::createorder(eosio::name coopname,
                    membership_fee, orderer, order_hash,
                    Marketplace::Memo::get_membership_fee_lock_memo(new_id));
   }
+
+  // Заявление о конвертации публикуется в реестр документов отдельным
+  // самостоятельным пакетом (package = hash самого заявления): конвертация —
+  // операция программы «Стол заказов», а не процесса поставки (пакет процесса
+  // поставки группируется вокруг order_hash актами приёма-передачи).
+  Soviet::make_complete_document(_marketplace, coopname, orderer,
+                                 "createorder"_n,
+                                 convert_statement.hash, convert_statement);
 }

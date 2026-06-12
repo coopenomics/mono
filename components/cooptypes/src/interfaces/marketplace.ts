@@ -52,6 +52,7 @@ export interface ICreateOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+  convert_statement: IDocument2
 }
 
 export interface IStockOrder {
@@ -64,6 +65,7 @@ export interface IStockOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+  convert_statement: IDocument2
 }
 
 export interface IMarkdown {

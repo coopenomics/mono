@@ -1,7 +1,34 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsOptional, IsString } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceOrderDTO } from './marketplace-order.dto';
 import { MarketplaceCartDTO } from './marketplace-cart.dto';
+
+@InputType('MarketplaceCheckoutSignedLineInput', {
+  description:
+    'Подписанное заявление о конвертации паевого взноса по одной позиции корзины ' +
+    '(из превью marketplaceCheckoutSignablePayloads).',
+})
+export class MarketplaceCheckoutSignedLineInputDTO {
+  @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
+  @IsString()
+  public readonly offer_id!: string;
+
+  @Field(() => String, {
+    description: 'order_hash будущего заказа — тот же, что в мете заявления.',
+  })
+  @IsString()
+  public readonly order_hash!: string;
+
+  @Field(() => MarketplaceConvertStatementSignedInputDTO, {
+    description: 'Подписанное заказчиком заявление о конвертации паевого взноса.',
+  })
+  @ValidateNested()
+  @Type(() => MarketplaceConvertStatementSignedInputDTO)
+  public readonly signed_statement!: MarketplaceConvertStatementSignedInputDTO;
+}
 
 @InputType('MarketplaceCheckoutCartInput', {
   description: 'Оформить заказ из корзины (или повторить упавший остаток того же заказа).',
@@ -17,6 +44,44 @@ export class MarketplaceCheckoutCartInputDTO {
   @IsOptional()
   @IsString()
   public readonly checkout_id?: string | null;
+
+  @Field(() => [MarketplaceCheckoutSignedLineInputDTO], {
+    nullable: true,
+    description:
+      'Подписанные заявления о конвертации паевого взноса — по одному на каждую позицию корзины.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceCheckoutSignedLineInputDTO)
+  public readonly lines?: MarketplaceCheckoutSignedLineInputDTO[] | null;
+}
+
+@ObjectType('MarketplaceCheckoutSignableLine', {
+  description:
+    'Заявление о конвертации паевого взноса к подписи по одной позиции корзины: ' +
+    'подписывается заказчиком и возвращается в marketplaceCheckoutCart строкой lines.',
+})
+export class MarketplaceCheckoutSignableLineDTO {
+  @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
+  public readonly offer_id!: string;
+
+  @Field(() => String, { description: 'order_hash будущего заказа (зашит в мету заявления).' })
+  public readonly order_hash!: string;
+
+  @Field(() => String, {
+    description: 'Сумма конвертации (стоимость позиции + членский взнос), с валютой.',
+  })
+  public readonly amount!: string;
+
+  @Field(() => GeneratedDocumentDTO, {
+    description: 'Сгенерированное заявление о конвертации для подписи.',
+  })
+  public readonly document!: GeneratedDocumentDTO;
+
+  constructor(init: Partial<MarketplaceCheckoutSignableLineDTO>) {
+    Object.assign(this, init);
+  }
 }
 
 @ObjectType('MarketplaceCheckoutFailedLine', {

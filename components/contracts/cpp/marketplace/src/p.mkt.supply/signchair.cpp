@@ -75,4 +75,10 @@ void marketplace::signchair(eosio::name coopname,
     upd.acceptance_act_signchair = act;
     upd.current_warehouse_braname = o.accept_braname;  // имущество на приёмном складе
   });
+
+  // Двухподписный АПП приёмки публикуется в реестр документов в пакете
+  // процесса заказа (package = order_hash): оба акта приёма-передачи и
+  // документы гарантийного возврата группируются вокруг одного заказа.
+  Soviet::make_complete_document(_marketplace, coopname, o.offerer,
+                                 "signchair"_n, order_hash, act);
 }

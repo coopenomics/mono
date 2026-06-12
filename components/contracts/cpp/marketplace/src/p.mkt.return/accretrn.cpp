@@ -54,5 +54,12 @@ void marketplace::accretrn(eosio::name coopname,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
+  // Со-подписанное заявление доводит запись реестра документов до «решён»
+  // (тот же doc_hash, что у newsubmitted в submretrn; новая версия с двумя
+  // подписями) в пакете процесса заказа (package = order_hash).
+  Action::send<newresolved_interface>(_soviet, "newresolved"_n, _marketplace,
+                                      coopname, r.orderer, "accretrn"_n,
+                                      r.original_order_hash, statement);
+
   Marketplace::erase_return_request(coopname, r.id);
 }

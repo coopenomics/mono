@@ -5,7 +5,6 @@ export * as SetKUStatus from './setKUStatus'
 /** Повторно запустить геокодинг адреса ПВЗ */
 export * as RetryKUGeocode from './retryKUGeocode'
 /** Оформить заказ по предложению и заблокировать средства */
-export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
 /** Эпик 15: поставщик принимает к поставке выбранные заказы (offer × КУ) единым массивом */

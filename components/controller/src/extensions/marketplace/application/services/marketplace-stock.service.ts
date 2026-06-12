@@ -7,7 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
+import type { MarketContract } from 'cooptypes';
+import { computeStockOrderHash } from '../shared/order-hash.util';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
@@ -73,6 +75,14 @@ export interface MarketplaceStockOrderCreateInput {
   quantity: number;
   /** Грань «заказ заказчика» — общий id строк одного оформления/предложения. */
   checkout_id?: string | null;
+  /** Предвычисленный order_hash из заявления о конвертации (см. order-create). */
+  order_hash?: string;
+  /**
+   * Подписанное заказчиком заявление о конвертации паевого взноса в
+   * членский (registry 1110) — обязательный параметр
+   * `marketplace::stockorder`; контракт публикует его в реестр документов.
+   */
+  convert_statement: MarketContract.Actions.StockOrder.IStockOrder['convert_statement'];
 }
 
 export interface MarketplaceStockOrderCreateResult {
@@ -289,7 +299,8 @@ export class MarketplaceStockService {
       );
     }
 
-    const order_hash = this.computeOrderHash(input.coopname, input.orderer_account, offer.id);
+    const order_hash =
+      input.order_hash ?? computeStockOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = createHash('sha256').update(`offer:${offer.id}`).digest('hex');
     const priceFloat = Number.parseFloat(offer.price_per_unit);
     const total_cost = (priceFloat * input.quantity).toFixed(this.assetConfig.decimals);
@@ -311,6 +322,7 @@ export class MarketplaceStockService {
         unit_price: unit_price_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
+        convert_statement: input.convert_statement,
       });
       txHash = normalizeChainTxHash(
         tx,
@@ -534,10 +546,6 @@ export class MarketplaceStockService {
     return Number.parseFloat(price).toFixed(this.assetConfig.decimals);
   }
 
-  private computeOrderHash(coopname: string, orderer: string, offer_id: string): string {
-    const nonce = randomBytes(16).toString('hex');
-    return createHash('sha256').update(`${coopname}|${orderer}|stock|${offer_id}|${nonce}`).digest('hex');
-  }
 }
 
 export const MARKETPLACE_STOCK_SERVICE = Symbol('MARKETPLACE_STOCK_SERVICE');

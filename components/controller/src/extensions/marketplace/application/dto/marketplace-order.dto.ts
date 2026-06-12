@@ -299,20 +299,6 @@ export class MarketplaceOrderDTO {
   }
 }
 
-@ObjectType('MarketplaceCreateOrderResult')
-export class MarketplaceCreateOrderResultDTO {
-  @Field(() => MarketplaceOrderDTO)
-  public readonly order!: MarketplaceOrderDTO;
-
-  @Field(() => MarketplaceOrderCreateTxSnapshotDTO)
-  public readonly tx_snapshot!: MarketplaceOrderCreateTxSnapshotDTO;
-
-  constructor(init: { order: MarketplaceOrderDTO; tx_snapshot: MarketplaceOrderCreateTxSnapshotDTO }) {
-    this.order = init.order;
-    this.tx_snapshot = init.tx_snapshot;
-  }
-}
-
 @ObjectType('MarketplaceCancelOrderResult', { description: 'Результат отмены заказа пайщиком.' })
 export class MarketplaceCancelOrderResultDTO {
   @Field(() => MarketplaceOrderDTO, { description: 'Заказ после перевода в отменённое состояние.' })

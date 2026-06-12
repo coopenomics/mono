@@ -7,7 +7,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cooperative, type MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
+import { computeStockOrderHash } from '../shared/order-hash.util';
+import {
+  MARKETPLACE_ECONOMY_SERVICE,
+  MarketplaceEconomyService,
+} from './marketplace-economy.service';
+import type { MarketplaceCheckoutSignableLine } from './marketplace-checkout.service';
 import {
   MARKETPLACE_STOCK_PROPOSAL_REPOSITORY,
   type MarketplaceStockProposalDomainRepository,
@@ -66,10 +76,56 @@ export class MarketplaceStockProposalService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_STOCK_SERVICE)
     private readonly stockService: MarketplaceStockService,
+    @Inject(MARKETPLACE_ECONOMY_SERVICE)
+    private readonly economyService: MarketplaceEconomyService,
+    private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceStockProposalService.name);
+  }
+
+  /**
+   * Заявления о конвертации паевого взноса к подписи по строкам докладки —
+   * как в checkout'е корзины: order_hash будущего stock-заказа рождается
+   * здесь и зашивается в мету; подписанные заявления возвращаются в
+   * `acceptProposal` строками `lines`.
+   */
+  async getAcceptSignablePayloads(
+    coopname: string,
+    proposal_id: string,
+    member_account: string
+  ): Promise<MarketplaceCheckoutSignableLine[]> {
+    const proposal = await this.loadProposal(coopname, proposal_id);
+    if (proposal.member_account !== member_account) {
+      throw new ForbiddenException('Подписать заявления может только адресат предложения.');
+    }
+    this.assertProposed(proposal);
+
+    const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
+    const result: MarketplaceCheckoutSignableLine[] = [];
+    for (const item of proposal.items) {
+      const order_hash = computeStockOrderHash(coopname, member_account, item.offer_id);
+      const amount = this.economyService.convertAmountForLine(
+        item.unit_price,
+        item.quantity,
+        feePercent
+      );
+      const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
+        registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
+        coopname,
+        username: member_account,
+        lang: 'ru',
+        order_hash,
+        amount,
+        // Тело сохраняется в стор — реестр документов пересобирает агрегат
+        // по doc_hash (rawDocument).
+        skip_save: false,
+      };
+      const document = await this.documentDomainService.generateDocument({ data: action });
+      result.push({ offer_id: item.offer_id, order_hash, amount, document });
+    }
+    return result;
   }
 
   async createProposal(
@@ -140,7 +196,8 @@ export class MarketplaceStockProposalService {
   async acceptProposal(
     coopname: string,
     proposal_id: string,
-    member_account: string
+    member_account: string,
+    lines?: MarketplaceCheckoutSignedLineInputDTO[] | null
   ): Promise<MarketplaceStockProposalAcceptResult> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
@@ -148,18 +205,50 @@ export class MarketplaceStockProposalService {
     }
     this.assertProposed(proposal);
 
+    const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
+    const signedByOffer = new Map((lines ?? []).map((l) => [l.offer_id, l]));
+
     // Построчно: успехи сохраняем, на первом фейле останавливаемся и
     // компенсируем уже созданные заказы (атомарность докладки — UX-инвариант:
     // пайщик принимает её целиком).
     const order_ids: string[] = [];
     try {
       for (const item of proposal.items) {
+        // Заявление о конвертации — обязательный спутник каждой строки
+        // (контракт требует подписанный документ и публикует его в реестр).
+        const signedLine = signedByOffer.get(item.offer_id);
+        if (!signedLine) {
+          throw new BadRequestException(
+            'Нет подписанного заявления о конвертации паевого взноса — обновите принятие предложения.'
+          );
+        }
+        const meta = signedLine.signed_statement.meta;
+        const expectedAmount = this.economyService.convertAmountForLine(
+          item.unit_price,
+          item.quantity,
+          feePercent
+        );
+        if (
+          meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
+          meta.order_hash !== signedLine.order_hash ||
+          meta.amount !== expectedAmount
+        ) {
+          throw new BadRequestException(
+            'Заявление о конвертации не соответствует строке предложения — обновите принятие.'
+          );
+        }
+        const convert_statement = new SignedDigitalDocumentInputDTO(
+          signedLine.signed_statement
+        ).toDocument() as MarketContract.Actions.StockOrder.IStockOrder['convert_statement'];
+
         const { order } = await this.stockService.createStockOrder({
           coopname,
           orderer_account: member_account,
           offer_id: item.offer_id,
           quantity: item.quantity,
           checkout_id: proposal.id,
+          order_hash: signedLine.order_hash,
+          convert_statement,
         });
         order_ids.push(order.id);
       }

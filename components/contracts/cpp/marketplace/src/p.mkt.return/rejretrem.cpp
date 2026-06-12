@@ -29,5 +29,11 @@ void marketplace::rejretrem(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
                "Заявление не находится на рассмотрении");
 
+  // Запись реестра документов (создана newsubmitted в submretrn) доводится
+  // до «отклонён»; причина отказа остаётся в журнале действий (reason).
+  Action::send<newdeclined_interface>(_soviet, "newdeclined"_n, _marketplace,
+                                      coopname, r.orderer,
+                                      r.original_order_hash, r.statement);
+
   Marketplace::erase_return_request(coopname, r.id);
 }

@@ -82,11 +82,6 @@ const _validateOrder: MakeAllFieldsRequired<ValueTypes['MarketplaceOrder']> = ra
 
 export const marketplaceOrderSelector = Selector('MarketplaceOrder')(rawOrderSelector)
 
-export const marketplaceCreateOrderResultSelector = Selector('MarketplaceCreateOrderResult')({
-  order: rawOrderSelector,
-  tx_snapshot: rawOrderCreateTxSnapshotSelector,
-})
-
 export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelOrderResult')({
   order: rawOrderSelector,
   tx_hash: true,
