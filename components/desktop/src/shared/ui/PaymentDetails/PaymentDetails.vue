@@ -22,7 +22,8 @@
           CopyableInput.full-width(
             :label='"БИК"',
             :model-value='bankData.details.bik',
-            dense
+            dense,
+            input-class='font-mono'
           )
 
         .col-12.col-md-6(v-if='bankData?.account_number')
@@ -82,7 +83,7 @@
         .col-12.col-md-6(v-if='payment.payment_details.amount_without_fee')
           CopyableInput.full-width(
             :label='"Сумма к переводу"',
-            :model-value='payment.payment_details.amount_without_fee + (bankData?.currency ? " " + bankData.currency : "")',
+            :model-value='formattedTransferAmount',
             dense,
             input-class='text-weight-medium'
           )
@@ -113,6 +114,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { CopyableInput } from 'src/shared/ui';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import type { IPayment, IBankAccount, ISbpAccount } from 'src/entities/Payment';
 
 interface Props {
@@ -141,6 +143,14 @@ const sbpData = computed(() => {
   return null;
 });
 
+// Сумма к переводу — канонический формат «1 000,00 RUB», не сырой
+// on-chain precision=4.
+const formattedTransferAmount = computed(() => {
+  const raw = payment.payment_details?.amount_without_fee ?? '';
+  const currency = bankData.value?.currency ?? '';
+  return formatAsset2Digits(currency ? `${raw} ${currency}` : String(raw));
+});
+
 /**
  * Форматирует данные блокчейна для отображения
  */
@@ -157,9 +167,10 @@ const formatBlockchainData = (data: any): string => {
 
 <style lang="scss" scoped>
 .payment-details {
+  // Размер НЕ уменьшаем (был 0.9em): mono-поля выглядели мельче соседних,
+  // реквизиты в одном развороте обязаны быть одного размера.
   .font-mono {
-    font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
-    font-size: 0.9em;
+    font-family: var(--p-mono, 'JetBrains Mono', 'Monaco', 'Consolas', monospace);
   }
 
   pre {

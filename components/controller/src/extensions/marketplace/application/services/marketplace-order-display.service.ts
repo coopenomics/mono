@@ -99,7 +99,7 @@ export class MarketplaceOrderDisplayService {
     const cycleIds = opts?.withGroupProgress
       ? ([...new Set(orders.map((o) => o.cycle_id).filter((c): c is string => !!c))])
       : [];
-    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId] =
+    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId, shelvesByOrderId] =
       await Promise.all([
         this.offerRepo.findByIds(offerIds),
         this.resolveBranches(branames),
@@ -118,6 +118,14 @@ export class MarketplaceOrderDisplayService {
               orders.map((o) => o.id)
             )
           : Promise.resolve(new Map<string, number>()),
+        // Полки — той же опцией, что и складской остаток: оба нужны только
+        // лентам выдачи («сколько есть» + «где лежит»).
+        opts?.withWarehouseQuantity
+          ? this.inventoryRepo.shelvesOnWarehouseByOrders(
+              config.coopname,
+              orders.map((o) => o.id)
+            )
+          : Promise.resolve(new Map<string, string[]>()),
       ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     // Ключ (offer_id::braname) → накоплено всеми на этапе сбора.
@@ -166,6 +174,9 @@ export class MarketplaceOrderDisplayService {
         // явно показать «принято 0», null зарезервирован за «не запрашивали».
         warehouse_quantity: opts?.withWarehouseQuantity
           ? (warehouseByOrderId.get(order.id) ?? 0)
+          : null,
+        warehouse_shelves: opts?.withWarehouseQuantity
+          ? (shelvesByOrderId.get(order.id) ?? null)
           : null,
       });
     }

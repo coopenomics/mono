@@ -31,7 +31,7 @@
                   q-icon(:name='expanded.get(row.id) ? "expand_more" : "chevron_right"')
               td.cell-name {{ getShortNameFromCertificate(row.username_certificate) || row.username }}
               td {{ formatDateToHumanDateTime(row.created_at) }}
-              td.col-num {{ row.quantity }} {{ row.symbol }}
+              td.col-num {{ formatAsset2Digits(`${row.quantity} ${row.symbol}`) }}
               td {{ row.type_label }}
               td
                 span.dir(:class='isIncoming(row.direction) ? "dir--in" : "dir--out"')
@@ -84,6 +84,7 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
 import type { IPayment } from 'src/entities/Payment/model/types';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
 
 const props = defineProps({

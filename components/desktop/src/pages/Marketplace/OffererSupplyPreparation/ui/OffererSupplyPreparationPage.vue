@@ -158,8 +158,8 @@ function nextStep(row: MarketplaceShipmentView): string {
         : 'Привезите имущество на КУ — оператор откроет приёмку';
     case 'RECEPTION_IN_PROGRESS':
       return 'Идёт приёмка на КУ — дождитесь подписей акта';
-    case 'ACCEPTED_TO_COOP':
-      return 'Принято кооперативом';
+    // ACCEPTED_TO_COOP — терминальный: следующего шага нет, подсказка
+    // дублировала бы бейдж статуса («Принята кооперативом» дважды).
     default:
       return '';
   }

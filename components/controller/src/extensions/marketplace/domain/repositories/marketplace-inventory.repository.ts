@@ -74,6 +74,16 @@ export interface MarketplaceInventoryDomainRepository {
    */
   sumOnWarehouseByOrders(coopname: string, order_ids: string[]): Promise<Map<string, number>>;
 
+  /**
+   * Полки склада, на которых лежат не выданные позиции заказа (после
+   * раскладки/маркировки). Лента выдачи показывает оператору, куда идти
+   * за имуществом. Заказы без размеченных полок в карте отсутствуют.
+   */
+  shelvesOnWarehouseByOrders(
+    coopname: string,
+    order_ids: string[]
+  ): Promise<Map<string, string[]>>;
+
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
 
   applyStatusTransition(

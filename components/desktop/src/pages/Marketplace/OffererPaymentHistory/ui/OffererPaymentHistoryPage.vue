@@ -3,8 +3,8 @@ import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseCard, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { BaseBadgeVariant, BaseSelectOption, TableSkeletonColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
@@ -17,6 +17,7 @@ import {
   type MarketplaceSupplierPaymentSettingsView,
 } from 'src/entities/MarketplaceSupplierSettings';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
@@ -93,7 +94,10 @@ async function onPickMethod(method_id: string | number | null): Promise<void> {
 }
 
 function goToRequisites(): void {
-  void router.push({ name: 'user-payment-methods', params: { coopname: info.coopname } });
+  // Живой роут раздела «Реквизиты» — `payment-methods` из расширения
+  // participant (одноимённый `user-payment-methods` в src/desktops/* — мёртвый
+  // legacy-манифест, его нет в раутере).
+  void router.push({ name: 'payment-methods', params: { coopname: info.coopname } });
 }
 
 // ── история выплат ──
@@ -111,15 +115,6 @@ function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant
   if (!v) return { label: '—', variant: 'neutral' };
   return PAYMENT_STATUS[v] ?? PAYMENT_STATUS[v.toUpperCase()] ?? { label: v, variant: 'neutral' };
 }
-
-// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Дата', cell: 'text', cellWidth: '120px' },
-  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Куда', cell: 'text' },
-  { label: 'Назначение', cell: 'text' },
-];
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -185,30 +180,21 @@ q-page.offerer-payments
         | в разделе «Реквизиты» — без них публикация предложений недоступна.
 
   //- ───────── История выплат ─────────
-  TableSkeleton(
-    v-if='loading && !items.length',
-    :columns='skeletonColumns',
-    :rows='6',
-    min-width='860px'
-  )
-  .table-wrap(v-else-if='items.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-date Дата
-            th.col-num Сумма
-            th.col-status Статус
-            th Куда
-            th Назначение
-        tbody
-          tr(v-for='row in items', :key='row.id')
-            td.col-date {{ formatDateToHumanDateTime(row.created_at) }}
-            td.col-num {{ row.amount }} {{ row.symbol }}
-            td.col-status
-              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
-            td {{ row.payout_destination || '—' }}
-            td.cell-purpose {{ row.purpose || '—' }}
+  //- Карточки, не таблица: на узких экранах таблица уезжала в горизонтальный
+  //- скролл и дёргалась — карточки мотаются просто вниз.
+  CardListSkeleton(v-if='loading && !items.length', :count='4')
+  .payout-list(v-else-if='items.length')
+    BaseCard(v-for='row in items', :key='row.id')
+      .payout-card
+        .payout-card__top
+          .payout-card__amount {{ formatAsset2Digits(`${row.amount} ${row.symbol}`) }}
+          BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+        .payout-card__date {{ formatDateToHumanDateTime(row.created_at) }}
+        .payout-card__row(v-if='row.payout_destination')
+          q-icon(name='account_balance', size='14px')
+          span {{ row.payout_destination }}
+        .payout-card__purpose(v-if='row.purpose') {{ row.purpose }}
+        .payout-card__decline(v-if='row.decline_reason') Причина отказа: {{ row.decline_reason }}
 
   EmptyState(
     v-else,
@@ -231,26 +217,44 @@ q-page.offerer-payments
   max-width: 420px;
 }
 
-.table-scroll {
-  overflow-x: auto;
+.payout-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
 }
-.table {
-  min-width: 860px;
+
+.payout-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
 }
-.col-date {
-  width: 150px;
-  white-space: nowrap;
+.payout-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
 }
-.col-num {
-  width: 130px;
-  text-align: right;
+.payout-card__amount {
+  font-size: var(--p-fs-h3, 18px);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.col-status {
-  width: 170px;
+.payout-card__date {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-sm, 13px);
 }
-.cell-purpose {
+.payout-card__row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  color: var(--p-ink-2);
+}
+.payout-card__purpose {
+  color: var(--p-ink-2);
   overflow-wrap: anywhere;
+}
+.payout-card__decline {
+  color: var(--p-neg);
 }
 
 @media (max-width: 768px) {

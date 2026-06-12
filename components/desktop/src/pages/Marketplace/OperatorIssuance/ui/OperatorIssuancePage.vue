@@ -235,6 +235,22 @@ function onQrScanned(code: string): void {
   // Заказы не обязательны: пайщик мог «просто зайти» — оператор предложит
   // ему имущество со склада кооператива (докладка, requirement 76).
   pickupAccount.value = token.account;
+  void resolvePickup();
+}
+
+/**
+ * Резолв отсканированного кода получения: есть позиции «к выдаче» — сразу
+ * открываем полную выдачу (промежуточное окно «Открыть выдачу» — лишний клик);
+ * нечего открывать — показываем резолв-окно с докладкой со склада (req. 76).
+ */
+async function resolvePickup(): Promise<void> {
+  // Код мог прийти с универсального сканера сразу после навигации — лента
+  // могла не успеть загрузиться, без неё резолв «у пайщика ничего нет».
+  if (!items.value.length && !loading.value) await load();
+  if (pickupToIssueCount.value > 0) {
+    startOpen(pickupOrders.value);
+    return;
+  }
   pickupDialogOpen.value = true;
 }
 
@@ -362,8 +378,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
 
   ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR заказа', @scanned='onQrScanned')
 
-  //- Все заказы заказчика на выдачу разом (резолв account-bound кода против ленты
-  //- этого КУ). Оператор открывает их по одному — каждый шаг со своей подписью.
+  //- Резолв кода получения, когда открывать нечего: позиции ждут подтверждения
+  //- пайщика либо заказов нет — оператор может предложить докладку со склада.
+  //- При готовых позициях это окно НЕ показывается: скан открывает выдачу сразу.
   BaseDialog(v-model='pickupDialogOpen', title='Выдача заказчику', size='sm')
     .issuance__resolve
       .issuance__resolve-account {{ pickupAccount }}

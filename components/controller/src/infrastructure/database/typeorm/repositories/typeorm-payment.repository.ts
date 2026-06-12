@@ -10,7 +10,7 @@ import type {
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
-import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { getPaymentDirection, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 
 @Injectable()
 export class TypeOrmPaymentRepository implements PaymentRepository {
@@ -131,11 +131,11 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     if (filters.direction) {
       queryBuilder.where('payment.direction = :direction', { direction: filters.direction });
     } else if (filters.type) {
-      if (filters.type === PaymentTypeEnum.WITHDRAWAL) {
-        queryBuilder.where('payment.direction = :direction', { direction: PaymentDirectionEnum.OUTGOING });
-      } else {
-        queryBuilder.where('payment.direction = :direction', { direction: PaymentDirectionEnum.INCOMING });
-      }
+      // Направление выводится из типа (PAYMENT/WITHDRAWAL — исходящие),
+      // см. getPaymentDirection в payment-type.enum.ts.
+      queryBuilder.where('payment.direction = :direction', {
+        direction: getPaymentDirection(filters.type),
+      });
     }
 
     if (filters.username) {

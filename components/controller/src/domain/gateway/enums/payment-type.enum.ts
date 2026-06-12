@@ -6,6 +6,9 @@ export enum PaymentTypeEnum {
   REGISTRATION = 'registration', // Регистрационный взнос
   DEPOSIT = 'deposit', // Паевой взнос
   WITHDRAWAL = 'withdrawal', // Возврат паевого взноса
+  // Исходящая оплата третьим лицам/поставщикам (например, по акту
+  // приёма-передачи) — НЕ возврат паевого взноса: семантика обычной покупки.
+  PAYMENT = 'payment',
 }
 
 /**
@@ -23,6 +26,7 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.REGISTRATION]: 'Вступительный и мин. паевой взносы',
   [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
   [PaymentTypeEnum.WITHDRAWAL]: 'Возврат паевого взноса',
+  [PaymentTypeEnum.PAYMENT]: 'Оплата',
 };
 
 /**
@@ -50,4 +54,4 @@ export const INCOMING_PAYMENT_TYPES = [PaymentTypeEnum.REGISTRATION, PaymentType
 /**
  * Исходящие типы платежей
  */
-export const OUTGOING_PAYMENT_TYPES = [PaymentTypeEnum.WITHDRAWAL];
+export const OUTGOING_PAYMENT_TYPES = [PaymentTypeEnum.WITHDRAWAL, PaymentTypeEnum.PAYMENT];
