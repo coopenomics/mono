@@ -46,28 +46,33 @@ export interface Model {
 export const title = 'Заявление о конвертации паевого взноса в членский взнос'
 export const description = 'Заявление пайщика о конвертации паевого взноса в членский взнос по ЦПП «Стол заказов» при оформлении заказа'
 
+// Без white-space: pre-wrap — иначе каждый перенос строки в исходнике шаблона
+// превращается в вертикальный зазор и документ выглядит «разорванным».
+// Отступы между блоками задаются margin'ами явно (компактный эталон — 1080).
 export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
-.subheader { padding-bottom: 20px; }
+.digital-document { padding: 20px; }
+.digital-document p { margin: 0 0 6px; }
+.digital-document h1 { margin: 0; text-align: center; }
+.digital-document .addressee { text-align: right; margin-bottom: 24px; }
+.digital-document .title-block { text-align: center; margin-bottom: 24px; }
+.digital-document .subheader { margin-top: 4px; }
+.digital-document .sign { margin-top: 24px; }
 </style>
-
 <div class="digital-document">
-  <div style="text-align: right">
-    <p style="margin: 0">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p style="margin: 0">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p>
+  <div class="addressee">
+    <p>{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
+    <p>{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p>
   </div>
-
-  <div style="text-align: center">
+  <div class="title-block">
     <h1>{% trans 'statement_title' %}</h1>
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
-
   <p>{% trans 'body', amount, program.name %}</p>
-
-  <p>{% trans 'signature' %}</p>
-  <p>{{ user.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
+  <div class="sign">
+    <p>{% trans 'signature' %}</p>
+    <p>{{ user.full_name_or_short_name }}</p>
+    <p>{{ meta.created_at }}</p>
+  </div>
 </div>
 `
 
