@@ -16,6 +16,14 @@
   
   verify_document_or_fail(document);
   get_branch_or_fail(coopname, braname);
+
+  // председатель кооперативного участка привязан к собственному участку
+  // и не может сменить его, пока исполняет обязанности
+  branch_index branches(_branch, coopname.value);
+  auto branches_by_trustee = branches.get_index<"bytrustee"_n>();
+  eosio::check(branches_by_trustee.find(username.value) == branches_by_trustee.end(),
+               "Председатель кооперативного участка не может сменить участок, пока исполняет обязанности председателя");
+
   participants_index participants(_soviet, coopname.value);
   auto participant = participants.find(username.value);
   eosio::check(participant != participants.end(), "Пайщик не найден");
