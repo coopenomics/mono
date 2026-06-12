@@ -193,6 +193,7 @@ export interface IStartdec {
   hash: IChecksum256
   chairman: IName
   address: string
+  agenda: IDecisionPoint[]
 }
 
 export interface ITrustreq {

@@ -76,6 +76,11 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       hash: data.hash,
       chairman: data.chairman,
       address: data.address,
+      agenda: (data.agenda ?? []).map((point) => ({
+        title: point.title,
+        decision: point.decision,
+        context: point.context ?? '',
+      })),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.StartDec.actionName, blockchainData as any);
   }

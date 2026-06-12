@@ -129,7 +129,7 @@ export class StartKuDecisionInputDTO implements StartKuDecisionInputDomainInterf
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => String, { description: 'Председатель собрания из числа присоединившихся участников' })
+  @Field(() => String, { description: 'Избираемый председатель кооперативного участка из числа присоединившихся участников' })
   @IsString()
   @IsNotEmpty()
   chairman!: string;
@@ -144,6 +144,15 @@ export class StartKuDecisionInputDTO implements StartKuDecisionInputDomainInterf
   })
   @IsString()
   branch_name!: string;
+
+  @Field(() => [KuAgendaPointInputDTO], {
+    description: 'Дополнительные вопросы повестки, внесённые на собрании',
+    defaultValue: [],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => KuAgendaPointInputDTO)
+  agenda!: KuAgendaPointInputDTO[];
 }
 
 @InputType('KuVoteItemInput', { description: 'Волеизъявление по вопросу повестки собрания участка' })

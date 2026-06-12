@@ -9,12 +9,13 @@
  * @param hash Якорь процесса
  * @param chairman Избираемый председатель кооперативного участка (из участников)
  * @param address Адрес привязки кооперативного участка (для "createbranch")
+ * @param agenda Дополнительные вопросы повестки, добавленные на собрании (может быть пусто)
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
  * @note Авторизация требуется от аккаунта: @p coopname
  */
-[[eosio::action]] void branch::startdec(eosio::name coopname, eosio::checksum256 hash, eosio::name chairman, std::string address) {
+[[eosio::action]] void branch::startdec(eosio::name coopname, eosio::checksum256 hash, eosio::name chairman, std::string address, std::vector<decision_point> agenda) {
   check_auth_or_fail(_branch, coopname, coopname, "startdec"_n);
 
   auto dec = get_decision_or_fail(coopname, hash);
@@ -25,6 +26,35 @@
 
   if (dec.type == "createbranch"_n) {
     eosio::check(!address.empty(), "Для создания кооперативного участка требуется адрес привязки");
+  }
+
+  // Дополнительные вопросы, внесённые в повестку на собрании
+  coodecquest_index questions(_branch, coopname.value);
+  auto by_dec = questions.get_index<"bydecision"_n>();
+  uint64_t number = 0;
+  for (auto itr = by_dec.lower_bound(dec.id); itr != by_dec.end() && itr->decision_id == dec.id; ++itr) {
+    number++;
+  }
+
+  for (const auto &point : agenda) {
+    eosio::check(!point.title.empty(), "Вопрос должен содержать заголовок");
+    eosio::check(!point.decision.empty(), "Вопрос должен содержать проект решения");
+
+    number++;
+    eosio::check(number <= 10, "Не больше 10 вопросов на повестке собрания");
+
+    questions.emplace(coopname, [&](auto &q) {
+      q.id = get_global_id_in_scope(_branch, coopname, "decisionq"_n);
+      q.decision_id = dec.id;
+      q.number = number;
+      q.coopname = coopname;
+      q.title = point.title;
+      q.decision = point.decision;
+      q.context = point.context;
+      q.counter_votes_for = 0;
+      q.counter_votes_against = 0;
+      q.counter_votes_abstained = 0;
+    });
   }
 
   auto now = current_time_point();

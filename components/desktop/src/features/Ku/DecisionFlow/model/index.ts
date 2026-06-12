@@ -111,7 +111,7 @@ export function useKuDecisionFlow() {
    */
   async function startDecision(
     decision: IKuDecision,
-    input: { chairman: string; address: string; branchName: string },
+    input: { chairman: string; address: string; branchName: string; agenda?: IKuAgendaPointDraft[] },
   ): Promise<void> {
     isSubmitting.value = true;
     try {
@@ -121,6 +121,7 @@ export function useKuDecisionFlow() {
         chairman: input.chairman,
         address: input.address,
         branch_name: input.branchName,
+        agenda: input.agenda ?? [],
       });
     } finally {
       isSubmitting.value = false;

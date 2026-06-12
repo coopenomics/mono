@@ -78,4 +78,16 @@
   decisions.modify(ditr, coopname, [&](auto &d) {
     d.signed_ballots++;
   });
+
+  // Бюллетень линкуется в реестре документов к якорному хэшу собрания
+  Action::send<newlink_interface>(
+    _soviet,
+    "newlink"_n,
+    _branch,
+    coopname,
+    username,
+    get_valid_soviet_action("ballot"_n),
+    hash,
+    ballot
+  );
 }

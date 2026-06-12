@@ -27,7 +27,7 @@
             @click='openDetails(decision.hash)'
           )
             td
-              .doc-primary {{ decision.branch_name || decision.address || 'Учреждение участка' }}
+              .doc-primary {{ meetingTitle(decision) }}
               .t-sm.t-muted(v-if='decision.meet_place') {{ decision.meet_place }}
             td {{ formatMeetAt(decision.meet_at) }}
             td
@@ -50,6 +50,12 @@
 
 BaseDialog(v-model='isCreateOpen', title='Объявить собрание', size='md')
   BaseForm(@submit='submitCreate')
+    BaseSelect(
+      v-model='form.type',
+      label='Тип собрания',
+      :options='meetingTypeOptions',
+      required
+    )
     BaseInput(
       v-model='form.meetPlace',
       label='Место проведения собрания',
@@ -62,9 +68,30 @@ BaseDialog(v-model='isCreateOpen', title='Объявить собрание', si
       type='datetime-local',
       required
     )
-    .t-sm.t-muted.q-mt-sm
-      | Решение о месте основания кооперативного участка и его председателе
-      | будет принято на собрании. Место и время собрания видны только пайщикам.
+
+    template(v-if='form.type === "createbranch"')
+      .t-sm.t-muted.q-mt-sm
+        | Повестка стандартная: организация кооперативного участка и избрание его
+        | председателя. Решение о месте основания участка и его председателе будет
+        | принято на собрании. Место и время собрания видны только пайщикам.
+    template(v-else)
+      .t-sm.t-muted.q-mt-sm
+        | Повестку определяете вы; на собрании её можно дополнить. Итог собрания —
+        | протокол решения пайщиков, в совет ничего не направляется.
+      .q-mt-sm(v-for='(point, index) in freeAgenda', :key='index')
+        .row.items-start.q-gutter-sm
+          .col
+            BaseInput(v-model='point.title', :label='`Вопрос ${index + 1}`', required)
+            BaseInput(v-model='point.decision', label='Проект решения', required)
+          button.icon-btn.q-mt-sm(
+            v-if='freeAgenda.length > 1',
+            type='button',
+            aria-label='Убрать вопрос',
+            @click='removeFreeAgendaPoint(index)'
+          )
+            q-icon(name='close')
+      BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addFreeAgendaPoint') Добавить вопрос
+
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isCreateOpen = false') Отменить
       BaseButton(variant='primary', type='submit', :loading='isSubmitting') Подписать и объявить
@@ -87,7 +114,16 @@ import {
   getTimezoneLabel,
 } from 'src/shared/lib/utils/dates/timezone';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseDialog,
+  BaseForm,
+  BaseInput,
+  BaseSelect,
+  EmptyState,
+  TableSkeleton,
+} from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { CreateKuMeetingButton } from '../../shared/CreateKuMeetingButton';
 
@@ -102,10 +138,29 @@ const loading = ref(true);
 const isCreateOpen = ref(false);
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
-const form = ref({
+const form = ref<{ type: 'createbranch' | 'free'; meetPlace: string; meetAt: string }>({
+  type: 'createbranch',
   meetPlace: '',
   meetAt: '',
 });
+
+const meetingTypeOptions = [
+  { label: 'Создание кооперативного участка', value: 'createbranch' },
+  { label: 'Произвольные вопросы', value: 'free' },
+];
+
+// повестка собрания по произвольным вопросам — задаётся организатором
+const freeAgenda = ref<{ title: string; decision: string; context: string }[]>([
+  { title: '', decision: '', context: '' },
+]);
+
+function addFreeAgendaPoint() {
+  freeAgenda.value.push({ title: '', decision: '', context: '' });
+}
+
+function removeFreeAgendaPoint(index: number) {
+  freeAgenda.value.splice(index, 1);
+}
 
 const decisions = computed(() => kuStore.decisions);
 
@@ -126,9 +181,16 @@ const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutra
 };
 
 function statusMeta(decision: IKuDecision) {
+  // запись стёрта в блокчейне (терминал Chain-RAM) — собрание завершено
+  if (decision.present === false) return { label: 'Завершено', variant: 'neutral' as const };
   return (
     (decision.status && statusMap[decision.status]) ?? { label: decision.status || '—', variant: 'neutral' as const }
   );
+}
+
+function meetingTitle(decision: IKuDecision): string {
+  if (decision.type === Zeus.KuDecisionType.FREE) return 'Собрание пайщиков';
+  return decision.branch_name || decision.address || 'Учреждение участка';
 }
 
 const timezoneLabel = getTimezoneLabel();
@@ -143,31 +205,43 @@ function openDetails(hash: string) {
 }
 
 function openCreateDialog() {
-  form.value = { meetPlace: '', meetAt: '' };
+  form.value = { type: 'createbranch', meetPlace: '', meetAt: '' };
+  freeAgenda.value = [{ title: '', decision: '', context: '' }];
   isCreateOpen.value = true;
 }
 
+// стандартная повестка собрания об учреждении кооперативного участка
+const CREATE_BRANCH_AGENDA = [
+  {
+    title: 'Об организации кооперативного участка',
+    decision: 'Организовать кооперативный участок по адресу привязки, определённому собранием пайщиков',
+    context: '',
+  },
+  {
+    title: 'Об избрании председателя кооперативного участка',
+    decision: 'Избрать председателем кооперативного участка пайщика, избранного собранием из числа участников',
+    context: '',
+  },
+];
+
 async function submitCreate() {
+  const isCreateBranch = form.value.type === 'createbranch';
+  const agenda = isCreateBranch
+    ? CREATE_BRANCH_AGENDA
+    : freeAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
+  if (!agenda.length) {
+    FailAlert('Добавьте хотя бы один вопрос повестки');
+    return;
+  }
   try {
     // braname — служебное имя аккаунта участка, пайщику не показывается
     const hash = await flow.createDecision({
-      type: 'createbranch',
-      braname: generateUsername(),
+      type: form.value.type,
+      braname: isCreateBranch ? generateUsername() : '',
       meetPlace: form.value.meetPlace,
       // ввод формы трактуется в часовом поясе платформы (TIMEZONE), не браузера
       meetAt: convertLocalDateToUTC(form.value.meetAt),
-      agenda: [
-        {
-          title: 'Об организации кооперативного участка',
-          decision: 'Организовать кооперативный участок по адресу привязки, определённому собранием пайщиков',
-          context: '',
-        },
-        {
-          title: 'Об избрании председателя кооперативного участка',
-          decision: 'Избрать председателем кооперативного участка пайщика, избранного собранием из числа участников',
-          context: '',
-        },
-      ],
+      agenda,
     });
     isCreateOpen.value = false;
     SuccessAlert('Собрание объявлено');

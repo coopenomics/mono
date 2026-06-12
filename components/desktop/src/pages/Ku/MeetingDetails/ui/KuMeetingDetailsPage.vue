@@ -1,55 +1,59 @@
 <template lang="pug">
 .q-pa-md
+  //- Канон back-link под шапкой — возврат к списку собраний
+  button.ku-back(type='button', @click='goBack')
+    q-icon(name='arrow_back', size='18px')
+    span К списку собраний
+
   TableSkeleton(v-if='loading && !decision', :columns='skeletonColumns', :rows='6')
   template(v-else-if='decision')
-    //- Статус + главные действия по статусу и роли
-    .row.items-center.q-mb-md
-      BaseBadge(:variant='statusMeta.variant') {{ statusMeta.label }}
-      q-space
-      .row.q-gutter-sm
+    //- Главные действия по статусу и роли
+    .row.items-center.justify-end.q-gutter-sm.q-mb-md
+      BaseButton(
+        v-if='canJoin',
+        variant='primary',
+        size='sm',
+        :loading='busy',
+        @click='onJoin'
+      ) Участвовать
+      span(v-if='canStart')
         BaseButton(
-          v-if='canJoin',
           variant='primary',
           size='sm',
-          :loading='isSubmitting',
-          @click='onJoin'
-        ) Присоединиться
-        span(v-if='canStart')
-          BaseButton(
-            variant='primary',
-            size='sm',
-            :disabled='!hasQuorum',
-            :loading='isSubmitting',
-            @click='isStartOpen = true'
-          ) Открыть голосование
-          q-tooltip(v-if='!hasQuorum')
-            | Для открытия голосования нужно не менее 3 участников собрания.
-            | Пока их меньше — собрание можно только отменить.
-        BaseButton(
-          v-if='canClose',
-          variant='primary',
-          size='sm',
-          :loading='isSubmitting',
-          @click='onClose'
-        ) Завершить и утвердить протокол
-        BaseButton(
-          v-if='canExec',
-          variant='primary',
-          size='sm',
-          :loading='isSubmitting',
-          @click='onExec'
-        ) Направить в совет
-        BaseButton(
-          v-if='canCancel',
-          variant='secondary',
-          size='sm',
-          :loading='isSubmitting',
-          @click='isCancelOpen = true'
-        ) Отменить собрание
+          :disabled='!hasQuorum',
+          :loading='busy',
+          @click='isStartOpen = true'
+        ) Открыть голосование
+        q-tooltip(v-if='!hasQuorum')
+          | Для открытия голосования нужно не менее 3 участников собрания.
+          | Пока их меньше — собрание можно только отменить.
+      BaseButton(
+        v-if='canClose',
+        variant='primary',
+        size='sm',
+        :loading='busy',
+        @click='onClose'
+      ) Завершить и утвердить протокол
+      BaseButton(
+        v-if='canExec',
+        variant='primary',
+        size='sm',
+        :loading='busy',
+        @click='onExec'
+      ) Направить в совет
+      BaseButton(
+        v-if='canCancel',
+        variant='secondary',
+        size='sm',
+        :loading='busy',
+        @click='isCancelOpen = true'
+      ) Отменить собрание
 
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseCard(title='Собрание')
+          template(#actions)
+            BaseBadge(:variant='statusMeta.variant') {{ statusMeta.label }}
           DataRow(label='Место собрания', :value='decision.meet_place || "—"')
           DataRow(:label='`Время собрания (${timezoneLabel})`', :value='formatDate(decision.meet_at)')
           //- организатор собрания автоматически является его председателем
@@ -105,7 +109,8 @@
               label='Воздержался',
               dense
             )
-          template(v-else)
+          //- итоги показываем только после открытия голосования — до него нули не информативны
+          template(v-else-if='isVotingStarted')
             BaseBadge(variant='pos') За: {{ question.counter_votes_for ?? 0 }}
             BaseBadge(variant='neg') Против: {{ question.counter_votes_against ?? 0 }}
             BaseBadge(variant='neutral') Воздержались: {{ question.counter_votes_abstained ?? 0 }}
@@ -126,28 +131,46 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
   BaseForm(@submit='onStart')
     .t-sm.t-muted.q-mb-md
       | Голосование продлится 15 минут. Участники собрания получат уведомление.
-    BaseInput(
-      v-model='startForm.branchName',
-      label='Наименование кооперативного участка',
-      placeholder='например: РОМАШКА',
-      required
-    )
-    BaseInput(
-      v-model='startForm.address',
-      label='Адрес кооперативного участка',
-      placeholder='город, улица, дом',
-      required
-    )
-    BaseSelect(
-      v-model='startForm.chairman',
-      label='Председатель кооперативного участка',
-      :options='participantOptions',
-      hint='Избирается собранием из числа присоединившихся участников',
-      required
-    )
+    template(v-if='isCreateBranchType')
+      BaseInput(
+        v-model='startForm.branchName',
+        label='Наименование кооперативного участка',
+        placeholder='например: РОМАШКА',
+        required
+      )
+      BaseInput(
+        v-model='startForm.address',
+        label='Адрес кооперативного участка',
+        placeholder='город, улица, дом',
+        required
+      )
+      BaseSelect(
+        v-model='startForm.chairman',
+        label='Председатель кооперативного участка',
+        :options='participantOptions',
+        hint='Избирается собранием из числа присоединившихся участников',
+        required
+      )
+
+    //- Повестку можно расширить вопросами, внесёнными прямо на собрании
+    .t-sm.t-muted.q-mt-md(v-if='extraAgenda.length') Дополнительные вопросы повестки
+    .q-mt-sm(v-for='(point, index) in extraAgenda', :key='index')
+      .row.items-start.q-gutter-sm
+        .col
+          BaseInput(v-model='point.title', :label='`Вопрос ${index + 1}`', required)
+          BaseInput(v-model='point.decision', label='Проект решения', required)
+        button.icon-btn.q-mt-sm(type='button', aria-label='Убрать вопрос', @click='removeAgendaPoint(index)')
+          q-icon(name='close')
+    BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addAgendaPoint') Добавить вопрос в повестку
+
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isStartOpen = false') Отменить
-      BaseButton(variant='primary', type='submit', :disabled='!startForm.chairman', :loading='isSubmitting') Открыть
+      BaseButton(
+        variant='primary',
+        type='submit',
+        :disabled='isCreateBranchType && !startForm.chairman',
+        :loading='busy'
+      ) Открыть
 
 //- Отмена собрания
 BaseDialog(v-model='isCancelOpen', title='Отменить собрание', size='sm')
@@ -155,12 +178,12 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
     BaseInput(v-model='cancelReason', label='Причина отмены', required)
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isCancelOpen = false') Назад
-      BaseButton(variant='primary', type='submit', :loading='isSubmitting') Отменить собрание
+      BaseButton(variant='primary', type='submit', :loading='busy') Отменить собрание
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
@@ -185,17 +208,31 @@ import { DataRow } from 'src/shared/ui/domain';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
 
 const route = useRoute();
+const router = useRouter();
 const kuStore = useKuStore();
 const session = useSessionStore();
 const desktop = useDesktopStore();
 const flow = useKuDecisionFlow();
 
 const loading = ref(true);
+// busy охватывает транзакцию вместе с ожиданием обновления проекции —
+// лоадер на кнопке снимается только когда страница реально обновилась
+const busy = ref(false);
 const isStartOpen = ref(false);
 const isCancelOpen = ref(false);
 const cancelReason = ref('');
 const votes = ref<Record<number, KuVote>>({});
 const startForm = ref({ branchName: '', address: '', chairman: '' });
+// вопросы, внесённые в повестку прямо на собрании (добавляются при открытии голосования)
+const extraAgenda = ref<{ title: string; decision: string; context: string }[]>([]);
+
+function addAgendaPoint() {
+  extraAgenda.value.push({ title: '', decision: '', context: '' });
+}
+
+function removeAgendaPoint(index: number) {
+  extraAgenda.value.splice(index, 1);
+}
 
 const hash = computed(() => String(route.params.hash));
 const decision = computed(() => kuStore.currentDecision);
@@ -241,9 +278,13 @@ const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutra
 
 const status = computed(() => decision.value?.status ?? null);
 
-const statusMeta = computed(
-  () => (status.value && statusMap[status.value]) ?? { label: status.value || '—', variant: 'neutral' as const },
-);
+const statusMeta = computed(() => {
+  // запись стёрта в блокчейне (терминал Chain-RAM) — собрание завершено
+  if (decision.value?.present === false) return { label: 'Завершено', variant: 'neutral' as const };
+  return (status.value && statusMap[status.value]) ?? { label: status.value || '—', variant: 'neutral' as const };
+});
+
+const isCreateBranchType = computed(() => decision.value?.type === Zeus.KuDecisionType.CREATEBRANCH);
 
 const isParticipant = computed(() => participants.value.includes(session.username));
 // контракт требует не менее 3 участников для открытия голосования (MIN_DECISION_QUORUM)
@@ -319,12 +360,15 @@ async function withReload(
   successMessage: string,
   predicate?: (d: IKuDecision) => boolean,
 ) {
+  busy.value = true;
   try {
     await action();
     await pollDecision(predicate);
     SuccessAlert(successMessage);
   } catch (e: unknown) {
     FailAlert(e);
+  } finally {
+    busy.value = false;
   }
 }
 
@@ -357,16 +401,21 @@ const onVote = () => {
 
 async function onStart() {
   isStartOpen.value = false;
+  const agenda = extraAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
   await withReload(
     () =>
       flow.startDecision(decision.value!, {
-        chairman: startForm.value.chairman,
-        address: startForm.value.address,
-        branchName: startForm.value.branchName,
+        // для собрания по произвольным вопросам отдельный председатель участка не избирается —
+        // собрание ведёт организатор (председатель собрания)
+        chairman: isCreateBranchType.value ? startForm.value.chairman : session.username,
+        address: isCreateBranchType.value ? startForm.value.address : '',
+        branchName: isCreateBranchType.value ? startForm.value.branchName : '',
+        agenda,
       }),
     'Голосование открыто',
     (d) => d.status === Zeus.KuDecisionStatus.VOTING,
   );
+  extraAgenda.value = [];
 }
 
 async function onCancel() {
@@ -401,4 +450,28 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   desktop.clearPageTitleOverride();
 });
+
+// Возврат к списку собраний (back-link под шапкой, канон meet-back)
+function goBack(): void {
+  void router.push({ name: 'ku-meetings', params: { coopname: route.params.coopname } });
+}
 </script>
+
+<style scoped>
+.ku-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  margin-bottom: var(--p-4, 16px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm, 13px);
+  cursor: pointer;
+  transition: color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.ku-back:hover {
+  color: var(--p-ink);
+}
+</style>

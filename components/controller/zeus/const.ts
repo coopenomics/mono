@@ -2050,7 +2050,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	StartKuDecisionInput:{
-
+		agenda:"KuAgendaPointInput"
 	},
 	StartProcessInput:{
 

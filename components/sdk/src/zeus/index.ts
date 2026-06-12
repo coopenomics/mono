@@ -10010,9 +10010,11 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string | Variable<any, string>,
+	/** Дополнительные вопросы повестки, внесённые на собрании */
+	agenda: Array<ValueTypes["KuAgendaPointInput"]> | Variable<any, string>,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string | Variable<any, string>,
-	/** Председатель собрания из числа присоединившихся участников */
+	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -19339,9 +19341,11 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
+	/** Дополнительные вопросы повестки, внесённые на собрании */
+	agenda: Array<ResolverInputTypes["KuAgendaPointInput"]>,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
-	/** Председатель собрания из числа присоединившихся участников */
+	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -29139,9 +29143,11 @@ export type ModelTypes = {
 ["StartKuDecisionInput"]: {
 	/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
+	/** Дополнительные вопросы повестки, внесённые на собрании */
+	agenda: Array<ModelTypes["KuAgendaPointInput"]>,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
-	/** Председатель собрания из числа присоединившихся участников */
+	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -39428,9 +39434,11 @@ export type GraphQLTypes = {
 ["StartKuDecisionInput"]: {
 		/** Адрес привязки кооперативного участка (для учреждения) */
 	address: string,
+	/** Дополнительные вопросы повестки, внесённые на собрании */
+	agenda: Array<GraphQLTypes["KuAgendaPointInput"]>,
 	/** Наименование кооперативного участка (видно только пайщикам кооператива) */
 	branch_name: string,
-	/** Председатель собрания из числа присоединившихся участников */
+	/** Избираемый председатель кооперативного участка из числа присоединившихся участников */
 	chairman: string,
 	/** Имя аккаунта кооператива */
 	coopname: string,

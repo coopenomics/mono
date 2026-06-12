@@ -35,12 +35,14 @@ export interface JoinKuDecisionInputDomainInterface {
 export interface StartKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
-  /** Председатель собрания — выбирается организатором из присоединившихся участников */
+  /** Избираемый председатель кооперативного участка — из присоединившихся участников */
   chairman: string;
   /** Адрес привязки кооперативного участка, определённый собранием */
   address: string;
   /** Человекочитаемое наименование участка («РОМАШКА») — в блокчейн не публикуется */
   branch_name: string;
+  /** Дополнительные вопросы повестки, внесённые на собрании */
+  agenda: KuAgendaPointInputDomainInterface[];
 }
 
 export interface KuVoteItemInputDomainInterface {

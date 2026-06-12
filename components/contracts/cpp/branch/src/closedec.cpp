@@ -30,6 +30,9 @@
   bool all_voted = dec.signed_ballots >= dec.participants.size();
   eosio::check(window_passed || all_voted, "Голосование ещё идёт");
 
+  // Протокол завершает пакет документов собрания в реестре (привязка к якорному хэшу)
+  Soviet::make_complete_document(_branch, coopname, dec.initiator, get_valid_soviet_action("branchdec"_n), hash, protocol);
+
   if (dec.type == "free"_n) {
     // Свободное решение зафиксировано протоколом и завершается (история — в журнале действий)
     decision_index decisions(_branch, coopname.value);
