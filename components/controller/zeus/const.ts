@@ -2474,7 +2474,9 @@ export const ReturnTypes: Record<string,any> = {
 		represented_by:"RepresentedBy",
 		short_name:"String",
 		trusted:"Individual",
+		trusted_certificates:"IndividualCertificate",
 		trustee:"Individual",
+		trustee_certificate:"IndividualCertificate",
 		type:"String"
 	},
 	BuhotchBalanceEdits:{

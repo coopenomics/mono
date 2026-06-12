@@ -118,8 +118,9 @@ const declineTarget = ref<IKuTrustRequest | null>(null);
 
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
+// публичные данные участка (сертификаты с ФИО) — доступны любому пайщику
 const branch = computed(
-  () => branchStore.branches.find((item: any) => item.braname === props.braname) as any | undefined,
+  () => branchStore.publicBranches.find((item: any) => item.braname === props.braname) as any | undefined,
 );
 
 const branchTitle = computed(
@@ -132,20 +133,20 @@ function fullName(person?: { last_name?: string; first_name?: string; middle_nam
 }
 
 const chairmanPerson = computed<Person>(() => ({
-  fullName: fullName(branch.value?.trustee),
+  fullName: fullName(branch.value?.trustee_certificate),
   role: 'Председатель кооперативного участка',
-  accountName: branch.value?.trustee?.username,
+  accountName: branch.value?.trustee_certificate?.username,
 }));
 
 const trustedPersons = computed<Person[]>(() =>
-  (branch.value?.trusted ?? []).map((person: any) => ({
+  (branch.value?.trusted_certificates ?? []).map((person: any) => ({
     fullName: fullName(person),
     role: 'Доверенное лицо',
     accountName: person?.username,
   })),
 );
 
-const isChairman = computed(() => branch.value?.trustee?.username === session.username);
+const isChairman = computed(() => branch.value?.trustee_certificate?.username === session.username);
 
 const branchRequests = computed(() =>
   kuStore.trustRequests.filter((request) => request.braname === props.braname),
@@ -158,11 +159,12 @@ function requestApplicantName(request: IKuTrustRequest): string {
 // стать доверенным может пайщик участка: не председатель, не доверенный, без активной заявки
 const canRequest = computed(() => {
   if (!branch.value || isChairman.value) return false;
-  const isTrusted = (branch.value.trusted ?? []).some((person: any) => person?.username === session.username);
+  const trusted = branch.value.trusted_certificates ?? [];
+  const isTrusted = trusted.some((person: any) => person?.username === session.username);
   const hasActiveRequest = branchRequests.value.some(
     (request) => request.username === session.username && request.present,
   );
-  return !isTrusted && !hasActiveRequest && (branch.value.trusted ?? []).length < 3;
+  return !isTrusted && !hasActiveRequest && trusted.length < 3;
 });
 
 /**
@@ -181,7 +183,7 @@ async function onRequest() {
   try {
     await flow.requestTrusted({
       braname: props.braname,
-      chairmanFullName: fullName(branch.value?.trustee),
+      chairmanFullName: fullName(branch.value?.trustee_certificate),
     });
     SuccessAlert('Заявка подана');
     await poll(() =>
@@ -224,7 +226,7 @@ async function onDecline() {
 async function load() {
   try {
     await Promise.all([
-      branchStore.loadBranches({ coopname: system.info.coopname }),
+      branchStore.loadPublicBranches({ coopname: system.info.coopname }),
       kuStore.loadTrustRequests({
         filter: { coopname: system.info.coopname, braname: props.braname },
         options: { page: 1, limit: 100, sortBy: '_created_at', sortOrder: 'DESC' },

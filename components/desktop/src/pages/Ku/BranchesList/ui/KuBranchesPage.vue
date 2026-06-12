@@ -17,7 +17,7 @@
           tr
             th Участок
             th Председатель
-            th.t-num Доверенных
+            th Доверенные
             th.col-action
         tbody
           tr.data-row(
@@ -29,7 +29,10 @@
               .doc-primary {{ branchTitle(branch) }}
               .t-sm.t-muted(v-if='branch.fact_address') {{ branch.fact_address }}
             td {{ chairmanName(branch) }}
-            td.t-num {{ (branch.trusted || []).length }}
+            td
+              template(v-if='trustedNames(branch).length')
+                div(v-for='name in trustedNames(branch)', :key='name') {{ name }}
+              span(v-else) —
             td.col-action
               button.icon-btn(
                 type='button',
@@ -59,7 +62,7 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base';
 const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Участок' },
   { label: 'Председатель' },
-  { label: 'Доверенных', class: 't-num' },
+  { label: 'Доверенные' },
   { label: '', class: 'col-action', cell: 'icon' },
 ];
 
@@ -70,16 +73,27 @@ const { dismissed, dismiss } = useDismissibleBanner('ku:branches:banner-dismisse
 
 const loading = ref(true);
 
-const branches = computed(() => branchStore.branches);
+// публичные данные участков (сертификаты с ФИО) — доступны любому пайщику
+const branches = computed(() => branchStore.publicBranches);
 
 function branchTitle(branch: any): string {
   return branch.short_name || branch.full_name || branch.braname;
 }
 
+function certificateName(certificate: any): string {
+  if (!certificate) return '—';
+  return (
+    [certificate.last_name, certificate.first_name, certificate.middle_name].filter(Boolean).join(' ') ||
+    certificate.username
+  );
+}
+
 function chairmanName(branch: any): string {
-  const trustee = branch.trustee;
-  if (!trustee) return '—';
-  return [trustee.last_name, trustee.first_name, trustee.middle_name].filter(Boolean).join(' ') || trustee.username;
+  return certificateName(branch.trustee_certificate);
+}
+
+function trustedNames(branch: any): string[] {
+  return (branch.trusted_certificates ?? []).map((certificate: any) => certificateName(certificate));
 }
 
 function openDetails(braname: string) {
@@ -89,7 +103,7 @@ function openDetails(braname: string) {
 onMounted(async () => {
   loading.value = true;
   try {
-    await branchStore.loadBranches({ coopname: system.info.coopname });
+    await branchStore.loadPublicBranches({ coopname: system.info.coopname });
   } catch (e: unknown) {
     FailAlert(e);
   } finally {

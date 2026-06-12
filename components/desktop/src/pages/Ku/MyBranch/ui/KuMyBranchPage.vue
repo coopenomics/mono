@@ -35,14 +35,16 @@ const session = useSessionStore();
 const loading = ref(true);
 
 const myBraname = computed(() => {
-  const branch = branchStore.branches.find((item: any) => item.trustee?.username === session.username) as any;
+  const branch = branchStore.publicBranches.find(
+    (item: any) => item.trustee_certificate?.username === session.username,
+  ) as any;
   return branch?.braname ?? '';
 });
 
 onMounted(async () => {
   loading.value = true;
   try {
-    await branchStore.loadBranches({ coopname: system.info.coopname });
+    await branchStore.loadPublicBranches({ coopname: system.info.coopname });
   } catch (e: unknown) {
     FailAlert(e);
   } finally {

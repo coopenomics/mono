@@ -2278,10 +2278,14 @@ export type ValueTypes = {
 
 Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
+	/** Сертификаты доверенных лиц участка (ФИО) */
+	trusted_certificates?:ValueTypes["IndividualCertificate"],
 	/** Председатель кооперативного участка
 
 Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
+	/** Сертификат председателя кооперативного участка (ФИО) */
+	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -11854,10 +11858,14 @@ export type ResolverInputTypes = {
 
 Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
+	/** Сертификаты доверенных лиц участка (ФИО) */
+	trusted_certificates?:ResolverInputTypes["IndividualCertificate"],
 	/** Председатель кооперативного участка
 
 Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
+	/** Сертификат председателя кооперативного участка (ФИО) */
+	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -21183,10 +21191,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	trusted: Array<ModelTypes["Individual"]>,
+	/** Сертификаты доверенных лиц участка (ФИО) */
+	trusted_certificates: Array<ModelTypes["IndividualCertificate"]>,
 	/** Председатель кооперативного участка
 
 Требуемые роли: chairman, member.  */
 	trustee: ModelTypes["Individual"],
+	/** Сертификат председателя кооперативного участка (ФИО) */
+	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string
 };
@@ -31057,10 +31069,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	trusted: Array<GraphQLTypes["Individual"]>,
+	/** Сертификаты доверенных лиц участка (ФИО) */
+	trusted_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
 	/** Председатель кооперативного участка
 
 Требуемые роли: chairman, member.  */
 	trustee: GraphQLTypes["Individual"],
+	/** Сертификат председателя кооперативного участка (ФИО) */
+	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">

@@ -4,6 +4,8 @@ import type { BranchDomainInterface } from '~/domain/branch/interfaces/branch-do
 import type { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entity';
 import { OrganizationDetailsDTO } from '~/application/common/dto/organization-details.dto';
 import { IndividualDTO } from '~/application/common/dto/individual.dto';
+import { IndividualCertificateDTO } from '~/application/common/dto/individual-certificate.dto';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IsArray, IsJSON, IsString } from 'class-validator';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
@@ -30,6 +32,14 @@ export class BranchDTO implements BranchDomainInterface {
   @AuthRoles(['chairman', 'member'])
   @IsArray()
   public readonly trusted: IndividualDTO[];
+
+  // публичная часть (сертификаты — только ФИО и имя аккаунта) доступна любому
+  // пайщику; полные персональные данные выше остаются под ограничением ролей
+  @Field(() => IndividualCertificateDTO, { description: 'Сертификат председателя кооперативного участка (ФИО)' })
+  public readonly trustee_certificate: IndividualCertificateDTO;
+
+  @Field(() => [IndividualCertificateDTO], { description: 'Сертификаты доверенных лиц участка (ФИО)' })
+  public readonly trusted_certificates: IndividualCertificateDTO[];
 
   @Field(() => String, { description: 'Тип организации' })
   @IsString()
@@ -84,6 +94,10 @@ export class BranchDTO implements BranchDomainInterface {
     this.braname = entity.braname;
     this.trustee = new IndividualDTO(entity.trustee);
     this.trusted = entity.trusted.map((trustedEntity) => new IndividualDTO(trustedEntity));
+    this.trustee_certificate = new IndividualCertificateDTO({ ...entity.trustee, type: AccountType.individual });
+    this.trusted_certificates = entity.trusted.map(
+      (trustedEntity) => new IndividualCertificateDTO({ ...trustedEntity, type: AccountType.individual }),
+    );
     this.type = entity.type;
     this.short_name = entity.short_name;
     this.full_name = entity.full_name;
