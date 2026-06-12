@@ -13,8 +13,10 @@ export enum KuDecisionStatus {
   APPROVED = 'approved',
   /** Заявление направлено на рассмотрение совета */
   ONAPPROVAL = 'onapproval',
-  /** Завершено (запись стёрта в блокчейне: исполнено, отклонено или отменено) */
+  /** Завершено (запись стёрта в блокчейне: исполнено или отклонено) */
   COMPLETED = 'completed',
+  /** Отменено организатором собрания */
+  CANCELLED = 'cancelled',
 }
 
 registerEnumType(KuDecisionStatus, {

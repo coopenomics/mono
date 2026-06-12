@@ -1,7 +1,8 @@
+import { KuBranchesPage } from 'src/pages/Ku/BranchesList';
+import { KuBranchDetailsPage } from 'src/pages/Ku/BranchDetails';
 import { KuMeetingsPage } from 'src/pages/Ku/MeetingsList';
 import { KuMeetingDetailsPage } from 'src/pages/Ku/MeetingDetails';
 import { KuMyBranchPage } from 'src/pages/Ku/MyBranch';
-import { KuTrustRequestsPage } from 'src/pages/Ku/TrustRequests';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
@@ -13,7 +14,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'trustee',
       title: 'Кооперативный участок',
       icon: 'fa-solid fa-users-cog',
-      defaultRoute: 'ku-my-branch',
+      defaultRoute: 'ku-branches',
       routes: [
         {
           meta: {
@@ -26,15 +27,29 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           children: [
             {
               meta: {
-                title: 'Мой участок',
-                icon: 'fa-solid fa-house-user',
+                title: 'Кооперативные участки',
+                icon: 'fa-solid fa-map-location-dot',
                 roles: [],
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
-              path: 'my-branch',
-              name: 'ku-my-branch',
-              component: markRaw(KuMyBranchPage),
+              path: 'branches',
+              name: 'ku-branches',
+              component: markRaw(KuBranchesPage),
+              children: [],
+            },
+            {
+              meta: {
+                title: 'Участок',
+                icon: 'fa-solid fa-map-location-dot',
+                roles: [],
+                agreements: agreementsBase,
+                requiresAuth: true,
+                hidden: true,
+              },
+              path: 'branches/:braname',
+              name: 'ku-branch-details',
+              component: markRaw(KuBranchDetailsPage),
               children: [],
             },
             {
@@ -66,15 +81,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               meta: {
-                title: 'Доверенные',
-                icon: 'fa-solid fa-handshake',
+                title: 'Мой участок',
+                icon: 'fa-solid fa-house-user',
                 roles: [],
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
-              path: 'trust-requests',
-              name: 'ku-trust-requests',
-              component: markRaw(KuTrustRequestsPage),
+              path: 'my-branch',
+              name: 'ku-my-branch',
+              component: markRaw(KuMyBranchPage),
               children: [],
             },
           ],

@@ -1,26 +1,12 @@
 <template lang="pug">
 .q-pa-md
-  .banner.banner--info.q-mb-md(v-if='!dismissed')
-    q-icon.banner__icon(name='info', size='20px')
-    .banner__body
-      | Кооперативные участки объединяют пайщиков по месту. Здесь видны участки
-      | кооператива, их председатели и доверенные лица. Сменить свой участок можно
-      | заявлением о выборе участка.
-    button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
-      q-icon(name='close')
-
-  TableSkeleton(v-if='loading && !branches.length', :columns='skeletonColumns', :rows='4')
-  .row.q-col-gutter-md(v-else-if='branches.length')
-    .col-12.col-md-6(v-for='branch in branches', :key='branch.braname')
-      BaseCard(:title='branchTitle(branch)')
-        DataRow(label='Имя аккаунта участка', :value='branch.braname')
-        DataRow(label='Председатель участка', :value='branch.trustee?.username || "—"')
-        .q-pa-sm(v-if='myRole(branch)')
-          BaseBadge(variant='pos') {{ myRole(branch) }}
+  TableSkeleton(v-if='loading', :columns='skeletonColumns', :rows='3')
+  //- страница моего участка — тот же виджет, что и у страницы участка из списка
+  KuBranchDetailsWidget(v-else-if='myBraname', :braname='myBraname')
   EmptyState(
     v-else,
-    title='Кооперативных участков пока нет',
-    body='Учредите участок собранием пайщиков на вкладке «Собрания».'
+    title='Вы не являетесь председателем кооперативного участка',
+    body='Здесь появится ваш участок, когда вы будете избраны его председателем. Участки кооператива — на вкладке «Кооперативные участки», учреждение нового — на вкладке «Собрания».'
   )
     template(#icon)
       q-icon(name='home_work', size='48px')
@@ -31,38 +17,27 @@ import { computed, onMounted, ref } from 'vue';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseCard, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import { EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
-import { DataRow } from 'src/shared/ui/domain';
+import { KuBranchDetailsWidget } from 'src/widgets/Ku/BranchDetails';
 
 const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Участок' },
   { label: 'Председатель' },
-  { label: 'Роль', cell: 'badge' },
+  { label: 'Доверенные' },
 ];
 
 const branchStore = useBranchStore();
 const system = useSystemStore();
 const session = useSessionStore();
-const { dismissed, dismiss } = useDismissibleBanner('ku:my-branch:banner-dismissed');
 
 const loading = ref(true);
 
-const branches = computed(() => branchStore.branches);
-
-function branchTitle(branch: any): string {
-  return branch.short_name || branch.full_name || branch.braname;
-}
-
-function myRole(branch: any): string | null {
-  if (branch.trustee?.username === session.username) return 'Вы — председатель участка';
-  if ((branch.trusted || []).some((trusted: any) => (trusted?.username || trusted) === session.username)) {
-    return 'Вы — доверенное лицо участка';
-  }
-  return null;
-}
+const myBraname = computed(() => {
+  const branch = branchStore.branches.find((item: any) => item.trustee?.username === session.username) as any;
+  return branch?.braname ?? '';
+});
 
 onMounted(async () => {
   loading.value = true;

@@ -252,13 +252,13 @@ const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutra
   [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
   [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
   [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
+  [Zeus.KuDecisionStatus.CANCELLED]: { label: 'Отменено', variant: 'neg' },
 };
 
 const status = computed(() => decision.value?.status ?? null);
 
 const statusMeta = computed(() => {
-  // запись стёрта в блокчейне (терминал Chain-RAM) — собрание завершено
-  if (decision.value?.present === false) return { label: 'Завершено', variant: 'neutral' as const };
+  // для стёртых записей backend сам различает completed/cancelled
   return (status.value && statusMap[status.value]) ?? { label: status.value || '—', variant: 'neutral' as const };
 });
 
@@ -297,13 +297,24 @@ const canExec = computed(
     isInitiator.value &&
     decision.value?.type === Zeus.KuDecisionType.CREATEBRANCH,
 );
-const canCancel = computed(
+// повестка принята: подан хотя бы один бюллетень и по каждому вопросу «за» больше «против»
+const votingAccepted = computed(
   () =>
-    isLive.value &&
-    isInitiator.value &&
-    !!status.value &&
-    [Zeus.KuDecisionStatus.OPENED, Zeus.KuDecisionStatus.VOTING, Zeus.KuDecisionStatus.APPROVED].includes(status.value),
+    (decision.value?.signed_ballots ?? 0) > 0 &&
+    questions.value.length > 0 &&
+    questions.value.every(
+      (question) => Number(question.counter_votes_for ?? 0) > Number(question.counter_votes_against ?? 0),
+    ),
 );
+
+// принятое собранием решение организатор отменить не может — только утвердить протокол
+// и направить в совет; отмена остаётся при сборе участников и при неуспешном голосовании
+const canCancel = computed(() => {
+  if (!isLive.value || !isInitiator.value || !status.value) return false;
+  if (status.value === Zeus.KuDecisionStatus.OPENED) return true;
+  if (status.value === Zeus.KuDecisionStatus.VOTING) return !(canCloseNow.value && votingAccepted.value);
+  return false;
+});
 
 const hasVoted = computed(() =>
   questions.value.some(

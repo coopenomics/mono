@@ -40416,6 +40416,7 @@ export enum IssueStatus {
 /** Статус решения собрания пайщиков кооперативного участка */
 export enum KuDecisionStatus {
 	APPROVED = "APPROVED",
+	CANCELLED = "CANCELLED",
 	COMPLETED = "COMPLETED",
 	ONAPPROVAL = "ONAPPROVAL",
 	OPENED = "OPENED",

@@ -83,4 +83,7 @@ export class KuDecisionTypeormEntity extends BaseTypeormEntity {
 
   @Column({ type: 'varchar', nullable: true })
   branch_phone!: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  cancelled!: boolean;
 }

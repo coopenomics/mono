@@ -206,6 +206,14 @@ export class KuService {
   ): Promise<TransactionDTO> {
     await this.assertIsDecisionInitiator(currentUser, data.hash);
     const result = await this.kuBlockchainPort.cancelDecision(data);
+
+    // контракт стирает запись одинаково при любом исходе — факт отмены
+    // фиксируем в БД, чтобы отличать «Отменено» от «Завершено»
+    await this.decisionRepository.upsertPrivateData({
+      hash: data.hash,
+      cancelled: true,
+    });
+
     return result as unknown as TransactionDTO;
   }
 
@@ -321,7 +329,7 @@ export class KuService {
       type: entity.type as KuDecisionType,
       initiator: entity.initiator,
       chairman: entity.chairman,
-      status: (entity.present ? entity.status : 'completed') as KuDecisionStatus,
+      status: (entity.present ? entity.status : entity.cancelled ? 'cancelled' : 'completed') as KuDecisionStatus,
       present: entity.present,
       proposal: entity.proposal,
       protocol: entity.protocol,

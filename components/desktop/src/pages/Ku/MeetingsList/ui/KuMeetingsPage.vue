@@ -178,11 +178,11 @@ const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutra
   [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
   [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
   [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
+  [Zeus.KuDecisionStatus.CANCELLED]: { label: 'Отменено', variant: 'neg' },
 };
 
 function statusMeta(decision: IKuDecision) {
-  // запись стёрта в блокчейне (терминал Chain-RAM) — собрание завершено
-  if (decision.present === false) return { label: 'Завершено', variant: 'neutral' as const };
+  // для стёртых записей backend сам различает completed/cancelled
   return (
     (decision.status && statusMap[decision.status]) ?? { label: decision.status || '—', variant: 'neutral' as const }
   );

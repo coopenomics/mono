@@ -68,6 +68,7 @@ export class KuDecisionTypeormRepository
     if (data.branch_name !== undefined) privateFields.branch_name = data.branch_name;
     if (data.branch_email !== undefined) privateFields.branch_email = data.branch_email;
     if (data.branch_phone !== undefined) privateFields.branch_phone = data.branch_phone;
+    if (data.cancelled !== undefined) privateFields.cancelled = data.cancelled;
 
     if (existing) {
       await this.repository.update(existing._id, privateFields);

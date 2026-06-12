@@ -28,6 +28,8 @@ export interface KuDecisionPrivateDataDomainInterface {
   branch_name?: string;
   branch_email?: string;
   branch_phone?: string;
+  /** Контракт стирает запись одинаково при любом исходе — факт отмены фиксируем в БД */
+  cancelled?: boolean;
 }
 
 export interface KuDecisionRepository extends IBlockchainSyncRepository<KuDecisionDomainEntity> {
