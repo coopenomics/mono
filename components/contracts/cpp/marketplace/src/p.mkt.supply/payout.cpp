@@ -14,6 +14,13 @@
  * `confirm_callback = "payconfirm"_n`, `decline_callback = "paydecline"_n`,
  * `outcome_hash = order.hash` (уникальность гарантирована индексом orders).
  *
+ * Сумма выплаты — `o.fact_cost` (фактически принятое после приёмки), а НЕ
+ * `o.total_cost` (исходный заказ): при отбраковке части поставки на приёмке
+ * (signchair снизил факт) кооператив должен поставщику ровно принятое.
+ * fact_cost зафиксирован на приёмке (статус-гард ниже гарантирует, что приёмка
+ * уже прошла), совпадает с приходованием имущества Кт 86 и с суммой платежа в
+ * реестре платежей кооператива.
+ *
  * Status Order'а не меняется (выплата может идти параллельно шагам выдачи).
  * payout_status переходит NONE/DECLINED → PENDING; declined-кейс — повторная
  * попытка после исправления реквизитов (gateway-запись была стёрта на outdecline).
@@ -40,9 +47,10 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
                o.payout_status == OrderPayoutStatus::DECLINED,
                "Выплата уже инициирована либо завершена");
 
-  // Регистрация исходящего платежа в gateway. Сам Дт 86 / Кт 51 произойдёт
-  // в callback'е `payconfirm` от gateway после действия кассира.
-  Gateway::create_outcome(_marketplace, coopname, o.offerer, o.hash, o.total_cost,
+  // Регистрация исходящего платежа в gateway на фактически принятую сумму
+  // (fact_cost). Сам Дт 86 / Кт 51 произойдёт в callback'е `payconfirm` от
+  // gateway после действия кассира.
+  Gateway::create_outcome(_marketplace, coopname, o.offerer, o.hash, o.fact_cost,
                           _marketplace, "payconfirm"_n, "paydecline"_n);
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {
