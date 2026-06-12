@@ -44,26 +44,38 @@ div
                 th.col-action Действия
             tbody
               tr(v-for='request in branchRequests', :key='request.hash')
-                td {{ requestApplicantName(request) }}
+                td
+                  .doc-primary {{ requestApplicantName(request) }}
+                  .t-sm.t-muted {{ request.username }}
                 td
                   BaseBadge(:variant='request.present ? "warn" : "neutral"')
                     | {{ request.present ? 'На рассмотрении' : 'Рассмотрена' }}
                 td.col-action
-                  .row.q-gutter-xs(v-if='request.present && isChairman')
+                  .row.q-gutter-xs
                     BaseButton(
-                      variant='primary',
+                      v-if='request.document?.rawDocument',
+                      variant='ghost',
                       size='sm',
-                      :loading='isSubmitting',
-                      @click='onApprove(request)'
-                    ) Одобрить
-                    BaseButton(
-                      variant='secondary',
-                      size='sm',
-                      :loading='isSubmitting',
-                      @click='openDecline(request)'
-                    ) Отклонить
-                  span.t-muted(v-else) —
+                      @click='openDocument(request)'
+                    ) Документ
+                    template(v-if='request.present && isChairman')
+                      BaseButton(
+                        variant='primary',
+                        size='sm',
+                        :loading='isSubmitting',
+                        @click='onApprove(request)'
+                      ) Одобрить
+                      BaseButton(
+                        variant='secondary',
+                        size='sm',
+                        :loading='isSubmitting',
+                        @click='openDecline(request)'
+                      ) Отклонить
   EmptyState(v-else, title='Участок не найден')
+
+//- Просмотр договора заявителя
+BaseDialog(v-model='isDocumentOpen', title='Договор о полной материальной ответственности', size='lg')
+  BaseDocument(v-if='documentTarget', :document-aggregate='documentTarget')
 
 //- Отклонение заявки доверенного
 BaseDialog(v-model='isDeclineOpen', title='Отклонить заявку', size='sm')
@@ -95,6 +107,7 @@ import {
 } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow, PersonCard } from 'src/shared/ui/domain';
+import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { Person } from 'src/shared/ui/domain/PersonCard';
 
 const props = defineProps<{ braname: string }>();
@@ -115,6 +128,8 @@ const loading = ref(true);
 const isDeclineOpen = ref(false);
 const declineReason = ref('');
 const declineTarget = ref<IKuTrustRequest | null>(null);
+const isDocumentOpen = ref(false);
+const documentTarget = ref<object | null>(null);
 
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
@@ -153,7 +168,12 @@ const branchRequests = computed(() =>
 );
 
 function requestApplicantName(request: IKuTrustRequest): string {
-  return request.username;
+  return (request as any).display_name || request.username;
+}
+
+function openDocument(request: IKuTrustRequest) {
+  documentTarget.value = (request as any).document ?? null;
+  isDocumentOpen.value = true;
 }
 
 // стать доверенным может пайщик участка: не председатель, не доверенный, без активной заявки

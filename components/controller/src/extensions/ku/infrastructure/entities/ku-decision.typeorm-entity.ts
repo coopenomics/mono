@@ -86,4 +86,8 @@ export class KuDecisionTypeormEntity extends BaseTypeormEntity {
 
   @Column({ type: 'boolean', default: false })
   cancelled!: boolean;
+
+  // напоминание участникам за час до собрания уже отправлено
+  @Column({ type: 'boolean', default: false })
+  meet_reminder_sent!: boolean;
 }

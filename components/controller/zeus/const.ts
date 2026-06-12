@@ -3633,6 +3633,8 @@ export const ReturnTypes: Record<string,any> = {
 		block_num:"Int",
 		braname:"String",
 		coopname:"String",
+		display_name:"String",
+		document:"DocumentAggregate",
 		hash:"String",
 		id:"Int",
 		present:"Boolean",

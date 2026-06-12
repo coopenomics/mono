@@ -24,6 +24,10 @@ import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
+import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
+import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
+import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
+import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -77,6 +81,10 @@ export const allWorkflows: WorkflowDefinition[] = [
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  branchVotingStartedWorkflow,
+  branchMeetingReminderWorkflow,
+  branchTrustedRequestedWorkflow,
+  branchTrustedResolvedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
@@ -85,3 +93,6 @@ export const workflowsById = allWorkflows.reduce((acc, workflow) => {
   return acc;
 }, {} as Record<string, WorkflowDefinition>);
 export * as BranchVotingStarted from './branch-voting-started';
+export * as BranchMeetingReminder from './branch-meeting-reminder';
+export * as BranchTrustedRequested from './branch-trusted-requested';
+export * as BranchTrustedResolved from './branch-trusted-resolved';

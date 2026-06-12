@@ -88,6 +88,21 @@ export class KuDecisionTypeormRepository
     );
   }
 
+  async findMeetingsForReminder(from: Date, to: Date): Promise<KuDecisionDomainEntity[]> {
+    const entities = await this.repository
+      .createQueryBuilder('decision')
+      .where('decision.present = true')
+      .andWhere('decision.cancelled = false')
+      .andWhere('decision.meet_reminder_sent = false')
+      .andWhere('decision.meet_at >= :from AND decision.meet_at < :to', { from, to })
+      .getMany();
+    return entities.map((entity) => KuDecisionMapper.toDomain(entity));
+  }
+
+  async markReminderSent(hash: string): Promise<void> {
+    await this.repository.update({ hash: hash.toLowerCase() }, { meet_reminder_sent: true });
+  }
+
   async update(entity: KuDecisionDomainEntity): Promise<KuDecisionDomainEntity> {
     const updateData = KuDecisionMapper.toUpdateEntity(entity);
     await this.repository.update(entity._id, updateData);

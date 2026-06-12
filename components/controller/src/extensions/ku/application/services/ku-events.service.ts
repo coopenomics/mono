@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { BranchContract } from 'cooptypes';
 import { randomUUID } from 'crypto';
 import { Workflows } from '@coopenomics/notifications';
@@ -17,7 +18,12 @@ import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-
 import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import config from '~/config/config';
+import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
+import {
+  KU_TRUST_REQUEST_REPOSITORY,
+  type KuTrustRequestRepository,
+} from '../../domain/repositories/ku-trust-request.repository';
 
 /**
  * Событийные реакции собраний кооперативных участков:
@@ -32,6 +38,8 @@ export class KuEventsService {
     @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
     @Inject(KU_DECISION_REPOSITORY) private readonly decisionRepository: KuDecisionRepository,
+    @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
+    @Inject(BRANCH_BLOCKCHAIN_PORT) private readonly branchBlockchainPort: BranchBlockchainPort,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
     @Inject(PAYMENT_METHOD_REPOSITORY) private readonly paymentMethodRepository: PaymentMethodRepository,
@@ -86,6 +94,123 @@ export class KuEventsService {
       this.logger.log(`startdec ${action.hash}: уведомлено ${sent}/${decision.participants?.length ?? 0} участников`);
     } catch (error: any) {
       this.logger.error(`Ошибка обработки startdec: ${error.message}`, error.stack);
+    }
+  }
+
+  /** Уведомление одному пайщику; молча пропускает аккаунты без подписки на уведомления */
+  private async notifyUser(username: string, workflowId: string, payload: Record<string, unknown>): Promise<boolean> {
+    const account = await this.accountPort.getAccount(username);
+    const subscriberId = account.provider_account?.subscriber_id?.trim();
+    const email = account.provider_account?.email;
+    if (!subscriberId || !email) return false;
+
+    await this.notificationPort.notify({
+      coopname: config.coopname,
+      workflowId,
+      to: { subscriberId, email, username },
+      payload,
+    });
+    return true;
+  }
+
+  /** Напоминание участникам за час до начала собрания (если время назначено) */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async remindUpcomingMeetings(): Promise<void> {
+    try {
+      const now = Date.now();
+      const from = new Date(now);
+      const to = new Date(now + 65 * 60 * 1000);
+      const meetings = await this.decisionRepository.findMeetingsForReminder(from, to);
+
+      for (const meeting of meetings) {
+        // окно [now, now+65m): шлём, когда до начала остался час или меньше
+        const coopShortName = await this.accountPort.getDisplayName(config.coopname).catch(() => config.coopname);
+        const payload: Workflows.BranchMeetingReminder.IPayload = {
+          coopShortName,
+          meetPlace: meeting.meet_place || '',
+          meetAtTime: meeting.meet_at
+            ? new Date(meeting.meet_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
+            : '',
+          meetingUrl: `${config.frontend_url}/${config.coopname}/ku/meetings/${meeting.hash}`,
+        };
+
+        let sent = 0;
+        for (const username of meeting.participants ?? []) {
+          try {
+            if (await this.notifyUser(username, Workflows.BranchMeetingReminder.id, payload)) sent++;
+          } catch (error: any) {
+            this.logger.warn(`напоминание о собрании ${meeting.hash}: не удалось уведомить ${username}: ${error.message}`);
+          }
+        }
+        await this.decisionRepository.markReminderSent(meeting.hash as string);
+        this.logger.log(`напоминание о собрании ${meeting.hash}: уведомлено ${sent}/${meeting.participants?.length ?? 0}`);
+      }
+    } catch (error: any) {
+      this.logger.error(`Ошибка напоминаний о собраниях участков: ${error.message}`, error.stack);
+    }
+  }
+
+  /** Новая заявка доверенного → уведомление председателю участка */
+  @OnEvent(`action::${BranchContract.contractName.production}::reqtrusted`)
+  async handleTrustedRequested(actionData: ActionDomainInterface): Promise<void> {
+    try {
+      const action = actionData.data as { coopname: string; braname: string; username: string; hash: string };
+      if (action.coopname !== config.coopname) return;
+
+      const branch = await this.branchBlockchainPort.getBranch(action.coopname, action.braname);
+      if (!branch?.trustee) {
+        this.logger.warn(`reqtrusted: участок ${action.braname} не найден — председатель не уведомлён`);
+        return;
+      }
+
+      const coopShortName = await this.accountPort.getDisplayName(action.coopname).catch(() => action.coopname);
+      const applicantName = await this.accountPort.getDisplayName(action.username).catch(() => action.username);
+      const payload: Workflows.BranchTrustedRequested.IPayload = {
+        coopShortName,
+        applicantName,
+        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${action.braname}`,
+      };
+
+      await this.notifyUser(branch.trustee, Workflows.BranchTrustedRequested.id, payload);
+      this.logger.log(`reqtrusted ${action.hash}: председатель ${branch.trustee} уведомлён о заявке ${action.username}`);
+    } catch (error: any) {
+      this.logger.error(`Ошибка обработки reqtrusted: ${error.message}`, error.stack);
+    }
+  }
+
+  @OnEvent(`action::${BranchContract.contractName.production}::apprtrusted`)
+  async handleTrustedApproved(actionData: ActionDomainInterface): Promise<void> {
+    await this.notifyTrustedResolved(actionData, 'одобрена');
+  }
+
+  @OnEvent(`action::${BranchContract.contractName.production}::decltrusted`)
+  async handleTrustedDeclined(actionData: ActionDomainInterface): Promise<void> {
+    await this.notifyTrustedResolved(actionData, 'отклонена');
+  }
+
+  /** Решение председателя по заявке доверенного → уведомление заявителю */
+  private async notifyTrustedResolved(actionData: ActionDomainInterface, resolution: string): Promise<void> {
+    try {
+      const action = actionData.data as { coopname: string; hash: string };
+      if (action.coopname !== config.coopname) return;
+
+      const request = await this.trustRequestRepository.findByHash(action.hash);
+      if (!request?.username) {
+        this.logger.warn(`заявка доверенного ${action.hash} не найдена в проекции — заявитель не уведомлён`);
+        return;
+      }
+
+      const coopShortName = await this.accountPort.getDisplayName(action.coopname).catch(() => action.coopname);
+      const payload: Workflows.BranchTrustedResolved.IPayload = {
+        coopShortName,
+        resolution,
+        branchUrl: `${config.frontend_url}/${action.coopname}/ku/branches/${request.braname}`,
+      };
+
+      await this.notifyUser(request.username, Workflows.BranchTrustedResolved.id, payload);
+      this.logger.log(`заявка доверенного ${action.hash} ${resolution}: заявитель ${request.username} уведомлён`);
+    } catch (error: any) {
+      this.logger.error(`Ошибка уведомления о решении по заявке доверенного: ${error.message}`, error.stack);
     }
   }
 

@@ -13,8 +13,8 @@ export * from './types';
  * Процессы приёма доверенных лиц кооперативного участка.
  * Заявка — договор о полной материальной ответственности (327) с подписью
  * заявителя; председатель участка одобряет встречной подписью на том же
- * документе (без регенерации содержимого — документ восстанавливается
- * детерминированно по сохранённой метаинформации).
+ * документе: сырой документ заявителя приходит в заявке агрегатом
+ * (регенерация запрещена — генерировать документ может только его автор).
  */
 export function useKuTrustedFlow() {
   const system = useSystemStore();
@@ -56,33 +56,30 @@ export function useKuTrustedFlow() {
   }
 
   /**
-   * Одобрить заявку: восстановить договор по метаинформации заявки и наложить
-   * встречную подпись председателя участка (вторая подпись на том же документе).
+   * Одобрить заявку: наложить встречную подпись председателя участка на сырой
+   * документ заявителя из агрегата (вторая подпись на том же документе).
    */
   async function approveTrusted(request: IKuTrustRequest): Promise<void> {
     isSubmitting.value = true;
     try {
+      const rawDocument = (request as any).document?.rawDocument;
       const application = request.application as {
         version: string;
         hash: string;
         doc_hash: string;
         meta_hash: string;
-        meta: string;
+        meta: string | object;
         signatures: any[];
       } | null;
 
-      if (!application?.meta) {
+      if (!rawDocument || !application) {
         throw new Error('Заявка не содержит договора для встречной подписи');
       }
 
-      const meta = JSON.parse(application.meta);
+      const meta = typeof application.meta === 'string' ? JSON.parse(application.meta) : application.meta;
 
-      // Детерминированная регенерация того же документа по сохранённой мете
-      const digitalDocument = new DigitalDocument();
-      const regenerated = await digitalDocument.generate<Cooperative.Registry.BranchLiabilityAgreement.Action>(meta);
-
-      // Встречная подпись на документе первого подписанта
-      const countersigned = await signDocument(regenerated as any, session.username, 2, [
+      // Встречная подпись на документе первого подписанта — без регенерации
+      const countersigned = await signDocument(rawDocument, session.username, 2, [
         { ...application, meta } as any,
       ]);
 

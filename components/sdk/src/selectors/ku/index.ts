@@ -1,6 +1,7 @@
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { paginationSelector } from '../../utils/paginationSelector'
 import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
+import { rawDocumentAggregateSelector } from '../documents/documentAggregateSelector'
 
 // Вопрос повестки собрания пайщиков кооперативного участка
 export const rawKuDecisionQuestionSelector = {
@@ -77,8 +78,11 @@ export const rawKuTrustRequestSelector = {
   coopname: true,
   braname: true,
   username: true,
+  display_name: true,
   present: true,
   application: true,
+  // договор заявителя с сырым документом — для просмотра и встречной подписи председателя
+  document: rawDocumentAggregateSelector,
   block_num: true,
 }
 

@@ -43,6 +43,9 @@ export interface KuDecisionRepository extends IBlockchainSyncRepository<KuDecisi
    * не появиться из синка — тогда создаётся placeholder, который синк дополнит.
    */
   upsertPrivateData(data: KuDecisionPrivateDataDomainInterface): Promise<void>;
+  /** Живые собрания с назначенным временем в окне [from, to), по которым напоминание ещё не отправлено */
+  findMeetingsForReminder(from: Date, to: Date): Promise<KuDecisionDomainEntity[]>;
+  markReminderSent(hash: string): Promise<void>;
 }
 
 export const KU_DECISION_REPOSITORY = Symbol('KuDecisionRepository');

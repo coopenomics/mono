@@ -40,6 +40,7 @@ export class KuDecisionDomainEntity
   public branch_email?: string;
   public branch_phone?: string;
   public cancelled?: boolean;
+  public meet_reminder_sent?: boolean;
 
   constructor(databaseData: IKuDecisionDatabaseData, blockchainData?: IKuDecisionBlockchainData) {
     super(databaseData);
@@ -50,6 +51,7 @@ export class KuDecisionDomainEntity
     this.branch_email = databaseData.branch_email;
     this.branch_phone = databaseData.branch_phone;
     this.cancelled = databaseData.cancelled;
+    this.meet_reminder_sent = databaseData.meet_reminder_sent;
 
     if (blockchainData) {
       this.updateFromBlockchain(blockchainData, databaseData.block_num ?? 0, databaseData.present);

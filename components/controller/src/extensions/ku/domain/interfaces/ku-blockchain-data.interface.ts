@@ -28,6 +28,7 @@ export type IKuDecisionDatabaseData = IBaseDatabaseData & {
   branch_email?: string;
   branch_phone?: string;
   cancelled?: boolean;
+  meet_reminder_sent?: boolean;
 };
 export type IKuDecisionQuestionDatabaseData = IBaseDatabaseData;
 export type IKuTrustRequestDatabaseData = IBaseDatabaseData;

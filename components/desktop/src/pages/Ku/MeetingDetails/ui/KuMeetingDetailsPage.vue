@@ -268,6 +268,8 @@ const isParticipant = computed(() => participants.value.includes(session.usernam
 // контракт требует не менее 3 участников для открытия голосования (MIN_DECISION_QUORUM)
 const hasQuorum = computed(() => participants.value.length >= 3);
 const isInitiator = computed(() => decision.value?.initiator === session.username);
+// избранный собранием председатель кооперативного участка — он подписывает заявление в совет
+const isElectedChairman = computed(() => !!decision.value?.chairman && decision.value.chairman === session.username);
 const isLive = computed(() => decision.value?.present !== false);
 
 const isVotingWindow = computed(() => status.value === Zeus.KuDecisionStatus.VOTING);
@@ -290,11 +292,13 @@ const canCloseNow = computed(() => {
   const windowPassed = closeAt > 0 && nowTick.value > closeAt;
   return allVoted || windowPassed;
 });
+// заявление в совет подписывает избранный председатель кооперативного участка,
+// а не председатель собрания — кнопка появляется у него после утверждения протокола
 const canExec = computed(
   () =>
     isLive.value &&
     status.value === Zeus.KuDecisionStatus.APPROVED &&
-    isInitiator.value &&
+    isElectedChairman.value &&
     decision.value?.type === Zeus.KuDecisionType.CREATEBRANCH,
 );
 // повестка принята: подан хотя бы один бюллетень и по каждому вопросу «за» больше «против»

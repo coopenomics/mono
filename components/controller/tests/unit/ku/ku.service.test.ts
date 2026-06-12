@@ -97,6 +97,7 @@ function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
   const repos = makeRepos(opts.decision === undefined ? makeDecision() : opts.decision, opts.trustRequest ?? null);
   const documentService = makeDocumentService();
   const accountPort = makeAccountPort();
+  const documentAggregator = { buildDocumentAggregate: jest.fn(async () => null) } as any;
   const service = new KuService(
     kuPort,
     branchPort,
@@ -104,9 +105,10 @@ function makeService(opts: { decision?: any; trustRequest?: any } = {}) {
     repos.questionRepository,
     repos.trustRequestRepository,
     accountPort,
-    documentService
+    documentService,
+    documentAggregator
   );
-  return { service, kuPort, branchPort, repos, documentService, accountPort };
+  return { service, kuPort, branchPort, repos, documentService, accountPort, documentAggregator };
 }
 
 describe('KuService — проверки прав', () => {

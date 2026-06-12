@@ -6834,6 +6834,10 @@ export type ValueTypes = {
 	braname?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
+	/** ФИО пайщика-заявителя */
+	display_name?:boolean | `@${string}`,
+	/** Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя */
+	document?:ValueTypes["DocumentAggregate"],
 	/** Хэш заявки */
 	hash?:boolean | `@${string}`,
 	/** Идентификатор заявки в блокчейне */
@@ -16276,6 +16280,10 @@ export type ResolverInputTypes = {
 	braname?:boolean | `@${string}`,
 	/** Имя аккаунта кооператива */
 	coopname?:boolean | `@${string}`,
+	/** ФИО пайщика-заявителя */
+	display_name?:boolean | `@${string}`,
+	/** Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя */
+	document?:ResolverInputTypes["DocumentAggregate"],
 	/** Хэш заявки */
 	hash?:boolean | `@${string}`,
 	/** Идентификатор заявки в блокчейне */
@@ -25454,6 +25462,10 @@ export type ModelTypes = {
 	braname?: string | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname?: string | undefined | null,
+	/** ФИО пайщика-заявителя */
+	display_name?: string | undefined | null,
+	/** Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя */
+	document?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Хэш заявки */
 	hash: string,
 	/** Идентификатор заявки в блокчейне */
@@ -35499,6 +35511,10 @@ export type GraphQLTypes = {
 	braname?: string | undefined | null,
 	/** Имя аккаунта кооператива */
 	coopname?: string | undefined | null,
+	/** ФИО пайщика-заявителя */
+	display_name?: string | undefined | null,
+	/** Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя */
+	document?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Хэш заявки */
 	hash: string,
 	/** Идентификатор заявки в блокчейне */

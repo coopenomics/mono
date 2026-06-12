@@ -3,6 +3,8 @@ import { Cooperative } from 'cooptypes';
 import httpStatus from 'http-status';
 import { HttpApiError } from '~/utils/httpApiError';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
@@ -40,6 +42,7 @@ import type {
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import { KuDecisionDTO, KuDecisionFilterInputDTO, KuDecisionQuestionDTO } from '../dto/ku-decision.dto';
 import { KuTrustRequestDTO, KuTrustRequestFilterInputDTO } from '../dto/ku-trust-request.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 /**
  * Сервис собраний и решений кооперативных участков.
@@ -55,7 +58,8 @@ export class KuService {
     @Inject(KU_DECISION_QUESTION_REPOSITORY) private readonly questionRepository: KuDecisionQuestionRepository,
     @Inject(KU_TRUST_REQUEST_REPOSITORY) private readonly trustRequestRepository: KuTrustRequestRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    private readonly documentDomainService: DocumentDomainService
+    private readonly documentDomainService: DocumentDomainService,
+    private readonly documentAggregator: DocumentAggregator
   ) {}
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -430,9 +434,27 @@ export class KuService {
   ): Promise<PaginationResult<KuTrustRequestDTO>> {
     const result = await this.trustRequestRepository.findAllPaginated(filter, options);
 
+    const items = await Promise.all(
+      result.items.map(async (item) => {
+        const dto = this.toTrustRequestDTO(item);
+        if (dto.username) {
+          dto.display_name = await this.accountPort.getDisplayName(dto.username).catch(() => dto.username);
+        }
+        // договор заявителя с сертификатами подписантов — председатель смотрит документ
+        // и накладывает встречную подпись на него же, без регенерации
+        if (item.application) {
+          const aggregate = await this.documentAggregator
+            .buildDocumentAggregate(item.application as unknown as ISignedDocumentDomainInterface)
+            .catch(() => null);
+          dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
+        }
+        return dto;
+      })
+    );
+
     return {
       ...result,
-      items: result.items.map((item) => this.toTrustRequestDTO(item)),
+      items,
     };
   }
 }

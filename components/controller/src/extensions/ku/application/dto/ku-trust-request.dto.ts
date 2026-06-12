@@ -1,6 +1,7 @@
 import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 @ObjectType('KuTrustRequest', { description: 'Заявка на приём доверенным лицом кооперативного участка' })
 export class KuTrustRequestDTO {
@@ -19,6 +20,9 @@ export class KuTrustRequestDTO {
   @Field(() => String, { nullable: true, description: 'Пайщик-заявитель' })
   username?: string;
 
+  @Field(() => String, { nullable: true, description: 'ФИО пайщика-заявителя' })
+  display_name?: string;
+
   @Field(() => Boolean, { description: 'Существует ли запись в блокчейне (false — рассмотрена и стёрта)' })
   present!: boolean;
 
@@ -27,6 +31,12 @@ export class KuTrustRequestDTO {
     description: 'Заявление и договор о полной материальной ответственности',
   })
   application?: object;
+
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description: 'Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя',
+  })
+  document?: DocumentAggregateDTO;
 
   @Field(() => Int, { nullable: true, description: 'Номер блока последнего обновления' })
   block_num?: number;

@@ -23,6 +23,7 @@ export class KuDecisionMapper {
       branch_email: entity.branch_email ?? undefined,
       branch_phone: entity.branch_phone ?? undefined,
       cancelled: entity.cancelled ?? undefined,
+      meet_reminder_sent: entity.meet_reminder_sent ?? undefined,
     };
 
     let blockchainData: IKuDecisionBlockchainData | undefined;
@@ -84,6 +85,7 @@ export class KuDecisionMapper {
       branch_email: domain.branch_email ?? null,
       branch_phone: domain.branch_phone ?? null,
       cancelled: domain.cancelled ?? false,
+      meet_reminder_sent: domain.meet_reminder_sent ?? false,
     };
   }
 
@@ -116,6 +118,7 @@ export class KuDecisionMapper {
     if (domain.branch_email !== undefined) updateData.branch_email = domain.branch_email;
     if (domain.branch_phone !== undefined) updateData.branch_phone = domain.branch_phone;
     if (domain.cancelled !== undefined) updateData.cancelled = domain.cancelled;
+    if (domain.meet_reminder_sent !== undefined) updateData.meet_reminder_sent = domain.meet_reminder_sent;
 
     return updateData;
   }
