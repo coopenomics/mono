@@ -2803,48 +2803,6 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null | Variable<any, string>
 };
-	["BranchTrustedStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация заявления доверенного лица */
-	meta: ValueTypes["BranchTrustedStatementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["BranchTrustedStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Наименование кооперативного участка */
-	braname: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Хэш заявки доверенного */
-	hash: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ValueTypes["BalanceRowEdits"],
 	cash?:ValueTypes["BalanceRowEdits"],
@@ -9325,8 +9283,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 };
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
-	/** Подписанное заявление о приёме доверенным лицом */
-	application: ValueTypes["BranchTrustedStatementSignedDocumentInput"] | Variable<any, string>,
+	/** Подписанный договор о полной материальной ответственности доверенного лица */
+	application: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
@@ -12381,48 +12339,6 @@ export type ResolverInputTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
-};
-	["BranchTrustedStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация заявления доверенного лица */
-	meta: ResolverInputTypes["BranchTrustedStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchTrustedStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
 };
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ResolverInputTypes["BalanceRowEdits"],
@@ -18709,8 +18625,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 };
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
-	/** Подписанное заявление о приёме доверенным лицом */
-	application: ResolverInputTypes["BranchTrustedStatementSignedDocumentInput"],
+	/** Подписанный договор о полной материальной ответственности доверенного лица */
+	application: ResolverInputTypes["BranchLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -21713,48 +21629,6 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
-};
-	["BranchTrustedStatementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация заявления доверенного лица */
-	meta: ModelTypes["BranchTrustedStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchTrustedStatementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
 };
 	["BuhotchBalanceEdits"]: {
 		assetsTotal: ModelTypes["BalanceRowEdits"],
@@ -28570,8 +28444,8 @@ export type ModelTypes = {
 };
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
-	/** Подписанное заявление о приёме доверенным лицом */
-	application: ModelTypes["BranchTrustedStatementSignedDocumentInput"],
+	/** Подписанный договор о полной материальной ответственности доверенного лица */
+	application: ModelTypes["BranchLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -31592,48 +31466,6 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
-};
-	["BranchTrustedStatementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация заявления доверенного лица */
-	meta: GraphQLTypes["BranchTrustedStatementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchTrustedStatementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
 };
 	["BuhotchBalanceEdits"]: {
 	__typename: "BuhotchBalanceEdits",
@@ -38884,8 +38716,8 @@ export type GraphQLTypes = {
 };
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
-		/** Подписанное заявление о приёме доверенным лицом */
-	application: GraphQLTypes["BranchTrustedStatementSignedDocumentInput"],
+		/** Подписанный договор о полной материальной ответственности доверенного лица */
+	application: GraphQLTypes["BranchLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -40755,8 +40587,6 @@ type ZEUS_VARIABLES = {
 	["BranchMeetingProposalSignedDocumentInput"]: ValueTypes["BranchMeetingProposalSignedDocumentInput"];
 	["BranchMeetingProposalSignedMetaDocumentInput"]: ValueTypes["BranchMeetingProposalSignedMetaDocumentInput"];
 	["BranchTrustedStatementGenerateDocumentInput"]: ValueTypes["BranchTrustedStatementGenerateDocumentInput"];
-	["BranchTrustedStatementSignedDocumentInput"]: ValueTypes["BranchTrustedStatementSignedDocumentInput"];
-	["BranchTrustedStatementSignedMetaDocumentInput"]: ValueTypes["BranchTrustedStatementSignedMetaDocumentInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];

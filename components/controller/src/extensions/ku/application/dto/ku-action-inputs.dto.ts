@@ -23,7 +23,6 @@ import {
   BranchMeetingDecisionSignedDocumentInputDTO,
   BranchMeetingJoinStatementSignedDocumentInputDTO,
   BranchMeetingProposalSignedDocumentInputDTO,
-  BranchTrustedStatementSignedDocumentInputDTO,
 } from './ku-documents.dto';
 
 @InputType('KuAgendaPointInput', { description: 'Пункт повестки собрания пайщиков участка' })
@@ -290,12 +289,12 @@ export class RequestKuTrustedInputDTO implements RequestKuTrustedInputDomainInte
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => BranchTrustedStatementSignedDocumentInputDTO, {
-    description: 'Подписанное заявление о приёме доверенным лицом',
+  @Field(() => BranchLiabilityAgreementSignedDocumentInputDTO, {
+    description: 'Подписанный договор о полной материальной ответственности доверенного лица',
   })
   @ValidateNested()
-  @Type(() => BranchTrustedStatementSignedDocumentInputDTO)
-  application!: BranchTrustedStatementSignedDocumentInputDTO;
+  @Type(() => BranchLiabilityAgreementSignedDocumentInputDTO)
+  application!: BranchLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('ApproveKuTrustedInput', { description: 'Одобрение заявки доверенного встречной подписью председателя участка' })

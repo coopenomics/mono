@@ -202,13 +202,6 @@ export const AllTypesProps: Record<string,any> = {
 	BranchTrustedStatementGenerateDocumentInput:{
 
 	},
-	BranchTrustedStatementSignedDocumentInput:{
-		meta:"BranchTrustedStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	BranchTrustedStatementSignedMetaDocumentInput:{
-
-	},
 	BuhotchSignerType: "enum" as const,
 	CalculateVotesInput:{
 
@@ -1915,7 +1908,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RequestKuTrustedInput:{
-		application:"BranchTrustedStatementSignedDocumentInput"
+		application:"BranchLiabilityAgreementSignedDocumentInput"
 	},
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
