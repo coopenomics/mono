@@ -40,6 +40,8 @@ export interface MarketplaceOutgoingPaymentRequestProps {
   amount: string;
   symbol: string;
   purpose: string;
+  /** Куда уходит выплата — маскированные реквизиты на момент создания. */
+  payout_destination: string | null;
   status: MarketplaceOutgoingPaymentRequestStatus;
   /** Заполняется на переходе → COMPLETED. */
   completed_at: Date | null;

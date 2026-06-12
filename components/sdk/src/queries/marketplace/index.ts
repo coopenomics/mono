@@ -89,6 +89,8 @@ export * as ListStockProposals from './listStockProposals'
 
 // requirement b6 «Экономика КУ»
 export * as GetEconomyConfig from './getEconomyConfig'
+/** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации */
+export * as GetSupplierPaymentSettings from './getSupplierPaymentSettings'
 export * as GetBranchEconomy from './getBranchEconomy'
 export * as GetPersonalEconomy from './getPersonalEconomy'
 export * as ListAids from './listAids'

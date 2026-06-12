@@ -121,6 +121,11 @@ import {
   MARKETPLACE_PAYOUT_SYNC_SERVICE,
 } from './services/marketplace-payout-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
+import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
+import {
+  MarketplaceSupplierSettingsService,
+  MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+} from './services/marketplace-supplier-settings.service';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 import {
   MarketplaceIssuanceService,
@@ -233,6 +238,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceSupplierSettingsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
     // Эпик 16 — корзина заказчика
@@ -282,6 +288,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceVitrineService,
     },
     MarketplaceVitrineService,
+    // Настройки выплат поставщика — «выплаты получаю на…» + гейт публикации
+    {
+      provide: MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+      useClass: MarketplaceSupplierSettingsService,
+    },
+    MarketplaceSupplierSettingsService,
     // Story 3.2
     {
       provide: MARKETPLACE_OFFER_SERVICE,

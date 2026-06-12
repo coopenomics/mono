@@ -119,6 +119,10 @@ function buildMocks() {
     generateDocument: jest.fn(),
   } as unknown as jest.Mocked<DocumentDomainService>;
 
+  const supplierSettings = {
+    resolvePayoutMethod: jest.fn().mockResolvedValue(null),
+  } as any;
+
   const logger = {
     setContext: jest.fn(),
     debug: jest.fn(),
@@ -138,6 +142,7 @@ function buildMocks() {
     offerRepo,
     inventoryRepo,
     coreGateway,
+    supplierSettings,
     documentDomainService,
     logger,
   };
@@ -155,6 +160,7 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.inventoryRepo,
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
+    mocks.supplierSettings,
     mocks.documentDomainService,
     new EventEmitter2(),
     mocks.logger

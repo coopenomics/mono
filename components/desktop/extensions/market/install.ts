@@ -424,14 +424,14 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 5 / Story 5.9: offerer-стол «История выплат». Поставщик
-              // видит список MarketplaceOutgoingPaymentRequest по своим закрытым
-              // актам приёмки.
+              // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
+              // «выплаты получаю на…» (реквизиты ядра) + история выплат
+              // MarketplaceOutgoingPaymentRequest по закрытым актам приёмки.
               path: 'payments',
               name: 'marketplace-payments',
               component: markRaw(OffererPaymentHistoryPage),
               meta: {
-                title: 'История выплат',
+                title: 'Выплаты',
                 icon: 'fa-solid fa-money-bill-transfer',
                 requires: 'Offer:read',
                 requiresAuth: true,

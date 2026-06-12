@@ -80,6 +80,12 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
+import {
+  MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+  MarketplaceSupplierSettingsService,
+} from './marketplace-supplier-settings.service';
+import { formatPayoutDestination } from '../shared/payout-destination.util';
+import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
@@ -209,6 +215,8 @@ export class MarketplaceAplReceptionService {
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
     private readonly coreGateway: GatewayInteractorPort,
+    @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
+    private readonly supplierSettings: MarketplaceSupplierSettingsService,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
@@ -691,7 +699,7 @@ export class MarketplaceAplReceptionService {
     // через gateway. Кассир увидит каждую выплату в общем реестре
     // платежей кооператива и подтвердит/отклонит её там.
     const orderHashByOrderId = new Map(orders.map((o) => [o.id, o.order_hash] as const));
-    await this.initiatePayouts(updated, orders, orderHashByOrderId, input.chairman_account);
+    await this.initiatePayouts(updated, orders, orderHashByOrderId);
 
     // Story 598-20: push кассиру о новой партии выплат — одно
     // суммарное уведомление на АПП с агрегатом по поставщику.
@@ -751,13 +759,34 @@ export class MarketplaceAplReceptionService {
   private async initiatePayouts(
     reception: MarketplaceAplReceptionDomainEntity,
     allOrders: MarketplaceOrderDomainEntity[],
-    orderHashByOrderId: Map<string, string>,
-    chairman_account: string
+    orderHashByOrderId: Map<string, string>
   ): Promise<void> {
     const factByOrderId = new Map(
       reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
     );
     const groupOrders = allOrders.filter((o) => o.delivery_braname === reception.braname);
+
+    // Реквизиты поставщика резолвятся один раз на всю группу: снапшот на
+    // момент создания выплат — последующая смена «выплаты получаю на…»
+    // уже созданные выплаты не трогает. Отсутствие реквизитов выплату не
+    // блокирует (деньги поставщику должны уйти) — кассир увидит платёж
+    // без реквизитов и запросит их у поставщика.
+    let payoutMethod: PaymentMethodDomainEntity | null = null;
+    try {
+      payoutMethod = await this.supplierSettings.resolvePayoutMethod(
+        reception.coopname,
+        reception.offerer_account
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `initiatePayouts: резолв реквизитов поставщика ${reception.offerer_account} упал: ${err.message}; выплаты создаются без реквизитов.`
+      );
+    }
+    if (!payoutMethod) {
+      this.logger.warn(
+        `initiatePayouts: у поставщика ${reception.offerer_account} нет реквизитов для выплат — кассир увидит платежи без реквизитов.`
+      );
+    }
 
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
@@ -769,7 +798,12 @@ export class MarketplaceAplReceptionService {
       }
       const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
       const amount = (factQuantity * Number.parseFloat(order.price_per_unit)).toFixed(4);
-      const purpose = `Выплата поставщику ${reception.offerer_account} по заказу ${order.id} (АПП ${reception.id}, председатель ${chairman_account})`;
+      // Назначение — по номеру акта (тот же 16-символьный номер, что в шапке
+      // печатного АПП «АКТ №…»): оплата поставки как обычной покупки.
+      // Формулировка про НДС намеренно не добавляется — режим налогообложения
+      // поставщика пока не настраивается (открытый вопрос).
+      const actNumber = computeActNumber(orderHash, reception.id);
+      const purpose = `Оплата по акту приёма-передачи № ${actNumber}`;
 
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,
@@ -779,6 +813,7 @@ export class MarketplaceAplReceptionService {
         payee_account: reception.offerer_account,
         amount,
         purpose,
+        payout_method: payoutMethod,
       });
     }
   }
@@ -791,7 +826,11 @@ export class MarketplaceAplReceptionService {
     payee_account: string;
     amount: string;
     purpose: string;
+    payout_method: PaymentMethodDomainEntity | null;
   }): Promise<void> {
+    const payoutDestination = input.payout_method
+      ? formatPayoutDestination(input.payout_method)
+      : null;
     let projection;
     try {
       projection = await this.paymentRepo.createIfNotExists({
@@ -803,6 +842,7 @@ export class MarketplaceAplReceptionService {
         amount: input.amount,
         symbol: this.assetConfig.symbol,
         purpose: input.purpose,
+        payout_destination: payoutDestination,
       });
     } catch (err: any) {
       this.logger.warn(
@@ -817,6 +857,8 @@ export class MarketplaceAplReceptionService {
         // который marketplace::payout регистрирует как сам order_hash. Иначе
         // кассирский gateway::outcomplete ищет объект выплаты по другому хэшу и
         // падает с «Объект возврата не существует с указанным хэшем».
+        // Снапшот реквизитов поставщика — кассир видит банк/счёт/назначение
+        // прямо в развороте платежа общего реестра (как у обычного withdraw).
         const corePayment = await this.coreGateway.createSystemOutgoingPayment({
           coopname: input.coopname,
           username: input.payee_account,
@@ -826,6 +868,18 @@ export class MarketplaceAplReceptionService {
           related_extension: 'marketplace',
           related_entity_id: projection.id,
           payment_hash: input.order_hash,
+          payment_method_id: input.payout_method?.method_id,
+          payment_details: input.payout_method
+            ? {
+                data: input.payout_method.data,
+                amount_plus_fee: input.amount,
+                amount_without_fee: input.amount,
+                fee_amount: '0',
+                fee_percent: 0,
+                fact_fee_percent: 0,
+                tolerance_percent: 0,
+              }
+            : undefined,
         });
         if (corePayment.id) {
           await this.paymentRepo.applyCorePaymentId(

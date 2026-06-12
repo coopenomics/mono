@@ -22,7 +22,6 @@ import { MarketplaceOfferDomainEntity } from '~/extensions/marketplace/domain/en
 import { MarketplaceCategoryDomainEntity } from '~/extensions/marketplace/domain/entities/marketplace-category.entity';
 import type { MarketplaceOfferDomainRepository } from '~/extensions/marketplace/domain/repositories/marketplace-offer.repository';
 import type { MarketplaceCategoryDomainRepository } from '~/extensions/marketplace/domain/repositories/marketplace-category.repository';
-import type { MarketplaceOrderDomainRepository } from '~/extensions/marketplace/domain/repositories/marketplace-order.repository';
 
 const COOP = 'voskhod';
 
@@ -45,6 +44,8 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,
+    stock_braname: null,
+    stock_origin_offer_id: null,
     images: [],
     status: 'PENDING_MODERATION',
     approved_by: null,
@@ -82,11 +83,37 @@ function makeImagesService() {
   } as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService;
 }
 
-function makeOrderRepo(): jest.Mocked<MarketplaceOrderDomainRepository> {
-  const probe = {
-    list: jest.fn().mockResolvedValue({ items: [], total: 0, totalCount: 0, totalPages: 0, currentPage: 1 }),
-  };
-  return probe as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
+function makeAvailableCategoryService() {
+  return {
+    isCategoryAvailable: jest.fn().mockResolvedValue(true),
+    hasAvailabilityRestrictions: jest.fn().mockResolvedValue(false),
+    getAvailableCategoryIds: jest.fn().mockResolvedValue([]),
+  } as unknown as import('~/extensions/marketplace/domain/services/available-category-domain.service').AvailableCategoryDomainService;
+}
+
+function makeEventBus() {
+  return { emit: jest.fn() } as unknown as import('@nestjs/event-emitter').EventEmitter2;
+}
+
+function makeSupplierSettings() {
+  return {
+    assertPayoutMethodConfigured: jest.fn().mockResolvedValue(undefined),
+  } as unknown as import('~/extensions/marketplace/application/services/marketplace-supplier-settings.service').MarketplaceSupplierSettingsService;
+}
+
+function makeService(
+  repo: jest.Mocked<MarketplaceOfferDomainRepository>,
+  cats: jest.Mocked<MarketplaceCategoryDomainRepository>,
+  images: ReturnType<typeof makeImagesService> = makeImagesService()
+) {
+  return new MarketplaceOfferService(
+    repo,
+    cats,
+    makeAvailableCategoryService(),
+    images,
+    makeEventBus(),
+    makeSupplierSettings()
+  );
 }
 
 function makeCategoryRepo(): jest.Mocked<MarketplaceCategoryDomainRepository> {
@@ -94,15 +121,18 @@ function makeCategoryRepo(): jest.Mocked<MarketplaceCategoryDomainRepository> {
     listBaseline: jest.fn(),
     findById: jest.fn(),
     upsertBaseline: jest.fn(),
+    listForCoop: jest.fn(),
+    createCustom: jest.fn(),
+    deleteCustom: jest.fn(),
   };
-  repo.findById.mockResolvedValue(
-    new MarketplaceCategoryDomainEntity({
-      id: 1,
-      display_name: 'Продовольственные товары',
-      sort_order: 1,
-      mvp_baseline: true,
-    })
-  );
+  const category = new MarketplaceCategoryDomainEntity({
+    id: 1,
+    display_name: 'Продовольственные товары',
+    sort_order: 1,
+    mvp_baseline: true,
+  });
+  repo.findById.mockResolvedValue(category);
+  repo.listForCoop.mockResolvedValue([category]);
   return repo;
 }
 
@@ -130,7 +160,7 @@ describe('MarketplaceOfferService.create', () => {
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     repo.create.mockResolvedValue(makeOffer());
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const offer = await service.create(baseCreateRequest());
     expect(offer.status).toBe('PENDING_MODERATION');
@@ -141,7 +171,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(MarketplaceOfferService.RATE_LIMIT_PER_HOUR);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.create(baseCreateRequest())).rejects.toThrow(BadRequestException);
     expect(repo.create).not.toHaveBeenCalled();
@@ -151,7 +181,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.create(baseCreateRequest({ category_id: 99 }))).rejects.toThrow(
       BadRequestException
@@ -161,9 +191,9 @@ describe('MarketplaceOfferService.create', () => {
   it('категория есть в baseline но отсутствует в БД → 400 (миграция не выполнилась)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
-    cats.findById.mockResolvedValueOnce(null);
+    cats.listForCoop.mockResolvedValueOnce([]);
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.create(baseCreateRequest({ category_id: 5 }))).rejects.toThrow(
       BadRequestException
@@ -174,7 +204,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.create(baseCreateRequest({ product_name: '   ' }))).rejects.toThrow(
       BadRequestException
@@ -187,7 +217,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ barcode_strategy: 'PER_PACKAGE' }))
@@ -198,7 +228,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(
@@ -214,7 +244,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ barcode_strategy: 'PER_ORDER', pack_size: 5 }))
@@ -229,7 +259,7 @@ describe('MarketplaceOfferService.create', () => {
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,
     }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const offer = await service.create(
       baseCreateRequest({ barcode_strategy: 'PER_PACKAGE', pack_size: 12 })
@@ -249,7 +279,7 @@ describe('MarketplaceOfferService.create', () => {
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,
     }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const offer = await service.create(baseCreateRequest());
     expect(offer.barcode_strategy).toBe('PER_ORDER');
@@ -260,7 +290,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ product_name: 'x'.repeat(201) }))
@@ -271,7 +301,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ quantity_available: null, unlimited_flag: false }))
@@ -283,7 +313,7 @@ describe('MarketplaceOfferService.create', () => {
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     repo.create.mockResolvedValue(makeOffer({ unlimited_flag: true, quantity_available: 0 }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.create(
       baseCreateRequest({ unlimited_flag: true, quantity_available: null })
@@ -297,7 +327,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ delivery_points: [] }))
@@ -308,7 +338,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ unit_of_measure: 'tonne' as any }))
@@ -319,7 +349,7 @@ describe('MarketplaceOfferService.create', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ price_per_unit: 'abc' }))
@@ -333,7 +363,7 @@ describe('MarketplaceOfferService.update', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.update('offer-1', 'alice', { product_name: 'Молоко' });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
@@ -347,22 +377,23 @@ describe('MarketplaceOfferService.update', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ supplier_account: 'alice' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.update('offer-1', 'mallory', { product_name: 'X' })).rejects.toThrow(
       ForbiddenException
     );
   });
 
-  it('update WITHDRAWN → 403 (сначала republish)', async () => {
+  it('update WITHDRAWN разрешён — поставщик дорабатывает снятую карточку', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'WITHDRAWN', product_name: 'X' }));
+    const service = makeService(repo, cats);
 
-    await expect(service.update('offer-1', 'alice', { product_name: 'X' })).rejects.toThrow(
-      ForbiddenException
-    );
+    const updated = await service.update('offer-1', 'alice', { product_name: 'X' });
+    expect(updated.status).toBe('WITHDRAWN');
+    expect(repo.applyUpdate).toHaveBeenCalled();
   });
 
   it('update REJECTED → правка проходит и уходит на повторную модерацию (status PENDING, причина очищена)', async () => {
@@ -372,7 +403,7 @@ describe('MarketplaceOfferService.update', () => {
       makeOffer({ status: 'REJECTED', reject_reason: 'Плохое фото', rejected_by: 'chairman' })
     );
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.update('offer-1', 'alice', { product_name: 'Исправлено' });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
@@ -392,7 +423,7 @@ describe('MarketplaceOfferService.update', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'REJECTED' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { price_per_unit: '99.0000' });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
@@ -405,7 +436,7 @@ describe('MarketplaceOfferService.update', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(null);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.update('offer-x', 'alice', { product_name: 'X' })).rejects.toThrow(
       NotFoundException
@@ -417,7 +448,7 @@ describe('MarketplaceOfferService.update', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', unlimited_flag: true, quantity_available: 0 }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { unlimited_flag: true });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
@@ -433,7 +464,7 @@ describe('MarketplaceOfferService.update', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.update('offer-1', 'alice', { category_id: 99 })).rejects.toThrow(
       BadRequestException
@@ -452,7 +483,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', price_per_unit: '99.0000' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.update('offer-1', 'alice', { price_per_unit: '99.00' });
     expect(result.status).toBe('ACTIVE');
@@ -467,7 +498,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE', quantity_available: 250 }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { quantity_available: 250 });
     expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
@@ -478,7 +509,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { price_per_unit: '12.00', quantity_available: 5 });
     expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
@@ -489,7 +520,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { description: 'Новое описание' });
     expect(repo.applyUpdate).toHaveBeenCalledWith(
@@ -503,7 +534,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await service.update('offer-1', 'alice', { unit_of_measure: 'liter' });
     expect(repo.applyUpdate.mock.calls[0][1]).toMatchObject({ status: 'PENDING_MODERATION' });
@@ -523,12 +554,7 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     };
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     await service.update('offer-1', 'alice', {}, [
       { base64: Buffer.from('a').toString('base64'), mime_type: 'image/jpeg' },
@@ -543,7 +569,7 @@ describe('MarketplaceOfferService.withdraw', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.withdraw('offer-1', 'alice');
     expect(repo.applyUpdate).toHaveBeenCalledWith('offer-1', { status: 'WITHDRAWN' });
@@ -554,7 +580,7 @@ describe('MarketplaceOfferService.withdraw', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ supplier_account: 'alice', status: 'ACTIVE' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.withdraw('offer-1', 'mallory')).rejects.toThrow(ForbiddenException);
   });
@@ -563,7 +589,7 @@ describe('MarketplaceOfferService.withdraw', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.withdraw('offer-1', 'alice')).rejects.toThrow(ForbiddenException);
   });
@@ -572,7 +598,7 @@ describe('MarketplaceOfferService.withdraw', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(null);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.withdraw('offer-x', 'alice')).rejects.toThrow(NotFoundException);
   });
@@ -585,7 +611,7 @@ describe('MarketplaceOfferService.withdraw', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.withdraw('offer-1', 'alice')).resolves.toBeDefined();
     // ConflictException заводится при `hasActiveOrders === true` — будет
@@ -600,7 +626,7 @@ describe('MarketplaceOfferService.republish', () => {
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'WITHDRAWN' }));
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.republish('offer-1', 'alice');
     expect(repo.applyUpdate).toHaveBeenCalledWith('offer-1', { status: 'PENDING_MODERATION' });
@@ -611,7 +637,7 @@ describe('MarketplaceOfferService.republish', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ supplier_account: 'alice', status: 'WITHDRAWN' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.republish('offer-1', 'mallory')).rejects.toThrow(ForbiddenException);
   });
@@ -620,7 +646,7 @@ describe('MarketplaceOfferService.republish', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.republish('offer-1', 'alice')).rejects.toThrow(ForbiddenException);
   });
@@ -629,7 +655,7 @@ describe('MarketplaceOfferService.republish', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(null);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(service.republish('offer-x', 'alice')).rejects.toThrow(NotFoundException);
   });
@@ -645,7 +671,7 @@ describe('MarketplaceOfferService.listMine + getById', () => {
       totalPages: 1,
       currentPage: 1,
     });
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.listMine(COOP, 'alice', {
       page: 1,
@@ -666,7 +692,7 @@ describe('MarketplaceOfferService.listMine + getById', () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.findById.mockResolvedValue(makeOffer());
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.getById('offer-1');
     expect(result?.id).toBe('offer-1');
@@ -683,7 +709,7 @@ describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)
       { braname: 'odintsovo', min_supply_volume: 100 },
     ];
     repo.create.mockResolvedValue(makeOffer({ delivery_points: points }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const offer = await service.create(baseCreateRequest({ delivery_points: points }));
     expect(offer.delivery_points).toEqual(points);
@@ -696,7 +722,7 @@ describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ delivery_points: [] }))
@@ -707,7 +733,7 @@ describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({ delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 0 }] }))
@@ -718,7 +744,7 @@ describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.create(baseCreateRequest({
@@ -742,7 +768,7 @@ describe('MarketplaceOfferService.update — смена КУ поставки', 
     repo.applyUpdate.mockResolvedValue(
       makeOffer({ status: 'PENDING_MODERATION', delivery_points: newPoints })
     );
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     const result = await service.update('offer-1', 'alice', { delivery_points: newPoints });
     expect(result.status).toBe('PENDING_MODERATION');
@@ -758,7 +784,7 @@ describe('MarketplaceOfferService.update — смена КУ поставки', 
     repo.findById.mockResolvedValue(
       makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.update('offer-1', 'alice', { delivery_points: [] })
@@ -772,7 +798,7 @@ describe('MarketplaceOfferService.update — смена КУ поставки', 
       makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
     repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'PENDING_MODERATION', product_name: 'Молоко' }));
-    const service = new MarketplaceOfferService(repo, cats, makeOrderRepo(), makeImagesService());
+    const service = makeService(repo, cats);
 
     await expect(
       service.update('offer-1', 'alice', { product_name: 'Молоко' })
@@ -803,12 +829,7 @@ describe('MarketplaceOfferService — изображения', () => {
     const images = imagesMock();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     repo.create.mockImplementation((input) => Promise.resolve(makeOffer({ images: input.images })));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     const offer = await service.create(
       baseCreateRequest({
@@ -829,12 +850,7 @@ describe('MarketplaceOfferService — изображения', () => {
     const cats = makeCategoryRepo();
     const images = imagesMock();
     repo.countRecentCreatedBy.mockResolvedValue(0);
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     const tooMany = Array.from({ length: 9 }, () => ({
       base64: Buffer.from('x').toString('base64'),
@@ -854,12 +870,7 @@ describe('MarketplaceOfferService — изображения', () => {
     const images = imagesMock();
     repo.countRecentCreatedBy.mockResolvedValue(0);
     repo.create.mockRejectedValue(new Error('db down'));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     await expect(
       service.create(
@@ -882,12 +893,7 @@ describe('MarketplaceOfferService — изображения', () => {
     };
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [existing] }));
     repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     const result = await service.update('offer-1', 'alice', {}, [
       { bucket_key: existing.bucket_key },
@@ -909,12 +915,7 @@ describe('MarketplaceOfferService — изображения', () => {
     const b = { bucket_key: 'offers/voskhod/alice/b.jpg', content_hash: 'b', mime_type: 'image/jpeg' };
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [a, b] }));
     repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     const result = await service.update('offer-1', 'alice', {}, [{ bucket_key: b.bucket_key }]);
     expect(result.images).toHaveLength(1);
@@ -927,12 +928,7 @@ describe('MarketplaceOfferService — изображения', () => {
     const cats = makeCategoryRepo();
     const images = imagesMock();
     repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE', images: [] }));
-    const service = new MarketplaceOfferService(
-      repo,
-      cats,
-      makeOrderRepo(),
-      images as unknown as import('~/extensions/marketplace/application/services/marketplace-offer-images.service').MarketplaceOfferImagesService
-    );
+    const service = makeService(repo, cats, images as unknown as ReturnType<typeof makeImagesService>);
 
     await expect(
       service.update('offer-1', 'alice', {}, [{ bucket_key: 'offers/voskhod/mallory/stolen.jpg' }])

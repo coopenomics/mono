@@ -896,6 +896,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetMembershipFeeInput:{
 
 	},
+	MarketplaceSetSupplierPayoutMethodInput:{
+
+	},
 	MarketplaceSetTrusteeWeightInput:{
 
 	},
@@ -1567,6 +1570,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetMembershipFee:{
 			data:"MarketplaceSetMembershipFeeInput"
+		},
+		marketplaceSetSupplierPayoutMethod:{
+			input:"MarketplaceSetSupplierPayoutMethodInput"
 		},
 		marketplaceSetTrusteeWeight:{
 			data:"MarketplaceSetTrusteeWeightInput"
@@ -4573,6 +4579,7 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"ID",
 		payee_account:"String",
+		payout_destination:"String",
 		payout_tx_hash:"String",
 		purpose:"String",
 		status:"MarketplaceOutgoingPaymentRequestStatus",
@@ -4810,6 +4817,11 @@ export const ReturnTypes: Record<string,any> = {
 		cycle_id:"String",
 		orders:"MarketplaceOrder",
 		tx_hashes:"String"
+	},
+	MarketplaceSupplierPaymentSettings:{
+		has_payout_method:"Boolean",
+		payout_destination:"String",
+		payout_method_id:"String"
 	},
 	MarketplaceTrusteeWeight:{
 		personal_balance:"String",
@@ -5186,6 +5198,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
+		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",
 		marketplaceSignAplReceptionAsSupplier:"MarketplaceAplReceptionResult",
@@ -5815,6 +5828,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetRootCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetSearchCategories:"MarketplaceCategoryTreeNode",
 		marketplaceGetShipment:"MarketplaceShipment",
+		marketplaceGetSupplierPaymentSettings:"MarketplaceSupplierPaymentSettings",
 		marketplaceGetUserRequests:"MarketplaceRequest",
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",

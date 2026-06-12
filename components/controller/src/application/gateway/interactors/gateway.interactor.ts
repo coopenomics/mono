@@ -559,6 +559,7 @@ export class GatewayInteractor {
       status: PaymentStatusEnum.PENDING,
       memo: data.memo,
       secret: generateUniqueHash(),
+      payment_method_id: data.payment_method_id,
       payment_details: paymentDetails,
       expired_at: this.createPaymentExpirationDate(-1),
       created_at: now,

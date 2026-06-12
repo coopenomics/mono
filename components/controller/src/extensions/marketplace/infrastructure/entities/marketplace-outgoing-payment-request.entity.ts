@@ -54,6 +54,10 @@ export class MarketplaceOutgoingPaymentRequestEntity {
   @Column({ type: 'varchar', length: 500 })
   public purpose!: string;
 
+  /** Маскированная подпись реквизитов получателя, например «Сбербанк •1234». */
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  public payout_destination!: string | null;
+
   @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceOutgoingPaymentRequestStatus;
 

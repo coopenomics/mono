@@ -37,6 +37,7 @@ export class MarketplaceOutgoingPaymentRequestRepositoryAdapter
       amount: input.amount,
       symbol: input.symbol,
       purpose: input.purpose,
+      payout_destination: input.payout_destination ?? null,
       status: MarketplaceOutgoingPaymentRequestStatuses.PENDING,
       completed_at: null,
       decline_reason: null,

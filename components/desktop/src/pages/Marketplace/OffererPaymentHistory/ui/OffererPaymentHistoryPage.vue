@@ -1,35 +1,110 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
-import { FailAlert } from 'src/shared/api';
-import { BaseBadge, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { useRouter } from 'vue-router';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseBadge, BaseButton, BaseCard, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, BaseSelectOption, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
+import { useWalletStore } from 'src/entities/Wallet';
+import type { IBankTransferData, ISBPData } from 'src/entities/Wallet/model/types';
+import {
+  loadSupplierPaymentSettings,
+  setSupplierPayoutMethod,
+  type MarketplaceSupplierPaymentSettingsView,
+} from 'src/entities/MarketplaceSupplierSettings';
+import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
- * Эпик 5 / Story 5.9: offerer-стол «История выплат».
+ * Стол поставщика «Выплаты»: настройка «выплаты получаю на…» + история выплат.
  *
- * Поставщик видит исходящие выплаты по своим актам приёмки и их статус.
- * Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица
- * (`.table-wrap`) со статус-бейджами, скелетон вместо спиннера, EmptyState.
+ * Реквизиты — платёжные методы ядра (раздел «Реквизиты» стола пайщика);
+ * здесь поставщик выбирает, на какой из них уходят выплаты по актам приёмки.
+ * Выбор глобальный (не per-карточка): смена счёта — одно действие. Без
+ * реквизитов публикация предложений закрыта backend-гейтом, поэтому страница
+ * подсказывает добавить их сразу.
  */
 
+const router = useRouter();
+const { info } = useSystemStore();
+const session = useSessionStore();
+const wallet = useWalletStore();
+
+// ── настройка «выплаты получаю на…» ──
+const settings = ref<MarketplaceSupplierPaymentSettingsView | null>(null);
+const settingsLoading = ref(false);
+const savingMethod = ref(false);
+
+function methodLabel(method: { method_type: string; data: unknown }): string {
+  if (method.method_type === 'sbp') {
+    const phone = (method.data as ISBPData).phone ?? '';
+    return phone ? `СБП ${phone}` : 'СБП';
+  }
+  const bank = method.data as IBankTransferData;
+  const tail = (bank.account_number ?? '').slice(-4);
+  const name = bank.bank_name?.trim() || 'Банковский счёт';
+  return tail ? `${name} •${tail}` : name;
+}
+
+const methodOptions = computed<BaseSelectOption[]>(() =>
+  (wallet.methods ?? []).map((m) => ({ value: m.method_id, label: methodLabel(m) })),
+);
+
+const hasMethods = computed(() => methodOptions.value.length > 0);
+
+// Выбранное значение селектора: явный выбор поставщика; если выбора не было —
+// показываем пусто, а действующий фолбэк (метод по умолчанию) описывает hint.
+const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null);
+
+const selectHint = computed(() => {
+  if (!settings.value) return undefined;
+  if (!settings.value.payout_method_id && settings.value.has_payout_method) {
+    return `Используются реквизиты по умолчанию: ${settings.value.payout_destination ?? ''}`;
+  }
+  return undefined;
+});
+
+async function loadSettings(): Promise<void> {
+  settingsLoading.value = true;
+  try {
+    settings.value = await loadSupplierPaymentSettings();
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить настройки выплат');
+  } finally {
+    settingsLoading.value = false;
+  }
+}
+
+async function onPickMethod(method_id: string | number | null): Promise<void> {
+  if (!method_id || savingMethod.value) return;
+  savingMethod.value = true;
+  try {
+    settings.value = await setSupplierPayoutMethod(String(method_id));
+    SuccessAlert('Реквизиты для выплат сохранены');
+  } catch (e) {
+    FailAlert(e, 'Не удалось сохранить реквизиты для выплат');
+  } finally {
+    savingMethod.value = false;
+  }
+}
+
+function goToRequisites(): void {
+  void router.push({ name: 'user-payment-methods', params: { coopname: info.coopname } });
+}
+
+// ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
 const loading = ref(false);
 
-// Статус выплаты → человекочитаемая метка + canon-вариант бейджа.
+// Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  AWAITING_AUTHORIZATION: { label: 'Ожидает решения совета', variant: 'warn' },
   PENDING: { label: 'Ожидает оплаты', variant: 'warn' },
-  PROCESSING: { label: 'Обрабатывается', variant: 'info' },
-  PAID: { label: 'Оплачен', variant: 'pos' },
-  COMPLETED: { label: 'Обработан', variant: 'pos' },
-  FAILED: { label: 'Не удался', variant: 'neg' },
-  EXPIRED: { label: 'Истёк', variant: 'neutral' },
-  CANCELLED: { label: 'Отменён', variant: 'neutral' },
-  REFUNDED: { label: 'Отклонён', variant: 'neg' },
+  COMPLETED: { label: 'Оплачена', variant: 'pos' },
+  DECLINED: { label: 'Отклонена', variant: 'neg' },
 };
 
 function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
@@ -42,7 +117,7 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Дата', cell: 'text', cellWidth: '120px' },
   { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
   { label: 'Статус', cell: 'badge' },
-  { label: 'Референс банка', cell: 'text' },
+  { label: 'Куда', cell: 'text' },
   { label: 'Назначение', cell: 'text' },
 ];
 
@@ -74,6 +149,8 @@ useMarketplaceRealtime(
 
 onMounted(() => {
   void load();
+  void loadSettings();
+  void wallet.loadUserWallet({ coopname: info.coopname, username: session.username });
 });
 </script>
 
@@ -83,12 +160,36 @@ q-page.offerer-payments
     | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
     | она уходит в банк — статус обновляется здесь по мере обработки.
 
+  //- ───────── Куда получаю выплаты ─────────
+  BaseCard(title='Выплаты получаю на')
+    template(#actions)
+      BaseButton(variant='ghost', size='sm', @click='goToRequisites')
+        q-icon(name='add_card', size='16px')
+        span.q-ml-sm Добавить реквизиты
 
+    .payout-method(v-if='hasMethods')
+      BaseSelect.payout-method__select(
+        :model-value='selectedMethodId',
+        :options='methodOptions',
+        label='Реквизиты для выплат',
+        placeholder='Выберите реквизиты',
+        :hint='selectHint',
+        :disabled='savingMethod || settingsLoading',
+        @update:model-value='onPickMethod'
+      )
+
+    .banner.banner--warn(v-else)
+      q-icon.banner__icon(name='warning_amber', size='18px')
+      .banner__body
+        | У вас нет сохранённых реквизитов. Добавьте банковский счёт или СБП
+        | в разделе «Реквизиты» — без них публикация предложений недоступна.
+
+  //- ───────── История выплат ─────────
   TableSkeleton(
     v-if='loading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width='820px'
+    min-width='860px'
   )
   .table-wrap(v-else-if='items.length')
     .table-scroll
@@ -98,16 +199,16 @@ q-page.offerer-payments
             th.col-date Дата
             th.col-num Сумма
             th.col-status Статус
-            th Референс банка
+            th Куда
             th Назначение
         tbody
           tr(v-for='row in items', :key='row.id')
-            td.col-date {{ row.created_at }}
+            td.col-date {{ formatDateToHumanDateTime(row.created_at) }}
             td.col-num {{ row.amount }} {{ row.symbol }}
             td.col-status
               BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
-            td {{ row.payment_reference || '—' }}
-            td {{ row.purpose || '—' }}
+            td {{ row.payout_destination || '—' }}
+            td.cell-purpose {{ row.purpose || '—' }}
 
   EmptyState(
     v-else,
@@ -124,27 +225,32 @@ q-page.offerer-payments
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+}
 
+.payout-method__select {
+  max-width: 420px;
 }
 
 .table-scroll {
   overflow-x: auto;
 }
 .table {
-  table-layout: fixed;
-  min-width: 820px;
+  min-width: 860px;
 }
 .col-date {
-  width: 160px;
+  width: 150px;
   white-space: nowrap;
 }
 .col-num {
-  width: 140px;
+  width: 130px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 .col-status {
-  width: 200px;
+  width: 170px;
+}
+.cell-purpose {
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 768px) {
