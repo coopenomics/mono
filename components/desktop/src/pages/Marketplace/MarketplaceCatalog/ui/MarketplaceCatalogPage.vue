@@ -17,11 +17,11 @@ import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
   fetchCatalog,
   fetchCategories,
   fetchCategoryOfferCounts,
-  getMembershipFeePercent,
 } from '../api';
 import type {
   CatalogSort,

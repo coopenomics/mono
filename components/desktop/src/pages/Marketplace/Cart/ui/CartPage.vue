@@ -11,8 +11,7 @@ import {
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { getMembershipFeePercent } from 'src/pages/Marketplace/MarketplaceCatalog/api';
+import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 
 /**
  * Эпик 16 / Story 16.1 + 16.2: страница корзины заказчика и оформление.

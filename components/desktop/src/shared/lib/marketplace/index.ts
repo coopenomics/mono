@@ -19,6 +19,11 @@ export {
 } from './handoff-routing';
 export { useActsPreview } from './useActsPreview';
 export {
+  getMembershipFeePercent,
+  computeIssuanceDiff,
+  type IssuanceDiffLine,
+} from './membership-fee';
+export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,
   dispatchMarketplaceEvent,

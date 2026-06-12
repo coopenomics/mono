@@ -4,7 +4,11 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
-import { useActsPreview } from 'src/shared/lib/marketplace';
+import {
+  useActsPreview,
+  getMembershipFeePercent,
+  computeIssuanceDiff,
+} from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -67,6 +71,22 @@ const totalFactCost = computed<string>(() =>
   props.orders.reduce((sum, o) => sum + Number.parseFloat(factCost(o)), 0).toFixed(4),
 );
 
+// Ставка членского взноса — для оценки возврата при выдаче меньше заказа.
+const feePercent = ref(0);
+
+// Пайщику сразу видно, сколько вернётся в кошелёк Стола заказов, если выдано
+// меньше заказанного (остаток резерва + часть взноса), и сколько спишется с
+// паевого при факте больше заказа.
+const issuanceDiff = computed(() =>
+  computeIssuanceDiff(
+    props.orders.map((o) => ({
+      orderedTotal: Number.parseFloat(o.total_cost),
+      factTotal: Number.parseFloat(factCost(o)),
+    })),
+    feePercent.value,
+  ),
+);
+
 const DIFF_BADGE: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   equal: { label: 'по заказу', variant: 'pos' },
   less: { label: 'недостача', variant: 'warn' },
@@ -79,7 +99,14 @@ function diffBadge(o: MarketplaceOrderIssuanceView): { label: string; variant: B
 watch(
   () => [props.modelValue, props.orders.map((o) => o.id).join(',')],
   ([visible]) => {
-    if (visible) resetActs();
+    if (visible) {
+      resetActs();
+      if (!feePercent.value) {
+        getMembershipFeePercent()
+          .then((p) => (feePercent.value = p))
+          .catch(() => undefined); // нет ставки — возврат покажем без взноса
+      }
+    }
   },
   { immediate: false },
 );
@@ -174,9 +201,16 @@ BaseDialog(
                 td.col-state
                   BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
 
-      .mp-orderer-finalize__sum
-        span.mp-orderer-finalize__sum-label Итого к получению
-        span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+      .mp-orderer-finalize__totals
+        .mp-orderer-finalize__sum
+          span.mp-orderer-finalize__sum-label Итого к получению
+          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+        .mp-orderer-finalize__sum(v-if="issuanceDiff.refund > 0")
+          span.mp-orderer-finalize__sum-label Вернётся в кошелёк Стола заказов
+          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
+        .mp-orderer-finalize__sum(v-if="issuanceDiff.surcharge > 0")
+          span.mp-orderer-finalize__sum-label Доплата по факту (спишется с паевого)
+          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
 
     .mp-orderer-finalize__preview(v-if="showActs", v-html="previewHtml")
 
@@ -226,6 +260,12 @@ BaseDialog(
   .col-state {
     text-align: center;
     width: 120px;
+  }
+
+  &__totals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
   }
 
   &__sum {

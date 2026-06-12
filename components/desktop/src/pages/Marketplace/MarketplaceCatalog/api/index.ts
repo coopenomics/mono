@@ -73,12 +73,3 @@ export async function fetchCategoryOfferCounts(
   );
   return list;
 }
-
-// requirement b6: единая ставка членского взноса — каталог показывает цену с
-// учётом взноса (взнос входит в общую стоимость заказа).
-export async function getMembershipFeePercent(): Promise<number> {
-  const { [Queries.Marketplace.GetEconomyConfig.name]: result } = await client.Query(
-    Queries.Marketplace.GetEconomyConfig.query,
-  );
-  return result.membership_fee_percent;
-}
