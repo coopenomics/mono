@@ -26,6 +26,7 @@ import {
 } from '../dto/ku-action-inputs.dto';
 import {
   BranchEstablishmentPetitionGenerateDocumentInputDTO,
+  BranchEstablishmentDecisionGenerateDocumentInputDTO,
   BranchLiabilityAgreementGenerateDocumentInputDTO,
   BranchMeetingBallotGenerateDocumentInputDTO,
   BranchMeetingDecisionGenerateDocumentInputDTO,
@@ -255,6 +256,20 @@ export class KuResolver {
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return (await this.kuService.generateBranchEstablishmentPetition(data, options)) as GeneratedDocumentDTO;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'kuGenerateEstablishmentDecision',
+    description: 'Сгенерировать решение совета об учреждении кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['member', 'chairman'])
+  async kuGenerateEstablishmentDecision(
+    @Args('data', { type: () => BranchEstablishmentDecisionGenerateDocumentInputDTO })
+    data: BranchEstablishmentDecisionGenerateDocumentInputDTO,
+    @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return (await this.kuService.generateBranchEstablishmentDecision(data, options)) as GeneratedDocumentDTO;
   }
 
   @Mutation(() => GeneratedDocumentDTO, {

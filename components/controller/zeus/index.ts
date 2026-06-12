@@ -2287,6 +2287,36 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
 }>;
+	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string | Variable<any, string>,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	branch_name: string | Variable<any, string>,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор решения совета */
+	decision_id: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
 	address: string | Variable<any, string>,
@@ -7445,6 +7475,7 @@ kuCloseDecision?: [{	data: ValueTypes["CloseKuDecisionInput"] | Variable<any, st
 kuCreateDecision?: [{	data: ValueTypes["CreateKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuDeclineTrusted?: [{	data: ValueTypes["DeclineKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuExecDecision?: [{	data: ValueTypes["ExecKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+kuGenerateEstablishmentDecision?: [{	data: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateEstablishmentPetition?: [{	data: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateLiabilityAgreement?: [{	data: ValueTypes["BranchLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateMeetingBallot?: [{	data: ValueTypes["BranchMeetingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -11823,6 +11854,36 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
 	address: string,
@@ -16866,6 +16927,7 @@ kuCloseDecision?: [{	data: ResolverInputTypes["CloseKuDecisionInput"]},ResolverI
 kuCreateDecision?: [{	data: ResolverInputTypes["CreateKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 kuDeclineTrusted?: [{	data: ResolverInputTypes["DeclineKuTrustedInput"]},ResolverInputTypes["Transaction"]],
 kuExecDecision?: [{	data: ResolverInputTypes["ExecKuDecisionInput"]},ResolverInputTypes["Transaction"]],
+kuGenerateEstablishmentDecision?: [{	data: ResolverInputTypes["BranchEstablishmentDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateEstablishmentPetition?: [{	data: ResolverInputTypes["BranchEstablishmentPetitionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateLiabilityAgreement?: [{	data: ResolverInputTypes["BranchLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateMeetingBallot?: [{	data: ResolverInputTypes["BranchMeetingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -21111,6 +21173,36 @@ export type ModelTypes = {
 	trustee: ModelTypes["Individual"],
 	/** Тип организации */
 	type: string
+};
+	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
+	/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
 };
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -26445,6 +26537,10 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuExecDecision: ModelTypes["Transaction"],
+	/** Сгенерировать решение совета об учреждении кооперативного участка
+
+Требуемые роли: member, chairman.  */
+	kuGenerateEstablishmentDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
 
 Требуемые роли: user, member, chairman.  */
@@ -30944,6 +31040,36 @@ export type GraphQLTypes = {
 	/** Тип организации */
 	type: string,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
+};
+	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
+		/** Адрес привязки кооперативного участка */
+	address: string,
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** ФИО избранного председателя кооперативного участка */
+	chairman_full_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор решения совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
 };
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: {
 		/** Адрес привязки кооперативного участка */
@@ -36529,6 +36655,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuExecDecision: GraphQLTypes["Transaction"],
+	/** Сгенерировать решение совета об учреждении кооперативного участка
+
+Требуемые роли: member, chairman.  */
+	kuGenerateEstablishmentDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление председателя собрания в совет об учреждении участка
 
 Требуемые роли: user, member, chairman.  */
@@ -40556,6 +40686,7 @@ type ZEUS_VARIABLES = {
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
+	["BranchEstablishmentDecisionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionSignedDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"];
 	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"];

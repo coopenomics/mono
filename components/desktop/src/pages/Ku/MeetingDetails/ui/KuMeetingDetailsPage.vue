@@ -7,48 +7,6 @@
 
   TableSkeleton(v-if='loading && !decision', :columns='skeletonColumns', :rows='6')
   template(v-else-if='decision')
-    //- Главные действия по статусу и роли
-    .row.items-center.justify-end.q-gutter-sm.q-mb-md
-      BaseButton(
-        v-if='canJoin',
-        variant='primary',
-        size='sm',
-        :loading='busy',
-        @click='onJoin'
-      ) Участвовать
-      span(v-if='canStart')
-        BaseButton(
-          variant='primary',
-          size='sm',
-          :disabled='!hasQuorum',
-          :loading='busy',
-          @click='isStartOpen = true'
-        ) Открыть голосование
-        q-tooltip(v-if='!hasQuorum')
-          | Для открытия голосования нужно не менее 3 участников собрания.
-          | Пока их меньше — собрание можно только отменить.
-      BaseButton(
-        v-if='canClose',
-        variant='primary',
-        size='sm',
-        :loading='busy',
-        @click='onClose'
-      ) Завершить и утвердить протокол
-      BaseButton(
-        v-if='canExec',
-        variant='primary',
-        size='sm',
-        :loading='busy',
-        @click='onExec'
-      ) Направить в совет
-      BaseButton(
-        v-if='canCancel',
-        variant='secondary',
-        size='sm',
-        :loading='busy',
-        @click='isCancelOpen = true'
-      ) Отменить собрание
-
     .row.q-col-gutter-md
       .col-12.col-md-6
         BaseCard(title='Собрание')
@@ -83,43 +41,35 @@
               ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель участка)' : '' }}
           EmptyState(v-else, title='Пока никто не присоединился')
 
-    //- Повестка и голосование
+    //- Повестка и голосование (канон meet-agenda-card)
     BaseCard.q-mt-md(title='Повестка дня')
-      .q-pa-sm(v-for='question in questions', :key='question.id')
-        .doc-primary {{ question.number }}. {{ question.title }}
-        .t-sm.t-muted.q-mb-xs(v-if='question.context') {{ question.context }}
-        .t-sm Проект решения: {{ question.decision }}
-        .row.items-center.q-gutter-md.q-mt-xs
-          template(v-if='canVote')
-            q-radio(
-              v-model='votes[question.id]',
-              val='for',
-              label='За',
-              dense
-            )
-            q-radio(
-              v-model='votes[question.id]',
-              val='against',
-              label='Против',
-              dense
-            )
-            q-radio(
-              v-model='votes[question.id]',
-              val='abstained',
-              label='Воздержался',
-              dense
-            )
+      .agenda-items
+        .agenda-card(v-for='question in questions', :key='question.id')
+          .agenda-card__head
+            AgendaNumberAvatar(:number='question.number')
+            span.agenda-card__title {{ question.title }}
+          .agenda-card__field(v-if='question.context')
+            span.agenda-card__label Контекст
+            span.agenda-card__value {{ question.context }}
+          .agenda-card__field
+            span.agenda-card__label Проект решения
+            span.agenda-card__value {{ question.decision }}
+          .row.items-center.q-gutter-md(v-if='canVote')
+            q-radio(v-model='votes[question.id]', val='for', label='За', dense)
+            q-radio(v-model='votes[question.id]', val='against', label='Против', dense)
+            q-radio(v-model='votes[question.id]', val='abstained', label='Воздержался', dense)
           //- итоги показываем только после открытия голосования — до него нули не информативны
-          template(v-else-if='isVotingStarted')
-            BaseBadge(variant='pos') За: {{ question.counter_votes_for ?? 0 }}
-            BaseBadge(variant='neg') Против: {{ question.counter_votes_against ?? 0 }}
-            BaseBadge(variant='neutral') Воздержались: {{ question.counter_votes_abstained ?? 0 }}
-        q-separator.q-mt-sm
-      .q-pa-sm(v-if='canVote')
+          .agenda-card__results(v-else-if='isVotingStarted')
+            span.agenda-card__label Итоги голосования
+            .row.items-center.q-gutter-sm.q-mt-xs
+              BaseBadge(variant='pos') За: {{ question.counter_votes_for ?? 0 }}
+              BaseBadge(variant='neg') Против: {{ question.counter_votes_against ?? 0 }}
+              BaseBadge(variant='neutral') Воздержались: {{ question.counter_votes_abstained ?? 0 }}
+      .row.justify-end.q-mt-md(v-if='canVote')
         BaseButton(
           variant='primary',
           :disabled='!allVoted',
-          :loading='isSubmitting',
+          :loading='busy',
           @click='onVote'
         ) Подписать бюллетень
 
@@ -182,7 +132,7 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
@@ -205,7 +155,11 @@ import {
 } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
+import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
+import { useHeaderActions } from 'src/shared/hooks';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
+import { kuMeetingHeaderActions } from '../model/header-actions-store';
+import KuMeetingHeaderActions from './KuMeetingHeaderActions.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -236,7 +190,6 @@ function removeAgendaPoint(index: number) {
 
 const hash = computed(() => String(route.params.hash));
 const decision = computed(() => kuStore.currentDecision);
-const isSubmitting = computed(() => flow.isSubmitting.value);
 
 const skeletonColumns: TableSkeletonColumn[] = [{ label: 'Параметр' }, { label: 'Значение' }];
 
@@ -298,8 +251,20 @@ const isVotingStarted = computed(() => !!status.value && status.value !== Zeus.K
 const canJoin = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && !isParticipant.value);
 // Голосование открывает организатор собрания, назначая председателя из участников
 const canStart = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.OPENED && isInitiator.value);
+// тикающее «сейчас» — чтобы кнопка протокола ожила по истечении окна голосования без перезагрузки
+const nowTick = ref(Date.now());
+let nowTimer: ReturnType<typeof setInterval> | undefined;
+
 // протокол утверждает и направляет в совет председатель собрания — им является организатор
 const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isInitiator.value);
+
+// регламент: протокол утверждается после голосования всех участников либо по истечении окна
+const canCloseNow = computed(() => {
+  const allVoted = (decision.value?.signed_ballots ?? 0) >= participants.value.length;
+  const closeAt = decision.value?.close_at ? new Date(decision.value.close_at).getTime() : 0;
+  const windowPassed = closeAt > 0 && nowTick.value > closeAt;
+  return allVoted || windowPassed;
+});
 const canExec = computed(
   () =>
     isLive.value &&
@@ -401,7 +366,39 @@ const onVote = () => {
 
 async function onStart() {
   isStartOpen.value = false;
-  const agenda = extraAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
+  const extra = extraAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
+  // итоговая повестка заменяет предварительную: формулировки уточняются решениями собрания
+  // (наименование участка, избранный председатель) — в таком виде они попадут в протокол
+  let agenda: { title: string; decision: string; context: string }[];
+  if (isCreateBranchType.value) {
+    const branchName = startForm.value.branchName.trim();
+    const chairmanFullName = displayName(startForm.value.chairman);
+    agenda = [
+      {
+        title: `Об организации кооперативного участка «${branchName}»`,
+        decision: `Организовать кооперативный участок «${branchName}» по адресу: ${startForm.value.address.trim()}`,
+        context: '',
+      },
+      {
+        title: 'Об избрании председателя кооперативного участка',
+        decision: `Избрать председателем кооперативного участка «${branchName}» ${chairmanFullName}`,
+        context: '',
+      },
+      ...extra,
+    ];
+  } else {
+    // произвольное собрание: без доп. вопросов повестка не меняется (пустой список)
+    agenda = extra.length
+      ? [
+          ...questions.value.map((question) => ({
+            title: question.title ?? '',
+            decision: question.decision ?? '',
+            context: question.context ?? '',
+          })),
+          ...extra,
+        ]
+      : [];
+  }
   await withReload(
     () =>
       flow.startDecision(decision.value!, {
@@ -427,7 +424,31 @@ async function onCancel() {
   );
 }
 
+const { registerAction } = useHeaderActions();
+
+// действия собрания живут в шапке страницы (канон header actions);
+// состояние пробрасывается через module-ref, т.к. шапка вне поддерева страницы
+watchEffect(() => {
+  kuMeetingHeaderActions.value = {
+    canJoin: canJoin.value,
+    canStart: canStart.value,
+    hasQuorum: hasQuorum.value,
+    canClose: canClose.value,
+    canCloseNow: canCloseNow.value,
+    canExec: canExec.value,
+    canCancel: canCancel.value,
+    busy: busy.value,
+    onJoin,
+    onStartOpen: () => (isStartOpen.value = true),
+    onClose,
+    onExec,
+    onCancelOpen: () => (isCancelOpen.value = true),
+  };
+});
+
 onMounted(async () => {
+  registerAction({ id: 'ku-meeting-actions', component: KuMeetingHeaderActions, order: 1 });
+  nowTimer = setInterval(() => (nowTick.value = Date.now()), 10000);
   loading.value = true;
   try {
     // после объявления собрания запись появляется сразу (placeholder с местом/временем),
@@ -449,6 +470,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   desktop.clearPageTitleOverride();
+  kuMeetingHeaderActions.value = null;
+  if (nowTimer) clearInterval(nowTimer);
 });
 
 // Возврат к списку собраний (back-link под шапкой, канон meet-back)
@@ -458,6 +481,52 @@ function goBack(): void {
 </script>
 
 <style scoped>
+.agenda-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+}
+.agenda-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
+  padding: var(--p-4, 16px);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.agenda-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3, 12px);
+}
+.agenda-card__title {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-ink-1);
+  padding-top: 6px;
+  overflow-wrap: anywhere;
+}
+.agenda-card__field,
+.agenda-card__results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.agenda-card__label {
+  font-size: var(--p-fs-meta, 12px);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--p-ink-3);
+}
+.agenda-card__value {
+  font-size: var(--p-fs-body, 14px);
+  line-height: 1.5;
+  color: var(--p-ink-1);
+  overflow-wrap: anywhere;
+}
+
 .ku-back {
   display: inline-flex;
   align-items: center;

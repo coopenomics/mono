@@ -9,7 +9,8 @@
  * @param hash Якорь процесса
  * @param chairman Избираемый председатель кооперативного участка (из участников)
  * @param address Адрес привязки кооперативного участка (для "createbranch")
- * @param agenda Дополнительные вопросы повестки, добавленные на собрании (может быть пусто)
+ * @param agenda Итоговая повестка собрания: если непуста — заменяет предварительную
+ *        (уточнённые на собрании формулировки и дополнительные вопросы); пустая — повестка без изменений
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
@@ -28,12 +29,12 @@
     eosio::check(!address.empty(), "Для создания кооперативного участка требуется адрес привязки");
   }
 
-  // Дополнительные вопросы, внесённые в повестку на собрании
+  // Итоговая повестка собрания: непустой список заменяет предварительную
+  // (формулировки уточняются на собрании — наименование участка, председатель, новые вопросы)
   coodecquest_index questions(_branch, coopname.value);
-  auto by_dec = questions.get_index<"bydecision"_n>();
   uint64_t number = 0;
-  for (auto itr = by_dec.lower_bound(dec.id); itr != by_dec.end() && itr->decision_id == dec.id; ++itr) {
-    number++;
+  if (!agenda.empty()) {
+    erase_coodecquests(coopname, dec.id);
   }
 
   for (const auto &point : agenda) {

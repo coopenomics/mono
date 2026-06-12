@@ -18,6 +18,7 @@ export * as ExecDecision from './execDecision'
 
 /** Сгенерировать заявление председателя собрания в совет об учреждении участка */
 export * as GenerateEstablishmentPetition from './generateEstablishmentPetition'
+export * as GenerateEstablishmentDecision from './generateEstablishmentDecision'
 
 /** Сгенерировать договор о полной материальной ответственности доверенного лица */
 export * as GenerateLiabilityAgreement from './generateLiabilityAgreement'

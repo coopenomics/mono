@@ -70,15 +70,15 @@ BaseDialog(v-model='isCreateOpen', title='Объявить собрание', si
     )
 
     template(v-if='form.type === "createbranch"')
-      .t-sm.t-muted.q-mt-sm
+      .t-sm.t-muted.q-my-md
         | Повестка стандартная: организация кооперативного участка и избрание его
         | председателя. Решение о месте основания участка и его председателе будет
         | принято на собрании. Место и время собрания видны только пайщикам.
     template(v-else)
-      .t-sm.t-muted.q-mt-sm
+      .t-sm.t-muted.q-my-md
         | Повестку определяете вы; на собрании её можно дополнить. Итог собрания —
         | протокол решения пайщиков, в совет ничего не направляется.
-      .q-mt-sm(v-for='(point, index) in freeAgenda', :key='index')
+      .q-mb-sm(v-for='(point, index) in freeAgenda', :key='index')
         .row.items-start.q-gutter-sm
           .col
             BaseInput(v-model='point.title', :label='`Вопрос ${index + 1}`', required)

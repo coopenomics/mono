@@ -7,6 +7,7 @@ import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
+import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
 import { api } from '../api';
 import type { IKuAgendaPointDraft, KuVote } from './types';
 

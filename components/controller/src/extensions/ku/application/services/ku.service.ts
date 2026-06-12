@@ -282,6 +282,13 @@ export class KuService {
     return this.generate(data, Cooperative.Registry.BranchEstablishmentPetition.registry_id, options);
   }
 
+  async generateBranchEstablishmentDecision(
+    data: Cooperative.Registry.BranchEstablishmentSovietDecision.Action,
+    options?: GenerateDocumentOptionsInputDTO
+  ): Promise<DocumentDomainEntity> {
+    return this.generate(data, Cooperative.Registry.BranchEstablishmentSovietDecision.registry_id, options);
+  }
+
   async generateBranchTrustedStatement(
     data: Cooperative.Registry.BranchTrustedStatement.Action,
     options?: GenerateDocumentOptionsInputDTO

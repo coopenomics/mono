@@ -1,4 +1,4 @@
-import { Field, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
+import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -406,6 +406,45 @@ export class BranchEstablishmentPetitionSignedDocumentInputDTO extends SignedDig
     description: 'Метаинформация заявления в совет об учреждении участка',
   })
   public readonly meta!: BranchEstablishmentPetitionSignedMetaDocumentInputDTO;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 325 — Решение совета об учреждении кооперативного участка
+// ─────────────────────────────────────────────────────────────────────────────
+
+type establishmentDecisionAction = Cooperative.Registry.BranchEstablishmentSovietDecision.Action;
+
+@InputType('BaseBranchEstablishmentDecisionMetaDocumentInput')
+class BaseBranchEstablishmentDecisionMetaDocumentInputDTO implements ExcludeCommonProps<establishmentDecisionAction> {
+  @Field(() => Int, { description: 'Идентификатор решения совета' })
+  @IsNumber()
+  decision_id!: number;
+
+  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  branch_name!: string;
+
+  @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  address!: string;
+
+  @Field(() => String, { description: 'ФИО избранного председателя кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  chairman_full_name!: string;
+}
+
+@InputType('BranchEstablishmentDecisionGenerateDocumentInput')
+export class BranchEstablishmentDecisionGenerateDocumentInputDTO
+  extends IntersectionType(
+    BaseBranchEstablishmentDecisionMetaDocumentInputDTO,
+    OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
+  )
+  implements establishmentDecisionAction
+{
+  registry_id!: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

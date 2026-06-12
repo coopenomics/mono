@@ -134,6 +134,9 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BranchEstablishmentDecisionGenerateDocumentInput:{
+
+	},
 	BranchEstablishmentPetitionGenerateDocumentInput:{
 
 	},
@@ -1266,6 +1269,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		kuExecDecision:{
 			data:"ExecKuDecisionInput"
+		},
+		kuGenerateEstablishmentDecision:{
+			data:"BranchEstablishmentDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
 		},
 		kuGenerateEstablishmentPetition:{
 			data:"BranchEstablishmentPetitionGenerateDocumentInput",
@@ -3977,6 +3984,7 @@ export const ReturnTypes: Record<string,any> = {
 		kuCreateDecision:"Transaction",
 		kuDeclineTrusted:"Transaction",
 		kuExecDecision:"Transaction",
+		kuGenerateEstablishmentDecision:"GeneratedDocument",
 		kuGenerateEstablishmentPetition:"GeneratedDocument",
 		kuGenerateLiabilityAgreement:"GeneratedDocument",
 		kuGenerateMeetingBallot:"GeneratedDocument",
