@@ -1,0 +1,122 @@
+import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
+import type { RecoveryFinalizationInput } from '~/domain/auth-v2/ports/recovery-finalization.port';
+import { RecoveryFinalizationService } from './recovery-finalization.service';
+
+const VAULT = {
+  cipher_version: 'v1',
+  kdf_version: 'v1',
+  salt: 's',
+  nonce: 'n',
+  ciphertext: 'c',
+} as RecoveryFinalizationInput['vaultBlob'];
+
+const INPUT: RecoveryFinalizationInput = {
+  subjectId: 'u1',
+  username: 'ant',
+  coopname: 'voskhod',
+  newPublicKey: 'PUB_K1_NEW',
+  vaultBlob: VAULT,
+  newPassword: 'pw',
+  ip: '1.2.3.4',
+};
+
+function account(activeKey: string | null) {
+  return {
+    permissions: [
+      {
+        perm_name: 'active',
+        required_auth: { keys: activeKey ? [{ key: activeKey, weight: 1 }] : [] },
+      },
+    ],
+  };
+}
+
+function setup() {
+  const chain = {
+    getAccount: jest.fn().mockResolvedValue(account('PUB_K1_OLD')),
+    changeKey: jest.fn().mockResolvedValue(undefined),
+  };
+  const vault = { store: jest.fn().mockResolvedValue(undefined) };
+  const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 3 }) };
+  const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
+  const service = new RecoveryFinalizationService(
+    chain as never,
+    vault as never,
+    sessions as never,
+    audit as never,
+    securityEvents as never,
+  );
+  return { service, chain, vault, sessions, audit, securityEvents };
+}
+
+describe('RecoveryFinalizationService (Story 3.3)', () => {
+  it('ротация: vault.store → registrator changekey → revokeAll → audit KeyRotated → notify', async () => {
+    const { service, chain, vault, sessions, audit, securityEvents } = setup();
+
+    await service.finalize(INPUT);
+
+    expect(vault.store).toHaveBeenCalledWith(
+      { subject_type: 'participant', subject_id: 'ant' },
+      VAULT,
+    );
+    expect(chain.changeKey).toHaveBeenCalledWith({
+      coopname: 'voskhod',
+      changer: 'voskhod',
+      username: 'ant',
+      public_key: 'PUB_K1_NEW',
+    });
+    expect(sessions.revokeAll).toHaveBeenCalledWith('u1', '1.2.3.4');
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'KeyRotated',
+        subjectId: 'u1',
+        actor: 'self',
+        result: 'success',
+        ip: '1.2.3.4',
+        context: {
+          trigger: 'recovery',
+          old_pubkey: 'PUB_K1_OLD',
+          new_pubkey: 'PUB_K1_NEW',
+          initiator_id: 'u1',
+          sessions_revoked: 3,
+        },
+      }),
+    );
+    expect(securityEvents.notify).toHaveBeenCalledWith({
+      subjectId: 'u1',
+      kind: SecurityEventKind.KeyRotated,
+      ip: '1.2.3.4',
+    });
+  });
+
+  it('инвариант порядка: vault сохраняется ДО on-chain changekey (иначе потеря ключа при сбое)', async () => {
+    const { service, chain, vault } = setup();
+    await service.finalize(INPUT);
+    expect(vault.store.mock.invocationCallOrder[0]).toBeLessThan(
+      chain.changeKey.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('old_pubkey best-effort: getAccount упал → ротация идёт, old_pubkey=null', async () => {
+    const { service, chain, audit } = setup();
+    chain.getAccount.mockRejectedValueOnce(new Error('rpc down'));
+
+    await service.finalize(INPUT);
+
+    expect(chain.changeKey).toHaveBeenCalled();
+    const ctx = audit.record.mock.calls[0][0].context as Record<string, unknown>;
+    expect(ctx.old_pubkey).toBeNull();
+  });
+
+  it('force_recovery: actor=chairman, trigger=force_recovery в аудите', async () => {
+    const { service, audit } = setup();
+    await service.finalize({ ...INPUT, trigger: 'force_recovery' });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: 'chairman',
+        context: expect.objectContaining({ trigger: 'force_recovery' }),
+      }),
+    );
+  });
+});

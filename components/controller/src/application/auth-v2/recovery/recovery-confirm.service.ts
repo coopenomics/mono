@@ -82,6 +82,7 @@ export class RecoveryConfirmService {
         newPublicKey: input.newPublicKey,
         vaultBlob: input.vaultBlob,
         newPassword: input.newPassword,
+        ip,
       });
     } catch (err) {
       // Контекст без секретов: ни пароля, ни ключа, ни кода, ни токена.
