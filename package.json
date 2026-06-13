@@ -71,7 +71,8 @@
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",
     "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test",
     "test:component": "SOURCE=local NODE_ENV=test SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory run test",
-    "test:integration": "bash scripts/run-integration-tests.sh"
+    "test:integration": "bash scripts/run-integration-tests.sh",
+    "test:cross-runtime": "pnpm --filter @coopenomics/auth run test:cross-runtime"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
