@@ -10,32 +10,81 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import config from '~/config/config';
-import { AuditService, AuditRecord } from './audit/audit.service';
+import { AuditService, AuditRecord, AuditResult } from './audit/audit.service';
 
-/** Payload, который формирует webhook-mapping coopid-webhook-body в authentik. */
+/** Payload webhook-mapping'ов authentik (coopid-webhook-body / coopid-oidc-webhook-body). */
 export interface AuthentikWebhookBody {
   severity?: string;
   event_action?: string;
   event_user?: string | null;
+  // policy_execution (Story 1.5)
   passing?: boolean | null;
   messages?: string[] | null;
+  // OIDC / native-события (Story 8.3)
+  client_ip?: string | null;
+  app?: string | null;
   created?: string | null;
 }
 
 /**
+ * Семантические имена для ключевых OIDC-операций. Остальные подписанные
+ * native-события authentik зеркалятся как `Authentik<Action>` (Story 8.3 — AC:
+ * Oidc* для операций + Authentik* для native-событий). Все OIDC-операции
+ * выполняет authentik, контроллер узнаёт о них только через этот webhook.
+ */
+const OIDC_EVENT_MAP: Record<string, string> = {
+  login: 'OidcLoginSuccess',
+  logout: 'OidcLogout',
+  authorize_application: 'OidcTokenIssued',
+};
+
+/** Native-действия authentik, для которых result = failure (а не success). */
+const FAILURE_ACTIONS = new Set(['login_failed', 'suspicious_request', 'policy_exception']);
+
+function pascalCase(action: string): string {
+  return action
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join('');
+}
+
+/**
  * Маппинг webhook-события authentik в audit-запись. Чистая функция (юнит-тесты).
- * execution_logging включён ТОЛЬКО у парольной политики CoopID (см. blueprint),
- * поэтому policy_execution + passing=false ⇒ отказ по слабому паролю.
+ * - policy_execution + passing=false ⇒ слабый пароль (Story 1.5; execution_logging
+ *   включён ТОЛЬКО у парольной политики CoopID).
+ * - login/logout/authorize_application ⇒ семантические Oidc* (Story 8.3).
+ * - прочие подписанные native-события ⇒ Authentik<Action> (Story 8.3).
  */
 export function mapAuthentikEvent(body: AuthentikWebhookBody): AuditRecord | null {
-  if (body?.event_action !== 'policy_execution' || body?.passing !== false) return null;
+  const action = body?.event_action;
+  if (!action) return null;
+
+  if (action === 'policy_execution') {
+    if (body.passing !== false) return null;
+    return {
+      event: 'WeakPasswordRejected',
+      subjectId: body.event_user ?? null,
+      actor: body.event_user ?? null,
+      result: 'failure',
+      context: {
+        messages: body.messages ?? [],
+        authentik_created: body.created ?? null,
+      },
+    };
+  }
+
+  const event = OIDC_EVENT_MAP[action] ?? `Authentik${pascalCase(action)}`;
+  const result: AuditResult = FAILURE_ACTIONS.has(action) ? 'failure' : 'success';
   return {
-    event: 'WeakPasswordRejected',
+    event,
     subjectId: body.event_user ?? null,
     actor: body.event_user ?? null,
-    result: 'failure',
+    result,
+    ip: body.client_ip ?? null,
     context: {
-      messages: body.messages ?? [],
+      authentik_action: action,
+      app: body.app ?? null,
       authentik_created: body.created ?? null,
     },
   };
