@@ -21,6 +21,7 @@ import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
+import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
@@ -605,7 +606,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'market',
       title: 'Стол администратора',
       icon: 'fa-solid fa-shield-halved',
-      defaultRoute: 'marketplace-moderation',
+      // Реестр всех заказов кооператива — центральный обзорный экран стола;
+      // открывается первым.
+      defaultRoute: 'marketplace-admin-orders',
       routes: [
         {
           meta: {
@@ -615,6 +618,25 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           path: '/:coopname/market-admin',
           name: 'market-admin',
           children: [
+            {
+              // Единый реестр всех заказов кооператива с текущими статусами
+              // (`Order:read:all` есть у board_readonly и admin). Раскрытие заказа
+              // показывает его состояние (таймлайн) и детализацию процесса
+              // p.mkt.supply — документы + операции + проводки по order_hash —
+              // через общий виджет ProcessDetailCard, без ссылок на стол
+              // бухгалтера (у администратора/совета может не быть к нему доступа).
+              path: 'orders',
+              name: 'marketplace-admin-orders',
+              component: markRaw(AdminOrdersPage),
+              meta: {
+                title: 'Реестр заказов',
+                icon: 'receipt_long',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
             {
               // Эпик 3 / Story 3.6: admin-стол модерации offer'ов. Виден совету
               // и председателю (`Order:read:all` есть у board_readonly и admin).
