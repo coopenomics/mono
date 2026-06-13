@@ -92,5 +92,13 @@ Recovery / 2FA:
   `ForceRecoveryDenied` — force-recovery rules.
 - `KeyRevokedManually` — ручной отзыв скомпрометированного ключа (`reason`+`chairman_id`).
 
-OIDC-события (`Oidc*`) и зеркало authentik (`Authentik*`) — Story 8.3.
+OIDC-операции (Story 8.3, источник — native-события authentik через webhook):
+- `OidcLoginSuccess` — успешный вход (authentik `login`).
+- `OidcLogout` — выход (authentik `logout`).
+- `OidcTokenIssued` — выдача токена при авторизации приложения (authentik `authorize_application`).
+- `Authentik<Action>` — зеркало прочих native-событий authentik (`AuthentikLoginFailed`,
+  `AuthentikSuspiciousRequest`, …; result=failure для security-действий). Любое будущее
+  подписанное событие потечёт автоматически.
+- (отложено) `OidcTokenRevoked`/refresh — в authentik 2026.2 нет надёжного native-action.
+
 Key rotation (`KeyRotated` с цепочкой `RecoveryInitiated`/`RecoveryConfirmed`) — Story 8.4.
