@@ -25,6 +25,19 @@
 		reverse_proxy coopback:2998
 	}
 
+	# Стандартный корневой OIDC discovery (Story 5.1). authentik отдаёт его по
+	# /application/o/coopid/...; RP ждут корневой /.well-known/* — пробрасываем
+	# с rewrite (Host сохраняется → issuer/endpoints в доке строятся по домену
+	# кооператива). jwks.json — алиас на authentik /jwks/.
+	handle /.well-known/openid-configuration {
+		rewrite * /application/o/coopid/.well-known/openid-configuration
+		reverse_proxy authentik-server:9000
+	}
+	handle /.well-known/jwks.json {
+		rewrite * /application/o/coopid/jwks/
+		reverse_proxy authentik-server:9000
+	}
+
 	# Всё остальное — OIDC Provider (authentik UI, /application/o/*, flows).
 	handle {
 		reverse_proxy authentik-server:9000

@@ -1,0 +1,92 @@
+# CoopID Эпик 5: стандартный OIDC-провайдер кооператива.
+#
+# Декларативно создаёт OAuth2/OpenID-провайдера + приложение `coopid`, чтобы
+# authentik выставил стандартные OIDC-endpoints (discovery, jwks, authorize,
+# token, userinfo, revoke, introspect, end-session) для любого RP.
+#
+# Потребители (gitea/chatcoop/semaphore) НЕ настраиваются здесь — провайдер
+# универсален, RP цепляется позже отдельным client'ом (по решению владельца
+# 2026-06-13: «делаем только CoopID чтоб OIDC работал стандартно»).
+#
+# Story 5.1 (стандартные endpoints/RS256), 5.2 (auth_code+PKCE, без implicit/ROPC),
+# 5.4 (per-coop issuer через домен).
+version: 1
+metadata:
+  name: CoopID - OIDC provider & application
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+  # ── Кастомный scope coop:verification_types ──────────────────────────────
+  # coopname + типы верификации пайщика. Источник — атрибуты authentik-юзера,
+  # которые проставляет registration-flow (Эпик 1). Defensive .get — провайдер
+  # остаётся валиден даже до заполнения атрибутов.
+  - identifiers:
+      name: CoopID OIDC scope - coop:verification_types
+    model: authentik_providers_oauth2.scopemapping
+    attrs:
+      name: CoopID OIDC scope - coop:verification_types
+      scope_name: "coop:verification_types"
+      description: Кооператив пайщика и его типы верификации (CoopID)
+      expression: |
+        attrs = request.user.attributes or {}
+        return {
+            "coopname": attrs.get("coopname"),
+            "verification_types": attrs.get("verification_types", []),
+        }
+
+  # ── OAuth2/OpenID-провайдер ──────────────────────────────────────────────
+  - identifiers:
+      name: coopid
+    id: coopid-provider
+    model: authentik_providers_oauth2.oauth2provider
+    attrs:
+      name: coopid
+      client_type: confidential
+      # Пусто: конкретные RP (gitea/chatcoop/…) добавляют свои redirect_uri при
+      # подключении потребителя (отдельно, позже). Провайдер при этом валиден.
+      redirect_uris: []
+      sub_mode: user_uuid
+      issuer_mode: per_provider
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      refresh_token_validity: days=30
+      authorization_flow:
+        !Find [
+          authentik_flows.flow,
+          [slug, default-provider-authorization-explicit-consent],
+        ]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      signing_key:
+        !Find [
+          authentik_crypto.certificatekeypair,
+          [name, "authentik Self-signed Certificate"],
+        ]
+      property_mappings:
+        - !Find [
+            authentik_providers_oauth2.scopemapping,
+            [scope_name, openid],
+          ]
+        - !Find [
+            authentik_providers_oauth2.scopemapping,
+            [scope_name, email],
+          ]
+        - !Find [
+            authentik_providers_oauth2.scopemapping,
+            [scope_name, profile],
+          ]
+        - !Find [
+            authentik_providers_oauth2.scopemapping,
+            [scope_name, "coop:verification_types"],
+          ]
+
+  # ── Приложение (без него нет discovery/JWKS URL) ─────────────────────────
+  - identifiers:
+      slug: coopid
+    model: authentik_core.application
+    attrs:
+      name: CoopID
+      slug: coopid
+      provider: !KeyOf coopid-provider
+      meta_description: Удостоверение пайщика — единый вход кооператива
