@@ -20,6 +20,7 @@ import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSuppl
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
+import { PvzWriteoffsPage } from 'src/pages/Marketplace/PvzWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
 import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
@@ -513,6 +514,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Склад моего КУ',
                 icon: 'fa-solid fa-boxes-stacked',
                 requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
+              // Эпик 8: operator-стол подтверждения списания со склада. Совет
+              // одобрил проект списания — председатель КУ подтверждает
+              // фактическое выбытие имущества, подписав Служебную записку 1111.
+              path: 'writeoffs',
+              name: 'marketplace-pvz-writeoffs',
+              component: markRaw(PvzWriteoffsPage),
+              meta: {
+                title: 'Списание со склада',
+                icon: 'fa-solid fa-trash-can-arrow-up',
+                requires: 'Writeoff:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },

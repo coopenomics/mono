@@ -2,15 +2,18 @@
 import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
+  createWriteoffDraft,
   getOpenWriteoffDraft,
+  listWriteoffCandidates,
   listWriteoffProposals,
+  type MarketplaceWriteoffCandidateView,
   type MarketplaceWriteoffProposalView,
 } from '../api';
 import DraftEditorDialog from './DraftEditorDialog.vue';
@@ -39,6 +42,20 @@ const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
 const loading = ref(false);
 
+// Кандидаты на списание — просроченный скоропорт на складах. Председатель
+// выделяет позиции и одной кнопкой собирает из них черновик проекта.
+const candidates = ref<MarketplaceWriteoffCandidateView[]>([]);
+const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
+const creatingDraft = ref(false);
+
+const candidateColumns = [
+  { name: 'braname', align: 'left' as const, label: 'Кооп. участок', field: 'braname' },
+  { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
+  { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
+  { name: 'expiry_date', align: 'left' as const, label: 'Срок годности', field: 'expiry_date' },
+  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
+];
+
 const draftEditorOpen = ref(false);
 const submitDialogOpen = ref(false);
 const detailsOpen = ref(false);
@@ -47,25 +64,69 @@ const selected = ref<MarketplaceWriteoffProposalView | null>(null);
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [openDraft, councilPage, archivePage] = await Promise.all([
+    const [openDraft, councilPage, archivePage, candidatesList] = await Promise.all([
       getOpenWriteoffDraft(),
       listWriteoffProposals({ statuses: [
         Zeus.MarketplaceWriteoffProposalStatus.ON_AGENDA,
         Zeus.MarketplaceWriteoffProposalStatus.AUTHORIZED,
+        Zeus.MarketplaceWriteoffProposalStatus.PENDING_CONFIRMATION,
         Zeus.MarketplaceWriteoffProposalStatus.EXECUTING,
       ] }),
       listWriteoffProposals({ statuses: [
         Zeus.MarketplaceWriteoffProposalStatus.EXECUTED,
         Zeus.MarketplaceWriteoffProposalStatus.REJECTED,
       ] }),
+      listWriteoffCandidates(),
     ]);
     draft.value = openDraft;
     inCouncil.value = councilPage.items;
     archive.value = archivePage.items;
+    candidates.value = candidatesList;
+    // Позиции, уже попавшие в открытый черновик, из выбора убираем.
+    if (selectedCandidates.value.length) {
+      const present = new Set(candidatesList.map((c) => c.inventory_id));
+      selectedCandidates.value = selectedCandidates.value.filter((c) => present.has(c.inventory_id));
+    }
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить проекты списания');
   } finally {
     loading.value = false;
+  }
+}
+
+function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
+  return Number.parseFloat(c.amount) > 0;
+}
+
+async function createDraftFromSelection(): Promise<void> {
+  const picked = selectedCandidates.value.filter(hasAmount);
+  if (picked.length === 0) {
+    FailAlert(
+      new Error('Нет позиций с известной стоимостью'),
+      'Выделите позиции с ненулевой суммой списания',
+    );
+    return;
+  }
+  creatingDraft.value = true;
+  try {
+    const created = await createWriteoffDraft({
+      items: picked.map((c) => ({
+        braname: c.braname,
+        asset_title: c.asset_title,
+        quantity: c.quantity,
+        amount: c.amount,
+        reason: c.reason,
+        inventory_id: c.inventory_id,
+      })),
+    });
+    draft.value = created;
+    selectedCandidates.value = [];
+    SuccessAlert('Черновик списания собран из выбранных позиций');
+    void load();
+  } catch (e) {
+    FailAlert(e, 'Не удалось создать черновик списания');
+  } finally {
+    creatingDraft.value = false;
   }
 }
 
@@ -81,6 +142,7 @@ function statusVariant(status: MarketplaceWriteoffProposalView['status']): BaseB
     case 'ON_AGENDA':
       return 'accent';
     case 'AUTHORIZED':
+    case 'PENDING_CONFIRMATION':
     case 'EXECUTING':
       return 'info';
     case 'EXECUTED':
@@ -99,7 +161,9 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
     case 'ON_AGENDA':
       return 'На повестке';
     case 'AUTHORIZED':
-      return 'Утверждено';
+      return 'Утверждено советом';
+    case 'PENDING_CONFIRMATION':
+      return 'Ожидает подтверждения склада';
     case 'EXECUTING':
       return 'Идёт списание';
     case 'EXECUTED':
@@ -155,11 +219,44 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     | Сначала собирается черновик списания — вручную председателем или автоматически по сроку годности. Затем председатель подписывает заявление и выносит проект на повестку совета. Совет утверждает списание протоколом, после чего имущество списывается со склада.
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре, dense/primary).
+  //- Активна только когда выделены позиции-кандидаты; собирает из них черновик.
   Teleport(to="#header-actions-host", defer)
-    BaseButton(v-if="!draft", variant="primary", size="sm", @click="draftEditorOpen = true")
+    BaseButton(
+      v-if="!draft",
+      variant="primary",
+      size="sm",
+      :disabled="selectedCandidates.length === 0",
+      :loading="creatingDraft",
+      @click="createDraftFromSelection"
+    )
       template(#icon-left)
         q-icon(name="add", size="18px")
-      | Новый черновик
+      | Новый черновик{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
+
+  //- Кандидаты на списание: выделяемая таблица просроченного скоропорта.
+  //- Один черновик за раз — пока есть открытый черновик, таблицу прячем.
+  BaseCard(v-if="!draft")
+    .writeoffs__candidates-head
+      .t-h3 Кандидаты на списание
+      .t-muted Просроченный скоропорт на складах кооператива. Выделите позиции и нажмите «Новый черновик» в шапке.
+    q-table.full-width.q-mt-sm(
+      flat,
+      :rows="candidates",
+      :columns="candidateColumns",
+      row-key="inventory_id",
+      selection="multiple",
+      v-model:selected="selectedCandidates",
+      :loading="loading",
+      :rows-per-page-options="[0]",
+      hide-bottom,
+      no-data-label="Просроченных позиций на складах не найдено"
+    )
+      template(#body-cell-quantity="props")
+        q-td.text-right(:props="props") {{ props.row.quantity }}
+      template(#body-cell-expiry_date="props")
+        q-td(:props="props") {{ formatDate(props.row.expiry_date) }}
+      template(#body-cell-amount="props")
+        q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 
   BaseCard(v-if="draft")
     .writeoffs__draft
