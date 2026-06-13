@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import type { MarketplaceWriteoffProposalView } from '../api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseDialog } from 'src/shared/ui/base';
+import type { MarketplaceWriteoffProposalView } from '../api';
 
 defineProps<{
   modelValue: boolean;
@@ -23,7 +24,9 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
     case 'ON_AGENDA':
       return 'На повестке совета';
     case 'AUTHORIZED':
-      return 'Авторизовано';
+      return 'Утверждено советом';
+    case 'PENDING_CONFIRMATION':
+      return 'Ожидает подтверждения склада';
     case 'EXECUTING':
       return 'Идёт списание';
     case 'EXECUTED':
@@ -37,64 +40,59 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
 </script>
 
 <template lang="pug">
-q-dialog(
-  :model-value="modelValue"
+BaseDialog(
+  :model-value="modelValue",
+  :title="`Проект списания · ${humanStatus(proposal.status)}`",
+  maximized,
   @update:model-value="(v) => emit('update:modelValue', v)"
-  full-width
 )
-  q-card
-    q-card-section.row.items-center
-      .text-h6 Проект списания · {{ humanStatus(proposal.status) }}
-      q-space
-      q-btn(flat round icon="close" @click="emit('update:modelValue', false)")
+  section
+    .t-h3 Основные параметры
+    .row.q-col-gutter-md.q-mt-xs
+      .col
+        .t-muted Цикл
+        div {{ fmt(proposal.cycle_started_at) }}
+      .col
+        .t-muted Сумма
+        div {{ formatAsset2Digits(proposal.total_amount) }}
+      .col
+        .t-muted Идентификатор on-chain
+        .t-mono-sm(style="word-break: break-all") {{ proposal.proposal_hash || '—' }}
+      .col
+        .t-muted Решение совета
+        div {{ proposal.decision_id ?? '—' }}
 
-    q-card-section
-      .text-subtitle2 Основные параметры
-      .row.q-col-gutter-md
-        .col
-          .text-caption.text-grey Цикл
-          div {{ fmt(proposal.cycle_started_at) }}
-        .col
-          .text-caption.text-grey Сумма
-          div {{ formatAsset2Digits(proposal.total_amount) }}
-        .col
-          .text-caption.text-grey Идентификатор on-chain
-          div(style="font-family: monospace; word-break: break-all") {{ proposal.proposal_hash || '—' }}
-        .col
-          .text-caption.text-grey Решение совета
-          div {{ proposal.decision_id ?? '—' }}
+  section.q-mt-md
+    .t-h3.q-mb-sm Позиции
+    q-markup-table(dense, flat, bordered)
+      thead
+        tr
+          th №
+          th Кооп. участок
+          th Наименование
+          th Кол-во
+          th Сумма
+          th Причина
+          th Статус
+      tbody
+        tr(v-for="(it, idx) in proposal.items", :key="idx")
+          td {{ idx + 1 }}
+          td {{ it.branch_name || it.braname }}
+          td {{ it.asset_title }}
+          td {{ it.quantity }}
+          td {{ formatAsset2Digits(it.amount) }}
+          td {{ it.reason }}
+          td(:class="it.executed ? 'text-positive' : 'text-grey-7'") {{ it.executed ? 'Исполнено' : 'Ожидает' }}
 
-    q-card-section
-      .text-subtitle2.q-mb-sm Позиции
-      q-markup-table(dense flat bordered)
-        thead
-          tr
-            th №
-            th КУ
-            th Наименование
-            th Кол-во
-            th Сумма
-            th Причина
-            th Статус
-        tbody
-          tr(v-for="(it, idx) in proposal.items" :key="idx")
-            td {{ idx + 1 }}
-            td {{ it.braname }}
-            td {{ it.asset_title }}
-            td {{ it.quantity }}
-            td {{ formatAsset2Digits(it.amount) }}
-            td {{ it.reason }}
-            td(:class="it.executed ? 'text-positive' : 'text-grey-7'") {{ it.executed ? 'Исполнено' : 'Ожидает' }}
+  section.q-mt-md(v-if="proposal.reject_reason")
+    .t-h3 Причина отказа совета
+    .text-body2 {{ proposal.reject_reason }}
 
-    q-card-section(v-if="proposal.reject_reason")
-      .text-subtitle2 Причина отказа совета
-      .text-body2 {{ proposal.reject_reason }}
-
-    q-card-section(v-if="proposal.decision_log && proposal.decision_log.length")
-      .text-subtitle2.q-mb-sm Журнал решений
-      q-list(dense bordered separator)
-        q-item(v-for="(entry, idx) in proposal.decision_log" :key="idx")
-          q-item-section
-            q-item-label {{ entry.action }} — {{ entry.actor }}
-            q-item-label(caption) {{ fmt(entry.at) }}
+  section.q-mt-md(v-if="proposal.decision_log && proposal.decision_log.length")
+    .t-h3.q-mb-sm Журнал решений
+    q-list(dense, bordered, separator)
+      q-item(v-for="(entry, idx) in proposal.decision_log", :key="idx")
+        q-item-section
+          q-item-label {{ entry.action }} — {{ entry.actor }}
+          q-item-label(caption) {{ fmt(entry.at) }}
 </template>

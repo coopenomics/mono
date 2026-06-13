@@ -35,6 +35,11 @@ registerEnumType(MarketplaceWriteoffProposalTriggerEnum, {
 export class MarketplaceWriteoffProposalItemDTO {
   @Field({ description: 'Кооперативный участок (склад) — источник позиции к списанию.' })
   braname!: string;
+  @Field(() => String, {
+    nullable: true,
+    description: 'Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе).',
+  })
+  branch_name?: string | null;
   @Field({ description: 'Наименование позиции или артикул из карточки имущества.' })
   asset_title!: string;
   @Field({ description: 'Количество единиц к списанию.' })
@@ -182,6 +187,8 @@ export class MarketplaceWriteoffCandidateDTO {
   inventory_id!: string;
   @Field({ description: 'Кооперативный участок (склад), где лежит позиция.' })
   braname!: string;
+  @Field({ description: 'Человеко-читаемое наименование кооперативного участка.' })
+  branch_name!: string;
   @Field({ description: 'Наименование позиции (из карточки имущества).' })
   asset_title!: string;
   @Field({ description: 'Количество единиц.' })

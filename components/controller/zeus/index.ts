@@ -8475,6 +8475,8 @@ export type ValueTypes = {
 	asset_title?:boolean | `@${string}`,
 	/** Кооперативный участок (склад), где лежит позиция. */
 	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name?:boolean | `@${string}`,
 	/** Срок годности (ISO). */
 	expiry_date?:boolean | `@${string}`,
 	/** Идентификатор инвентарной позиции на складе. */
@@ -8560,6 +8562,8 @@ export type ValueTypes = {
 	asset_title?:boolean | `@${string}`,
 	/** Кооперативный участок (склад) — источник позиции к списанию. */
 	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе). */
+	branch_name?:boolean | `@${string}`,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed?:boolean | `@${string}`,
 	/** Идентификатор инвентарной позиции, если известна. */
@@ -19263,6 +19267,8 @@ export type ResolverInputTypes = {
 	asset_title?:boolean | `@${string}`,
 	/** Кооперативный участок (склад), где лежит позиция. */
 	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name?:boolean | `@${string}`,
 	/** Срок годности (ISO). */
 	expiry_date?:boolean | `@${string}`,
 	/** Идентификатор инвентарной позиции на складе. */
@@ -19344,6 +19350,8 @@ export type ResolverInputTypes = {
 	asset_title?:boolean | `@${string}`,
 	/** Кооперативный участок (склад) — источник позиции к списанию. */
 	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе). */
+	branch_name?:boolean | `@${string}`,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed?:boolean | `@${string}`,
 	/** Идентификатор инвентарной позиции, если известна. */
@@ -29667,6 +29675,8 @@ export type ModelTypes = {
 	asset_title: string,
 	/** Кооперативный участок (склад), где лежит позиция. */
 	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name: string,
 	/** Срок годности (ISO). */
 	expiry_date?: string | undefined | null,
 	/** Идентификатор инвентарной позиции на складе. */
@@ -29744,6 +29754,8 @@ export type ModelTypes = {
 	asset_title: string,
 	/** Кооперативный участок (склад) — источник позиции к списанию. */
 	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе). */
+	branch_name?: string | undefined | null,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed: boolean,
 	/** Идентификатор инвентарной позиции, если известна. */
@@ -41216,6 +41228,8 @@ export type GraphQLTypes = {
 	asset_title: string,
 	/** Кооперативный участок (склад), где лежит позиция. */
 	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name: string,
 	/** Срок годности (ISO). */
 	expiry_date?: string | undefined | null,
 	/** Идентификатор инвентарной позиции на складе. */
@@ -41301,6 +41315,8 @@ export type GraphQLTypes = {
 	asset_title: string,
 	/** Кооперативный участок (склад) — источник позиции к списанию. */
 	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе). */
+	branch_name?: string | undefined | null,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed: boolean,
 	/** Идентификатор инвентарной позиции, если известна. */

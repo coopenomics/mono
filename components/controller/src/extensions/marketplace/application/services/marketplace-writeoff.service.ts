@@ -93,6 +93,7 @@ export interface MarketplaceConfirmWriteoffInput {
 export interface MarketplaceWriteoffCandidateView {
   inventory_id: string;
   braname: string;
+  branch_name: string;
   asset_title: string;
   quantity: string;
   amount: string;
@@ -169,25 +170,51 @@ export class MarketplaceWriteoffService {
   }
 
   /**
+   * Резолвит человеко-читаемые имена кооперативных участков по их braname —
+   * для показа в интерфейсе вместо служебного идентификатора. Кэш на один
+   * вызов: позиций по одному складу обычно много.
+   */
+  async resolveBranchNames(branames: string[]): Promise<Record<string, string>> {
+    const map: Record<string, string> = {};
+    for (const bn of new Set(branames)) {
+      const branch = await this.orderDisplay.resolveBranchDisplay(bn);
+      map[bn] = branch.name || bn;
+    }
+    return map;
+  }
+
+  /**
    * Кандидаты на списание скоропорта для admin-стола: просроченные позиции на
    * складах кооператива. Председатель выделяет нужные и создаёт из них
    * черновик. Сумма = arrival_price × quantity.
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
-    return candidates.map((c) => {
+    // Имя КУ показываем человеку, не служебный braname — резолвим с кэшем,
+    // позиций по одному складу обычно много.
+    const branchNameCache = new Map<string, string>();
+    const result: MarketplaceWriteoffCandidateView[] = [];
+    for (const c of candidates) {
+      let branchName = branchNameCache.get(c.braname);
+      if (branchName === undefined) {
+        const branch = await this.orderDisplay.resolveBranchDisplay(c.braname);
+        branchName = branch.name || c.braname;
+        branchNameCache.set(c.braname, branchName);
+      }
       const unit = c.arrival_price !== null ? Number(c.arrival_price) : 0;
       const amount = Number.isFinite(unit) ? unit * c.quantity : 0;
-      return {
+      result.push({
         inventory_id: c.inventory_id,
         braname: c.braname,
+        branch_name: branchName,
         asset_title: c.asset_title,
         quantity: String(c.quantity),
         amount: this.formatAssetNumber(amount),
         reason: 'Истёк срок годности',
         expiry_date: c.expiry_date ? c.expiry_date.toISOString() : null,
-      };
-    });
+      });
+    }
+    return result;
   }
 
   /**

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import {
   cancelWriteoffDraft,
   createWriteoffDraft,
@@ -150,45 +151,46 @@ async function cancelDraftAndClose(): Promise<void> {
 </script>
 
 <template lang="pug">
-q-dialog(
-  :model-value="modelValue"
+BaseDialog(
+  :model-value="modelValue",
+  :title="existingDraft ? 'Редактирование черновика' : 'Новый черновик списания'",
+  maximized,
+  :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
-  full-width persistent
 )
-  q-card
-    q-card-section.row.items-center
-      .text-h6 {{ existingDraft ? 'Редактирование черновика' : 'Новый черновик списания' }}
-      q-space
-      q-btn(flat round icon="close" @click="emit('update:modelValue', false)")
+  q-list(bordered, separator)
+    q-item(v-for="(it, idx) in items", :key="idx")
+      q-item-section
+        .row.q-col-gutter-sm
+          //- Плотный построчный редактор: q-input оправдан (BaseInput резервирует
+          //- высоту под hint и раздул бы строки таблицы).
+          q-input.col-2(v-model="it.braname", label="КУ", dense, outlined)
+          q-input.col-3(v-model="it.asset_title", label="Наименование", dense, outlined)
+          q-input.col-1(v-model="it.quantity", label="Кол-во", dense, outlined)
+          q-input.col-2(v-model="it.amount", label="Сумма", dense, outlined)
+          q-input.col-4(v-model="it.reason", label="Причина", dense, outlined)
+      q-item-section(side)
+        q-btn(flat, round, dense, color="negative", icon="delete", @click="removeItem(idx)")
+  BaseButton.q-mt-sm(variant="ghost", size="sm", @click="addItem")
+    template(#icon-left)
+      q-icon(name="add", size="16px")
+    | Добавить позицию
 
-    q-card-section
-      q-list(bordered separator)
-        q-item(v-for="(it, idx) in items" :key="idx")
-          q-item-section
-            .row.q-col-gutter-sm
-              q-input.col-2(v-model="it.braname" label="КУ" dense outlined)
-              q-input.col-3(v-model="it.asset_title" label="Наименование" dense outlined)
-              q-input.col-1(v-model="it.quantity" label="Кол-во" dense outlined)
-              q-input.col-2(v-model="it.amount" label="Сумма" dense outlined)
-              q-input.col-4(v-model="it.reason" label="Причина" dense outlined)
-          q-item-section(side)
-            q-btn(flat round dense color="negative" icon="delete" @click="removeItem(idx)")
-      q-btn.q-mt-sm(flat no-caps icon="add" label="Добавить позицию" @click="addItem")
+  .draft-editor__total.q-mt-md
+    .text-body1 ИТОГО: {{ formatAsset2Digits(totalAmount) }} ₽
 
-    q-card-section.row.items-center
-      .text-body1 ИТОГО: {{ formatAsset2Digits(totalAmount) }} ₽
-      q-space
-      q-btn.q-mr-sm(
-        v-if="existingDraft"
-        flat no-caps color="negative"
-        label="Удалить черновик"
-        :loading="saving"
-        @click="cancelDraftAndClose"
-      )
-      q-btn(
-        unelevated no-caps color="primary"
-        label="Сохранить"
-        :loading="saving"
-        @click="save"
-      )
+  template(#footer)
+    BaseButton(
+      v-if="existingDraft",
+      variant="danger",
+      :loading="saving",
+      @click="cancelDraftAndClose"
+    ) Удалить черновик
+    BaseButton(variant="primary", :loading="saving", @click="save") Сохранить
 </template>
+
+<style lang="scss" scoped>
+.draft-editor__total {
+  font-weight: 600;
+}
+</style>

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import {
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
@@ -73,35 +74,47 @@ async function signAndSubmit(): Promise<void> {
 </script>
 
 <template lang="pug">
-q-dialog(
-  :model-value="modelValue"
+BaseDialog(
+  :model-value="modelValue",
+  title="Подписание Заявления о списании скоропорта",
+  maximized,
+  :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
-  full-width persistent
 )
-  q-card
-    q-card-section.row.items-center
-      .text-h6 Подписание Заявления о списании скоропорта
-      q-space
-      q-btn(flat round icon="close" @click="emit('update:modelValue', false)")
+  .submit-council(v-if="loading")
+    q-spinner(size="24px")
+    span.text-grey-7 Формируем Заявление…
 
-    q-card-section(v-if="loading")
-      q-spinner-tabs(indeterminate)
-      .text-grey.q-ml-md Формируем Заявление…
+  template(v-else-if="previewDoc")
+    .t-muted.submit-council__intro
+      | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
+    .submit-council__doc
+      div(v-html="previewDoc.html")
 
-    q-card-section(v-else-if="previewDoc")
-      .text-body2.text-grey.q-mb-md
-        | Подписав это Заявление, вы инициируете повестку совета о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания через стандартный sov.decision flow.
-      q-card(flat bordered).q-pa-md(style="max-height: 50vh; overflow: auto")
-        div(v-html="previewDoc.html")
-
-    q-card-section.row.items-center.q-gutter-sm(v-if="previewDoc")
-      q-space
-      q-btn(flat no-caps label="Отмена" @click="emit('update:modelValue', false)")
-      q-btn(
-        unelevated no-caps color="primary"
-        icon="fa-solid fa-signature"
-        label="Подписать и отправить в совет"
-        :loading="submitting"
-        @click="signAndSubmit"
-      )
+  template(#footer, v-if="previewDoc")
+    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
+    BaseButton(variant="primary", :loading="submitting", @click="signAndSubmit")
+      template(#icon-left)
+        q-icon(name="draw", size="18px")
+      | Подписать и отправить в совет
 </template>
+
+<style lang="scss" scoped>
+.submit-council {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+
+  &__intro {
+    margin-bottom: var(--p-4, 16px);
+  }
+
+  &__doc {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    max-height: 60vh;
+    overflow: auto;
+  }
+}
+</style>

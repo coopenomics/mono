@@ -127,9 +127,7 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
             q-icon(name="task_alt", size="16px")
           | Подтвердить списание
 
-      q-card(v-if="expanded[groupKey(g)]", flat, bordered).q-mt-sm.q-pa-md(
-        style="max-height: 40vh; overflow: auto"
-      )
+      .pvz-writeoffs__protocol.q-mt-sm(v-if="expanded[groupKey(g)]")
         div(v-if="protocolHtml(g)", v-html="protocolHtml(g)")
         .t-muted(v-else) Протокол совета недоступен для просмотра.
 
@@ -170,6 +168,14 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
   &__empty {
     display: flex;
     justify-content: center;
+  }
+
+  &__protocol {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    max-height: 40vh;
+    overflow: auto;
   }
 }
 

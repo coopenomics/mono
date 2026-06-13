@@ -84,7 +84,10 @@ export class MarketplaceWriteoffResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceWriteoffProposalDTO | null> {
     const draft = await this.service.getOpenDraft(config.coopname);
-    return draft ? toMarketplaceWriteoffProposalDTO(draft) : null;
+    if (!draft) return null;
+    const dto = toMarketplaceWriteoffProposalDTO(draft);
+    await this.enrichItemBranchNames([dto]);
+    return dto;
   }
 
   @Query(() => PaginatedMarketplaceWriteoffProposalsDTO, {
@@ -105,8 +108,10 @@ export class MarketplaceWriteoffResolver {
     });
     const page = options?.page ?? 1;
     const limit = options?.limit ?? 50;
+    const items = result.items.map(toMarketplaceWriteoffProposalDTO);
+    await this.enrichItemBranchNames(items);
     return {
-      items: result.items.map(toMarketplaceWriteoffProposalDTO),
+      items,
       totalCount: result.total,
       totalPages: Math.max(1, Math.ceil(result.total / limit)),
       currentPage: page,
@@ -122,7 +127,9 @@ export class MarketplaceWriteoffResolver {
   async marketplaceWriteoffProposal(
     @Args('id') id: string
   ): Promise<MarketplaceWriteoffProposalDTO> {
-    return toMarketplaceWriteoffProposalDTO(await this.service.getProposal(id));
+    const dto = toMarketplaceWriteoffProposalDTO(await this.service.getProposal(id));
+    await this.enrichItemBranchNames([dto]);
+    return dto;
   }
 
   @Mutation(() => MarketplaceWriteoffProposalDTO, {
@@ -328,6 +335,22 @@ export class MarketplaceWriteoffResolver {
       signed_memo: data.signed_memo,
     });
     return toMarketplaceWriteoffProposalDTO(updated);
+  }
+
+  /**
+   * Проставляет позициям проектов человеко-читаемое имя КУ: в интерфейсе не
+   * показываем служебный braname (правило платформы). Резолв с общим кэшем по
+   * всем переданным проектам.
+   */
+  private async enrichItemBranchNames(dtos: MarketplaceWriteoffProposalDTO[]): Promise<void> {
+    const branames = dtos.flatMap((d) => d.items.map((it) => it.braname));
+    if (branames.length === 0) return;
+    const names = await this.service.resolveBranchNames(branames);
+    for (const d of dtos) {
+      for (const it of d.items) {
+        it.branch_name = names[it.braname] ?? it.braname;
+      }
+    }
   }
 
   /**

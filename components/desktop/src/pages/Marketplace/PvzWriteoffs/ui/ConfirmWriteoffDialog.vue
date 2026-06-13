@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
-import { BaseButton } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import {
   confirmWriteoff,
   getWriteoffServiceMemoSignablePayload,
@@ -76,33 +76,47 @@ async function signAndConfirm(): Promise<void> {
 </script>
 
 <template lang="pug">
-q-dialog(
+BaseDialog(
   :model-value="modelValue",
-  @update:model-value="(v) => emit('update:modelValue', v)",
-  full-width,
-  persistent
+  title="Подтверждение списания со склада",
+  maximized,
+  :close-on-backdrop="false",
+  @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  q-card
-    q-card-section.row.items-center
-      .text-h6 Подтверждение списания со склада
-      q-space
-      q-btn(flat, round, icon="close", @click="emit('update:modelValue', false)")
+  .confirm-writeoff(v-if="loading")
+    q-spinner(size="24px")
+    span.text-grey-7 Формируем Служебную записку…
 
-    q-card-section(v-if="loading")
-      q-spinner(size="24px")
-      span.q-ml-md.text-grey-7 Формируем Служебную записку…
+  template(v-else-if="previewDoc")
+    .t-muted.confirm-writeoff__intro
+      | Подписав эту Служебную записку, вы подтверждаете фактическое списание имущества со склада участка «{{ group?.branch_name }}». Имущество выбудет со склада и будет снято с учёта.
+    .confirm-writeoff__doc
+      div(v-html="previewDoc.html")
 
-    q-card-section(v-else-if="previewDoc")
-      .text-body2.text-grey-7.q-mb-md
-        | Подписав эту Служебную записку, вы подтверждаете фактическое списание имущества со склада участка «{{ group?.branch_name }}». Имущество выбудет со склада и будет снято с учёта.
-      q-card(flat, bordered).q-pa-md(style="max-height: 50vh; overflow: auto")
-        div(v-html="previewDoc.html")
-
-    q-card-section.row.items-center.q-gutter-sm(v-if="previewDoc")
-      q-space
-      BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
-      BaseButton(variant="primary", :loading="submitting", @click="signAndConfirm")
-        template(#icon-left)
-          q-icon(name="task_alt", size="18px")
-        | Подписать и списать
+  template(#footer, v-if="previewDoc")
+    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
+    BaseButton(variant="primary", :loading="submitting", @click="signAndConfirm")
+      template(#icon-left)
+        q-icon(name="task_alt", size="18px")
+      | Подписать и списать
 </template>
+
+<style lang="scss" scoped>
+.confirm-writeoff {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+
+  &__intro {
+    margin-bottom: var(--p-4, 16px);
+  }
+
+  &__doc {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-4, 16px);
+    max-height: 60vh;
+    overflow: auto;
+  }
+}
+</style>

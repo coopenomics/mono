@@ -49,7 +49,7 @@ const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const creatingDraft = ref(false);
 
 const candidateColumns = [
-  { name: 'braname', align: 'left' as const, label: 'Кооп. участок', field: 'braname' },
+  { name: 'branch_name', align: 'left' as const, label: 'Кооп. участок', field: 'branch_name' },
   { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
   { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
   { name: 'expiry_date', align: 'left' as const, label: 'Срок годности', field: 'expiry_date' },

@@ -3,6 +3,7 @@ import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 
 const rawItemSelector = {
   braname: true,
+  branch_name: true,
   asset_title: true,
   quantity: true,
   amount: true,
@@ -78,6 +79,7 @@ export const paginatedMarketplaceWriteoffProposalsSelector = Selector(
 const rawCandidateSelector = {
   inventory_id: true,
   braname: true,
+  branch_name: true,
   asset_title: true,
   quantity: true,
   amount: true,
