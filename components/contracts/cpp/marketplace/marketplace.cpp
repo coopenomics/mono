@@ -38,6 +38,7 @@
 #include "src/p.mkt.wroff/onmktwoauth.cpp"
 #include "src/p.mkt.wroff/onmktwodecl.cpp"
 #include "src/p.mkt.wroff/execwroff.cpp"
+#include "src/p.mkt.wroff/confirmwroff.cpp"
 
 [[eosio::action]] void marketplace::migrate() {
   // Donor-таблиц нет (AR30 — donor-actions удалены вместе с requests/segments/
