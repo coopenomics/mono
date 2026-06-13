@@ -14,17 +14,21 @@ import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
+  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
+  type MarketplaceNewOrderForSupplierEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
   type MarketplaceReturnClaimSubmittedEvent,
+  type MarketplaceReturnAcceptedForSupplierEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
@@ -429,6 +433,91 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push поставщику об отказе (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT)
+  async handleNewOrderForSupplier(event: MarketplaceNewOrderForSupplierEvent): Promise<void> {
+    try {
+      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
+      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
+      const email = supplierAccount.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Order ${event.order_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push о новом заказе пропущен.`
+        );
+        return;
+      }
+
+      const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const payload: Workflows.MarketplaceNewOrderForSupplier.IPayload = {
+        supplierName,
+        ordererName,
+        quantity: event.quantity,
+        totalCost: event.total_cost,
+        coopname: event.coopname,
+        order_id: event.order_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceNewOrderForSupplier.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Order ${event.order_id}: уведомление поставщику ${event.supplier_account} о новом заказе отправлено.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Order ${event.order_id}: ошибка отправки уведомления поставщику о новом заказе (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT)
+  async handleReturnAcceptedForSupplier(
+    event: MarketplaceReturnAcceptedForSupplierEvent
+  ): Promise<void> {
+    try {
+      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
+      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
+      const email = supplierAccount.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Заявление на возврат ${event.claim_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push о приёме возврата пропущен.`
+        );
+        return;
+      }
+
+      const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      const reasonExcerpt =
+        event.inspection_result.length > 240
+          ? event.inspection_result.slice(0, 240) + '…'
+          : event.inspection_result;
+      const payload: Workflows.MarketplaceReturnAcceptedSupplier.IPayload = {
+        supplierName,
+        kuName: event.braname,
+        reasonExcerpt,
+        coopname: event.coopname,
+        claim_id: event.claim_id,
+        order_id: event.order_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceReturnAcceptedSupplier.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Заявление на возврат ${event.claim_id}: уведомление поставщику ${event.supplier_account} о приёме возврата в кооператив отправлено.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявление на возврат ${event.claim_id}: ошибка отправки уведомления поставщику о приёме возврата (${err.message}) — flow не блокируется.`
       );
     }
   }

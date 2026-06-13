@@ -48,9 +48,11 @@ import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
+  MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
   type MarketplaceReturnClaimSubmittedEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
+  type MarketplaceReturnAcceptedForSupplierEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -581,6 +583,10 @@ export class MarketplaceReturnClaimService {
 
     this.emitDecided(updated, entry);
     this.emitFinalized(updated, entry);
+    // Карта уведомлений (пробел B): поставщику отдельно — по его товару
+    // оформлена претензия, имущество принято в кооператив; дальше председатель
+    // КУ работает с ним за пределами системы.
+    this.emitReturnAcceptedForSupplier(updated, input.inspection_result);
     return { claim: updated, tx_hash: txHash };
   }
 
@@ -918,6 +924,21 @@ export class MarketplaceReturnClaimService {
       ledger_snapshot: claim.ledger_snapshot,
     };
     this.eventBus.emit(MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT, event);
+  }
+
+  private emitReturnAcceptedForSupplier(
+    claim: MarketplaceReturnClaimDomainEntity,
+    inspectionResult: string
+  ): void {
+    const event: MarketplaceReturnAcceptedForSupplierEvent = {
+      coopname: claim.coopname,
+      claim_id: claim.id,
+      order_id: claim.order_id,
+      supplier_account: claim.supplier_account,
+      braname: claim.delivery_braname,
+      inspection_result: inspectionResult,
+    };
+    this.eventBus.emit(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT, event);
   }
 }
 

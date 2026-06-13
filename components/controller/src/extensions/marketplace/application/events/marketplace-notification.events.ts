@@ -35,6 +35,29 @@ export const MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT =
   'marketplace.order.orderer.readyToReceive';
 
 /**
+ * Карта уведомлений (пробел A): поставщику ушло уведомление, что по его
+ * предложению поступил новый заказ — повод заглянуть на стол и акцептовать.
+ * Эмитится ПОСЛЕ записи Order'а в PG (INV-12). Каналы — только in-app + push
+ * (без email): новые заказы частые, письмо на каждый было бы спамом.
+ */
+export const MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT =
+  'marketplace.order.supplier.newOrder';
+
+export interface MarketplaceNewOrderForSupplierEvent {
+  coopname: string;
+  order_id: string;
+  order_hash: string;
+  /** Поставщик — адресат уведомления. */
+  supplier_account: string;
+  /** Заказчик — для человекочитаемого текста уведомления. */
+  orderer_account: string;
+  /** Кол-во заказанных единиц. */
+  quantity: number;
+  /** Полная сумма заказа (для подписи уведомления). */
+  total_cost: string;
+}
+
+/**
  * Остаток предложения изменился (заказ заблокировал/освободил/списал единицы).
  * Сигнал широковещательному каналу каталога, чтобы у всех пайщиков карточка
  * обновила доступное количество без перехода по страницам.
@@ -253,6 +276,28 @@ export interface MarketplaceReturnClaimSubmittedEvent {
   orderer_account: string;
   delivery_braname: string;
   reason_text: string;
+}
+
+/**
+ * Карта уведомлений (пробел B): гарантийный возврат принят в кооператив на
+ * очном осмотре (`accretrn`) — имущество принято на счёт 10, претензия
+ * зафиксирована. Поставщику уходит multi-channel уведомление: дальше
+ * председатель КУ свяжется с ним по претензии за пределами системы. Эмитится
+ * ПОСЛЕ commit'а решения в PG (INV-12).
+ */
+export const MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT =
+  'marketplace.returnClaim.supplier.acceptedToCoop';
+
+export interface MarketplaceReturnAcceptedForSupplierEvent {
+  coopname: string;
+  claim_id: string;
+  order_id: string;
+  /** Поставщик — адресат уведомления. */
+  supplier_account: string;
+  /** КУ доставки, где имущество принято обратно. */
+  braname: string;
+  /** Результат очного осмотра (краткая причина претензии). */
+  inspection_result: string;
 }
 
 export interface MarketplaceReturnClaimDecidedEvent {
