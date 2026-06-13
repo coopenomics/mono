@@ -1376,6 +1376,9 @@ export const AllTypesProps: Record<string,any> = {
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
 		},
+		saveMyPassport:{
+			passport:"PassportInput"
+		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
 		},
@@ -4030,6 +4033,7 @@ export const ReturnTypes: Record<string,any> = {
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		saveMyPassport:"Account",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
