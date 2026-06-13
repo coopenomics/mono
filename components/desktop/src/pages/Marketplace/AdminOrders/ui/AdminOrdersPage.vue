@@ -8,14 +8,15 @@
  * № операций/проводок здесь копируются, а не ведут в чужие реестры.
  */
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { useSystemStore } from 'src/entities/System/model';
-import { BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
-import { PageHint } from 'src/shared/ui/domain';
+import { PageHint, ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { fetchAllOrders } from '../api';
@@ -25,6 +26,7 @@ import type { AdminOrderView, AdminOrderStatusView } from '../types';
 const SUPPLY_PROCESS_TYPE = 'p.mkt.supply';
 
 const { info } = useSystemStore();
+const router = useRouter();
 
 const items = ref<AdminOrderView[]>([]);
 const loading = ref(false);
@@ -108,19 +110,42 @@ function supplierTitle(o: AdminOrderView): string {
   return o.supplier_name || o.supplier_account || '—';
 }
 
-// Состояние заказа — ключевые вехи жизненного цикла с датами. Показываем все
-// вехи (с «—» у не наступивших), чтобы администратор видел, где заказ; отмену
-// добавляем отдельной строкой только если она была.
-interface TimelineEvent { label: string; date: string | null | undefined }
-function timelineEvents(o: AdminOrderView): TimelineEvent[] {
-  const ev: TimelineEvent[] = [
-    { label: 'Размещён', date: (o.blocked_at as string) ?? o.created_at },
-    { label: 'Акцепт поставщика', date: o.accepted_at as string },
-    { label: 'Принят кооперативом (АПП приёмки)', date: o.chairman_signed_at as string },
-    { label: 'Получен заказчиком (АПП выдачи)', date: (o.orderer_signed_at as string) ?? (o.received_at as string) },
-  ];
-  if (o.cancelled_at) ev.push({ label: 'Отменён', date: o.cancelled_at as string });
+// Состояние заказа — канонической лентой ActivityTimeline: показываем только
+// НАСТУПИВШИЕ вехи с датами (текущий статус виден бейджем в строке). Причина
+// (last_status_reason) — это описание соответствующего события (отмены/отказа),
+// а не отдельная неподписанная строка «Причина» (непонятно «причина чего»).
+function orderEvents(o: AdminOrderView): ActivityEvent[] {
+  const ev: ActivityEvent[] = [];
+  const placed = o.blocked_at ?? o.created_at;
+  if (placed) {
+    ev.push({ id: 'placed', type: 'create', icon: 'shopping_cart', title: 'Заказ размещён', date: formatDate(placed) });
+  }
+  if (o.accepted_at) {
+    ev.push({ id: 'accepted', type: 'update', icon: 'inventory_2', title: 'Поставщик принял заказ', actor: supplierTitle(o), date: formatDate(o.accepted_at) });
+  }
+  if (o.chairman_signed_at) {
+    ev.push({ id: 'chairman', type: 'sign', title: 'Принят кооперативом (АПП приёмки)', date: formatDate(o.chairman_signed_at) });
+  }
+  const issued = o.orderer_signed_at ?? o.received_at;
+  if (issued) {
+    ev.push({ id: 'issued', type: 'sign', title: 'Получен заказчиком (АПП выдачи)', actor: ordererTitle(o), date: formatDate(issued) });
+  }
+  if (o.cancelled_at) {
+    ev.push({ id: 'cancelled', type: 'reject', title: statusLabel(o.status), description: o.last_status_reason || undefined, date: formatDate(o.cancelled_at) });
+  } else if (o.last_status_reason) {
+    ev.push({ id: 'reason', type: 'comment', title: 'Комментарий к статусу', description: o.last_status_reason, date: formatDate(o.updated_at) });
+  }
   return ev;
+}
+
+// Переход на карточку предложения (имущества) на столе администратора —
+// readonly-карточка, без перехода в каталог/на стол заказчика.
+function goToOffer(o: AdminOrderView): void {
+  if (!o.offer_id) return;
+  void router.push({
+    name: 'marketplace-admin-offer-detail',
+    params: { coopname: info.coopname, offerId: o.offer_id },
+  });
 }
 
 function toggleExpand(id: string): void {
@@ -206,7 +231,7 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
       @request="onRequest"
     )
       template(#body="props")
-        q-tr(:key="`ord_${props.row.id}`", :props="props")
+        q-tr(no-hover, :key="`ord_${props.row.id}`", :props="props")
           q-td(auto-width)
             ExpandToggleButton(
               :expanded="expanded.get(props.row.id)",
@@ -231,17 +256,22 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
         )
           q-td(colspan="100%")
             .q-pa-md
-              //- Состояние заказа: вехи жизненного цикла с датами.
+              //- Состояние заказа — канонический таймлайн (ActivityTimeline) +
+              //- переход на карточку предложения (имущества).
               q-card.q-mb-md(flat, bordered)
-                q-card-section.q-pb-none
+                q-card-section.row.items-center.justify-between.q-pb-none
                   .text-subtitle2 Состояние заказа
+                  BaseButton(
+                    v-if="props.row.offer_id",
+                    variant="secondary",
+                    size="sm",
+                    @click="goToOffer(props.row)"
+                  )
+                    template(#icon-left)
+                      q-icon(name="open_in_new", size="16px")
+                    | Открыть предложение
                 q-card-section.q-pt-sm
-                  .admin-orders__timeline
-                    .admin-orders__milestone(v-for="(e, i) in timelineEvents(props.row)", :key="i")
-                      .admin-orders__milestone-label {{ e.label }}
-                      .admin-orders__milestone-date(:class="{ 'admin-orders__milestone-date--empty': !e.date }") {{ formatDate(e.date) }}
-                  .text-caption.text-warning.q-mt-sm(v-if="props.row.last_status_reason")
-                    | Причина: {{ props.row.last_status_reason }}
+                  ActivityTimeline(:events="orderEvents(props.row)")
 
               //- Документы + операции + проводки процесса заказа (общий виджет).
               //- order_hash = хэш процесса p.mkt.supply. Без перехода в чужие реестры.
@@ -292,30 +322,11 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
     }
   }
 
-  &__timeline {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: var(--p-3, 12px);
-  }
-
-  &__milestone {
-    border-left: 2px solid var(--p-line, #e0e0e0);
-    padding-left: var(--p-3, 12px);
-  }
-
-  &__milestone-label {
-    font-size: var(--p-fs-sm, 12px);
-    color: var(--p-ink-3, #757575);
-  }
-
-  &__milestone-date {
-    font-weight: 500;
-    color: var(--p-ink, #212121);
-
-    &--empty {
-      color: var(--p-ink-3, #9e9e9e);
-      font-weight: 400;
-    }
+  // Реестр — обзорный список, не интерактивные строки: гасим подсветку строки
+  // при наведении (canon-правило .q-table tbody tr:hover) и в основной таблице,
+  // и во вложенных таблицах детализации (операции/проводки) — мигание мешает.
+  :deep(.q-table tbody tr:hover) {
+    background: transparent;
   }
 }
 

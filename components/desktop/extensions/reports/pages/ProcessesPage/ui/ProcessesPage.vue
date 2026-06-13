@@ -386,4 +386,10 @@ onMounted(async () => {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
 }
+/* Реестр — обзорный список: гасим подсветку строки при наведении (canon-правило
+   .q-table tbody tr:hover) и в основной таблице, и во вложенных таблицах
+   детализации (операции/проводки) — мигание при наведении мешает. */
+.page-shell :deep(.q-table tbody tr:hover) {
+  background: transparent;
+}
 </style>
