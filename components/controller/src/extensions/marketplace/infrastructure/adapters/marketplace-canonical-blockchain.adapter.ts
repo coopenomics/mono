@@ -429,6 +429,23 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
+  async confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        'Не найден приватный ключ кооператива для submit confirmwroff'
+      );
+    }
+    this.blockchainService.initialize(data.coopname, wif);
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.ConfirmWroff.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
   // ── Экономика КУ (requirement b6) ────────────────────────────────────
 
   /** Общий submit от ключа кооператива для actions экономики КУ (DRY). */

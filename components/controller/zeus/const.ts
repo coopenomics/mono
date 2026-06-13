@@ -710,6 +710,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceClearInventoryLabelInput:{
 
 	},
+	MarketplaceConfirmWriteoffInput:{
+		signed_memo:"SignedDigitalDocumentInput"
+	},
 	MarketplaceConsolidatedRequestStatus: "enum" as const,
 	MarketplaceConvertBranchFundsInput:{
 
@@ -965,6 +968,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceWriteoffProposalStatus: "enum" as const,
 	MarketplaceWriteoffProposalTrigger: "enum" as const,
+	MarketplaceWriteoffServiceMemoSignablePayloadInput:{
+
+	},
 	MarketplaceWriteoffStatementSignablePayloadInput:{
 
 	},
@@ -1478,6 +1484,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceClearInventoryLabel:{
 			data:"MarketplaceClearInventoryLabelInput"
+		},
+		marketplaceConfirmWriteoff:{
+			data:"MarketplaceConfirmWriteoffInput"
 		},
 		marketplaceConvertBranchFunds:{
 			data:"MarketplaceConvertBranchFundsInput"
@@ -2269,6 +2278,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceWriteoffProposal:{
 
+		},
+		marketplaceWriteoffServiceMemoSignablePayload:{
+			data:"MarketplaceWriteoffServiceMemoSignablePayloadInput"
 		},
 		marketplaceWriteoffStatementSignablePayload:{
 			data:"MarketplaceWriteoffStatementSignablePayloadInput"
@@ -4880,6 +4892,26 @@ export const ReturnTypes: Record<string,any> = {
 		member_account:"String",
 		role:"String"
 	},
+	MarketplaceWriteoffCandidate:{
+		amount:"String",
+		asset_title:"String",
+		braname:"String",
+		expiry_date:"String",
+		inventory_id:"String",
+		quantity:"String",
+		reason:"String"
+	},
+	MarketplaceWriteoffConfirmationGroup:{
+		authorized_at:"String",
+		braname:"String",
+		branch_name:"String",
+		cycle_started_at:"String",
+		items:"MarketplaceWriteoffProposalItem",
+		proposal_hash:"String",
+		proposal_id:"String",
+		protocol_doc:"JSON",
+		total_amount:"String"
+	},
 	MarketplaceWriteoffDecisionEntry:{
 		action:"String",
 		actor:"String",
@@ -5186,6 +5218,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceClearAvailableCategories:"Boolean",
 		marketplaceClearCart:"MarketplaceCart",
 		marketplaceClearInventoryLabel:"MarketplaceInventoryMutationResult",
+		marketplaceConfirmWriteoff:"MarketplaceWriteoffProposal",
 		marketplaceConvertBranchFunds:"Boolean",
 		marketplaceCreateAid:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
@@ -5885,6 +5918,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListSupplierOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListSupplierPickupOrders:"MarketplaceOrder",
 		marketplaceListWhitelist:"MarketplaceWhitelistEntry",
+		marketplaceListWriteoffCandidates:"MarketplaceWriteoffCandidate",
 		marketplaceListWriteoffProposals:"PaginatedMarketplaceWriteoffProposals",
 		marketplaceMemberWallet:"MarketplaceMemberWallet",
 		marketplaceOnboardingState:"MarketplaceOnboardingState",
@@ -5900,7 +5934,9 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceStockProposalSignablePayloads:"MarketplaceCheckoutSignableLine",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
+		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
+		marketplaceWriteoffServiceMemoSignablePayload:"GeneratedDocument",
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
 		process:"ProcessView",

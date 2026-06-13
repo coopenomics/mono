@@ -53,6 +53,21 @@ export interface MarketplaceInventoryListFilter {
   published?: boolean;
 }
 
+/**
+ * Кандидат на списание скоропорта: позиция на складе с истёкшим сроком
+ * годности. Председатель отбирает из таких позиций корзину проекта списания
+ * (admin-стол). `arrival_price` — закупочная цена за единицу из акта приёмки;
+ * сумма списания = arrival_price × quantity.
+ */
+export interface MarketplaceWriteoffCandidate {
+  inventory_id: string;
+  braname: string;
+  asset_title: string;
+  quantity: number;
+  arrival_price: string | null;
+  expiry_date: Date | null;
+}
+
 export interface MarketplaceInventoryDomainRepository {
   create(input: MarketplaceInventoryCreateInput): Promise<MarketplaceInventoryDomainEntity>;
 
@@ -85,6 +100,17 @@ export interface MarketplaceInventoryDomainRepository {
   ): Promise<Map<string, string[]>>;
 
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
+
+  /**
+   * Кандидаты на списание скоропорта: позиции на складе (RECEIVED/LABELED)
+   * с истёкшим сроком годности (expiry_date <= cutoff). Источник таблицы
+   * кандидатов на admin-столе списаний. Для ручного отбора cutoff = «сейчас»
+   * (всё уже просроченное), в отличие от крон-скана с grace-периодом.
+   */
+  findWriteoffCandidates(
+    coopname: string,
+    cutoff: Date
+  ): Promise<MarketplaceWriteoffCandidate[]>;
 
   applyStatusTransition(
     id: string,

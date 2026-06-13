@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository, type EntityManager } from 'typeorm';
+import { In, IsNull, LessThanOrEqual, Not, Repository, type EntityManager } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 import {
   MarketplaceInventoryOnWarehouseStatuses,
@@ -13,6 +13,7 @@ import type {
   MarketplaceInventoryDomainRepository,
   MarketplaceInventoryLabelPatch,
   MarketplaceInventoryListFilter,
+  MarketplaceWriteoffCandidate,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceInventoryMapper } from '../mappers/marketplace-inventory.mapper';
@@ -134,6 +135,29 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     }
     const rows = await this.repo.find({ where, order: { received_at: 'DESC', created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async findWriteoffCandidates(
+    coopname: string,
+    cutoff: Date
+  ): Promise<MarketplaceWriteoffCandidate[]> {
+    const rows = await this.repo.find({
+      where: {
+        coopname,
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+        expiry_date: LessThanOrEqual(cutoff),
+      },
+      order: { expiry_date: 'ASC', created_at: 'ASC' },
+      take: 500,
+    });
+    return rows.map((r) => ({
+      inventory_id: r.id,
+      braname: r.braname,
+      asset_title: r.product_name_snapshot,
+      quantity: r.quantity_per_label,
+      arrival_price: r.arrival_price,
+      expiry_date: r.expiry_date,
+    }));
   }
 
   async applyStatusTransition(

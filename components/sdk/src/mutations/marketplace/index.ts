@@ -55,6 +55,8 @@ export * as UpdateWriteoffDraft from './updateWriteoffDraft'
 export * as CancelWriteoffDraft from './cancelWriteoffDraft'
 /** Эпик 8: председатель отправляет черновик с подписанным Заявлением 1106 в совет */
 export * as SubmitWriteoffDraft from './submitWriteoffDraft'
+/** Эпик 8: председатель КУ подтверждает списание подписанной Служебной запиской 1111 */
+export * as ConfirmWriteoff from './confirmWriteoff'
 /** Эпик 1 / Story 1.9: принятие ЦПП Marketplace кооперативом (L1 onboarding, chairman-only) */
 export * as MarketplaceAcceptCpp from './marketplaceAcceptCpp'
 /** Эпик 1 фоллоуап: L3-подпись оферты ЦПП «Стол заказов» пайщиком прямо со стола */

@@ -17,6 +17,7 @@ export type MarketplaceWriteoffProposalStatus =
   | 'DRAFT'
   | 'ON_AGENDA'
   | 'AUTHORIZED'
+  | 'PENDING_CONFIRMATION'
   | 'EXECUTING'
   | 'EXECUTED'
   | 'REJECTED';
@@ -25,6 +26,11 @@ export const MarketplaceWriteoffProposalStatuses = {
   DRAFT: 'DRAFT',
   ON_AGENDA: 'ON_AGENDA',
   AUTHORIZED: 'AUTHORIZED',
+  // Совет одобрил проект; ожидается подтверждение фактического списания
+  // председателем каждого кооперативного участка (подпись Служебной записки
+  // 1111 → on-chain marketplace::confirmwroff). На цепи статус остаётся
+  // authorized — PENDING_CONFIRMATION это PG-маркер «ждём склады».
+  PENDING_CONFIRMATION: 'PENDING_CONFIRMATION',
   EXECUTING: 'EXECUTING',
   EXECUTED: 'EXECUTED',
   REJECTED: 'REJECTED',

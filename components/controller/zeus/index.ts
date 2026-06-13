@@ -6685,6 +6685,14 @@ export type ValueTypes = {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: ValueTypes["ID"] | Variable<any, string>
 };
+	["MarketplaceConfirmWriteoffInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор проекта списания. */
+	proposal_id: string | Variable<any, string>,
+	/** Подписанная председателем КУ Служебная записка о списании (registry_id=1111). */
+	signed_memo: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["MarketplaceConsolidatedRequest"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -8460,6 +8468,46 @@ export type ValueTypes = {
 	["MarketplaceWithdrawOfferInput"]: {
 	id: string | Variable<any, string>
 };
+	["MarketplaceWriteoffCandidate"]: AliasType<{
+	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	amount?:boolean | `@${string}`,
+	/** Наименование позиции (из карточки имущества). */
+	asset_title?:boolean | `@${string}`,
+	/** Кооперативный участок (склад), где лежит позиция. */
+	braname?:boolean | `@${string}`,
+	/** Срок годности (ISO). */
+	expiry_date?:boolean | `@${string}`,
+	/** Идентификатор инвентарной позиции на складе. */
+	inventory_id?:boolean | `@${string}`,
+	/** Количество единиц. */
+	quantity?:boolean | `@${string}`,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWriteoffCandidate']?: Omit<ValueTypes["MarketplaceWriteoffCandidate"], "...on MarketplaceWriteoffCandidate">
+}>;
+	["MarketplaceWriteoffConfirmationGroup"]: AliasType<{
+	/** Когда совет авторизовал проект (ISO). */
+	authorized_at?:boolean | `@${string}`,
+	/** Кооперативный участок (склад), по которому подтверждается списание. */
+	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name?:boolean | `@${string}`,
+	/** Начало расчётного цикла списания (ISO). */
+	cycle_started_at?:boolean | `@${string}`,
+	/** Неподтверждённые позиции этого участка. */
+	items?:ValueTypes["MarketplaceWriteoffProposalItem"],
+	/** Канонический хеш проекта (process_hash on-chain). */
+	proposal_hash?:boolean | `@${string}`,
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Протокол совета о списании (документ для просмотра). */
+	protocol_doc?:boolean | `@${string}`,
+	/** Σ сумм позиций участка (4 знака). */
+	total_amount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWriteoffConfirmationGroup']?: Omit<ValueTypes["MarketplaceWriteoffConfirmationGroup"], "...on MarketplaceWriteoffConfirmationGroup">
+}>;
 	["MarketplaceWriteoffDecisionEntry"]: AliasType<{
 	action?:boolean | `@${string}`,
 	actor?:boolean | `@${string}`,
@@ -8527,6 +8575,12 @@ export type ValueTypes = {
 ["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string | Variable<any, string>,
+	/** Идентификатор проекта списания. */
+	proposal_id: string | Variable<any, string>
+};
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string | Variable<any, string>
 };
@@ -8925,6 +8979,7 @@ marketplaceCheckoutCart?: [{	input?: ValueTypes["MarketplaceCheckoutCartInput"] 
 	/** Очистить корзину (убрать все позиции). */
 	marketplaceClearCart?:ValueTypes["MarketplaceCart"],
 marketplaceClearInventoryLabel?: [{	data: ValueTypes["MarketplaceClearInventoryLabelInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
+marketplaceConfirmWriteoff?: [{	data: ValueTypes["MarketplaceConfirmWriteoffInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
 marketplaceConvertBranchFunds?: [{	data: ValueTypes["MarketplaceConvertBranchFundsInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceCreateAid?: [{	data: ValueTypes["MarketplaceCreateAidInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceCreateAplReception?: [{	data: ValueTypes["MarketplaceCreateAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
@@ -10422,6 +10477,8 @@ marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInpu
 marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSupplierPickupOrdersInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
+	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
+	marketplaceListWriteoffCandidates?:ValueTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
@@ -10442,7 +10499,10 @@ marketplaceStockProposalSignablePayloads?: [{	data: ValueTypes["MarketplaceResol
 marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValuesInput"] | Variable<any, string>},ValueTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
+	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
+	marketplaceWriteoffPendingConfirmations?:ValueTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
@@ -17474,6 +17534,14 @@ export type ResolverInputTypes = {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: ResolverInputTypes["ID"]
 };
+	["MarketplaceConfirmWriteoffInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Подписанная председателем КУ Служебная записка о списании (registry_id=1111). */
+	signed_memo: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceConsolidatedRequest"]: AliasType<{
 	accepted_at?:boolean | `@${string}`,
 	coopname?:boolean | `@${string}`,
@@ -19188,6 +19256,44 @@ export type ResolverInputTypes = {
 	["MarketplaceWithdrawOfferInput"]: {
 	id: string
 };
+	["MarketplaceWriteoffCandidate"]: AliasType<{
+	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	amount?:boolean | `@${string}`,
+	/** Наименование позиции (из карточки имущества). */
+	asset_title?:boolean | `@${string}`,
+	/** Кооперативный участок (склад), где лежит позиция. */
+	braname?:boolean | `@${string}`,
+	/** Срок годности (ISO). */
+	expiry_date?:boolean | `@${string}`,
+	/** Идентификатор инвентарной позиции на складе. */
+	inventory_id?:boolean | `@${string}`,
+	/** Количество единиц. */
+	quantity?:boolean | `@${string}`,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceWriteoffConfirmationGroup"]: AliasType<{
+	/** Когда совет авторизовал проект (ISO). */
+	authorized_at?:boolean | `@${string}`,
+	/** Кооперативный участок (склад), по которому подтверждается списание. */
+	braname?:boolean | `@${string}`,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name?:boolean | `@${string}`,
+	/** Начало расчётного цикла списания (ISO). */
+	cycle_started_at?:boolean | `@${string}`,
+	/** Неподтверждённые позиции этого участка. */
+	items?:ResolverInputTypes["MarketplaceWriteoffProposalItem"],
+	/** Канонический хеш проекта (process_hash on-chain). */
+	proposal_hash?:boolean | `@${string}`,
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Протокол совета о списании (документ для просмотра). */
+	protocol_doc?:boolean | `@${string}`,
+	/** Σ сумм позиций участка (4 знака). */
+	total_amount?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceWriteoffDecisionEntry"]: AliasType<{
 	action?:boolean | `@${string}`,
 	actor?:boolean | `@${string}`,
@@ -19252,6 +19358,12 @@ export type ResolverInputTypes = {
 ["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
 };
@@ -19640,6 +19752,7 @@ marketplaceCheckoutCart?: [{	input?: ResolverInputTypes["MarketplaceCheckoutCart
 	/** Очистить корзину (убрать все позиции). */
 	marketplaceClearCart?:ResolverInputTypes["MarketplaceCart"],
 marketplaceClearInventoryLabel?: [{	data: ResolverInputTypes["MarketplaceClearInventoryLabelInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
+marketplaceConfirmWriteoff?: [{	data: ResolverInputTypes["MarketplaceConfirmWriteoffInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
 marketplaceConvertBranchFunds?: [{	data: ResolverInputTypes["MarketplaceConvertBranchFundsInput"]},boolean | `@${string}`],
 marketplaceCreateAid?: [{	data: ResolverInputTypes["MarketplaceCreateAidInput"]},boolean | `@${string}`],
 marketplaceCreateAplReception?: [{	data: ResolverInputTypes["MarketplaceCreateAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
@@ -21080,6 +21193,8 @@ marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOr
 marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceListSupplierPickupOrdersInput"]},ResolverInputTypes["MarketplaceOrder"]],
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
+	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
+	marketplaceListWriteoffCandidates?:ResolverInputTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
@@ -21100,7 +21215,10 @@ marketplaceStockProposalSignablePayloads?: [{	data: ResolverInputTypes["Marketpl
 marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttributeValuesInput"]},ResolverInputTypes["MarketplaceAttributeValidation"]],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
+	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
+	marketplaceWriteoffPendingConfirmations?:ResolverInputTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
@@ -27911,6 +28029,14 @@ export type ModelTypes = {
 	/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: ModelTypes["ID"]
 };
+	["MarketplaceConfirmWriteoffInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Подписанная председателем КУ Служебная записка о списании (registry_id=1111). */
+	signed_memo: ModelTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceConsolidatedRequest"]: {
 		accepted_at?: ModelTypes["DateTime"] | undefined | null,
 	coopname: string,
@@ -29534,6 +29660,42 @@ export type ModelTypes = {
 	["MarketplaceWithdrawOfferInput"]: {
 	id: string
 };
+	["MarketplaceWriteoffCandidate"]: {
+		/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	amount: string,
+	/** Наименование позиции (из карточки имущества). */
+	asset_title: string,
+	/** Кооперативный участок (склад), где лежит позиция. */
+	braname: string,
+	/** Срок годности (ISO). */
+	expiry_date?: string | undefined | null,
+	/** Идентификатор инвентарной позиции на складе. */
+	inventory_id: string,
+	/** Количество единиц. */
+	quantity: string,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason: string
+};
+	["MarketplaceWriteoffConfirmationGroup"]: {
+		/** Когда совет авторизовал проект (ISO). */
+	authorized_at?: string | undefined | null,
+	/** Кооперативный участок (склад), по которому подтверждается списание. */
+	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name: string,
+	/** Начало расчётного цикла списания (ISO). */
+	cycle_started_at: string,
+	/** Неподтверждённые позиции этого участка. */
+	items: Array<ModelTypes["MarketplaceWriteoffProposalItem"]>,
+	/** Канонический хеш проекта (process_hash on-chain). */
+	proposal_hash: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Протокол совета о списании (документ для просмотра). */
+	protocol_doc?: ModelTypes["JSON"] | undefined | null,
+	/** Σ сумм позиций участка (4 знака). */
+	total_amount: string
+};
 	["MarketplaceWriteoffDecisionEntry"]: {
 		action: string,
 	actor: string,
@@ -29593,6 +29755,12 @@ export type ModelTypes = {
 };
 	["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
+	/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
 };
@@ -30385,6 +30553,8 @@ export type ModelTypes = {
 	marketplaceClearCart: ModelTypes["MarketplaceCart"],
 	/** Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»). */
 	marketplaceClearInventoryLabel: ModelTypes["MarketplaceInventoryMutationResult"],
+	/** Подтвердить фактическое списание со склада участка подписанной председателем КУ Служебной запиской (registry 1111). Запускает on-chain confirmwroff по всем позициям этого участка. */
+	marketplaceConfirmWriteoff: ModelTypes["MarketplaceWriteoffProposal"],
 	/** Перевести персональные членские средства в членский кошелёк «Стола заказов» — для заказа имущества как обычный пайщик. */
 	marketplaceConvertBranchFunds: boolean,
 	/** Подать заявку на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление уходит кассиру, выплата подтверждается фактическим банковским переводом. Налог с дохода получатель оплачивает самостоятельно. */
@@ -32125,6 +32295,8 @@ export type ModelTypes = {
 	marketplaceListSupplierPickupOrders: Array<ModelTypes["MarketplaceOrder"]>,
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
+	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
+	marketplaceListWriteoffCandidates: Array<ModelTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
@@ -32155,8 +32327,12 @@ export type ModelTypes = {
 	marketplaceValidateAttributeValues: ModelTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI: ModelTypes["MarketplaceCurrentMember"],
+	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
+	marketplaceWriteoffPendingConfirmations: Array<ModelTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
+	marketplaceWriteoffServiceMemoSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */
 	marketplaceWriteoffStatementSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
@@ -39248,6 +39424,14 @@ export type GraphQLTypes = {
 		/** Позиция склада, с которой снимается штрих-код (для переклейки). */
 	inventory_id: GraphQLTypes["ID"]
 };
+	["MarketplaceConfirmWriteoffInput"]: {
+		/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Подписанная председателем КУ Служебная записка о списании (registry_id=1111). */
+	signed_memo: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	["MarketplaceConsolidatedRequest"]: {
 	__typename: "MarketplaceConsolidatedRequest",
 	accepted_at?: GraphQLTypes["DateTime"] | undefined | null,
@@ -41024,6 +41208,46 @@ export type GraphQLTypes = {
 	["MarketplaceWithdrawOfferInput"]: {
 		id: string
 };
+	["MarketplaceWriteoffCandidate"]: {
+	__typename: "MarketplaceWriteoffCandidate",
+	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	amount: string,
+	/** Наименование позиции (из карточки имущества). */
+	asset_title: string,
+	/** Кооперативный участок (склад), где лежит позиция. */
+	braname: string,
+	/** Срок годности (ISO). */
+	expiry_date?: string | undefined | null,
+	/** Идентификатор инвентарной позиции на складе. */
+	inventory_id: string,
+	/** Количество единиц. */
+	quantity: string,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason: string,
+	['...on MarketplaceWriteoffCandidate']: Omit<GraphQLTypes["MarketplaceWriteoffCandidate"], "...on MarketplaceWriteoffCandidate">
+};
+	["MarketplaceWriteoffConfirmationGroup"]: {
+	__typename: "MarketplaceWriteoffConfirmationGroup",
+	/** Когда совет авторизовал проект (ISO). */
+	authorized_at?: string | undefined | null,
+	/** Кооперативный участок (склад), по которому подтверждается списание. */
+	braname: string,
+	/** Человеко-читаемое наименование кооперативного участка. */
+	branch_name: string,
+	/** Начало расчётного цикла списания (ISO). */
+	cycle_started_at: string,
+	/** Неподтверждённые позиции этого участка. */
+	items: Array<GraphQLTypes["MarketplaceWriteoffProposalItem"]>,
+	/** Канонический хеш проекта (process_hash on-chain). */
+	proposal_hash: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Протокол совета о списании (документ для просмотра). */
+	protocol_doc?: GraphQLTypes["JSON"] | undefined | null,
+	/** Σ сумм позиций участка (4 знака). */
+	total_amount: string,
+	['...on MarketplaceWriteoffConfirmationGroup']: Omit<GraphQLTypes["MarketplaceWriteoffConfirmationGroup"], "...on MarketplaceWriteoffConfirmationGroup">
+};
 	["MarketplaceWriteoffDecisionEntry"]: {
 	__typename: "MarketplaceWriteoffDecisionEntry",
 	action: string,
@@ -41091,6 +41315,12 @@ export type GraphQLTypes = {
 ["MarketplaceWriteoffProposalStatus"]: MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]: MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
+		/** Кооперативный участок, по которому подтверждается списание. */
+	braname: string,
+	/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 		draft_id: string
 };
@@ -41904,6 +42134,8 @@ export type GraphQLTypes = {
 	marketplaceClearCart: GraphQLTypes["MarketplaceCart"],
 	/** Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»). */
 	marketplaceClearInventoryLabel: GraphQLTypes["MarketplaceInventoryMutationResult"],
+	/** Подтвердить фактическое списание со склада участка подписанной председателем КУ Служебной запиской (registry 1111). Запускает on-chain confirmwroff по всем позициям этого участка. */
+	marketplaceConfirmWriteoff: GraphQLTypes["MarketplaceWriteoffProposal"],
 	/** Перевести персональные членские средства в членский кошелёк «Стола заказов» — для заказа имущества как обычный пайщик. */
 	marketplaceConvertBranchFunds: boolean,
 	/** Подать заявку на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление уходит кассиру, выплата подтверждается фактическим банковским переводом. Налог с дохода получатель оплачивает самостоятельно. */
@@ -43779,6 +44011,8 @@ export type GraphQLTypes = {
 	marketplaceListSupplierPickupOrders: Array<GraphQLTypes["MarketplaceOrder"]>,
 	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
 	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
+	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
+	marketplaceListWriteoffCandidates: Array<GraphQLTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
@@ -43809,8 +44043,12 @@ export type GraphQLTypes = {
 	marketplaceValidateAttributeValues: GraphQLTypes["MarketplaceAttributeValidation"],
 	/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора */
 	marketplaceWhoAmI: GraphQLTypes["MarketplaceCurrentMember"],
+	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
+	marketplaceWriteoffPendingConfirmations: Array<GraphQLTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
+	marketplaceWriteoffServiceMemoSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */
 	marketplaceWriteoffStatementSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
@@ -45810,6 +46048,7 @@ export enum MarketplaceWriteoffProposalStatus {
 	EXECUTED = "EXECUTED",
 	EXECUTING = "EXECUTING",
 	ON_AGENDA = "ON_AGENDA",
+	PENDING_CONFIRMATION = "PENDING_CONFIRMATION",
 	REJECTED = "REJECTED"
 }
 /** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
@@ -46276,6 +46515,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCheckoutCartInput"]: ValueTypes["MarketplaceCheckoutCartInput"];
 	["MarketplaceCheckoutSignedLineInput"]: ValueTypes["MarketplaceCheckoutSignedLineInput"];
 	["MarketplaceClearInventoryLabelInput"]: ValueTypes["MarketplaceClearInventoryLabelInput"];
+	["MarketplaceConfirmWriteoffInput"]: ValueTypes["MarketplaceConfirmWriteoffInput"];
 	["MarketplaceConsolidatedRequestStatus"]: ValueTypes["MarketplaceConsolidatedRequestStatus"];
 	["MarketplaceConvertBranchFundsInput"]: ValueTypes["MarketplaceConvertBranchFundsInput"];
 	["MarketplaceConvertStatementSignedInput"]: ValueTypes["MarketplaceConvertStatementSignedInput"];
@@ -46369,6 +46609,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffItemInput"]: ValueTypes["MarketplaceWriteoffItemInput"];
 	["MarketplaceWriteoffProposalStatus"]: ValueTypes["MarketplaceWriteoffProposalStatus"];
 	["MarketplaceWriteoffProposalTrigger"]: ValueTypes["MarketplaceWriteoffProposalTrigger"];
+	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];

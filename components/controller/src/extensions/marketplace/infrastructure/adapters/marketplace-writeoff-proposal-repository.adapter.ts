@@ -92,6 +92,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
         status: In([
           MarketplaceWriteoffProposalStatuses.ON_AGENDA,
           MarketplaceWriteoffProposalStatuses.AUTHORIZED,
+          MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
           MarketplaceWriteoffProposalStatuses.EXECUTING,
         ]),
       },
@@ -173,7 +174,9 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     if (row.status !== MarketplaceWriteoffProposalStatuses.ON_AGENDA) {
       throw new Error('Авторизовать можно только проект, отправленный в совет (ON_AGENDA)');
     }
-    row.status = MarketplaceWriteoffProposalStatuses.AUTHORIZED;
+    // Совет одобрил → ждём подтверждения складов председателями КУ. На цепи
+    // wroffprops.status = authorized; в PG — PENDING_CONFIRMATION.
+    row.status = MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION;
     row.protocol_doc = patch.protocol_doc;
     row.authorized_at = patch.authorized_at;
     row.decided_by_account = patch.decided_by_account;

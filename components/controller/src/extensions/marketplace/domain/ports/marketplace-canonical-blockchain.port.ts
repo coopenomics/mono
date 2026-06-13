@@ -268,6 +268,16 @@ export interface MarketplaceCanonicalBlockchainPort {
    */
   execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult>;
 
+  /**
+   * Председатель кооперативного участка подтверждает фактическое списание
+   * со склада своего КУ (ручной шаг стола ПВЗ). Закрывает все неисполненные
+   * позиции участка `braname` за вызов, проводит `o.mkt.wroff` и якорит
+   * подписанную Служебную записку о списании (registry 1111) в реестр
+   * документов. Авторизация — кооператив (`require_auth(coopname)`); C++
+   * проверяет, что `signer` уполномочен для `braname`.
+   */
+  confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<TransactResult>;
+
   // ── Экономика КУ (requirement b6): членский взнос и распределение ────
 
   /** Единая ставка членского взноса кооператива (администратор). */

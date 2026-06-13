@@ -74,3 +74,40 @@ const _validatePaginated: MakeAllFieldsRequired<
 export const paginatedMarketplaceWriteoffProposalsSelector = Selector(
   'PaginatedMarketplaceWriteoffProposals',
 )(rawPaginatedSelector)
+
+const rawCandidateSelector = {
+  inventory_id: true,
+  braname: true,
+  asset_title: true,
+  quantity: true,
+  amount: true,
+  reason: true,
+  expiry_date: true,
+}
+
+const _validateCandidate: MakeAllFieldsRequired<ValueTypes['MarketplaceWriteoffCandidate']> =
+  rawCandidateSelector
+
+export const marketplaceWriteoffCandidateSelector = Selector('MarketplaceWriteoffCandidate')(
+  rawCandidateSelector,
+)
+
+const rawConfirmationGroupSelector = {
+  proposal_id: true,
+  proposal_hash: true,
+  braname: true,
+  branch_name: true,
+  cycle_started_at: true,
+  authorized_at: true,
+  protocol_doc: true,
+  items: rawItemSelector,
+  total_amount: true,
+}
+
+const _validateConfirmationGroup: MakeAllFieldsRequired<
+  ValueTypes['MarketplaceWriteoffConfirmationGroup']
+> = rawConfirmationGroupSelector
+
+export const marketplaceWriteoffConfirmationGroupSelector = Selector(
+  'MarketplaceWriteoffConfirmationGroup',
+)(rawConfirmationGroupSelector)

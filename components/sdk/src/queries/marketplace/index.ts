@@ -66,6 +66,12 @@ export * as ListWriteoffProposals from './listWriteoffProposals'
 export * as GetWriteoffProposal from './getWriteoffProposal'
 /** Эпик 8: превью Заявления 1106 для подписания председателем */
 export * as WriteoffStatementSignablePayload from './writeoffStatementSignablePayload'
+/** Эпик 8: кандидаты на списание (просроченный скоропорт на складах) — admin-стол */
+export * as ListWriteoffCandidates from './listWriteoffCandidates'
+/** Эпик 8: группы списаний, ожидающих подтверждения складом (стол ПВЗ, по КУ) */
+export * as WriteoffPendingConfirmations from './writeoffPendingConfirmations'
+/** Эпик 8: превью Служебной записки 1111 для подписания председателем КУ */
+export * as WriteoffServiceMemoSignablePayload from './writeoffServiceMemoSignablePayload'
 /** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
 export * as MarketplaceCppStatus from './marketplaceCppStatus'
 /** Эпик 4 / Story 4.5: заказы, по которым текущий пайщик — поставщик (стол поставщика) */
