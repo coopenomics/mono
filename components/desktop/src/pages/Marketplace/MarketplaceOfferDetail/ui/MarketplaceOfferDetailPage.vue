@@ -45,6 +45,12 @@ const backTarget = computed<{ label: string; name: string }>(() => {
   if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
   if (route.query.from === 'consolidated')
     return { label: 'К коллективному заказу', name: 'marketplace-consolidated' };
+  // Стол администратора: карточку открывают из разных реестров — подпись и
+  // fallback-маршрут «назад» зависят от того, откуда пришли (query `from`).
+  if (route.query.from === 'orders')
+    return { label: 'К реестру заказов', name: 'marketplace-admin-orders' };
+  if (route.query.from === 'offers')
+    return { label: 'К реестру предложений', name: 'marketplace-admin-offers' };
   if (readonly.value) return { label: 'К модерации', name: 'marketplace-moderation' };
   return { label: 'К каталогу', name: 'marketplace-catalog' };
 });

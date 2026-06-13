@@ -97,6 +97,7 @@ function goToOffer(o: AdminOfferView): void {
   void router.push({
     name: 'marketplace-admin-offer-detail',
     params: { coopname: info.coopname, offerId: o.id },
+    query: { from: 'offers' },
   });
 }
 
