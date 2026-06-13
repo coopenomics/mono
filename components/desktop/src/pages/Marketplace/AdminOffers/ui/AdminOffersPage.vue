@@ -14,7 +14,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { BaseBadge, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
 import { PageHint } from 'src/shared/ui/domain';
@@ -53,6 +53,7 @@ const columns = [
   { name: 'price', align: 'right' as const, label: 'Цена', field: 'price_per_unit' },
   { name: 'available', align: 'right' as const, label: 'Доступно', field: 'quantity_available' },
   { name: 'created', align: 'left' as const, label: 'Создано', field: 'created_at' },
+  { name: 'actions', align: 'right' as const, label: '', field: 'id' },
 ];
 
 function isStatusActive(s: AdminOfferStatusView): boolean {
@@ -197,6 +198,16 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
         q-td.text-right(:props="props") {{ props.row.unlimited_flag ? '∞' : props.row.quantity_available }} {{ unitLabel(props.row) }}
       template(#body-cell-created="props")
         q-td(:props="props") {{ formatDate(props.row.created_at) }}
+      template(#body-cell-actions="props")
+        q-td.text-right(:props="props", @click.stop)
+          BaseButton(
+            variant="secondary",
+            size="sm",
+            @click="goToOffer(props.row)"
+          )
+            template(#icon-left)
+              q-icon(name="open_in_new", size="16px")
+            | Открыть
       template(#no-data)
         .admin-offers__nodata
           EmptyState(
