@@ -154,6 +154,9 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isCancelOpen = false') Назад
       BaseButton(variant='primary', type='submit', :loading='busy') Отменить собрание
+
+//- Сбор паспорта председателя участка перед направлением договора в совет (если паспорта ещё нет)
+CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 </template>
 
 <script setup lang="ts">
@@ -164,6 +167,7 @@ import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
+import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -192,6 +196,7 @@ const kuStore = useKuStore();
 const session = useSessionStore();
 const desktop = useDesktopStore();
 const flow = useKuDecisionFlow();
+const { passportDialogOpen, requirePassport, onPassportSaved } = useRequirePassport();
 
 const loading = ref(true);
 // busy охватывает транзакцию вместе с ожиданием обновления проекции —
@@ -389,11 +394,15 @@ const onClose = () =>
     'Протокол утверждён',
     (d) => d.status === Zeus.KuDecisionStatus.APPROVED,
   );
+// перед направлением в совет председатель участка подписывает договор
+// матответственности (328) — если паспорта в реестре ещё нет, сначала соберём его
 const onExec = () =>
-  withReload(
-    () => flow.execDecision(decision.value!),
-    'Заявление направлено в совет',
-    (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
+  requirePassport(() =>
+    withReload(
+      () => flow.execDecision(decision.value!),
+      'Заявление направлено в совет',
+      (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
+    ),
   );
 const onVote = () => {
   const ballotsBefore = decision.value?.signed_ballots ?? 0;

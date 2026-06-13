@@ -84,6 +84,9 @@ BaseDialog(v-model='isDeclineOpen', title='Отклонить заявку', siz
     .row.justify-end.q-gutter-sm.q-mt-md
       BaseButton(variant='secondary', type='button', @click='isDeclineOpen = false') Назад
       BaseButton(variant='primary', type='submit', :loading='isSubmitting') Отклонить
+
+//- Сбор паспорта доверенного лица перед подачей заявки (если паспорта ещё нет)
+CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 </template>
 
 <script setup lang="ts">
@@ -92,6 +95,7 @@ import { useBranchStore } from 'src/entities/Branch/model';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
 import { useKuTrustedFlow } from 'src/features/Ku/TrustedFlow/model';
+import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -123,6 +127,7 @@ const kuStore = useKuStore();
 const system = useSystemStore();
 const session = useSessionStore();
 const flow = useKuTrustedFlow();
+const { passportDialogOpen, requirePassport, onPassportSaved } = useRequirePassport();
 
 const loading = ref(true);
 const isDeclineOpen = ref(false);
@@ -199,20 +204,24 @@ async function poll(predicate: () => boolean, attempts = 8): Promise<void> {
   }
 }
 
-async function onRequest() {
-  try {
-    await flow.requestTrusted({
-      braname: props.braname,
-      branchName: branchTitle.value,
-      chairmanFullName: fullName(branch.value?.trustee_certificate),
-    });
-    SuccessAlert('Заявка подана');
-    await poll(() =>
-      branchRequests.value.some((request) => request.username === session.username && request.present),
-    );
-  } catch (e: unknown) {
-    FailAlert(e);
-  }
+// доверенное лицо подписывает договор матответственности (327) — если паспорта
+// в реестре ещё нет, сначала собираем его, затем подаём заявку
+function onRequest() {
+  return requirePassport(async () => {
+    try {
+      await flow.requestTrusted({
+        braname: props.braname,
+        branchName: branchTitle.value,
+        chairmanFullName: fullName(branch.value?.trustee_certificate),
+      });
+      SuccessAlert('Заявка подана');
+      await poll(() =>
+        branchRequests.value.some((request) => request.username === session.username && request.present),
+      );
+    } catch (e: unknown) {
+      FailAlert(e);
+    }
+  });
 }
 
 async function onApprove(request: IKuTrustRequest) {
