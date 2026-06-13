@@ -241,7 +241,16 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
             BaseBadge(:variant="statusVariant(props.row.status)") {{ statusLabel(props.row.status) }}
           q-td
             EntityIdBadge(:rawId="shortId(props.row.id)", copy-on-click)
-          q-td {{ props.row.product_name || 'Товар по предложению' }}
+          q-td
+            .row.items-center.no-wrap.q-gutter-xs
+              span {{ props.row.product_name || 'Товар по предложению' }}
+              q-icon.cursor-pointer.text-primary(
+                v-if="props.row.offer_id",
+                name="open_in_new",
+                size="16px",
+                @click="goToOffer(props.row)"
+              )
+                q-tooltip Открыть предложение
           q-td {{ ordererTitle(props.row) }}
           q-td {{ supplierTitle(props.row) }}
           q-td.text-right {{ props.row.quantity }} {{ unitLabel(props.row) }}
