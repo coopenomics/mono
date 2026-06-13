@@ -62,6 +62,22 @@
       .send();
   }
 
+  // Участок учреждён. Договор о полной материальной ответственности председателя участка
+  // (подписан председателем участка при подаче заявления) уходит на встречную подпись
+  // председателю совета: единоличное одобрение без повторного голосования. Отклонить нельзя —
+  // решение об учреждении уже принято (см. branch::declliab).
+  ::Soviet::create_approval(
+    _branch,
+    coopname,
+    dec.chairman,
+    dec.liability,
+    "branchliab"_n,
+    hash,
+    _branch,
+    "apprliab"_n,
+    "declliab"_n,
+    std::string(""));
+
   // Решение исполнено — стираем запись и вопросы повестки (история в журнале действий)
   decision_index decisions(_branch, coopname.value);
   auto itr = decisions.find(dec.id);

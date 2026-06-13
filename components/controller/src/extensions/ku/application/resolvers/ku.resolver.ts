@@ -28,6 +28,7 @@ import {
   BranchEstablishmentPetitionGenerateDocumentInputDTO,
   BranchEstablishmentDecisionGenerateDocumentInputDTO,
   BranchLiabilityAgreementGenerateDocumentInputDTO,
+  BranchChairmanLiabilityAgreementGenerateDocumentInputDTO,
   BranchMeetingBallotGenerateDocumentInputDTO,
   BranchMeetingDecisionGenerateDocumentInputDTO,
   BranchMeetingJoinStatementGenerateDocumentInputDTO,
@@ -298,6 +299,20 @@ export class KuResolver {
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return (await this.kuService.generateBranchLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'kuGenerateChairmanLiabilityAgreement',
+    description: 'Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['user', 'member', 'chairman'])
+  async kuGenerateChairmanLiabilityAgreement(
+    @Args('data', { type: () => BranchChairmanLiabilityAgreementGenerateDocumentInputDTO })
+    data: BranchChairmanLiabilityAgreementGenerateDocumentInputDTO,
+    @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return (await this.kuService.generateBranchChairmanLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

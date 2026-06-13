@@ -134,6 +134,16 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BranchChairmanLiabilityAgreementGenerateDocumentInput:{
+
+	},
+	BranchChairmanLiabilityAgreementSignedDocumentInput:{
+		meta:"BranchChairmanLiabilityAgreementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchChairmanLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
 	BranchEstablishmentDecisionGenerateDocumentInput:{
 
 	},
@@ -514,6 +524,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ExecKuDecisionInput:{
+		liability:"BranchChairmanLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
 	ExpenseFilter:{
@@ -1262,6 +1273,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		kuExecDecision:{
 			data:"ExecKuDecisionInput"
+		},
+		kuGenerateChairmanLiabilityAgreement:{
+			data:"BranchChairmanLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
 		},
 		kuGenerateEstablishmentDecision:{
 			data:"BranchEstablishmentDecisionGenerateDocumentInput",
@@ -3983,6 +3998,7 @@ export const ReturnTypes: Record<string,any> = {
 		kuCreateDecision:"Transaction",
 		kuDeclineTrusted:"Transaction",
 		kuExecDecision:"Transaction",
+		kuGenerateChairmanLiabilityAgreement:"GeneratedDocument",
 		kuGenerateEstablishmentDecision:"GeneratedDocument",
 		kuGenerateEstablishmentPetition:"GeneratedDocument",
 		kuGenerateLiabilityAgreement:"GeneratedDocument",

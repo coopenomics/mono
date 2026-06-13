@@ -72,10 +72,15 @@ public:
   [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
 
   // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет
-  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition);
+  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability);
   [[eosio::action]] void confirmdec(eosio::name coopname, eosio::checksum256 hash, document2 authorization);
   [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
   [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+
+  // Договор о полной материальной ответственности председателя КУ: встречная подпись председателя совета
+  // (callback'и одобрения совета; отклонение заблокировано — решение об учреждении участка уже принято)
+  [[eosio::action]] void apprliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
+  [[eosio::action]] void declliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
 
   // Доверенные лица по заявлению (с договором о полной материальной ответственности)
   [[eosio::action]] void reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application);

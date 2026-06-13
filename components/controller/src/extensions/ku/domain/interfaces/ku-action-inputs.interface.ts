@@ -72,6 +72,7 @@ export interface ExecKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
   petition: ISignedDocumentDomainInterface;
+  liability: ISignedDocumentDomainInterface;
 }
 
 export interface CancelKuDecisionInputDomainInterface {

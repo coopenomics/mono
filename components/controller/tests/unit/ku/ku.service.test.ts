@@ -195,17 +195,25 @@ describe('KuService — проверки прав', () => {
     );
   });
 
-  it('closeDecision/execDecision доступны только организатору (председателю собрания)', async () => {
+  it('closeDecision доступна только организатору (председателю собрания)', async () => {
     const { service, kuPort } = makeService();
     const close = { coopname: COOP, hash: HASH, protocol: {} } as any;
-    const exec = { coopname: COOP, hash: HASH, petition: {} } as any;
 
     await expect(service.closeDecision(close, makeUser('chairman1'))).rejects.toThrow();
-    await expect(service.execDecision(exec, makeUser('chairman1'))).rejects.toThrow();
 
     await service.closeDecision(close, makeUser('initiator1'));
-    await service.execDecision(exec, makeUser('initiator1'));
     expect(kuPort.closeDecision).toHaveBeenCalledTimes(1);
+  });
+
+  it('execDecision (направление в совет + договор) доступна только избранному председателю участка', async () => {
+    const { service, kuPort } = makeService();
+    // заявление в совет и договор о материальной ответственности подписывает
+    // избранный собранием председатель участка, а не организатор собрания
+    const exec = { coopname: COOP, hash: HASH, petition: {}, liability: {} } as any;
+
+    await expect(service.execDecision(exec, makeUser('initiator1'))).rejects.toThrow();
+
+    await service.execDecision(exec, makeUser('chairman1'));
     expect(kuPort.execDecision).toHaveBeenCalledTimes(1);
   });
 
@@ -284,5 +292,14 @@ describe('KuService — генерация документов', () => {
 
     const { data } = documentService.generateDocument.mock.calls[0][0];
     expect(data.registry_id).toBe(327);
+  });
+
+  it('generateBranchChairmanLiabilityAgreement проставляет registry_id 328', async () => {
+    const { service, documentService } = makeService();
+
+    await service.generateBranchChairmanLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
+
+    const { data } = documentService.generateDocument.mock.calls[0][0];
+    expect(data.registry_id).toBe(328);
   });
 });

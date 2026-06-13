@@ -60,6 +60,7 @@ export interface ICoodecision {
   proposal: IDocument2
   protocol: IDocument2
   petition: IDocument2
+  liability: IDocument2
   authorization: IDocument2
   open_at: ITimePointSec
   close_at: ITimePointSec
@@ -155,6 +156,21 @@ export interface IExec {
   coopname: IName
   hash: IChecksum256
   petition: IDocument2
+  liability: IDocument2
+}
+
+export interface IApprliab {
+  coopname: IName
+  username: IName
+  approval_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDeclliab {
+  coopname: IName
+  username: IName
+  approval_hash: IChecksum256
+  reason: string
 }
 
 export interface IInit {

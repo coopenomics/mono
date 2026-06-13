@@ -98,6 +98,7 @@ export class Generator implements IGenerator {
       [Actions.BranchEstablishmentSovietDecision.Template.registry_id]: new Actions.BranchEstablishmentSovietDecision.Factory(this.storage), // 325
       [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
       [Actions.BranchLiabilityAgreement.Template.registry_id]: new Actions.BranchLiabilityAgreement.Factory(this.storage), // 327
+      [Actions.BranchChairmanLiabilityAgreement.Template.registry_id]: new Actions.BranchChairmanLiabilityAgreement.Factory(this.storage), // 328
 
       [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
       [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599

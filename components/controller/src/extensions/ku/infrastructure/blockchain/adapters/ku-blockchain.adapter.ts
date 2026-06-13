@@ -110,6 +110,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       coopname: data.coopname,
       hash: data.hash,
       petition: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.petition),
+      liability: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.liability),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.Exec.actionName, blockchainData as any);
   }

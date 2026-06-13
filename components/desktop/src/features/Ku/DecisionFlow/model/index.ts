@@ -244,19 +244,26 @@ export function useKuDecisionFlow() {
     }
   }
 
-  /** Направить заявление в совет: заявление председателя (324) + exec */
+  /**
+   * Направить заявление в совет: заявление председателя (324) + договор о полной
+   * материальной ответственности председателя участка (328) одним пакетом + exec.
+   * Оба документа подписывает избранный собранием председатель участка (он же —
+   * сторона «Исполнитель» договора). Договор позже получит встречную подпись
+   * председателя совета после решения совета об учреждении участка.
+   */
   async function execDecision(decision: IKuDecision): Promise<void> {
     isSubmitting.value = true;
     try {
-      const digitalDocument = new DigitalDocument();
+      const branchName = decision.branch_name ?? '';
 
-      await digitalDocument.generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
+      const petitionDocument = new DigitalDocument();
+      await petitionDocument.generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
         registry_id: Cooperative.Registry.BranchEstablishmentPetition.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
         // человекочитаемое наименование участка, служебный braname в документы не попадает
-        branch_name: decision.branch_name ?? '',
+        branch_name: branchName,
         address: decision.address ?? '',
         chairman_full_name:
           decision.participants_info?.find((participant) => participant?.username === decision.chairman)
@@ -264,8 +271,19 @@ export function useKuDecisionFlow() {
           decision.chairman ??
           '',
       });
+      const petition = await petitionDocument.sign<Cooperative.Registry.BranchEstablishmentPetition.Meta>(
+        session.username,
+      );
 
-      const petition = await digitalDocument.sign<Cooperative.Registry.BranchEstablishmentPetition.Meta>(
+      const liabilityDocument = new DigitalDocument();
+      await liabilityDocument.generate<Cooperative.Registry.BranchChairmanLiabilityAgreement.Action>({
+        registry_id: Cooperative.Registry.BranchChairmanLiabilityAgreement.registry_id,
+        coopname: system.info.coopname,
+        username: session.username,
+        hash: decision.hash,
+        branch_name: branchName,
+      });
+      const liability = await liabilityDocument.sign<Cooperative.Registry.BranchChairmanLiabilityAgreement.Meta>(
         session.username,
       );
 
@@ -273,6 +291,7 @@ export function useKuDecisionFlow() {
         coopname: system.info.coopname,
         hash: decision.hash,
         petition,
+        liability,
       });
     } finally {
       isSubmitting.value = false;

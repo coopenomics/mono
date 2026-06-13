@@ -539,3 +539,47 @@ export class BranchLiabilityAgreementSignedDocumentInputDTO extends SignedDigita
   })
   public readonly meta!: BranchLiabilityAgreementSignedMetaDocumentInputDTO;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 328 — Договор о полной индивидуальной материальной ответственности председателя участка
+// ─────────────────────────────────────────────────────────────────────────────
+
+type chairmanLiabilityAction = Cooperative.Registry.BranchChairmanLiabilityAgreement.Action;
+
+@InputType('BaseBranchChairmanLiabilityAgreementMetaDocumentInput')
+class BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<chairmanLiabilityAction> {
+  @Field(() => String, { description: 'Якорь процесса учреждения участка' })
+  @IsString()
+  @IsNotEmpty()
+  hash!: string;
+
+  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  branch_name!: string;
+}
+
+@InputType('BranchChairmanLiabilityAgreementGenerateDocumentInput')
+export class BranchChairmanLiabilityAgreementGenerateDocumentInputDTO
+  extends IntersectionType(
+    BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO,
+    OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
+  )
+  implements chairmanLiabilityAction
+{
+  registry_id!: number;
+}
+
+@InputType('BranchChairmanLiabilityAgreementSignedMetaDocumentInput')
+export class BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO extends IntersectionType(
+  BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO,
+  MetaDocumentInputDTO
+) {}
+
+@InputType('BranchChairmanLiabilityAgreementSignedDocumentInput')
+export class BranchChairmanLiabilityAgreementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO, {
+    description: 'Метаинформация договора материальной ответственности председателя участка',
+  })
+  public readonly meta!: BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO;
+}

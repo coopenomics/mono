@@ -81,5 +81,6 @@ export * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
 export * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
 export * as BranchTrustedStatement from './326.BranchTrustedStatement'
 export * as BranchLiabilityAgreement from './327.BranchLiabilityAgreement'
+export * as BranchChairmanLiabilityAgreement from './328.BranchChairmanLiabilityAgreement'
 
 export * from './registry'

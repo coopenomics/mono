@@ -17,6 +17,7 @@ import type {
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import {
+  BranchChairmanLiabilityAgreementSignedDocumentInputDTO,
   BranchEstablishmentPetitionSignedDocumentInputDTO,
   BranchLiabilityAgreementSignedDocumentInputDTO,
   BranchMeetingBallotSignedDocumentInputDTO,
@@ -247,6 +248,13 @@ export class ExecKuDecisionInputDTO implements ExecKuDecisionInputDomainInterfac
   @ValidateNested()
   @Type(() => BranchEstablishmentPetitionSignedDocumentInputDTO)
   petition!: BranchEstablishmentPetitionSignedDocumentInputDTO;
+
+  @Field(() => BranchChairmanLiabilityAgreementSignedDocumentInputDTO, {
+    description: 'Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет)',
+  })
+  @ValidateNested()
+  @Type(() => BranchChairmanLiabilityAgreementSignedDocumentInputDTO)
+  liability!: BranchChairmanLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('CancelKuDecisionInput', { description: 'Отмена собрания пайщиков участка' })

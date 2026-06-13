@@ -199,7 +199,9 @@ export class KuService {
     data: ExecKuDecisionInputDomainInterface,
     currentUser: MonoAccountDomainInterface
   ): Promise<TransactionDTO> {
-    await this.assertIsDecisionInitiator(currentUser, data.hash);
+    // Заявление в совет и договор о материальной ответственности подписывает
+    // избранный собранием председатель участка (он же сторона договора)
+    await this.assertIsDecisionChairman(currentUser, data.hash);
     const result = await this.kuBlockchainPort.execDecision(data);
     return result as unknown as TransactionDTO;
   }
@@ -319,6 +321,13 @@ export class KuService {
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<DocumentDomainEntity> {
     return this.generate(data, Cooperative.Registry.BranchLiabilityAgreement.registry_id, options);
+  }
+
+  async generateBranchChairmanLiabilityAgreement(
+    data: Cooperative.Registry.BranchChairmanLiabilityAgreement.Action,
+    options?: GenerateDocumentOptionsInputDTO
+  ): Promise<DocumentDomainEntity> {
+    return this.generate(data, Cooperative.Registry.BranchChairmanLiabilityAgreement.registry_id, options);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
