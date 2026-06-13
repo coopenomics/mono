@@ -129,7 +129,7 @@ div.page-shell
                         v-for='d in processDocs(props.row.processHash)'
                         :key='docHash(d)'
                         :document='toDocRow(d)'
-                        @open='openDocument(docHash(d))'
+                        @open='openDoc(d)'
                       )
 
                 .row.q-col-gutter-md
@@ -219,6 +219,14 @@ div.page-shell
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
                 )
+
+  //- Просмотр документа процесса во всплывающем окне (без перехода в реестр
+  //- документов совета — у бухгалтера может не быть к нему доступа).
+  DocumentViewerDialog(
+    v-model='viewerOpen'
+    :document-aggregate='viewerDoc'
+    :title='viewerTitle'
+  )
 </template>
 
 <script setup lang="ts">
@@ -242,8 +250,9 @@ import {
   type ILedger2Posting,
 } from 'src/entities/Ledger2'
 import { useAccountStore } from 'src/entities/Account'
-import { DocumentModel } from 'src/entities/Document'
+import type { IDocumentAggregate } from 'src/entities/Document/model'
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
+import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { AccountIdCell } from '../../../shared/ui'
@@ -256,7 +265,11 @@ const router = useRouter()
 const processStore = useProcessStore()
 const ledger2Store = useLedger2Store()
 const accountStore = useAccountStore()
-const { openDocument } = DocumentModel.useDocumentNavigation()
+
+// Просмотр документа во всплывающем окне (агрегат уже загружен в getProcess).
+const viewerOpen = ref(false)
+const viewerDoc = ref<IDocumentAggregate | null>(null)
+const viewerTitle = ref('')
 
 const loading = ref(false)
 const items = ref<IProcessSummary[]>([])
@@ -425,6 +438,16 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
     date: doc?.meta?.created_at || undefined,
     author: signers.length ? signers.join(', ') : undefined,
   }
+}
+
+// Документ уже загружен целиком в getProcess (document + raw). Открываем его
+// во всплывающем окне через BaseDocument — без догрузки и переадресации.
+// IDocumentAggregate ждёт поле rawDocument, в процессном документе оно `raw`.
+function openDoc(d: IProcessDocument) {
+  const doc = d.document as any
+  viewerDoc.value = { document: d.document, rawDocument: d.raw } as unknown as IDocumentAggregate
+  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || 'Документ'
+  viewerOpen.value = true
 }
 
 // =====================================================================

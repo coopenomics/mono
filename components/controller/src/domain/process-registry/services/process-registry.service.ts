@@ -357,7 +357,13 @@ export class ProcessRegistryService {
   // blockchain_actions[ledger2].
 
   private async extractDocuments(deltas: ProcessDeltaView[]): Promise<ProcessDocumentView[]> {
-    const documents: ProcessDocumentView[] = [];
+    // Один логический документ (тождество по содержимому = doc_hash) встречается
+    // в НЕСКОЛЬКИХ дельта-версиях сущности и с РАЗНЫМ числом подписей: контракт
+    // сперва пишет одноподписную версию, затем — двухподписную (вторая подпись —
+    // ведущая). Без дедупликации UI показывает один и тот же акт 5-7 раз.
+    // Поэтому отдаём ОДНУ запись на документ — версию с максимумом подписей,
+    // при равенстве — последнюю по блоку (deltas отсортированы ASC).
+    const byContent = new Map<string, ProcessDocumentView>();
     for (const delta of deltas) {
       const v = delta.value as Record<string, unknown> | null;
       if (!v || typeof v !== 'object') continue;
@@ -368,7 +374,7 @@ export class ProcessRegistryService {
           const signed = value as any;
           const aggregate = await this.documentAggregator.buildDocumentAggregate(signed);
           if (!aggregate) continue;
-          documents.push({
+          const entry: ProcessDocumentView = {
             hash: aggregate.hash || signed.hash || signed.doc_hash || '',
             source: {
               code: delta.code,
@@ -378,7 +384,13 @@ export class ProcessRegistryService {
             },
             document: aggregate.document,
             raw: aggregate.rawDocument ?? null,
-          });
+          };
+          const key = (entry.document?.doc_hash || signed.doc_hash || entry.hash || '').toLowerCase();
+          if (!key) continue;
+          const prev = byContent.get(key);
+          const sig = entry.document?.signatures?.length ?? 0;
+          const prevSig = prev?.document?.signatures?.length ?? 0;
+          if (!prev || sig >= prevSig) byContent.set(key, entry);
         } catch (e: any) {
           this.logger.warn(
             `ProcessRegistry: buildDocumentAggregate упал для ${delta.code}/${delta.table}.${field}: ${e?.message}`
@@ -386,7 +398,7 @@ export class ProcessRegistryService {
         }
       }
     }
-    return documents;
+    return [...byContent.values()];
   }
 
   private findDocumentFields(
