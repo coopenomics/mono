@@ -27,8 +27,8 @@ import {
 import {
   BranchEstablishmentPetitionGenerateDocumentInputDTO,
   BranchEstablishmentDecisionGenerateDocumentInputDTO,
-  BranchLiabilityAgreementGenerateDocumentInputDTO,
-  BranchChairmanLiabilityAgreementGenerateDocumentInputDTO,
+  BranchTrustedLiabilityAgreementGenerateDocumentInputDTO,
+  BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO,
   BranchMeetingBallotGenerateDocumentInputDTO,
   BranchMeetingDecisionGenerateDocumentInputDTO,
   BranchMeetingJoinStatementGenerateDocumentInputDTO,
@@ -288,31 +288,31 @@ export class KuResolver {
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
-    name: 'kuGenerateLiabilityAgreement',
-    description: 'Сгенерировать договор о полной материальной ответственности доверенного лица',
+    name: 'kuGenerateTrustedLiabilityAgreement',
+    description: 'Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['user', 'member', 'chairman'])
-  async kuGenerateLiabilityAgreement(
-    @Args('data', { type: () => BranchLiabilityAgreementGenerateDocumentInputDTO })
-    data: BranchLiabilityAgreementGenerateDocumentInputDTO,
+  async kuGenerateTrustedLiabilityAgreement(
+    @Args('data', { type: () => BranchTrustedLiabilityAgreementGenerateDocumentInputDTO })
+    data: BranchTrustedLiabilityAgreementGenerateDocumentInputDTO,
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return (await this.kuService.generateBranchLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
+    return (await this.kuService.generateBranchTrustedLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
   }
 
   @Mutation(() => GeneratedDocumentDTO, {
-    name: 'kuGenerateChairmanLiabilityAgreement',
+    name: 'kuGenerateTrusteeLiabilityAgreement',
     description: 'Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['user', 'member', 'chairman'])
-  async kuGenerateChairmanLiabilityAgreement(
-    @Args('data', { type: () => BranchChairmanLiabilityAgreementGenerateDocumentInputDTO })
-    data: BranchChairmanLiabilityAgreementGenerateDocumentInputDTO,
+  async kuGenerateTrusteeLiabilityAgreement(
+    @Args('data', { type: () => BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO })
+    data: BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO,
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    return (await this.kuService.generateBranchChairmanLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
+    return (await this.kuService.generateBranchTrusteeLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

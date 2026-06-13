@@ -20,8 +20,8 @@ export * as ExecDecision from './execDecision'
 export * as GenerateEstablishmentPetition from './generateEstablishmentPetition'
 export * as GenerateEstablishmentDecision from './generateEstablishmentDecision'
 
-/** Сгенерировать договор о полной материальной ответственности доверенного лица */
-export * as GenerateLiabilityAgreement from './generateLiabilityAgreement'
+/** Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица */
+export * as GenerateTrustedLiabilityAgreement from './generateTrustedLiabilityAgreement'
 
 /** Сгенерировать бюллетень голосования на собрании участка */
 export * as GenerateMeetingBallot from './generateMeetingBallot'

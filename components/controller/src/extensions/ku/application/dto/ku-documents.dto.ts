@@ -492,13 +492,13 @@ export class BranchTrustedStatementSignedDocumentInputDTO extends SignedDigitalD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 327 — Договор о полной материальной ответственности доверенного лица
+// 327 — Договор о полной индивидуальной материальной ответственности доверенного лица
 // ─────────────────────────────────────────────────────────────────────────────
 
-type liabilityAction = Cooperative.Registry.BranchLiabilityAgreement.Action;
+type trustedLiabilityAction = Cooperative.Registry.BranchTrustedLiabilityAgreement.Action;
 
-@InputType('BaseBranchLiabilityAgreementMetaDocumentInput')
-class BaseBranchLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<liabilityAction> {
+@InputType('BaseBranchTrustedLiabilityAgreementMetaDocumentInput')
+class BaseBranchTrustedLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<trustedLiabilityAction> {
   @Field(() => String, { description: 'Хэш заявки доверенного' })
   @IsString()
   @IsNotEmpty()
@@ -507,47 +507,47 @@ class BaseBranchLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonP
   @Field(() => String, { description: 'Наименование кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  braname!: string;
+  branch_name!: string;
 
   @Field(() => String, { description: 'ФИО председателя кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  chairman_full_name!: string;
+  trustee_full_name!: string;
 }
 
-@InputType('BranchLiabilityAgreementGenerateDocumentInput')
-export class BranchLiabilityAgreementGenerateDocumentInputDTO
+@InputType('BranchTrustedLiabilityAgreementGenerateDocumentInput')
+export class BranchTrustedLiabilityAgreementGenerateDocumentInputDTO
   extends IntersectionType(
-    BaseBranchLiabilityAgreementMetaDocumentInputDTO,
+    BaseBranchTrustedLiabilityAgreementMetaDocumentInputDTO,
     OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
   )
-  implements liabilityAction
+  implements trustedLiabilityAction
 {
   registry_id!: number;
 }
 
-@InputType('BranchLiabilityAgreementSignedMetaDocumentInput')
-export class BranchLiabilityAgreementSignedMetaDocumentInputDTO extends IntersectionType(
-  BaseBranchLiabilityAgreementMetaDocumentInputDTO,
+@InputType('BranchTrustedLiabilityAgreementSignedMetaDocumentInput')
+export class BranchTrustedLiabilityAgreementSignedMetaDocumentInputDTO extends IntersectionType(
+  BaseBranchTrustedLiabilityAgreementMetaDocumentInputDTO,
   MetaDocumentInputDTO
 ) {}
 
-@InputType('BranchLiabilityAgreementSignedDocumentInput')
-export class BranchLiabilityAgreementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
-  @Field(() => BranchLiabilityAgreementSignedMetaDocumentInputDTO, {
-    description: 'Метаинформация договора материальной ответственности',
+@InputType('BranchTrustedLiabilityAgreementSignedDocumentInput')
+export class BranchTrustedLiabilityAgreementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => BranchTrustedLiabilityAgreementSignedMetaDocumentInputDTO, {
+    description: 'Метаинформация договора материальной ответственности доверенного лица',
   })
-  public readonly meta!: BranchLiabilityAgreementSignedMetaDocumentInputDTO;
+  public readonly meta!: BranchTrustedLiabilityAgreementSignedMetaDocumentInputDTO;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 328 — Договор о полной индивидуальной материальной ответственности председателя участка
 // ─────────────────────────────────────────────────────────────────────────────
 
-type chairmanLiabilityAction = Cooperative.Registry.BranchChairmanLiabilityAgreement.Action;
+type trusteeLiabilityAction = Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action;
 
-@InputType('BaseBranchChairmanLiabilityAgreementMetaDocumentInput')
-class BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<chairmanLiabilityAction> {
+@InputType('BaseBranchTrusteeLiabilityAgreementMetaDocumentInput')
+class BaseBranchTrusteeLiabilityAgreementMetaDocumentInputDTO implements ExcludeCommonProps<trusteeLiabilityAction> {
   @Field(() => String, { description: 'Якорь процесса учреждения участка' })
   @IsString()
   @IsNotEmpty()
@@ -559,27 +559,27 @@ class BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO implements Exclud
   branch_name!: string;
 }
 
-@InputType('BranchChairmanLiabilityAgreementGenerateDocumentInput')
-export class BranchChairmanLiabilityAgreementGenerateDocumentInputDTO
+@InputType('BranchTrusteeLiabilityAgreementGenerateDocumentInput')
+export class BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO
   extends IntersectionType(
-    BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO,
+    BaseBranchTrusteeLiabilityAgreementMetaDocumentInputDTO,
     OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
   )
-  implements chairmanLiabilityAction
+  implements trusteeLiabilityAction
 {
   registry_id!: number;
 }
 
-@InputType('BranchChairmanLiabilityAgreementSignedMetaDocumentInput')
-export class BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO extends IntersectionType(
-  BaseBranchChairmanLiabilityAgreementMetaDocumentInputDTO,
+@InputType('BranchTrusteeLiabilityAgreementSignedMetaDocumentInput')
+export class BranchTrusteeLiabilityAgreementSignedMetaDocumentInputDTO extends IntersectionType(
+  BaseBranchTrusteeLiabilityAgreementMetaDocumentInputDTO,
   MetaDocumentInputDTO
 ) {}
 
-@InputType('BranchChairmanLiabilityAgreementSignedDocumentInput')
-export class BranchChairmanLiabilityAgreementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
-  @Field(() => BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO, {
+@InputType('BranchTrusteeLiabilityAgreementSignedDocumentInput')
+export class BranchTrusteeLiabilityAgreementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => BranchTrusteeLiabilityAgreementSignedMetaDocumentInputDTO, {
     description: 'Метаинформация договора материальной ответственности председателя участка',
   })
-  public readonly meta!: BranchChairmanLiabilityAgreementSignedMetaDocumentInputDTO;
+  public readonly meta!: BranchTrusteeLiabilityAgreementSignedMetaDocumentInputDTO;
 }

@@ -17,9 +17,9 @@ import type {
   VoteOnKuDecisionInputDomainInterface,
 } from '../../domain/interfaces/ku-action-inputs.interface';
 import {
-  BranchChairmanLiabilityAgreementSignedDocumentInputDTO,
+  BranchTrusteeLiabilityAgreementSignedDocumentInputDTO,
   BranchEstablishmentPetitionSignedDocumentInputDTO,
-  BranchLiabilityAgreementSignedDocumentInputDTO,
+  BranchTrustedLiabilityAgreementSignedDocumentInputDTO,
   BranchMeetingBallotSignedDocumentInputDTO,
   BranchMeetingDecisionSignedDocumentInputDTO,
   BranchMeetingJoinStatementSignedDocumentInputDTO,
@@ -249,12 +249,12 @@ export class ExecKuDecisionInputDTO implements ExecKuDecisionInputDomainInterfac
   @Type(() => BranchEstablishmentPetitionSignedDocumentInputDTO)
   petition!: BranchEstablishmentPetitionSignedDocumentInputDTO;
 
-  @Field(() => BranchChairmanLiabilityAgreementSignedDocumentInputDTO, {
+  @Field(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO, {
     description: 'Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет)',
   })
   @ValidateNested()
-  @Type(() => BranchChairmanLiabilityAgreementSignedDocumentInputDTO)
-  liability!: BranchChairmanLiabilityAgreementSignedDocumentInputDTO;
+  @Type(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO)
+  liability!: BranchTrusteeLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('CancelKuDecisionInput', { description: 'Отмена собрания пайщиков участка' })
@@ -297,12 +297,12 @@ export class RequestKuTrustedInputDTO implements RequestKuTrustedInputDomainInte
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => BranchLiabilityAgreementSignedDocumentInputDTO, {
+  @Field(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO, {
     description: 'Подписанный договор о полной материальной ответственности доверенного лица',
   })
   @ValidateNested()
-  @Type(() => BranchLiabilityAgreementSignedDocumentInputDTO)
-  application!: BranchLiabilityAgreementSignedDocumentInputDTO;
+  @Type(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO)
+  application!: BranchTrustedLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('ApproveKuTrustedInput', { description: 'Одобрение заявки доверенного встречной подписью председателя участка' })
@@ -317,12 +317,12 @@ export class ApproveKuTrustedInputDTO implements ApproveKuTrustedInputDomainInte
   @IsNotEmpty()
   hash!: string;
 
-  @Field(() => BranchLiabilityAgreementSignedDocumentInputDTO, {
+  @Field(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO, {
     description: 'Договор материальной ответственности со встречной подписью председателя участка',
   })
   @ValidateNested()
-  @Type(() => BranchLiabilityAgreementSignedDocumentInputDTO)
-  countersigned!: BranchLiabilityAgreementSignedDocumentInputDTO;
+  @Type(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO)
+  countersigned!: BranchTrustedLiabilityAgreementSignedDocumentInputDTO;
 }
 
 @InputType('DeclineKuTrustedInput', { description: 'Отклонение заявки доверенного лица' })

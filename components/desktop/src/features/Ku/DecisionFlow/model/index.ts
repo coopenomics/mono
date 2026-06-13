@@ -276,14 +276,14 @@ export function useKuDecisionFlow() {
       );
 
       const liabilityDocument = new DigitalDocument();
-      await liabilityDocument.generate<Cooperative.Registry.BranchChairmanLiabilityAgreement.Action>({
-        registry_id: Cooperative.Registry.BranchChairmanLiabilityAgreement.registry_id,
+      await liabilityDocument.generate<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action>({
+        registry_id: Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
         branch_name: branchName,
       });
-      const liability = await liabilityDocument.sign<Cooperative.Registry.BranchChairmanLiabilityAgreement.Meta>(
+      const liability = await liabilityDocument.sign<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Meta>(
         session.username,
       );
 

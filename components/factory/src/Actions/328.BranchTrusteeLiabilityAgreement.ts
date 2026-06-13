@@ -1,21 +1,21 @@
 import { DraftContract } from 'cooptypes'
-import { BranchChairmanLiabilityAgreement } from '../Templates'
+import { BranchTrusteeLiabilityAgreement } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 
-export { BranchChairmanLiabilityAgreement as Template } from '../Templates'
+export { BranchTrusteeLiabilityAgreement as Template } from '../Templates'
 
-export class Factory extends DocFactory<BranchChairmanLiabilityAgreement.Action> {
+export class Factory extends DocFactory<BranchTrusteeLiabilityAgreement.Action> {
   constructor(storage: MongoDBConnector) {
     super(storage)
   }
 
-  async generateDocument(data: BranchChairmanLiabilityAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
+  async generateDocument(data: BranchTrusteeLiabilityAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
     const { template, coop, vars, userData } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
-        ? Promise.resolve(BranchChairmanLiabilityAgreement.Template as ITemplate<BranchChairmanLiabilityAgreement.Model>)
-        : this.getTemplate<BranchChairmanLiabilityAgreement.Model>(DraftContract.contractName.production, BranchChairmanLiabilityAgreement.registry_id, data.block_num),
+        ? Promise.resolve(BranchTrusteeLiabilityAgreement.Template as ITemplate<BranchTrusteeLiabilityAgreement.Model>)
+        : this.getTemplate<BranchTrusteeLiabilityAgreement.Model>(DraftContract.contractName.production, BranchTrusteeLiabilityAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
@@ -24,11 +24,11 @@ export class Factory extends DocFactory<BranchChairmanLiabilityAgreement.Action>
     if (userData.type !== 'individual')
       throw new Error('Председателем кооперативного участка может быть только физическое лицо')
 
-    const individual = userData.data as BranchChairmanLiabilityAgreement.Model['individual']
+    const individual = userData.data as BranchTrusteeLiabilityAgreement.Model['individual']
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
 
-    const combinedData: BranchChairmanLiabilityAgreement.Model = {
+    const combinedData: BranchTrusteeLiabilityAgreement.Model = {
       meta,
       coop,
       vars,

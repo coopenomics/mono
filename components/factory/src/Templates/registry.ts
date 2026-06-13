@@ -67,8 +67,8 @@ import * as BranchMeetingDecision from './323.BranchMeetingDecision'
 import * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
 import * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
 import * as BranchTrustedStatement from './326.BranchTrustedStatement'
-import * as BranchLiabilityAgreement from './327.BranchLiabilityAgreement'
-import * as BranchChairmanLiabilityAgreement from './328.BranchChairmanLiabilityAgreement'
+import * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
+import * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
@@ -99,8 +99,8 @@ export const Registry = {
   324: BranchEstablishmentPetition,
   325: BranchEstablishmentSovietDecision,
   326: BranchTrustedStatement,
-  327: BranchLiabilityAgreement,
-  328: BranchChairmanLiabilityAgreement,
+  327: BranchTrustedLiabilityAgreement,
+  328: BranchTrusteeLiabilityAgreement,
   501: DecisionOfParticipantApplication,
   599: ProjectFreeDecision,
   600: FreeDecision,

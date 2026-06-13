@@ -203,6 +203,7 @@ async function onRequest() {
   try {
     await flow.requestTrusted({
       braname: props.braname,
+      branchName: branchTitle.value,
       chairmanFullName: fullName(branch.value?.trustee_certificate),
     });
     SuccessAlert('Заявка подана');

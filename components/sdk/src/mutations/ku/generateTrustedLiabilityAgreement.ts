@@ -1,15 +1,15 @@
 import { documentSelector } from '../../selectors'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'kuGenerateLiabilityAgreement'
+export const name = 'kuGenerateTrustedLiabilityAgreement'
 
 /**
- * Сгенерировать договор о полной материальной ответственности доверенного лица
+ * Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка
  */
 export const mutation = Selector('Mutation')({
   [name]: [
     {
-      data: $('data', 'BranchLiabilityAgreementGenerateDocumentInput!'),
+      data: $('data', 'BranchTrustedLiabilityAgreementGenerateDocumentInput!'),
       options: $('options', 'GenerateDocumentOptionsInput'),
     },
     documentSelector,
@@ -22,7 +22,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['BranchLiabilityAgreementGenerateDocumentInput']
+  data: ModelTypes['BranchTrustedLiabilityAgreementGenerateDocumentInput']
   options?: ModelTypes['GenerateDocumentOptionsInput']
 }
 

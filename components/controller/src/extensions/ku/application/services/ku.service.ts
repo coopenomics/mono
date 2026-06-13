@@ -316,18 +316,18 @@ export class KuService {
     return this.generate(data, Cooperative.Registry.BranchTrustedStatement.registry_id, options);
   }
 
-  async generateBranchLiabilityAgreement(
-    data: Cooperative.Registry.BranchLiabilityAgreement.Action,
+  async generateBranchTrustedLiabilityAgreement(
+    data: Cooperative.Registry.BranchTrustedLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<DocumentDomainEntity> {
-    return this.generate(data, Cooperative.Registry.BranchLiabilityAgreement.registry_id, options);
+    return this.generate(data, Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id, options);
   }
 
-  async generateBranchChairmanLiabilityAgreement(
-    data: Cooperative.Registry.BranchChairmanLiabilityAgreement.Action,
+  async generateBranchTrusteeLiabilityAgreement(
+    data: Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action,
     options?: GenerateDocumentOptionsInputDTO
   ): Promise<DocumentDomainEntity> {
-    return this.generate(data, Cooperative.Registry.BranchChairmanLiabilityAgreement.registry_id, options);
+    return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
   // ───────────────────────────────────────────────────────────────────────────

@@ -73,8 +73,8 @@ export * as BranchMeetingDecision from './323.BranchMeetingDecision'
 export * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
 export * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
 export * as BranchTrustedStatement from './326.BranchTrustedStatement'
-export * as BranchLiabilityAgreement from './327.BranchLiabilityAgreement'
-export * as BranchChairmanLiabilityAgreement from './328.BranchChairmanLiabilityAgreement'
+export * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
+export * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
 
 // ЦПП БЛАГОРОСТ
 export * as GeneratorProgramTemplate from './994.GeneratorProgramTemplate'

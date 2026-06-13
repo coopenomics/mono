@@ -5,13 +5,13 @@ import { IMetaJSONSchema } from '../Schema/MetaSchema'
 import { individualSchema } from '../Schema/IndividualSchema'
 import { CooperativeSchema, VarsSchema } from '../Schema'
 
-export const registry_id = Cooperative.Registry.BranchChairmanLiabilityAgreement.registry_id
+export const registry_id = Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id
 
 // Модель действия для генерации
-export type Action = Cooperative.Registry.BranchChairmanLiabilityAgreement.Action
+export type Action = Cooperative.Registry.BranchTrustedLiabilityAgreement.Action
 
 // Модель данных
-export type Model = Cooperative.Registry.BranchChairmanLiabilityAgreement.Model
+export type Model = Cooperative.Registry.BranchTrustedLiabilityAgreement.Model
 
 // Схема для сверки
 export const Schema: JSONSchemaType<Model> = {
@@ -28,16 +28,17 @@ export const Schema: JSONSchemaType<Model> = {
       additionalProperties: true,
     },
     branch_name: { type: 'string' },
+    trustee_full_name: { type: 'string' },
     vars: VarsSchema,
   },
-  required: ['meta', 'coop', 'individual', 'branch_name', 'vars'],
+  required: ['meta', 'coop', 'individual', 'branch_name', 'trustee_full_name', 'vars'],
   additionalProperties: true,
 }
 
 export const Template: ITemplate<Model> = {
-  title: Cooperative.Registry.BranchChairmanLiabilityAgreement.title,
-  description: Cooperative.Registry.BranchChairmanLiabilityAgreement.description,
+  title: Cooperative.Registry.BranchTrustedLiabilityAgreement.title,
+  description: Cooperative.Registry.BranchTrustedLiabilityAgreement.description,
   model: Schema,
-  context: Cooperative.Registry.BranchChairmanLiabilityAgreement.context,
-  translations: Cooperative.Registry.BranchChairmanLiabilityAgreement.translations,
+  context: Cooperative.Registry.BranchTrustedLiabilityAgreement.context,
+  translations: Cooperative.Registry.BranchTrustedLiabilityAgreement.translations,
 }

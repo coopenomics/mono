@@ -23,23 +23,28 @@ export function useKuTrustedFlow() {
 
   const isSubmitting = ref(false);
 
-  /** Подать заявку доверенного: договор 327 с подписью заявителя + reqtrusted */
-  async function requestTrusted(input: { braname: string; chairmanFullName: string }): Promise<void> {
+  /**
+   * Подать заявку доверенного: договор о полной индивидуальной материальной
+   * ответственности доверенного лица (327, текст совпадает с договором
+   * председателя участка) с подписью заявителя + reqtrusted. Председатель
+   * участка позже накладывает встречную подпись при одобрении заявки.
+   */
+  async function requestTrusted(input: { braname: string; branchName: string; chairmanFullName: string }): Promise<void> {
     isSubmitting.value = true;
     try {
       const hash = await generateUniqueHash();
       const digitalDocument = new DigitalDocument();
 
-      await digitalDocument.generate<Cooperative.Registry.BranchLiabilityAgreement.Action>({
-        registry_id: Cooperative.Registry.BranchLiabilityAgreement.registry_id,
+      await digitalDocument.generate<Cooperative.Registry.BranchTrustedLiabilityAgreement.Action>({
+        registry_id: Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash,
-        braname: input.braname,
-        chairman_full_name: input.chairmanFullName,
+        branch_name: input.branchName,
+        trustee_full_name: input.chairmanFullName,
       });
 
-      const application = await digitalDocument.sign<Cooperative.Registry.BranchLiabilityAgreement.Meta>(
+      const application = await digitalDocument.sign<Cooperative.Registry.BranchTrustedLiabilityAgreement.Meta>(
         session.username,
       );
 

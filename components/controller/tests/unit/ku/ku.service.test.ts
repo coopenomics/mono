@@ -285,19 +285,19 @@ describe('KuService — генерация документов', () => {
     expect(data.registry_id).toBe(320);
   });
 
-  it('generateBranchLiabilityAgreement проставляет registry_id 327', async () => {
+  it('generateBranchTrustedLiabilityAgreement проставляет registry_id 327', async () => {
     const { service, documentService } = makeService();
 
-    await service.generateBranchLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
+    await service.generateBranchTrustedLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentService.generateDocument.mock.calls[0][0];
     expect(data.registry_id).toBe(327);
   });
 
-  it('generateBranchChairmanLiabilityAgreement проставляет registry_id 328', async () => {
+  it('generateBranchTrusteeLiabilityAgreement проставляет registry_id 328', async () => {
     const { service, documentService } = makeService();
 
-    await service.generateBranchChairmanLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
+    await service.generateBranchTrusteeLiabilityAgreement({ coopname: COOP, username: 'alice' } as any);
 
     const { data } = documentService.generateDocument.mock.calls[0][0];
     expect(data.registry_id).toBe(328);

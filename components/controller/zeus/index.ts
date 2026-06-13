@@ -1748,7 +1748,7 @@ export type ValueTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Договор материальной ответственности со встречной подписью председателя участка */
-	countersigned: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
+	countersigned: ValueTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
 	/** Хэш заявки */
 	hash: string | Variable<any, string>
 };
@@ -2291,74 +2291,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
 }>;
-	["BranchChairmanLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Наименование кооперативного участка */
-	branch_name: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Якорь процесса учреждения участка */
-	hash: string | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["BranchChairmanLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация договора материальной ответственности председателя участка */
-	meta: ValueTypes["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Наименование кооперативного участка */
-	branch_name: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Якорь процесса учреждения участка */
-	hash: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
 	address: string | Variable<any, string>,
@@ -2449,78 +2381,6 @@ export type ValueTypes = {
 	/** Имя генератора, использованного для создания документа */
 	generator: string | Variable<any, string>,
 	/** Хэш решения собрания */
-	hash: string | Variable<any, string>,
-	/** Язык документа */
-	lang: string | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links: Array<string> | Variable<any, string>,
-	/** ID документа в реестре */
-	registry_id: number | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string | Variable<any, string>,
-	/** Название документа */
-	title: string | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version: string | Variable<any, string>
-};
-	["BranchLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null | Variable<any, string>,
-	/** Наименование кооперативного участка */
-	braname: string | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null | Variable<any, string>,
-	/** Хэш заявки доверенного */
-	hash: string | Variable<any, string>,
-	/** Язык документа */
-	lang?: string | undefined | null | Variable<any, string>,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null | Variable<any, string>,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null | Variable<any, string>,
-	/** Название документа */
-	title?: string | undefined | null | Variable<any, string>,
-	/** Имя пользователя, создавшего документ */
-	username: string | Variable<any, string>,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null | Variable<any, string>
-};
-	["BranchLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string | Variable<any, string>,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string | Variable<any, string>,
-	/** Метаинформация договора материальной ответственности */
-	meta: ValueTypes["BranchLiabilityAgreementSignedMetaDocumentInput"] | Variable<any, string>,
-	/** Хэш мета-данных */
-	meta_hash: string | Variable<any, string>,
-	/** Вектор подписей */
-	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
-	/** Версия стандарта документа */
-	version: string | Variable<any, string>
-};
-	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number | Variable<any, string>,
-	/** Наименование кооперативного участка */
-	braname: string | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string | Variable<any, string>,
-	/** Название кооператива, связанное с документом */
-	coopname: string | Variable<any, string>,
-	/** Дата и время создания документа */
-	created_at: string | Variable<any, string>,
-	/** Имя генератора, использованного для создания документа */
-	generator: string | Variable<any, string>,
-	/** Хэш заявки доверенного */
 	hash: string | Variable<any, string>,
 	/** Язык документа */
 	lang: string | Variable<any, string>,
@@ -2845,6 +2705,78 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["BranchTrustedLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	branch_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchTrustedLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация договора материальной ответственности доверенного лица */
+	meta: ValueTypes["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	branch_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Хэш заявки доверенного */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
 	["BranchTrustedStatementGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
@@ -2870,6 +2802,74 @@ export type ValueTypes = {
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchTrusteeLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	branch_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Якорь процесса учреждения участка */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["BranchTrusteeLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	/** Метаинформация договора материальной ответственности председателя участка */
+	meta: ValueTypes["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Наименование кооперативного участка */
+	branch_name: string | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Якорь процесса учреждения участка */
+	hash: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
 };
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ValueTypes["BalanceRowEdits"],
@@ -5775,7 +5775,7 @@ export type ValueTypes = {
 	/** Хэш решения собрания */
 	hash: string | Variable<any, string>,
 	/** Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет) */
-	liability: ValueTypes["BranchChairmanLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
+	liability: ValueTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
 	/** Подписанное заявление председателя в совет */
 	petition: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"] | Variable<any, string>
 };
@@ -7515,15 +7515,15 @@ kuCloseDecision?: [{	data: ValueTypes["CloseKuDecisionInput"] | Variable<any, st
 kuCreateDecision?: [{	data: ValueTypes["CreateKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuDeclineTrusted?: [{	data: ValueTypes["DeclineKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuExecDecision?: [{	data: ValueTypes["ExecKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-kuGenerateChairmanLiabilityAgreement?: [{	data: ValueTypes["BranchChairmanLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateEstablishmentDecision?: [{	data: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateEstablishmentPetition?: [{	data: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-kuGenerateLiabilityAgreement?: [{	data: ValueTypes["BranchLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateMeetingBallot?: [{	data: ValueTypes["BranchMeetingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateMeetingDecision?: [{	data: ValueTypes["BranchMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateMeetingJoinStatement?: [{	data: ValueTypes["BranchMeetingJoinStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateMeetingProposal?: [{	data: ValueTypes["BranchMeetingProposalGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateTrustedLiabilityAgreement?: [{	data: ValueTypes["BranchTrustedLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuGenerateTrustedStatement?: [{	data: ValueTypes["BranchTrustedStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+kuGenerateTrusteeLiabilityAgreement?: [{	data: ValueTypes["BranchTrusteeLiabilityAgreementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 kuJoinDecision?: [{	data: ValueTypes["JoinKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuRequestTrusted?: [{	data: ValueTypes["RequestKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 kuStartDecision?: [{	data: ValueTypes["StartKuDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -9359,7 +9359,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
 	/** Подписанный договор о полной материальной ответственности доверенного лица */
-	application: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
+	application: ValueTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта кооперативного участка */
 	braname: string | Variable<any, string>,
 	/** Имя аккаунта кооператива */
@@ -11374,7 +11374,7 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Договор материальной ответственности со встречной подписью председателя участка */
-	countersigned: ResolverInputTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	countersigned: ResolverInputTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
 };
@@ -11903,74 +11903,6 @@ export type ResolverInputTypes = {
 	type?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["BranchChairmanLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchChairmanLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности председателя участка */
-	meta: ResolverInputTypes["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
 	address: string,
@@ -12061,78 +11993,6 @@ export type ResolverInputTypes = {
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["BranchLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности */
-	meta: ResolverInputTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
 	hash: string,
 	/** Язык документа */
 	lang: string,
@@ -12457,6 +12317,78 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["BranchTrustedLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности доверенного лица */
+	meta: ResolverInputTypes["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BranchTrustedStatementGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -12482,6 +12414,74 @@ export type ResolverInputTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности председателя участка */
+	meta: ResolverInputTypes["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["BuhotchBalanceEdits"]: AliasType<{
 	assetsTotal?:ResolverInputTypes["BalanceRowEdits"],
@@ -15315,7 +15315,7 @@ export type ResolverInputTypes = {
 	/** Хэш решения собрания */
 	hash: string,
 	/** Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет) */
-	liability: ResolverInputTypes["BranchChairmanLiabilityAgreementSignedDocumentInput"],
+	liability: ResolverInputTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: ResolverInputTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
@@ -17012,15 +17012,15 @@ kuCloseDecision?: [{	data: ResolverInputTypes["CloseKuDecisionInput"]},ResolverI
 kuCreateDecision?: [{	data: ResolverInputTypes["CreateKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 kuDeclineTrusted?: [{	data: ResolverInputTypes["DeclineKuTrustedInput"]},ResolverInputTypes["Transaction"]],
 kuExecDecision?: [{	data: ResolverInputTypes["ExecKuDecisionInput"]},ResolverInputTypes["Transaction"]],
-kuGenerateChairmanLiabilityAgreement?: [{	data: ResolverInputTypes["BranchChairmanLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateEstablishmentDecision?: [{	data: ResolverInputTypes["BranchEstablishmentDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateEstablishmentPetition?: [{	data: ResolverInputTypes["BranchEstablishmentPetitionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-kuGenerateLiabilityAgreement?: [{	data: ResolverInputTypes["BranchLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateMeetingBallot?: [{	data: ResolverInputTypes["BranchMeetingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateMeetingDecision?: [{	data: ResolverInputTypes["BranchMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateMeetingJoinStatement?: [{	data: ResolverInputTypes["BranchMeetingJoinStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateMeetingProposal?: [{	data: ResolverInputTypes["BranchMeetingProposalGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateTrustedLiabilityAgreement?: [{	data: ResolverInputTypes["BranchTrustedLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuGenerateTrustedStatement?: [{	data: ResolverInputTypes["BranchTrustedStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+kuGenerateTrusteeLiabilityAgreement?: [{	data: ResolverInputTypes["BranchTrusteeLiabilityAgreementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 kuJoinDecision?: [{	data: ResolverInputTypes["JoinKuDecisionInput"]},ResolverInputTypes["Transaction"]],
 kuRequestTrusted?: [{	data: ResolverInputTypes["RequestKuTrustedInput"]},ResolverInputTypes["Transaction"]],
 kuStartDecision?: [{	data: ResolverInputTypes["StartKuDecisionInput"]},ResolverInputTypes["Transaction"]],
@@ -18776,7 +18776,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
 	/** Подписанный договор о полной материальной ответственности доверенного лица */
-	application: ResolverInputTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	application: ResolverInputTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -20753,7 +20753,7 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Договор материальной ответственности со встречной подписью председателя участка */
-	countersigned: ModelTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	countersigned: ModelTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
 };
@@ -21268,74 +21268,6 @@ export type ModelTypes = {
 	/** Тип организации */
 	type: string
 };
-	["BranchChairmanLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchChairmanLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности председателя участка */
-	meta: ModelTypes["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
 	address: string,
@@ -21426,78 +21358,6 @@ export type ModelTypes = {
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["BranchLiabilityAgreementGenerateDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchLiabilityAgreementSignedDocumentInput"]: {
-	/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности */
-	meta: ModelTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<ModelTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
-	/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
 	hash: string,
 	/** Язык документа */
 	lang: string,
@@ -21822,6 +21682,78 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["BranchTrustedLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности доверенного лица */
+	meta: ModelTypes["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BranchTrustedStatementGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -21847,6 +21779,74 @@ export type ModelTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности председателя участка */
+	meta: ModelTypes["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["BuhotchBalanceEdits"]: {
 		assetsTotal: ModelTypes["BalanceRowEdits"],
@@ -24599,7 +24599,7 @@ export type ModelTypes = {
 	/** Хэш решения собрания */
 	hash: string,
 	/** Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет) */
-	liability: ModelTypes["BranchChairmanLiabilityAgreementSignedDocumentInput"],
+	liability: ModelTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: ModelTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
@@ -26667,10 +26667,6 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuExecDecision: ModelTypes["Transaction"],
-	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
-
-Требуемые роли: user, member, chairman.  */
-	kuGenerateChairmanLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать решение совета об учреждении кооперативного участка
 
 Требуемые роли: member, chairman.  */
@@ -26679,10 +26675,6 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateEstablishmentPetition: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать договор о полной материальной ответственности доверенного лица
-
-Требуемые роли: user, member, chairman.  */
-	kuGenerateLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень голосования на собрании участка
 
 Требуемые роли: user, member, chairman.  */
@@ -26699,10 +26691,18 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateMeetingProposal: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrustedLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о приёме доверенным лицом участка
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateTrustedStatement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrusteeLiabilityAgreement: ModelTypes["GeneratedDocument"],
 	/** Присоединиться к собранию пайщиков кооперативного участка
 
 Требуемые роли: user, member, chairman.  */
@@ -28673,7 +28673,7 @@ export type ModelTypes = {
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
 	/** Подписанный договор о полной материальной ответственности доверенного лица */
-	application: ModelTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	application: ModelTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -30640,7 +30640,7 @@ export type GraphQLTypes = {
 		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Договор материальной ответственности со встречной подписью председателя участка */
-	countersigned: GraphQLTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	countersigned: GraphQLTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Хэш заявки */
 	hash: string
 };
@@ -31183,74 +31183,6 @@ export type GraphQLTypes = {
 	type: string,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
-	["BranchChairmanLiabilityAgreementGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchChairmanLiabilityAgreementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности председателя участка */
-	meta: GraphQLTypes["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	branch_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Якорь процесса учреждения участка */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 		/** Адрес привязки кооперативного участка */
 	address: string,
@@ -31341,78 +31273,6 @@ export type GraphQLTypes = {
 	/** Имя генератора, использованного для создания документа */
 	generator: string,
 	/** Хэш решения собрания */
-	hash: string,
-	/** Язык документа */
-	lang: string,
-	/** Ссылки, связанные с документом */
-	links: Array<string>,
-	/** ID документа в реестре */
-	registry_id: number,
-	/** Часовой пояс, в котором был создан документ */
-	timezone: string,
-	/** Название документа */
-	title: string,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version: string
-};
-	["BranchLiabilityAgreementGenerateDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num?: number | undefined | null,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at?: string | undefined | null,
-	/** Имя генератора, использованного для создания документа */
-	generator?: string | undefined | null,
-	/** Хэш заявки доверенного */
-	hash: string,
-	/** Язык документа */
-	lang?: string | undefined | null,
-	/** Ссылки, связанные с документом */
-	links?: Array<string> | undefined | null,
-	/** Часовой пояс, в котором был создан документ */
-	timezone?: string | undefined | null,
-	/** Название документа */
-	title?: string | undefined | null,
-	/** Имя пользователя, создавшего документ */
-	username: string,
-	/** Версия генератора, использованного для создания документа */
-	version?: string | undefined | null
-};
-	["BranchLiabilityAgreementSignedDocumentInput"]: {
-		/** Хэш содержимого документа */
-	doc_hash: string,
-	/** Общий хэш (doc_hash + meta_hash) */
-	hash: string,
-	/** Метаинформация договора материальной ответственности */
-	meta: GraphQLTypes["BranchLiabilityAgreementSignedMetaDocumentInput"],
-	/** Хэш мета-данных */
-	meta_hash: string,
-	/** Вектор подписей */
-	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
-	/** Версия стандарта документа */
-	version: string
-};
-	["BranchLiabilityAgreementSignedMetaDocumentInput"]: {
-		/** Номер блока, на котором был создан документ */
-	block_num: number,
-	/** Наименование кооперативного участка */
-	braname: string,
-	/** ФИО председателя кооперативного участка */
-	chairman_full_name: string,
-	/** Название кооператива, связанное с документом */
-	coopname: string,
-	/** Дата и время создания документа */
-	created_at: string,
-	/** Имя генератора, использованного для создания документа */
-	generator: string,
-	/** Хэш заявки доверенного */
 	hash: string,
 	/** Язык документа */
 	lang: string,
@@ -31737,6 +31597,78 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["BranchTrustedLiabilityAgreementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrustedLiabilityAgreementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности доверенного лица */
+	meta: GraphQLTypes["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Хэш заявки доверенного */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** ФИО председателя кооперативного участка */
+	trustee_full_name: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
 	["BranchTrustedStatementGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
@@ -31762,6 +31694,74 @@ export type GraphQLTypes = {
 	username: string,
 	/** Версия генератора, использованного для создания документа */
 	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["BranchTrusteeLiabilityAgreementSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	/** Метаинформация договора материальной ответственности председателя участка */
+	meta: GraphQLTypes["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Наименование кооперативного участка */
+	branch_name: string,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Якорь процесса учреждения участка */
+	hash: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
 };
 	["BuhotchBalanceEdits"]: {
 	__typename: "BuhotchBalanceEdits",
@@ -34667,7 +34667,7 @@ export type GraphQLTypes = {
 	/** Хэш решения собрания */
 	hash: string,
 	/** Подписанный председателем участка договор о полной материальной ответственности (идёт в пакете в совет) */
-	liability: GraphQLTypes["BranchChairmanLiabilityAgreementSignedDocumentInput"],
+	liability: GraphQLTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"],
 	/** Подписанное заявление председателя в совет */
 	petition: GraphQLTypes["BranchEstablishmentPetitionSignedDocumentInput"]
 };
@@ -36833,10 +36833,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuExecDecision: GraphQLTypes["Transaction"],
-	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
-
-Требуемые роли: user, member, chairman.  */
-	kuGenerateChairmanLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать решение совета об учреждении кооперативного участка
 
 Требуемые роли: member, chairman.  */
@@ -36845,10 +36841,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateEstablishmentPetition: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать договор о полной материальной ответственности доверенного лица
-
-Требуемые роли: user, member, chairman.  */
-	kuGenerateLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать бюллетень голосования на собрании участка
 
 Требуемые роли: user, member, chairman.  */
@@ -36865,10 +36857,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateMeetingProposal: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrustedLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о приёме доверенным лицом участка
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateTrustedStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка
+
+Требуемые роли: user, member, chairman.  */
+	kuGenerateTrusteeLiabilityAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Присоединиться к собранию пайщиков кооперативного участка
 
 Требуемые роли: user, member, chairman.  */
@@ -39023,7 +39023,7 @@ export type GraphQLTypes = {
 	/** Заявка на приём доверенным лицом кооперативного участка */
 ["RequestKuTrustedInput"]: {
 		/** Подписанный договор о полной материальной ответственности доверенного лица */
-	application: GraphQLTypes["BranchLiabilityAgreementSignedDocumentInput"],
+	application: GraphQLTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"],
 	/** Имя аккаунта кооперативного участка */
 	braname: string,
 	/** Имя аккаунта кооператива */
@@ -40873,16 +40873,10 @@ type ZEUS_VARIABLES = {
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
-	["BranchChairmanLiabilityAgreementGenerateDocumentInput"]: ValueTypes["BranchChairmanLiabilityAgreementGenerateDocumentInput"];
-	["BranchChairmanLiabilityAgreementSignedDocumentInput"]: ValueTypes["BranchChairmanLiabilityAgreementSignedDocumentInput"];
-	["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"]: ValueTypes["BranchChairmanLiabilityAgreementSignedMetaDocumentInput"];
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentDecisionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionGenerateDocumentInput"]: ValueTypes["BranchEstablishmentPetitionGenerateDocumentInput"];
 	["BranchEstablishmentPetitionSignedDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedDocumentInput"];
 	["BranchEstablishmentPetitionSignedMetaDocumentInput"]: ValueTypes["BranchEstablishmentPetitionSignedMetaDocumentInput"];
-	["BranchLiabilityAgreementGenerateDocumentInput"]: ValueTypes["BranchLiabilityAgreementGenerateDocumentInput"];
-	["BranchLiabilityAgreementSignedDocumentInput"]: ValueTypes["BranchLiabilityAgreementSignedDocumentInput"];
-	["BranchLiabilityAgreementSignedMetaDocumentInput"]: ValueTypes["BranchLiabilityAgreementSignedMetaDocumentInput"];
 	["BranchMeetingBallotGenerateDocumentInput"]: ValueTypes["BranchMeetingBallotGenerateDocumentInput"];
 	["BranchMeetingBallotSignedDocumentInput"]: ValueTypes["BranchMeetingBallotSignedDocumentInput"];
 	["BranchMeetingBallotSignedMetaDocumentInput"]: ValueTypes["BranchMeetingBallotSignedMetaDocumentInput"];
@@ -40895,7 +40889,13 @@ type ZEUS_VARIABLES = {
 	["BranchMeetingProposalGenerateDocumentInput"]: ValueTypes["BranchMeetingProposalGenerateDocumentInput"];
 	["BranchMeetingProposalSignedDocumentInput"]: ValueTypes["BranchMeetingProposalSignedDocumentInput"];
 	["BranchMeetingProposalSignedMetaDocumentInput"]: ValueTypes["BranchMeetingProposalSignedMetaDocumentInput"];
+	["BranchTrustedLiabilityAgreementGenerateDocumentInput"]: ValueTypes["BranchTrustedLiabilityAgreementGenerateDocumentInput"];
+	["BranchTrustedLiabilityAgreementSignedDocumentInput"]: ValueTypes["BranchTrustedLiabilityAgreementSignedDocumentInput"];
+	["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"]: ValueTypes["BranchTrustedLiabilityAgreementSignedMetaDocumentInput"];
 	["BranchTrustedStatementGenerateDocumentInput"]: ValueTypes["BranchTrustedStatementGenerateDocumentInput"];
+	["BranchTrusteeLiabilityAgreementGenerateDocumentInput"]: ValueTypes["BranchTrusteeLiabilityAgreementGenerateDocumentInput"];
+	["BranchTrusteeLiabilityAgreementSignedDocumentInput"]: ValueTypes["BranchTrusteeLiabilityAgreementSignedDocumentInput"];
+	["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"]: ValueTypes["BranchTrusteeLiabilityAgreementSignedMetaDocumentInput"];
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];
