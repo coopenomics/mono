@@ -1,6 +1,7 @@
 import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
+import { PersonnelPage } from 'src/pages/Cooperative/Personnel';
 import { ListOfDocumentsPage } from 'src/pages/Cooperative/ListOfDocuments';
 import { DocumentDetailsPage } from 'src/pages/Cooperative/DocumentDetails';
 import { PaymentsPage } from 'src/pages/Cooperative/Payments';
@@ -44,6 +45,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: 'Реестр пайщиков',
               icon: 'fa-solid fa-users',
               roles: ['chairman', 'member'],
+            },
+          },
+          {
+            path: 'personnel',
+            name: 'personnel',
+            component: markRaw(PersonnelPage),
+            meta: {
+              title: 'Персонал',
+              icon: 'fa-solid fa-user-shield',
+              roles: ['chairman'],
             },
           },
           {

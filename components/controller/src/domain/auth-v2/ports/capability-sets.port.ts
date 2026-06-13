@@ -14,6 +14,28 @@
  * выводятся из контекста на своих столах, а не назначаются.
  */
 
+/**
+ * Гранулярное право: какое действие над каким ресурсом открыто. Зеркало пары
+ * `action`/`resource_type` из access_rules — единица доступа к столу/странице/мутации.
+ * Это основание гейтинга UI (фронт-`useCoopAccess().can(action, resource)`); концептуально
+ * совпадает с grants marketplace2 (resource:action), при мердже сводятся.
+ */
+export interface AccessGrant {
+  action: string;
+  resource: string;
+}
+
+/** Набор + что он открывает (для admin-UI «эта роль даёт …»). */
+export interface CapabilitySetWithGrants extends CapabilitySet {
+  grants: AccessGrant[];
+}
+
+/** Эффективный доступ пайщика: активные наборы + плоский список грантов из его Ability. */
+export interface ParticipantAccess {
+  sets: string[];
+  grants: AccessGrant[];
+}
+
 /** Шаблон набора возможностей (реестр `capability_sets`). */
 export interface CapabilitySet {
   /** Канон-id набора (English, self-documenting): `accountant`, `cashier`, … */

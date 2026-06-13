@@ -49,6 +49,7 @@ import { KeyRevocationService } from './key-revocation/key-revocation.service';
 import { KeyRevocationController } from './key-revocation/key-revocation.controller';
 import { CapabilitySetService } from './authorization/capability-set.service';
 import { CapabilitySetController } from './authorization/capability-set.controller';
+import { AccessController } from './authorization/access.controller';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -58,7 +59,7 @@ import { CapabilitySetController } from './authorization/capability-set.controll
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController, CapabilitySetController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController, CapabilitySetController, AccessController],
   providers: [
     AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
