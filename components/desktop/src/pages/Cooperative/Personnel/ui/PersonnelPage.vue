@@ -42,14 +42,14 @@ q-page.personnel-page
     .personnel-roles
       .personnel-roles__label.t-sm Назначенные роли
       .personnel-roles__chips(v-if='assignments.length')
-        BaseChip(v-for='a in assignments', :key='a.setKey', variant='accent')
-          | {{ titleOf(a.setKey) }}
+        BaseChip(v-for='a in assignments', :key='a.set_key', variant='accent')
+          | {{ titleOf(a.set_key) }}
           q-icon.personnel-roles__remove(
             name='close',
             size='14px',
             role='button',
             aria-label='Снять роль',
-            @click='onRevoke(a.setKey)'
+            @click='onRevoke(a.set_key)'
           )
       EmptyState(
         v-else,
@@ -110,18 +110,18 @@ const dialogTitle = computed(() =>
 );
 
 const titleOf = (setKey: string): string =>
-  catalog.value.find((c) => c.setKey === setKey)?.title ?? setKey;
+  catalog.value.find((c) => c.set_key === setKey)?.title ?? setKey;
 
 // Наборы, ещё не назначенные этому пайщику — для селекта добавления.
 const addableOptions = computed(() =>
   catalog.value
-    .filter((c) => !assignments.value.some((a) => a.setKey === c.setKey))
-    .map((c) => ({ value: c.setKey, label: c.title })),
+    .filter((c) => !assignments.value.some((a) => a.set_key === c.set_key))
+    .map((c) => ({ value: c.set_key, label: c.title })),
 );
 
 // Что откроет выбранный в селекте набор (демонстрация «роль → доступ»).
 const selectedGrants = computed(
-  () => catalog.value.find((c) => c.setKey === selectedSet.value)?.grants ?? [],
+  () => catalog.value.find((c) => c.set_key === selectedSet.value)?.grants ?? [],
 );
 
 const columns: any[] = [

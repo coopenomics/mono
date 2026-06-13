@@ -122,6 +122,9 @@ export const AllTypesProps: Record<string,any> = {
 	AssetContributionStatementSignedMetaDocumentInput:{
 		request:"CommonRequestInput"
 	},
+	AssignCapabilitySetInput:{
+
+	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -653,6 +656,9 @@ export const AllTypesProps: Record<string,any> = {
 		addTrustedAccount:{
 			data:"AddTrustedAccountInput"
 		},
+		assignCapabilitySet:{
+			data:"AssignCapabilitySetInput"
+		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
@@ -1181,6 +1187,9 @@ export const AllTypesProps: Record<string,any> = {
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
 		},
+		revokeCapabilitySet:{
+			data:"RevokeCapabilitySetInput"
+		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
 		},
@@ -1604,6 +1613,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"NotificationsFilterInput",
 			pagination:"PaginationInput"
 		},
+		getParticipantCapabilitySets:{
+
+		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
 		},
@@ -1772,6 +1784,9 @@ export const AllTypesProps: Record<string,any> = {
 		signatures:"SignatureInfoInput"
 	},
 	ReturnByMoneySignedMetaDocumentInput:{
+
+	},
+	RevokeCapabilitySetInput:{
 
 	},
 	RoomMessageKind: "enum" as const,
@@ -1980,6 +1995,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	AccessGrant:{
+		action:"String",
+		resource:"String"
+	},
 	Account:{
 		blockchain_account:"BlockchainAccount",
 		participant_account:"ParticipantAccount",
@@ -2339,6 +2358,21 @@ export const ReturnTypes: Record<string,any> = {
 		type:"String",
 		username:"String",
 		username_display_name:"String"
+	},
+	CapabilitySet:{
+		builtin:"Boolean",
+		coopname:"String",
+		description:"String",
+		grants:"AccessGrant",
+		set_key:"String",
+		title:"String"
+	},
+	CapabilitySetAssignment:{
+		expires_at:"String",
+		granted_at:"String",
+		granted_by:"String",
+		set_key:"String",
+		username:"String"
 	},
 	CapitalCandidate:{
 		about:"String",
@@ -3571,6 +3605,7 @@ export const ReturnTypes: Record<string,any> = {
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
+		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
@@ -3734,6 +3769,7 @@ export const ReturnTypes: Record<string,any> = {
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		revokeCapabilitySet:"Boolean",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
@@ -3993,6 +4029,10 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	ParticipantAccess:{
+		grants:"AccessGrant",
+		sets:"String"
+	},
 	ParticipantAccount:{
 		braname:"String",
 		created_at:"DateTime",
@@ -4006,6 +4046,9 @@ export const ReturnTypes: Record<string,any> = {
 		status:"String",
 		type:"String",
 		username:"String"
+	},
+	ParticipantCertificate:{
+		participant_certificate:"String"
 	},
 	Passport:{
 		code:"String",
@@ -4283,6 +4326,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAgenda:"AgendaWithDocuments",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
+		getCapabilitySets:"CapabilitySet",
 		getCapitalIssueLogs:"PaginatedCapitalLogsPaginationResult",
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
@@ -4305,8 +4349,11 @@ export const ReturnTypes: Record<string,any> = {
 		getLedgerHistory:"LedgerHistoryResponse",
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
+		getMyAccess:"ParticipantAccess",
+		getMyCertificate:"ParticipantCertificate",
 		getNotification:"NotificationDetail",
 		getNotifications:"NotificationPaginationResult",
+		getParticipantCapabilitySets:"CapabilitySetAssignment",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProgramWallet:"ProgramWallet",

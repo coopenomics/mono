@@ -18,7 +18,7 @@ import { NewDeviceNotificationService } from './device-tracking/new-device-notif
 import { SecurityEventNotificationService } from './security-events/security-event-notification.service';
 import { CertificateService } from './certificate/certificate.service';
 import { CertSettingsService } from './certificate/cert-settings.service';
-import { CertificateController } from './certificate/certificate.controller';
+import { CertificateResolver } from './certificate/certificate.resolver';
 import { CoopIdClaimsPolicyController } from './certificate/coopid-claims-policy.controller';
 import { CoopIdSchemaPolicyController } from './certificate/coopid-schema-policy.controller';
 import { AuthorizationModule } from './authorization/authorization.module';
@@ -48,8 +48,7 @@ import { ForceRecoveryController } from './force-recovery/force-recovery.control
 import { KeyRevocationService } from './key-revocation/key-revocation.service';
 import { KeyRevocationController } from './key-revocation/key-revocation.controller';
 import { CapabilitySetService } from './authorization/capability-set.service';
-import { CapabilitySetController } from './authorization/capability-set.controller';
-import { AccessController } from './authorization/access.controller';
+import { AuthorizationResolver } from './authorization/authorization.resolver';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -59,9 +58,9 @@ import { AccessController } from './authorization/access.controller';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CertificateController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController, CapabilitySetController, AccessController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.

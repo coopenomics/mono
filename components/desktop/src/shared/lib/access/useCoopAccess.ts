@@ -1,17 +1,13 @@
 import { ref } from 'vue';
-import { sendGET } from 'src/shared/api/axios';
+import { client } from 'src/shared/api/client';
+import { Queries } from '@coopenomics/sdk';
 
-/** Гранулярное право (зеркало AccessGrant бэкенда). */
-export interface IAccessGrant {
-  action: string;
-  resource: string;
-}
+/** Эффективный доступ текущего пайщика (тип из @coopenomics/sdk). */
+export type IParticipantAccess =
+  Queries.Authorization.GetMyAccess.IOutput[typeof Queries.Authorization.GetMyAccess.name];
 
-/** Эффективный доступ текущего пайщика (зеркало ParticipantAccess). */
-export interface IParticipantAccess {
-  sets: string[];
-  grants: IAccessGrant[];
-}
+/** Гранулярное право (тип из @coopenomics/sdk). */
+export type IAccessGrant = IParticipantAccess['grants'][number];
 
 // Singleton на сессию: грузим один раз, столы/страницы консультируются без повторных запросов.
 const access = ref<IParticipantAccess>({ sets: [], grants: [] });
@@ -19,16 +15,19 @@ const loaded = ref(false);
 
 /**
  * Эффективный доступ пайщика (Story 6.11) — основание гейтинга столов/страниц по выданным
- * ролям-наборам. `GET /coop/access/me` отдаёт активные наборы + плоский список грантов из
- * Ability пайщика; `can(action, resource)` сверяется с ними. Стол/страница, которым нужен
- * доступ по роли, дёргают `loadAccess()` после входа и гейтятся через `can()` / `hasSet()`.
+ * ролям-наборам. `Queries.Authorization.getMyAccess` отдаёт активные наборы + плоский список
+ * грантов из Ability пайщика; `can(action, resource)` сверяется с ними. Стол/страница, которым
+ * нужен доступ по роли, дёргают `loadAccess()` после входа и гейтятся через `can()` / `hasSet()`.
  *
- * Это CoopID-side seam той же модели resource:action, что и grants marketplace2 — при мердже
- * сводятся (общий getDesktop grants), без дублирования провайдера здесь.
+ * Через @coopenomics/sdk (Zeus) — прямого REST с фронта нет. Это CoopID-side seam той же
+ * модели resource:action, что и grants marketplace2 — при мердже сводятся (общий getDesktop).
  */
 export function useCoopAccess() {
   async function loadAccess(): Promise<void> {
-    access.value = (await sendGET('/coop/access/me')) as IParticipantAccess;
+    const { [Queries.Authorization.GetMyAccess.name]: result } = await client.Query(
+      Queries.Authorization.GetMyAccess.query,
+    );
+    access.value = result;
     loaded.value = true;
   }
 

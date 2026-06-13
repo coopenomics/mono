@@ -1,4 +1,5 @@
-import { sendGET } from 'src/shared/api/axios';
+import { client } from 'src/shared/api/client';
+import { Queries } from '@coopenomics/sdk';
 
 export interface CoopChainLink {
   account: string;
@@ -64,9 +65,11 @@ function decodePayload(jws: string): ParticipantCertificate {
   };
 }
 
-/** Запросить и декодировать актуальное удостоверение пайщика (GET /coop/certificate). */
+/** Запросить и декодировать актуальное удостоверение пайщика (Queries.Certificate.getMyCertificate). */
 export async function fetchParticipantCertificate(): Promise<ParticipantCertificate | null> {
-  const res = (await sendGET('/coop/certificate')) as { participant_certificate?: string };
-  if (!res?.participant_certificate) return null;
-  return decodePayload(res.participant_certificate);
+  const { [Queries.Certificate.GetMyCertificate.name]: result } = await client.Query(
+    Queries.Certificate.GetMyCertificate.query,
+  );
+  if (!result?.participant_certificate) return null;
+  return decodePayload(result.participant_certificate);
 }

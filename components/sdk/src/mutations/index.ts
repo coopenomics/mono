@@ -1,6 +1,7 @@
 export * as Accounts from './accounts'
 export * as Agreements from './agreements'
 export * as Auth from './auth'
+export * as Authorization from './authorization'
 export * as Branches from './branches'
 export * as Capital from './capital'
 export * as Chairman from './chairman'

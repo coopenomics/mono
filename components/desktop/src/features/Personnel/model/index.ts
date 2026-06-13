@@ -1,35 +1,23 @@
 import { ref } from 'vue';
+import type { Queries } from '@coopenomics/sdk';
 import { api } from '../api';
 
-/** Гранулярное право: действие над ресурсом (зеркало AccessGrant бэкенда). */
-export interface IAccessGrant {
-  action: string;
-  resource: string;
-}
+/** Набор возможностей из каталога + что он открывает (тип из @coopenomics/sdk). */
+export type ICapabilitySet =
+  Queries.Authorization.GetCapabilitySets.IOutput[typeof Queries.Authorization.GetCapabilitySets.name][number];
 
-/** Набор возможностей из каталога + что он открывает (зеркало CapabilitySetWithGrants). */
-export interface ICapabilitySet {
-  setKey: string;
-  title: string;
-  description: string;
-  builtin: boolean;
-  coopname: string | null;
-  grants: IAccessGrant[];
-}
+/** Назначение набора пайщику (тип из @coopenomics/sdk). */
+export type ICapabilitySetAssignment =
+  Queries.Authorization.GetParticipantCapabilitySets.IOutput[typeof Queries.Authorization.GetParticipantCapabilitySets.name][number];
 
-/** Назначение набора пайщику (зеркало CapabilitySetAssignment). */
-export interface ICapabilitySetAssignment {
-  username: string;
-  setKey: string;
-  grantedBy: string;
-  grantedAt: string;
-  expiresAt: string | null;
-}
+/** Гранулярное право: действие над ресурсом (тип из @coopenomics/sdk). */
+export type IAccessGrant = ICapabilitySet['grants'][number];
 
 /**
  * Назначаемые наборы возможностей (Story 6.11) — управление ролями пайщиков для
  * страницы «Персонал» стола совета. Каталог наборов + назначения конкретного пайщика
- * + назначить/снять. Бэкенд — REST coop/capability-sets (гейтинг прав на guard'е).
+ * + назначить/снять. Бэкенд — через @coopenomics/sdk (Authorization), гейтинг прав на
+ * guard'е резолвера; прямого REST с фронта нет — наружу смотрит только SDK.
  */
 export function useCapabilitySets() {
   const catalog = ref<ICapabilitySet[]>([]);
@@ -50,12 +38,12 @@ export function useCapabilitySets() {
   }
 
   async function assign(username: string, setKey: string): Promise<void> {
-    await api.assignSet({ username, setKey });
+    await api.assignSet({ username, set_key: setKey });
     await loadFor(username);
   }
 
   async function revoke(username: string, setKey: string): Promise<void> {
-    await api.revokeSet({ username, setKey });
+    await api.revokeSet({ username, set_key: setKey });
     await loadFor(username);
   }
 
