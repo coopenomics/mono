@@ -14,6 +14,7 @@ import {
 } from '../dto/marketplace-offer.dto';
 import {
   MarketplaceCreateOfferInputDTO,
+  MarketplaceListAllOffersInputDTO,
   MarketplaceListMyOffersInputDTO,
   MarketplaceRepublishOfferInputDTO,
   MarketplaceUpdateOfferInputDTO,
@@ -35,6 +36,7 @@ import {
   type AvailableCategoryDomainService,
 } from '../../domain/services/available-category-domain.service';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
 
 const toDTO = toMarketplaceOfferDTO;
 
@@ -207,6 +209,39 @@ export class MarketplaceOfferResolver {
     const result = await this.offerService.listMine(
       config.coopname,
       member.username,
+      pagination
+    );
+    return {
+      items: result.items.map(toDTO),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
+    };
+  }
+
+  @Query(() => MarketplaceOfferPaginationResultDTO, {
+    name: 'marketplaceListAllOffers',
+    description: 'Реестр всех предложений кооператива любого статуса (стол администратора).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'read:all')
+  async marketplaceListAllOffers(
+    @Args('input', { nullable: true }) input?: MarketplaceListAllOffersInputDTO
+  ): Promise<MarketplaceOfferPaginationResultDTO> {
+    const pagination = {
+      page: input?.page ?? 1,
+      limit: input?.limit ?? 50,
+      sortBy: input?.sortBy ?? 'created_at',
+      sortOrder: (input?.sortOrder ?? 'DESC') as 'ASC' | 'DESC',
+    };
+    const result = await this.offerService.listAll(
+      config.coopname,
+      {
+        statuses: input?.statuses?.length
+          ? (input.statuses as unknown as MarketplaceOfferStatus[])
+          : undefined,
+        supplier_account: input?.supplier_account,
+      },
       pagination
     );
     return {

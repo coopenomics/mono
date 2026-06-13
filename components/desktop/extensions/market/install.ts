@@ -22,6 +22,7 @@ import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentH
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
+import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
@@ -632,6 +633,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Реестр заказов',
                 icon: 'receipt_long',
                 requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Реестр всех предложений кооператива любого статуса
+              // (опубликованные/снятые/отклонённые/на модерации), всех
+              // поставщиков (`Offer:read:all` — у admin и board_readonly).
+              // Отдельно от «Модерации» (там только ждущие решения); на эти
+              // карточки ведёт переход «Открыть предложение» из реестра заказов.
+              path: 'offers',
+              name: 'marketplace-admin-offers',
+              component: markRaw(AdminOffersPage),
+              meta: {
+                title: 'Реестр предложений',
+                icon: 'storefront',
+                requires: 'Offer:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },

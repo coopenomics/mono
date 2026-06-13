@@ -796,6 +796,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceListAidsInput:{
 
 	},
+	MarketplaceListAllOffersInput:{
+		statuses:"MarketplaceOfferStatus"
+	},
 	MarketplaceListAplReceptionsByBranameInput:{
 
 	},
@@ -2162,6 +2165,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListAids:{
 			data:"MarketplaceListAidsInput"
+		},
+		marketplaceListAllOffers:{
+			input:"MarketplaceListAllOffersInput"
 		},
 		marketplaceListAllOrders:{
 			input:"MarketplaceListOrdersInput",
@@ -5850,6 +5856,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",
 		marketplaceListAids:"MarketplaceAid",
+		marketplaceListAllOffers:"MarketplaceOfferPaginationResult",
 		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",

@@ -18,7 +18,7 @@ import {
 } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
-import { MarketplaceBarcodeStrategyEnum } from './marketplace-offer.dto';
+import { MarketplaceBarcodeStrategyEnum, MarketplaceOfferStatusEnum } from './marketplace-offer.dto';
 
 const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
 
@@ -249,3 +249,17 @@ export class MarketplaceRepublishOfferInputDTO {
 
 @InputType('MarketplaceListMyOffersInput')
 export class MarketplaceListMyOffersInputDTO extends PaginationInputDTO {}
+
+@InputType('MarketplaceListAllOffersInput', {
+  description: 'Параметры фильтрации реестра всех предложений кооператива (стол администратора).',
+})
+export class MarketplaceListAllOffersInputDTO extends PaginationInputDTO {
+  @Field(() => [MarketplaceOfferStatusEnum], {
+    nullable: true,
+    description: 'Один или несколько статусов предложения, по которым нужно отфильтровать список.',
+  })
+  public readonly statuses?: MarketplaceOfferStatusEnum[];
+
+  @Field(() => String, { nullable: true, description: 'Фильтр по аккаунту поставщика.' })
+  public readonly supplier_account?: string;
+}

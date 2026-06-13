@@ -95,7 +95,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
   },
   admin: {
-    Offer: ['moderate', 'read'],
+    // read:all — реестр всех предложений кооператива любого статуса (наряду с
+    // модерацией PENDING); read:all есть и у совета (board_readonly).
+    Offer: ['moderate', 'read', 'read:all'],
     Order: ['read:all'],
     KU: ['manage'],
     Whitelist: ['manage'],

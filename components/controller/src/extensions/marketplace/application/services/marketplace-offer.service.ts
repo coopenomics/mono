@@ -400,6 +400,23 @@ export class MarketplaceOfferService {
     return this.repo.list({ coopname, supplier_account }, pagination);
   }
 
+  // Реестр всех предложений кооператива (стол администратора): любой статус
+  // и любой поставщик, с опциональными фильтрами по статусу и поставщику.
+  async listAll(
+    coopname: string,
+    filter: { statuses?: MarketplaceOfferStatus[]; supplier_account?: string },
+    pagination: PaginationInputDomainInterface
+  ): Promise<PaginationResultDomainInterface<MarketplaceOfferDomainEntity>> {
+    return this.repo.list(
+      {
+        coopname,
+        ...(filter.supplier_account ? { supplier_account: filter.supplier_account } : {}),
+        ...(filter.statuses?.length ? { status: filter.statuses } : {}),
+      },
+      pagination
+    );
+  }
+
   async getById(id: string): Promise<MarketplaceOfferDomainEntity | null> {
     return this.repo.findById(id);
   }

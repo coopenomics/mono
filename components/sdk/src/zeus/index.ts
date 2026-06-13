@@ -7194,6 +7194,21 @@ export type ValueTypes = {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Параметры фильтрации реестра всех предложений кооператива (стол администратора). */
+["MarketplaceListAllOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number | Variable<any, string>,
+	/** Номер страницы */
+	page: number | Variable<any, string>,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null | Variable<any, string>,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string | Variable<any, string>,
+	/** Один или несколько статусов предложения, по которым нужно отфильтровать список. */
+	statuses?: Array<ValueTypes["MarketplaceOfferStatus"]> | undefined | null | Variable<any, string>,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string | Variable<any, string>
@@ -10369,6 +10384,7 @@ marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | unde
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceListAids?: [{	data?: ValueTypes["MarketplaceListAidsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceAid"]],
+marketplaceListAllOffers?: [{	input?: ValueTypes["MarketplaceListAllOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListAllOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
@@ -17954,6 +17970,21 @@ export type ResolverInputTypes = {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
 };
+	/** Параметры фильтрации реестра всех предложений кооператива (стол администратора). */
+["MarketplaceListAllOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string,
+	/** Один или несколько статусов предложения, по которым нужно отфильтровать список. */
+	statuses?: Array<ResolverInputTypes["MarketplaceOfferStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string
@@ -21011,6 +21042,7 @@ marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceListAids?: [{	data?: ResolverInputTypes["MarketplaceListAidsInput"] | undefined | null},ResolverInputTypes["MarketplaceAid"]],
+marketplaceListAllOffers?: [{	input?: ResolverInputTypes["MarketplaceListAllOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListAllOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
@@ -28342,6 +28374,21 @@ export type ModelTypes = {
 	/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
 };
+	/** Параметры фильтрации реестра всех предложений кооператива (стол администратора). */
+["MarketplaceListAllOffersInput"]: {
+	/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string,
+	/** Один или несколько статусов предложения, по которым нужно отфильтровать список. */
+	statuses?: Array<ModelTypes["MarketplaceOfferStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 	/** Идентификатор КУ-получателя. */
 	braname: string
@@ -32016,6 +32063,8 @@ export type ModelTypes = {
 	marketplaceIssueActOrdererSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Заявки на материальную помощь: свои — для доверенного; все заявки кооператива — для администратора. */
 	marketplaceListAids: Array<ModelTypes["MarketplaceAid"]>,
+	/** Реестр всех предложений кооператива любого статуса (стол администратора). */
+	marketplaceListAllOffers: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Реестр всех заказов кооператива с их текущими статусами (стол администратора). */
 	marketplaceListAllOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
@@ -39709,6 +39758,21 @@ export type GraphQLTypes = {
 		/** Показать заявки только этого получателя (по умолчанию — свои). */
 	username?: string | undefined | null
 };
+	/** Параметры фильтрации реестра всех предложений кооператива (стол администратора). */
+["MarketplaceListAllOffersInput"]: {
+		/** Количество элементов на странице */
+	limit: number,
+	/** Номер страницы */
+	page: number,
+	/** Ключ сортировки (например, "name") */
+	sortBy?: string | undefined | null,
+	/** Направление сортировки ("ASC" или "DESC") */
+	sortOrder: string,
+	/** Один или несколько статусов предложения, по которым нужно отфильтровать список. */
+	statuses?: Array<GraphQLTypes["MarketplaceOfferStatus"]> | undefined | null,
+	/** Фильтр по аккаунту поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListAplReceptionsByBranameInput"]: {
 		/** Идентификатор КУ-получателя. */
 	braname: string
@@ -43653,6 +43717,8 @@ export type GraphQLTypes = {
 	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Заявки на материальную помощь: свои — для доверенного; все заявки кооператива — для администратора. */
 	marketplaceListAids: Array<GraphQLTypes["MarketplaceAid"]>,
+	/** Реестр всех предложений кооператива любого статуса (стол администратора). */
+	marketplaceListAllOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Реестр всех заказов кооператива с их текущими статусами (стол администратора). */
 	marketplaceListAllOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
@@ -46240,6 +46306,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceIssueActSignedMetaDocumentInput"]: ValueTypes["MarketplaceIssueActSignedMetaDocumentInput"];
 	["MarketplaceKUStatus"]: ValueTypes["MarketplaceKUStatus"];
 	["MarketplaceListAidsInput"]: ValueTypes["MarketplaceListAidsInput"];
+	["MarketplaceListAllOffersInput"]: ValueTypes["MarketplaceListAllOffersInput"];
 	["MarketplaceListAplReceptionsByBranameInput"]: ValueTypes["MarketplaceListAplReceptionsByBranameInput"];
 	["MarketplaceListCatalogInput"]: ValueTypes["MarketplaceListCatalogInput"];
 	["MarketplaceListConsolidatedRequestsInput"]: ValueTypes["MarketplaceListConsolidatedRequestsInput"];
