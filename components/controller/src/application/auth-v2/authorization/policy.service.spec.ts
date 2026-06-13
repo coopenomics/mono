@@ -1,5 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { IAccessRulesRepository } from '~/domain/auth-v2/ports/access-rules.port';
+import type { ICapabilitySetsRepository } from '~/domain/auth-v2/ports/capability-sets.port';
 import { AbilityFactory } from './ability.factory';
 import { PolicyService } from './policy.service';
 import { PolicyRegistry } from './policy.registry';
@@ -7,13 +8,23 @@ import type { CheckAbilityRequirement } from './check-ability.decorator';
 
 const emptyRepo: IAccessRulesRepository = {
   findForPrincipal: async () => [],
+  findForCapabilitySets: async () => [],
   insert: async () => undefined,
+};
+
+const emptySets: ICapabilitySetsRepository = {
+  listSets: async () => [],
+  findSet: async () => null,
+  listActiveSetKeys: async () => [],
+  listAssignments: async () => [],
+  assign: async () => undefined,
+  revoke: async () => false,
 };
 
 function makeService(evaluate?: jest.Mock): { service: PolicyService; evaluate: jest.Mock } {
   const evalFn = evaluate ?? jest.fn();
   const registry = { evaluate: evalFn } as unknown as PolicyRegistry;
-  const service = new PolicyService(new AbilityFactory(emptyRepo), registry);
+  const service = new PolicyService(new AbilityFactory(emptyRepo, emptySets), registry);
   return { service, evaluate: evalFn };
 }
 

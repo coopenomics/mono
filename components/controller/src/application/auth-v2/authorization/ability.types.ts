@@ -25,7 +25,16 @@ export type CoopSubject =
   | 'CriticalAction'
   | 'Role'
   | 'Capability'
+  /** Именованный набор возможностей (Story 6.11) — управляет председатель. */
+  | 'CapabilitySet'
   | 'AuditEvent'
+  // --- Субъекты доступа к рабочим столам/страницам (grant-строки для desktop
+  // meta.requires). Имена — предложение на согласование при разводке desktop-gating;
+  // на границе access_rules это свободные строки, переименовываются точечно.
+  /** Стол бухгалтера (доступ набора `accountant`). */
+  | 'AccountingDesk'
+  /** Реестр платежей / будущий стол кассира (доступ набора `cashier`). */
+  | 'PaymentRegistry'
   | 'all';
 
 /** Тип Ability пайщика — собирается `AbilityFactory.createForParticipant`. */

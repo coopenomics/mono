@@ -6,6 +6,10 @@ import {
   type AccessRuleRecord,
   type IAccessRulesRepository,
 } from '~/domain/auth-v2/ports/access-rules.port';
+import {
+  CAPABILITY_SETS_REPOSITORY,
+  type ICapabilitySetsRepository,
+} from '~/domain/auth-v2/ports/capability-sets.port';
 import type { AppAbility, CoopAction, CoopSubject } from './ability.types';
 import { mapUserRoleToCoreRoles } from './core-roles';
 
@@ -29,6 +33,8 @@ export class AbilityFactory {
   constructor(
     @Inject(ACCESS_RULES_REPOSITORY)
     private readonly accessRules: IAccessRulesRepository,
+    @Inject(CAPABILITY_SETS_REPOSITORY)
+    private readonly capabilitySets: ICapabilitySetsRepository,
   ) {}
 
   /**
@@ -63,6 +69,7 @@ export class AbilityFactory {
       can('manage', 'CoopSettings');
       can('update', 'Participant'); // назначение ролей (Story 6.6)
       can('create', 'Capability'); // выдача точечных capabilities (Story 6.7)
+      can('manage', 'CapabilitySet'); // назначение наборов возможностей (Story 6.11)
       can('create', 'CriticalAction'); // инициатор; финал — только 2 подписи (Story 6.8)
     }
 
@@ -101,7 +108,14 @@ export class AbilityFactory {
    */
   async createForParticipantWithRules(user: IAbilitySubjectUser): Promise<AppAbility> {
     const coreRoles = mapUserRoleToCoreRoles(user.role);
-    const rules = await this.accessRules.findForPrincipal(coreRoles, user.username);
-    return this.createForParticipant(user, rules);
+    // Источники правил L2 объединяются в один список (allow-first/deny-last делает
+    // createForParticipant): (1) core-роли + персональные гранты пайщика; (2) правила
+    // назначенных пайщику наборов возможностей (Story 6.11). Движок — один (CASL).
+    const setKeys = await this.capabilitySets.listActiveSetKeys(user.username);
+    const [principalRules, setRules] = await Promise.all([
+      this.accessRules.findForPrincipal(coreRoles, user.username),
+      this.accessRules.findForCapabilitySets(setKeys),
+    ]);
+    return this.createForParticipant(user, [...principalRules, ...setRules]);
   }
 }

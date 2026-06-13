@@ -81,6 +81,26 @@ export class PostgresAccessRulesRepository implements IAccessRulesRepository, On
     }));
   }
 
+  async findForCapabilitySets(setKeys: string[]): Promise<AccessRuleRecord[]> {
+    if (!setKeys.length) return [];
+    const ds = await this.getDataSource();
+    const rows: AccessRuleRow[] = await ds.query(
+      `SELECT subject_type, subject_id, effect, action, resource_type, conditions
+         FROM access_rules
+        WHERE subject_type = $1 AND subject_id = ANY($2)
+          AND (expires_at IS NULL OR expires_at > now())`,
+      [AccessRulePrincipalKind.CapabilitySet, setKeys],
+    );
+    return rows.map((r) => ({
+      subjectType: r.subject_type as AccessRulePrincipalKind,
+      subjectId: r.subject_id,
+      effect: toEffect(r.effect),
+      action: r.action,
+      resourceType: r.resource_type,
+      conditions: r.conditions ?? null,
+    }));
+  }
+
   async insert(rule: AccessRuleRecord): Promise<void> {
     const ds = await this.getDataSource();
     await ds.query(

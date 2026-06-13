@@ -5,17 +5,29 @@ import {
   type AccessRuleRecord,
   type IAccessRulesRepository,
 } from '~/domain/auth-v2/ports/access-rules.port';
+import type { ICapabilitySetsRepository } from '~/domain/auth-v2/ports/capability-sets.port';
 import { AbilityFactory } from './ability.factory';
 import { deserializeAbility, serializeAbility } from './ability.serialization';
 
 /** Stub репозитория Layer 2 — для тестов Layer 1 (правил нет). */
 const emptyRepo: IAccessRulesRepository = {
   findForPrincipal: async () => [],
+  findForCapabilitySets: async () => [],
   insert: async () => undefined,
 };
 
+/** Stub репозитория наборов — пайщику ничего не назначено. */
+const emptySets: ICapabilitySetsRepository = {
+  listSets: async () => [],
+  findSet: async () => null,
+  listActiveSetKeys: async () => [],
+  listAssignments: async () => [],
+  assign: async () => undefined,
+  revoke: async () => false,
+};
+
 describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
-  const factory = new AbilityFactory(emptyRepo);
+  const factory = new AbilityFactory(emptyRepo, emptySets);
   const ownCert = subject('Certificate', { owner: 'ant' });
   const foreignCert = subject('Certificate', { owner: 'bob' });
 
@@ -92,7 +104,7 @@ describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
 });
 
 describe('AbilityFactory — Layer 2 access_rules merge (Story 6.2)', () => {
-  const factory = new AbilityFactory(emptyRepo);
+  const factory = new AbilityFactory(emptyRepo, emptySets);
 
   function rule(partial: Partial<AccessRuleRecord> & Pick<AccessRuleRecord, 'action' | 'resourceType'>): AccessRuleRecord {
     return {
@@ -133,13 +145,62 @@ describe('AbilityFactory — Layer 2 access_rules merge (Story 6.2)', () => {
   it('createForParticipantWithRules читает репозиторий по core-ролям+username и мерджит', async () => {
     const repo: IAccessRulesRepository = {
       findForPrincipal: jest.fn(async () => [rule({ action: 'vote', resourceType: 'CriticalAction' })]),
+      findForCapabilitySets: async () => [],
       insert: async () => undefined,
     };
-    const f = new AbilityFactory(repo);
+    const f = new AbilityFactory(repo, emptySets);
     const ability = await f.createForParticipantWithRules({ username: 'eve', role: 'member' });
 
     expect(repo.findForPrincipal).toHaveBeenCalledWith(['User', 'Member'], 'eve');
     expect(ability.can('vote', 'CriticalAction')).toBe(true);
     expect(ability.can('read', 'Participant')).toBe(true); // статика Member сохранена
+  });
+});
+
+describe('AbilityFactory — назначаемые наборы возможностей merge (Story 6.11)', () => {
+  function setRule(setKey: string, action: string, resourceType: string): AccessRuleRecord {
+    return {
+      subjectType: AccessRulePrincipalKind.CapabilitySet,
+      subjectId: setKey,
+      effect: AccessRuleEffect.Allow,
+      action,
+      resourceType,
+      conditions: null,
+    };
+  }
+
+  it('правила назначенного набора добавляются к Ability пайщика поверх core-роли', async () => {
+    const accessRules: IAccessRulesRepository = {
+      findForPrincipal: async () => [],
+      findForCapabilitySets: jest.fn(async (keys: string[]) =>
+        keys.includes('cashier') ? [setRule('cashier', 'read', 'PaymentRegistry'), setRule('cashier', 'confirm', 'PaymentRegistry')] : [],
+      ),
+      insert: async () => undefined,
+    };
+    const sets: ICapabilitySetsRepository = {
+      ...emptySets,
+      listActiveSetKeys: jest.fn(async () => ['cashier']),
+    };
+    const f = new AbilityFactory(accessRules, sets);
+    const ability = await f.createForParticipantWithRules({ username: 'kate', role: 'user' });
+
+    expect(sets.listActiveSetKeys).toHaveBeenCalledWith('kate');
+    expect(accessRules.findForCapabilitySets).toHaveBeenCalledWith(['cashier']);
+    expect(ability.can('read', 'PaymentRegistry')).toBe(true);
+    expect(ability.can('confirm', 'PaymentRegistry')).toBe(true);
+    expect(ability.can('read', subject('Certificate', { owner: 'kate' }))).toBe(true); // core User сохранён
+  });
+
+  it('без назначенных наборов набор-правила не запрашиваются (пустой setKeys → пусто)', async () => {
+    const accessRules: IAccessRulesRepository = {
+      findForPrincipal: async () => [],
+      findForCapabilitySets: jest.fn(async () => []),
+      insert: async () => undefined,
+    };
+    const f = new AbilityFactory(accessRules, emptySets);
+    const ability = await f.createForParticipantWithRules({ username: 'bob', role: 'user' });
+
+    expect(accessRules.findForCapabilitySets).toHaveBeenCalledWith([]);
+    expect(ability.can('read', 'PaymentRegistry')).toBe(false);
   });
 });

@@ -92,6 +92,10 @@ Recovery / 2FA:
   `ForceRecoveryDenied` — force-recovery rules.
 - `KeyRevokedManually` — ручной отзыв скомпрометированного ключа (`reason`+`chairman_id`).
 
+Назначаемые роли (Story 6.11):
+- `CapabilitySetAssigned` / `CapabilitySetRevoked` — назначение/отзыв председателем набора
+  возможностей пайщику (`set_key`+`expires_at`; actor=председатель, subject=пайщик).
+
 OIDC-операции (Story 8.3, источник — native-события authentik через webhook):
 - `OidcLoginSuccess` — успешный вход (authentik `login`).
 - `OidcLogout` — выход (authentik `logout`).

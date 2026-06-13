@@ -14,6 +14,8 @@ export enum AccessRuleEffect {
 export enum AccessRulePrincipalKind {
   Role = 'role',
   Participant = 'participant',
+  /** Именованный набор возможностей (Story 6.11); `subject_id` = `set_key`. */
+  CapabilitySet = 'capability_set',
 }
 
 /**
@@ -40,6 +42,12 @@ export interface IAccessRulesRepository {
    * персонально на его username. Истёкшие (`expires_at <= now`) исключаются.
    */
   findForPrincipal(roles: string[], username: string): Promise<AccessRuleRecord[]>;
+  /**
+   * Правила назначенных пайщику наборов возможностей (Story 6.11): строки
+   * `subject_type='capability_set'` с `subject_id` из переданных ключей. Истёкшие
+   * (`expires_at <= now`) исключаются. Пустой `setKeys` → пустой результат.
+   */
+  findForCapabilitySets(setKeys: string[]): Promise<AccessRuleRecord[]>;
   /** Создать правило (admin-запись ролей/capabilities — Story 6.6/6.7). */
   insert(rule: AccessRuleRecord): Promise<void>;
 }

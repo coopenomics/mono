@@ -13,6 +13,7 @@ import { NOT_ME_TOKEN_STORE } from '~/domain/auth-v2/ports/not-me-token-store.po
 import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import { COOP_SETTINGS_REPOSITORY } from '~/domain/auth-v2/ports/coop-settings.port';
 import { ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER } from '~/domain/auth-v2/ports/access-rules.port';
+import { CAPABILITY_SETS_REPOSITORY } from '~/domain/auth-v2/ports/capability-sets.port';
 import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER } from '~/domain/auth-v2/ports/force-recovery-consent.port';
 import { KEY_REVOCATION_REPOSITORY } from '~/domain/auth-v2/ports/key-revocation.port';
@@ -33,6 +34,7 @@ import { RedisNotMeTokenStore } from './redis-not-me-token.store';
 import { RedisChainManifestsStore } from './redis-chain-manifests.store';
 import { PostgresCoopSettingsRepository } from './postgres-coop-settings.repository';
 import { PostgresAccessRulesRepository } from './postgres-access-rules.repository';
+import { PostgresCapabilitySetsRepository } from './postgres-capability-sets.repository';
 import { RedisAccessRulesInvalidationPublisher } from './redis-access-rules-invalidation.publisher';
 import { PostgresPendingCriticalActionsRepository } from './postgres-pending-critical-actions.repository';
 import { RedisCriticalActionNotifier } from './redis-critical-action.notifier';
@@ -59,6 +61,7 @@ import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repos
     { provide: CHAIN_MANIFESTS_CACHE, useClass: RedisChainManifestsStore },
     { provide: COOP_SETTINGS_REPOSITORY, useClass: PostgresCoopSettingsRepository },
     { provide: ACCESS_RULES_REPOSITORY, useClass: PostgresAccessRulesRepository },
+    { provide: CAPABILITY_SETS_REPOSITORY, useClass: PostgresCapabilitySetsRepository },
     { provide: ACCESS_RULES_INVALIDATION_PUBLISHER, useClass: RedisAccessRulesInvalidationPublisher },
     { provide: PENDING_CRITICAL_ACTIONS_REPOSITORY, useClass: PostgresPendingCriticalActionsRepository },
     { provide: CRITICAL_ACTION_NOTIFIER, useClass: RedisCriticalActionNotifier },
@@ -66,6 +69,6 @@ import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repos
     { provide: FORCE_RECOVERY_CONSENT_NOTIFIER, useClass: RedisForceRecoveryConsentNotifier },
     { provide: KEY_REVOCATION_REPOSITORY, useClass: PostgresKeyRevocationRepository },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY],
 })
 export class AuthV2InfrastructureModule {}
