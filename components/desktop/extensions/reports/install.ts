@@ -22,7 +22,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     extension_name: 'reports',
     title: 'Стол бухгалтера',
     icon: 'fa-solid fa-file-invoice',
-    defaultRoute: 'reports-operations',
+    defaultRoute: 'reports-processes',
     routes: [
       {
         meta: {
@@ -33,6 +33,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         path: '/:coopname/reports',
         name: 'reports',
         children: [
+          {
+            // Реестр процессов главенствует над операциями/проводками: он
+            // агрегирует документы + операции + проводки одного процесса по
+            // его хэшу, остальные реестры — срезы. Поэтому он первым в столе.
+            path: 'processes',
+            name: 'reports-processes',
+            component: markRaw(ProcessesPage),
+            meta: {
+              title: 'Реестр процессов',
+              icon: 'fa-solid fa-diagram-project',
+              roles: ['chairman'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
           {
             path: 'operations',
             name: 'reports-operations',
@@ -53,19 +69,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Реестр проводок',
               icon: 'fa-solid fa-arrows-split-up-and-left',
-              roles: ['chairman'],
-              agreements: agreementsBase,
-              requiresAuth: true,
-            },
-            children: [],
-          },
-          {
-            path: 'processes',
-            name: 'reports-processes',
-            component: markRaw(ProcessesPage),
-            meta: {
-              title: 'Реестр процессов',
-              icon: 'fa-solid fa-diagram-project',
               roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,

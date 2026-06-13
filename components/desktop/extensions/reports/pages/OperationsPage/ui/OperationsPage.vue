@@ -143,9 +143,9 @@
             EntityIdBadge(
               v-if='props.row.processHash'
               :rawId='shortHash(props.row.processHash)'
-              @click='copyFullHash(props.row.processHash)'
+              @click='goToProcess(props.row.processHash)'
             )
-              q-tooltip Клик — копировать полный хэш
+              q-tooltip Открыть процесс в реестре процессов
             span.t-faint(v-else) —
           q-td {{ formatDate(props.row.createdAt) }}
           q-td
@@ -284,7 +284,7 @@
                 EntityIdBadge(
                   v-if='props.row.processHash'
                   :rawId='shortHash(props.row.processHash)'
-                  @click='copyFullHash(props.row.processHash)'
+                  @click='goToProcess(props.row.processHash)'
                 )
 </template>
 
@@ -401,14 +401,15 @@ function shortHash(hash: string | null | undefined): string {
   return hash.slice(0, 8)
 }
 
-async function copyFullHash(hash: string | null | undefined) {
+// № процесса ведёт в реестр процессов (единая адресация: процесс агрегирует
+// документы + операции + проводки по этому хэшу).
+function goToProcess(hash: string | null | undefined) {
   if (!hash) return
-  try {
-    await copyToClipboard(hash)
-    SuccessAlert('Скопировано')
-  } catch {
-    FailAlert('Не удалось скопировать')
-  }
+  router.push({
+    name: 'reports-processes',
+    params: { coopname: info.coopname },
+    query: { process_hash: hash },
+  })
 }
 
 function formatAmount(qty: string | null | undefined): string {

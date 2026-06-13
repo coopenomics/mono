@@ -207,6 +207,14 @@ export class ProcessRegistryService {
       params.push(filter.username);
       pIdx += 1;
     }
+    // Точечная адресация одного процесса по хэшу (deep-link из реестров
+    // операций/проводок: клик по № процесса ведёт сюда с раскрытым процессом).
+    let processHashClause = '';
+    if (filter.processHash) {
+      processHashClause = ` AND LOWER(a.data ->> 'process_hash') = $${pIdx}`;
+      params.push(filter.processHash.trim().toLowerCase());
+      pIdx += 1;
+    }
     let fromBlockClause = '';
     if (filter.fromBlock) {
       fromBlockClause = ` AND a.block_num >= $${pIdx}`;
@@ -227,6 +235,7 @@ export class ProcessRegistryService {
       AND (a.data ->> 'process_hash') IS NOT NULL
       ${operationCodeClause}
       ${usernameClause}
+      ${processHashClause}
       ${fromBlockClause}
       ${toBlockClause}
     `;

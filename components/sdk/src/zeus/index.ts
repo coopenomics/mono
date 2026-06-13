@@ -9860,6 +9860,8 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	["ProcessesFilter"]: {
 	coopname: string | Variable<any, string>,
 	fromBlock?: number | undefined | null | Variable<any, string>,
+	/** Идентификатор процесса — точечная адресация одного процесса по его хэшу */
+	processHash?: string | undefined | null | Variable<any, string>,
 	processType?: string | undefined | null | Variable<any, string>,
 	toBlock?: number | undefined | null | Variable<any, string>,
 	username?: string | undefined | null | Variable<any, string>
@@ -20504,6 +20506,8 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	["ProcessesFilter"]: {
 	coopname: string,
 	fromBlock?: number | undefined | null,
+	/** Идентификатор процесса — точечная адресация одного процесса по его хэшу */
+	processHash?: string | undefined | null,
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
@@ -31295,6 +31299,8 @@ export type ModelTypes = {
 	["ProcessesFilter"]: {
 	coopname: string,
 	fromBlock?: number | undefined | null,
+	/** Идентификатор процесса — точечная адресация одного процесса по его хэшу */
+	processHash?: string | undefined | null,
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null
@@ -42914,6 +42920,8 @@ export type GraphQLTypes = {
 	["ProcessesFilter"]: {
 		coopname: string,
 	fromBlock?: number | undefined | null,
+	/** Идентификатор процесса — точечная адресация одного процесса по его хэшу */
+	processHash?: string | undefined | null,
 	processType?: string | undefined | null,
 	toBlock?: number | undefined | null,
 	username?: string | undefined | null

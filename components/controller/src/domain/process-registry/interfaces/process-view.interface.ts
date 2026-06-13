@@ -72,6 +72,8 @@ export interface ProcessesFilter {
   coopname: string;
   processType?: string;
   username?: string;
+  /** Точечная адресация одного процесса по его хэшу (deep-link из реестров операций/проводок). */
+  processHash?: string;
   fromBlock?: number;
   toBlock?: number;
 }
