@@ -4,6 +4,8 @@ export * as WhoAmI from './whoAmI'
 export * as ListKUDetails from './listKUDetails'
 /** Заказы пайщика-заказчика (стол заказчика) */
 export * as ListMyOrders from './listMyOrders'
+/** Реестр всех заказов кооператива со статусами (стол администратора, Order:read:all) */
+export * as ListAllOrders from './listAllOrders'
 /** Один заказ по идентификатору */
 export * as GetOrder from './getOrder'
 /** Базовый справочник категорий товаров */

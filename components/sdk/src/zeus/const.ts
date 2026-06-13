@@ -2163,6 +2163,10 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceListAids:{
 			data:"MarketplaceListAidsInput"
 		},
+		marketplaceListAllOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
+		},
 		marketplaceListAplReceptionsByBraname:{
 			data:"MarketplaceListAplReceptionsByBranameInput"
 		},
@@ -5846,6 +5850,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceIssueActChairmanSignablePayload:"GeneratedDocument",
 		marketplaceIssueActOrdererSignablePayload:"DocumentAggregate",
 		marketplaceListAids:"MarketplaceAid",
+		marketplaceListAllOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListAvailableCategories:"MarketplaceCategory",

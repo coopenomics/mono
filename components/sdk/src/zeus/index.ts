@@ -10369,6 +10369,7 @@ marketplaceGetUserRequests?: [{	data?: ValueTypes["GetUserRequestsInput"] | unde
 marketplaceIssueActChairmanSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceIssueActOrdererSignablePayload?: [{	data: ValueTypes["MarketplaceIssueActPayloadInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceListAids?: [{	data?: ValueTypes["MarketplaceListAidsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceAid"]],
+marketplaceListAllOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ValueTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ValueTypes["MarketplaceListAplReceptionsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReception"]],
@@ -21010,6 +21011,7 @@ marketplaceGetUserRequests?: [{	data?: ResolverInputTypes["GetUserRequestsInput"
 marketplaceIssueActChairmanSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceIssueActOrdererSignablePayload?: [{	data: ResolverInputTypes["MarketplaceIssueActPayloadInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceListAids?: [{	data?: ResolverInputTypes["MarketplaceListAidsInput"] | undefined | null},ResolverInputTypes["MarketplaceAid"]],
+marketplaceListAllOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier?:ResolverInputTypes["MarketplaceAplReception"],
 marketplaceListAplReceptionsByBraname?: [{	data: ResolverInputTypes["MarketplaceListAplReceptionsByBranameInput"]},ResolverInputTypes["MarketplaceAplReception"]],
@@ -32014,6 +32016,8 @@ export type ModelTypes = {
 	marketplaceIssueActOrdererSignablePayload: ModelTypes["DocumentAggregate"],
 	/** Заявки на материальную помощь: свои — для доверенного; все заявки кооператива — для администратора. */
 	marketplaceListAids: Array<ModelTypes["MarketplaceAid"]>,
+	/** Реестр всех заказов кооператива с их текущими статусами (стол администратора). */
+	marketplaceListAllOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<ModelTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
@@ -43649,6 +43653,8 @@ export type GraphQLTypes = {
 	marketplaceIssueActOrdererSignablePayload: GraphQLTypes["DocumentAggregate"],
 	/** Заявки на материальную помощь: свои — для доверенного; все заявки кооператива — для администратора. */
 	marketplaceListAids: Array<GraphQLTypes["MarketplaceAid"]>,
+	/** Реестр всех заказов кооператива с их текущими статусами (стол администратора). */
+	marketplaceListAllOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Список актов приёмки, ожидающих подписи текущего поставщика. */
 	marketplaceListAplReceptionsAsSupplier: Array<GraphQLTypes["MarketplaceAplReception"]>,
 	/** Список акций приёмки текущего КУ для operator-стола. */
