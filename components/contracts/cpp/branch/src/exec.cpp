@@ -44,4 +44,28 @@
     "declinedec"_n,
     petition,
     std::string(""));
+
+  // К пакету повестки совета линкуются договор о материальной ответственности и доверенность
+  // председателя участка — совет читает их вместе с заявлением до утверждения (по якорю процесса).
+  Action::send<newlink_interface>(
+    _soviet,
+    "newlink"_n,
+    _branch,
+    coopname,
+    dec.chairman,
+    get_valid_soviet_action("branchliab"_n),
+    hash,
+    liability
+  );
+
+  Action::send<newlink_interface>(
+    _soviet,
+    "newlink"_n,
+    _branch,
+    coopname,
+    dec.chairman,
+    get_valid_soviet_action("branchauth"_n),
+    hash,
+    authority
+  );
 }

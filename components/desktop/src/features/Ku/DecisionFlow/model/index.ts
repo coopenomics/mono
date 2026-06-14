@@ -5,7 +5,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
-import { DigitalDocument } from 'src/shared/lib/document';
+import { DigitalDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
 import { api } from '../api';
@@ -245,51 +245,45 @@ export function useKuDecisionFlow() {
   }
 
   /**
-   * Направить заявление в совет: заявление председателя (324) + договор о полной
-   * материальной ответственности председателя участка (328) одним пакетом + exec.
-   * Оба документа подписывает избранный собранием председатель участка (он же —
-   * сторона «Исполнитель» договора). Договор позже получит встречную подпись
-   * председателя совета после решения совета об учреждении участка.
+   * Сгенерировать (без подписи) пакет документов председателя в совет для предпросмотра:
+   * заявление (324), договор о полной материальной ответственности (328) и доверенность
+   * председателю участка (329) — с уже подставленными паспортными данными. Пайщик читает
+   * их перед подписанием; подпись и отправка — отдельным шагом execDecision.
    */
-  async function execDecision(decision: IKuDecision): Promise<void> {
+  async function prepareExecDocuments(decision: IKuDecision): Promise<{
+    petition: IGeneratedDocument;
+    liability: IGeneratedDocument;
+    authority: IGeneratedDocument;
+  }> {
     isSubmitting.value = true;
     try {
       const branchName = decision.branch_name ?? '';
+      const chairmanFullName =
+        decision.participants_info?.find((participant) => participant?.username === decision.chairman)
+          ?.display_name ??
+        decision.chairman ??
+        '';
 
-      const petitionDocument = new DigitalDocument();
-      await petitionDocument.generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
+      // человекочитаемое наименование участка, служебный braname в документы не попадает
+      const petition = await new DigitalDocument().generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
         registry_id: Cooperative.Registry.BranchEstablishmentPetition.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
-        // человекочитаемое наименование участка, служебный braname в документы не попадает
         branch_name: branchName,
         address: decision.address ?? '',
-        chairman_full_name:
-          decision.participants_info?.find((participant) => participant?.username === decision.chairman)
-            ?.display_name ??
-          decision.chairman ??
-          '',
+        chairman_full_name: chairmanFullName,
       });
-      const petition = await petitionDocument.sign<Cooperative.Registry.BranchEstablishmentPetition.Meta>(
-        session.username,
-      );
 
-      const liabilityDocument = new DigitalDocument();
-      await liabilityDocument.generate<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action>({
+      const liability = await new DigitalDocument().generate<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action>({
         registry_id: Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
         hash: decision.hash,
         branch_name: branchName,
       });
-      const liability = await liabilityDocument.sign<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Meta>(
-        session.username,
-      );
 
-      // доверенность председателю участка (329): тот же подписант, идёт в пакете в совет
-      const authorityDocument = new DigitalDocument();
-      await authorityDocument.generate<Cooperative.Registry.BranchTrusteePowerOfAttorney.Action>({
+      const authority = await new DigitalDocument().generate<Cooperative.Registry.BranchTrusteePowerOfAttorney.Action>({
         registry_id: Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id,
         coopname: system.info.coopname,
         username: session.username,
@@ -297,9 +291,34 @@ export function useKuDecisionFlow() {
         branch_name: branchName,
         branch_address: decision.address ?? '',
       });
-      const authority = await authorityDocument.sign<Cooperative.Registry.BranchTrusteePowerOfAttorney.Meta>(
-        session.username,
-      );
+
+      return { petition, liability, authority };
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  /**
+   * Подписать предпросмотренный пакет и направить в совет (exec): заявление (324),
+   * договор матответственности (328) и доверенность (329) — все подписывает избранный
+   * собранием председатель участка. Договор и доверенность получат встречную подпись
+   * председателя совета после решения совета об учреждении участка.
+   */
+  async function execDecision(
+    decision: IKuDecision,
+    prepared: { petition: IGeneratedDocument; liability: IGeneratedDocument; authority: IGeneratedDocument },
+  ): Promise<void> {
+    isSubmitting.value = true;
+    try {
+      const petition = await new DigitalDocument(prepared.petition).sign<
+        Cooperative.Registry.BranchEstablishmentPetition.Meta
+      >(session.username);
+      const liability = await new DigitalDocument(prepared.liability).sign<
+        Cooperative.Registry.BranchTrusteeLiabilityAgreement.Meta
+      >(session.username);
+      const authority = await new DigitalDocument(prepared.authority).sign<
+        Cooperative.Registry.BranchTrusteePowerOfAttorney.Meta
+      >(session.username);
 
       await api.execDecision({
         coopname: system.info.coopname,
@@ -339,6 +358,7 @@ export function useKuDecisionFlow() {
     startDecision,
     voteOnDecision,
     closeDecision,
+    prepareExecDocuments,
     execDecision,
     cancelDecision,
     reload,

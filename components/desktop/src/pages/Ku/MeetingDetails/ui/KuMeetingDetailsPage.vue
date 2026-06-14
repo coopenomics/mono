@@ -188,6 +188,19 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
 BaseDialog(v-model='isDocOpen', :title='docTitle', size='lg')
   BaseDocument(v-if='docTarget', :document-aggregate='docTarget')
 
+//- Предпросмотр пакета документов с данными пайщика перед подписанием и отправкой в совет
+BaseDialog(v-model='execPreviewOpen', title='Проверьте документы перед подписанием', size='lg')
+  .t-sm.t-muted.q-mb-md
+    | Ознакомьтесь с документами — в них уже подставлены ваши данные. После подписания
+    | заявление, договор и доверенность будут направлены в совет.
+  .column.q-gutter-md
+    .ku-preview-doc(v-for='item in execPreviewDocs', :key='item.title')
+      .ku-preview-doc__title {{ item.title }}
+      BaseDocument(:document-aggregate='item.aggregate')
+  .row.justify-end.q-gutter-sm.q-mt-md
+    BaseButton(variant='secondary', type='button', @click='execPreviewOpen = false') Назад
+    BaseButton(variant='primary', :loading='busy', @click='confirmExec') Подписать и направить в совет
+
 //- Сбор паспорта председателя участка перед направлением договора в совет (если паспорта ещё нет)
 CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 </template>
@@ -243,6 +256,9 @@ const cancelReason = ref('');
 const isDocOpen = ref(false);
 const docTarget = ref<object | null>(null);
 const docTitle = ref('');
+// предпросмотр пакета документов председателя перед подписанием и отправкой в совет
+const execPreviewOpen = ref(false);
+const execPreparedDocs = ref<Awaited<ReturnType<typeof flow.prepareExecDocuments>> | null>(null);
 const votes = ref<Record<number, KuVote>>({});
 const startForm = ref({ branchName: '', address: '', branchEmail: '', branchPhone: '', chairman: '' });
 // вопросы, внесённые в повестку прямо на собрании (добавляются при открытии голосования)
@@ -291,6 +307,22 @@ function openMeetingDoc(aggregate: object, title: string): void {
   docTitle.value = title;
   isDocOpen.value = true;
 }
+
+// сгенерированные (ещё не подписанные) документы оборачиваем в агрегат для BaseDocument:
+// html уже есть, подписей пока нет
+const execPreviewDocs = computed(() => {
+  const d = execPreparedDocs.value;
+  if (!d) return [];
+  const wrap = (gen: object, title: string) => ({
+    title,
+    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } },
+  });
+  return [
+    wrap(d.petition, 'Заявление об учреждении кооперативного участка'),
+    wrap(d.liability, 'Договор о полной материальной ответственности'),
+    wrap(d.authority, 'Доверенность председателю кооперативного участка'),
+  ];
+});
 
 const participantOptions = computed(() =>
   participantsInfo.value.map((participant) => ({
@@ -445,16 +477,32 @@ const onClose = () =>
     'Протокол утверждён',
     (d) => d.status === Zeus.KuDecisionStatus.APPROVED,
   );
-// перед направлением в совет председатель участка подписывает договор
-// матответственности (328) — если паспорта в реестре ещё нет, сначала соберём его
+// перед направлением в совет: собираем паспорт (если в реестре его ещё нет) →
+// генерируем пакет документов с подставленными данными → показываем на прочтение.
+// Подпись и отправка происходят только после подтверждения в окне предпросмотра.
 const onExec = () =>
-  requirePassport(() =>
-    withReload(
-      () => flow.execDecision(decision.value!),
-      'Заявление направлено в совет',
-      (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
-    ),
+  requirePassport(async () => {
+    busy.value = true;
+    try {
+      execPreparedDocs.value = await flow.prepareExecDocuments(decision.value!);
+      execPreviewOpen.value = true;
+    } catch (e: unknown) {
+      FailAlert(e);
+    } finally {
+      busy.value = false;
+    }
+  });
+
+async function confirmExec(): Promise<void> {
+  if (!execPreparedDocs.value) return;
+  execPreviewOpen.value = false;
+  await withReload(
+    () => flow.execDecision(decision.value!, execPreparedDocs.value!),
+    'Заявление направлено в совет',
+    (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
   );
+  execPreparedDocs.value = null;
+}
 const onVote = () => {
   const ballotsBefore = decision.value?.signed_ballots ?? 0;
   return withReload(
@@ -669,6 +717,13 @@ function goBack(): void {
   line-height: 1.5;
   color: var(--p-ink-1);
   overflow-wrap: anywhere;
+}
+
+.ku-preview-doc__title {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-2, 8px);
 }
 
 .ku-back {

@@ -87,6 +87,19 @@ BaseDialog(v-model='isDocumentOpen', title='Договор о полной ма�
 BaseDialog(v-model='isAuthorityOpen', title='Доверенность доверенному лицу', size='lg')
   BaseDocument(v-if='authorityTarget', :document-aggregate='authorityTarget')
 
+//- Предпросмотр документов заявителя с подставленными данными перед подписанием и подачей
+BaseDialog(v-model='trustedPreviewOpen', title='Проверьте документы перед подписанием', size='lg')
+  .t-sm.t-muted.q-mb-md
+    | Ознакомьтесь с документами — в них уже подставлены ваши данные. После подписания
+    | договор и доверенность будут направлены председателю участка на одобрение.
+  .column.q-gutter-md
+    .ku-preview-doc(v-for='item in trustedPreviewDocs', :key='item.title')
+      .ku-preview-doc__title {{ item.title }}
+      BaseDocument(:document-aggregate='item.aggregate')
+  .row.justify-end.q-gutter-sm.q-mt-md
+    BaseButton(variant='secondary', type='button', @click='trustedPreviewOpen = false') Назад
+    BaseButton(variant='primary', :loading='isSubmitting', @click='confirmRequest') Подписать и подать заявку
+
 //- Отклонение заявки доверенного
 BaseDialog(v-model='isDeclineOpen', title='Отклонить заявку', size='sm')
   BaseForm(@submit='onDecline')
@@ -147,6 +160,10 @@ const isDocumentOpen = ref(false);
 const documentTarget = ref<object | null>(null);
 const isAuthorityOpen = ref(false);
 const authorityTarget = ref<object | null>(null);
+// предпросмотр пакета документов заявителя перед подписанием и подачей заявки
+const trustedPreviewOpen = ref(false);
+const trustedPrepared = ref<Awaited<ReturnType<typeof flow.prepareTrustedDocuments>> | null>(null);
+const trustedInput = ref<{ braname: string; branchName: string; chairmanFullName: string } | null>(null);
 
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
@@ -221,25 +238,54 @@ async function poll(predicate: () => boolean, attempts = 8): Promise<void> {
   }
 }
 
-// доверенное лицо подписывает договор матответственности (327) — если паспорта
-// в реестре ещё нет, сначала собираем его, затем подаём заявку
+// доверенное лицо подписывает договор матответственности (327) и доверенность (330) —
+// если паспорта в реестре ещё нет, сначала собираем его; затем генерируем документы с
+// данными заявителя и показываем на прочтение; подпись и подача — после подтверждения
 function onRequest() {
   return requirePassport(async () => {
     try {
-      await flow.requestTrusted({
+      trustedInput.value = {
         braname: props.braname,
         branchName: branchTitle.value,
         chairmanFullName: fullName(branch.value?.trustee_certificate),
-      });
-      SuccessAlert('Заявка подана');
-      await poll(() =>
-        branchRequests.value.some((request) => request.username === session.username && request.present),
-      );
+      };
+      trustedPrepared.value = await flow.prepareTrustedDocuments(trustedInput.value);
+      trustedPreviewOpen.value = true;
     } catch (e: unknown) {
       FailAlert(e);
     }
   });
 }
+
+async function confirmRequest() {
+  if (!trustedPrepared.value || !trustedInput.value) return;
+  trustedPreviewOpen.value = false;
+  try {
+    await flow.requestTrusted({ braname: trustedInput.value.braname }, trustedPrepared.value);
+    SuccessAlert('Заявка подана');
+    await poll(() =>
+      branchRequests.value.some((request) => request.username === session.username && request.present),
+    );
+  } catch (e: unknown) {
+    FailAlert(e);
+  } finally {
+    trustedPrepared.value = null;
+  }
+}
+
+// сгенерированные (ещё не подписанные) документы → агрегаты для BaseDocument (html есть, подписей нет)
+const trustedPreviewDocs = computed(() => {
+  const d = trustedPrepared.value;
+  if (!d) return [];
+  const wrap = (gen: object, title: string) => ({
+    title,
+    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } },
+  });
+  return [
+    wrap(d.application, 'Договор о полной материальной ответственности'),
+    wrap(d.authority, 'Доверенность доверенному лицу'),
+  ];
+});
 
 async function onApprove(request: IKuTrustRequest) {
   try {
@@ -296,3 +342,12 @@ watch(
 
 onMounted(load);
 </script>
+
+<style scoped>
+.ku-preview-doc__title {
+  font-size: var(--p-fs-body-sm, 13px);
+  font-weight: 600;
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-2, 8px);
+}
+</style>

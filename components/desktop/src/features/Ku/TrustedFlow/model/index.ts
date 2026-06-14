@@ -3,7 +3,7 @@ import { Cooperative } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
-import { DigitalDocument, useSignDocument } from 'src/shared/lib/document';
+import { DigitalDocument, useSignDocument, type IGeneratedDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { api } from '../api';
 
@@ -24,18 +24,21 @@ export function useKuTrustedFlow() {
   const isSubmitting = ref(false);
 
   /**
-   * Подать заявку доверенного: договор о полной индивидуальной материальной
-   * ответственности доверенного лица (327, текст совпадает с договором
-   * председателя участка) с подписью заявителя + reqtrusted. Председатель
-   * участка позже накладывает встречную подпись при одобрении заявки.
+   * Сгенерировать (без подписи) пакет документов доверенного для предпросмотра:
+   * договор о полной индивидуальной материальной ответственности (327) и доверенность
+   * доверенному лицу/оператору (330) — с подставленными паспортными данными заявителя.
+   * Якорь процесса (hash) фиксируется здесь и переиспользуется при подписании.
    */
-  async function requestTrusted(input: { braname: string; branchName: string; chairmanFullName: string }): Promise<void> {
+  async function prepareTrustedDocuments(input: { branchName: string; chairmanFullName: string }): Promise<{
+    hash: string;
+    application: IGeneratedDocument;
+    authority: IGeneratedDocument;
+  }> {
     isSubmitting.value = true;
     try {
       const hash = await generateUniqueHash();
-      const digitalDocument = new DigitalDocument();
 
-      await digitalDocument.generate<Cooperative.Registry.BranchTrustedLiabilityAgreement.Action>({
+      const application = await new DigitalDocument().generate<Cooperative.Registry.BranchTrustedLiabilityAgreement.Action>({
         registry_id: Cooperative.Registry.BranchTrustedLiabilityAgreement.registry_id,
         coopname: system.info.coopname,
         username: session.username,
@@ -44,13 +47,7 @@ export function useKuTrustedFlow() {
         trustee_full_name: input.chairmanFullName,
       });
 
-      const application = await digitalDocument.sign<Cooperative.Registry.BranchTrustedLiabilityAgreement.Meta>(
-        session.username,
-      );
-
-      // доверенность доверенному лицу/оператору (330): тот же подписант, идёт в пакете с договором
-      const authorityDocument = new DigitalDocument();
-      await authorityDocument.generate<Cooperative.Registry.BranchTrustedPowerOfAttorney.Action>({
+      const authority = await new DigitalDocument().generate<Cooperative.Registry.BranchTrustedPowerOfAttorney.Action>({
         registry_id: Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id,
         coopname: system.info.coopname,
         username: session.username,
@@ -59,15 +56,35 @@ export function useKuTrustedFlow() {
         trustee_full_name: input.chairmanFullName,
       });
 
-      const authority = await authorityDocument.sign<Cooperative.Registry.BranchTrustedPowerOfAttorney.Meta>(
-        session.username,
-      );
+      return { hash, application, authority };
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  /**
+   * Подписать предпросмотренный пакет и подать заявку доверенного (reqtrusted):
+   * договор матответственности (327) и доверенность (330) с подписью заявителя.
+   * Председатель участка позже накладывает встречную подпись при одобрении.
+   */
+  async function requestTrusted(
+    input: { braname: string },
+    prepared: { hash: string; application: IGeneratedDocument; authority: IGeneratedDocument },
+  ): Promise<void> {
+    isSubmitting.value = true;
+    try {
+      const application = await new DigitalDocument(prepared.application).sign<
+        Cooperative.Registry.BranchTrustedLiabilityAgreement.Meta
+      >(session.username);
+      const authority = await new DigitalDocument(prepared.authority).sign<
+        Cooperative.Registry.BranchTrustedPowerOfAttorney.Meta
+      >(session.username);
 
       await api.requestTrusted({
         coopname: system.info.coopname,
         braname: input.braname,
         username: session.username,
-        hash,
+        hash: prepared.hash,
         application,
         authority,
       });
@@ -143,6 +160,7 @@ export function useKuTrustedFlow() {
 
   return {
     isSubmitting,
+    prepareTrustedDocuments,
     requestTrusted,
     approveTrusted,
     declineTrusted,
