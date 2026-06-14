@@ -50,6 +50,13 @@ export interface IAccessRulesRepository {
   findForCapabilitySets(setKeys: string[]): Promise<AccessRuleRecord[]>;
   /** Создать правило (admin-запись ролей/capabilities — Story 6.6/6.7). */
   insert(rule: AccessRuleRecord): Promise<void>;
+  /**
+   * Удалить истёкшие правила (`expires_at` непустой и `<= now`) — фоновая уборка
+   * мёртвых строк (Story 6.7). На корректность прав НЕ влияет: read-path их и так
+   * исключает; бессрочные (`expires_at IS NULL`) и ещё действующие не трогаются.
+   * Возвращает число удалённых строк.
+   */
+  deleteExpired(now: Date): Promise<number>;
 }
 
 /** Принципал, чьи права изменились (для инвалидации активных сессий). */

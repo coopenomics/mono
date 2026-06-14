@@ -5,6 +5,7 @@ import { AbilityFactory } from './ability.factory';
 import { PolicyRegistry } from './policy.registry';
 import { PolicyService } from './policy.service';
 import { AuthorizationGuard } from './authorization.guard';
+import { AccessRulesCleanupService } from './access-rules-cleanup.service';
 import { SameCoopVotingPolicy } from './policies/same-coop-voting.policy';
 
 /**
@@ -16,7 +17,7 @@ import { SameCoopVotingPolicy } from './policies/same-coop-voting.policy';
  */
 @Module({
   imports: [DiscoveryModule, AuthV2InfrastructureModule],
-  providers: [AbilityFactory, PolicyRegistry, PolicyService, AuthorizationGuard, SameCoopVotingPolicy],
+  providers: [AbilityFactory, PolicyRegistry, PolicyService, AuthorizationGuard, AccessRulesCleanupService, SameCoopVotingPolicy],
   exports: [AbilityFactory, PolicyRegistry, PolicyService, AuthorizationGuard],
 })
 export class AuthorizationModule {}
