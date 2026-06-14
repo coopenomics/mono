@@ -832,6 +832,9 @@ importers:
 
   components/desktop:
     dependencies:
+      '@coopenomics/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@coopenomics/notifications':
         specifier: workspace:*
         version: link:../notifications

@@ -18,6 +18,12 @@ export interface EnvVars {
   VAPID_PUBLIC_KEY: string;
   SENTRY_DSN: string;
   OPENREPLAY_PROJECT_KEY: string;
+  // CoopID (Эпик 11): вход по паролю через authentik. Опциональны — пока не заданы,
+  // desktop остаётся на легаси-входе по ключу (инвариант: легаси-токены живут до логаута).
+  // ISSUER — например `https://coop.example/application/o/coopid/`; CLIENT_ID — публичный
+  // OAuth2-клиент authentik для SPA+PKCE (инфра Эпика 5). База coop/* берётся из BACKEND_URL.
+  COOPID_ISSUER?: string;
+  COOPID_CLIENT_ID?: string;
 }
 
 // Расширяем глобальный Window чтобы TypeScript понимал window.__APP_CONFIG__
@@ -154,6 +160,8 @@ function getEnv(): EnvVars {
     VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY as string,
     SENTRY_DSN: process.env.SENTRY_DSN as string,
     OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,
+    COOPID_ISSUER: process.env.COOPID_ISSUER as string,
+    COOPID_CLIENT_ID: process.env.COOPID_CLIENT_ID as string,
   };
 
   isLoading = false;
