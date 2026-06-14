@@ -19,8 +19,11 @@ const PUBLIC_API = [
 
 // Методы, ещё не реализованные (бросают not_implemented). По мере реализации
 // историй метод уходит отсюда: getWallet — 2.2, signTimestamp — 2.4, verifyOffline — 4.4,
-// exportFullQR — 4.9 (гейтится unlocked vault + consent, не not_implemented).
-const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument', 'verifyOffline', 'exportFullQR'])
+// exportFullQR — 4.9 (гейтится unlocked vault + consent, не not_implemented), login —
+// 1.7/11.2 (flow-executor → network_error без живого authentik), recover — Эпик 3,
+// getAccessToken — 1.7 (wallet_locked без сессии). Реальные stub'ы: loginWithMagicLink
+// (Эпик 12) и rotateKey (3.3).
+const IMPLEMENTED = new Set(['getWallet', 'signTimestamp', 'getParticipantCertificate', 'logout', 'signDocument', 'verifyOffline', 'exportFullQR', 'login', 'recover', 'getAccessToken'])
 const STILL_STUBBED = PUBLIC_API.filter(m => !IMPLEMENTED.has(m))
 
 describe('@coopenomics/auth — скелет SDK', () => {

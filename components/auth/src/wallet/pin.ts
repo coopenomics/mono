@@ -1,3 +1,5 @@
+import type { EncryptedVaultBlob } from '../vault/types'
+import type { StorageAdapter } from './storage-adapter'
 /**
  * Опциональный PIN-слой (Story 2.2): обёртка приватного ключа коротким PIN
  * поверх того же Argon2id+AES-256-GCM, что и vault. Хранится в подключаемом
@@ -9,14 +11,8 @@
  * устройства — вне scope этого слоя.
  */
 import { decryptWithPassword, encryptWithPassword } from '../vault/encrypt'
-import type { EncryptedVaultBlob } from '../vault/types'
 
-/** Минимальный async key-value стор. Браузер: обёртка над localStorage/IndexedDB. */
-export interface StorageAdapter {
-  get: (key: string) => Promise<string | null>
-  set: (key: string, value: string) => Promise<void>
-  remove: (key: string) => Promise<void>
-}
+export type { StorageAdapter } from './storage-adapter'
 
 const STORAGE_KEY = 'coopid.wallet.pin-vault'
 
