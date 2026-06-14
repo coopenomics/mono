@@ -34,6 +34,8 @@ import { OfflineRecoveryService } from './recovery/offline-recovery.service';
 import { RecoveryStrategyService } from './recovery/recovery-strategy.service';
 import { RecoveryFinalizationService } from './recovery/recovery-finalization.service';
 import { RecoveryController } from './recovery/recovery.controller';
+import { RefreshService } from './refresh/refresh.service';
+import { RefreshController } from './refresh/refresh.controller';
 import { TwoFactorService } from './two-factor/two-factor.service';
 import { SessionsService } from './sessions/sessions.service';
 import { SecurityIncidentService } from './security/security-incident.service';
@@ -58,9 +60,9 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
   // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
   // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
   // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, SecurityIncidentController, ForceRecoveryController],
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RefreshController, RecoveryController, SecurityIncidentController, ForceRecoveryController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, RefreshService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.

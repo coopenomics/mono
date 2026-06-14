@@ -4,12 +4,26 @@
  */
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
 import { clearPinProtected, lockWallet, type StorageAdapter } from '../wallet'
+import { authenticateWithAuthentik, coopIdApiUrl } from './client'
+import { performTimestampHandshake } from './handshake'
+import { clearSession, getAccessToken as getStoredAccessToken } from './tokens'
+
+export { configureCoopId, configureOidc } from './client'
+export type { HandshakeResult } from './handshake'
+export { performTimestampHandshake } from './handshake'
+export type { SessionTokens } from './tokens'
+export { currentTokens } from './tokens'
 
 export interface LoginParams {
   /** Issuer кооператива, например `https://coop.example/application/o/coopid/` */
   issuer: string
   email: string
-  password: string
+  /**
+   * НЕ используется фасадом: по FR29 пароль вводится на форме authentik
+   * (Authorization Code + PKCE), а не передаётся программно (ROPC запрещён).
+   * Поле сохранено для обратной совместимости контракта Story 1.2.
+   */
+  password?: string
 }
 
 export interface LoginResult {
@@ -19,24 +33,63 @@ export interface LoginResult {
   participantCertificate: string
 }
 
-/** Двухэтапный вход: password (authentik) → timestamp-signature (controller). Story 1.7. */
-export async function login(_params: LoginParams): Promise<LoginResult> {
-  notImplemented('login')
+/**
+ * Двухэтапный вход (Story 1.7): (1) password через authentik по Authorization Code +
+ * PKCE (`oidc-client-ts`, попап), (2) timestamp-signature handshake против controller'а
+ * (bind → подпись ключом из keystore → verify). Перед вызовом кошелёк должен быть
+ * разблокирован (`unlockWallet`/`unlockWithPin`), иначе handshake бросит WalletLocked.
+ *
+ * База controller'а берётся из `configureCoopId({ apiUrl })`, OIDC-клиент — из
+ * `configureOidc({ clientId, redirectUri })` (вызываются приложением на старте).
+ */
+export async function login(params: LoginParams): Promise<LoginResult> {
+  const apiUrl = coopIdApiUrl()
+  // 1. password-этап: устанавливает сессию authentik (cookie) + отдаёт id_token.
+  const user = await authenticateWithAuthentik({ issuer: params.issuer, loginHint: params.email })
+  // 2. timestamp-signature handshake: платформенные токены + удостоверение.
+  const handshake = await performTimestampHandshake(apiUrl)
+  return {
+    accessToken: handshake.accessToken,
+    idToken: user.id_token ?? '',
+    participantCertificate: handshake.participantCertificate ?? '',
+  }
 }
 
-/** Вход по magic-link (восстановление доступа). Story 3.1. */
+/** Вход по magic-link (восстановление доступа). Story 3.1 — recovery-confirm + ротация ключа. */
 export async function loginWithMagicLink(_link: string): Promise<LoginResult> {
+  // Полный confirm-флоу (ротация ключа registrator::changekey + повторный handshake)
+  // относится к recovery-UX Эпика 3 и финализируется во фронт-фазе.
   notImplemented('loginWithMagicLink')
 }
 
-/** Восстановление доступа (magic-link / offline-код, по стратегии кооператива). Эпик 3. */
-export async function recover(_email: string): Promise<void> {
-  notImplemented('recover')
+/**
+ * Запросить восстановление доступа (magic-link на email; по стратегии кооператива
+ * — также offline-код). Эпик 3, `POST /coop/recovery/request`. Анти-enumeration:
+ * сервер всегда отвечает 202 вне зависимости от существования аккаунта.
+ */
+export async function recover(email: string): Promise<void> {
+  const base = coopIdApiUrl()
+  let res: Response
+  try {
+    res = await fetch(`${base}/coop/recovery/request`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+  }
+  catch (e) {
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Сеть недоступна при запросе восстановления: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  // 202 — нормальный путь; иные коды (кроме rate-limit) — ошибка конфигурации/сети.
+  if (res.status === 429)
+    throw new AuthV2Error(AuthV2ErrorCode.TooManyRecoveryAttempts, 'Слишком много попыток восстановления, попробуйте позже')
+  if (!res.ok && res.status !== 202)
+    throw new AuthV2Error(AuthV2ErrorCode.NetworkError, `Запрос восстановления отклонён (HTTP ${res.status})`)
 }
 
 /** Текущий access_token (с автообновлением через refresh). Story 1.7. */
 export async function getAccessToken(): Promise<string> {
-  notImplemented('getAccessToken')
+  return getStoredAccessToken()
 }
 
 /**
@@ -73,10 +126,11 @@ export interface LogoutParams {
 
 /**
  * RP-initiated logout (Story 1.10): отзыв токенов на сервере + затирание локального
- * keystore. Серверный вызов — best-effort; локальное затирание ключа выполняется
- * ВСЕГДА (в `finally`), даже если сервер недоступен — безопасность важнее «чистого»
- * logout: расшифрованный ключ не должен остаться в памяти браузера при сетевом сбое.
- * Редирект на login — на стороне вызывающего. Стандартный OIDC end-session — Story 5.1.
+ * keystore. Серверный вызов — best-effort; локальное затирание ключа и сессии
+ * выполняется ВСЕГДА (в `finally`), даже если сервер недоступен — безопасность важнее
+ * «чистого» logout: расшифрованный ключ не должен остаться в памяти браузера при
+ * сетевом сбое. Редирект на login — на стороне вызывающего. Стандартный OIDC
+ * end-session — Story 5.1.
  */
 export async function logout(params: LogoutParams): Promise<void> {
   try {
@@ -91,6 +145,7 @@ export async function logout(params: LogoutParams): Promise<void> {
   }
   finally {
     lockWallet()
+    clearSession()
     if (params.pinStorage)
       await clearPinProtected(params.pinStorage)
   }

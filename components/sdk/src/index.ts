@@ -23,6 +23,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
 
 export class Client {
   private currentHeaders: Record<string, string> = {}
+  private accessTokenProvider?: () => Promise<string>
   private account: Classes.Account
   private blockchain: Classes.Blockchain
   private document: Classes.Document
@@ -120,6 +121,19 @@ export class Client {
   }
 
   /**
+   * Привязывает источник access-токена контура CoopID (`@coopenomics/auth.getAccessToken`):
+   * перед каждым GraphQL-запросом SDK берёт свежий токен (с авто-refresh) и кладёт его в
+   * заголовок Authorization. Так bearer остаётся внутри слоя SDK (D1, Эпик 7), а приложение
+   * не передаёт токен вручную. Передать `undefined` — отвязать (вернуться к setToken/login).
+   *
+   * Развязка по зависимостям умышленная: SDK НЕ импортирует `@coopenomics/auth` (тот тянет
+   * браузерный oidc-client-ts и сломал бы Node-потребителей SDK) — принимает лишь функцию.
+   */
+  public setAccessTokenProvider(provider?: () => Promise<string>): void {
+    this.accessTokenProvider = provider
+  }
+
+  /**
    * Установка WIF.
    * @param username Имя пользователя.
    * @param wif WIF для установки.
@@ -193,6 +207,16 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
+      if (this.accessTokenProvider) {
+        try {
+          this.currentHeaders.Authorization = `Bearer ${await this.accessTokenProvider()}`
+        }
+        catch {
+          // Нет активной CoopID-сессии или refresh не удался — отправляем запрос с тем,
+          // что уже есть в заголовках (legacy-токен из setToken/login, если был). Итоговую
+          // авторизацию решает сервер; перехватывать здесь не нужно.
+        }
+      }
       const response = await fetch(baseUrl, {
         body: JSON.stringify({ query, variables }),
         method: 'POST',
