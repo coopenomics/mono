@@ -70,39 +70,57 @@ export interface Model {
 export const title = 'Служебная записка о списании'
 export const description = 'Служебная записка председателя кооперативного участка о фактическом списании со склада скоропортящегося, повреждённого или малооценного имущества по решению совета (ЦПП «Стол заказов»)'
 
-// Без white-space: pre-wrap — иначе переносы строк исходника рендерятся как
-// видимые отступы. Интервалы — через margin абзацев.
+// Вёрстка 1-в-1 с каноном фабричных документов (эталон — 1106/1108): рендерер
+// BaseDocument навязывает в Shadow DOM `.digital-document { white-space:
+// pre-wrap }` и `th { width: 30% !important }`. Поэтому интервалы задаём
+// переносами строк, как у сиблингов, а многоколоночный список позиций НЕ
+// использует <th> для шапки (пять <th> по 30% = 150% → таблица «уезжает»);
+// заголовки колонок — <td><b>.
 export const context = `<style>
-.digital-document { padding: 20px; }
-.digital-document p { margin: 0 0 6px; }
-.digital-document h1 { margin: 0; text-align: center; }
-.title-block { text-align: center; margin-bottom: 20px; }
-.subheader { margin-top: 4px; }
-.sign { margin-top: 24px; }
-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
-th { font-weight: bold; }
+h1 {
+  margin: 0px;
+  text-align: center;
+}
+.digital-document {
+  padding: 20px;
+  white-space: pre-wrap;
+}
+.subheader {
+  padding-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid currentColor;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+th {
+  width: 30%;
+}
 </style>
 
 <div class="digital-document">
-  <div class="title-block">
-    <h1>{% trans 'memo_title' %}</h1>
+  <div style="text-align: center">
+    <h1 class="header">{% trans 'memo_title' %}</h1>
     <p class="subheader">{% trans 'memo_subheader', branch_name %}</p>
   </div>
 
   <p>{% trans 'preamble', program.name, cycle_started_at %}</p>
 
   <table>
-    <thead>
-      <tr>
-        <th>№</th>
-        <th>{% trans 'col_asset' %}</th>
-        <th>{% trans 'col_quantity' %}</th>
-        <th>{% trans 'col_amount' %}</th>
-        <th>{% trans 'col_reason' %}</th>
-      </tr>
-    </thead>
     <tbody>
+      <tr>
+        <td><b>№</b></td>
+        <td><b>{% trans 'col_asset' %}</b></td>
+        <td><b>{% trans 'col_quantity' %}</b></td>
+        <td><b>{% trans 'col_amount' %}</b></td>
+        <td><b>{% trans 'col_reason' %}</b></td>
+      </tr>
       {% for it in items %}
       <tr>
         <td>{{ forloop.counter }}</td>
@@ -112,9 +130,9 @@ th { font-weight: bold; }
         <td>{{ it.reason }}</td>
       </tr>
       {% endfor %}
-      <tr style="font-weight: bold">
-        <td colspan="3">{% trans 'total' %}</td>
-        <td>{{ total_amount }}</td>
+      <tr>
+        <td colspan="3"><b>{% trans 'total' %}</b></td>
+        <td><b>{{ total_amount }}</b></td>
         <td></td>
       </tr>
     </tbody>
@@ -124,7 +142,6 @@ th { font-weight: bold; }
   <p>{% trans 'proposal_ref' %} {{ proposal_hash }}</p>
   <p>{% trans 'ledger_note' %}</p>
 
-  <hr />
   <p>{% trans 'signature' %}</p>
   <p>{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
   <p>{{ meta.created_at }}</p>
@@ -168,15 +185,15 @@ export const exampleData = {
     {
       asset_title: 'Сахар-песок «Сладкий», 1 кг',
       quantity: '12',
-      amount: '1020.0000',
+      amount: '1 020,00 RUB',
       reason: 'Истёк срок годности',
     },
     {
       asset_title: 'Молоко «Доброе», 1 л',
       quantity: '5',
-      amount: '485.0000',
+      amount: '485,00 RUB',
       reason: 'Повреждена упаковка',
     },
   ],
-  total_amount: '1505.0000',
+  total_amount: '1 505,00 RUB',
 }
