@@ -86,6 +86,7 @@ function makeService(overrides: {
     get: jest.fn().mockResolvedValue(overrides.manifest ?? null),
     put: jest.fn().mockResolvedValue(undefined),
   };
+  const metrics = { loginAttempt: jest.fn(), loginSuccess: jest.fn(), loginError: jest.fn() };
   const service = new VerifyTimestampService(
     redis as any,
     blockchain as any,
@@ -96,8 +97,9 @@ function makeService(overrides: {
     deviceTracking as any,
     sessionMetadata as any,
     chainManifests as any,
+    metrics as any,
   );
-  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata, chainManifests };
+  return { service, redis, blockchain, user, tokens, audit, certificate, deviceTracking, sessionMetadata, chainManifests, metrics };
 }
 
 beforeEach(() => {
@@ -118,7 +120,7 @@ describe('canonicalTimestampMessage: зеркало SDK (golden-вектор)', 
 
 describe('VerifyTimestampService.verify', () => {
   it('happy path: верная подпись → токены + audit success', async () => {
-    const { service, redis, tokens, audit } = makeService({ hasActiveKey: true });
+    const { service, redis, tokens, audit, metrics } = makeService({ hasActiveKey: true });
     const token = await makeToken(ACCOUNT, 'jti-1');
     const signature = signCanonical(TS, 'jti-1', ACCOUNT);
 
@@ -128,6 +130,23 @@ describe('VerifyTimestampService.verify', () => {
     expect(redis.consumeSingleUse).toHaveBeenCalledWith('coopid:binding:jti-1');
     expect(tokens.generateAuthTokens).toHaveBeenCalledWith('user-uuid-1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ result: 'success' }));
+    // метрики входа (Story 9.11): попытка + успех, ошибка не зафиксирована
+    expect(metrics.loginAttempt).toHaveBeenCalledTimes(1);
+    expect(metrics.loginSuccess).toHaveBeenCalledTimes(1);
+    expect(metrics.loginError).not.toHaveBeenCalled();
+  });
+
+  it('ошибка входа → метрика loginError с кодом, loginSuccess не вызван (Story 9.11)', async () => {
+    // повторно использованный binding-токен: consumeSingleUse → null
+    const { service, metrics } = makeService({ consume: jest.fn().mockResolvedValue(null) });
+    const token = await makeToken(ACCOUNT, 'jti-reuse');
+    const signature = signCanonical(TS, 'jti-reuse', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toBeInstanceOf(AuthV2Error);
+
+    expect(metrics.loginAttempt).toHaveBeenCalledTimes(1);
+    expect(metrics.loginError).toHaveBeenCalledWith(AuthV2ErrorCode.SessionBindingReused);
+    expect(metrics.loginSuccess).not.toHaveBeenCalled();
   });
 
   it('успех → device tracking вызван с subjectId/ip/UA (Story 3.8)', async () => {

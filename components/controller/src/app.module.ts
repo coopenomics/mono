@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 // Infrastructure modules
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -94,6 +95,11 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
       },
     ]),
     ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
+    // Prometheus pull-метрики (Story 9.11, NFR28): GET /metrics в Prometheus
+    // exposition format + процессные метрики Node на глобальном реестре prom-client
+    // (туда же пишут доменные счётчики AuthMetricsService). Доступ снаружи режет
+    // edge (Caddy, Story 9.2) — как и нативный /metrics authentik.
+    PrometheusModule.register({ defaultMetrics: { enabled: true } }),
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,

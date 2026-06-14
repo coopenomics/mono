@@ -18,6 +18,7 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 import { AuditService } from '../audit/audit.service';
 import { CertificateService } from '../certificate/certificate.service';
 import { DeviceTrackingService } from '../device-tracking/device-tracking.service';
+import { AuthMetricsService } from '../metrics/auth-metrics.service';
 
 /** Окно свежести метки времени против head_block_time, сек (epic AC Story 1.7). */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -100,9 +101,29 @@ export class VerifyTimestampService {
     private readonly deviceTracking: DeviceTrackingService,
     @Inject(SESSION_METADATA_PORT) private readonly sessionMetadata: ISessionMetadataStore,
     @Inject(CHAIN_MANIFESTS_CACHE) private readonly chainManifests: IChainManifestsCache,
+    private readonly metrics: AuthMetricsService,
   ) {}
 
+  /**
+   * Вход этапа-2 + телеметрия (Story 9.11). Единая канва всех исходов входа CoopID:
+   * счётчик попыток — на входе, успеха — после выдачи токенов, ошибок — по
+   * типизированному коду `AuthV2Error`. Метрики side-effect-only (AuthMetricsService
+   * не бросает), поведение `verifyInternal` не меняют — та же ошибка пробрасывается
+   * без изменений.
+   */
   async verify(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
+    this.metrics.loginAttempt();
+    try {
+      const result = await this.verifyInternal(input);
+      this.metrics.loginSuccess();
+      return result;
+    } catch (e) {
+      if (e instanceof AuthV2Error) this.metrics.loginError(e.code);
+      throw e;
+    }
+  }
+
+  private async verifyInternal(input: VerifyTimestampInput): Promise<VerifyTimestampResult> {
     // 1. binding_token: подпись (HS256, shared secret 1.6) + exp + sub/jti.
     const secret = config.authV2.sessionBindingSecret;
     if (!secret) throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'AUTH_V2_SESSION_BINDING_SECRET не сконфигурирован');
