@@ -12,6 +12,7 @@
     :error-message="error"
     :placeholder="placeholder"
     :type="type"
+    :mask="mask"
     :prefix="prefix"
     :suffix="suffix"
     :readonly="readonly"

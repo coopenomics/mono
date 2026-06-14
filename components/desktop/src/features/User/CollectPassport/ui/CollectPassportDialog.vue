@@ -13,11 +13,11 @@
         повторно.
       </p>
 
-      <BaseInput v-model="series" label="Серия паспорта" type="number" required />
-      <BaseInput v-model="number" label="Номер паспорта" type="number" required />
+      <BaseInput v-model="series" label="Серия паспорта" mask="####" placeholder="7509" required />
+      <BaseInput v-model="number" label="Номер паспорта" mask="######" placeholder="712233" required />
       <BaseInput v-model="issuedBy" label="Кем выдан" required />
       <BaseInput v-model="issuedAt" label="Дата выдачи" type="date" required />
-      <BaseInput v-model="code" label="Код подразделения" placeholder="220-220" required />
+      <BaseInput v-model="code" label="Код подразделения" mask="###-###" placeholder="220-220" required />
 
       <template #footer="{ loading }">
         <BaseButton variant="ghost" :disabled="loading" @click="cancel">Отмена</BaseButton>
@@ -70,14 +70,30 @@ function cancel(): void {
 }
 
 async function submit(): Promise<void> {
+  const seriesStr = String(series.value ?? '').trim();
+  const numberStr = String(number.value ?? '').trim();
+  const codeStr = code.value.trim();
+  // маски ограничивают максимум; здесь проверяем полноту: серия — 4 цифры, номер — 6, код — NNN-NNN
+  if (!/^\d{4}$/.test(seriesStr)) {
+    FailAlert('Серия паспорта — 4 цифры');
+    return;
+  }
+  if (!/^\d{6}$/.test(numberStr)) {
+    FailAlert('Номер паспорта — 6 цифр');
+    return;
+  }
+  if (!/^\d{3}-\d{3}$/.test(codeStr)) {
+    FailAlert('Код подразделения — в формате 123-456');
+    return;
+  }
   saving.value = true;
   try {
     const account = await api.saveMyPassport({
-      series: Number(series.value),
-      number: Number(number.value),
+      series: Number(seriesStr),
+      number: Number(numberStr),
       issued_by: issuedBy.value,
       issued_at: issuedAt.value,
-      code: code.value,
+      code: codeStr,
     });
     session.setCurrentUserAccount(account);
     SuccessAlert('Паспортные данные сохранены');
