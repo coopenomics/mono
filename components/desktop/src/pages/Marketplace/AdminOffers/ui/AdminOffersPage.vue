@@ -52,6 +52,7 @@ const columns = [
   { name: 'supplier', align: 'left' as const, label: 'Поставщик', field: 'supplier_account' },
   { name: 'price', align: 'right' as const, label: 'Цена', field: 'price_per_unit' },
   { name: 'available', align: 'right' as const, label: 'Доступно', field: 'quantity_available' },
+  { name: 'warranty', align: 'right' as const, label: 'Гарантия', field: 'warranty_days' },
   { name: 'created', align: 'left' as const, label: 'Создано', field: 'created_at' },
   { name: 'actions', align: 'right' as const, label: '', field: 'id' },
 ];
@@ -79,6 +80,9 @@ function unitLabel(o: AdminOfferView): string {
 }
 function formatPrice(v: string | null | undefined): string {
   return v ? formatAsset2Digits(String(v)) : '—';
+}
+function formatWarranty(days: number | null | undefined): string {
+  return days && days > 0 ? `${days} дн.` : '—';
 }
 function supplierTitle(o: AdminOfferView): string {
   return fioCache.value.get(o.supplier_account) || o.supplier_account || '—';
@@ -196,6 +200,8 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
         q-td.text-right.font-monospace(:props="props") {{ formatPrice(props.row.price_per_unit) }}
       template(#body-cell-available="props")
         q-td.text-right(:props="props") {{ props.row.unlimited_flag ? '∞' : props.row.quantity_available }} {{ unitLabel(props.row) }}
+      template(#body-cell-warranty="props")
+        q-td.text-right(:props="props") {{ formatWarranty(props.row.warranty_days) }}
       template(#body-cell-created="props")
         q-td(:props="props") {{ formatDate(props.row.created_at) }}
       template(#body-cell-actions="props")
