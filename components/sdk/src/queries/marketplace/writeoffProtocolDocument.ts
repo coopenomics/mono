@@ -1,4 +1,4 @@
-import { documentSelector } from '../../selectors/common/documentSelector'
+import { documentAggregateSelector } from '../../selectors/documents/documentAggregateSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceWriteoffProtocolDocument'
@@ -6,7 +6,7 @@ export const name = 'marketplaceWriteoffProtocolDocument'
 export const query = Selector('Query')({
   [name]: [
     { data: $('data', 'MarketplaceWriteoffProtocolDocumentInput!') },
-    documentSelector,
+    documentAggregateSelector,
   ],
 })
 

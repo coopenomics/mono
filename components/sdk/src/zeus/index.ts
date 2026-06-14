@@ -10517,7 +10517,7 @@ marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValu
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
 	marketplaceWriteoffPendingConfirmations?:ValueTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
-marketplaceWriteoffProtocolDocument?: [{	data: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceWriteoffProtocolDocument?: [{	data: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"] | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
@@ -21249,7 +21249,7 @@ marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttri
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
 	marketplaceWriteoffPendingConfirmations?:ResolverInputTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string},ResolverInputTypes["MarketplaceWriteoffProposal"]],
-marketplaceWriteoffProtocolDocument?: [{	data: ResolverInputTypes["MarketplaceWriteoffProtocolDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceWriteoffProtocolDocument?: [{	data: ResolverInputTypes["MarketplaceWriteoffProtocolDocumentInput"]},ResolverInputTypes["DocumentAggregate"]],
 marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
@@ -32378,8 +32378,8 @@ export type ModelTypes = {
 	marketplaceWriteoffPendingConfirmations: Array<ModelTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: ModelTypes["MarketplaceWriteoffProposal"],
-	/** Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ. */
-	marketplaceWriteoffProtocolDocument: ModelTypes["GeneratedDocument"],
+	/** Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ. */
+	marketplaceWriteoffProtocolDocument: ModelTypes["DocumentAggregate"],
 	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
 	marketplaceWriteoffServiceMemoSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */
@@ -44111,8 +44111,8 @@ export type GraphQLTypes = {
 	marketplaceWriteoffPendingConfirmations: Array<GraphQLTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: GraphQLTypes["MarketplaceWriteoffProposal"],
-	/** Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ. */
-	marketplaceWriteoffProtocolDocument: GraphQLTypes["GeneratedDocument"],
+	/** Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ. */
+	marketplaceWriteoffProtocolDocument: GraphQLTypes["DocumentAggregate"],
 	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
 	marketplaceWriteoffServiceMemoSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */

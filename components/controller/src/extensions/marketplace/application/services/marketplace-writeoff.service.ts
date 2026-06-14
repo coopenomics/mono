@@ -15,6 +15,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
@@ -416,6 +417,20 @@ export class MarketplaceWriteoffService {
       })),
       total_amount: this.formatAssetNumber(total),
     };
+  }
+
+  /**
+   * Агрегат Протокола совета о списании для просмотра на столе ПВЗ. Протокол
+   * уже подписан советом и опубликован в реестр документов — собираем агрегат
+   * из подписанного документа (тело по doc_hash + подписи), НЕ регенерируем.
+   * `protocol_doc` = signed-документ из callback'а onmktwoauth. Канон —
+   * issuance/return-claim. null, если протокола ещё нет (проект не одобрен).
+   */
+  async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
+    const proposal = await this.getProposal(id);
+    const signed = proposal.protocol_doc as ISignedDocumentDomainInterface | null;
+    if (!signed) return null;
+    return this.documentDomainService.buildDocumentAggregate(signed);
   }
 
   // ── DRAFT pipeline ─────────────────────────────────────────────────

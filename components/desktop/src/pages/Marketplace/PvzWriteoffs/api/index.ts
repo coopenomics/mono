@@ -6,7 +6,9 @@ export type MarketplaceWriteoffConfirmationGroupView =
 
 export type MarketplaceWriteoffServiceMemoDocumentView = Types.Document.IGeneratedDocument;
 
-export type MarketplaceWriteoffProtocolDocumentView = Types.Document.IGeneratedDocument;
+// Протокол совета — подписанный документ (агрегат), не регенерируется.
+export type MarketplaceWriteoffProtocolDocumentView =
+  Queries.Marketplace.WriteoffProtocolDocument.IOutput['marketplaceWriteoffProtocolDocument'];
 
 export type IConfirmWriteoffInput = Mutations.Marketplace.ConfirmWriteoff.IInput['data'];
 

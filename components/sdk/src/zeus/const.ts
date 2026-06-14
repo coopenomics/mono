@@ -5947,7 +5947,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
-		marketplaceWriteoffProtocolDocument:"GeneratedDocument",
+		marketplaceWriteoffProtocolDocument:"DocumentAggregate",
 		marketplaceWriteoffServiceMemoSignablePayload:"GeneratedDocument",
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",

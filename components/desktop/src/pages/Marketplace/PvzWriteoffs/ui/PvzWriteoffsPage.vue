@@ -4,13 +4,14 @@ import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog';
+import type { IDocumentAggregate } from 'src/entities/Document/model';
 import {
   getWriteoffProtocolDocument,
   listWriteoffPendingConfirmations,
   type MarketplaceWriteoffConfirmationGroupView,
-  type MarketplaceWriteoffProtocolDocumentView,
 } from '../api';
 import ConfirmWriteoffDialog from './ConfirmWriteoffDialog.vue';
 
@@ -26,11 +27,10 @@ const loading = ref(false);
 const confirmOpen = ref(false);
 const selectedGroup = ref<MarketplaceWriteoffConfirmationGroupView | null>(null);
 
-// Протокол совета — отдельным полноэкранным окном (как остальные документы),
-// рендерится бэкендом по запросу (в callback'е html не приходит).
+// Протокол совета — отдельным полноэкранным окном (как остальные документы).
+// Бэкенд отдаёт уже подписанный документ агрегатом (не регенерирует).
 const protocolOpen = ref(false);
-const protocolLoading = ref(false);
-const protocolDoc = ref<MarketplaceWriteoffProtocolDocumentView | null>(null);
+const protocolDoc = ref<IDocumentAggregate | null>(null);
 
 const itemColumns = [
   { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
@@ -65,16 +65,14 @@ function openConfirm(g: MarketplaceWriteoffConfirmationGroupView): void {
 }
 
 async function openProtocol(g: MarketplaceWriteoffConfirmationGroupView): Promise<void> {
-  protocolDoc.value = null;
-  protocolOpen.value = true;
-  protocolLoading.value = true;
   try {
-    protocolDoc.value = await getWriteoffProtocolDocument({ proposal_id: g.proposal_id });
+    // Грузим агрегат до открытия — диалог показывает готовый документ без мигания.
+    protocolDoc.value = (await getWriteoffProtocolDocument({
+      proposal_id: g.proposal_id,
+    })) as unknown as IDocumentAggregate;
+    protocolOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить Протокол совета');
-    protocolOpen.value = false;
-  } finally {
-    protocolLoading.value = false;
   }
 }
 
@@ -149,20 +147,12 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
     @confirmed="onConfirmed"
   )
 
-  //- Протокол совета — полноэкранным окном, как остальные документы. Рендерим
-  //- html КАК ЕСТЬ (шаблон 1107 самодостаточен), без класса-нормализатора.
-  BaseDialog(
-    :model-value="protocolOpen",
-    title="Протокол совета о списании",
-    maximized,
-    @update:model-value="(v) => (protocolOpen = v)"
+  //- Протокол совета — канон-просмотрщик документа (полный экран, как везде).
+  DocumentViewerDialog(
+    v-model="protocolOpen",
+    :document-aggregate="protocolDoc",
+    title="Протокол совета о списании"
   )
-    .pvz-writeoffs__protocol-loading(v-if="protocolLoading")
-      q-spinner(color="primary", size="42px")
-      .t-muted Загружаем Протокол совета…
-    .pvz-writeoffs__sheet(v-else-if="protocolDoc")
-      //- eslint-disable-next-line vue/no-v-html
-      .pvz-writeoffs__doc(v-html="protocolDoc.html")
 </template>
 
 <style lang="scss" scoped>
@@ -196,39 +186,10 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
     display: flex;
     justify-content: center;
   }
-
-  &__protocol-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--p-3, 12px);
-    min-height: 60vh;
-  }
-
-  // Лист документа: ограничен по ширине и центрирован (как страница А4); html
-  // несёт свои стили, здесь только наследуем канон-цвет текста.
-  &__sheet {
-    width: 100%;
-    max-width: 820px;
-    margin: 0 auto;
-    background: var(--p-surface);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    padding: var(--p-7, 40px);
-  }
-
-  &__doc {
-    color: var(--p-ink);
-  }
 }
 
 @media (max-width: 768px) {
   .pvz-writeoffs {
-    padding: var(--p-4, 16px);
-  }
-
-  .pvz-writeoffs__sheet {
     padding: var(--p-4, 16px);
   }
 }

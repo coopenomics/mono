@@ -1,10 +1,11 @@
-import { BadRequestException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
@@ -325,37 +326,25 @@ export class MarketplaceWriteoffResolver {
     return toGeneratedDocumentDTO(document);
   }
 
-  @Query(() => GeneratedDocumentDTO, {
+  @Query(() => DocumentAggregateDTO, {
     name: 'marketplaceWriteoffProtocolDocument',
     description:
-      'Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ.',
+      'Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
   async marketplaceWriteoffProtocolDocument(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    const proposal = await this.service.getProposal(data.proposal_id);
-    if (proposal.decision_id === null) {
-      throw new BadRequestException('Протокол совета по этому проекту ещё не сформирован');
+  ): Promise<DocumentAggregateDTO> {
+    // Протокол уже подписан советом и лежит в реестре документов: собираем
+    // агрегат из подписанного документа по doc_hash (тело + подписи), НЕ
+    // регенерируем. Канон — issuance/return-claim.
+    const aggregate = await this.service.getProtocolDocumentAggregate(data.proposal_id);
+    if (!aggregate) {
+      throw new NotFoundException('Протокол совета по этому проекту недоступен');
     }
-    // Протокол 1107 регенерируется фабрикой по решению совета (votes тянутся с
-    // цепи по decision_id) — html в callback'е не приходит, хранится только
-    // подпись. Тот же паттерн, что у Заявления 1108 и Служебной записки 1111.
-    const action: Cooperative.Registry.MarketplaceWriteoffProtocol.Action = {
-      registry_id: Cooperative.Registry.MarketplaceWriteoffProtocol.registry_id,
-      coopname: proposal.coopname,
-      username: member.username,
-      lang: 'ru',
-      decision_id: proposal.decision_id,
-      proposal_hash: proposal.proposal_hash,
-      cycle_started_at: this.formatDocumentDate(proposal.cycle_started_at),
-      total_amount: this.service.formatAssetHuman(parseFloat(proposal.total_amount)),
-      items_count: proposal.items.length,
-    };
-    const document = await this.documentDomainService.generateDocument({ data: action });
-    return toGeneratedDocumentDTO(document);
+    return new DocumentAggregateDTO(aggregate);
   }
 
   @Mutation(() => MarketplaceWriteoffProposalDTO, {

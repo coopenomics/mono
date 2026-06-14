@@ -90,8 +90,11 @@ BaseDialog(
   template(v-else-if="previewDoc")
     .t-muted.confirm-writeoff__intro
       | Подписав эту Служебную записку, вы подтверждаете фактическое списание имущества со склада участка «{{ group?.branch_name }}». Имущество выбудет со склада и будет снято с учёта.
-    .confirm-writeoff__doc
-      div(v-html="previewDoc.html")
+    //- Документ — листом фиксированной ширины (как остальные документы), высоту
+    //- не режем: длинный документ прокручивается вместе с телом диалога.
+    .confirm-writeoff__sheet
+      //- eslint-disable-next-line vue/no-v-html
+      .confirm-writeoff__doc(v-html="previewDoc.html")
 
   template(#footer, v-if="previewDoc")
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
@@ -111,12 +114,27 @@ BaseDialog(
     margin-bottom: var(--p-4, 16px);
   }
 
-  &__doc {
+  // Лист документа: ограничен по ширине и центрирован (как страница А4), на
+  // узких экранах — во всю ширину. Высоту НЕ ограничиваем — документ
+  // прокручивается вместе с телом диалога, без обрезки.
+  &__sheet {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--p-surface);
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
+    padding: var(--p-7, 40px);
+  }
+
+  &__doc {
+    color: var(--p-ink);
+  }
+}
+
+@media (max-width: 700px) {
+  .confirm-writeoff__sheet {
     padding: var(--p-4, 16px);
-    max-height: 60vh;
-    overflow: auto;
   }
 }
 </style>
