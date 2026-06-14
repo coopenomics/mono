@@ -8,7 +8,10 @@ q-card.dynamic-padding(
     span.base-document__loader-label Формируем документ{{ doc?.meta?.title ? ` «${doc.meta.title}»` : '' }}…
   div(v-if='!loading')
     ShadowHtml(:html='safeHtml', :styles='shadowStyles')
-    .row.q-mt-lg.q-pa-sm.justify-center
+    //- Блок контрольной суммы/подписей/скачивания показываем только у документов
+    //- с каноническим doc_hash (подписанные/зарегистрированные). Неподписанное
+    //- превью строится с пустым doc_hash — там сверять и скачивать нечего, блок прячем.
+    .row.q-mt-lg.q-pa-sm.justify-center(v-if='hasDocHash')
       .col-md-8.col-xs-12
         //- Кнопка «Сверить» (локальная пересборка + сверка хеша) временно скрыта
         //- через :hide-verify. Чтобы вернуть — убрать :hide-verify (обработчик @verify
@@ -19,7 +22,6 @@ q-card.dynamic-padding(
           :signatures='canonSignatures',
           :verifying='onRegenerate',
           :hide-verify='true',
-          :hide-checksum='!hasDocHash',
           @download='download',
           @verify='regenerate'
         )
