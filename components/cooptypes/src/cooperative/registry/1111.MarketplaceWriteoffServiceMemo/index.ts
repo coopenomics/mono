@@ -70,63 +70,84 @@ export interface Model {
 export const title = 'Служебная записка о списании'
 export const description = 'Служебная записка председателя кооперативного участка о фактическом списании со склада скоропортящегося, повреждённого или малооценного имущества по решению совета (ЦПП «Стол заказов»)'
 
-// Вёрстка 1-в-1 с эталоном уплотнённого фабричного документа (1110/1108):
-// спейсинг — ЯВНЫЕ margin'ы, БЕЗ `white-space: pre-wrap` (он рендерит переносы
-// строк исходника и вместе с дефолтными margin'ами <p> удваивает разрывы —
-// документ разъезжается). `.digital-document { white-space: normal }` перебивает
-// форсированный pre-wrap из Shadow DOM рендерера BaseDocument (наш <style> идёт
-// после — выигрывает при равной специфичности). Многоколоночный список позиций
-// НЕ использует <th> для шапки (рендерер навязывает `th { width: 30% }`, пять
-// <th> = 150% → таблица «уезжает»); заголовки колонок — <td><b>.
+// Вёрстка 1-в-1 с эталоном фабричного документа 1106 (Заявление о возврате),
+// который КОРРЕКТНО отображается и в повестке совета (рендерер BaseDocument), и
+// в предпросмотре. BaseDocument прогоняет html через sanitizeHtml — он ВЫРЕЗАЕТ
+// <style> документа и форсит в Shadow DOM `.digital-document{white-space:pre-wrap}`.
+// Поэтому: выравнивание — ИНЛАЙН (`style="text-align"`), вертикальный ритм —
+// ПУСТЫМИ СТРОКАМИ под pre-wrap, плотные абзацы — инлайн `margin:0px`,
+// центр-заголовок — <h1 class="header">. Шапка таблицы — <td style="font-weight">,
+// не <th> (рендерер навязывает th{width:30%}). Свой <style> — для нешадоу-рендеров.
 export const context = `<style>
-.digital-document { padding: 20px; white-space: normal; }
-.digital-document p { margin: 0 0 6px; }
-.digital-document h1 { margin: 0; text-align: center; }
-.digital-document .title-block { text-align: center; margin-bottom: 24px; }
-.digital-document .subheader { margin-top: 4px; }
-.digital-document table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; }
-.digital-document th, .digital-document td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
-.digital-document .sign { margin-top: 24px; }
+h1 {
+  margin: 0px;
+  text-align: center;
+}
+.digital-document {
+  padding: 20px;
+  white-space: pre-wrap;
+}
+.subheader {
+  padding-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid currentColor;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 </style>
+
 <div class="digital-document">
-  <div class="title-block">
-    <h1>{% trans 'memo_title' %}</h1>
+  <div style="text-align: center">
+    <h1 class="header">{% trans 'memo_title' %}</h1>
     <p class="subheader">{% trans 'memo_subheader', branch_name %}</p>
   </div>
+
   <p>{% trans 'preamble', program.name, cycle_started_at %}</p>
+
   <table>
     <tbody>
       <tr>
-        <td><b>№</b></td>
-        <td><b>{% trans 'col_asset' %}</b></td>
-        <td><b>{% trans 'col_quantity' %}</b></td>
-        <td><b>{% trans 'col_amount' %}</b></td>
-        <td><b>{% trans 'col_reason' %}</b></td>
+        <td style="font-weight: bold">№</td>
+        <td style="font-weight: bold">{% trans 'col_asset' %}</td>
+        <td style="font-weight: bold">{% trans 'col_quantity' %}</td>
+        <td style="font-weight: bold">{% trans 'col_unit' %}</td>
+        <td style="font-weight: bold">{% trans 'col_amount' %}</td>
+        <td style="font-weight: bold">{% trans 'col_reason' %}</td>
       </tr>
       {% for it in items %}
       <tr>
         <td>{{ forloop.counter }}</td>
         <td>{{ it.asset_title }}</td>
         <td>{{ it.quantity }}</td>
+        <td>{% trans 'unit_label' %}</td>
         <td>{{ it.amount }}</td>
         <td>{{ it.reason }}</td>
       </tr>
       {% endfor %}
       <tr>
-        <td colspan="3"><b>{% trans 'total' %}</b></td>
-        <td><b>{{ total_amount }}</b></td>
+        <td colspan="4" style="font-weight: bold">{% trans 'total' %}</td>
+        <td style="font-weight: bold">{{ total_amount }}</td>
         <td></td>
       </tr>
     </tbody>
   </table>
+
   <p>{% trans 'confirmation' %}</p>
-  <p>{% trans 'proposal_ref' %} {{ proposal_hash }}</p>
+
+  <p style="margin: 0px">{% trans 'proposal_ref' %} {{ proposal_hash }}</p>
+
   <p>{% trans 'ledger_note' %}</p>
-  <div class="sign">
-    <p>{% trans 'signature' %}</p>
-    <p>{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
-    <p>{{ meta.created_at }}</p>
-  </div>
+
+  <p>{% trans 'signature' %}</p>
+  <p style="margin: 0px">{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
+  <p style="margin: 0px">{{ meta.created_at }}</p>
 </div>
 `
 
@@ -137,8 +158,10 @@ export const translations = {
     preamble: 'По решению совета кооператива в рамках Целевой Потребительской Программы «{0}» (цикл от {1}) подтверждаю фактическое списание и выбытие со склада кооперативного участка следующего имущества, признанного непригодным к выдаче пайщикам:',
     col_asset: 'Наименование/Артикул',
     col_quantity: 'Количество',
+    col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
     col_reason: 'Причина',
+    unit_label: 'ед.',
     total: 'ИТОГО',
     confirmation: 'Списание произведено. Имущество физически выбыло со склада кооперативного участка и снято с учёта.',
     proposal_ref: 'Идентификатор проекта списания:',

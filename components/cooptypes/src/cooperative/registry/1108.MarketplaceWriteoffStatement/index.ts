@@ -70,68 +70,90 @@ export interface Model {
 export const title = 'Заявление о списании скоропорта'
 export const description = 'Заявление председателя в совет кооператива о признании списания со складов кооперативных участков скоропортящегося, повреждённого или малооценного имущества по ЦПП «Стол заказов»'
 
-// Вёрстка 1-в-1 с эталоном уплотнённого фабричного документа (1110 Заявление о
-// конвертации): спейсинг задаётся ЯВНЫМИ margin'ами, БЕЗ `white-space: pre-wrap`
-// (он рендерит переносы строк исходника и вместе с дефолтными margin'ами <p>
-// удваивает разрывы — документ «разъезжается» по вертикали). `.digital-document
-// { white-space: normal }` ещё и перебивает форсированный pre-wrap из Shadow DOM
-// рендерера BaseDocument (наш <style> идёт после — выигрывает при равной
-// специфичности). Многоколоночный список позиций НЕ использует <th> для шапки:
-// рендерер навязывает `th { width: 30% }`, пять <th> дали бы 150% и таблицу
-// «уехало» вправо — заголовки колонок делаем <td><b>.
+// Вёрстка 1-в-1 с эталоном фабричного документа 1106 (Заявление о возврате),
+// который КОРРЕКТНО отображается и в повестке совета (рендерер BaseDocument), и
+// в предпросмотре. Ключевое: BaseDocument прогоняет html через sanitizeHtml —
+// он ВЫРЕЗАЕТ <style> документа и принудительно ставит в Shadow DOM
+// `.digital-document { white-space: pre-wrap }`. Поэтому вёрстка НЕ должна
+// полагаться на <style> с классами (он исчезнет): выравнивание задаём ИНЛАЙН
+// (`style="text-align: ..."` — инлайн переживает sanitize), вертикальный ритм —
+// ПУСТЫМИ СТРОКАМИ под pre-wrap (а не margin'ами), плотные абзацы — инлайн
+// `margin: 0px`. Центр-заголовок — <h1 class="header"> (shadowStyles центрирует
+// `.digital-document .header`). Многоколоночная таблица позиций использует
+// <td style="font-weight:bold"> для шапки (а не <th>: рендерер навязывает
+// th{width:30%}, и пять <th> уехали бы за край). Свой <style> ниже нужен для
+// нешадоу-рендеров (предпросмотр) и совпадает с 1106.
 export const context = `<style>
-.digital-document { padding: 20px; white-space: normal; }
-.digital-document p { margin: 0 0 6px; }
-.digital-document h1 { margin: 0; text-align: center; }
-.digital-document .addressee { text-align: right; margin-bottom: 24px; }
-.digital-document .title-block { text-align: center; margin-bottom: 24px; }
-.digital-document .subheader { margin-top: 4px; }
-.digital-document .place { text-align: right; margin-bottom: 24px; }
-.digital-document table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; }
-.digital-document th, .digital-document td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
-.digital-document .sign { margin-top: 24px; }
+h1 {
+  margin: 0px;
+  text-align: center;
+}
+.digital-document {
+  padding: 20px;
+  white-space: pre-wrap;
+}
+.subheader {
+  padding-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid currentColor;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 </style>
+
 <div class="digital-document">
-  <div class="addressee">
-    <p>{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p>{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
+  <div style="text-align: right">
+    <p style="margin: 0px !important">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
+    <p style="margin: 0px !important">{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
   </div>
-  <div class="title-block">
-    <h1>{% trans 'statement_title' %}</h1>
+
+  <div style="text-align: center">
+    <h1 class="header">{% trans 'statement_title' %}</h1>
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
-  <p class="place">{% trans 'place', coop.city %}</p>
+
+  <p style="text-align: right; margin: 0px">{% trans 'place', coop.city %}</p>
+
   <p>{% trans 'preamble', cycle_started_at %}</p>
+
   <table>
     <tbody>
       <tr>
-        <td><b>№</b></td>
-        <td><b>{% trans 'col_asset' %}</b></td>
-        <td><b>{% trans 'col_quantity' %}</b></td>
-        <td><b>{% trans 'col_amount' %}</b></td>
-        <td><b>{% trans 'col_reason' %}</b></td>
+        <td style="font-weight: bold">№</td>
+        <td style="font-weight: bold">{% trans 'col_asset' %}</td>
+        <td style="font-weight: bold">{% trans 'col_quantity' %}</td>
+        <td style="font-weight: bold">{% trans 'col_unit' %}</td>
+        <td style="font-weight: bold">{% trans 'col_amount' %}</td>
+        <td style="font-weight: bold">{% trans 'col_reason' %}</td>
       </tr>
       {% for it in items %}
       <tr>
         <td>{{ forloop.counter }}</td>
         <td>{{ it.asset_title }}</td>
         <td>{{ it.quantity }}</td>
+        <td>{% trans 'unit_label' %}</td>
         <td>{{ it.amount }}</td>
         <td>{{ it.reason }}</td>
       </tr>
       {% endfor %}
       <tr>
-        <td colspan="3"><b>{% trans 'total' %}</b></td>
-        <td><b>{{ total_amount }}</b></td>
+        <td colspan="4" style="font-weight: bold">{% trans 'total' %}</td>
+        <td style="font-weight: bold">{{ total_amount }}</td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <div class="sign">
-    <p>{% trans 'signature' %}</p>
-    <p>{{ chairman.full_name_or_short_name }}</p>
-    <p>{{ meta.created_at }}</p>
-  </div>
+
+  <p>{% trans 'signature' %}</p>
+  <p style="margin: 0px">{{ chairman.full_name_or_short_name }}</p>
+  <p style="margin: 0px">{{ meta.created_at }}</p>
 </div>
 `
 
@@ -145,8 +167,10 @@ export const translations = {
     preamble: 'Прошу совет принять решение о списании с балансов кооперативных участков следующих позиций имущества, признанных от {0} непригодными к выдаче пайщикам:',
     col_asset: 'Наименование/Артикул',
     col_quantity: 'Количество',
+    col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
     col_reason: 'Причина',
+    unit_label: 'ед.',
     total: 'ИТОГО',
     signature: 'Подписано электронной подписью.',
   },
