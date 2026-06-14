@@ -38,6 +38,8 @@ const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
   [AuthV2ErrorCode.VaultServerDecryptionForbidden]: HttpStatus.FORBIDDEN,
   // 400: некорректный ввод/данные клиента (AC Story 1.11 — invalid_credentials → 400).
   [AuthV2ErrorCode.InvalidCredentials]: HttpStatus.BAD_REQUEST,
+  // 400: пароль не проходит требования стойкости (Story 11.4 / FR58).
+  [AuthV2ErrorCode.WeakPassword]: HttpStatus.BAD_REQUEST,
   [AuthV2ErrorCode.VaultDecryptionFailed]: HttpStatus.BAD_REQUEST,
   // 401: провал второго этапа аутентификации (владение ключом не доказано).
   [AuthV2ErrorCode.TimestampTooOld]: HttpStatus.UNAUTHORIZED,
