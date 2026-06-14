@@ -464,15 +464,16 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
     pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
-    // Добор по акцепту принимаем ТОЛЬКО вместе с привезённой партией. Если
-    // поставщик приехал без партии — добор не показываем и не создаём: иначе
-    // оператора путает «Принять добор» при отсутствии партии (поставщик просто
-    // приехал, принимать нечего по партийной приёмке).
+    // Чекбокс «Принять добор» по умолчанию ВЫКЛЮЧЕН, когда есть привезённая
+    // партия — добор не должен «залетать» автоматически, оператор включает его
+    // осознанно. Если партии нет (поставщик приехал без партии) — чекбокс не
+    // показываем вовсе (без контекста партии «добор» путает), а имущество
+    // принимаем: добор включён по умолчанию, иначе принимать было бы нечего.
     const hasDeclaredBatch = orders.some(
       (o) =>
         o.status === 'SUPPLY_PREPARED' && pendingShipments.value.some((s) => s.id === o.shipment_id),
     );
-    takeAddon.value = hasDeclaredBatch;
+    takeAddon.value = !hasDeclaredBatch;
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить имущество поставщика');
@@ -788,24 +789,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
     .reception__pickup
       .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
-
-      //- Нет привезённой партии — принимать по партийной приёмке нечего. Добор
-      //- по акцепту здесь не показываем (см. openPickupForSupplier): поставщик
-      //- приехал без партии, а добор оформляется только вместе с ней.
-      EmptyState(
-        v-if='!declaredGroups.length',
-        title='Нет партии к приёмке',
-        body='Поставщик приехал без сформированной партии — принимать по партийной приёмке нечего.'
-      )
-        template(#icon)
-          q-icon(name='inventory_2', size='48px')
+      .reception__pickup-hint
+        | По каждой единице скорректируйте фактическое количество (не выше
+        | заказанного) и цену.
+        template(v-if='declaredGroups.length')
+          |  Снимите галку с задекларированной единицы, чтобы не принимать её;
+          | партия без выбранных единиц не создаётся и ждёт.
 
       template(v-if='declaredGroups.length')
-        .reception__pickup-hint
-          | По каждой единице скорректируйте фактическое количество (не выше
-          | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
-          | не принимать её; партия без выбранных единиц не создаётся и ждёт.
-
         .reception__pickup-section Задекларировано в партии (по ТТН)
         .reception__group(v-for='g in declaredGroups', :key='g.key')
           .reception__group-head
@@ -844,13 +835,18 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 :disable='!isSelected(o.id)'
               )
 
-      //- Добор по акцепту показываем ТОЛЬКО вместе с привезённой партией —
-      //- standalone-«Принять добор» при отсутствии партии путает оператора.
-      template(v-if='addonGroups.length && declaredGroups.length')
-        .reception__pickup-divider
-        .reception__pickup-section-row
-          .reception__pickup-section Добор по акцепту (вне партии)
-          q-checkbox(v-model='takeAddon', dense, label='Принять добор')
+      template(v-if='addonGroups.length')
+        //- Обёртку «Добор по акцепту» + чекбокс показываем ТОЛЬКО при наличии
+        //- партии: без партии standalone-«Принять добор» путает оператора. С
+        //- партией чекбокс по умолчанию выключен — добор не включается сам.
+        template(v-if='declaredGroups.length')
+          .reception__pickup-divider
+          .reception__pickup-section-row
+            .reception__pickup-section Добор по акцепту (вне партии)
+            q-checkbox(v-model='takeAddon', dense, label='Принять добор')
+        //- Без партии — это просто имущество поставщика; принимаем без обёртки
+        //- «добор» (добор включён скрыто, см. openPickupForSupplier).
+        .reception__pickup-section(v-else) Имущество поставщика
         .reception__group(v-for='g in addonGroups', :key='g.key')
           .reception__group-head
             span.reception__group-title {{ g.productName }}
