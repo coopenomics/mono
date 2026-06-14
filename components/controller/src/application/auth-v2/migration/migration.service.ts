@@ -65,7 +65,7 @@ export class MigrationService {
     private readonly audit: AuditService,
   ) {}
 
-  async migrate(input: MigrateInput): Promise<void> {
+  async migrate(input: MigrateInput): Promise<{ username: string }> {
     if (!input.newPassword || input.newPassword.length < MIN_PASSWORD_LENGTH)
       throw new AuthV2Error(AuthV2ErrorCode.WeakPassword, `Пароль слишком короткий: минимум ${MIN_PASSWORD_LENGTH} символов`);
 
@@ -114,6 +114,10 @@ export class MigrationService {
     await this.authentikAdmin.setPassword(userPk, input.newPassword);
 
     await this.safeAudit({ event: 'coopid.migrate', subjectId: user.username, actor: user.username, result: 'success', ip: input.ip });
+
+    // username нужен клиенту как subject_id vault'а (SDK saveToVault). Отдаём только
+    // после доказанного владения ключом — enumeration по email невозможен.
+    return { username: user.username };
   }
 
   /** Аудит best-effort: недоступность audit-инфраструктуры не валит успешную миграцию. */

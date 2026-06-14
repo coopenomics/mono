@@ -26,13 +26,14 @@ describe('MigrationService', () => {
 
   it('happy path: верифицирует подпись и ставит пароль; сообщение биндит ts + sha256(пароль)', async () => {
     const { service, blockchainPort, authentikAdmin } = deps();
-    await service.migrate({ ...input });
+    const result = await service.migrate({ ...input });
 
     const pwHash = createHash('sha256').update('Strong#Pass1', 'utf8').digest('hex');
     expect(blockchainPort.recoverPublicKey).toHaveBeenCalledWith(canonicalMigrationMessage({ ts: TS, pw_hash: pwHash }), SIG);
     expect(blockchainPort.hasActiveKey).toHaveBeenCalledWith(expect.anything(), KEY);
     expect(authentikAdmin.ensureUser).toHaveBeenCalledWith({ username: 'ant', email: 'a@e.com', name: 'ant' });
     expect(authentikAdmin.setPassword).toHaveBeenCalledWith(42, 'Strong#Pass1');
+    expect(result).toEqual({ username: 'ant' });
   });
 
   it('короткий пароль → WeakPassword, без обращения к цепи', async () => {

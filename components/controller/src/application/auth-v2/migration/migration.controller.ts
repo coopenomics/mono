@@ -25,14 +25,14 @@ export class MigrationController {
   constructor(private readonly migration: MigrationService) {}
 
   @Post()
-  @HttpCode(204)
+  @HttpCode(200)
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({
     ip: LOGIN_IP_RULE,
     // per-account ключ — email из тела (цель brute-force подписей по аккаунту).
     account: { ...LOGIN_ACCOUNT_RULE, key: (req: Request) => (req.body as MigrateBody)?.email ?? '' },
   })
-  async migrate(@Body() body: MigrateBody, @Req() req: Request): Promise<void> {
+  async migrate(@Body() body: MigrateBody, @Req() req: Request): Promise<{ username: string }> {
     const email = body?.email;
     const timestamp = body?.timestamp;
     const signature = body?.signature;
@@ -40,6 +40,7 @@ export class MigrationController {
     if (!email || !timestamp || !signature || !newPassword)
       throw new BadRequestException('Требуются email, timestamp, signature, new_password');
 
-    await this.migration.migrate({ email, timestamp, signature, newPassword, ip: req.ip ?? null });
+    // username возвращается клиенту как subject_id vault'а (SDK saveToVault).
+    return this.migration.migrate({ email, timestamp, signature, newPassword, ip: req.ip ?? null });
   }
 }
