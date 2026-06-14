@@ -162,7 +162,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             dense,
             no-error-icon,
             reserve-hint-space,
-            hint='0 — без гарантийного срока',
+            hint='0 — без гарантии: возврат невозможен. Иначе — конечный срок в днях',
             :rules='[(v) => (v !== null && v >= 0) || "Срок гарантии не может быть отрицательным"]'
           )
 

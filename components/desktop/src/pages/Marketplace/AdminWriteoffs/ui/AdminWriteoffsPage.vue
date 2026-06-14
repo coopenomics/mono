@@ -53,7 +53,7 @@ const candidateColumns = [
   { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
   { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
   { name: 'state', align: 'left' as const, label: 'Состояние', field: 'is_expired' },
-  { name: 'expiry_date', align: 'left' as const, label: 'Срок годности', field: 'expiry_date' },
+  { name: 'expiry_date', align: 'left' as const, label: 'Годен до', field: 'expiry_date' },
   { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
 ];
 
@@ -183,6 +183,19 @@ function formatDate(value: string | null | undefined): string {
   return parsed.toLocaleDateString('ru-RU');
 }
 
+// Три состояния позиции на складе:
+//  · нет даты годности (гарантия 0) → «Без гарантии» — ручное списание сразу;
+//  · дата прошла → «Просрочен» — первоочередной авто-кандидат;
+//  · дата в будущем → «Годен» — ещё в сроке гарантии.
+function candidateStateLabel(c: MarketplaceWriteoffCandidateView): string {
+  if (!c.expiry_date) return 'Без гарантии';
+  return c.is_expired ? 'Просрочен' : 'Годен';
+}
+function candidateStateVariant(c: MarketplaceWriteoffCandidateView): BaseBadgeVariant {
+  if (!c.expiry_date) return 'neutral';
+  return c.is_expired ? 'neg' : 'pos';
+}
+
 const totalActiveAmount = computed(() =>
   inCouncil.value
     .reduce((acc, p) => acc + (Number.parseFloat(p.total_amount) || 0), 0)
@@ -239,7 +252,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   BaseCard(v-if="!draft")
     .writeoffs__candidates-head
       .t-h3 Кандидаты на списание
-      .t-muted Имущество на складах кооператива. Просроченный скоропорт — первоочередные кандидаты (подсвечены); ещё годное можно списать вручную при порче или невозврате. Выделите позиции и нажмите «Новый черновик» в шапке.
+      .t-muted Имущество на складах кооператива. «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен. Выделите позиции и нажмите «Новый черновик» в шапке.
     q-table.full-width.q-mt-sm(
       flat,
       :rows="candidates",
@@ -256,9 +269,9 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
         q-td.text-right(:props="props") {{ props.row.quantity }}
       template(#body-cell-state="props")
         q-td(:props="props")
-          BaseBadge(:variant="props.row.is_expired ? 'neg' : 'neutral'") {{ props.row.is_expired ? 'Просрочено' : 'Годно' }}
+          BaseBadge(:variant="candidateStateVariant(props.row)") {{ candidateStateLabel(props.row) }}
       template(#body-cell-expiry_date="props")
-        q-td(:props="props") {{ props.row.expiry_date ? formatDate(props.row.expiry_date) : 'Без срока' }}
+        q-td(:props="props") {{ props.row.expiry_date ? formatDate(props.row.expiry_date) : 'Без гарантии' }}
       template(#body-cell-amount="props")
         q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 
