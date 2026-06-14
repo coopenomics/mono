@@ -287,11 +287,26 @@ export function useKuDecisionFlow() {
         session.username,
       );
 
+      // доверенность председателю участка (329): тот же подписант, идёт в пакете в совет
+      const authorityDocument = new DigitalDocument();
+      await authorityDocument.generate<Cooperative.Registry.BranchTrusteePowerOfAttorney.Action>({
+        registry_id: Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id,
+        coopname: system.info.coopname,
+        username: session.username,
+        hash: decision.hash,
+        branch_name: branchName,
+        branch_address: decision.address ?? '',
+      });
+      const authority = await authorityDocument.sign<Cooperative.Registry.BranchTrusteePowerOfAttorney.Meta>(
+        session.username,
+      );
+
       await api.execDecision({
         coopname: system.info.coopname,
         hash: decision.hash,
         petition,
         liability,
+        authority,
       });
     } finally {
       isSubmitting.value = false;

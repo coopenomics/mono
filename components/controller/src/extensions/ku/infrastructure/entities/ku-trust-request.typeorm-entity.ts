@@ -32,4 +32,7 @@ export class KuTrustRequestTypeormEntity extends BaseTypeormEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   application!: object;
+
+  @Column({ type: 'jsonb', nullable: true })
+  authority!: object;
 }

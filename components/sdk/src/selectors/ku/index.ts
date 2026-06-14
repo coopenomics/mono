@@ -81,8 +81,11 @@ export const rawKuTrustRequestSelector = {
   display_name: true,
   present: true,
   application: true,
+  authority: true,
   // договор заявителя с сырым документом — для просмотра и встречной подписи председателя
   document: rawDocumentAggregateSelector,
+  // доверенность заявителя с сырым документом — для просмотра и встречной подписи председателя
+  authority_document: rawDocumentAggregateSelector,
   block_num: true,
 }
 

@@ -24,7 +24,8 @@ struct [[eosio::table, eosio::contract(BRANCH)]] trustreq {
   eosio::name coopname;         ///< Имя кооператива
   eosio::name braname;          ///< Кооперативный участок
   eosio::name username;         ///< Заявитель
-  document2 application;        ///< Заявление + договор о полной материальной ответственности
+  document2 application;        ///< Договор о полной материальной ответственности доверенного лица (подписан заявителем)
+  document2 authority;          ///< Доверенность доверенному лицу/оператору участка (подписана заявителем, ждёт встречной подписи председателя участка)
 
   uint64_t primary_key() const { return id; }
   eosio::checksum256 by_hash() const { return hash; }

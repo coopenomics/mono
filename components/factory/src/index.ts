@@ -99,6 +99,8 @@ export class Generator implements IGenerator {
       [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
       [Actions.BranchTrustedLiabilityAgreement.Template.registry_id]: new Actions.BranchTrustedLiabilityAgreement.Factory(this.storage), // 327
       [Actions.BranchTrusteeLiabilityAgreement.Template.registry_id]: new Actions.BranchTrusteeLiabilityAgreement.Factory(this.storage), // 328
+      [Actions.BranchTrusteePowerOfAttorney.Template.registry_id]: new Actions.BranchTrusteePowerOfAttorney.Factory(this.storage), // 329
+      [Actions.BranchTrustedPowerOfAttorney.Template.registry_id]: new Actions.BranchTrustedPowerOfAttorney.Factory(this.storage), // 330
 
       [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
       [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599

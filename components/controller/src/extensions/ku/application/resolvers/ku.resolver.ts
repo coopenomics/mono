@@ -29,6 +29,8 @@ import {
   BranchEstablishmentDecisionGenerateDocumentInputDTO,
   BranchTrustedLiabilityAgreementGenerateDocumentInputDTO,
   BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO,
+  BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO,
+  BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO,
   BranchMeetingBallotGenerateDocumentInputDTO,
   BranchMeetingDecisionGenerateDocumentInputDTO,
   BranchMeetingJoinStatementGenerateDocumentInputDTO,
@@ -313,6 +315,34 @@ export class KuResolver {
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return (await this.kuService.generateBranchTrusteeLiabilityAgreement(data, options)) as GeneratedDocumentDTO;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'kuGenerateTrusteePowerOfAttorney',
+    description: 'Сгенерировать доверенность председателю кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['user', 'member', 'chairman'])
+  async kuGenerateTrusteePowerOfAttorney(
+    @Args('data', { type: () => BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO })
+    data: BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO,
+    @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return (await this.kuService.generateBranchTrusteePowerOfAttorney(data, options)) as GeneratedDocumentDTO;
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'kuGenerateTrustedPowerOfAttorney',
+    description: 'Сгенерировать доверенность доверенному лицу кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['user', 'member', 'chairman'])
+  async kuGenerateTrustedPowerOfAttorney(
+    @Args('data', { type: () => BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO })
+    data: BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO,
+    @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return (await this.kuService.generateBranchTrustedPowerOfAttorney(data, options)) as GeneratedDocumentDTO;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

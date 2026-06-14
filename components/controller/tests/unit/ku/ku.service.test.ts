@@ -302,4 +302,22 @@ describe('KuService — генерация документов', () => {
     const { data } = documentService.generateDocument.mock.calls[0][0];
     expect(data.registry_id).toBe(328);
   });
+
+  it('generateBranchTrusteePowerOfAttorney проставляет registry_id 329', async () => {
+    const { service, documentService } = makeService();
+
+    await service.generateBranchTrusteePowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
+
+    const { data } = documentService.generateDocument.mock.calls[0][0];
+    expect(data.registry_id).toBe(329);
+  });
+
+  it('generateBranchTrustedPowerOfAttorney проставляет registry_id 330', async () => {
+    const { service, documentService } = makeService();
+
+    await service.generateBranchTrustedPowerOfAttorney({ coopname: COOP, username: 'alice' } as any);
+
+    const { data } = documentService.generateDocument.mock.calls[0][0];
+    expect(data.registry_id).toBe(330);
+  });
 });

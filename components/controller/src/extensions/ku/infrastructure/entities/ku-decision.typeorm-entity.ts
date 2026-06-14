@@ -48,6 +48,9 @@ export class KuDecisionTypeormEntity extends BaseTypeormEntity {
   liability!: object;
 
   @Column({ type: 'jsonb', nullable: true })
+  authority!: object;
+
+  @Column({ type: 'jsonb', nullable: true })
   authorization!: object;
 
   @Column({ type: 'timestamp', nullable: true })

@@ -32,11 +32,23 @@ export class KuTrustRequestDTO {
   })
   application?: object;
 
+  @Field(() => GraphQLJSON, {
+    nullable: true,
+    description: 'Доверенность доверенному лицу/оператору участка с подписью заявителя',
+  })
+  authority?: object;
+
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Договор о полной материальной ответственности с подписью заявителя — для просмотра и встречной подписи председателя',
   })
   document?: DocumentAggregateDTO;
+
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description: 'Доверенность доверенному лицу с подписью заявителя — для просмотра и встречной подписи председателя',
+  })
+  authority_document?: DocumentAggregateDTO;
 
   @Field(() => Int, { nullable: true, description: 'Номер блока последнего обновления' })
   block_num?: number;

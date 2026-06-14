@@ -111,6 +111,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       hash: data.hash,
       petition: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.petition),
       liability: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.liability),
+      authority: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.authority),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.Exec.actionName, blockchainData as any);
   }
@@ -131,6 +132,7 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       username: data.username,
       hash: data.hash,
       application: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.application),
+      authority: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.authority),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.ReqTrusted.actionName, blockchainData as any);
   }
@@ -140,6 +142,9 @@ export class KuBlockchainAdapter implements KuBlockchainPort {
       coopname: data.coopname,
       hash: data.hash,
       countersigned: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.countersigned),
+      countersigned_authority: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(
+        data.countersigned_authority
+      ),
     };
     return this.transactAs(data.coopname, BranchContract.Actions.ApprTrusted.actionName, blockchainData as any);
   }

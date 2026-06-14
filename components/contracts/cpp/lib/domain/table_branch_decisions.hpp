@@ -58,6 +58,7 @@ struct [[eosio::table, eosio::contract(BRANCH)]] coodecision {
   document2 protocol;                     ///< Протокол решения (утверждает председатель)
   document2 petition;                     ///< Заявление председателя в совет (для createbranch)
   document2 liability;                    ///< Договор о полной индивидуальной материальной ответственности председателя КУ (подписан председателем участка, ждёт встречной подписи председателя совета)
+  document2 authority;                     ///< Доверенность председателю КУ (подписана председателем участка, ждёт встречной подписи председателя совета)
   document2 authorization;                ///< Решение совета (callback)
 
   eosio::time_point_sec open_at;          ///< Начало голосования

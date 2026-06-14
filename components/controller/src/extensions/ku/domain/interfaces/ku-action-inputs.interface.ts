@@ -73,6 +73,7 @@ export interface ExecKuDecisionInputDomainInterface {
   hash: string;
   petition: ISignedDocumentDomainInterface;
   liability: ISignedDocumentDomainInterface;
+  authority: ISignedDocumentDomainInterface;
 }
 
 export interface CancelKuDecisionInputDomainInterface {
@@ -87,12 +88,14 @@ export interface RequestKuTrustedInputDomainInterface {
   username: string;
   hash: string;
   application: ISignedDocumentDomainInterface;
+  authority: ISignedDocumentDomainInterface;
 }
 
 export interface ApproveKuTrustedInputDomainInterface {
   coopname: string;
   hash: string;
   countersigned: ISignedDocumentDomainInterface;
+  countersigned_authority: ISignedDocumentDomainInterface;
 }
 
 export interface DeclineKuTrustedInputDomainInterface {

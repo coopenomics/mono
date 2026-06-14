@@ -25,6 +25,7 @@ export class KuDecisionDomainEntity
   public protocol?: IKuDecisionBlockchainData['protocol'];
   public petition?: IKuDecisionBlockchainData['petition'];
   public liability?: IKuDecisionBlockchainData['liability'];
+  public authority?: IKuDecisionBlockchainData['authority'];
   public authorization?: IKuDecisionBlockchainData['authorization'];
   public open_at?: string;
   public close_at?: string;
@@ -95,6 +96,7 @@ export class KuDecisionDomainEntity
     this.protocol = blockchainData.protocol;
     this.petition = blockchainData.petition;
     this.liability = blockchainData.liability;
+    this.authority = blockchainData.authority;
     this.authorization = blockchainData.authorization;
     this.open_at = blockchainData.open_at;
     this.close_at = blockchainData.close_at;

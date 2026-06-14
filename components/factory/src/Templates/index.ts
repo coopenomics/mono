@@ -82,5 +82,7 @@ export * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSov
 export * as BranchTrustedStatement from './326.BranchTrustedStatement'
 export * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
 export * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
+export * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
+export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 export * from './registry'

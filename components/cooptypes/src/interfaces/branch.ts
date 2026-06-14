@@ -18,6 +18,7 @@ export interface IApprtrusted {
   coopname: IName
   hash: IChecksum256
   countersigned: IDocument2
+  countersigned_authority: IDocument2
 }
 
 export interface IBranchstat {
@@ -61,6 +62,7 @@ export interface ICoodecision {
   protocol: IDocument2
   petition: IDocument2
   liability: IDocument2
+  authority: IDocument2
   authorization: IDocument2
   open_at: ITimePointSec
   close_at: ITimePointSec
@@ -157,6 +159,7 @@ export interface IExec {
   hash: IChecksum256
   petition: IDocument2
   liability: IDocument2
+  authority: IDocument2
 }
 
 export interface IApprliab {
@@ -167,6 +170,20 @@ export interface IApprliab {
 }
 
 export interface IDeclliab {
+  coopname: IName
+  username: IName
+  approval_hash: IChecksum256
+  reason: string
+}
+
+export interface IApprauth {
+  coopname: IName
+  username: IName
+  approval_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDeclauth {
   coopname: IName
   username: IName
   approval_hash: IChecksum256
@@ -192,6 +209,7 @@ export interface IReqtrusted {
   username: IName
   hash: IChecksum256
   application: IDocument2
+  authority: IDocument2
 }
 
 export interface ISignatureInfo {
@@ -219,6 +237,7 @@ export interface ITrustreq {
   braname: IName
   username: IName
   application: IDocument2
+  authority: IDocument2
 }
 
 export interface IVotedec {

@@ -78,6 +78,21 @@
     "declliab"_n,
     std::string(""));
 
+  // Доверенность председателю участка уходит на встречную подпись председателю совета
+  // отдельным одобрением рядом с договором. Якорь одобрения — хэш самого документа
+  // доверенности (hash процесса уже занят одобрением договора). Отклонить нельзя.
+  ::Soviet::create_approval(
+    _branch,
+    coopname,
+    dec.chairman,
+    dec.authority,
+    "branchauth"_n,
+    dec.authority.hash,
+    _branch,
+    "apprauth"_n,
+    "declauth"_n,
+    std::string(""));
+
   // Решение исполнено — стираем запись и вопросы повестки (история в журнале действий)
   decision_index decisions(_branch, coopname.value);
   auto itr = decisions.find(dec.id);

@@ -57,7 +57,13 @@ div
                       variant='ghost',
                       size='sm',
                       @click='openDocument(request)'
-                    ) Документ
+                    ) Договор
+                    BaseButton(
+                      v-if='request.authority_document?.rawDocument',
+                      variant='ghost',
+                      size='sm',
+                      @click='openAuthority(request)'
+                    ) Доверенность
                     template(v-if='request.present && isChairman')
                       BaseButton(
                         variant='primary',
@@ -76,6 +82,10 @@ div
 //- Просмотр договора заявителя
 BaseDialog(v-model='isDocumentOpen', title='Договор о полной материальной ответственности', size='lg')
   BaseDocument(v-if='documentTarget', :document-aggregate='documentTarget')
+
+//- Просмотр доверенности заявителя
+BaseDialog(v-model='isAuthorityOpen', title='Доверенность доверенному лицу', size='lg')
+  BaseDocument(v-if='authorityTarget', :document-aggregate='authorityTarget')
 
 //- Отклонение заявки доверенного
 BaseDialog(v-model='isDeclineOpen', title='Отклонить заявку', size='sm')
@@ -135,6 +145,8 @@ const declineReason = ref('');
 const declineTarget = ref<IKuTrustRequest | null>(null);
 const isDocumentOpen = ref(false);
 const documentTarget = ref<object | null>(null);
+const isAuthorityOpen = ref(false);
+const authorityTarget = ref<object | null>(null);
 
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
@@ -179,6 +191,11 @@ function requestApplicantName(request: IKuTrustRequest): string {
 function openDocument(request: IKuTrustRequest) {
   documentTarget.value = (request as any).document ?? null;
   isDocumentOpen.value = true;
+}
+
+function openAuthority(request: IKuTrustRequest) {
+  authorityTarget.value = (request as any).authority_document ?? null;
+  isAuthorityOpen.value = true;
 }
 
 // стать доверенным может пайщик участка: не председатель, не доверенный, без активной заявки

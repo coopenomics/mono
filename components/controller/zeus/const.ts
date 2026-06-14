@@ -100,7 +100,8 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ApprovalStatus: "enum" as const,
 	ApproveKuTrustedInput:{
-		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput"
+		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
 	AssetContributionActGenerateDocumentInput:{
 
@@ -199,6 +200,16 @@ export const AllTypesProps: Record<string,any> = {
 	BranchTrustedLiabilityAgreementSignedMetaDocumentInput:{
 
 	},
+	BranchTrustedPowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrustedPowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrustedPowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrustedPowerOfAttorneySignedMetaDocumentInput:{
+
+	},
 	BranchTrustedStatementGenerateDocumentInput:{
 
 	},
@@ -210,6 +221,16 @@ export const AllTypesProps: Record<string,any> = {
 		signatures:"SignatureInfoInput"
 	},
 	BranchTrusteeLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrusteePowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrusteePowerOfAttorneySignedMetaDocumentInput:{
 
 	},
 	BuhotchSignerType: "enum" as const,
@@ -524,6 +545,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	ExecKuDecisionInput:{
+		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
 		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
 		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
@@ -1302,12 +1324,20 @@ export const AllTypesProps: Record<string,any> = {
 			data:"BranchTrustedLiabilityAgreementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
+		kuGenerateTrustedPowerOfAttorney:{
+			data:"BranchTrustedPowerOfAttorneyGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		kuGenerateTrustedStatement:{
 			data:"BranchTrustedStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		kuGenerateTrusteeLiabilityAgreement:{
 			data:"BranchTrusteeLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrusteePowerOfAttorney:{
+			data:"BranchTrusteePowerOfAttorneyGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		kuJoinDecision:{
@@ -1926,7 +1956,8 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RequestKuTrustedInput:{
-		application:"BranchTrustedLiabilityAgreementSignedDocumentInput"
+		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
 	RequisiteSource: "enum" as const,
 	ResetKeyInput:{
@@ -3648,6 +3679,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	KuTrustRequest:{
 		application:"JSON",
+		authority:"JSON",
+		authority_document:"DocumentAggregate",
 		block_num:"Int",
 		braname:"String",
 		coopname:"String",
@@ -4008,8 +4041,10 @@ export const ReturnTypes: Record<string,any> = {
 		kuGenerateMeetingJoinStatement:"GeneratedDocument",
 		kuGenerateMeetingProposal:"GeneratedDocument",
 		kuGenerateTrustedLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrustedPowerOfAttorney:"GeneratedDocument",
 		kuGenerateTrustedStatement:"GeneratedDocument",
 		kuGenerateTrusteeLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrusteePowerOfAttorney:"GeneratedDocument",
 		kuJoinDecision:"Transaction",
 		kuRequestTrusted:"Transaction",
 		kuStartDecision:"Transaction",

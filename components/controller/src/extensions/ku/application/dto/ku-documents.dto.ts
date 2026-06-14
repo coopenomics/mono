@@ -583,3 +583,101 @@ export class BranchTrusteeLiabilityAgreementSignedDocumentInputDTO extends Signe
   })
   public readonly meta!: BranchTrusteeLiabilityAgreementSignedMetaDocumentInputDTO;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 329 — Доверенность председателю кооперативного участка
+// ─────────────────────────────────────────────────────────────────────────────
+
+type trusteePowerOfAttorneyAction = Cooperative.Registry.BranchTrusteePowerOfAttorney.Action;
+
+@InputType('BaseBranchTrusteePowerOfAttorneyMetaDocumentInput')
+class BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO implements ExcludeCommonProps<trusteePowerOfAttorneyAction> {
+  @Field(() => String, { description: 'Якорь процесса учреждения участка' })
+  @IsString()
+  @IsNotEmpty()
+  hash!: string;
+
+  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  branch_name!: string;
+
+  @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  branch_address!: string;
+}
+
+@InputType('BranchTrusteePowerOfAttorneyGenerateDocumentInput')
+export class BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO
+  extends IntersectionType(
+    BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO,
+    OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
+  )
+  implements trusteePowerOfAttorneyAction
+{
+  registry_id!: number;
+}
+
+@InputType('BranchTrusteePowerOfAttorneySignedMetaDocumentInput')
+export class BranchTrusteePowerOfAttorneySignedMetaDocumentInputDTO extends IntersectionType(
+  BaseBranchTrusteePowerOfAttorneyMetaDocumentInputDTO,
+  MetaDocumentInputDTO
+) {}
+
+@InputType('BranchTrusteePowerOfAttorneySignedDocumentInput')
+export class BranchTrusteePowerOfAttorneySignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => BranchTrusteePowerOfAttorneySignedMetaDocumentInputDTO, {
+    description: 'Метаинформация доверенности председателю участка',
+  })
+  public readonly meta!: BranchTrusteePowerOfAttorneySignedMetaDocumentInputDTO;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 330 — Доверенность доверенному лицу кооперативного участка
+// ─────────────────────────────────────────────────────────────────────────────
+
+type trustedPowerOfAttorneyAction = Cooperative.Registry.BranchTrustedPowerOfAttorney.Action;
+
+@InputType('BaseBranchTrustedPowerOfAttorneyMetaDocumentInput')
+class BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO implements ExcludeCommonProps<trustedPowerOfAttorneyAction> {
+  @Field(() => String, { description: 'Хэш заявки доверенного' })
+  @IsString()
+  @IsNotEmpty()
+  hash!: string;
+
+  @Field(() => String, { description: 'Наименование кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  branch_name!: string;
+
+  @Field(() => String, { description: 'ФИО председателя кооперативного участка' })
+  @IsString()
+  @IsNotEmpty()
+  trustee_full_name!: string;
+}
+
+@InputType('BranchTrustedPowerOfAttorneyGenerateDocumentInput')
+export class BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO
+  extends IntersectionType(
+    BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO,
+    OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
+  )
+  implements trustedPowerOfAttorneyAction
+{
+  registry_id!: number;
+}
+
+@InputType('BranchTrustedPowerOfAttorneySignedMetaDocumentInput')
+export class BranchTrustedPowerOfAttorneySignedMetaDocumentInputDTO extends IntersectionType(
+  BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO,
+  MetaDocumentInputDTO
+) {}
+
+@InputType('BranchTrustedPowerOfAttorneySignedDocumentInput')
+export class BranchTrustedPowerOfAttorneySignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
+  @Field(() => BranchTrustedPowerOfAttorneySignedMetaDocumentInputDTO, {
+    description: 'Метаинформация доверенности доверенному лицу участка',
+  })
+  public readonly meta!: BranchTrustedPowerOfAttorneySignedMetaDocumentInputDTO;
+}

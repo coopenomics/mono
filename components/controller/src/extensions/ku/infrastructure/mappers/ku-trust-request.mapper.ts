@@ -29,6 +29,7 @@ export class KuTrustRequestMapper {
         braname: entity.braname,
         username: entity.username,
         application: entity.application as IKuTrustRequestBlockchainData['application'],
+        authority: entity.authority as IKuTrustRequestBlockchainData['authority'],
       };
     }
 
@@ -49,6 +50,7 @@ export class KuTrustRequestMapper {
       braname: domain.braname as string,
       username: domain.username as string,
       application: domain.application as object,
+      authority: domain.authority as object,
     };
   }
 
@@ -58,6 +60,7 @@ export class KuTrustRequestMapper {
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;
     if (domain.present !== undefined) updateData.present = domain.present;
     if (domain.application !== undefined) updateData.application = domain.application as object;
+    if (domain.authority !== undefined) updateData.authority = domain.authority as object;
 
     return updateData;
   }

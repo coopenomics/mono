@@ -22,6 +22,7 @@ export class KuTrustRequestDomainEntity
   public braname?: string;
   public username?: string;
   public application?: IKuTrustRequestBlockchainData['application'];
+  public authority?: IKuTrustRequestBlockchainData['authority'];
 
   constructor(databaseData: IKuTrustRequestDatabaseData, blockchainData?: IKuTrustRequestBlockchainData) {
     super(databaseData, 'pending');
@@ -61,5 +62,6 @@ export class KuTrustRequestDomainEntity
     this.braname = blockchainData.braname;
     this.username = blockchainData.username;
     this.application = blockchainData.application;
+    this.authority = blockchainData.authority;
   }
 }

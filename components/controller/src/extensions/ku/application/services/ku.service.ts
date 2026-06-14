@@ -330,6 +330,20 @@ export class KuService {
     return this.generate(data, Cooperative.Registry.BranchTrusteeLiabilityAgreement.registry_id, options);
   }
 
+  async generateBranchTrusteePowerOfAttorney(
+    data: Cooperative.Registry.BranchTrusteePowerOfAttorney.Action,
+    options?: GenerateDocumentOptionsInputDTO
+  ): Promise<DocumentDomainEntity> {
+    return this.generate(data, Cooperative.Registry.BranchTrusteePowerOfAttorney.registry_id, options);
+  }
+
+  async generateBranchTrustedPowerOfAttorney(
+    data: Cooperative.Registry.BranchTrustedPowerOfAttorney.Action,
+    options?: GenerateDocumentOptionsInputDTO
+  ): Promise<DocumentDomainEntity> {
+    return this.generate(data, Cooperative.Registry.BranchTrustedPowerOfAttorney.registry_id, options);
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // Запросы
   // ───────────────────────────────────────────────────────────────────────────
@@ -405,6 +419,7 @@ export class KuService {
       username: entity.username,
       present: entity.present,
       application: entity.application,
+      authority: entity.authority,
       block_num: entity.block_num,
     };
   }
@@ -456,6 +471,13 @@ export class KuService {
             .buildDocumentAggregate(item.application as unknown as ISignedDocumentDomainInterface)
             .catch(() => null);
           dto.document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
+        }
+        // доверенность доверенному лицу — председатель так же накладывает встречную подпись
+        if (item.authority) {
+          const authorityAggregate = await this.documentAggregator
+            .buildDocumentAggregate(item.authority as unknown as ISignedDocumentDomainInterface)
+            .catch(() => null);
+          dto.authority_document = authorityAggregate ? new DocumentAggregateDTO(authorityAggregate) : undefined;
         }
         return dto;
       })

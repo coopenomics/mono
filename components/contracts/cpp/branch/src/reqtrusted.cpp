@@ -6,16 +6,18 @@
  * @param braname Кооперативный участок
  * @param username Заявитель
  * @param hash Внешний идентификатор заявки
- * @param application Подписанное заявление + договор материальной ответственности
+ * @param application Подписанный заявителем договор о полной материальной ответственности
+ * @param authority Подписанная заявителем доверенность доверенному лицу/оператору участка
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
  * @note Авторизация требуется от аккаунта: @p coopname
  */
-[[eosio::action]] void branch::reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application) {
+[[eosio::action]] void branch::reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application, document2 authority) {
   check_auth_or_fail(_branch, coopname, coopname, "reqtrusted"_n);
 
   verify_document_or_fail(application);
+  verify_document_or_fail(authority);
 
   get_participant_or_fail(coopname, username);
 
@@ -35,5 +37,6 @@
     r.braname = braname;
     r.username = username;
     r.application = application;
+    r.authority = authority;
   });
 }

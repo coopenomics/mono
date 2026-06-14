@@ -7,16 +7,18 @@
  * @param hash Якорь процесса
  * @param petition Подписанное заявление председателя в совет
  * @param liability Подписанный председателем участка договор о полной материальной ответственности
+ * @param authority Подписанная председателем участка доверенность председателю кооперативного участка
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
  * @note Авторизация требуется от аккаунта: @p coopname
  */
-[[eosio::action]] void branch::exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability) {
+[[eosio::action]] void branch::exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability, document2 authority) {
   check_auth_or_fail(_branch, coopname, coopname, "exec"_n);
 
   verify_document_or_fail(petition);
   verify_document_or_fail(liability);
+  verify_document_or_fail(authority);
 
   auto dec = get_decision_or_fail(coopname, hash);
   eosio::check(dec.type == "createbranch"_n, "Исполнение доступно только для решения о создании участка");
@@ -28,6 +30,7 @@
     d.status = "onapproval"_n;
     d.petition = petition;
     d.liability = liability;
+    d.authority = authority;
   });
 
   ::Soviet::create_agenda(

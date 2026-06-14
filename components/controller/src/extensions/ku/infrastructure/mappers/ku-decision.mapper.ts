@@ -41,6 +41,7 @@ export class KuDecisionMapper {
         protocol: entity.protocol as IKuDecisionBlockchainData['protocol'],
         petition: entity.petition as IKuDecisionBlockchainData['petition'],
         liability: entity.liability as IKuDecisionBlockchainData['liability'],
+        authority: entity.authority as IKuDecisionBlockchainData['authority'],
         authorization: entity.authorization as IKuDecisionBlockchainData['authorization'],
         open_at: entity.open_at?.toISOString() ?? '',
         close_at: entity.close_at?.toISOString() ?? '',
@@ -73,6 +74,7 @@ export class KuDecisionMapper {
       protocol: domain.protocol as object,
       petition: domain.petition as object,
       liability: domain.liability as object,
+      authority: domain.authority as object,
       authorization: domain.authorization as object,
       open_at: domain.open_at ? new Date(domain.open_at) : undefined,
       close_at: domain.close_at ? new Date(domain.close_at) : undefined,
@@ -109,6 +111,7 @@ export class KuDecisionMapper {
     if (domain.protocol !== undefined) updateData.protocol = domain.protocol as object;
     if (domain.petition !== undefined) updateData.petition = domain.petition as object;
     if (domain.liability !== undefined) updateData.liability = domain.liability as object;
+    if (domain.authority !== undefined) updateData.authority = domain.authority as object;
     if (domain.authorization !== undefined) updateData.authorization = domain.authorization as object;
     if (domain.open_at !== undefined) updateData.open_at = new Date(domain.open_at);
     if (domain.close_at !== undefined) updateData.close_at = new Date(domain.close_at);

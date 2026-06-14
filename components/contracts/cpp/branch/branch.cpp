@@ -16,6 +16,8 @@
 #include "src/canceldec.cpp"
 #include "src/apprliab.cpp"
 #include "src/declliab.cpp"
+#include "src/apprauth.cpp"
+#include "src/declauth.cpp"
 #include "src/reqtrusted.cpp"
 #include "src/apprtrusted.cpp"
 #include "src/decltrusted.cpp"

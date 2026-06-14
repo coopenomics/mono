@@ -69,6 +69,8 @@ import * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSov
 import * as BranchTrustedStatement from './326.BranchTrustedStatement'
 import * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
 import * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
+import * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
+import * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
@@ -101,6 +103,8 @@ export const Registry = {
   326: BranchTrustedStatement,
   327: BranchTrustedLiabilityAgreement,
   328: BranchTrusteeLiabilityAgreement,
+  329: BranchTrusteePowerOfAttorney,
+  330: BranchTrustedPowerOfAttorney,
   501: DecisionOfParticipantApplication,
   599: ProjectFreeDecision,
   600: FreeDecision,

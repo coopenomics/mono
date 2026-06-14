@@ -20,6 +20,8 @@ import {
   BranchTrusteeLiabilityAgreementSignedDocumentInputDTO,
   BranchEstablishmentPetitionSignedDocumentInputDTO,
   BranchTrustedLiabilityAgreementSignedDocumentInputDTO,
+  BranchTrusteePowerOfAttorneySignedDocumentInputDTO,
+  BranchTrustedPowerOfAttorneySignedDocumentInputDTO,
   BranchMeetingBallotSignedDocumentInputDTO,
   BranchMeetingDecisionSignedDocumentInputDTO,
   BranchMeetingJoinStatementSignedDocumentInputDTO,
@@ -255,6 +257,13 @@ export class ExecKuDecisionInputDTO implements ExecKuDecisionInputDomainInterfac
   @ValidateNested()
   @Type(() => BranchTrusteeLiabilityAgreementSignedDocumentInputDTO)
   liability!: BranchTrusteeLiabilityAgreementSignedDocumentInputDTO;
+
+  @Field(() => BranchTrusteePowerOfAttorneySignedDocumentInputDTO, {
+    description: 'Подписанная председателем участка доверенность председателю участка (идёт в пакете в совет)',
+  })
+  @ValidateNested()
+  @Type(() => BranchTrusteePowerOfAttorneySignedDocumentInputDTO)
+  authority!: BranchTrusteePowerOfAttorneySignedDocumentInputDTO;
 }
 
 @InputType('CancelKuDecisionInput', { description: 'Отмена собрания пайщиков участка' })
@@ -303,6 +312,13 @@ export class RequestKuTrustedInputDTO implements RequestKuTrustedInputDomainInte
   @ValidateNested()
   @Type(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO)
   application!: BranchTrustedLiabilityAgreementSignedDocumentInputDTO;
+
+  @Field(() => BranchTrustedPowerOfAttorneySignedDocumentInputDTO, {
+    description: 'Подписанная доверенным лицом доверенность доверенному лицу/оператору участка',
+  })
+  @ValidateNested()
+  @Type(() => BranchTrustedPowerOfAttorneySignedDocumentInputDTO)
+  authority!: BranchTrustedPowerOfAttorneySignedDocumentInputDTO;
 }
 
 @InputType('ApproveKuTrustedInput', { description: 'Одобрение заявки доверенного встречной подписью председателя участка' })
@@ -323,6 +339,13 @@ export class ApproveKuTrustedInputDTO implements ApproveKuTrustedInputDomainInte
   @ValidateNested()
   @Type(() => BranchTrustedLiabilityAgreementSignedDocumentInputDTO)
   countersigned!: BranchTrustedLiabilityAgreementSignedDocumentInputDTO;
+
+  @Field(() => BranchTrustedPowerOfAttorneySignedDocumentInputDTO, {
+    description: 'Доверенность доверенному лицу со встречной подписью председателя участка',
+  })
+  @ValidateNested()
+  @Type(() => BranchTrustedPowerOfAttorneySignedDocumentInputDTO)
+  countersigned_authority!: BranchTrustedPowerOfAttorneySignedDocumentInputDTO;
 }
 
 @InputType('DeclineKuTrustedInput', { description: 'Отклонение заявки доверенного лица' })

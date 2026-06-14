@@ -71,8 +71,10 @@ public:
   [[eosio::action]] void votedec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 ballot, std::vector<decision_vote_point> votes);
   [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
 
-  // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет
-  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability);
+  // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет.
+  // Председатель участка подписывает пакетом заявление, договор о полной материальной
+  // ответственности (liability) и доверенность председателю участка (authority).
+  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability, document2 authority);
   [[eosio::action]] void confirmdec(eosio::name coopname, eosio::checksum256 hash, document2 authorization);
   [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
   [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
@@ -82,9 +84,15 @@ public:
   [[eosio::action]] void apprliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
   [[eosio::action]] void declliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
 
-  // Доверенные лица по заявлению (с договором о полной материальной ответственности)
-  [[eosio::action]] void reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application);
-  [[eosio::action]] void apprtrusted(eosio::name coopname, eosio::checksum256 hash, document2 countersigned);
+  // Доверенность председателя КУ: встречная подпись председателя совета
+  // (отдельное одобрение совета рядом с договором матответственности; отклонение заблокировано)
+  [[eosio::action]] void apprauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
+  [[eosio::action]] void declauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
+
+  // Доверенные лица по заявлению: договор о полной материальной ответственности (application)
+  // и доверенность доверенному лицу (authority) — оба со встречной подписью председателя участка
+  [[eosio::action]] void reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application, document2 authority);
+  [[eosio::action]] void apprtrusted(eosio::name coopname, eosio::checksum256 hash, document2 countersigned, document2 countersigned_authority);
   [[eosio::action]] void decltrusted(eosio::name coopname, eosio::checksum256 hash, std::string reason);
 
 
