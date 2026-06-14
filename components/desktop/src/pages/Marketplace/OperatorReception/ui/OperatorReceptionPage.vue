@@ -464,7 +464,15 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
     pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
-    takeAddon.value = true;
+    // Добор по акцепту принимаем ТОЛЬКО вместе с привезённой партией. Если
+    // поставщик приехал без партии — добор не показываем и не создаём: иначе
+    // оператора путает «Принять добор» при отсутствии партии (поставщик просто
+    // приехал, принимать нечего по партийной приёмке).
+    const hasDeclaredBatch = orders.some(
+      (o) =>
+        o.status === 'SUPPLY_PREPARED' && pendingShipments.value.some((s) => s.id === o.shipment_id),
+    );
+    takeAddon.value = hasDeclaredBatch;
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить имущество поставщика');
@@ -780,12 +788,24 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
     .reception__pickup
       .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
-      .reception__pickup-hint
-        | По каждой единице скорректируйте фактическое количество (не выше
-        | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
-        | не принимать её; партия без выбранных единиц не создаётся и ждёт.
+
+      //- Нет привезённой партии — принимать по партийной приёмке нечего. Добор
+      //- по акцепту здесь не показываем (см. openPickupForSupplier): поставщик
+      //- приехал без партии, а добор оформляется только вместе с ней.
+      EmptyState(
+        v-if='!declaredGroups.length',
+        title='Нет партии к приёмке',
+        body='Поставщик приехал без сформированной партии — принимать по партийной приёмке нечего.'
+      )
+        template(#icon)
+          q-icon(name='inventory_2', size='48px')
 
       template(v-if='declaredGroups.length')
+        .reception__pickup-hint
+          | По каждой единице скорректируйте фактическое количество (не выше
+          | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
+          | не принимать её; партия без выбранных единиц не создаётся и ждёт.
+
         .reception__pickup-section Задекларировано в партии (по ТТН)
         .reception__group(v-for='g in declaredGroups', :key='g.key')
           .reception__group-head
@@ -824,7 +844,9 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 :disable='!isSelected(o.id)'
               )
 
-      template(v-if='addonGroups.length')
+      //- Добор по акцепту показываем ТОЛЬКО вместе с привезённой партией —
+      //- standalone-«Принять добор» при отсутствии партии путает оператора.
+      template(v-if='addonGroups.length && declaredGroups.length')
         .reception__pickup-divider
         .reception__pickup-section-row
           .reception__pickup-section Добор по акцепту (вне партии)
