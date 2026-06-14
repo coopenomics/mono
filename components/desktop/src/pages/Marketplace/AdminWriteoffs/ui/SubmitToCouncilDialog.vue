@@ -85,9 +85,9 @@ BaseDialog(
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  .submit-council(v-if="loading")
-    q-spinner(size="24px")
-    span.text-grey-7 Формируем Заявление…
+  .submit-council__loading(v-if="loading")
+    q-spinner(color="primary", size="42px")
+    .t-muted Формируем Заявление…
 
   template(v-else-if="previewDoc")
     .t-muted.submit-council__intro
@@ -108,6 +108,15 @@ BaseDialog(
   display: flex;
   align-items: center;
   gap: var(--p-3, 12px);
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-3, 12px);
+    min-height: 60vh;
+  }
 
   &__intro {
     margin-bottom: var(--p-4, 16px);

@@ -70,18 +70,22 @@ export interface Model {
 export const title = 'Служебная записка о списании'
 export const description = 'Служебная записка председателя кооперативного участка о фактическом списании со склада скоропортящегося, повреждённого или малооценного имущества по решению совета (ЦПП «Стол заказов»)'
 
+// Без white-space: pre-wrap — иначе переносы строк исходника рендерятся как
+// видимые отступы. Интервалы — через margin абзацев.
 export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-h3 { margin: 0px; padding-top: 15px; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
-.subheader { padding-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.digital-document { padding: 20px; }
+.digital-document p { margin: 0 0 6px; }
+.digital-document h1 { margin: 0; text-align: center; }
+.title-block { text-align: center; margin-bottom: 20px; }
+.subheader { margin-top: 4px; }
+.sign { margin-top: 24px; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
 th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
 th { font-weight: bold; }
 </style>
 
 <div class="digital-document">
-  <div style="text-align: center">
+  <div class="title-block">
     <h1>{% trans 'memo_title' %}</h1>
     <p class="subheader">{% trans 'memo_subheader', branch_name %}</p>
   </div>

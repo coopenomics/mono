@@ -212,8 +212,11 @@ export class MarketplaceWriteoffService {
         asset_title: c.asset_title,
         quantity: String(c.quantity),
         amount: this.formatAssetNumber(amount),
-        // Причина-кандидат по умолчанию; председатель уточняет в черновике.
-        reason: c.is_expired ? 'Истёк срок годности' : 'Списание вручную',
+        // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
+        // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
+        // вручную (порча/использование) → «Списание вручную». Председатель
+        // может уточнить причину в поле перед отправкой.
+        reason: c.is_expired || c.expiry_date === null ? 'Истёк срок годности' : 'Списание вручную',
         expiry_date: c.expiry_date ? c.expiry_date.toISOString() : null,
         is_expired: c.is_expired,
       });

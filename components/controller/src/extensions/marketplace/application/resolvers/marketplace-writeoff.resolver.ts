@@ -211,12 +211,14 @@ export class MarketplaceWriteoffResolver {
       username: member.username,
       lang: 'ru',
       proposal_hash: proposalHash,
-      cycle_started_at: draft.cycle_started_at.toISOString(),
+      // Дата начала цикла — в формате документов ДД.ММ.ГГГГ (UTC, без сдвига tz).
+      cycle_started_at: this.formatDocumentDate(draft.cycle_started_at),
       items: draft.items.map((it) => ({
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
-        amount: it.amount,
+        // Сумма с символом валюты, как total_amount (иначе строки таблицы без валюты).
+        amount: this.service.formatAsset(Number(it.amount)),
         reason: it.reason,
       })),
       total_amount: draft.total_amount,
@@ -308,8 +310,11 @@ export class MarketplaceWriteoffResolver {
       proposal_hash: memo.proposal_hash,
       braname: memo.braname,
       branch_name: memo.branch_name,
-      cycle_started_at: memo.cycle_started_at,
-      items: memo.items,
+      cycle_started_at: this.formatDocumentDate(memo.cycle_started_at),
+      items: memo.items.map((it) => ({
+        ...it,
+        amount: this.service.formatAsset(Number(it.amount)),
+      })),
       total_amount: memo.total_amount,
     };
     const document = await this.documentDomainService.generateDocument({ data: action });
@@ -351,6 +356,17 @@ export class MarketplaceWriteoffResolver {
         it.branch_name = names[it.braname] ?? it.braname;
       }
     }
+  }
+
+  /**
+   * Дата для тела документа в формате ДД.ММ.ГГГГ (UTC, без сдвига часового
+   * пояса). Принимает Date или ISO-строку.
+   */
+  private formatDocumentDate(input: Date | string): string {
+    const d = input instanceof Date ? input : new Date(input);
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return `${dd}.${mm}.${d.getUTCFullYear()}`;
   }
 
   /**
