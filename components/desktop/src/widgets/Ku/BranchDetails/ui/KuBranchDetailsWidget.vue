@@ -41,6 +41,7 @@ div
               tr
                 th Заявитель
                 th Статус
+                th Документы
                 th.col-action Действия
             tbody
               tr(v-for='request in branchRequests', :key='request.hash')
@@ -50,33 +51,39 @@ div
                 td
                   BaseBadge(:variant='request.present ? "warn" : "neutral"')
                     | {{ request.present ? 'На рассмотрении' : 'Рассмотрена' }}
-                td.col-action
-                  .row.q-gutter-xs
-                    BaseButton(
+                td
+                  .ku-doc-links
+                    button.ku-doc-link(
                       v-if='request.document?.rawDocument',
-                      variant='ghost',
-                      size='sm',
+                      type='button',
                       @click='openDocument(request)'
-                    ) Договор
-                    BaseButton(
+                    )
+                      q-icon(name='description', size='16px')
+                      span Договор
+                    button.ku-doc-link(
                       v-if='request.authority_document?.rawDocument',
-                      variant='ghost',
-                      size='sm',
+                      type='button',
                       @click='openAuthority(request)'
-                    ) Доверенность
-                    template(v-if='request.present && isChairman')
-                      BaseButton(
-                        variant='primary',
-                        size='sm',
-                        :loading='isSubmitting',
-                        @click='onApprove(request)'
-                      ) Одобрить
-                      BaseButton(
-                        variant='secondary',
-                        size='sm',
-                        :loading='isSubmitting',
-                        @click='openDecline(request)'
-                      ) Отклонить
+                    )
+                      q-icon(name='description', size='16px')
+                      span Доверенность
+                    span.t-sm.t-muted(
+                      v-if='!request.document?.rawDocument && !request.authority_document?.rawDocument'
+                    ) —
+                td.col-action
+                  .row.q-gutter-xs(v-if='request.present && isChairman')
+                    BaseButton(
+                      variant='primary',
+                      size='sm',
+                      :loading='isSubmitting',
+                      @click='onApprove(request)'
+                    ) Одобрить
+                    BaseButton(
+                      variant='secondary',
+                      size='sm',
+                      :loading='isSubmitting',
+                      @click='openDecline(request)'
+                    ) Отклонить
   EmptyState(v-else, title='Участок не найден')
 
 //- Просмотр договора заявителя
@@ -349,5 +356,29 @@ onMounted(load);
   font-weight: 600;
   color: var(--p-ink-2);
   margin-bottom: var(--p-2, 8px);
+}
+
+/* Документы заявки — ссылки с иконкой в отдельной колонке (не кнопки) */
+.ku-doc-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-1, 4px);
+}
+.ku-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1, 4px);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--p-primary);
+  font-size: var(--p-fs-body-sm, 13px);
+  cursor: pointer;
+  transition: color var(--p-dur-fast, 120ms) var(--p-ease-standard, ease);
+}
+.ku-doc-link:hover {
+  color: var(--p-primary-hover);
+  text-decoration: underline;
 }
 </style>
