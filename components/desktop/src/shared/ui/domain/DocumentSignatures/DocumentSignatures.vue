@@ -1,7 +1,7 @@
 <template lang="pug">
 .doc-sig
   //- ============ Контрольная сумма ============
-  section.doc-sig__block
+  section.doc-sig__block(v-if='!hideChecksum')
     .doc-sig__chip(:class='`doc-sig__chip--${hashState}`')
       q-icon(:name='hashIcon' size='14px')
       span Контрольная сумма
@@ -84,6 +84,7 @@ const props = withDefaults(defineProps<DocumentSignaturesProps>(), {
   verifying: false,
   hideDownload: false,
   hideVerify: false,
+  hideChecksum: false,
 });
 
 defineEmits<{

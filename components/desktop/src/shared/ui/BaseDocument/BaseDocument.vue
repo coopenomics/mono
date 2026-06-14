@@ -19,6 +19,7 @@ q-card.dynamic-padding(
           :signatures='canonSignatures',
           :verifying='onRegenerate',
           :hide-verify='true',
+          :hide-checksum='!hasDocHash',
           @download='download',
           @verify='regenerate'
         )
@@ -43,6 +44,11 @@ const props = defineProps({
 });
 
 const doc = computed(() => props.documentAggregate.rawDocument);
+
+// Неподписанное превью строится с пустым doc_hash (канонического хэша ещё нет):
+// сверять не с чем, поэтому блок контрольной суммы скрываем и локальный пересчёт
+// не запускаем. Для реальных подписанных документов doc_hash присутствует → сверка работает.
+const hasDocHash = computed(() => !!props.documentAggregate?.document?.doc_hash);
 
 const loading = ref(false);
 const { isMobile } = useWindowSize();
@@ -212,7 +218,7 @@ const verifySignatures = () => {
 };
 
 onMounted(() => {
-  hashBuffer();
+  if (hasDocHash.value) hashBuffer();
   verifySignatures();
 });
 

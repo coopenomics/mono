@@ -22,4 +22,7 @@ export interface DocumentSignaturesProps {
   hideDownload?: boolean;
   /** Скрыть кнопку «сверить» */
   hideVerify?: boolean;
+  /** Скрыть блок контрольной суммы целиком — для неподписанного превью,
+   * где канонического хэша ещё нет и сверять не с чем. */
+  hideChecksum?: boolean;
 }
