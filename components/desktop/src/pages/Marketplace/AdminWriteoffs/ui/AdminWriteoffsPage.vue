@@ -18,6 +18,7 @@ import {
   type MarketplaceWriteoffCandidateView,
   type MarketplaceWriteoffProposalView,
 } from '../api';
+import { positionsLabel, proposalTitle } from '../lib/proposalDisplay';
 import SubmitToCouncilDialog from './SubmitToCouncilDialog.vue';
 import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 
@@ -206,21 +207,6 @@ function proposalDate(p: MarketplaceWriteoffProposalView): string | null | undef
   return p.executed_at ?? p.rejected_at ?? p.submitted_at ?? p.updated_at;
 }
 
-// Русское склонение «позиция/позиции/позиций».
-function positionsLabel(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  let word = 'позиций';
-  if (mod10 === 1 && mod100 !== 11) word = 'позиция';
-  else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'позиции';
-  return `${n} ${word}`;
-}
-
-// Человеческое имя проекта — по дате подачи/цикла, не «N позиций».
-function proposalTitle(p: MarketplaceWriteoffProposalView): string {
-  const date = formatDate(p.submitted_at ?? p.cycle_started_at ?? p.updated_at);
-  return `Списание от ${date}`;
-}
 
 // Три состояния позиции на складе:
 //  · нет даты годности (гарантия 0) → «Без гарантии» — ручное списание сразу;
