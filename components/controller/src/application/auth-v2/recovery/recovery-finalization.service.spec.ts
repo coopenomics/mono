@@ -36,26 +36,34 @@ function setup() {
     getAccount: jest.fn().mockResolvedValue(account('PUB_K1_OLD')),
     changeKey: jest.fn().mockResolvedValue(undefined),
   };
+  const authentikAdmin = {
+    findUserPk: jest.fn().mockResolvedValue(42),
+    setPassword: jest.fn().mockResolvedValue(undefined),
+  };
   const vault = { store: jest.fn().mockResolvedValue(undefined) };
   const sessions = { revokeAll: jest.fn().mockResolvedValue({ revoked: 3 }) };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
   const service = new RecoveryFinalizationService(
     chain as never,
+    authentikAdmin as never,
     vault as never,
     sessions as never,
     audit as never,
     securityEvents as never,
   );
-  return { service, chain, vault, sessions, audit, securityEvents };
+  return { service, chain, authentikAdmin, vault, sessions, audit, securityEvents };
 }
 
 describe('RecoveryFinalizationService (Story 3.3)', () => {
-  it('ротация: vault.store → registrator changekey → revokeAll → audit KeyRotated → notify', async () => {
-    const { service, chain, vault, sessions, audit, securityEvents } = setup();
+  it('финализация: setPassword authentik → vault.store → registrator changekey → revokeAll → audit KeyRotated → notify', async () => {
+    const { service, chain, authentikAdmin, vault, sessions, audit, securityEvents } = setup();
 
     await service.finalize(INPUT);
 
+    // Story 12.1: пароль пишется в authentik (раньше молча игнорировался → залок входа).
+    expect(authentikAdmin.findUserPk).toHaveBeenCalledWith('ant');
+    expect(authentikAdmin.setPassword).toHaveBeenCalledWith(42, 'pw');
     expect(vault.store).toHaveBeenCalledWith(
       { subject_type: 'participant', subject_id: 'ant' },
       VAULT,
@@ -90,12 +98,44 @@ describe('RecoveryFinalizationService (Story 3.3)', () => {
     });
   });
 
-  it('инвариант порядка: vault сохраняется ДО on-chain changekey (иначе потеря ключа при сбое)', async () => {
-    const { service, chain, vault } = setup();
+  it('инвариант порядка: setPassword (внешний IdP) ДО vault.store ДО on-chain changekey', async () => {
+    const { service, chain, authentikAdmin, vault } = setup();
     await service.finalize(INPUT);
+    // authentik первым: его сбой не трогает vault/цепь → откат на старые креды (Story 12.1).
+    expect(authentikAdmin.setPassword.mock.invocationCallOrder[0]).toBeLessThan(
+      vault.store.mock.invocationCallOrder[0],
+    );
+    // vault ДО changekey: новый приватный ключ живёт только в блобе (Story 3.3).
     expect(vault.store.mock.invocationCallOrder[0]).toBeLessThan(
       chain.changeKey.mock.invocationCallOrder[0],
     );
+  });
+
+  it('нет учётки authentik (findUserPk=null) → throw, vault и changekey не трогаются', async () => {
+    const { service, chain, authentikAdmin, vault } = setup();
+    authentikAdmin.findUserPk.mockResolvedValueOnce(null);
+
+    await expect(service.finalize(INPUT)).rejects.toThrow();
+
+    expect(authentikAdmin.setPassword).not.toHaveBeenCalled();
+    expect(vault.store).not.toHaveBeenCalled();
+    expect(chain.changeKey).not.toHaveBeenCalled();
+  });
+
+  it('сбой setPassword (IdP недоступен) → vault и changekey не трогаются (откат на старые креды)', async () => {
+    const { service, chain, authentikAdmin, vault } = setup();
+    authentikAdmin.setPassword.mockRejectedValueOnce(new Error('authentik down'));
+
+    await expect(service.finalize(INPUT)).rejects.toThrow('authentik down');
+
+    expect(vault.store).not.toHaveBeenCalled();
+    expect(chain.changeKey).not.toHaveBeenCalled();
+  });
+
+  it('пароль не попадает в аудит KeyRotated (без утечки секрета)', async () => {
+    const { service, audit } = setup();
+    await service.finalize({ ...INPUT, newPassword: 'super-secret-passphrase-xyz' });
+    expect(JSON.stringify(audit.record.mock.calls)).not.toContain('super-secret-passphrase-xyz');
   });
 
   it('old_pubkey best-effort: getAccount упал → ротация идёт, old_pubkey=null', async () => {

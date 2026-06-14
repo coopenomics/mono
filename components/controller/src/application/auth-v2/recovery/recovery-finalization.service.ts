@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { BLOCKCHAIN_PORT } from '~/domain/common/ports/blockchain.port';
 import type { BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import { AUTHENTIK_ADMIN_PORT } from '~/domain/auth-v2/ports/authentik-admin.port';
+import type { IAuthentikAdminPort } from '~/domain/auth-v2/ports/authentik-admin.port';
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import type {
   IRecoveryFinalization,
@@ -18,7 +20,20 @@ import { VaultService } from '../vault/vault.service';
  * legacy `AuthInteractor.resetKey`): registrator является owner'ом аккаунтов пайщиков,
  * поэтому смена active-ключа активному пайщику кооператива — обычное действие
  * кооператива (подпись ключом `coopname` из vault). Отдельный authentik-путь для ключа
- * НЕ нужен. Пароль authentik в recovery — Эпик 5 (контроллер пока не пишет в authentik).
+ * НЕ нужен.
+ *
+ * Новый пароль authentik записывается здесь же (Story 12.1) через admin set_password —
+ * раньше пароль молча игнорировался, из-за чего после восстановления пайщик оставался
+ * залочен (vault уже под новым паролём, authentik помнил старый). authentik —
+ * единственный store паролей; пароль прозрачно уходит туда и НЕ логируется/НЕ хранится
+ * на стороне controller'а.
+ *
+ * Порядок записей (setPassword → vault → changekey) выбран по матрице частичных сбоев
+ * трёх независимых хранилищ (authentik / vault-БД / on-chain). Запись во внешний IdP —
+ * самый вероятный отказ (недоступность, политика пароля), поэтому она ИДЁТ ПЕРВОЙ: её
+ * сбой не трогает ни vault, ни цепь → пайщик остаётся на старых кредах и чисто повторяет
+ * восстановление. vault — ДО changekey (новый приватный ключ живёт только в блобе, on-chain
+ * переключение коммитит его последним и ретраится при сбое).
  *
  * Мультисиг для recovery не требуется: self-recovery подтверждён факторами самого
  * пайщика (magic-link + TOTP). Защита от единоличного захвата нужна только для
@@ -30,6 +45,7 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
 
   constructor(
     @Inject(BLOCKCHAIN_PORT) private readonly chain: BlockchainPort,
+    @Inject(AUTHENTIK_ADMIN_PORT) private readonly authentikAdmin: IAuthentikAdminPort,
     private readonly vault: VaultService,
     private readonly sessions: SessionsService,
     private readonly audit: AuditService,
@@ -43,15 +59,27 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
     // 0. Старый active-ключ — для аудита (best-effort: чтение не блокирует ротацию).
     const oldPublicKey = await this.readActiveKey(input.username);
 
-    // 1. Новый зашифрованный блоб — ПЕРВЫМ: новый приватный ключ существует только в нём.
-    //    Если on-chain переключение упадёт после — ключ не потерян, ротация ретраится.
-    //    Обратный порядок (changekey раньше vault) при сбое vault залочил бы пайщика.
+    // 1. Новый пароль в authentik — ПЕРВЫМ (Story 12.1). Запись во внешний IdP — самый
+    //    вероятный сбой; если падает здесь, vault и цепь ещё не тронуты → откат на старые
+    //    креды, чистый повтор восстановления (см. JSDoc про порядок). Пароль не логируется.
+    const userPk = await this.authentikAdmin.findUserPk(input.username);
+    if (userPk === null) {
+      // Недостижимо в норме: recovery требует включённого TOTP (Story 3.6), а TOTP —
+      // authenticator authentik, значит учётка существует. Если нет — рассинхрон состояния;
+      // молча не создаём (нет email-контекста для ensureUser), сигналим инвариант.
+      throw new Error(`recovery.finalize: учётка authentik для ${input.username} не найдена`);
+    }
+    await this.authentikAdmin.setPassword(userPk, input.newPassword);
+
+    // 2. Новый зашифрованный блоб — ДО on-chain переключения: новый приватный ключ
+    //    существует только в нём. Если changekey упадёт после — ключ не потерян, ротация
+    //    ретраится. Обратный порядок (changekey раньше vault) при сбое vault залочил бы пайщика.
     await this.vault.store(
       { subject_type: 'participant', subject_id: input.username },
       input.vaultBlob,
     );
 
-    // 2. Ротация active-ключа через registrator::changekey (подпись ключом кооператива).
+    // 3. Ротация active-ключа через registrator::changekey (подпись ключом кооператива).
     await this.chain.changeKey({
       coopname: input.coopname,
       changer: input.coopname,
@@ -59,10 +87,10 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
       public_key: input.newPublicKey,
     });
 
-    // 3. Отозвать все старые сессии — доступ по старому ключу прекращается.
+    // 4. Отозвать все старые сессии — доступ по старому ключу прекращается.
     const { revoked } = await this.sessions.revokeAll(input.subjectId, ip);
 
-    // 4. Аудит ротации (Story 8.4). pubkey'и публичны — не секрет.
+    // 5. Аудит ротации (Story 8.4). pubkey'и публичны — не секрет.
     await this.audit.record({
       event: 'KeyRotated',
       subjectId: input.subjectId,
@@ -78,7 +106,7 @@ export class RecoveryFinalizationService implements IRecoveryFinalization {
       },
     });
 
-    // 5. Уведомить пайщика о перевыпуске ключа (детекция чужой ротации). best-effort.
+    // 6. Уведомить пайщика о перевыпуске ключа (детекция чужой ротации). best-effort.
     await this.securityEvents.notify({
       subjectId: input.subjectId,
       kind: SecurityEventKind.KeyRotated,
