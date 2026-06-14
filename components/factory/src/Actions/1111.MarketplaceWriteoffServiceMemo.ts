@@ -50,6 +50,7 @@ export class Factory extends DocFactory<MarketplaceWriteoffServiceMemo.Action> {
       data.items.map(it => ({
         asset_title: it.asset_title,
         quantity: it.quantity,
+        unit: it.unit,
         amount: it.amount,
         reason: it.reason,
       }))

@@ -24,6 +24,15 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -128,7 +137,7 @@ export interface MarketplaceWriteoffServiceMemoData {
   branch_name: string;
   cycle_started_at: string;
   proposal_hash: string;
-  items: { asset_title: string; quantity: string; amount: string; reason: string }[];
+  items: { asset_title: string; quantity: string; unit: string; amount: string; reason: string }[];
   total_amount: string;
 }
 
@@ -139,6 +148,10 @@ export class MarketplaceWriteoffService {
     private readonly repo: MarketplaceWriteoffProposalDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -190,6 +203,34 @@ export class MarketplaceWriteoffService {
       map[bn] = branch.name || bn;
     }
     return map;
+  }
+
+  /**
+   * Человекочитаемая единица измерения (шт./кг/л/упак.) для каждой позиции
+   * проекта — по её партиям. Единица живёт на оффере (снапшот товара); партии
+   * одного наименования агрегированы в одну позицию, поэтому берём единицу по
+   * первой партии: inventory → оффер (через published_offer_id либо заказ,
+   * который сослался на оффер). Фолбэк «ед.» — если товар/оффер уже удалён.
+   */
+  async resolveUnitLabels(items: { inventory_ids: string[] }[]): Promise<string[]> {
+    return Promise.all(items.map((it) => this.resolveUnitLabel(it.inventory_ids)));
+  }
+
+  private async resolveUnitLabel(inventoryIds: string[]): Promise<string> {
+    const FALLBACK = 'ед.';
+    const invId = inventoryIds[0];
+    if (!invId) return FALLBACK;
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv) return FALLBACK;
+    let offerId = inv.published_offer_id;
+    if (!offerId && inv.order_id) {
+      const order = await this.orderRepo.findById(inv.order_id);
+      offerId = order?.offer_id ?? null;
+    }
+    if (!offerId) return FALLBACK;
+    const offer = await this.offerRepo.findById(offerId);
+    if (!offer) return FALLBACK;
+    return MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] ?? FALLBACK;
   }
 
   /**
@@ -359,15 +400,17 @@ export class MarketplaceWriteoffService {
     }
     const branch = await this.orderDisplay.resolveBranchDisplay(braname);
     const total = this.sumItems(items);
+    const units = await this.resolveUnitLabels(items);
     return {
       proposal,
       braname,
       branch_name: branch.name || braname,
       cycle_started_at: proposal.cycle_started_at.toISOString(),
       proposal_hash: proposal.proposal_hash,
-      items: items.map((it) => ({
+      items: items.map((it, i) => ({
         asset_title: it.asset_title,
         quantity: it.quantity,
+        unit: units[i],
         amount: it.amount,
         reason: it.reason,
       })),

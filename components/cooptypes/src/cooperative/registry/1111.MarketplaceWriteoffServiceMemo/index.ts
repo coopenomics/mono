@@ -26,6 +26,8 @@ export interface WriteoffMemoItem {
   asset_title: string
   /** Количество единиц к списанию. */
   quantity: string
+  /** Единица измерения (шт. / кг / л / упак.) — снапшот с оффера товара. */
+  unit: string
   /** Стоимость списания (4 знака после запятой, валюта `_root_govern_symbol`). */
   amount: string
   /** Причина списания (просрочка / порча / малооценность). */
@@ -126,7 +128,7 @@ th, td {
         <td>{{ forloop.counter }}</td>
         <td>{{ it.asset_title }}</td>
         <td>{{ it.quantity }}</td>
-        <td>{% trans 'unit_label' %}</td>
+        <td>{{ it.unit }}</td>
         <td>{{ it.amount }}</td>
         <td>{{ it.reason }}</td>
       </tr>
@@ -161,7 +163,6 @@ export const translations = {
     col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
     col_reason: 'Причина',
-    unit_label: 'ед.',
     total: 'ИТОГО',
     confirmation: 'Списание произведено. Имущество физически выбыло со склада кооперативного участка и снято с учёта.',
     proposal_ref: 'Идентификатор проекта списания:',
@@ -190,12 +191,14 @@ export const exampleData = {
     {
       asset_title: 'Сахар-песок «Сладкий», 1 кг',
       quantity: '12',
+      unit: 'шт.',
       amount: '1 020,00 RUB',
       reason: 'Истёк срок годности',
     },
     {
       asset_title: 'Молоко «Доброе», 1 л',
       quantity: '5',
+      unit: 'шт.',
       amount: '485,00 RUB',
       reason: 'Повреждена упаковка',
     },

@@ -23,6 +23,8 @@ export interface WriteoffItemAction {
   asset_title: string
   /** Количество единиц к списанию. */
   quantity: string
+  /** Единица измерения (шт. / кг / л / упак.) — снапшот с оффера товара. */
+  unit: string
   /** Стоимость списания (4 знака после запятой, валюта `_root_govern_symbol`). */
   amount: string
   /** Причина списания (просрочка / порча / малооценность). */
@@ -47,6 +49,7 @@ export interface WriteoffItemModel {
   braname: string
   asset_title: string
   quantity: string
+  unit: string
   amount: string
   reason: string
 }
@@ -138,7 +141,7 @@ th, td {
         <td>{{ forloop.counter }}</td>
         <td>{{ it.asset_title }}</td>
         <td>{{ it.quantity }}</td>
-        <td>{% trans 'unit_label' %}</td>
+        <td>{{ it.unit }}</td>
         <td>{{ it.amount }}</td>
         <td>{{ it.reason }}</td>
       </tr>
@@ -170,7 +173,6 @@ export const translations = {
     col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
     col_reason: 'Причина',
-    unit_label: 'ед.',
     total: 'ИТОГО',
     signature: 'Подписано электронной подписью.',
   },
@@ -195,6 +197,7 @@ export const exampleData = {
       braname: 'ku-moskva-1',
       asset_title: 'Сахар-песок «Сладкий», 1 кг',
       quantity: '12',
+      unit: 'шт.',
       amount: '1 020,00 RUB',
       reason: 'Истёк срок годности',
     },
@@ -202,6 +205,7 @@ export const exampleData = {
       braname: 'ku-moskva-2',
       asset_title: 'Молоко «Доброе», 1 л',
       quantity: '5',
+      unit: 'шт.',
       amount: '485,00 RUB',
       reason: 'Повреждена упаковка',
     },

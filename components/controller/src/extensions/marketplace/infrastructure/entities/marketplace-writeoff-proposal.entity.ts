@@ -44,7 +44,11 @@ export class MarketplaceWriteoffProposalEntity {
   @Column({ type: 'varchar', length: 16 })
   public trigger!: MarketplaceWriteoffProposalTrigger;
 
-  @Column({ type: 'varchar', length: 16 })
+  // length 32: самый длинный статус — PENDING_CONFIRMATION (20 символов). При
+  // varchar(16) UPDATE статуса в markAuthorized падал «value too long for type
+  // character varying(16)», проект навсегда застревал в ON_AGENDA (решение
+  // совета не отлавливалось). synchronize:true расширит колонку при старте.
+  @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceWriteoffProposalStatus;
 
   @Column({ type: 'timestamptz' })

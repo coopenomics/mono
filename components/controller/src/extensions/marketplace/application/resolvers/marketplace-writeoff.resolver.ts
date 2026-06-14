@@ -205,6 +205,8 @@ export class MarketplaceWriteoffResolver {
       draft_id: draft.id,
       items: draft.items,
     });
+    // Единицы измерения — снапшот с офферов товаров (шт./кг/л/упак.).
+    const units = await this.service.resolveUnitLabels(draft.items);
     const action: Cooperative.Registry.MarketplaceWriteoffStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceWriteoffStatement.registry_id,
       coopname: draft.coopname,
@@ -213,10 +215,11 @@ export class MarketplaceWriteoffResolver {
       proposal_hash: proposalHash,
       // Дата начала цикла — в формате документов ДД.ММ.ГГГГ (UTC, без сдвига tz).
       cycle_started_at: this.formatDocumentDate(draft.cycle_started_at),
-      items: draft.items.map((it) => ({
+      items: draft.items.map((it, i) => ({
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
+        unit: units[i],
         // Человекочитаемая сумма «1 020,00 RUB» (2 знака), не машинные 4 знака.
         amount: this.service.formatAssetHuman(Number(it.amount)),
         reason: it.reason,
