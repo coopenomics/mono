@@ -100,6 +100,33 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     return row ? this.mapper.toDomain(row) : null;
   }
 
+  async findActiveLockedInventoryIds(coopname: string): Promise<string[]> {
+    // Позиции, уже занятые в незавершённых проектах (черновик, в совете,
+    // одобрено, ожидает подтверждения, в исполнении) — нельзя предлагать их
+    // в кандидаты повторно, иначе один и тот же товар попадёт в два списания.
+    // EXECUTED/REJECTED не блокируют (товар либо списан, либо освобождён).
+    const rows = await this.repo.find({
+      where: {
+        coopname,
+        status: In([
+          MarketplaceWriteoffProposalStatuses.DRAFT,
+          MarketplaceWriteoffProposalStatuses.ON_AGENDA,
+          MarketplaceWriteoffProposalStatuses.AUTHORIZED,
+          MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
+          MarketplaceWriteoffProposalStatuses.EXECUTING,
+        ]),
+      },
+      select: { items: true } as never,
+    });
+    const ids = new Set<string>();
+    for (const row of rows) {
+      for (const item of row.items ?? []) {
+        if (item.inventory_id) ids.add(item.inventory_id);
+      }
+    }
+    return [...ids];
+  }
+
   async list(
     filter: MarketplaceWriteoffProposalListFilter,
     pagination?: PaginationInputDTO

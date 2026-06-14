@@ -192,11 +192,15 @@ export class MarketplaceWriteoffService {
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
+    // Позиции, уже занятые в незавершённых проектах списания, исключаем —
+    // иначе один и тот же товар попадёт в два проекта (двойное списание).
+    const lockedIds = new Set(await this.repo.findActiveLockedInventoryIds(coopname));
     // Имя КУ показываем человеку, не служебный braname — резолвим с кэшем,
     // позиций по одному складу обычно много.
     const branchNameCache = new Map<string, string>();
     const result: MarketplaceWriteoffCandidateView[] = [];
     for (const c of candidates) {
+      if (lockedIds.has(c.inventory_id)) continue;
       let branchName = branchNameCache.get(c.braname);
       if (branchName === undefined) {
         const branch = await this.orderDisplay.resolveBranchDisplay(c.braname);
@@ -316,12 +320,10 @@ export class MarketplaceWriteoffService {
         `У кооператива уже есть открытый черновик списания (id=${existingDraft.id}). Удалите его перед созданием нового.`
       );
     }
-    const existingActive = await this.repo.findOpenInCouncil(input.coopname);
-    if (existingActive) {
-      throw new ConflictException(
-        `Проект списания id=${existingActive.id} уже отправлен в совет (статус=${existingActive.status}). Дождитесь решения совета.`
-      );
-    }
+    // Несколько проектов списания одновременно — допустимо: разные партии
+    // скоропорта подаются в совет независимо. Защита от двойного списания
+    // одной позиции — на уровне кандидатов (findActiveLockedInventoryIds),
+    // не запретом второго проекта.
 
     const normalizedItems = this.validateAndNormalizeItems(input.items);
     const total = this.sumItems(normalizedItems);

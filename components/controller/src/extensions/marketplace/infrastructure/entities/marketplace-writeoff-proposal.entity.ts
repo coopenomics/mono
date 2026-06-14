@@ -34,10 +34,6 @@ import type {
   unique: true,
   where: "status = 'DRAFT'",
 })
-@Index('UQ_marketplace_writeoff_proposal_active', ['coopname'], {
-  unique: true,
-  where: "status IN ('ON_AGENDA','AUTHORIZED','EXECUTING')",
-})
 export class MarketplaceWriteoffProposalEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;

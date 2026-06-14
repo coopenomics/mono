@@ -49,6 +49,13 @@ export interface MarketplaceWriteoffProposalDomainRepository {
     coopname: string
   ): Promise<MarketplaceWriteoffProposalDomainEntity | null>;
 
+  /**
+   * inventory_id позиций, занятых в незавершённых проектах списания (черновик,
+   * в совете, одобрено, ожидает подтверждения, в исполнении). Используется,
+   * чтобы не показывать одни и те же позиции кандидатами в новый проект.
+   */
+  findActiveLockedInventoryIds(coopname: string): Promise<string[]>;
+
   list(
     filter: MarketplaceWriteoffProposalListFilter,
     pagination?: PaginationInputDTO
