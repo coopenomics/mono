@@ -53,7 +53,8 @@ export function registerBaseDecisionHandlers() {
         decision_id,
         branch_name: parsedDocumentMeta.branch_name ?? '',
         address: parsedDocumentMeta.address ?? '',
-        chairman_full_name: parsedDocumentMeta.chairman_full_name ?? '',
+        // username избранного председателя участка из меты петиции (324); ФИО резолвит фабрика
+        chairman: parsedDocumentMeta.chairman ?? '',
       });
     },
   });

@@ -2300,8 +2300,8 @@ export type ValueTypes = {
 	block_num?: number | undefined | null | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2330,8 +2330,8 @@ export type ValueTypes = {
 	block_num?: number | undefined | null | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2374,8 +2374,8 @@ export type ValueTypes = {
 	block_num: number | Variable<any, string>,
 	/** Наименование кооперативного участка */
 	branch_name: string | Variable<any, string>,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
@@ -2474,8 +2474,8 @@ export type ValueTypes = {
 	["BranchMeetingDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null | Variable<any, string>,
-	/** ФИО председателя собрания */
-	chairman_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string | Variable<any, string>,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -2524,8 +2524,8 @@ export type ValueTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number | Variable<any, string>,
-	/** ФИО председателя собрания */
-	chairman_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string | Variable<any, string>,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string | Variable<any, string>,
 	/** Название кооператива, связанное с документом */
@@ -2728,8 +2728,8 @@ export type ValueTypes = {
 	timezone?: string | undefined | null | Variable<any, string>,
 	/** Название документа */
 	title?: string | undefined | null | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -2772,8 +2772,8 @@ export type ValueTypes = {
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -2800,8 +2800,8 @@ export type ValueTypes = {
 	timezone?: string | undefined | null | Variable<any, string>,
 	/** Название документа */
 	title?: string | undefined | null | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -2844,8 +2844,8 @@ export type ValueTypes = {
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string | Variable<any, string>,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -12073,8 +12073,8 @@ export type ResolverInputTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -12103,8 +12103,8 @@ export type ResolverInputTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -12147,8 +12147,8 @@ export type ResolverInputTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -12247,8 +12247,8 @@ export type ResolverInputTypes = {
 	["BranchMeetingDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -12297,8 +12297,8 @@ export type ResolverInputTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -12501,8 +12501,8 @@ export type ResolverInputTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -12545,8 +12545,8 @@ export type ResolverInputTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -12573,8 +12573,8 @@ export type ResolverInputTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -12617,8 +12617,8 @@ export type ResolverInputTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -21599,8 +21599,8 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21629,8 +21629,8 @@ export type ModelTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21673,8 +21673,8 @@ export type ModelTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -21773,8 +21773,8 @@ export type ModelTypes = {
 	["BranchMeetingDecisionGenerateDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -21823,8 +21823,8 @@ export type ModelTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 	/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -22027,8 +22027,8 @@ export type ModelTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -22071,8 +22071,8 @@ export type ModelTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -22099,8 +22099,8 @@ export type ModelTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -22143,8 +22143,8 @@ export type ModelTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -31682,8 +31682,8 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -31712,8 +31712,8 @@ export type GraphQLTypes = {
 	block_num?: number | undefined | null,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -31756,8 +31756,8 @@ export type GraphQLTypes = {
 	block_num: number,
 	/** Наименование кооперативного участка */
 	branch_name: string,
-	/** ФИО избранного председателя кооперативного участка */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) избранного председателя кооперативного участка */
+	chairman: string,
 	/** Название кооператива, связанное с документом */
 	coopname: string,
 	/** Дата и время создания документа */
@@ -31856,8 +31856,8 @@ export type GraphQLTypes = {
 	["BranchMeetingDecisionGenerateDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num?: number | undefined | null,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -31906,8 +31906,8 @@ export type GraphQLTypes = {
 	["BranchMeetingDecisionSignedMetaDocumentInput"]: {
 		/** Номер блока, на котором был создан документ */
 	block_num: number,
-	/** ФИО председателя собрания */
-	chairman_full_name: string,
+	/** Имя аккаунта (username) председателя собрания */
+	chairman: string,
 	/** Дата и время закрытия собрания */
 	close_at_datetime: string,
 	/** Название кооператива, связанное с документом */
@@ -32110,8 +32110,8 @@ export type GraphQLTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -32154,8 +32154,8 @@ export type GraphQLTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -32182,8 +32182,8 @@ export type GraphQLTypes = {
 	timezone?: string | undefined | null,
 	/** Название документа */
 	title?: string | undefined | null,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -32226,8 +32226,8 @@ export type GraphQLTypes = {
 	timezone: string,
 	/** Название документа */
 	title: string,
-	/** ФИО председателя кооперативного участка */
-	trustee_full_name: string,
+	/** Имя аккаунта (username) председателя кооперативного участка */
+	trustee: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */

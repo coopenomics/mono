@@ -17,7 +17,9 @@ export const registry_id = 327
 export interface Action extends IGenerate {
   hash: string
   branch_name: string
-  trustee_full_name: string
+  // username председателя участка; ФИО резолвит фабрика через getUser,
+  // в meta (→ on-chain) уходит только username
+  trustee: string
 }
 
 export type Meta = IMetaDocument & Action

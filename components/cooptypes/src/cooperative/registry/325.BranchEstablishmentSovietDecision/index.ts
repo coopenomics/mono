@@ -10,7 +10,9 @@ export interface Action extends IGenerate {
   decision_id: number
   branch_name: string
   address: string
-  chairman_full_name: string
+  // username избранного председателя участка; ФИО резолвит фабрика через getUser,
+  // в meta (→ on-chain) уходит только username
+  chairman: string
 }
 
 export type Meta = IMetaDocument & Action

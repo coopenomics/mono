@@ -201,12 +201,9 @@ export function useKuDecisionFlow() {
         username: session.username,
         hash: decision.hash,
         protocol_number: String(decision.id ?? decision.hash.slice(0, 8)),
-        // протокол подписывает председатель собрания — им является организатор
-        chairman_full_name:
-          decision.participants_info?.find((participant) => participant?.username === decision.initiator)
-            ?.display_name ??
-          decision.initiator ??
-          session.username,
+        // протокол подписывает председатель собрания — им является организатор;
+        // в meta уходит username, ФИО резолвит фабрика
+        chairman: decision.initiator ?? session.username,
         open_at_datetime: formatDateTime(decision.open_at),
         close_at_datetime: formatDateTime(decision.close_at),
         current_quorum_percent: quorumPercent,
@@ -258,11 +255,6 @@ export function useKuDecisionFlow() {
     isSubmitting.value = true;
     try {
       const branchName = decision.branch_name ?? '';
-      const chairmanFullName =
-        decision.participants_info?.find((participant) => participant?.username === decision.chairman)
-          ?.display_name ??
-        decision.chairman ??
-        '';
 
       // человекочитаемое наименование участка, служебный braname в документы не попадает
       const petition = await new DigitalDocument().generate<Cooperative.Registry.BranchEstablishmentPetition.Action>({
@@ -272,7 +264,8 @@ export function useKuDecisionFlow() {
         hash: decision.hash,
         branch_name: branchName,
         address: decision.address ?? '',
-        chairman_full_name: chairmanFullName,
+        // username избранного председателя участка; ФИО резолвит фабрика
+        chairman: decision.chairman ?? '',
       });
 
       const liability = await new DigitalDocument().generate<Cooperative.Registry.BranchTrusteeLiabilityAgreement.Action>({

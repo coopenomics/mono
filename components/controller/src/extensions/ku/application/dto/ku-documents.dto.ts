@@ -303,10 +303,10 @@ class BaseBranchMeetingDecisionMetaDocumentInputDTO implements ExcludeCommonProp
   @IsNotEmpty()
   protocol_number!: string;
 
-  @Field(() => String, { description: 'ФИО председателя собрания' })
+  @Field(() => String, { description: 'Имя аккаунта (username) председателя собрания' })
   @IsString()
   @IsNotEmpty()
-  chairman_full_name!: string;
+  chairman!: string;
 
   @Field(() => String, { description: 'Дата и время открытия собрания' })
   @IsString()
@@ -372,10 +372,10 @@ class BaseBranchEstablishmentPetitionMetaDocumentInputDTO implements ExcludeComm
   @IsNotEmpty()
   branch_name!: string;
 
-  @Field(() => String, { description: 'ФИО избранного председателя кооперативного участка' })
+  @Field(() => String, { description: 'Имя аккаунта (username) избранного председателя кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  chairman_full_name!: string;
+  chairman!: string;
 
   @Field(() => String, { description: 'Адрес привязки кооперативного участка' })
   @IsString()
@@ -430,10 +430,10 @@ class BaseBranchEstablishmentDecisionMetaDocumentInputDTO implements ExcludeComm
   @IsNotEmpty()
   address!: string;
 
-  @Field(() => String, { description: 'ФИО избранного председателя кооперативного участка' })
+  @Field(() => String, { description: 'Имя аккаунта (username) избранного председателя кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  chairman_full_name!: string;
+  chairman!: string;
 }
 
 @InputType('BranchEstablishmentDecisionGenerateDocumentInput')
@@ -509,10 +509,10 @@ class BaseBranchTrustedLiabilityAgreementMetaDocumentInputDTO implements Exclude
   @IsNotEmpty()
   branch_name!: string;
 
-  @Field(() => String, { description: 'ФИО председателя кооперативного участка' })
+  @Field(() => String, { description: 'Имя аккаунта (username) председателя кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  trustee_full_name!: string;
+  trustee!: string;
 }
 
 @InputType('BranchTrustedLiabilityAgreementGenerateDocumentInput')
@@ -651,10 +651,10 @@ class BaseBranchTrustedPowerOfAttorneyMetaDocumentInputDTO implements ExcludeCom
   @IsNotEmpty()
   branch_name!: string;
 
-  @Field(() => String, { description: 'ФИО председателя кооперативного участка' })
+  @Field(() => String, { description: 'Имя аккаунта (username) председателя кооперативного участка' })
   @IsString()
   @IsNotEmpty()
-  trustee_full_name!: string;
+  trustee!: string;
 }
 
 @InputType('BranchTrustedPowerOfAttorneyGenerateDocumentInput')

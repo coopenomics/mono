@@ -12,15 +12,20 @@ export class Factory extends DocFactory<BranchEstablishmentSovietDecision.Action
   }
 
   async generateDocument(data: BranchEstablishmentSovietDecision.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const { template, coop, vars } = await this.resolveParallel({
+    const { template, coop, vars, chairmanUser } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
         ? Promise.resolve(BranchEstablishmentSovietDecision.Template as ITemplate<BranchEstablishmentSovietDecision.Model>)
         : this.getTemplate<BranchEstablishmentSovietDecision.Model>(DraftContract.contractName.production, BranchEstablishmentSovietDecision.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
+      chairmanUser: () => super.getUser(data.chairman, data.block_num),
     })
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
+
+    // ФИО избранного председателя участка резолвим из приватных данных аккаунта;
+    // в meta уходит только username председателя
+    const chairman_full_name = super.getCommonUser(chairmanUser).full_name_or_short_name
 
     // До авторизации решения — голоса в цепочке; после — запись решения удаляется, нужен authorize
     let decision: BranchEstablishmentSovietDecision.Model['decision']
@@ -38,7 +43,7 @@ export class Factory extends DocFactory<BranchEstablishmentSovietDecision.Action
       decision,
       branch_name: data.branch_name,
       address: data.address,
-      chairman_full_name: data.chairman_full_name,
+      chairman_full_name,
     }
 
     await super.validate(combinedData, template.model)

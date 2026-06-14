@@ -12,13 +12,14 @@ export class Factory extends DocFactory<BranchTrustedLiabilityAgreement.Action> 
   }
 
   async generateDocument(data: BranchTrustedLiabilityAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    const { template, coop, vars, userData } = await this.resolveParallel({
+    const { template, coop, vars, userData, trusteeUser } = await this.resolveParallel({
       template: () => process.env.SOURCE === 'local'
         ? Promise.resolve(BranchTrustedLiabilityAgreement.Template as ITemplate<BranchTrustedLiabilityAgreement.Model>)
         : this.getTemplate<BranchTrustedLiabilityAgreement.Model>(DraftContract.contractName.production, BranchTrustedLiabilityAgreement.registry_id, data.block_num),
       coop: () => super.getCooperative(data.coopname, data.block_num),
       vars: () => super.getVars(data.coopname, data.block_num),
       userData: () => super.getUser(data.username, data.block_num),
+      trusteeUser: () => super.getUser(data.trustee, data.block_num),
     })
 
     if (userData.type !== 'individual')
@@ -28,13 +29,17 @@ export class Factory extends DocFactory<BranchTrustedLiabilityAgreement.Action> 
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
 
+    // ФИО председателя участка резолвим из приватных данных аккаунта;
+    // в meta уходит только username председателя
+    const trustee_full_name = super.getCommonUser(trusteeUser).full_name_or_short_name
+
     const combinedData: BranchTrustedLiabilityAgreement.Model = {
       meta,
       coop,
       vars,
       individual,
       branch_name: data.branch_name,
-      trustee_full_name: data.trustee_full_name,
+      trustee_full_name,
     }
 
     await super.validate(combinedData, template.model)

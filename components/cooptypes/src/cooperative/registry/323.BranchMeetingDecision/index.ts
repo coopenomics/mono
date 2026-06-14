@@ -29,7 +29,9 @@ export interface IBranchProtocolQuestion {
 export interface Action extends IGenerate {
   hash: string
   protocol_number: string
-  chairman_full_name: string
+  // username председателя собрания; ФИО фабрика резолвит через getUser на момент генерации
+  // и не публикует в meta (чувствительные данные на чейн не уходят)
+  chairman: string
   open_at_datetime: string
   close_at_datetime: string
   current_quorum_percent: number

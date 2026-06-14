@@ -170,7 +170,7 @@ const authorityTarget = ref<object | null>(null);
 // предпросмотр пакета документов заявителя перед подписанием и подачей заявки
 const trustedPreviewOpen = ref(false);
 const trustedPrepared = ref<Awaited<ReturnType<typeof flow.prepareTrustedDocuments>> | null>(null);
-const trustedInput = ref<{ braname: string; branchName: string; chairmanFullName: string } | null>(null);
+const trustedInput = ref<{ braname: string; branchName: string; trustee: string } | null>(null);
 
 const isSubmitting = computed(() => flow.isSubmitting.value);
 
@@ -254,7 +254,8 @@ function onRequest() {
       trustedInput.value = {
         braname: props.braname,
         branchName: branchTitle.value,
-        chairmanFullName: fullName(branch.value?.trustee_certificate),
+        // username председателя участка; ФИО фабрика резолвит сама, в meta уходит только username
+        trustee: branch.value?.trustee_certificate?.username ?? '',
       };
       trustedPrepared.value = await flow.prepareTrustedDocuments(trustedInput.value);
       trustedPreviewOpen.value = true;

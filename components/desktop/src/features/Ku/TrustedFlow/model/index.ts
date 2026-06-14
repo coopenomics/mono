@@ -29,7 +29,7 @@ export function useKuTrustedFlow() {
    * доверенному лицу/оператору (330) — с подставленными паспортными данными заявителя.
    * Якорь процесса (hash) фиксируется здесь и переиспользуется при подписании.
    */
-  async function prepareTrustedDocuments(input: { branchName: string; chairmanFullName: string }): Promise<{
+  async function prepareTrustedDocuments(input: { branchName: string; trustee: string }): Promise<{
     hash: string;
     application: IGeneratedDocument;
     authority: IGeneratedDocument;
@@ -44,7 +44,7 @@ export function useKuTrustedFlow() {
         username: session.username,
         hash,
         branch_name: input.branchName,
-        trustee_full_name: input.chairmanFullName,
+        trustee: input.trustee,
       });
 
       const authority = await new DigitalDocument().generate<Cooperative.Registry.BranchTrustedPowerOfAttorney.Action>({
@@ -53,7 +53,7 @@ export function useKuTrustedFlow() {
         username: session.username,
         hash,
         branch_name: input.branchName,
-        trustee_full_name: input.chairmanFullName,
+        trustee: input.trustee,
       });
 
       return { hash, application, authority };
