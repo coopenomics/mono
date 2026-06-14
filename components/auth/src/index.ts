@@ -46,4 +46,4 @@ export type { EncryptedVaultBlob, VaultSubject } from './vault'
 export { ARGON2ID_PARAMS, decryptPrivateKey, deriveKey, encryptPrivateKey } from './vault'
 export type { StorageAdapter } from './wallet'
 
-export { clearLocalVault, clearPinProtected, fetchVaultBlob, getWallet, isWalletUnlocked, loadLocalVault, lockWallet, rotateKey, saveLocalVault, saveToVault, storeVaultBlob, unlockWallet, unlockWithPin, Wallet } from './wallet'
+export { clearLocalVault, fetchVaultBlob, getWallet, isWalletUnlocked, loadLocalVault, lockWallet, rotateKey, saveLocalVault, saveToVault, storeVaultBlob, unlockWallet, Wallet } from './wallet'

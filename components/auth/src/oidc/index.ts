@@ -3,7 +3,7 @@
  * magic-link, recovery и работа с токенами (oidc-client-ts).
  */
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
-import { clearPinProtected, lockWallet, type StorageAdapter } from '../wallet'
+import { lockWallet } from '../wallet'
 import { authenticateWithAuthentik, coopIdApiUrl } from './client'
 import { performTimestampHandshake } from './handshake'
 import { clearSession, getAccessToken as getStoredAccessToken } from './tokens'
@@ -125,8 +125,6 @@ export interface LogoutParams {
   refreshToken: string
   /** access_token (опционально) — тоже отзывается. */
   accessToken?: string
-  /** Хранилище PIN-protected ключа — стирается, если вход по PIN был включён. */
-  pinStorage?: StorageAdapter
 }
 
 /**
@@ -151,7 +149,5 @@ export async function logout(params: LogoutParams): Promise<void> {
   finally {
     lockWallet()
     clearSession()
-    if (params.pinStorage)
-      await clearPinProtected(params.pinStorage)
   }
 }

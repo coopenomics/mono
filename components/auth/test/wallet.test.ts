@@ -2,13 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
 import { encryptPrivateKey } from '../src/vault'
 import {
-  clearPinProtected,
   getWallet,
   isWalletUnlocked,
   lockWallet,
-  type StorageAdapter,
   unlockWallet,
-  unlockWithPin,
   Wallet,
 } from '../src/wallet'
 
@@ -16,16 +13,6 @@ const KEY = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
 const PW = 'correct-horse-battery-staple-12'
 const ACCOUNT = 'ant'
 const API = 'http://stub'
-
-/** Память-адаптер для тестов PIN-хранилища (в браузере — localStorage). */
-function memoryStorage(): StorageAdapter {
-  const map = new Map<string, string>()
-  return {
-    get: async k => map.get(k) ?? null,
-    set: async (k, v) => void map.set(k, v),
-    remove: async k => void map.delete(k),
-  }
-}
 
 /** Подменяет fetch так, чтобы GET vault отдавал заранее зашифрованный blob. */
 async function stubVaultFetch(password = PW): Promise<void> {
@@ -100,41 +87,5 @@ describe('wallet: lock/wipe', () => {
     lockWallet() // повторно — без ошибки
     const err = await getWallet().then(() => null, e => e)
     expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.WalletLocked)
-  }, 30000)
-})
-
-describe('wallet: опциональный PIN-storage', () => {
-  it('unlock с persistPin → unlockWithPin восстанавливает кошелёк', async () => {
-    await stubVaultFetch()
-    const storage = memoryStorage()
-    await unlockWallet({ apiUrl: API, account: ACCOUNT, password: PW, persistPin: { pin: '4729', storage } })
-    lockWallet()
-    expect(isWalletUnlocked()).toBe(false)
-
-    const restored = await unlockWithPin('4729', storage)
-    expect(restored).not.toBeNull()
-    expect(restored!.account).toBe(ACCOUNT)
-    expect(isWalletUnlocked()).toBe(true)
-  }, 30000)
-
-  it('неверный PIN → VaultDecryptionFailed', async () => {
-    await stubVaultFetch()
-    const storage = memoryStorage()
-    await unlockWallet({ apiUrl: API, account: ACCOUNT, password: PW, persistPin: { pin: '4729', storage } })
-    const err = await unlockWithPin('0000', storage).then(() => null, e => e)
-    expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.VaultDecryptionFailed)
-  }, 30000)
-
-  it('нет PIN-записи → unlockWithPin отдаёт null', async () => {
-    const storage = memoryStorage()
-    expect(await unlockWithPin('4729', storage)).toBeNull()
-  })
-
-  it('clearPinProtected удаляет запись', async () => {
-    await stubVaultFetch()
-    const storage = memoryStorage()
-    await unlockWallet({ apiUrl: API, account: ACCOUNT, password: PW, persistPin: { pin: '4729', storage } })
-    await clearPinProtected(storage)
-    expect(await unlockWithPin('4729', storage)).toBeNull()
   }, 30000)
 })

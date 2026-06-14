@@ -32,8 +32,8 @@ function buf(u: Uint8Array): ArrayBuffer {
 
 /**
  * Subject-агностичное ядро (Story 2.2): Argon2id(пароль, salt) → AES-256-GCM с
- * произвольной AAD-строкой. Поверх него работают и vault приватного ключа
- * (AAD=субъект), и PIN-storage (AAD=`pin|<account>`) — без дублирования крипто.
+ * произвольной AAD-строкой. Поверх него работает vault приватного ключа
+ * (AAD=субъект). PIN-слой (AAD=`pin|<account>`) снят в 11.8 (модель «без PIN»).
  */
 export async function encryptWithPassword(
   plaintext: string,

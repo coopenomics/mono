@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const lockWallet = vi.fn()
-const clearPinProtected = vi.fn().mockResolvedValue(undefined)
 
 // keystore-затирание мокаем на уровне модуля wallet — logout обязан вызвать его
 // независимо от исхода сетевого запроса.
 vi.mock('../src/wallet', () => ({
   lockWallet,
-  clearPinProtected,
 }))
 
 const { logout } = await import('../src/oidc')
@@ -15,7 +13,6 @@ const { logout } = await import('../src/oidc')
 describe('logout (Story 1.10)', () => {
   beforeEach(() => {
     lockWallet.mockClear()
-    clearPinProtected.mockClear()
   })
 
   afterEach(() => {
@@ -42,24 +39,5 @@ describe('logout (Story 1.10)', () => {
 
     await expect(logout({ apiUrl: 'https://coop.example', refreshToken: 'r1' })).resolves.toBeUndefined()
     expect(lockWallet).toHaveBeenCalledTimes(1)
-  })
-
-  it('стирает PIN-protected ключ, если pinStorage передан', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
-    vi.stubGlobal('fetch', fetchMock)
-    const storage = { get: vi.fn(), set: vi.fn(), remove: vi.fn() }
-
-    await logout({ apiUrl: 'https://coop.example', refreshToken: 'r1', pinStorage: storage })
-
-    expect(clearPinProtected).toHaveBeenCalledWith(storage)
-  })
-
-  it('не трогает PIN-хранилище, если pinStorage не передан', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
-    vi.stubGlobal('fetch', fetchMock)
-
-    await logout({ apiUrl: 'https://coop.example', refreshToken: 'r1' })
-
-    expect(clearPinProtected).not.toHaveBeenCalled()
   })
 })

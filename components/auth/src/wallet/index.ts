@@ -9,7 +9,6 @@ import type { StorageAdapter } from './storage-adapter'
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
 import { decryptPrivateKey, encryptPrivateKey } from '../vault/encrypt'
 import { saveLocalVault } from './local-vault'
-import { loadPinProtected, savePinProtected } from './pin'
 import { currentView, isUnlocked, storeUnlocked, wipeKeystore } from './storage'
 
 /**
@@ -106,8 +105,6 @@ interface UnlockParams {
   apiUrl: string
   account: string
   password: string
-  /** Опционально сохранить ключ под PIN для быстрой разблокировки на устройстве. */
-  persistPin?: { pin: string, storage: StorageAdapter }
 }
 
 /**
@@ -122,22 +119,7 @@ export async function unlockWallet(params: UnlockParams): Promise<Wallet> {
   })
   const publicKey = await derivePublicKey(privateKey)
   storeUnlocked({ account: params.account, publicKey, privateKey })
-  if (params.persistPin)
-    await savePinProtected(privateKey, params.persistPin.pin, params.account, params.persistPin.storage)
   return new Wallet({ account: params.account, publicKey })
-}
-
-/**
- * Быстрая разблокировка ранее сохранённым PIN (без обращения к серверу/паролю).
- * `null` — на устройстве нет PIN-записи. Неверный PIN → `VaultDecryptionFailed`.
- */
-export async function unlockWithPin(pin: string, storage: StorageAdapter): Promise<Wallet | null> {
-  const loaded = await loadPinProtected(pin, storage)
-  if (!loaded)
-    return null
-  const publicKey = await derivePublicKey(loaded.privateKey)
-  storeUnlocked({ account: loaded.account, publicKey, privateKey: loaded.privateKey })
-  return new Wallet({ account: loaded.account, publicKey })
 }
 
 /** Текущий разблокированный кошелёк. Бросает `WalletLocked`, если заперт. */
@@ -150,7 +132,7 @@ export function isWalletUnlocked(): boolean {
   return isUnlocked()
 }
 
-/** Затирает ключ из памяти (logout). Идемпотентно. PIN-запись не трогает. */
+/** Затирает ключ из памяти (logout). Идемпотентно. */
 export function lockWallet(): void {
   wipeKeystore()
 }
@@ -161,5 +143,4 @@ export async function rotateKey(): Promise<void> {
 }
 
 export { clearLocalVault, loadLocalVault, saveLocalVault } from './local-vault'
-export { clearPinProtected } from './pin'
 export type { StorageAdapter } from './storage-adapter'
