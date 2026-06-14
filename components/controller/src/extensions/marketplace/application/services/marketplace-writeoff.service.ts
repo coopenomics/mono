@@ -807,6 +807,19 @@ export class MarketplaceWriteoffService {
     return `${this.formatAssetNumber(value)} ${this.assetSymbol}`;
   }
 
+  /**
+   * Сумма для тела документа: 2 знака, разделители разрядов, запятая —
+   * «1 020,00 RUB» (не машинные 4 знака). Для печатных Заявлений/Записок.
+   */
+  formatAssetHuman(value: number): string {
+    const num = Number.isFinite(value) ? value : 0;
+    const formatted = num.toLocaleString('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${formatted} ${this.assetSymbol}`;
+  }
+
   formatAssetNumber(value: number): string {
     return value.toFixed(this.assetDecimals);
   }

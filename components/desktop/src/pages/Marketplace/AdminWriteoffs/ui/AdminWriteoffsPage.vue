@@ -5,9 +5,10 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import {
   cancelWriteoffDraft,
   createWriteoffDraft,
@@ -21,14 +22,11 @@ import SubmitToCouncilDialog from './SubmitToCouncilDialog.vue';
 import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 
 /**
- * Эпик 8: admin-стол «Списания». Председатель выделяет имущество на складах,
- * при желании пишет причину и одной кнопкой подписывает Заявление 1106 и
- * выносит проект на повестку совета — без промежуточного черновика как
- * отдельного экрана (черновик собирается под капотом перед подписью).
- *
- * Ниже — лента проектов в работе совета (ON_AGENDA / AUTHORIZED /
- * PENDING_CONFIRMATION / EXECUTING; только наблюдение) и архив
- * (EXECUTED / REJECTED).
+ * Эпик 8: admin-стол «Списания». Три вкладки: «Кандидаты» — имущество на
+ * складах, председатель выделяет позиции, при желании пишет причину и одной
+ * кнопкой подписывает Заявление 1108 и выносит проект на повестку совета
+ * (черновик собирается под капотом). «На повестке» — проекты в работе совета
+ * (только наблюдение). «Архив» — исполненные и отклонённые.
  */
 
 // Черновик — внутренний эфемерный артефакт: backend submitToCouncil требует
@@ -45,6 +43,21 @@ const candidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const writeoffReason = ref('');
 const preparing = ref(false);
+
+const activeKey = ref<'candidates' | 'council' | 'archive'>('candidates');
+const tabs = computed<PageTab[]>(() => [
+  { key: 'candidates', label: 'Кандидаты', count: candidates.value.length },
+  { key: 'council', label: 'На повестке', count: inCouncil.value.length },
+  { key: 'archive', label: 'Архив', count: archive.value.length },
+]);
+function onSelectTab(tab: PageTab): void {
+  activeKey.value = tab.key as typeof activeKey.value;
+}
+
+// Лента проектов для вкладок «На повестке» / «Архив» — общая таблица.
+const proposalsList = computed(() =>
+  activeKey.value === 'archive' ? archive.value : inCouncil.value,
+);
 
 const candidateColumns = [
   { name: 'branch_name', align: 'left' as const, label: 'Кооп. участок', field: 'branch_name' },
@@ -188,6 +201,11 @@ function formatDate(value: string | null | undefined): string {
   return parsed.toLocaleDateString('ru-RU');
 }
 
+// Дата проекта для ленты: итоговая (исполнение/отказ) либо подачи в совет.
+function proposalDate(p: MarketplaceWriteoffProposalView): string | null | undefined {
+  return p.executed_at ?? p.rejected_at ?? p.submitted_at ?? p.updated_at;
+}
+
 // Три состояния позиции на складе:
 //  · нет даты годности (гарантия 0) → «Без гарантии» — ручное списание сразу;
 //  · дата прошла → «Просрочен» — первоочередной авто-кандидат;
@@ -201,21 +219,16 @@ function candidateStateVariant(c: MarketplaceWriteoffCandidateView): BaseBadgeVa
   return c.is_expired ? 'neg' : 'pos';
 }
 
-const totalActiveAmount = computed(() =>
-  inCouncil.value
-    .reduce((acc, p) => acc + (Number.parseFloat(p.total_amount) || 0), 0)
-    .toFixed(2),
-);
-
 function onDraftSubmitted(): void {
   draft.value = null;
   selectedCandidates.value = [];
   writeoffReason.value = '';
+  activeKey.value = 'council';
   void load();
 }
 
-// Realtime: DRAFT строит cron, дальнейшие статусы двигает совет — лента
-// проектов обновляется сигналом канала совета, без ручного обновления.
+// Realtime: дальнейшие статусы двигает совет — лента проектов обновляется
+// сигналом канала совета, без ручного обновления.
 const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
@@ -235,10 +248,11 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
     | Выделите имущество на складах к списанию, при необходимости укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего председатель кооперативного участка подтверждает выбытие со склада.
 
-  //- Главное действие страницы — в шапку (канон: CTA в топбаре, dense/primary).
-  //- Один шаг: собрать проект из выбора и сразу открыть подпись + отправку в совет.
+  //- Главное действие страницы — в шапку (канон: CTA в топбаре). Только на
+  //- вкладке «Кандидаты»: собрать проект из выбора и открыть подпись.
   Teleport(to="#header-actions-host", defer)
     BaseButton(
+      v-if="activeKey === 'candidates'",
       variant="primary",
       size="sm",
       :disabled="selectedCandidates.length === 0",
@@ -249,11 +263,11 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
         q-icon(name="draw", size="18px")
       | Подписать и отправить в совет{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
 
-  //- Имущество на складах: выделяемая таблица + причина списания в этой же карточке.
-  BaseCard
-    .writeoffs__candidates-head
-      .t-h3 Имущество на складах
-      .t-muted «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен. Выделите позиции, при необходимости укажите причину и подпишите в шапке.
+  PageTabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
+
+  //- Вкладка «Кандидаты»: имущество на складах + причина списания.
+  BaseCard(v-if="activeKey === 'candidates'")
+    .t-muted «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен.
     BaseInput.q-mt-sm(
       v-model="writeoffReason",
       label="Причина списания (необязательно)",
@@ -282,35 +296,34 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       template(#body-cell-amount="props")
         q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 
-  BaseCard
-    .writeoffs__council
-      div
-        .t-h3 В работе совета
-        .t-muted {{ inCouncil.length }} проект(ов) на сумму {{ formatAsset2Digits(totalActiveAmount) }} ₽
-
-  //- Канон загрузки: скелетон вместо спиннера и вместо мелькающих заглушек «пусто».
-  CardListSkeleton(v-if="loading && !inCouncil.length && !archive.length", :count="3")
-
-  .writeoffs__empty(v-if="inCouncil.length === 0 && !loading")
-    | Нет проектов на повестке. Выделите имущество в таблице выше и отправьте проект в совет.
-  q-list(v-if="inCouncil.length > 0", bordered, separator)
-    q-item(v-for="p in inCouncil", :key="p.id", clickable, @click="openDetails(p)")
-      q-item-section
-        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
-        q-item-label(caption) Подал {{ p.proposed_by_account ?? '—' }} · {{ formatDate(p.submitted_at) }}
-      q-item-section(side)
-        BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
-
-  .t-h3 Архив
-  .writeoffs__empty(v-if="archive.length === 0 && !loading") Архив пуст.
-  q-list(v-if="archive.length > 0", bordered, separator)
-    q-item(v-for="p in archive", :key="p.id", clickable, @click="openDetails(p)")
-      q-item-section
-        q-item-label.text-weight-medium {{ p.items.length }} позиций · {{ formatAsset2Digits(p.total_amount) }}
-        q-item-label(caption) {{ humanStatus(p.status) }} · {{ formatDate(p.executed_at ?? p.rejected_at ?? p.updated_at) }}
-        q-item-label(caption, v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
-      q-item-section(side)
-        BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
+  //- Вкладки «На повестке» / «Архив»: общая лента проектов списания.
+  template(v-else)
+    CardListSkeleton(v-if="loading && !proposalsList.length", :count="3")
+    EmptyState(
+      v-else-if="!proposalsList.length",
+      :title="activeKey === 'council' ? 'Нет проектов на повестке' : 'Архив пуст'",
+      :body="activeKey === 'council' ? 'Выделите имущество на вкладке «Кандидаты» и отправьте проект в совет.' : 'Здесь появятся исполненные и отклонённые проекты списания.'"
+    )
+      template(#icon)
+        q-icon(name="inventory_2", size="48px")
+    .table-wrap(v-else)
+      .table-scroll
+        table.table
+          thead
+            tr
+              th Проект
+              th.col-num Сумма
+              th Статус
+              th Дата
+          tbody
+            tr.writeoffs__row(v-for="p in proposalsList", :key="p.id", @click="openDetails(p)")
+              td
+                div {{ p.items.length }} позиций
+                .t-muted(v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
+              td.col-num {{ formatAsset2Digits(p.total_amount) }}
+              td
+                BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
+              td {{ formatDate(proposalDate(p)) }}
 
   SubmitToCouncilDialog(
     v-if="draft",
@@ -332,18 +345,8 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__council {
-    display: flex;
-    align-items: center;
-    gap: var(--p-3, 12px);
-  }
-
-  &__empty {
-    color: var(--p-ink-2);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    padding: var(--p-4, 16px);
-    font-size: var(--p-fs-body-sm);
+  &__row {
+    cursor: pointer;
   }
 }
 

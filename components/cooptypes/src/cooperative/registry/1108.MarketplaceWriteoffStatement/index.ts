@@ -77,8 +77,9 @@ export const context = `<style>
 .digital-document p { margin: 0 0 6px; }
 .digital-document h1 { margin: 0; text-align: center; }
 .addressee { text-align: right; margin-bottom: 24px; }
-.title-block { text-align: center; margin-bottom: 20px; }
+.title-block { text-align: center; margin-bottom: 12px; }
 .subheader { margin-top: 4px; }
+.place { text-align: right; margin-bottom: 12px; }
 .sign { margin-top: 24px; }
 table { width: 100%; border-collapse: collapse; margin: 12px 0; }
 th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
@@ -96,7 +97,9 @@ th { font-weight: bold; }
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
 
-  <p>{% trans 'preamble', program.name, cycle_started_at %}</p>
+  <p class="place">г. {{ coop.city }}</p>
+
+  <p>{% trans 'preamble', cycle_started_at %}</p>
 
   <table>
     <thead>
@@ -140,7 +143,7 @@ export const translations = {
     from_chairman: 'от Председателя',
     statement_title: 'ЗАЯВЛЕНИЕ',
     statement_subheader: 'о списании имущества со складов кооперативных участков по Целевой Потребительской Программе «{0}»',
-    preamble: 'Прошу совет принять решение о списании с балансов кооперативных участков следующих позиций имущества, признанных по итогам цикла «{0}» от {1} непригодными к выдаче пайщикам:',
+    preamble: 'Прошу совет принять решение о списании с балансов кооперативных участков следующих позиций имущества, признанных от {0} непригодными к выдаче пайщикам:',
     col_asset: 'Наименование/Артикул',
     col_quantity: 'Количество',
     col_amount: 'Сумма списания',

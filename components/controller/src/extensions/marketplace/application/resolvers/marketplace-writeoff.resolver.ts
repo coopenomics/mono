@@ -217,11 +217,11 @@ export class MarketplaceWriteoffResolver {
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
-        // Сумма с символом валюты, как total_amount (иначе строки таблицы без валюты).
-        amount: this.service.formatAsset(Number(it.amount)),
+        // Человекочитаемая сумма «1 020,00 RUB» (2 знака), не машинные 4 знака.
+        amount: this.service.formatAssetHuman(Number(it.amount)),
         reason: it.reason,
       })),
-      total_amount: draft.total_amount,
+      total_amount: this.service.formatAssetHuman(parseFloat(draft.total_amount)),
     };
     const document = await this.documentDomainService.generateDocument({
       data: action,
@@ -313,9 +313,9 @@ export class MarketplaceWriteoffResolver {
       cycle_started_at: this.formatDocumentDate(memo.cycle_started_at),
       items: memo.items.map((it) => ({
         ...it,
-        amount: this.service.formatAsset(Number(it.amount)),
+        amount: this.service.formatAssetHuman(Number(it.amount)),
       })),
-      total_amount: memo.total_amount,
+      total_amount: this.service.formatAssetHuman(parseFloat(memo.total_amount)),
     };
     const document = await this.documentDomainService.generateDocument({ data: action });
     return toGeneratedDocumentDTO(document);
