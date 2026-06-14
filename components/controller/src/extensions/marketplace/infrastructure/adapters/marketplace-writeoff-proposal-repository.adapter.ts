@@ -122,6 +122,11 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     for (const row of rows) {
       for (const item of row.items ?? []) {
         for (const id of item.inventory_ids ?? []) ids.add(id);
+        // Обратная совместимость: проекты, созданные до агрегации партий,
+        // хранят одиночный inventory_id — учитываем и его, иначе их партии
+        // ошибочно «разблокируются» и всплывут в кандидатах.
+        const legacyId = (item as { inventory_id?: string | null }).inventory_id;
+        if (legacyId) ids.add(legacyId);
       }
     }
     return [...ids];
