@@ -35,7 +35,7 @@ function buildProposal(
         quantity: '5',
         amount: '485.0000',
         reason: 'Истёк срок годности',
-        inventory_id: null,
+        inventory_ids: [],
         executed: false,
       },
     ],
@@ -234,7 +234,7 @@ describe('MarketplaceWriteoffService', () => {
           quantity: '1',
           amount: '10.0000',
           reason: 'r',
-          inventory_id: null,
+          inventory_ids: [],
           executed: false,
         },
         {
@@ -243,7 +243,7 @@ describe('MarketplaceWriteoffService', () => {
           quantity: '2',
           amount: '20.0000',
           reason: 'r',
-          inventory_id: null,
+          inventory_ids: [],
           executed: false,
         },
       ];
@@ -272,7 +272,7 @@ describe('MarketplaceWriteoffService', () => {
           quantity: '1',
           amount: '10.0000',
           reason: 'r',
-          inventory_id: null,
+          inventory_ids: [],
           executed: false,
         },
       ];

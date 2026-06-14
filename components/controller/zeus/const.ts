@@ -4898,8 +4898,10 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		branch_name:"String",
 		expiry_date:"String",
-		inventory_id:"String",
+		inventory_ids:"String",
 		is_expired:"Boolean",
+		key:"String",
+		lots_count:"Int",
 		quantity:"String",
 		reason:"String"
 	},
@@ -4946,7 +4948,7 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		branch_name:"String",
 		executed:"Boolean",
-		inventory_id:"String",
+		inventory_ids:"String",
 		quantity:"String",
 		reason:"String"
 	},

@@ -8469,7 +8469,7 @@ export type ValueTypes = {
 	id: string | Variable<any, string>
 };
 	["MarketplaceWriteoffCandidate"]: AliasType<{
-	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	/** Суммарная сумма к списанию (закупочная цена × количество, 4 знака). */
 	amount?:boolean | `@${string}`,
 	/** Наименование позиции (из карточки имущества). */
 	asset_title?:boolean | `@${string}`,
@@ -8477,13 +8477,17 @@ export type ValueTypes = {
 	braname?:boolean | `@${string}`,
 	/** Человеко-читаемое наименование кооперативного участка. */
 	branch_name?:boolean | `@${string}`,
-	/** Срок годности (ISO). */
+	/** Ближайший срок годности среди партий (ISO). */
 	expiry_date?:boolean | `@${string}`,
-	/** Идентификатор инвентарной позиции на складе. */
-	inventory_id?:boolean | `@${string}`,
+	/** Идентификаторы всех партий на складе, слитых в эту строку-кандидат. */
+	inventory_ids?:boolean | `@${string}`,
 	/** Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат). */
 	is_expired?:boolean | `@${string}`,
-	/** Количество единиц. */
+	/** Стабильный ключ строки (склад + наименование + состояние). */
+	key?:boolean | `@${string}`,
+	/** Сколько партий слито в эту строку (для подсказки в интерфейсе). */
+	lots_count?:boolean | `@${string}`,
+	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason?:boolean | `@${string}`,
@@ -8524,7 +8528,8 @@ export type ValueTypes = {
 	amount: string | Variable<any, string>,
 	asset_title: string | Variable<any, string>,
 	braname: string | Variable<any, string>,
-	inventory_id?: string | undefined | null | Variable<any, string>,
+	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
+	inventory_ids?: Array<string> | undefined | null | Variable<any, string>,
 	quantity: string | Variable<any, string>,
 	reason: string | Variable<any, string>
 };
@@ -8568,8 +8573,8 @@ export type ValueTypes = {
 	branch_name?:boolean | `@${string}`,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed?:boolean | `@${string}`,
-	/** Идентификатор инвентарной позиции, если известна. */
-	inventory_id?:boolean | `@${string}`,
+	/** Идентификаторы партий на складе, слитых в эту строку списания. */
+	inventory_ids?:boolean | `@${string}`,
 	/** Количество единиц к списанию. */
 	quantity?:boolean | `@${string}`,
 	/** Причина списания (срок годности, повреждение и т.п.). */
@@ -19263,7 +19268,7 @@ export type ResolverInputTypes = {
 	id: string
 };
 	["MarketplaceWriteoffCandidate"]: AliasType<{
-	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	/** Суммарная сумма к списанию (закупочная цена × количество, 4 знака). */
 	amount?:boolean | `@${string}`,
 	/** Наименование позиции (из карточки имущества). */
 	asset_title?:boolean | `@${string}`,
@@ -19271,13 +19276,17 @@ export type ResolverInputTypes = {
 	braname?:boolean | `@${string}`,
 	/** Человеко-читаемое наименование кооперативного участка. */
 	branch_name?:boolean | `@${string}`,
-	/** Срок годности (ISO). */
+	/** Ближайший срок годности среди партий (ISO). */
 	expiry_date?:boolean | `@${string}`,
-	/** Идентификатор инвентарной позиции на складе. */
-	inventory_id?:boolean | `@${string}`,
+	/** Идентификаторы всех партий на складе, слитых в эту строку-кандидат. */
+	inventory_ids?:boolean | `@${string}`,
 	/** Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат). */
 	is_expired?:boolean | `@${string}`,
-	/** Количество единиц. */
+	/** Стабильный ключ строки (склад + наименование + состояние). */
+	key?:boolean | `@${string}`,
+	/** Сколько партий слито в эту строку (для подсказки в интерфейсе). */
+	lots_count?:boolean | `@${string}`,
+	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason?:boolean | `@${string}`,
@@ -19315,7 +19324,8 @@ export type ResolverInputTypes = {
 	amount: string,
 	asset_title: string,
 	braname: string,
-	inventory_id?: string | undefined | null,
+	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
+	inventory_ids?: Array<string> | undefined | null,
 	quantity: string,
 	reason: string
 };
@@ -19358,8 +19368,8 @@ export type ResolverInputTypes = {
 	branch_name?:boolean | `@${string}`,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed?:boolean | `@${string}`,
-	/** Идентификатор инвентарной позиции, если известна. */
-	inventory_id?:boolean | `@${string}`,
+	/** Идентификаторы партий на складе, слитых в эту строку списания. */
+	inventory_ids?:boolean | `@${string}`,
 	/** Количество единиц к списанию. */
 	quantity?:boolean | `@${string}`,
 	/** Причина списания (срок годности, повреждение и т.п.). */
@@ -29673,7 +29683,7 @@ export type ModelTypes = {
 	id: string
 };
 	["MarketplaceWriteoffCandidate"]: {
-		/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+		/** Суммарная сумма к списанию (закупочная цена × количество, 4 знака). */
 	amount: string,
 	/** Наименование позиции (из карточки имущества). */
 	asset_title: string,
@@ -29681,13 +29691,17 @@ export type ModelTypes = {
 	braname: string,
 	/** Человеко-читаемое наименование кооперативного участка. */
 	branch_name: string,
-	/** Срок годности (ISO). */
+	/** Ближайший срок годности среди партий (ISO). */
 	expiry_date?: string | undefined | null,
-	/** Идентификатор инвентарной позиции на складе. */
-	inventory_id: string,
+	/** Идентификаторы всех партий на складе, слитых в эту строку-кандидат. */
+	inventory_ids: Array<string>,
 	/** Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат). */
 	is_expired: boolean,
-	/** Количество единиц. */
+	/** Стабильный ключ строки (склад + наименование + состояние). */
+	key: string,
+	/** Сколько партий слито в эту строку (для подсказки в интерфейсе). */
+	lots_count: number,
+	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason: string
@@ -29722,7 +29736,8 @@ export type ModelTypes = {
 	amount: string,
 	asset_title: string,
 	braname: string,
-	inventory_id?: string | undefined | null,
+	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
+	inventory_ids?: Array<string> | undefined | null,
 	quantity: string,
 	reason: string
 };
@@ -29764,8 +29779,8 @@ export type ModelTypes = {
 	branch_name?: string | undefined | null,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed: boolean,
-	/** Идентификатор инвентарной позиции, если известна. */
-	inventory_id?: string | undefined | null,
+	/** Идентификаторы партий на складе, слитых в эту строку списания. */
+	inventory_ids: Array<string>,
 	/** Количество единиц к списанию. */
 	quantity: string,
 	/** Причина списания (срок годности, повреждение и т.п.). */
@@ -41228,7 +41243,7 @@ export type GraphQLTypes = {
 };
 	["MarketplaceWriteoffCandidate"]: {
 	__typename: "MarketplaceWriteoffCandidate",
-	/** Сумма к списанию (закупочная цена × количество, 4 знака). */
+	/** Суммарная сумма к списанию (закупочная цена × количество, 4 знака). */
 	amount: string,
 	/** Наименование позиции (из карточки имущества). */
 	asset_title: string,
@@ -41236,13 +41251,17 @@ export type GraphQLTypes = {
 	braname: string,
 	/** Человеко-читаемое наименование кооперативного участка. */
 	branch_name: string,
-	/** Срок годности (ISO). */
+	/** Ближайший срок годности среди партий (ISO). */
 	expiry_date?: string | undefined | null,
-	/** Идентификатор инвентарной позиции на складе. */
-	inventory_id: string,
+	/** Идентификаторы всех партий на складе, слитых в эту строку-кандидат. */
+	inventory_ids: Array<string>,
 	/** Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат). */
 	is_expired: boolean,
-	/** Количество единиц. */
+	/** Стабильный ключ строки (склад + наименование + состояние). */
+	key: string,
+	/** Сколько партий слито в эту строку (для подсказки в интерфейсе). */
+	lots_count: number,
+	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason: string,
@@ -41282,7 +41301,8 @@ export type GraphQLTypes = {
 	amount: string,
 	asset_title: string,
 	braname: string,
-	inventory_id?: string | undefined | null,
+	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
+	inventory_ids?: Array<string> | undefined | null,
 	quantity: string,
 	reason: string
 };
@@ -41327,8 +41347,8 @@ export type GraphQLTypes = {
 	branch_name?: string | undefined | null,
 	/** Признак того, что позиция уже исполнена через execwroff. */
 	executed: boolean,
-	/** Идентификатор инвентарной позиции, если известна. */
-	inventory_id?: string | undefined | null,
+	/** Идентификаторы партий на складе, слитых в эту строку списания. */
+	inventory_ids: Array<string>,
 	/** Количество единиц к списанию. */
 	quantity: string,
 	/** Причина списания (срок годности, повреждение и т.п.). */

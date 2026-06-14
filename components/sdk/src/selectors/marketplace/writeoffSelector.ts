@@ -8,7 +8,7 @@ const rawItemSelector = {
   quantity: true,
   amount: true,
   reason: true,
-  inventory_id: true,
+  inventory_ids: true,
   executed: true,
 }
 
@@ -77,7 +77,8 @@ export const paginatedMarketplaceWriteoffProposalsSelector = Selector(
 )(rawPaginatedSelector)
 
 const rawCandidateSelector = {
-  inventory_id: true,
+  key: true,
+  inventory_ids: true,
   braname: true,
   branch_name: true,
   asset_title: true,
@@ -86,6 +87,7 @@ const rawCandidateSelector = {
   reason: true,
   expiry_date: true,
   is_expired: true,
+  lots_count: true,
 }
 
 const _validateCandidate: MakeAllFieldsRequired<ValueTypes['MarketplaceWriteoffCandidate']> =

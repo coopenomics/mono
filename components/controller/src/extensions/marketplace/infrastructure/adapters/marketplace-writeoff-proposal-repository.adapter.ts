@@ -121,7 +121,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     const ids = new Set<string>();
     for (const row of rows) {
       for (const item of row.items ?? []) {
-        if (item.inventory_id) ids.add(item.inventory_id);
+        for (const id of item.inventory_ids ?? []) ids.add(id);
       }
     }
     return [...ids];

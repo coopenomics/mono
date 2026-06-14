@@ -54,7 +54,7 @@ export interface MarketplaceWriteoffItemInput {
   quantity: string;
   amount: string;
   reason: string;
-  inventory_id?: string | null;
+  inventory_ids?: string[];
 }
 
 export interface MarketplaceCreateWriteoffDraftInput {
@@ -91,15 +91,23 @@ export interface MarketplaceConfirmWriteoffInput {
 }
 
 export interface MarketplaceWriteoffCandidateView {
-  inventory_id: string;
+  /** Стабильный ключ строки = КУ|наименование|состояние (для row-key и выбора). */
+  key: string;
+  /** Все партии (штрих-коды), слитые в этот агрегат. */
+  inventory_ids: string[];
   braname: string;
   branch_name: string;
   asset_title: string;
+  /** Суммарное количество по всем партиям агрегата. */
   quantity: string;
+  /** Суммарная стоимость по всем партиям агрегата. */
   amount: string;
   reason: string;
+  /** Ближайший (самый срочный) срок годности среди партий агрегата. */
   expiry_date: string | null;
   is_expired: boolean;
+  /** Сколько партий слито в строку — для подсказки «N партий» в интерфейсе. */
+  lots_count: number;
 }
 
 export interface MarketplaceWriteoffConfirmationGroup {
@@ -192,39 +200,97 @@ export class MarketplaceWriteoffService {
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
-    // Позиции, уже занятые в незавершённых проектах списания, исключаем —
+    // Партии, уже занятые в незавершённых проектах списания, исключаем —
     // иначе один и тот же товар попадёт в два проекта (двойное списание).
     const lockedIds = new Set(await this.repo.findActiveLockedInventoryIds(coopname));
     // Имя КУ показываем человеку, не служебный braname — резолвим с кэшем,
     // позиций по одному складу обычно много.
     const branchNameCache = new Map<string, string>();
-    const result: MarketplaceWriteoffCandidateView[] = [];
+
+    // Несколько партий одного наименования на одном КУ в одном состоянии
+    // визуально неразличимы (та же дата «годен до», тот же КУ) — пайщик видит
+    // «прыгающее количество». Сливаем их в одну строку-агрегат: суммарное
+    // кол-во + сумма, под капотом — список всех партий. Ключ группировки
+    // включает состояние (просрочено / без гарантии / годно), потому что у них
+    // разный визуальный статус и разная причина по умолчанию.
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        inventory_ids: string[];
+        braname: string;
+        asset_title: string;
+        quantity: number;
+        amount: number;
+        reason: string;
+        expiry_ms: number | null;
+        is_expired: boolean;
+        state: string;
+      }
+    >();
+
     for (const c of candidates) {
       if (lockedIds.has(c.inventory_id)) continue;
-      let branchName = branchNameCache.get(c.braname);
-      if (branchName === undefined) {
-        const branch = await this.orderDisplay.resolveBranchDisplay(c.braname);
-        branchName = branch.name || c.braname;
-        branchNameCache.set(c.braname, branchName);
-      }
+      // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
+      const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
+      const key = `${c.braname}|${c.asset_title}|${state}`;
       const unit = c.arrival_price !== null ? Number(c.arrival_price) : 0;
       const amount = Number.isFinite(unit) ? unit * c.quantity : 0;
+      const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
+
+      const existing = groups.get(key);
+      if (existing) {
+        existing.inventory_ids.push(c.inventory_id);
+        existing.quantity += c.quantity;
+        existing.amount += amount;
+        // Ближайший (самый срочный) срок годности — представитель агрегата.
+        if (expiryMs !== null && (existing.expiry_ms === null || expiryMs < existing.expiry_ms)) {
+          existing.expiry_ms = expiryMs;
+        }
+      } else {
+        groups.set(key, {
+          key,
+          inventory_ids: [c.inventory_id],
+          braname: c.braname,
+          asset_title: c.asset_title,
+          quantity: c.quantity,
+          amount,
+          // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
+          // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
+          // вручную (порча/использование) → «Списание вручную». Председатель
+          // может уточнить причину в поле перед отправкой.
+          reason: state === 'valid' ? 'Списание вручную' : 'Истёк срок годности',
+          expiry_ms: expiryMs,
+          is_expired: c.is_expired,
+          state,
+        });
+      }
+    }
+
+    const result: MarketplaceWriteoffCandidateView[] = [];
+    for (const g of groups.values()) {
+      let branchName = branchNameCache.get(g.braname);
+      if (branchName === undefined) {
+        const branch = await this.orderDisplay.resolveBranchDisplay(g.braname);
+        branchName = branch.name || g.braname;
+        branchNameCache.set(g.braname, branchName);
+      }
       result.push({
-        inventory_id: c.inventory_id,
-        braname: c.braname,
+        key: g.key,
+        inventory_ids: g.inventory_ids,
+        braname: g.braname,
         branch_name: branchName,
-        asset_title: c.asset_title,
-        quantity: String(c.quantity),
-        amount: this.formatAssetNumber(amount),
-        // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
-        // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
-        // вручную (порча/использование) → «Списание вручную». Председатель
-        // может уточнить причину в поле перед отправкой.
-        reason: c.is_expired || c.expiry_date === null ? 'Истёк срок годности' : 'Списание вручную',
-        expiry_date: c.expiry_date ? c.expiry_date.toISOString() : null,
-        is_expired: c.is_expired,
+        asset_title: g.asset_title,
+        quantity: String(g.quantity),
+        amount: this.formatAssetNumber(g.amount),
+        reason: g.reason,
+        expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
+        is_expired: g.is_expired,
+        lots_count: g.inventory_ids.length,
       });
     }
+    // Просроченное — наверх (первоочередные кандидаты), затем остальное.
+    result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
     return result;
   }
 
@@ -626,12 +692,12 @@ export class MarketplaceWriteoffService {
           execwroff_tx_hash: execTxHash,
         },
       });
-      if (item.inventory_id) {
-        // Inventory transition обязателен — иначе позиция остаётся
-        // RETURNED_TO_WAREHOUSE в БД и может повторно попасть в следующий
-        // cron-цикл. Если update упадёт — re-throw, чтобы видна была проблема
-        // и proposal остался в EXECUTING для retry.
-        await this.inventoryRepo.applyStatusTransition(item.inventory_id, 'WRITTEN_OFF');
+      // Inventory transition обязателен для каждой партии агрегата — иначе
+      // позиция остаётся RETURNED_TO_WAREHOUSE в БД и может повторно попасть в
+      // следующий cron-цикл. Если update упадёт — re-throw, чтобы видна была
+      // проблема и proposal остался в EXECUTING для retry.
+      for (const invId of item.inventory_ids ?? []) {
+        await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
 
@@ -725,8 +791,7 @@ export class MarketplaceWriteoffService {
           confirmwroff_tx_hash: confirmTxHash,
         },
       });
-      const invId = proposal.items[idx].inventory_id;
-      if (invId) {
+      for (const invId of proposal.items[idx].inventory_ids ?? []) {
         await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
@@ -795,7 +860,7 @@ export class MarketplaceWriteoffService {
         quantity: it.quantity,
         amount: this.formatAssetNumber(amount),
         reason: it.reason ?? '',
-        inventory_id: it.inventory_id ?? null,
+        inventory_ids: it.inventory_ids ?? [],
         executed: false,
       };
     });

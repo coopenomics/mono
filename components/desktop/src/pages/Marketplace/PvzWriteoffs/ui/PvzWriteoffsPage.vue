@@ -36,6 +36,11 @@ function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
   return `${g.proposal_id}:${g.braname}`;
 }
 
+// Позиция-агрегат несёт список партий; стабильный ключ строки — наименование+состояние.
+function itemRowKey(it: { asset_title: string; reason: string }): string {
+  return `${it.asset_title}|${it.reason}`;
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -107,7 +112,7 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
         flat,
         :rows="g.items",
         :columns="itemColumns",
-        row-key="inventory_id",
+        :row-key="itemRowKey",
         hide-bottom,
         :rows-per-page-options="[0]"
       )

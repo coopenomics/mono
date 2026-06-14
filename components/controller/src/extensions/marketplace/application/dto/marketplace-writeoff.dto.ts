@@ -48,11 +48,10 @@ export class MarketplaceWriteoffProposalItemDTO {
   amount!: string;
   @Field({ description: 'Причина списания (срок годности, повреждение и т.п.).' })
   reason!: string;
-  @Field(() => String, {
-    nullable: true,
-    description: 'Идентификатор инвентарной позиции, если известна.',
+  @Field(() => [String], {
+    description: 'Идентификаторы партий на складе, слитых в эту строку списания.',
   })
-  inventory_id?: string | null;
+  inventory_ids!: string[];
   @Field({ description: 'Признак того, что позиция уже исполнена через execwroff.' })
   executed!: boolean;
 }
@@ -139,8 +138,11 @@ export class MarketplaceWriteoffItemInputDTO {
   amount!: string;
   @Field()
   reason!: string;
-  @Field({ nullable: true })
-  inventory_id?: string;
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Идентификаторы партий на складе, которые покрывает эта строка списания.',
+  })
+  inventory_ids?: string[];
 }
 
 @InputType('MarketplaceCreateWriteoffDraftInput')
@@ -183,27 +185,33 @@ export class MarketplaceListWriteoffProposalsInputDTO {
 
 @ObjectType('MarketplaceWriteoffCandidate')
 export class MarketplaceWriteoffCandidateDTO {
-  @Field({ description: 'Идентификатор инвентарной позиции на складе.' })
-  inventory_id!: string;
+  @Field({ description: 'Стабильный ключ строки (склад + наименование + состояние).' })
+  key!: string;
+  @Field(() => [String], {
+    description: 'Идентификаторы всех партий на складе, слитых в эту строку-кандидат.',
+  })
+  inventory_ids!: string[];
   @Field({ description: 'Кооперативный участок (склад), где лежит позиция.' })
   braname!: string;
   @Field({ description: 'Человеко-читаемое наименование кооперативного участка.' })
   branch_name!: string;
   @Field({ description: 'Наименование позиции (из карточки имущества).' })
   asset_title!: string;
-  @Field({ description: 'Количество единиц.' })
+  @Field({ description: 'Суммарное количество единиц по всем партиям строки.' })
   quantity!: string;
-  @Field({ description: 'Сумма к списанию (закупочная цена × количество, 4 знака).' })
+  @Field({ description: 'Суммарная сумма к списанию (закупочная цена × количество, 4 знака).' })
   amount!: string;
   @Field({ description: 'Причина-кандидат (по умолчанию — истёк срок годности).' })
   reason!: string;
-  @Field(() => String, { nullable: true, description: 'Срок годности (ISO).' })
+  @Field(() => String, { nullable: true, description: 'Ближайший срок годности среди партий (ISO).' })
   expiry_date?: string | null;
   @Field({
     description:
       'Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат).',
   })
   is_expired!: boolean;
+  @Field(() => Int, { description: 'Сколько партий слито в эту строку (для подсказки в интерфейсе).' })
+  lots_count!: number;
 }
 
 @ObjectType('MarketplaceWriteoffConfirmationGroup')

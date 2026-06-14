@@ -96,8 +96,8 @@ async function load(): Promise<void> {
     candidates.value = candidatesList;
     // Позиции, уже попавшие в открытый черновик, из выбора убираем.
     if (selectedCandidates.value.length) {
-      const present = new Set(candidatesList.map((c) => c.inventory_id));
-      selectedCandidates.value = selectedCandidates.value.filter((c) => present.has(c.inventory_id));
+      const present = new Set(candidatesList.map((c) => c.key));
+      selectedCandidates.value = selectedCandidates.value.filter((c) => present.has(c.key));
     }
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить проекты списания');
@@ -138,7 +138,8 @@ async function signAndSend(): Promise<void> {
         amount: c.amount,
         // Пусто — причина по состоянию позиции (просрочено / ручное списание).
         reason: reason || c.reason,
-        inventory_id: c.inventory_id,
+        // Агрегат партий: одна строка Заявления покрывает все партии товара.
+        inventory_ids: c.inventory_ids,
       })),
     });
     draft.value = created;
@@ -280,7 +281,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       flat,
       :rows="candidates",
       :columns="candidateColumns",
-      row-key="inventory_id",
+      row-key="key",
       selection="multiple",
       v-model:selected="selectedCandidates",
       :loading="loading",
@@ -289,7 +290,9 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       no-data-label="Позиций на складах не найдено"
     )
       template(#body-cell-quantity="props")
-        q-td.text-right(:props="props") {{ props.row.quantity }}
+        q-td.text-right(:props="props")
+          div {{ props.row.quantity }}
+          .t-muted.t-sm(v-if="props.row.lots_count > 1") из {{ props.row.lots_count }} партий
       template(#body-cell-state="props")
         q-td(:props="props")
           BaseBadge(:variant="candidateStateVariant(props.row)") {{ candidateStateLabel(props.row) }}
