@@ -33,6 +33,9 @@ const previewDoc = ref<MarketplaceWriteoffStatementDocumentView | null>(null);
 const loading = ref(false);
 const submitting = ref(false);
 
+// immediate: диалог может смонтироваться уже открытым (modelValue=true задаётся
+// одновременно с появлением draft) — без immediate watch не сработал бы и
+// документ не загрузился бы (пустой экран без кнопок).
 watch(
   () => props.modelValue,
   async (open) => {
@@ -50,6 +53,7 @@ watch(
       loading.value = false;
     }
   },
+  { immediate: true },
 );
 
 async function signAndSubmit(): Promise<void> {
