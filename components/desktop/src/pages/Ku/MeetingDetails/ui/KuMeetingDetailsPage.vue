@@ -53,22 +53,30 @@
 
     //- Повестка и голосование (канон meet-agenda-card);
     //- по завершении собрания вопросы стираются контрактом — повестка живёт в протоколе
-    BaseCard.q-mt-md(v-if='questions.length', title='Повестка дня')
+    BaseCard.q-mt-md(v-if='questions.length')
+      template(#head)
+        .agenda-head
+          q-icon.agenda-head__icon(name='list_alt', size='20px')
+          div
+            .agenda-head__title Повестка собрания
+            .agenda-head__sub Вопросы и проекты решений, вынесенные на голосование
       .agenda-items
         .agenda-card(v-for='question in questions', :key='question.id')
           .agenda-card__head
             AgendaNumberAvatar(:number='question.number')
             span.agenda-card__title {{ question.title }}
+          .agenda-card__decision
+            span.agenda-card__label Проект решения
+            span.agenda-card__value {{ question.decision }}
           .agenda-card__field(v-if='question.context')
             span.agenda-card__label Контекст
             span.agenda-card__value {{ question.context }}
-          .agenda-card__field
-            span.agenda-card__label Проект решения
-            span.agenda-card__value {{ question.decision }}
-          .row.items-center.q-gutter-md(v-if='canVote')
-            q-radio(v-model='votes[question.id]', val='for', label='За', dense)
-            q-radio(v-model='votes[question.id]', val='against', label='Против', dense)
-            q-radio(v-model='votes[question.id]', val='abstained', label='Воздержался', dense)
+          .agenda-card__vote(v-if='canVote')
+            span.agenda-card__label Ваш голос
+            .row.items-center.q-gutter-md
+              q-radio(v-model='votes[question.id]', val='for', label='За', dense)
+              q-radio(v-model='votes[question.id]', val='against', label='Против', dense)
+              q-radio(v-model='votes[question.id]', val='abstained', label='Воздержался', dense)
           //- итоги показываем только после открытия голосования — до него нули не информативны
           .agenda-card__results(v-else-if='isVotingStarted')
             span.agenda-card__label Итоги голосования
@@ -286,6 +294,9 @@ const canStart = computed(() => isLive.value && status.value === Zeus.KuDecision
 // тикающее «сейчас» — чтобы кнопка протокола ожила по истечении окна голосования без перезагрузки
 const nowTick = ref(Date.now());
 let nowTimer: ReturnType<typeof setInterval> | undefined;
+// фоновое обновление состояния собрания (пока нет websocket): старт голосования,
+// смена статуса и новые бюллетени подтягиваются без перезагрузки страницы
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 // протокол утверждает и направляет в совет председатель собрания — им является организатор
 const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isInitiator.value);
@@ -500,6 +511,11 @@ watchEffect(() => {
 onMounted(async () => {
   registerAction({ id: 'ku-meeting-actions', component: KuMeetingHeaderActions, order: 1 });
   nowTimer = setInterval(() => (nowTick.value = Date.now()), 10000);
+  // не мешаем активной транзакции — withReload поллит проекцию сам
+  refreshTimer = setInterval(() => {
+    if (busy.value) return;
+    void kuStore.loadDecision(hash.value).catch(() => undefined);
+  }, 15000);
   loading.value = true;
   try {
     // после объявления собрания запись появляется сразу (placeholder с местом/временем),
@@ -525,6 +541,7 @@ onBeforeUnmount(() => {
   desktop.clearPageTitleOverride();
   kuMeetingHeaderActions.value = null;
   if (nowTimer) clearInterval(nowTimer);
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 // Возврат к списку собраний (back-link под шапкой, канон meet-back)
@@ -534,6 +551,26 @@ function goBack(): void {
 </script>
 
 <style scoped>
+.agenda-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-2, 8px);
+}
+.agenda-head__icon {
+  color: var(--p-ink-2);
+  margin-top: 2px;
+}
+.agenda-head__title {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
+  letter-spacing: var(--p-ls-h3);
+  color: var(--p-ink);
+}
+.agenda-head__sub {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink-2);
+  margin-top: 2px;
+}
 .agenda-items {
   display: flex;
   flex-direction: column;
@@ -566,6 +603,20 @@ function goBack(): void {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.agenda-card__decision {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--p-3, 12px);
+  background: var(--p-surface-2);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+}
+.agenda-card__vote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
 }
 .agenda-card__label {
   font-size: var(--p-fs-meta, 12px);

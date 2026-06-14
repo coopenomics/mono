@@ -98,7 +98,7 @@ BaseDialog(v-model='isCreateOpen', title='Объявить собрание', si
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
@@ -214,7 +214,7 @@ function openCreateDialog() {
 const CREATE_BRANCH_AGENDA = [
   {
     title: 'Об организации кооперативного участка',
-    decision: 'Организовать кооперативный участок по адресу привязки, определённому собранием пайщиков',
+    decision: 'Организовать кооперативный участок по адресу, определённому собранием пайщиков',
     context: '',
   },
   {
@@ -251,19 +251,24 @@ async function submitCreate() {
   }
 }
 
-async function load() {
-  loading.value = true;
+// silent=true — фоновое обновление: без скелетона и без алертов об ошибке
+async function load(silent = false) {
+  if (!silent) loading.value = true;
   try {
     await kuStore.loadDecisions({
       filter: { coopname: system.info.coopname },
       options: { page: 1, limit: 100, sortBy: '_created_at', sortOrder: 'DESC' },
     });
   } catch (e: unknown) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
+
+// фоновое обновление списка (пока нет websocket): новые собрания и смена
+// статусов подтягиваются без перезагрузки страницы
+let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 onMounted(() => {
   registerAction({
@@ -273,6 +278,11 @@ onMounted(() => {
     order: 1,
   });
   load();
+  refreshTimer = setInterval(() => load(true), 15000);
+});
+
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 </script>
 
