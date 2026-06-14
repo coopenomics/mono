@@ -17,9 +17,11 @@ import { CAPABILITY_SETS_REPOSITORY } from '~/domain/auth-v2/ports/capability-se
 import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER } from '~/domain/auth-v2/ports/force-recovery-consent.port';
 import { KEY_REVOCATION_REPOSITORY } from '~/domain/auth-v2/ports/key-revocation.port';
+import { AUTHENTIK_ADMIN_PORT } from '~/domain/auth-v2/ports/authentik-admin.port';
 import { VAULT_REPOSITORY } from '~/domain/auth-v2/vault/vault-repository.port';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
+import { AuthentikAdminAdapter } from './authentik-admin.adapter';
 import { PostgresVaultRepository } from './postgres-vault.repository';
 import { RedisThrottlerStorage } from './redis-throttler.storage';
 import { RedisRecoveryTokenStore } from './redis-recovery-token.store';
@@ -68,7 +70,8 @@ import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repos
     { provide: FORCE_RECOVERY_CONSENT_STORE, useClass: RedisForceRecoveryConsentStore },
     { provide: FORCE_RECOVERY_CONSENT_NOTIFIER, useClass: RedisForceRecoveryConsentNotifier },
     { provide: KEY_REVOCATION_REPOSITORY, useClass: PostgresKeyRevocationRepository },
+    { provide: AUTHENTIK_ADMIN_PORT, useClass: AuthentikAdminAdapter },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, AUTHENTIK_ADMIN_PORT],
 })
 export class AuthV2InfrastructureModule {}

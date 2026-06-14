@@ -160,6 +160,10 @@ const envVarsSchema = z.object({
   AUTH_V2_SESSION_BINDING_SECRET: z.string().optional(),
   AUTH_V2_SESSION_BINDING_SECRET_FILE: z.string().optional(),
   AUTHENTIK_INTERNAL_URL: z.string().default('http://authentik-server:9000'),
+  // auth-v2 (CoopID, Эпик 11): admin-API токен authentik для записи пароля пайщику
+  // (ensure user + set_password) — миграция «ключ→пароль» (11.4) и recovery-confirm (12.1).
+  AUTHENTIK_ADMIN_TOKEN: z.string().optional(),
+  AUTHENTIK_ADMIN_TOKEN_FILE: z.string().optional(),
   // auth-v2 (CoopID, Story 1.8): PEM приватного ключа (ES256K/secp256k1) permission `cert`
   // аккаунта vostok — им подписывается participant_certificate. Тот же ключ дериватится
   // в vostok.cert миграцией 052 (on-chain цепь обязана совпасть с ключом подписи).
@@ -306,6 +310,19 @@ export default {
         }
       }
       return envVars.data!.AUTH_V2_SESSION_BINDING_SECRET ?? '';
+    },
+    // auth-v2 (CoopID, Эпик 11): admin-токен authentik для записи пароля пайщику.
+    // '' при отсутствии — адаптер бросает явную ошибку конфигурации при попытке записи.
+    get authentikAdminToken(): string {
+      const file = envVars.data!.AUTHENTIK_ADMIN_TOKEN_FILE;
+      if (file) {
+        try {
+          return fs.readFileSync(file, 'utf-8').trim();
+        } catch {
+          return '';
+        }
+      }
+      return envVars.data!.AUTHENTIK_ADMIN_TOKEN ?? '';
     },
     // PEM cert-ключа: многострочный, .trim() убирает только хвостовой перевод строки
     // (createPrivateKey терпим к нему). '' при отсутствии — потребитель (CertificateService)
