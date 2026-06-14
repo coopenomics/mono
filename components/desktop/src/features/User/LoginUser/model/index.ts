@@ -6,6 +6,7 @@ import { useRegistratorStore } from 'src/entities/Registrator';
 import type { ITokens } from 'src/shared/lib/types/user';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Zeus } from '@coopenomics/sdk';
+import { migrate } from '@coopenomics/auth';
 
 export function useLoginUser() {
   const globalStore = useGlobalStore();
@@ -75,7 +76,38 @@ export function useLoginUser() {
     }
   }
 
+  /**
+   * Миграция действующего пайщика «ключ → пароль» (Эпик 11, Story 11.6),
+   * логическая часть. Пайщик владеет только легаси-ключом (WIF) и ещё без пароля.
+   *
+   *  1. SDK `migrate()` (Story 11.4): доказывает владение ключом подписью против
+   *     COOPOS, ставит пароль в authentik и шифрует ТОТ ЖЕ ключ паролём в
+   *     server-vault. Приватный ключ на сервер не уходит — только шифр.
+   *  2. Вход легаси-контуром тем же ключом (`login` выше) — сессия/keystore/токены
+   *     устанавливаются существующим путём. Так пайщик переходит на пароль и СРАЗУ
+   *     остаётся в системе, без потери доступа и без зависимости от готовности
+   *     OIDC-инфраструктуры authentik (вход по паролю включится отдельно, Story 11.5).
+   *
+   * Идемпотентно (повтор с тем же ключом/паролём безопасен — см. SDK `migrate()`).
+   * Бросает `AuthV2Error` (WeakPassword/InvalidCredentials/CooposDegraded/…) из
+   * `migrate()` ДО легаси-входа — vault и пароль либо ставятся целиком, либо никак.
+   */
+  async function migrateAndLogin(params: {
+    email: string;
+    privateKey: string;
+    newPassword: string;
+  }): Promise<{ username: string }> {
+    const result = await migrate({
+      email: params.email,
+      privateKey: params.privateKey,
+      newPassword: params.newPassword,
+    });
+    await login(params.email, params.privateKey);
+    return result;
+  }
+
   return {
     login,
+    migrateAndLogin,
   };
 }
