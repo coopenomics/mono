@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseDialog, BaseBadge } from 'src/shared/ui/base';
+import { BaseDialog, BaseBadge, BaseCard } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
 import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain/ActivityTimeline';
 import type { MarketplaceWriteoffProposalView } from '../api';
@@ -101,62 +102,55 @@ BaseDialog(
   maximized,
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  section.writeoff-details
-    .t-h3 Основные параметры
-    .writeoff-details__grid.q-mt-sm
-      .writeoff-details__field
-        .t-muted Цикл списания
-        div {{ fmtDate(proposal.cycle_started_at) }}
-      .writeoff-details__field
-        .t-muted Позиций
-        div {{ positionsLabel(proposal.items.length) }}
-      .writeoff-details__field
-        .t-muted Сумма списания
-        div {{ formatAsset2Digits(proposal.total_amount) }}
-      .writeoff-details__field
-        .t-muted Решение совета
-        div {{ councilOutcome(proposal.status) }}
+  .writeoff-details
+    BaseCard(title="Основные параметры")
+      DataRow(label="Цикл списания", :value="fmtDate(proposal.cycle_started_at)")
+      DataRow(label="Позиций", :value="positionsLabel(proposal.items.length)")
+      DataRow(label="Сумма списания", :value="formatAsset2Digits(proposal.total_amount)")
+      DataRow(label="Решение совета", :value="councilOutcome(proposal.status)")
 
-  section.writeoff-details.q-mt-lg
-    .t-h3.q-mb-sm Позиции к списанию
-    .table-wrap
-      .table-scroll
-        table.table
-          thead
-            tr
-              th №
-              th Кооп. участок
-              th Наименование
-              th.col-num Кол-во
-              th.col-num Сумма
-              th Причина
-              th Статус
-          tbody
-            tr(v-for="(it, idx) in proposal.items", :key="idx")
-              td {{ idx + 1 }}
-              td {{ it.branch_name || it.braname }}
-              td {{ it.asset_title }}
-              td.col-num {{ it.quantity }}
-              td.col-num {{ formatAsset2Digits(it.amount) }}
-              td {{ it.reason }}
-              td
-                BaseBadge(:variant="it.executed ? 'pos' : 'neutral'") {{ it.executed ? 'Списано' : 'Ожидает' }}
+    BaseCard(title="Позиции к списанию")
+      .table-wrap
+        .table-scroll
+          table.table
+            thead
+              tr
+                th №
+                th Кооп. участок
+                th Наименование
+                th.col-num Кол-во
+                th.col-num Сумма
+                th Причина
+                th Статус
+            tbody
+              tr(v-for="(it, idx) in proposal.items", :key="idx")
+                td {{ idx + 1 }}
+                td {{ it.branch_name || it.braname }}
+                td {{ it.asset_title }}
+                td.col-num {{ it.quantity }}
+                td.col-num {{ formatAsset2Digits(it.amount) }}
+                td {{ it.reason }}
+                td
+                  BaseBadge(:variant="it.executed ? 'pos' : 'neutral'") {{ it.executed ? 'Списано' : 'Ожидает' }}
 
-  section.writeoff-details.q-mt-lg(v-if="proposal.reject_reason")
-    .t-h3.q-mb-sm Причина отказа совета
-    .text-body2 {{ proposal.reject_reason }}
+    BaseCard(v-if="proposal.reject_reason", title="Причина отказа совета")
+      .text-body2 {{ proposal.reject_reason }}
 
-  section.writeoff-details.q-mt-lg(v-if="journalEvents.length")
-    .t-h3.q-mb-sm Журнал решений
-    ActivityTimeline(:events="journalEvents", :group-by-date="true")
+    BaseCard(v-if="journalEvents.length", title="Журнал решений")
+      ActivityTimeline(:events="journalEvents", :group-by-date="true")
 </template>
 
 <style lang="scss" scoped>
+// Контент детального экрана — центрированная колонка фиксированной ширины
+// (как страница раздела), а не full-bleed на весь maximized-экран; секции —
+// канон-карточки BaseCard со встроенными заголовками, между ними — единый
+// вертикальный ритм.
 .writeoff-details {
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--p-4, 16px);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4, 16px);
+  max-width: 920px;
+  margin: 0 auto;
+  padding: var(--p-2, 8px) 0 var(--p-6, 24px);
 }
 </style>

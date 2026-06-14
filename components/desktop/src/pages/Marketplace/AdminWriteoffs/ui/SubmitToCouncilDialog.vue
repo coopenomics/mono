@@ -4,7 +4,6 @@ import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
-import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import {
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
@@ -95,8 +94,14 @@ BaseDialog(
       | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
     //- Документ — листом фиксированной ширины (как остальные документы), на
     //- мобильном во всю ширину; высоту не режем — прокручивается весь диалог.
+    //- Рендер и нормализация бекенд-HTML — 1-в-1 с эталоном заявления на
+    //- вступление (Registrator/SignUp/ReadStatement): класс `.statement` +
+    //- :deep-стили ниже приводят разнородный HTML к канон-типографике.
+    //- DocumentHtmlReader здесь НЕ годится — он форсит h1 line-height 4.5rem и
+    //- DOMPurify срезает <style> документа («заявление разлетается»).
     .submit-council__sheet
-      DocumentHtmlReader(:html="previewDoc.html")
+      //- eslint-disable-next-line vue/no-v-html
+      .statement(v-html="previewDoc.html")
 
   template(#footer, v-if="previewDoc")
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
@@ -143,5 +148,89 @@ BaseDialog(
   .submit-council__sheet {
     padding: var(--p-4, 16px);
   }
+}
+
+/* Нормализатор бекенд-HTML заявления — копия канон-стилей из
+   Registrator/SignUp/ReadStatement.vue: приводим разнородный документ
+   (inline-стили, Quasar text-h*, собственные margin'ы) к канон-типографике с
+   компактным вертикальным ритмом. :deep + !important — документ приходит
+   из v-html. */
+.statement {
+  color: var(--p-ink);
+  font-size: var(--p-fs-body, 14px);
+  line-height: var(--p-lh-body, 1.55);
+}
+.statement :deep(h1),
+.statement :deep(.text-h1),
+.statement :deep(.text-h2),
+.statement :deep(.text-h3) {
+  font-size: var(--p-fs-h3, 20px) !important;
+  line-height: var(--p-lh-h3, 1.3) !important;
+  letter-spacing: 0 !important;
+  font-weight: 600 !important;
+  color: var(--p-ink) !important;
+  text-align: center !important;
+  margin: var(--p-6, 24px) 0 var(--p-2, 8px) !important;
+}
+.statement :deep(h2),
+.statement :deep(.text-h4) {
+  font-size: var(--p-fs-h4, 16px) !important;
+  line-height: var(--p-lh-h4, 1.4) !important;
+  font-weight: 600 !important;
+  color: var(--p-ink) !important;
+  margin: var(--p-5, 20px) 0 var(--p-2, 8px) !important;
+}
+.statement :deep(h3),
+.statement :deep(h4),
+.statement :deep(.text-h5),
+.statement :deep(.text-h6) {
+  font-size: var(--p-fs-body, 14px) !important;
+  line-height: var(--p-lh-body, 1.55) !important;
+  font-weight: 600 !important;
+  color: var(--p-ink) !important;
+  margin: var(--p-4, 16px) 0 var(--p-1, 4px) !important;
+}
+.statement :deep(p) {
+  margin: 0 0 var(--p-3, 12px) !important;
+  font-size: var(--p-fs-body, 14px) !important;
+  line-height: var(--p-lh-body, 1.55) !important;
+  color: var(--p-ink) !important;
+}
+.statement :deep(p:last-child) {
+  margin-bottom: 0 !important;
+}
+.statement :deep(.addressee),
+.statement :deep(.place) {
+  text-align: right;
+}
+.statement :deep(.addressee) {
+  margin-bottom: var(--p-5, 20px);
+}
+.statement :deep(.title-block) {
+  text-align: center;
+  margin-bottom: var(--p-5, 20px);
+}
+.statement :deep(strong),
+.statement :deep(b) {
+  font-weight: 600;
+  color: var(--p-ink);
+}
+.statement :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--p-4, 16px) 0;
+  font-size: var(--p-fs-body-sm, 13px);
+}
+.statement :deep(td),
+.statement :deep(th) {
+  padding: var(--p-2, 8px) var(--p-3, 12px);
+  border: 1px solid var(--p-line);
+  vertical-align: top;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.statement :deep(.sign) {
+  margin-top: var(--p-6, 24px);
 }
 </style>
