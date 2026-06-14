@@ -4,6 +4,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import {
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
@@ -92,8 +93,10 @@ BaseDialog(
   template(v-else-if="previewDoc")
     .t-muted.submit-council__intro
       | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
-    .submit-council__doc
-      div(v-html="previewDoc.html")
+    //- Документ — листом фиксированной ширины (как остальные документы), на
+    //- мобильном во всю ширину; высоту не режем — прокручивается весь диалог.
+    .submit-council__sheet
+      DocumentHtmlReader(:html="previewDoc.html")
 
   template(#footer, v-if="previewDoc")
     BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
@@ -122,12 +125,23 @@ BaseDialog(
     margin-bottom: var(--p-4, 16px);
   }
 
-  &__doc {
+  // Лист документа: ограничен по ширине и центрирован (как страница А4),
+  // на узких экранах занимает всю ширину. Высоту не ограничиваем — длинный
+  // документ прокручивается вместе с телом диалога, без «обрубка».
+  &__sheet {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--p-surface);
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
+    padding: var(--p-7, 40px);
+  }
+}
+
+@media (max-width: 700px) {
+  .submit-council__sheet {
     padding: var(--p-4, 16px);
-    max-height: 60vh;
-    overflow: auto;
   }
 }
 </style>

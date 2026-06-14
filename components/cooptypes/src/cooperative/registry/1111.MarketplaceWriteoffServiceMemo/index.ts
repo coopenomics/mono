@@ -70,48 +70,30 @@ export interface Model {
 export const title = 'Служебная записка о списании'
 export const description = 'Служебная записка председателя кооперативного участка о фактическом списании со склада скоропортящегося, повреждённого или малооценного имущества по решению совета (ЦПП «Стол заказов»)'
 
-// Вёрстка 1-в-1 с каноном фабричных документов (эталон — 1106/1108): рендерер
-// BaseDocument навязывает в Shadow DOM `.digital-document { white-space:
-// pre-wrap }` и `th { width: 30% !important }`. Поэтому интервалы задаём
-// переносами строк, как у сиблингов, а многоколоночный список позиций НЕ
-// использует <th> для шапки (пять <th> по 30% = 150% → таблица «уезжает»);
-// заголовки колонок — <td><b>.
+// Вёрстка 1-в-1 с эталоном уплотнённого фабричного документа (1110/1108):
+// спейсинг — ЯВНЫЕ margin'ы, БЕЗ `white-space: pre-wrap` (он рендерит переносы
+// строк исходника и вместе с дефолтными margin'ами <p> удваивает разрывы —
+// документ разъезжается). `.digital-document { white-space: normal }` перебивает
+// форсированный pre-wrap из Shadow DOM рендерера BaseDocument (наш <style> идёт
+// после — выигрывает при равной специфичности). Многоколоночный список позиций
+// НЕ использует <th> для шапки (рендерер навязывает `th { width: 30% }`, пять
+// <th> = 150% → таблица «уезжает»); заголовки колонок — <td><b>.
 export const context = `<style>
-h1 {
-  margin: 0px;
-  text-align: center;
-}
-.digital-document {
-  padding: 20px;
-  white-space: pre-wrap;
-}
-.subheader {
-  padding-bottom: 20px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  border: 1px solid currentColor;
-  padding: 8px;
-  text-align: left;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-th {
-  width: 30%;
-}
+.digital-document { padding: 20px; white-space: normal; }
+.digital-document p { margin: 0 0 6px; }
+.digital-document h1 { margin: 0; text-align: center; }
+.digital-document .title-block { text-align: center; margin-bottom: 24px; }
+.digital-document .subheader { margin-top: 4px; }
+.digital-document table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; }
+.digital-document th, .digital-document td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
+.digital-document .sign { margin-top: 24px; }
 </style>
-
 <div class="digital-document">
-  <div style="text-align: center">
-    <h1 class="header">{% trans 'memo_title' %}</h1>
+  <div class="title-block">
+    <h1>{% trans 'memo_title' %}</h1>
     <p class="subheader">{% trans 'memo_subheader', branch_name %}</p>
   </div>
-
   <p>{% trans 'preamble', program.name, cycle_started_at %}</p>
-
   <table>
     <tbody>
       <tr>
@@ -137,14 +119,14 @@ th {
       </tr>
     </tbody>
   </table>
-
   <p>{% trans 'confirmation' %}</p>
   <p>{% trans 'proposal_ref' %} {{ proposal_hash }}</p>
   <p>{% trans 'ledger_note' %}</p>
-
-  <p>{% trans 'signature' %}</p>
-  <p>{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
+  <div class="sign">
+    <p>{% trans 'signature' %}</p>
+    <p>{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
+    <p>{{ meta.created_at }}</p>
+  </div>
 </div>
 `
 

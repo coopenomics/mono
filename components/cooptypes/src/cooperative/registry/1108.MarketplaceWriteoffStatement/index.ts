@@ -70,55 +70,38 @@ export interface Model {
 export const title = 'Заявление о списании скоропорта'
 export const description = 'Заявление председателя в совет кооператива о признании списания со складов кооперативных участков скоропортящегося, повреждённого или малооценного имущества по ЦПП «Стол заказов»'
 
-// Вёрстка 1-в-1 с каноном фабричных документов (эталон — 1106 Заявление о
-// возврате): рендерер BaseDocument навязывает в Shadow DOM
-// `.digital-document { white-space: pre-wrap }` и `th { width: 30% !important }`,
-// поэтому (а) интервалы задаются переносами строк в исходнике, как у сиблингов,
-// (б) многоколоночный список позиций НЕ использует <th> для шапки — иначе пять
-// <th> по 30% дают 150% и таблица «уезжает» вправо; заголовки колонок — <td><b>.
+// Вёрстка 1-в-1 с эталоном уплотнённого фабричного документа (1110 Заявление о
+// конвертации): спейсинг задаётся ЯВНЫМИ margin'ами, БЕЗ `white-space: pre-wrap`
+// (он рендерит переносы строк исходника и вместе с дефолтными margin'ами <p>
+// удваивает разрывы — документ «разъезжается» по вертикали). `.digital-document
+// { white-space: normal }` ещё и перебивает форсированный pre-wrap из Shadow DOM
+// рендерера BaseDocument (наш <style> идёт после — выигрывает при равной
+// специфичности). Многоколоночный список позиций НЕ использует <th> для шапки:
+// рендерер навязывает `th { width: 30% }`, пять <th> дали бы 150% и таблицу
+// «уехало» вправо — заголовки колонок делаем <td><b>.
 export const context = `<style>
-h1 {
-  margin: 0px;
-  text-align: center;
-}
-.digital-document {
-  padding: 20px;
-  white-space: pre-wrap;
-}
-.subheader {
-  padding-bottom: 20px;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-th, td {
-  border: 1px solid currentColor;
-  padding: 8px;
-  text-align: left;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-th {
-  width: 30%;
-}
+.digital-document { padding: 20px; white-space: normal; }
+.digital-document p { margin: 0 0 6px; }
+.digital-document h1 { margin: 0; text-align: center; }
+.digital-document .addressee { text-align: right; margin-bottom: 24px; }
+.digital-document .title-block { text-align: center; margin-bottom: 24px; }
+.digital-document .subheader { margin-top: 4px; }
+.digital-document .place { text-align: right; margin-bottom: 24px; }
+.digital-document table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; }
+.digital-document th, .digital-document td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; white-space: normal; }
+.digital-document .sign { margin-top: 24px; }
 </style>
-
 <div class="digital-document">
-  <div style="text-align: right">
-    <p style="margin: 0px !important">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p style="margin: 0px !important">{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
+  <div class="addressee">
+    <p>{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
+    <p>{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
   </div>
-
-  <div style="text-align: center">
-    <h1 class="header">{% trans 'statement_title' %}</h1>
+  <div class="title-block">
+    <h1>{% trans 'statement_title' %}</h1>
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
-
-  <p style="text-align: right">{% trans 'place', coop.city %}</p>
-
+  <p class="place">{% trans 'place', coop.city %}</p>
   <p>{% trans 'preamble', cycle_started_at %}</p>
-
   <table>
     <tbody>
       <tr>
@@ -144,17 +127,18 @@ th {
       </tr>
     </tbody>
   </table>
-
-  <p>{% trans 'signature' %}</p>
-  <p>{{ chairman.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
+  <div class="sign">
+    <p>{% trans 'signature' %}</p>
+    <p>{{ chairman.full_name_or_short_name }}</p>
+    <p>{{ meta.created_at }}</p>
+  </div>
 </div>
 `
 
 export const translations = {
   ru: {
     v_soviet: 'В Совет',
-    from_chairman: 'от Председателя',
+    from_chairman: 'от Председателя Совета',
     statement_title: 'ЗАЯВЛЕНИЕ',
     statement_subheader: 'о списании имущества со складов кооперативных участков по Целевой Потребительской Программе «{0}»',
     place: 'г. {0}',

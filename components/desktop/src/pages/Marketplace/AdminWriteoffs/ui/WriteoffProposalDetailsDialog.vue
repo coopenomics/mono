@@ -2,6 +2,8 @@
 import { computed } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseDialog, BaseBadge } from 'src/shared/ui/base';
+import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
+import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain/ActivityTimeline';
 import type { MarketplaceWriteoffProposalView } from '../api';
 import { positionsLabel, proposalTitle } from '../lib/proposalDisplay';
 
@@ -17,12 +19,6 @@ function fmtDate(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
-}
-
-function fmtDateTime(value: string | null | undefined): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU');
 }
 
 function humanStatus(status: MarketplaceWriteoffProposalView['status']): string {
@@ -60,7 +56,8 @@ function councilOutcome(status: MarketplaceWriteoffProposalView['status']): stri
   }
 }
 
-// Журнал решений — коды действий в человеческие формулировки.
+// Журнал решений — коды действий в человеческие формулировки + тип события
+// для канонического таймлайна (иконка/цвет берутся из типа).
 const LOG_LABELS: Record<string, string> = {
   draft_created: 'Черновик создан',
   draft_updated: 'Состав изменён',
@@ -72,17 +69,29 @@ const LOG_LABELS: Record<string, string> = {
   item_executed: 'Позиция списана',
   execution_completed: 'Списание завершено',
 };
-function humanLog(action: string): string {
-  return LOG_LABELS[action] ?? action;
-}
+const LOG_TYPES: Record<string, ActivityEventType> = {
+  draft_created: 'create',
+  draft_updated: 'update',
+  submitted_to_council: 'transfer',
+  authorized_by_council: 'sign',
+  declined_by_council: 'reject',
+  confirmed_by_branch: 'sign',
+  execution_started: 'system',
+  item_executed: 'system',
+  execution_completed: 'sign',
+};
 
 const title = computed(() => proposalTitle(props.proposal));
 
-const shortHash = computed(() => {
-  const h = props.proposal.proposal_hash;
-  if (!h) return '—';
-  return h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
-});
+// Журнал → канонический ActivityTimeline (новые события сверху).
+const journalEvents = computed<ActivityEvent[]>(() =>
+  (props.proposal.decision_log ?? []).map((entry, idx) => ({
+    id: String(idx),
+    type: LOG_TYPES[entry.action] ?? 'system',
+    title: LOG_LABELS[entry.action] ?? entry.action,
+    date: entry.at,
+  })),
+);
 </script>
 
 <template lang="pug">
@@ -137,16 +146,9 @@ BaseDialog(
     .t-h3.q-mb-sm Причина отказа совета
     .text-body2 {{ proposal.reject_reason }}
 
-  section.writeoff-details.q-mt-lg(v-if="proposal.decision_log && proposal.decision_log.length")
+  section.writeoff-details.q-mt-lg(v-if="journalEvents.length")
     .t-h3.q-mb-sm Журнал решений
-    .writeoff-details__log
-      .writeoff-details__log-item(v-for="(entry, idx) in proposal.decision_log", :key="idx")
-        .writeoff-details__log-main {{ humanLog(entry.action) }}
-        .t-muted {{ fmtDateTime(entry.at) }}
-
-  section.writeoff-details.q-mt-lg
-    .t-muted Идентификатор в реестре
-    .t-mono-sm {{ shortHash }}
+    ActivityTimeline(:events="journalEvents", :group-by-date="true")
 </template>
 
 <style lang="scss" scoped>
@@ -155,31 +157,6 @@ BaseDialog(
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--p-4, 16px);
-  }
-
-  &__log {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    overflow: hidden;
-  }
-
-  &__log-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    padding: var(--p-3, 12px) var(--p-4, 16px);
-
-    & + & {
-      border-top: 1px solid var(--p-line);
-    }
-  }
-
-  &__log-main {
-    font-weight: 500;
-    color: var(--p-ink);
   }
 }
 </style>
