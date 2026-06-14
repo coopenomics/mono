@@ -6,10 +6,15 @@ export type MarketplaceWriteoffConfirmationGroupView =
 
 export type MarketplaceWriteoffServiceMemoDocumentView = Types.Document.IGeneratedDocument;
 
+export type MarketplaceWriteoffProtocolDocumentView = Types.Document.IGeneratedDocument;
+
 export type IConfirmWriteoffInput = Mutations.Marketplace.ConfirmWriteoff.IInput['data'];
 
 export type IServiceMemoSignablePayloadInput =
   Queries.Marketplace.WriteoffServiceMemoSignablePayload.IInput['data'];
+
+export type IWriteoffProtocolDocumentInput =
+  Queries.Marketplace.WriteoffProtocolDocument.IInput['data'];
 
 export async function listWriteoffPendingConfirmations(): Promise<
   MarketplaceWriteoffConfirmationGroupView[]
@@ -28,6 +33,16 @@ export async function getWriteoffServiceMemoSignablePayload(
     await client.Query(Queries.Marketplace.WriteoffServiceMemoSignablePayload.query, {
       variables: { data },
     });
+  return result;
+}
+
+export async function getWriteoffProtocolDocument(
+  data: IWriteoffProtocolDocumentInput,
+): Promise<MarketplaceWriteoffProtocolDocumentView> {
+  const { [Queries.Marketplace.WriteoffProtocolDocument.name]: result } = await client.Query(
+    Queries.Marketplace.WriteoffProtocolDocument.query,
+    { variables: { data } },
+  );
   return result;
 }
 

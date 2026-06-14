@@ -28,6 +28,7 @@ import {
   MarketplaceWriteoffConfirmationGroupDTO,
   MarketplaceWriteoffProposalDTO,
   MarketplaceWriteoffProposalStatusEnum,
+  MarketplaceWriteoffProtocolDocumentInputDTO,
   MarketplaceWriteoffServiceMemoSignablePayloadInputDTO,
   MarketplaceWriteoffStatementSignablePayloadInputDTO,
   PaginatedMarketplaceWriteoffProposalsDTO,
@@ -319,6 +320,39 @@ export class MarketplaceWriteoffResolver {
         amount: this.service.formatAssetHuman(Number(it.amount)),
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(memo.total_amount)),
+    };
+    const document = await this.documentDomainService.generateDocument({ data: action });
+    return toGeneratedDocumentDTO(document);
+  }
+
+  @Query(() => GeneratedDocumentDTO, {
+    name: 'marketplaceWriteoffProtocolDocument',
+    description:
+      'Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
+  async marketplaceWriteoffProtocolDocument(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    const proposal = await this.service.getProposal(data.proposal_id);
+    if (proposal.decision_id === null) {
+      throw new BadRequestException('Протокол совета по этому проекту ещё не сформирован');
+    }
+    // Протокол 1107 регенерируется фабрикой по решению совета (votes тянутся с
+    // цепи по decision_id) — html в callback'е не приходит, хранится только
+    // подпись. Тот же паттерн, что у Заявления 1108 и Служебной записки 1111.
+    const action: Cooperative.Registry.MarketplaceWriteoffProtocol.Action = {
+      registry_id: Cooperative.Registry.MarketplaceWriteoffProtocol.registry_id,
+      coopname: proposal.coopname,
+      username: member.username,
+      lang: 'ru',
+      decision_id: proposal.decision_id,
+      proposal_hash: proposal.proposal_hash,
+      cycle_started_at: this.formatDocumentDate(proposal.cycle_started_at),
+      total_amount: this.service.formatAssetHuman(parseFloat(proposal.total_amount)),
+      items_count: proposal.items.length,
     };
     const document = await this.documentDomainService.generateDocument({ data: action });
     return toGeneratedDocumentDTO(document);

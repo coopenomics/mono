@@ -244,6 +244,12 @@ export class MarketplaceWriteoffServiceMemoSignablePayloadInputDTO {
   braname!: string;
 }
 
+@InputType('MarketplaceWriteoffProtocolDocumentInput')
+export class MarketplaceWriteoffProtocolDocumentInputDTO {
+  @Field({ description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+}
+
 @InputType('MarketplaceConfirmWriteoffInput')
 export class MarketplaceConfirmWriteoffInputDTO {
   @Field({ description: 'Идентификатор проекта списания.' })

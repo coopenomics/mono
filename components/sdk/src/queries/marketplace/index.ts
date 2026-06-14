@@ -72,6 +72,8 @@ export * as ListWriteoffCandidates from './listWriteoffCandidates'
 export * as WriteoffPendingConfirmations from './writeoffPendingConfirmations'
 /** Эпик 8: превью Служебной записки 1111 для подписания председателем КУ */
 export * as WriteoffServiceMemoSignablePayload from './writeoffServiceMemoSignablePayload'
+/** Эпик 8: отрендеренный Протокол совета 1107 о списании — для просмотра на столе ПВЗ */
+export * as WriteoffProtocolDocument from './writeoffProtocolDocument'
 /** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
 export * as MarketplaceCppStatus from './marketplaceCppStatus'
 /** Эпик 4 / Story 4.5: заказы, по которым текущий пайщик — поставщик (стол поставщика) */

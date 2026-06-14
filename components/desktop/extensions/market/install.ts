@@ -32,7 +32,6 @@ import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoo
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
-import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
@@ -763,20 +762,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Списания скоропорта',
                 icon: 'fa-solid fa-trash-can-arrow-up',
-                requires: 'Order:read:all',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 8 / Story 8.x: read-only лента writeoff-проектов для совета.
-              path: 'board-writeoff',
-              name: 'marketplace-board-writeoff',
-              component: markRaw(BoardAgendaWriteoffPage),
-              meta: {
-                title: 'Повестка совета — списания',
-                icon: 'fa-solid fa-gavel',
                 requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,

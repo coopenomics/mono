@@ -8586,6 +8586,10 @@ export type ValueTypes = {
 ["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffProtocolDocumentInput"]: {
+	/** Идентификатор проекта списания. */
+	proposal_id: string | Variable<any, string>
+};
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
 	/** Кооперативный участок, по которому подтверждается списание. */
 	braname: string | Variable<any, string>,
@@ -10513,6 +10517,7 @@ marketplaceValidateAttributeValues?: [{	input: ValueTypes["ValidateAttributeValu
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
 	marketplaceWriteoffPendingConfirmations?:ValueTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceWriteoffProtocolDocument?: [{	data: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
@@ -19380,6 +19385,10 @@ export type ResolverInputTypes = {
 ["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffProtocolDocumentInput"]: {
+	/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
 	/** Кооперативный участок, по которому подтверждается списание. */
 	braname: string,
@@ -21240,6 +21249,7 @@ marketplaceValidateAttributeValues?: [{	input: ResolverInputTypes["ValidateAttri
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
 	marketplaceWriteoffPendingConfirmations?:ResolverInputTypes["MarketplaceWriteoffConfirmationGroup"],
 marketplaceWriteoffProposal?: [{	id: string},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceWriteoffProtocolDocument?: [{	data: ResolverInputTypes["MarketplaceWriteoffProtocolDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
@@ -29788,6 +29798,10 @@ export type ModelTypes = {
 };
 	["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffProtocolDocumentInput"]: {
+	/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
 	/** Кооперативный участок, по которому подтверждается списание. */
 	braname: string,
@@ -32364,6 +32378,8 @@ export type ModelTypes = {
 	marketplaceWriteoffPendingConfirmations: Array<ModelTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ. */
+	marketplaceWriteoffProtocolDocument: ModelTypes["GeneratedDocument"],
 	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
 	marketplaceWriteoffServiceMemoSignablePayload: ModelTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */
@@ -41359,6 +41375,10 @@ export type GraphQLTypes = {
 ["MarketplaceWriteoffProposalStatus"]: MarketplaceWriteoffProposalStatus;
 	/** Источник проекта списания: автоматический ежемесячный крон или ручное создание. */
 ["MarketplaceWriteoffProposalTrigger"]: MarketplaceWriteoffProposalTrigger;
+	["MarketplaceWriteoffProtocolDocumentInput"]: {
+		/** Идентификатор проекта списания. */
+	proposal_id: string
+};
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: {
 		/** Кооперативный участок, по которому подтверждается списание. */
 	braname: string,
@@ -44091,6 +44111,8 @@ export type GraphQLTypes = {
 	marketplaceWriteoffPendingConfirmations: Array<GraphQLTypes["MarketplaceWriteoffConfirmationGroup"]>,
 	/** Детали одного проекта списания: items, decision_log, протокол. */
 	marketplaceWriteoffProposal: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Протокол совета об одобрении списания — отрендеренный документ для просмотра председателем КУ. */
+	marketplaceWriteoffProtocolDocument: GraphQLTypes["GeneratedDocument"],
 	/** Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ. */
 	marketplaceWriteoffServiceMemoSignablePayload: GraphQLTypes["GeneratedDocument"],
 	/** Превью Заявления о списании скоропорта (registry 1106) для подписания председателем. */
@@ -46653,6 +46675,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffItemInput"]: ValueTypes["MarketplaceWriteoffItemInput"];
 	["MarketplaceWriteoffProposalStatus"]: ValueTypes["MarketplaceWriteoffProposalStatus"];
 	["MarketplaceWriteoffProposalTrigger"]: ValueTypes["MarketplaceWriteoffProposalTrigger"];
+	["MarketplaceWriteoffProtocolDocumentInput"]: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"];
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];

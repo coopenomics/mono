@@ -64,8 +64,8 @@ const triggerLabel = computed(() => {
   return '—'
 })
 
-// Подписи статусов проекта списания — согласованы с лентой совета
-// (BoardAgendaWriteoffPage) и админ-столом (AdminWriteoffs).
+// Подписи статусов проекта списания — согласованы с админ-столом
+// (AdminWriteoffs) и столом ПВЗ (PvzWriteoffs).
 const WRITEOFF_STATUS_LABEL: Record<string, string> = {
   DRAFT: 'Черновик',
   PROPOSED: 'На повестке совета',

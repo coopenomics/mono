@@ -968,6 +968,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceWriteoffProposalStatus: "enum" as const,
 	MarketplaceWriteoffProposalTrigger: "enum" as const,
+	MarketplaceWriteoffProtocolDocumentInput:{
+
+	},
 	MarketplaceWriteoffServiceMemoSignablePayloadInput:{
 
 	},
@@ -2278,6 +2281,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceWriteoffProposal:{
 
+		},
+		marketplaceWriteoffProtocolDocument:{
+			data:"MarketplaceWriteoffProtocolDocumentInput"
 		},
 		marketplaceWriteoffServiceMemoSignablePayload:{
 			data:"MarketplaceWriteoffServiceMemoSignablePayloadInput"
@@ -5941,6 +5947,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
 		marketplaceWriteoffProposal:"MarketplaceWriteoffProposal",
+		marketplaceWriteoffProtocolDocument:"GeneratedDocument",
 		marketplaceWriteoffServiceMemoSignablePayload:"GeneratedDocument",
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
