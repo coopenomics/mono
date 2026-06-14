@@ -32,23 +32,20 @@ import { RecoveryService } from './recovery/recovery.service';
 import { RecoveryConfirmService } from './recovery/recovery-confirm.service';
 import { OfflineRecoveryService } from './recovery/offline-recovery.service';
 import { RecoveryStrategyService } from './recovery/recovery-strategy.service';
-import { RecoveryStrategyController } from './recovery/recovery-strategy.controller';
 import { RecoveryFinalizationService } from './recovery/recovery-finalization.service';
 import { RecoveryController } from './recovery/recovery.controller';
 import { TwoFactorService } from './two-factor/two-factor.service';
-import { TwoFactorController } from './two-factor/two-factor.controller';
 import { SessionsService } from './sessions/sessions.service';
-import { SessionsController } from './sessions/sessions.controller';
 import { SecurityIncidentService } from './security/security-incident.service';
 import { SecurityIncidentController } from './security/security-incident.controller';
 import { CriticalActionsService } from './critical-actions/critical-actions.service';
-import { CriticalActionsController } from './critical-actions/critical-actions.controller';
 import { ForceRecoveryService } from './force-recovery/force-recovery.service';
 import { ForceRecoveryController } from './force-recovery/force-recovery.controller';
 import { KeyRevocationService } from './key-revocation/key-revocation.service';
-import { KeyRevocationController } from './key-revocation/key-revocation.controller';
 import { CapabilitySetService } from './authorization/capability-set.service';
 import { AuthorizationResolver } from './authorization/authorization.resolver';
+import { AccountSecurityResolver } from './account-security/account-security.resolver';
+import { CriticalActionsResolver } from './critical-actions/critical-actions.resolver';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -58,9 +55,12 @@ import { AuthorizationResolver } from './authorization/authorization.resolver';
  */
 @Module({
   imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule],
-  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, RecoveryStrategyController, TwoFactorController, SessionsController, SecurityIncidentController, CriticalActionsController, ForceRecoveryController, KeyRevocationController],
+  // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
+  // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
+  // GraphQL/SDK (AccountSecurityResolver/CriticalActionsResolver, Фаза 2 миграции).
+  controllers: [AuthentikEventsController, SessionBindingController, VaultController, VerifyTimestampController, CoopIdClaimsPolicyController, CoopIdSchemaPolicyController, LogoutController, RecoveryController, SecurityIncidentController, ForceRecoveryController],
   providers: [
-    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver,
+    AuditService, AuditActionInterceptor, SessionBindingService, VaultService, VerifyTimestampService, CertificateService, CertSettingsService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, AuthRateLimitGuard, RecoveryService, RecoveryConfirmService, OfflineRecoveryService, RecoveryStrategyService, RecoveryFinalizationService, TwoFactorService, DeviceTrackingService, NewDeviceNotificationService, SecurityEventNotificationService, SessionsService, SecurityIncidentService, CriticalActionsService, ForceRecoveryService, KeyRevocationService, CapabilitySetService, AuthorizationResolver, CertificateResolver, AccountSecurityResolver, CriticalActionsResolver,
     // Узкий verifier-порт для потребителей (recovery Story 3.2, 2FA-вход) → тот же сервис.
     { provide: TWO_FACTOR_VERIFIER, useExisting: TwoFactorService },
     // Финализация recovery (Story 3.3): ротация ключа через registrator::changekey + vault + отзыв сессий + аудит.

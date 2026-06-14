@@ -128,6 +128,9 @@ export const AllTypesProps: Record<string,any> = {
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	AuthorizeForceRecoveryInput:{
+
+	},
 	BankAccountDetailsInput:{
 
 	},
@@ -364,6 +367,8 @@ export const AllTypesProps: Record<string,any> = {
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
+	CriticalActionStatus: "enum" as const,
+	CriticalActionType: "enum" as const,
 	CurrentTableStatesFiltersInput:{
 
 	},
@@ -444,6 +449,7 @@ export const AllTypesProps: Record<string,any> = {
 	FinalizeProjectInput:{
 
 	},
+	ForceRecoveryConsentVia: "enum" as const,
 	FreeDecisionGenerateDocumentInput:{
 
 	},
@@ -605,6 +611,10 @@ export const AllTypesProps: Record<string,any> = {
 	Init:{
 		organization_data:"CreateInitOrganizationDataInput"
 	},
+	InitiateCriticalActionInput:{
+		action_type:"CriticalActionType",
+		payload:"JSON"
+	},
 	Install:{
 		soviet:"SovietMemberInput",
 		vars:"SetVarsInput"
@@ -647,6 +657,9 @@ export const AllTypesProps: Record<string,any> = {
 		acceptChildOrder:{
 			data:"AcceptChildOrderInput"
 		},
+		activateTwoFactor:{
+			data:"TwoFactorCodeInput"
+		},
 		addParticipant:{
 			data:"AddParticipantInput"
 		},
@@ -661,6 +674,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
+		},
+		authorizeForceRecovery:{
+			data:"AuthorizeForceRecoveryInput"
 		},
 		cancelRequest:{
 			data:"CancelRequestInput"
@@ -954,6 +970,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
+		confirmCriticalAction:{
+
+		},
 		confirmReceiveOnRequest:{
 			data:"ConfirmReceiveOnRequestInput"
 		},
@@ -1016,6 +1035,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		deliverOnRequest:{
 			data:"DeliverOnRequestInput"
+		},
+		disableTwoFactor:{
+			data:"TwoFactorCodeInput"
 		},
 		disputeOnRequest:{
 			data:"DisputeOnRequestInput"
@@ -1127,6 +1149,9 @@ export const AllTypesProps: Record<string,any> = {
 		initSystem:{
 			data:"Init"
 		},
+		initiateCriticalAction:{
+			data:"InitiateCriticalActionInput"
+		},
 		installExtension:{
 			data:"ExtensionInput"
 		},
@@ -1178,6 +1203,12 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		reportNotMe:{
+			data:"ReportNotMeInput"
+		},
+		requestForceRecoveryConsent:{
+			data:"RequestForceRecoveryConsentInput"
+		},
 		resendNotification:{
 
 		},
@@ -1190,6 +1221,12 @@ export const AllTypesProps: Record<string,any> = {
 		revokeCapabilitySet:{
 			data:"RevokeCapabilitySetInput"
 		},
+		revokeParticipantKey:{
+			data:"RevokeParticipantKeyInput"
+		},
+		revokeSession:{
+			data:"RevokeSessionInput"
+		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
 		},
@@ -1201,6 +1238,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
+		},
+		setRecoveryStrategy:{
+			data:"SetRecoveryStrategyInput"
 		},
 		setWif:{
 			data:"SetWifInput"
@@ -1555,6 +1595,9 @@ export const AllTypesProps: Record<string,any> = {
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
 		},
+		getCriticalActionAuditTrail:{
+
+		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
 			pagination:"PaginationInput"
@@ -1686,6 +1729,7 @@ export const AllTypesProps: Record<string,any> = {
 	ReceiveOnRequestInput:{
 		document:"ReturnByAssetActSignedDocumentInput"
 	},
+	RecoveryStrategy: "enum" as const,
 	RefreshInput:{
 
 	},
@@ -1720,12 +1764,18 @@ export const AllTypesProps: Record<string,any> = {
 	ReportHistoryFilterInput:{
 		reportType:"ReportType"
 	},
+	ReportNotMeInput:{
+
+	},
 	ReportPreviewInput:{
 		reportType:"ReportType"
 	},
 	ReportSubmissionMark: "enum" as const,
 	ReportType: "enum" as const,
 	RepresentedByInput:{
+
+	},
+	RequestForceRecoveryConsentInput:{
 
 	},
 	RequisiteSource: "enum" as const,
@@ -1789,6 +1839,12 @@ export const AllTypesProps: Record<string,any> = {
 	RevokeCapabilitySetInput:{
 
 	},
+	RevokeParticipantKeyInput:{
+
+	},
+	RevokeSessionInput:{
+
+	},
 	RoomMessageKind: "enum" as const,
 	SaveReportDraftInput:{
 		reportType:"ReportType"
@@ -1833,6 +1889,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetPlanInput:{
 
+	},
+	SetRecoveryStrategyInput:{
+		strategy:"RecoveryStrategy"
 	},
 	SetVarsInput:{
 		coopenomics_agreement:"AgreementVarInput",
@@ -1897,6 +1956,9 @@ export const AllTypesProps: Record<string,any> = {
 	TriggerNotificationWorkflowInput:{
 		payload:"JSONObject",
 		to:"NotificationWorkflowRecipientInput"
+	},
+	TwoFactorCodeInput:{
+
 	},
 	UninstallExtensionInput:{
 
@@ -2018,6 +2080,14 @@ export const ReturnTypes: Record<string,any> = {
 		last_usage_update_time:"String",
 		max:"String",
 		used:"String"
+	},
+	AccountSession:{
+		created_at:"String",
+		current:"Boolean",
+		device:"String",
+		id:"String",
+		ip:"String",
+		last_seen_at:"String"
 	},
 	AccountsPaginationResult:{
 		currentPage:"Int",
@@ -3112,6 +3182,22 @@ export const ReturnTypes: Record<string,any> = {
 		question:"String",
 		title:"String"
 	},
+	CriticalActionAuditEntry:{
+		action_type:"CriticalActionType",
+		confirmer_ids:"CriticalActionConfirmation",
+		created_at:"String",
+		finalized_at:"String",
+		id:"String",
+		initiated_at:"String",
+		initiator_id:"String",
+		payload_hash:"String",
+		status:"CriticalActionStatus",
+		target_id:"String"
+	},
+	CriticalActionConfirmation:{
+		at:"String",
+		by:"String"
+	},
 	CurrentInstanceDTO:{
 		blockchain_status:"String",
 		description:"String",
@@ -3285,6 +3371,11 @@ export const ReturnTypes: Record<string,any> = {
 	FieldError:{
 		message:"String",
 		path:"String"
+	},
+	ForceRecoveryAuthorization:{
+		authorized:"Boolean",
+		consent_via:"ForceRecoveryConsentVia",
+		triggered_by:"String"
 	},
 	GatewayPayment:{
 		blockchain_data:"JSON",
@@ -3602,11 +3693,13 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Mutation:{
 		acceptChildOrder:"Transaction",
+		activateTwoFactor:"Boolean",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
+		authorizeForceRecovery:"ForceRecoveryAuthorization",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",
@@ -3698,6 +3791,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		completeRequest:"Transaction",
 		confirmAgreement:"Transaction",
+		confirmCriticalAction:"PendingCriticalAction",
 		confirmReceiveOnRequest:"Transaction",
 		confirmSupplyOnRequest:"Transaction",
 		createAnnualGeneralMeet:"MeetAggregate",
@@ -3719,8 +3813,10 @@ export const ReturnTypes: Record<string,any> = {
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
 		deliverOnRequest:"Transaction",
+		disableTwoFactor:"Boolean",
 		disputeOnRequest:"Transaction",
 		editBranch:"Branch",
+		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
@@ -3748,6 +3844,7 @@ export const ReturnTypes: Record<string,any> = {
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
 		initSystem:"SystemInfo",
+		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
 		login:"RegisteredAccount",
@@ -3765,15 +3862,21 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		reportNotMe:"RevokedSessionsResult",
+		requestForceRecoveryConsent:"Boolean",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
+		revokeParticipantKey:"RevokeKeyResult",
+		revokeSession:"Boolean",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
 		setPaymentStatus:"GatewayPayment",
+		setRecoveryStrategy:"Boolean",
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
@@ -4085,6 +4188,18 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PendingCriticalAction:{
+		action_type:"CriticalActionType",
+		actor_id:"String",
+		confirmations:"CriticalActionConfirmation",
+		created_at:"String",
+		expires_at:"String",
+		finalized_at:"String",
+		id:"String",
+		payload:"JSON",
+		status:"CriticalActionStatus",
+		target_id:"String"
+	},
 	Permission:{
 		parent:"String",
 		perm_name:"String",
@@ -4331,6 +4446,7 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
+		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -4360,6 +4476,7 @@ export const ReturnTypes: Record<string,any> = {
 		getProgramWallets:"ProgramWalletsPaginationResult",
 		getProviderSubscriptionById:"ProviderSubscription",
 		getProviderSubscriptions:"ProviderSubscription",
+		getRecoveryStrategy:"RecoveryStrategy",
 		getRegistrationAgreements:"RegistrationAgreement",
 		getRegistrationConfig:"RegistrationConfig",
 		getReport:"GeneratedReport",
@@ -4368,6 +4485,7 @@ export const ReturnTypes: Record<string,any> = {
 		getReportHistory:"ReportHistoryPage",
 		getReportPreview:"ReportPreview",
 		getReportRequisites:"ReportRequisitesView",
+		getSessions:"AccountSession",
 		getSystemInfo:"SystemInfo",
 		getUnreadNotificationsCount:"UnreadNotificationsCount",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
@@ -4539,6 +4657,15 @@ export const ReturnTypes: Record<string,any> = {
 		owner:"String",
 		ram_bytes:"Int"
 	},
+	RevokeKeyResult:{
+		must_recover:"Boolean",
+		sessions_revoked:"Int",
+		status:"String",
+		target_id:"String"
+	},
+	RevokedSessionsResult:{
+		revoked:"Int"
+	},
 	SbpAccount:{
 		phone:"String"
 	},
@@ -4655,6 +4782,10 @@ export const ReturnTypes: Record<string,any> = {
 		speakerName:"String",
 		startOffset:"Float",
 		text:"String"
+	},
+	TwoFactorEnrollment:{
+		otpauth_uri:"String",
+		secret:"String"
 	},
 	UnreadNotificationsCount:{
 		count:"Int"

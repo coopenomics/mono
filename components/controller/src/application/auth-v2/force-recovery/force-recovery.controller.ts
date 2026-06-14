@@ -1,58 +1,25 @@
-import { BadRequestException, Body, Controller, Param, Post, Req, UnauthorizedException, UseFilters, UseGuards } from '@nestjs/common';
+import { Controller, Param, Post, Req, UseFilters } from '@nestjs/common';
 import type { Request } from 'express';
-import { HttpJwtAuthGuard } from '~/application/auth/guards/http-jwt-auth.guard';
-import { AuthorizationGuard } from '../authorization/authorization.guard';
-import { CheckAbility } from '../authorization/check-ability.decorator';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
-import { ForceRecoveryService, type ForceRecoveryAuthorization } from './force-recovery.service';
-
-interface AuthedRequest extends Request {
-  user?: { id: string; username: string; role?: string };
-}
+import { ForceRecoveryService } from './force-recovery.service';
 
 /**
- * Force-recovery (CoopID, Story 6.9). Председатель (capability `create CriticalAction`)
- * запрашивает согласие пайщика и авторизует сброс; пайщик подтверждает согласие по
- * magic-link без auth-guard (доступ мог быть утрачен). Гейт — в сервисе.
+ * Согласие пайщика на принудительное восстановление по magic-link (CoopID, Story 6.9).
+ * Остаётся REST: пайщик подтверждает согласие кликом из письма без auth-guard и без
+ * SDK-контекста (доступ мог быть утрачен), авторизация — по одноразовому токену из ссылки.
+ *
+ * Запрос согласия и авторизация председателем (под JWT+CASL) переведены в GraphQL/SDK —
+ * см. `CriticalActionsResolver.requestForceRecoveryConsent` / `authorizeForceRecovery`
+ * (Фаза 2 миграции REST→GraphQL/SDK).
  */
 @Controller('coop/force-recovery')
 @UseFilters(AuthV2ExceptionFilter)
 export class ForceRecoveryController {
   constructor(private readonly service: ForceRecoveryService) {}
 
-  @Post('request-consent')
-  @UseGuards(HttpJwtAuthGuard, AuthorizationGuard)
-  @CheckAbility('create', 'CriticalAction')
-  async requestConsent(@Body() body: { targetId: string }, @Req() req: AuthedRequest): Promise<{ status: 'requested' }> {
-    const initiatorId = req.user?.username;
-    if (!initiatorId) throw new UnauthorizedException();
-    if (!body?.targetId) throw new BadRequestException('targetId обязателен');
-    await this.service.requestConsent(body.targetId, initiatorId, req.ip ?? null);
-    return { status: 'requested' };
-  }
-
   @Post('consent/:token')
-  async grantConsent(@Param('token') token: string, @Req() req: AuthedRequest): Promise<{ status: 'granted'; targetId: string }> {
+  async grantConsent(@Param('token') token: string, @Req() req: Request): Promise<{ status: 'granted'; targetId: string }> {
     const { targetId } = await this.service.grantConsent(token, req.ip ?? null);
     return { status: 'granted', targetId };
-  }
-
-  @Post('authorize')
-  @UseGuards(HttpJwtAuthGuard, AuthorizationGuard)
-  @CheckAbility('create', 'CriticalAction')
-  async authorize(
-    @Body() body: { targetId: string; assemblyDecisionTxId?: string; criticalActionId?: string },
-    @Req() req: AuthedRequest,
-  ): Promise<ForceRecoveryAuthorization> {
-    const initiatorId = req.user?.username;
-    if (!initiatorId) throw new UnauthorizedException();
-    if (!body?.targetId) throw new BadRequestException('targetId обязателен');
-    return this.service.authorize({
-      targetId: body.targetId,
-      initiatorId,
-      assemblyDecisionTxId: body.assemblyDecisionTxId,
-      criticalActionId: body.criticalActionId,
-      ip: req.ip ?? null,
-    });
   }
 }
