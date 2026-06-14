@@ -99,6 +99,7 @@ export interface MarketplaceWriteoffCandidateView {
   amount: string;
   reason: string;
   expiry_date: string | null;
+  is_expired: boolean;
 }
 
 export interface MarketplaceWriteoffConfirmationGroup {
@@ -184,9 +185,10 @@ export class MarketplaceWriteoffService {
   }
 
   /**
-   * Кандидаты на списание скоропорта для admin-стола: просроченные позиции на
-   * складах кооператива. Председатель выделяет нужные и создаёт из них
-   * черновик. Сумма = arrival_price × quantity.
+   * Кандидаты на списание для admin-стола: все позиции на складах кооператива.
+   * Председатель выделяет нужные и создаёт из них черновик — вручную можно
+   * списать как просроченный скоропорт (флаг is_expired), так и ещё годное
+   * имущество (порча, невозврат). Сумма = arrival_price × quantity.
    */
   async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
     const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
@@ -210,8 +212,10 @@ export class MarketplaceWriteoffService {
         asset_title: c.asset_title,
         quantity: String(c.quantity),
         amount: this.formatAssetNumber(amount),
-        reason: 'Истёк срок годности',
+        // Причина-кандидат по умолчанию; председатель уточняет в черновике.
+        reason: c.is_expired ? 'Истёк срок годности' : 'Списание вручную',
         expiry_date: c.expiry_date ? c.expiry_date.toISOString() : null,
+        is_expired: c.is_expired,
       });
     }
     return result;

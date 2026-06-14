@@ -4899,6 +4899,7 @@ export const ReturnTypes: Record<string,any> = {
 		branch_name:"String",
 		expiry_date:"String",
 		inventory_id:"String",
+		is_expired:"Boolean",
 		quantity:"String",
 		reason:"String"
 	},

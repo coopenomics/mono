@@ -52,6 +52,7 @@ const candidateColumns = [
   { name: 'branch_name', align: 'left' as const, label: 'Кооп. участок', field: 'branch_name' },
   { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
   { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
+  { name: 'state', align: 'left' as const, label: 'Состояние', field: 'is_expired' },
   { name: 'expiry_date', align: 'left' as const, label: 'Срок годности', field: 'expiry_date' },
   { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
 ];
@@ -233,12 +234,12 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
         q-icon(name="add", size="18px")
       | Новый черновик{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
 
-  //- Кандидаты на списание: выделяемая таблица просроченного скоропорта.
+  //- Кандидаты на списание: выделяемая таблица имущества на складах.
   //- Один черновик за раз — пока есть открытый черновик, таблицу прячем.
   BaseCard(v-if="!draft")
     .writeoffs__candidates-head
       .t-h3 Кандидаты на списание
-      .t-muted Просроченный скоропорт на складах кооператива. Выделите позиции и нажмите «Новый черновик» в шапке.
+      .t-muted Имущество на складах кооператива. Просроченный скоропорт — первоочередные кандидаты (подсвечены); ещё годное можно списать вручную при порче или невозврате. Выделите позиции и нажмите «Новый черновик» в шапке.
     q-table.full-width.q-mt-sm(
       flat,
       :rows="candidates",
@@ -249,12 +250,15 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       :loading="loading",
       :rows-per-page-options="[0]",
       hide-bottom,
-      no-data-label="Просроченных позиций на складах не найдено"
+      no-data-label="Позиций на складах не найдено"
     )
       template(#body-cell-quantity="props")
         q-td.text-right(:props="props") {{ props.row.quantity }}
+      template(#body-cell-state="props")
+        q-td(:props="props")
+          BaseBadge(:variant="props.row.is_expired ? 'neg' : 'neutral'") {{ props.row.is_expired ? 'Просрочено' : 'Годно' }}
       template(#body-cell-expiry_date="props")
-        q-td(:props="props") {{ formatDate(props.row.expiry_date) }}
+        q-td(:props="props") {{ props.row.expiry_date ? formatDate(props.row.expiry_date) : 'Без срока' }}
       template(#body-cell-amount="props")
         q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 

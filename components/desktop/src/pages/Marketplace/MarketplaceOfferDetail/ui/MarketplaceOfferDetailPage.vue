@@ -250,9 +250,9 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
           span.offer-detail__point-name {{ p.name }}
           span.offer-detail__point-vol {{ p.volume }}
 
-    section.offer-detail__section(v-if="offer.warranty_days > 0")
+    section.offer-detail__section
       .offer-detail__section-head Гарантия
-      .offer-detail__desc {{ offer.warranty_days }} дн.
+      .offer-detail__desc {{ offer.warranty_days > 0 ? `${offer.warranty_days} дн.` : 'Без гарантии' }}
 
   AddToCartDialog(
     v-if="!readonly",

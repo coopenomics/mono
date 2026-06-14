@@ -85,6 +85,7 @@ const rawCandidateSelector = {
   amount: true,
   reason: true,
   expiry_date: true,
+  is_expired: true,
 }
 
 const _validateCandidate: MakeAllFieldsRequired<ValueTypes['MarketplaceWriteoffCandidate']> =

@@ -199,6 +199,11 @@ export class MarketplaceWriteoffCandidateDTO {
   reason!: string;
   @Field(() => String, { nullable: true, description: 'Срок годности (ISO).' })
   expiry_date?: string | null;
+  @Field({
+    description:
+      'Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат).',
+  })
+  is_expired!: boolean;
 }
 
 @ObjectType('MarketplaceWriteoffConfirmationGroup')

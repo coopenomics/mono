@@ -54,9 +54,13 @@ export interface MarketplaceInventoryListFilter {
 }
 
 /**
- * Кандидат на списание скоропорта: позиция на складе с истёкшим сроком
- * годности. Председатель отбирает из таких позиций корзину проекта списания
- * (admin-стол). `arrival_price` — закупочная цена за единицу из акта приёмки;
+ * Кандидат на списание: позиция на складе, доступная председателю для
+ * ручного сбора корзины проекта списания (admin-стол). Возвращаем ВСЕ позиции
+ * на складе — и просроченный скоропорт, и ещё годное имущество: председатель
+ * вправе списать вручную и то, что испорчено/не возвращено, а не только то,
+ * у чего формально истёк `expiry_date`. `is_expired` отмечает позиции с
+ * истёкшим сроком (auto-кандидаты крона) для подсветки в интерфейсе.
+ * `arrival_price` — закупочная цена за единицу из акта приёмки;
  * сумма списания = arrival_price × quantity.
  */
 export interface MarketplaceWriteoffCandidate {
@@ -66,6 +70,7 @@ export interface MarketplaceWriteoffCandidate {
   quantity: number;
   arrival_price: string | null;
   expiry_date: Date | null;
+  is_expired: boolean;
 }
 
 export interface MarketplaceInventoryDomainRepository {
@@ -102,10 +107,12 @@ export interface MarketplaceInventoryDomainRepository {
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
 
   /**
-   * Кандидаты на списание скоропорта: позиции на складе (RECEIVED/LABELED)
-   * с истёкшим сроком годности (expiry_date <= cutoff). Источник таблицы
-   * кандидатов на admin-столе списаний. Для ручного отбора cutoff = «сейчас»
-   * (всё уже просроченное), в отличие от крон-скана с grace-периодом.
+   * Позиции на складе (RECEIVED/LABELED) для ручного сбора корзины списания на
+   * admin-столе. Возвращает ВСЁ имущество на складе, а не только просроченное:
+   * председатель может списать вручную и годное (порча, невозврат). `cutoff`
+   * используется лишь для вычисления флага `is_expired` (expiry_date <= cutoff),
+   * не как фильтр. Авто-крон отбирает кандидатов отдельным запросом с
+   * grace-периодом и сюда не обращается.
    */
   findWriteoffCandidates(
     coopname: string,

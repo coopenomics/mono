@@ -1,6 +1,6 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, LessThanOrEqual, Not, Repository, type EntityManager } from 'typeorm';
+import { In, IsNull, Not, Repository, type EntityManager } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 import {
   MarketplaceInventoryOnWarehouseStatuses,
@@ -141,23 +141,30 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     coopname: string,
     cutoff: Date
   ): Promise<MarketplaceWriteoffCandidate[]> {
+    // Все позиции на складе — председатель собирает корзину вручную и может
+    // списать как просроченное, так и ещё годное (порча/невозврат). Просрочку
+    // подсвечиваем флагом is_expired, не отсекаем фильтром.
     const rows = await this.repo.find({
       where: {
         coopname,
         status: In([...MarketplaceInventoryOnWarehouseStatuses]),
-        expiry_date: LessThanOrEqual(cutoff),
       },
       order: { expiry_date: 'ASC', created_at: 'ASC' },
       take: 500,
     });
-    return rows.map((r) => ({
-      inventory_id: r.id,
-      braname: r.braname,
-      asset_title: r.product_name_snapshot,
-      quantity: r.quantity_per_label,
-      arrival_price: r.arrival_price,
-      expiry_date: r.expiry_date,
-    }));
+    const cutoffMs = cutoff.getTime();
+    return rows
+      .map((r) => ({
+        inventory_id: r.id,
+        braname: r.braname,
+        asset_title: r.product_name_snapshot,
+        quantity: r.quantity_per_label,
+        arrival_price: r.arrival_price,
+        expiry_date: r.expiry_date,
+        is_expired: r.expiry_date !== null && r.expiry_date.getTime() <= cutoffMs,
+      }))
+      // Просроченное — наверх (первоочередные кандидаты), затем остальное.
+      .sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
   }
 
   async applyStatusTransition(

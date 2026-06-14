@@ -82,7 +82,7 @@ function formatPrice(v: string | null | undefined): string {
   return v ? formatAsset2Digits(String(v)) : '—';
 }
 function formatWarranty(days: number | null | undefined): string {
-  return days && days > 0 ? `${days} дн.` : '—';
+  return days && days > 0 ? `${days} дн.` : 'Без гарантии';
 }
 function supplierTitle(o: AdminOfferView): string {
   return fioCache.value.get(o.supplier_account) || o.supplier_account || '—';
