@@ -66,18 +66,21 @@ describe('cross-runtime smoke: vault → wallet → подпись → вери�
     expect(verdict.valid).toBe(true)
   })
 
-  // SDK-сторона login/getAccessToken — намеренно скелет Story 1.2 (вход 1.7 живёт в
-  // controller+desktop). Smoke фиксирует: модуль грузится, функции вызываемы, канал
-  // типизированных ошибок работает в каждом рантайме. При реализации SDK-стороны
-  // сценарий заменяется на полноценный (fetch-stub как у vault выше).
-  it('login()/getAccessToken(): вызываемы и дают типизированную AuthV2Error(not_implemented)', async () => {
+  // SDK-сторона login/getAccessToken реализована (вход 1.7 + flow-executor Story 11.2).
+  // Smoke фиксирует кросс-рантайм: модуль грузится, функции вызываемы, канал
+  // типизированных ошибок работает в каждом рантайме. В stub-окружении без живого
+  // authentik/controller: login → AuthV2Error(network_error) (flow-executor не достучался),
+  // getAccessToken → AuthV2Error(wallet_locked) (нет активной сессии). Конкретный код
+  // не пиннингуем жёстко — важно, что ошибка типизированная (AuthV2Error) в любом рантайме.
+  it('login()/getAccessToken(): вызываемы и дают типизированную AuthV2Error в каждом рантайме', async () => {
     for (const call of [
       () => login({ issuer: 'https://coop.stub/application/o/coopid/', email: 'a@b.c', password: 'p' }),
       () => getAccessToken(),
     ]) {
       const err = await call().then(() => null, e => e)
       expect(err).toBeInstanceOf(AuthV2Error)
-      expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.NotImplemented)
+      // код — валидное значение enum'а (канал типизированных ошибок целостен)
+      expect(Object.values(AuthV2ErrorCode)).toContain((err as AuthV2Error).code)
     }
   })
 

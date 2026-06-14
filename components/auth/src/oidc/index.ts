@@ -8,7 +8,9 @@ import { authenticateWithAuthentik, coopIdApiUrl } from './client'
 import { performTimestampHandshake } from './handshake'
 import { clearSession, getAccessToken as getStoredAccessToken } from './tokens'
 
-export { configureCoopId, configureOidc } from './client'
+export { authenticateWithAuthentik, configureCoopId, configureOidc } from './client'
+export { authenticateWithFlowExecutor, DEFAULT_AUTHENTICATION_FLOW } from './flow-executor'
+export type { FlowExecutorParams } from './flow-executor'
 export type { HandshakeResult } from './handshake'
 export { performTimestampHandshake } from './handshake'
 export type { SessionTokens } from './tokens'
@@ -19,11 +21,13 @@ export interface LoginParams {
   issuer: string
   email: string
   /**
-   * НЕ используется фасадом: по FR29 пароль вводится на форме authentik
-   * (Authorization Code + PKCE), а не передаётся программно (ROPC запрещён).
-   * Поле сохранено для обратной совместимости контракта Story 1.2.
+   * Пароль пайщика (Story 11.2). Уходит во встроенную форму → flow-executor
+   * authentik (фактор 1), а не в наш backend — запрещённый FR29 `grant_type=password`
+   * не используется. Тем же паролем клиент шифрует password-vault (Story 11.3).
    */
-  password?: string
+  password: string
+  /** Slug flow аутентификации authentik (по умолчанию `default-authentication-flow`). */
+  flowSlug?: string
 }
 
 export interface LoginResult {
@@ -34,10 +38,11 @@ export interface LoginResult {
 }
 
 /**
- * Двухэтапный вход (Story 1.7): (1) password через authentik по Authorization Code +
- * PKCE (`oidc-client-ts`, попап), (2) timestamp-signature handshake против controller'а
- * (bind → подпись ключом из keystore → verify). Перед вызовом кошелёк должен быть
- * разблокирован (`unlockWallet`/`unlockWithPin`), иначе handshake бросит WalletLocked.
+ * Двухэтапный вход (Story 1.7, обновлён Story 11.2): (1) password через authentik —
+ * встроенная форма гонит email+password в flow-executor (сессия), затем
+ * `authorization_code`+PKCE молча (`signinSilent`); (2) timestamp-signature handshake
+ * против controller'а (bind → подпись ключом из keystore → verify). Перед вызовом
+ * кошелёк должен быть разблокирован (`unlockWallet`), иначе handshake бросит WalletLocked.
  *
  * База controller'а берётся из `configureCoopId({ apiUrl })`, OIDC-клиент — из
  * `configureOidc({ clientId, redirectUri })` (вызываются приложением на старте).
@@ -45,7 +50,7 @@ export interface LoginResult {
 export async function login(params: LoginParams): Promise<LoginResult> {
   const apiUrl = coopIdApiUrl()
   // 1. password-этап: устанавливает сессию authentik (cookie) + отдаёт id_token.
-  const user = await authenticateWithAuthentik({ issuer: params.issuer, loginHint: params.email })
+  const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.password, flowSlug: params.flowSlug })
   // 2. timestamp-signature handshake: платформенные токены + удостоверение.
   const handshake = await performTimestampHandshake(apiUrl)
   return {

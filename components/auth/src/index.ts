@@ -32,9 +32,9 @@ export type { AuthV2ErrorAction, AuthV2ErrorView } from './errors'
 
 export type { ExportFullQROptions } from './export'
 export { exportFullQR } from './export'
-export type { HandshakeResult, LoginParams, LoginResult, LogoutParams, SessionTokens } from './oidc'
+export type { FlowExecutorParams, HandshakeResult, LoginParams, LoginResult, LogoutParams, SessionTokens } from './oidc'
 
-export { configureCoopId, configureOidc, currentTokens, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover } from './oidc'
+export { authenticateWithFlowExecutor, configureCoopId, configureOidc, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover } from './oidc'
 export type { SignDocumentParams, TimestampSignature } from './signing'
 
 export { canonicalTimestampMessage, signDocument, signTimestamp } from './signing'
