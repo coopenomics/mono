@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { BlockchainService } from './blockchain.service';
+import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -36,6 +37,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
 @Module({
   imports: [RedisModule, EventsInfrastructureModule, VaultInfrastructureModule, VaultDomainModule],
   providers: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
     BlockchainRepeatService,
@@ -94,6 +96,7 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     Ledger2ContractInfoService,
   ],
   exports: [
+    RpcPool,
     BlockchainService,
     BlockchainConsumerService,
     BlockchainRepeatService,

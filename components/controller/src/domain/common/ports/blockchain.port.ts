@@ -5,11 +5,31 @@ import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 
 // domain/common/ports/blockchain.port.ts
+
+/**
+ * Результат кворумного чтения активных ключей аккаунта (CoopID, Story 9.7):
+ * параллельный опрос нескольких COOPOS RPC для M-of-N консенсуса при обновлении
+ * кэша ключей. `agreed=false` при ≥2 расходящихся ответах — кэш обновлять нельзя.
+ */
+export interface ActiveKeysQuorum {
+  /** Узлы сошлись (или доступен лишь один — single-source, проверить нечем). */
+  agreed: boolean;
+  /** Согласованный нормализованный набор активных ключей (пуст — узлов нет). */
+  keys: string[];
+  /** Что вернул каждый опрошенный узел (url + его набор ключей) — для аудита. */
+  samples: Array<{ url: string; keys: string[] }>;
+}
+
 export interface BlockchainPort {
   initialize(username: string, wif: string): void;
   transact(actionOrActions: any | any[], broadcast?: boolean): Promise<any>;
   getInfo(): Promise<GetInfoResult>;
   getAccount(name: string): Promise<BlockchainAccountInterface | null>;
+  /**
+   * Кворумное чтение активных ключей аккаунта с нескольких COOPOS RPC (Story 9.7):
+   * для M-of-N консенсуса при обновлении кэша ключей. См. {@link ActiveKeysQuorum}.
+   */
+  readActiveKeysQuorum(account: string): Promise<ActiveKeysQuorum>;
   getAllRows(code: string, scope: string, tableName: string): Promise<any[]>;
   getSingleRow(
     code: string,

@@ -10,10 +10,11 @@ export enum DegradedAuthReason {
    */
   RpcUnavailable = 'rpc_unavailable',
   /**
-   * Ключ присутствует в head-состоянии, но ещё не в финализированном блоке.
-   * Зарезервировано: на login-пути НЕ триггерит (если живой узел отвергает ключ —
-   * это честный key_mismatch). Относится к записи не-финализированного ключа
-   * (recovery-ротация Story 3.3 / cert-issuance Story 1.8).
+   * Активный ключ присутствует в head-состоянии COOPOS, но смена ключа ещё не
+   * финализирована (last_updated новее границы LIB) — её может откатить chain
+   * reorg. Story 9.6 (finalized-only reads): живому head-снимку не доверяем,
+   * сверяем ключ против последнего финализированного снимка `chain_manifests_cache`
+   * и помечаем вход degraded. До 9.6 на login-пути не триггерило.
    */
   KeyNotFinalized = 'key_not_finalized',
 }

@@ -127,6 +127,22 @@ const envVarsSchema = z.object({
     .optional()
     .transform(v => (v ? [...new Set(v.split(',').map(s => s.trim()).filter(Boolean))] : []))
     .pipe(z.array(z.string().url({ message: 'Каждый элемент BLOCKCHAIN_RPC_LIST — валидный URL' }))),
+  // Устойчивость COOPOS RPC (CoopID, Эпик 9). Интервал health-check каждого узла
+  // (get_info); 0 — отключить фоновую проверку (Story 9.4).
+  BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS: z.coerce.number().default(10000),
+  // Таймаут одиночного RPC-запроса (read + health-probe); по истечении — переключение
+  // на следующий здоровый узел (Story 9.4).
+  BLOCKCHAIN_RPC_TIMEOUT_MS: z.coerce.number().default(5000),
+  // Сколько узлов опрашивать для M-of-N консенсуса при обновлении кэша ключей
+  // (Story 9.7). <2 здоровых узлов — консенсус не проверяется (single-node).
+  BLOCKCHAIN_RPC_QUORUM_SIZE: z.coerce.number().default(2),
+  // Интервал блока цепи (мс) — для оценки времени LIB-блока, когда узел не отдаёт
+  // last_irreversible_block_time напрямую (Story 9.6).
+  BLOCKCHAIN_BLOCK_INTERVAL_MS: z.coerce.number().default(500),
+  // Запас (мс) к границе финализации: ключ считается финализированным, только если
+  // его last_updated не позже (время LIB − запас) — компенсирует оценку времени LIB
+  // (Story 9.6).
+  BLOCKCHAIN_FINALITY_MARGIN_MS: z.coerce.number().default(500),
   CHAIN_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
   // coop_domain_db (CoopID, Story 1.4): отдельная БД в общем сервисе postgres.
   // Пароль — значением или файлом (*_FILE приоритетнее; путь /run/secrets/... в контейнере).
@@ -311,6 +327,11 @@ export default {
     rpcList: envVars.data.BLOCKCHAIN_RPC_LIST.length
       ? envVars.data.BLOCKCHAIN_RPC_LIST
       : [envVars.data.BLOCKCHAIN_RPC],
+    rpcHealthCheckIntervalMs: envVars.data.BLOCKCHAIN_RPC_HEALTHCHECK_INTERVAL_MS,
+    rpcTimeoutMs: envVars.data.BLOCKCHAIN_RPC_TIMEOUT_MS,
+    rpcQuorumSize: envVars.data.BLOCKCHAIN_RPC_QUORUM_SIZE,
+    blockIntervalMs: envVars.data.BLOCKCHAIN_BLOCK_INTERVAL_MS,
+    finalityMarginMs: envVars.data.BLOCKCHAIN_FINALITY_MARGIN_MS,
     id: envVars.data.CHAIN_ID,
     root_symbol: envVars.data.ROOT_SYMBOL,
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,

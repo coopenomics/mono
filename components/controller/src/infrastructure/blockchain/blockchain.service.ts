@@ -1,12 +1,14 @@
 // infrastructure/blockchain/blockchain.service.ts
 import { Injectable } from '@nestjs/common';
-import { Action, API, APIClient, Bytes, Name, PrivateKey, PublicKey, Signature } from '@wharfkit/antelope';
-import { ContractKit, Table } from '@wharfkit/contract';
+import { Action, API, Bytes, Name, PrivateKey, PublicKey, Signature } from '@wharfkit/antelope';
+import { Table } from '@wharfkit/contract';
 import { Session, TransactResult } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import { RegistratorContract, SovietContract, SystemContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
+import type { ActiveKeysQuorum } from '~/domain/common/ports/blockchain.port';
+import { RpcPool } from './rpc-pool.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
@@ -27,17 +29,13 @@ export type IndexPosition =
 
 @Injectable()
 export class BlockchainService implements BlockchainPort {
-  private readonly apiClient: APIClient;
-  private readonly contractKit: ContractKit;
   private session!: Session;
 
   constructor(
     private readonly logger: WinstonLoggerService,
+    private readonly rpcPool: RpcPool,
     @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
-  ) {
-    this.apiClient = new APIClient({ url: config.blockchain.url });
-    this.contractKit = new ContractKit({ client: this.apiClient });
-  }
+  ) {}
 
   public initialize(username: string, wif: string): void {
     this.session = new Session({
@@ -45,22 +43,55 @@ export class BlockchainService implements BlockchainPort {
       permission: 'active',
       chain: {
         id: config.blockchain.id,
-        url: config.blockchain.url,
+        // write-путь идёт на текущий здоровый узел пула (Story 9.4); TaPoS-ссылка и
+        // broadcast попадают на один узел (sticky), не размазываются round-robin.
+        url: this.rpcPool.activeUrl(),
       },
       walletPlugin: new WalletPluginPrivateKey(PrivateKey.fromString(wif)),
     });
   }
 
   public async getInfo(): Promise<GetInfoResult> {
-    return (await this.apiClient.v1.chain.get_info()).toJSON();
+    return (await this.rpcPool.read((client) => client.v1.chain.get_info())).toJSON();
   }
 
   public async getAccount(name: string): Promise<BlockchainAccountInterface | null> {
     try {
-      const result = (await this.apiClient.v1.chain.get_account(name)).toJSON();
+      const result = (await this.rpcPool.read((client) => client.v1.chain.get_account(name))).toJSON();
       return result;
     } catch (e) {
       return null;
+    }
+  }
+
+  /**
+   * Кворумное чтение активных ключей (Story 9.7): опрашивает до `rpcQuorumSize`
+   * здоровых узлов параллельно и сверяет нормализованные наборы активных ключей.
+   * `agreed=true` при единственном доступном узле (single-source — проверить нечем);
+   * `agreed=false` только при ≥2 расходящихся ответах (сигнал компрометации узла).
+   */
+  public async readActiveKeysQuorum(account: string): Promise<ActiveKeysQuorum> {
+    const raw = await this.rpcPool.readFromHealthy(config.blockchain.rpcQuorumSize, async (client) => {
+      const acc = (await client.v1.chain.get_account(account)).toJSON();
+      return this.activeKeysOf(acc);
+    });
+    if (raw.length === 0) return { agreed: false, keys: [], samples: [] };
+    const samples = raw.map((s) => ({ url: s.url, keys: [...s.value].map(normalizeKey).sort() }));
+    const first = JSON.stringify(samples[0].keys);
+    const agreed = samples.length < 2 || samples.every((s) => JSON.stringify(s.keys) === first);
+    return { agreed, keys: samples[0].keys, samples };
+  }
+
+  /** Активные публичные ключи аккаунта COOPOS (plain JSON, без нормализации). */
+  private activeKeysOf(account: unknown): string[] {
+    try {
+      const json = JSON.parse(JSON.stringify(account)) as {
+        permissions?: Array<{ perm_name?: string; required_auth?: { keys?: Array<{ key?: string }> } }>;
+      };
+      const active = json.permissions?.find((p) => p.perm_name === 'active');
+      return (active?.required_auth?.keys ?? []).map((k) => k.key).filter((k): k is string => typeof k === 'string');
+    } catch {
+      return [];
     }
   }
 
@@ -73,7 +104,7 @@ export class BlockchainService implements BlockchainPort {
   }
 
   private async formActionFromAbi(action: any): Promise<any> {
-    const { abi } = (await this.apiClient.v1.chain.get_abi(action.account)) ?? { abi: undefined };
+    const { abi } = (await this.rpcPool.read((client) => client.v1.chain.get_abi(action.account))) ?? { abi: undefined };
     return Action.from(action, abi);
   }
 
@@ -93,18 +124,20 @@ export class BlockchainService implements BlockchainPort {
   }
 
   public async getAllRows<T = any>(code: string, scope: string, tableName: string): Promise<any[]> {
-    const { abi } = await this.apiClient.v1.chain.get_abi(code);
-    if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+    return this.rpcPool.read(async (client) => {
+      const { abi } = await client.v1.chain.get_abi(code);
+      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
 
-    const table = new Table({
-      abi,
-      account: code,
-      name: tableName,
-      client: this.apiClient,
+      const table = new Table({
+        abi,
+        account: code,
+        name: tableName,
+        client,
+      });
+
+      const rows = await table.all({ scope });
+      return JSON.parse(JSON.stringify(rows)) as T[];
     });
-
-    const rows = await table.all({ scope });
-    return JSON.parse(JSON.stringify(rows)) as T[];
   }
 
   public async query<T = any>(
@@ -121,24 +154,26 @@ export class BlockchainService implements BlockchainPort {
   ): Promise<T[]> {
     const { indexPosition = 'primary', from, to, maxRows, keyType } = options;
 
-    const { abi } = await this.apiClient.v1.chain.get_abi(code);
-    if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+    return this.rpcPool.read(async (client) => {
+      const { abi } = await client.v1.chain.get_abi(code);
+      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
 
-    const table = new Table({
-      abi,
-      account: code,
-      name: tableName,
-      client: this.apiClient,
+      const table = new Table({
+        abi,
+        account: code,
+        name: tableName,
+        client,
+      });
+      const rows = await table.all({
+        scope,
+        index_position: indexPosition,
+        key_type: keyType,
+        from,
+        to,
+        maxRows,
+      });
+      return JSON.parse(JSON.stringify(rows)) as T[];
     });
-    const rows = await table.all({
-      scope,
-      index_position: indexPosition,
-      key_type: keyType,
-      from,
-      to,
-      maxRows,
-    });
-    return JSON.parse(JSON.stringify(rows)) as T[];
   }
 
   public async getSingleRow<T = any>(
@@ -149,23 +184,25 @@ export class BlockchainService implements BlockchainPort {
     indexPosition: IndexPosition = 'primary',
     keyType: keyof API.v1.TableIndexTypes = 'i64'
   ): Promise<T | null> {
-    const { abi } = await this.apiClient.v1.chain.get_abi(code);
-    if (!abi) throw new Error(`ABI контракта ${code} не найден`);
+    return this.rpcPool.read(async (client) => {
+      const { abi } = await client.v1.chain.get_abi(code);
+      if (!abi) throw new Error(`ABI контракта ${code} не найден`);
 
-    const table = new Table({
-      abi,
-      account: code,
-      name: tableName,
-      client: this.apiClient,
+      const table = new Table({
+        abi,
+        account: code,
+        name: tableName,
+        client,
+      });
+
+      const row = await table.get(primaryKey, {
+        scope,
+        index_position: indexPosition,
+        key_type: keyType,
+      });
+
+      return row ? (JSON.parse(JSON.stringify(row)) as T) : null;
     });
-
-    const row = await table.get(primaryKey, {
-      scope,
-      index_position: indexPosition,
-      key_type: keyType,
-    });
-
-    return row ? (JSON.parse(JSON.stringify(row)) as T) : null;
   }
 
   // Authentication related methods
@@ -340,5 +377,14 @@ export class BlockchainService implements BlockchainPort {
     ];
 
     await this.transact(actions);
+  }
+}
+
+/** Нормализация публичного ключа в канон `PUB_K1_…` (терпит уже-валидные/чужие форматы). */
+function normalizeKey(key: string): string {
+  try {
+    return PublicKey.from(key).toString();
+  } catch {
+    return key;
   }
 }

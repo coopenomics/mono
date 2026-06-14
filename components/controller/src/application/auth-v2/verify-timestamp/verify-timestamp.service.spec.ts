@@ -33,6 +33,12 @@ function makeService(overrides: {
   hasActiveKey?: boolean;
   getAccountThrows?: boolean;
   manifest?: { account: string; active_keys: string[]; cached_at: string } | null;
+  /** Полный get_info (для проверки финализации, Story 9.6). */
+  info?: Record<string, unknown>;
+  /** last_updated active-permission (Story 9.6). */
+  accountLastUpdated?: string;
+  /** Результат кворумного чтения ключей (Story 9.7). */
+  quorum?: { agreed: boolean; keys: string[]; samples: Array<{ url: string; keys: string[] }> };
 }) {
   const redis = {
     consumeSingleUse: overrides.consume ?? jest.fn().mockResolvedValue(ACCOUNT),
@@ -43,18 +49,27 @@ function makeService(overrides: {
   const blockchain = {
     getInfo: overrides.getInfoThrows
       ? jest.fn().mockRejectedValue(new Error('down'))
-      : jest.fn().mockResolvedValue({ head_block_time: overrides.headBlockTime ?? TS }),
+      : jest.fn().mockResolvedValue(overrides.info ?? { head_block_time: overrides.headBlockTime ?? TS }),
     getAccount: overrides.getAccountThrows
       ? jest.fn().mockRejectedValue(new Error('down'))
       : jest.fn().mockResolvedValue({
           account_name: ACCOUNT,
-          permissions: [{ perm_name: 'active', required_auth: { keys: [{ key: PUB, weight: 1 }] } }],
+          permissions: [
+            {
+              perm_name: 'active',
+              required_auth: { keys: [{ key: PUB, weight: 1 }] },
+              ...(overrides.accountLastUpdated ? { last_updated: overrides.accountLastUpdated } : {}),
+            },
+          ],
         }),
     hasActiveKey: jest.fn().mockReturnValue(overrides.hasActiveKey ?? true),
     // настоящий recover — зеркало BlockchainService.recoverPublicKey
     recoverPublicKey: jest.fn((message: string, signature: string) =>
       Signature.from(signature).recoverMessage(Bytes.fromString(message, 'utf8')).toString(),
     ),
+    readActiveKeysQuorum: jest
+      .fn()
+      .mockResolvedValue(overrides.quorum ?? { agreed: true, keys: [PUB], samples: [{ url: 'rpc-1', keys: [PUB] }] }),
   };
   const user = { getUserByUsername: jest.fn().mockResolvedValue({ id: 'user-uuid-1' }) };
   const tokens = {
@@ -305,5 +320,76 @@ describe('VerifyTimestampService.verify', () => {
     await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
       code: AuthV2ErrorCode.CooposDegraded,
     });
+  });
+
+  // LIB отстаёт на 100 блоков → граница финализации ≈ TS − 50с; last_updated=TS реверсивен.
+  const INFO_LIB = { head_block_num: 1000, head_block_time: TS, last_irreversible_block_num: 900 };
+
+  it('ключ не финализирован (last_updated новее LIB), кэш совпал → degraded key_not_finalized (Story 9.6)', async () => {
+    const { service, audit, chainManifests } = makeService({
+      info: INFO_LIB,
+      accountLastUpdated: TS, // смена ключа в реверсивном окне
+      manifest: { account: ACCOUNT, active_keys: [PUB], cached_at: '2026-06-11T00:00:00.000Z' },
+    });
+    const token = await makeToken(ACCOUNT, 'jti-notfinal');
+    const signature = signCanonical(TS, 'jti-notfinal', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt');
+    expect(res.degraded).toBe(true);
+    expect(res.degraded_reason).toBe('key_not_finalized');
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'coopid.auth.degraded', result: 'degraded', context: { reason: 'key_not_finalized' } }),
+    );
+    // не-финализированный head-снимок в кэш не пишем
+    expect(chainManifests.put).not.toHaveBeenCalled();
+  });
+
+  it('ключ не финализирован и кэша нет → CooposDegraded (fail-closed, Story 9.6)', async () => {
+    const { service } = makeService({ info: INFO_LIB, accountLastUpdated: TS, manifest: null });
+    const token = await makeToken(ACCOUNT, 'jti-notfinal-nocache');
+    const signature = signCanonical(TS, 'jti-notfinal-nocache', ACCOUNT);
+
+    await expect(service.verify({ signature, timestamp: TS, bindingToken: token })).rejects.toMatchObject({
+      code: AuthV2ErrorCode.CooposDegraded,
+    });
+  });
+
+  it('финализированный ключ (last_updated старше LIB) → нормальный вход + обновление кэша (Story 9.6)', async () => {
+    const { service, chainManifests } = makeService({
+      info: INFO_LIB,
+      accountLastUpdated: '2026-06-10T11:00:00.000Z', // задолго до LIB
+    });
+    const token = await makeToken(ACCOUNT, 'jti-final');
+    const signature = signCanonical(TS, 'jti-final', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.degraded).toBeUndefined();
+    expect(chainManifests.put).toHaveBeenCalledWith(ACCOUNT, [PUB]);
+  });
+
+  it('RPC-ответы расходятся при обновлении кэша → инцидент divergent_rpc, кэш не трогаем, вход выдан (Story 9.7)', async () => {
+    const { service, audit, chainManifests } = makeService({
+      quorum: {
+        agreed: false,
+        keys: [PUB],
+        samples: [
+          { url: 'rpc-1', keys: [PUB] },
+          { url: 'rpc-2', keys: ['PUB_K1_fake'] },
+        ],
+      },
+    });
+    const token = await makeToken(ACCOUNT, 'jti-divergent');
+    const signature = signCanonical(TS, 'jti-divergent', ACCOUNT);
+
+    const res = await service.verify({ signature, timestamp: TS, bindingToken: token });
+
+    expect(res.access_token).toBe('access-jwt'); // вход уже проверен против живого узла — не валим
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'coopid.chain.divergent_rpc', result: 'failure' }),
+    );
+    expect(chainManifests.put).not.toHaveBeenCalled();
   });
 });

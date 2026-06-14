@@ -5,6 +5,7 @@ import { MigrationEntity } from '../infrastructure/database/typeorm/entities/mig
 import config from '../config/config';
 import logger from '../config/logger';
 import { BlockchainService } from '../infrastructure/blockchain/blockchain.service';
+import { RpcPool } from '../infrastructure/blockchain/rpc-pool.service';
 import { WinstonLoggerService } from '../application/logger/logger-app.service';
 import { MigrationLogger } from './migration-logger';
 import { VaultDomainService } from '../domain/vault/services/vault-domain.service';
@@ -49,7 +50,7 @@ export class MigrationManager {
       hasWif: async () => false,
     } as any;
 
-    this.blockchainService = new BlockchainService(loggerService, vaultDomainServiceStub);
+    this.blockchainService = new BlockchainService(loggerService, new RpcPool(loggerService), vaultDomainServiceStub);
   }
 
   async initialize(): Promise<void> {
@@ -74,7 +75,7 @@ export class MigrationManager {
 
     // Пересоздаем BlockchainService с настоящим VaultDomainService
     const loggerService = new WinstonLoggerService();
-    this.blockchainService = new BlockchainService(loggerService, this.vaultDomainService);
+    this.blockchainService = new BlockchainService(loggerService, new RpcPool(loggerService), this.vaultDomainService);
 
     logger.info('Миграционный менеджер инициализирован');
   }

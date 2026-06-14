@@ -12,6 +12,7 @@ import type { ISessionMetadataStore } from '~/domain/auth-v2/ports/session-metad
 import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import type { IChainManifestsCache } from '~/domain/auth-v2/ports/chain-manifests-cache.port';
 import { DegradedAuthReason } from '~/domain/auth-v2/degraded/degraded-auth.types';
+import { isActivePermissionFinalized } from '~/domain/auth-v2/chain/chain-finality';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { AuditService } from '../audit/audit.service';
@@ -49,19 +50,16 @@ interface ActiveKeyAccount {
   permissions: Array<{ perm_name: string; required_auth: { keys: Array<{ key: string; weight: number }> } }>;
 }
 
-/** Извлечь активные публичные ключи из аккаунта COOPOS (plain JSON, без wharfkit). */
-function extractActiveKeys(account: unknown): string[] {
-  if (!account || typeof account !== 'object') return [];
+/** Время последнего изменения active-permission из аккаунта COOPOS (для finality, Story 9.6). */
+function extractActiveLastUpdated(account: unknown): string | undefined {
+  if (!account || typeof account !== 'object') return undefined;
   try {
     const json = JSON.parse(JSON.stringify(account)) as {
-      permissions?: Array<{ perm_name?: string; required_auth?: { keys?: Array<{ key?: string }> } }>;
+      permissions?: Array<{ perm_name?: string; last_updated?: string }>;
     };
-    const active = json.permissions?.find((p) => p.perm_name === 'active');
-    return (active?.required_auth?.keys ?? [])
-      .map((k) => k.key)
-      .filter((k): k is string => typeof k === 'string');
+    return json.permissions?.find((p) => p.perm_name === 'active')?.last_updated;
   } catch {
-    return [];
+    return undefined;
   }
 }
 
@@ -128,14 +126,15 @@ export class VerifyTimestampService {
       throw new AuthV2Error(AuthV2ErrorCode.SessionBindingReused, 'session_binding_token уже использован');
     }
 
-    // 3. окно свежести метки против времени блокчейна (±60s).
-    let headBlockTime: string;
+    // 3. окно свежести метки против времени блокчейна (±60s). Полный get_info
+    //    переиспользуем ниже для проверки финализации ключа (Story 9.6).
+    let info: Awaited<ReturnType<BlockchainPort['getInfo']>>;
     try {
-      headBlockTime = (await this.blockchainPort.getInfo()).head_block_time;
+      info = await this.blockchainPort.getInfo();
     } catch {
       throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен: не удалось получить время блокчейна');
     }
-    const skewSec = Math.abs(new Date(headBlockTime).getTime() - new Date(input.timestamp).getTime()) / 1000;
+    const skewSec = Math.abs(new Date(info.head_block_time).getTime() - new Date(input.timestamp).getTime()) / 1000;
     if (!Number.isFinite(skewSec) || skewSec > TIMESTAMP_WINDOW_SEC) {
       await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'timestamp_window' }, ip: input.ip });
       throw new AuthV2Error(AuthV2ErrorCode.TimestampTooOld, 'Метка времени вне допустимого окна свежести');
@@ -164,24 +163,38 @@ export class VerifyTimestampService {
       liveReadOk = false;
     }
 
-    if (liveReadOk) {
+    // finalized-only gate (Story 9.6): живому head-снимку доверяем только если смена
+    // active-permission уже необратима (last_updated не новее границы LIB). Иначе
+    // (как и при недоступном узле) сверяем ключ против финализированного кэша.
+    const liveFinalized =
+      liveReadOk &&
+      !!liveAccount &&
+      isActivePermissionFinalized(extractActiveLastUpdated(liveAccount), info, {
+        marginMs: config.blockchain.finalityMarginMs,
+        blockIntervalMs: config.blockchain.blockIntervalMs,
+      });
+
+    if (liveReadOk && liveFinalized) {
       if (!liveAccount || !this.blockchainPort.hasActiveKey(liveAccount, recoveredKey)) {
         await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
         throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
       }
-      // свежий снимок активных ключей для будущего degraded-фолбэка (best-effort).
-      await this.safeCacheManifest(sub, liveAccount);
+      // обновить снимок активных ключей с M-of-N консенсусом (Story 9.7); best-effort.
+      await this.safeRefreshManifest(sub, input.ip);
     } else {
-      // COOPOS down → сверка против последнего снимка кэша манифестов.
+      // COOPOS down (RpcUnavailable) или ключ ещё не финализирован (KeyNotFinalized) →
+      // сверка против последнего финализированного снимка chain_manifests_cache.
+      const reason = liveReadOk ? DegradedAuthReason.KeyNotFinalized : DegradedAuthReason.RpcUnavailable;
       const manifest = await this.chainManifests.get(sub).catch(() => null);
       const cacheMatch =
         !!manifest && this.blockchainPort.hasActiveKey(manifestToAccount(manifest.active_keys), recoveredKey);
       if (!cacheMatch) {
-        await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'coopos_down_no_cache' }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен и нет валидного кеша ключей для проверки');
+        const failReason = liveReadOk ? 'key_not_finalized_no_cache' : 'coopos_down_no_cache';
+        await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: failReason }, ip: input.ip });
+        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен/не финализирован и нет валидного кеша ключей для проверки');
       }
       degraded = true;
-      degradedReason = DegradedAuthReason.RpcUnavailable;
+      degradedReason = reason;
       await this.safeAudit({ event: 'coopid.auth.degraded', subjectId: sub, actor: sub, result: 'degraded', context: { reason: degradedReason }, ip: input.ip });
     }
 
@@ -241,13 +254,29 @@ export class VerifyTimestampService {
     }
   }
 
-  /** Снимок активных ключей аккаунта в chain_manifests_cache — best-effort (сбой не валит вход). */
-  private async safeCacheManifest(account: string, liveAccount: unknown): Promise<void> {
+  /**
+   * Обновить снимок активных ключей в chain_manifests_cache с M-of-N консенсусом
+   * (Story 9.7). При ≥2 расходящихся ответах RPC кэш НЕ обновляем (оставляем прошлое
+   * валидное значение) и фиксируем инцидент `coopid.chain.divergent_rpc` — одна
+   * скомпрометированная нода не подсунет в кэш фейковый ключ. Best-effort: сбой
+   * обновления кэша не валит уже выданный (проверенный против живого узла) вход.
+   */
+  private async safeRefreshManifest(account: string, ip?: string | null): Promise<void> {
     try {
-      const keys = extractActiveKeys(liveAccount);
-      if (keys.length > 0) await this.chainManifests.put(account, keys);
+      const quorum = await this.blockchainPort.readActiveKeysQuorum(account);
+      if (quorum.samples.length >= 2 && !quorum.agreed) {
+        await this.safeAudit({
+          event: 'coopid.chain.divergent_rpc',
+          subjectId: account,
+          result: 'failure',
+          context: { reason: 'divergent_rpc_responses', samples: quorum.samples },
+          ip,
+        });
+        return;
+      }
+      if (quorum.keys.length > 0) await this.chainManifests.put(account, quorum.keys);
     } catch (e) {
-      this.logger.warn(`chain_manifests_cache не обновлён для ${account}: ${e instanceof Error ? e.message : e}`);
+      this.logger.warn(`chain_manifests_cache не обновлён (quorum) для ${account}: ${e instanceof Error ? e.message : e}`);
     }
   }
 }
