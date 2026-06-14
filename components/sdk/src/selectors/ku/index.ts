@@ -49,6 +49,9 @@ export const rawKuDecisionSelector = {
   protocol: true,
   petition: true,
   authorization: true,
+  // протокол собрания (323) и решение совета (325) агрегатами — для просмотра на странице собрания
+  protocol_document: rawDocumentAggregateSelector,
+  authorization_document: rawDocumentAggregateSelector,
   open_at: true,
   close_at: true,
   signed_ballots: true,

@@ -2,7 +2,7 @@ import { BRANCH_BLOCKCHAIN_PORT, BranchBlockchainPort } from '~/domain/branch/in
 import type { GetBranchesDomainInput } from '~/domain/branch/interfaces/get-branches-domain-input.interface';
 import { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entity';
 import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common/repositories/organization.repository';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import type { CreateBranchDomainInput } from '~/domain/branch/interfaces/create-branch-domain-input.interface';
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
@@ -26,6 +26,8 @@ import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.e
 
 @Injectable()
 export class BranchInteractor {
+  private readonly logger = new Logger(BranchInteractor.name);
+
   constructor(
     @Inject(PAYMENT_METHOD_REPOSITORY) private readonly paymentMethodRepository: PaymentMethodRepository,
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
@@ -70,8 +72,18 @@ export class BranchInteractor {
 
     const result: BranchDomainEntity[] = [];
     for (const branch of filteredBranches) {
-      const branchEntity = await this.getBranch(data.coopname, branch.braname);
-      result.push(branchEntity);
+      try {
+        const branchEntity = await this.getBranch(data.coopname, branch.braname);
+        result.push(branchEntity);
+      } catch (error) {
+        // Карточка участка (организация/председатель/реквизиты) после одобрения советом
+        // создаётся обработчиком события confirmdec асинхронно. Пока проекция не догнала
+        // блокчейн, getBranch бросает «Организация не найдена». Пропускаем не-готовый
+        // участок, чтобы один такой не ронял весь список — он появится на следующей загрузке.
+        this.logger.warn(
+          `getBranches: участок ${branch.braname} ещё не материализован — пропущен (${(error as Error).message})`
+        );
+      }
     }
 
     return result;

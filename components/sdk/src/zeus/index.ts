@@ -6907,6 +6907,8 @@ export type ValueTypes = {
 	address?:boolean | `@${string}`,
 	/** Решение совета */
 	authorization?:boolean | `@${string}`,
+	/** Решение совета об организации кооперативного участка — для отображения на странице собрания */
+	authorization_document?:ValueTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
 	/** Имя аккаунта кооперативного участка (служебное) */
@@ -6949,6 +6951,8 @@ export type ValueTypes = {
 	proposal?:boolean | `@${string}`,
 	/** Утверждённый протокол собрания */
 	protocol?:boolean | `@${string}`,
+	/** Протокол собрания пайщиков с подписью и бюллетенями — для отображения на странице собрания */
+	protocol_document?:ValueTypes["DocumentAggregate"],
 	/** Вопросы повестки собрания */
 	questions?:ValueTypes["KuDecisionQuestion"],
 	/** Количество поданных бюллетеней */
@@ -16584,6 +16588,8 @@ export type ResolverInputTypes = {
 	address?:boolean | `@${string}`,
 	/** Решение совета */
 	authorization?:boolean | `@${string}`,
+	/** Решение совета об организации кооперативного участка — для отображения на странице собрания */
+	authorization_document?:ResolverInputTypes["DocumentAggregate"],
 	/** Номер блока последнего обновления */
 	block_num?:boolean | `@${string}`,
 	/** Имя аккаунта кооперативного участка (служебное) */
@@ -16626,6 +16632,8 @@ export type ResolverInputTypes = {
 	proposal?:boolean | `@${string}`,
 	/** Утверждённый протокол собрания */
 	protocol?:boolean | `@${string}`,
+	/** Протокол собрания пайщиков с подписью и бюллетенями — для отображения на странице собрания */
+	protocol_document?:ResolverInputTypes["DocumentAggregate"],
 	/** Вопросы повестки собрания */
 	questions?:ResolverInputTypes["KuDecisionQuestion"],
 	/** Количество поданных бюллетеней */
@@ -25999,6 +26007,8 @@ export type ModelTypes = {
 	address?: string | undefined | null,
 	/** Решение совета */
 	authorization?: ModelTypes["JSON"] | undefined | null,
+	/** Решение совета об организации кооперативного участка — для отображения на странице собрания */
+	authorization_document?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
 	/** Имя аккаунта кооперативного участка (служебное) */
@@ -26041,6 +26051,8 @@ export type ModelTypes = {
 	proposal?: ModelTypes["JSON"] | undefined | null,
 	/** Утверждённый протокол собрания */
 	protocol?: ModelTypes["JSON"] | undefined | null,
+	/** Протокол собрания пайщиков с подписью и бюллетенями — для отображения на странице собрания */
+	protocol_document?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Вопросы повестки собрания */
 	questions?: Array<ModelTypes["KuDecisionQuestion"]> | undefined | null,
 	/** Количество поданных бюллетеней */
@@ -36278,6 +36290,8 @@ export type GraphQLTypes = {
 	address?: string | undefined | null,
 	/** Решение совета */
 	authorization?: GraphQLTypes["JSON"] | undefined | null,
+	/** Решение совета об организации кооперативного участка — для отображения на странице собрания */
+	authorization_document?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
 	/** Имя аккаунта кооперативного участка (служебное) */
@@ -36320,6 +36334,8 @@ export type GraphQLTypes = {
 	proposal?: GraphQLTypes["JSON"] | undefined | null,
 	/** Утверждённый протокол собрания */
 	protocol?: GraphQLTypes["JSON"] | undefined | null,
+	/** Протокол собрания пайщиков с подписью и бюллетенями — для отображения на странице собрания */
+	protocol_document?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Вопросы повестки собрания */
 	questions?: Array<GraphQLTypes["KuDecisionQuestion"]> | undefined | null,
 	/** Количество поданных бюллетеней */

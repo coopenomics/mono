@@ -3,6 +3,7 @@ import { GraphQLJSON } from 'graphql-type-json';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { KuDecisionType } from '../../domain/enums/ku-decision-type.enum';
 import { KuDecisionStatus } from '../../domain/enums/ku-decision-status.enum';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 @ObjectType('KuDecisionQuestion', { description: 'Вопрос повестки собрания пайщиков кооперативного участка' })
 export class KuDecisionQuestionDTO {
@@ -89,6 +90,18 @@ export class KuDecisionDTO {
 
   @Field(() => GraphQLJSON, { nullable: true, description: 'Решение совета' })
   authorization?: object;
+
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description: 'Протокол собрания пайщиков с подписью и бюллетенями — для отображения на странице собрания',
+  })
+  protocol_document?: DocumentAggregateDTO;
+
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description: 'Решение совета об организации кооперативного участка — для отображения на странице собрания',
+  })
+  authorization_document?: DocumentAggregateDTO;
 
   @Field(() => String, { nullable: true, description: 'Дата и время открытия голосования' })
   open_at?: string;

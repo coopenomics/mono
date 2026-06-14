@@ -449,6 +449,23 @@ export class KuService {
 
     const dto = this.toDecisionDTO(decision, questions);
     dto.participants_info = await this.resolveParticipantsInfo(decision.participants ?? []);
+
+    // Протокол собрания пайщиков (323) и решение совета (325) — публикуемые документы
+    // для страницы собрания. Договор матответственности (328) и доверенность (329)
+    // содержат паспортные данные и сюда НЕ выносятся.
+    if (decision.protocol) {
+      const aggregate = await this.documentAggregator
+        .buildDocumentAggregate(decision.protocol as unknown as ISignedDocumentDomainInterface)
+        .catch(() => null);
+      dto.protocol_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
+    }
+    if (decision.authorization) {
+      const aggregate = await this.documentAggregator
+        .buildDocumentAggregate(decision.authorization as unknown as ISignedDocumentDomainInterface)
+        .catch(() => null);
+      dto.authorization_document = aggregate ? new DocumentAggregateDTO(aggregate) : undefined;
+    }
+
     return dto;
   }
 

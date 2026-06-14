@@ -92,6 +92,27 @@
           @click='onVote'
         ) Подписать бюллетень
 
+    //- Публикуемые документы собрания: протокол собрания пайщиков и решение совета.
+    //- Договор матответственности и доверенность здесь не публикуются (паспортные данные).
+    BaseCard.q-mt-md(v-if='protocolDoc || authorizationDoc')
+      template(#head)
+        .agenda-head
+          q-icon.agenda-head__icon(name='description', size='20px')
+          div
+            .agenda-head__title Документы собрания
+            .agenda-head__sub Протокол собрания пайщиков и решение совета об организации участка
+      .column.q-gutter-sm
+        DocumentRow(
+          v-if='protocolDoc',
+          :document='{ type: "html", title: "Протокол собрания пайщиков" }',
+          @open='openMeetingDoc(protocolDoc, "Протокол собрания пайщиков")'
+        )
+        DocumentRow(
+          v-if='authorizationDoc',
+          :document='{ type: "html", title: "Решение совета об организации кооперативного участка" }',
+          @open='openMeetingDoc(authorizationDoc, "Решение совета об организации кооперативного участка")'
+        )
+
   EmptyState(v-else, title='Собрание не найдено')
 
 //- Открытие голосования: организатор фиксирует решения собрания —
@@ -163,6 +184,10 @@ BaseDialog(v-model='isCancelOpen', title='Отменить собрание', si
       BaseButton(variant='secondary', type='button', @click='isCancelOpen = false') Назад
       BaseButton(variant='primary', type='submit', :loading='busy') Отменить собрание
 
+//- Просмотр публикуемого документа собрания (протокол собрания / решение совета)
+BaseDialog(v-model='isDocOpen', :title='docTitle', size='lg')
+  BaseDocument(v-if='docTarget', :document-aggregate='docTarget')
+
 //- Сбор паспорта председателя участка перед направлением договора в совет (если паспорта ещё нет)
 CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 </template>
@@ -191,7 +216,8 @@ import {
   TableSkeleton,
 } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
-import { DataRow } from 'src/shared/ui/domain';
+import { DataRow, DocumentRow } from 'src/shared/ui/domain';
+import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import { AgendaNumberAvatar } from 'src/shared/ui/AgendaNumberAvatar';
 import { useHeaderActions } from 'src/shared/hooks';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
@@ -213,6 +239,10 @@ const busy = ref(false);
 const isStartOpen = ref(false);
 const isCancelOpen = ref(false);
 const cancelReason = ref('');
+// просмотр публикуемого документа собрания (протокол собрания / решение совета)
+const isDocOpen = ref(false);
+const docTarget = ref<object | null>(null);
+const docTitle = ref('');
 const votes = ref<Record<number, KuVote>>({});
 const startForm = ref({ branchName: '', address: '', branchEmail: '', branchPhone: '', chairman: '' });
 // вопросы, внесённые в повестку прямо на собрании (добавляются при открытии голосования)
@@ -251,6 +281,16 @@ const chairmanName = computed(() => displayName(decision.value?.chairman));
 const questions = computed(() =>
   (decision.value?.questions ?? []).map((question) => ({ ...question, id: Number(question.id ?? 0) })),
 );
+
+// публикуемые документы собрания (агрегаты с html+подписями) — приходят с бэкенда
+const protocolDoc = computed(() => decision.value?.protocol_document ?? null);
+const authorizationDoc = computed(() => decision.value?.authorization_document ?? null);
+
+function openMeetingDoc(aggregate: object, title: string): void {
+  docTarget.value = aggregate;
+  docTitle.value = title;
+  isDocOpen.value = true;
+}
 
 const participantOptions = computed(() =>
   participantsInfo.value.map((participant) => ({

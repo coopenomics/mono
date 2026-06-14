@@ -3633,6 +3633,7 @@ export const ReturnTypes: Record<string,any> = {
 	KuDecision:{
 		address:"String",
 		authorization:"JSON",
+		authorization_document:"DocumentAggregate",
 		block_num:"Int",
 		braname:"String",
 		branch_email:"String",
@@ -3654,6 +3655,7 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		proposal:"JSON",
 		protocol:"JSON",
+		protocol_document:"DocumentAggregate",
 		questions:"KuDecisionQuestion",
 		signed_ballots:"Int",
 		status:"KuDecisionStatus",
