@@ -1,9 +1,10 @@
 <script lang="ts" setup>
+import { computed } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseDialog } from 'src/shared/ui/base';
+import { BaseDialog, BaseBadge } from 'src/shared/ui/base';
 import type { MarketplaceWriteoffProposalView } from '../api';
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean;
   proposal: MarketplaceWriteoffProposalView;
 }>();
@@ -11,10 +12,25 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
 }>();
 
-function fmt(value: string | null | undefined): string {
+function fmtDate(value: string | null | undefined): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
+}
+
+function fmtDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU');
+}
+
+function positionsLabel(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  let word = 'позиций';
+  if (mod10 === 1 && mod100 !== 11) word = 'позиция';
+  else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'позиции';
+  return `${n} ${word}`;
 }
 
 function humanStatus(status: MarketplaceWriteoffProposalView['status']): string {
@@ -37,62 +53,144 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
       return String(status);
   }
 }
+
+// Итог рассмотрения советом — человеку, не служебный номер решения.
+function councilOutcome(status: MarketplaceWriteoffProposalView['status']): string {
+  switch (status) {
+    case 'DRAFT':
+      return 'Не вынесено';
+    case 'ON_AGENDA':
+      return 'На рассмотрении';
+    case 'REJECTED':
+      return 'Отклонено советом';
+    default:
+      return 'Одобрено советом';
+  }
+}
+
+// Журнал решений — коды действий в человеческие формулировки.
+const LOG_LABELS: Record<string, string> = {
+  draft_created: 'Черновик создан',
+  draft_updated: 'Состав изменён',
+  submitted_to_council: 'Отправлено в совет',
+  authorized_by_council: 'Совет одобрил',
+  declined_by_council: 'Совет отклонил',
+  confirmed_by_branch: 'Подтверждено складом',
+  execution_started: 'Списание начато',
+  item_executed: 'Позиция списана',
+  execution_completed: 'Списание завершено',
+};
+function humanLog(action: string): string {
+  return LOG_LABELS[action] ?? action;
+}
+
+const title = computed(() => {
+  const p = props.proposal;
+  return `Списание от ${fmtDate(p.submitted_at ?? p.cycle_started_at ?? p.updated_at)}`;
+});
+
+const shortHash = computed(() => {
+  const h = props.proposal.proposal_hash;
+  if (!h) return '—';
+  return h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
+});
 </script>
 
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue",
-  :title="`Проект списания · ${humanStatus(proposal.status)}`",
+  :title="`${title} · ${humanStatus(proposal.status)}`",
   maximized,
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  section
+  section.writeoff-details
     .t-h3 Основные параметры
-    .row.q-col-gutter-md.q-mt-xs
-      .col
-        .t-muted Цикл
-        div {{ fmt(proposal.cycle_started_at) }}
-      .col
-        .t-muted Сумма
+    .writeoff-details__grid.q-mt-sm
+      .writeoff-details__field
+        .t-muted Цикл списания
+        div {{ fmtDate(proposal.cycle_started_at) }}
+      .writeoff-details__field
+        .t-muted Позиций
+        div {{ positionsLabel(proposal.items.length) }}
+      .writeoff-details__field
+        .t-muted Сумма списания
         div {{ formatAsset2Digits(proposal.total_amount) }}
-      .col
-        .t-muted Идентификатор on-chain
-        .t-mono-sm(style="word-break: break-all") {{ proposal.proposal_hash || '—' }}
-      .col
+      .writeoff-details__field
         .t-muted Решение совета
-        div {{ proposal.decision_id ?? '—' }}
+        div {{ councilOutcome(proposal.status) }}
 
-  section.q-mt-md
-    .t-h3.q-mb-sm Позиции
-    q-markup-table(dense, flat, bordered)
-      thead
-        tr
-          th №
-          th Кооп. участок
-          th Наименование
-          th Кол-во
-          th Сумма
-          th Причина
-          th Статус
-      tbody
-        tr(v-for="(it, idx) in proposal.items", :key="idx")
-          td {{ idx + 1 }}
-          td {{ it.branch_name || it.braname }}
-          td {{ it.asset_title }}
-          td {{ it.quantity }}
-          td {{ formatAsset2Digits(it.amount) }}
-          td {{ it.reason }}
-          td(:class="it.executed ? 'text-positive' : 'text-grey-7'") {{ it.executed ? 'Исполнено' : 'Ожидает' }}
+  section.writeoff-details.q-mt-lg
+    .t-h3.q-mb-sm Позиции к списанию
+    .table-wrap
+      .table-scroll
+        table.table
+          thead
+            tr
+              th №
+              th Кооп. участок
+              th Наименование
+              th.col-num Кол-во
+              th.col-num Сумма
+              th Причина
+              th Статус
+          tbody
+            tr(v-for="(it, idx) in proposal.items", :key="idx")
+              td {{ idx + 1 }}
+              td {{ it.branch_name || it.braname }}
+              td {{ it.asset_title }}
+              td.col-num {{ it.quantity }}
+              td.col-num {{ formatAsset2Digits(it.amount) }}
+              td {{ it.reason }}
+              td
+                BaseBadge(:variant="it.executed ? 'pos' : 'neutral'") {{ it.executed ? 'Списано' : 'Ожидает' }}
 
-  section.q-mt-md(v-if="proposal.reject_reason")
-    .t-h3 Причина отказа совета
+  section.writeoff-details.q-mt-lg(v-if="proposal.reject_reason")
+    .t-h3.q-mb-sm Причина отказа совета
     .text-body2 {{ proposal.reject_reason }}
 
-  section.q-mt-md(v-if="proposal.decision_log && proposal.decision_log.length")
+  section.writeoff-details.q-mt-lg(v-if="proposal.decision_log && proposal.decision_log.length")
     .t-h3.q-mb-sm Журнал решений
-    q-list(dense, bordered, separator)
-      q-item(v-for="(entry, idx) in proposal.decision_log", :key="idx")
-        q-item-section
-          q-item-label {{ entry.action }} — {{ entry.actor }}
-          q-item-label(caption) {{ fmt(entry.at) }}
+    .writeoff-details__log
+      .writeoff-details__log-item(v-for="(entry, idx) in proposal.decision_log", :key="idx")
+        .writeoff-details__log-main {{ humanLog(entry.action) }}
+        .t-muted {{ fmtDateTime(entry.at) }}
+
+  section.writeoff-details.q-mt-lg
+    .t-muted Идентификатор в реестре
+    .t-mono-sm {{ shortHash }}
 </template>
+
+<style lang="scss" scoped>
+.writeoff-details {
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--p-4, 16px);
+  }
+
+  &__log {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    overflow: hidden;
+  }
+
+  &__log-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
+
+    & + & {
+      border-top: 1px solid var(--p-line);
+    }
+  }
+
+  &__log-main {
+    font-weight: 500;
+    color: var(--p-ink);
+  }
+}
+</style>

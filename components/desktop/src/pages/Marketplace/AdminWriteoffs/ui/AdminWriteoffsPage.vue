@@ -206,6 +206,22 @@ function proposalDate(p: MarketplaceWriteoffProposalView): string | null | undef
   return p.executed_at ?? p.rejected_at ?? p.submitted_at ?? p.updated_at;
 }
 
+// Русское склонение «позиция/позиции/позиций».
+function positionsLabel(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  let word = 'позиций';
+  if (mod10 === 1 && mod100 !== 11) word = 'позиция';
+  else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'позиции';
+  return `${n} ${word}`;
+}
+
+// Человеческое имя проекта — по дате подачи/цикла, не «N позиций».
+function proposalTitle(p: MarketplaceWriteoffProposalView): string {
+  const date = formatDate(p.submitted_at ?? p.cycle_started_at ?? p.updated_at);
+  return `Списание от ${date}`;
+}
+
 // Три состояния позиции на складе:
 //  · нет даты годности (гарантия 0) → «Без гарантии» — ручное списание сразу;
 //  · дата прошла → «Просрочен» — первоочередной авто-кандидат;
@@ -318,7 +334,8 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
           tbody
             tr.writeoffs__row(v-for="p in proposalsList", :key="p.id", @click="openDetails(p)")
               td
-                div {{ p.items.length }} позиций
+                .writeoffs__title {{ proposalTitle(p) }}
+                .t-muted {{ positionsLabel(p.items.length) }}
                 .t-muted(v-if="p.reject_reason") Причина отказа: {{ p.reject_reason }}
               td.col-num {{ formatAsset2Digits(p.total_amount) }}
               td
@@ -347,6 +364,11 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
 
   &__row {
     cursor: pointer;
+  }
+
+  &__title {
+    font-weight: 600;
+    color: var(--p-ink);
   }
 }
 
