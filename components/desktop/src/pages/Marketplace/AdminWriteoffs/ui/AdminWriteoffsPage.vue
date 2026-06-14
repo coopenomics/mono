@@ -2,13 +2,14 @@
 import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
+  cancelWriteoffDraft,
   createWriteoffDraft,
   getOpenWriteoffDraft,
   listWriteoffCandidates,
@@ -16,37 +17,34 @@ import {
   type MarketplaceWriteoffCandidateView,
   type MarketplaceWriteoffProposalView,
 } from '../api';
-import DraftEditorDialog from './DraftEditorDialog.vue';
 import SubmitToCouncilDialog from './SubmitToCouncilDialog.vue';
 import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 
 /**
- * Эпик 8: admin-стол «Списания на повестке». Лента проектов решения совета
- * о списании скоропорта.
+ * Эпик 8: admin-стол «Списания». Председатель выделяет имущество на складах,
+ * при желании пишет причину и одной кнопкой подписывает Заявление 1106 и
+ * выносит проект на повестку совета — без промежуточного черновика как
+ * отдельного экрана (черновик собирается под капотом перед подписью).
  *
- * Раздел 1 — открытый черновик (DRAFT). Кран сервиса или ручное действие
- * предлагают председателю / общему администратору набор позиций к
- * списанию. Здесь же можно отредактировать состав и подписать Заявление
- * 1106 для отправки в совет.
- *
- * Раздел 2 — активные проекты на повестке совета (ON_AGENDA /
- * AUTHORIZED / EXECUTING). Здесь только наблюдение — действующие
- * процедуры голосования и подписания Протокола 1107 идут через
- * стандартный sov.decision-flow повестки совета.
- *
- * Раздел 3 — архив (EXECUTED / REJECTED).
+ * Ниже — лента проектов в работе совета (ON_AGENDA / AUTHORIZED /
+ * PENDING_CONFIRMATION / EXECUTING; только наблюдение) и архив
+ * (EXECUTED / REJECTED).
  */
 
+// Черновик — внутренний эфемерный артефакт: backend submitToCouncil требует
+// существующий DRAFT (его proposal_hash подписывается). Собираем его перед
+// подписью и сразу выносим в совет; как отдельный экран не показываем.
 const draft = ref<MarketplaceWriteoffProposalView | null>(null);
 const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
 const loading = ref(false);
 
-// Кандидаты на списание — просроченный скоропорт на складах. Председатель
-// выделяет позиции и одной кнопкой собирает из них черновик проекта.
+// Имущество на складах: председатель выделяет позиции, пишет причину и сразу
+// отправляет в совет.
 const candidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
-const creatingDraft = ref(false);
+const writeoffReason = ref('');
+const preparing = ref(false);
 
 const candidateColumns = [
   { name: 'branch_name', align: 'left' as const, label: 'Кооп. участок', field: 'branch_name' },
@@ -57,7 +55,6 @@ const candidateColumns = [
   { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
 ];
 
-const draftEditorOpen = ref(false);
 const submitDialogOpen = ref(false);
 const detailsOpen = ref(false);
 const selected = ref<MarketplaceWriteoffProposalView | null>(null);
@@ -99,7 +96,9 @@ function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
   return Number.parseFloat(c.amount) > 0;
 }
 
-async function createDraftFromSelection(): Promise<void> {
+// Один шаг: выделил имущество + (необязательно) причину → собираем черновик
+// под капотом и сразу открываем подпись Заявления для отправки в совет.
+async function signAndSend(): Promise<void> {
   const picked = selectedCandidates.value.filter(hasAmount);
   if (picked.length === 0) {
     FailAlert(
@@ -108,26 +107,32 @@ async function createDraftFromSelection(): Promise<void> {
     );
     return;
   }
-  creatingDraft.value = true;
+  preparing.value = true;
   try {
+    // Снимаем возможный висящий черновик (от прерванной подписи или крон-сервиса),
+    // чтобы собрать свежий ровно из текущего выбора — один черновик за раз.
+    if (draft.value) {
+      await cancelWriteoffDraft(draft.value.id);
+      draft.value = null;
+    }
+    const reason = writeoffReason.value.trim();
     const created = await createWriteoffDraft({
       items: picked.map((c) => ({
         braname: c.braname,
         asset_title: c.asset_title,
         quantity: c.quantity,
         amount: c.amount,
-        reason: c.reason,
+        // Пусто — причина по состоянию позиции (просрочено / ручное списание).
+        reason: reason || c.reason,
         inventory_id: c.inventory_id,
       })),
     });
     draft.value = created;
-    selectedCandidates.value = [];
-    SuccessAlert('Черновик списания собран из выбранных позиций');
-    void load();
+    submitDialogOpen.value = true;
   } catch (e) {
-    FailAlert(e, 'Не удалось создать черновик списания');
+    FailAlert(e, 'Не удалось подготовить проект к отправке в совет');
   } finally {
-    creatingDraft.value = false;
+    preparing.value = false;
   }
 }
 
@@ -202,12 +207,10 @@ const totalActiveAmount = computed(() =>
     .toFixed(2),
 );
 
-function onDraftCreatedOrUpdated(updated: MarketplaceWriteoffProposalView): void {
-  draft.value = updated;
-}
-
 function onDraftSubmitted(): void {
   draft.value = null;
+  selectedCandidates.value = [];
+  writeoffReason.value = '';
   void load();
 }
 
@@ -230,29 +233,33 @@ onMounted(() => {
 <template lang="pug">
 q-page.writeoffs(role="region", aria-label="Списания скоропорта")
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
-    | Сначала собирается черновик списания — вручную председателем или автоматически по сроку годности. Затем председатель подписывает заявление и выносит проект на повестку совета. Совет утверждает списание протоколом, после чего имущество списывается со склада.
+    | Выделите имущество на складах к списанию, при необходимости укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего председатель кооперативного участка подтверждает выбытие со склада.
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре, dense/primary).
-  //- Активна только когда выделены позиции-кандидаты; собирает из них черновик.
+  //- Один шаг: собрать проект из выбора и сразу открыть подпись + отправку в совет.
   Teleport(to="#header-actions-host", defer)
     BaseButton(
-      v-if="!draft",
       variant="primary",
       size="sm",
       :disabled="selectedCandidates.length === 0",
-      :loading="creatingDraft",
-      @click="createDraftFromSelection"
+      :loading="preparing",
+      @click="signAndSend"
     )
       template(#icon-left)
-        q-icon(name="add", size="18px")
-      | Новый черновик{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
+        q-icon(name="draw", size="18px")
+      | Подписать и отправить в совет{{ selectedCandidates.length ? ` (${selectedCandidates.length})` : '' }}
 
-  //- Кандидаты на списание: выделяемая таблица имущества на складах.
-  //- Один черновик за раз — пока есть открытый черновик, таблицу прячем.
-  BaseCard(v-if="!draft")
+  //- Имущество на складах: выделяемая таблица + причина списания в этой же карточке.
+  BaseCard
     .writeoffs__candidates-head
-      .t-h3 Кандидаты на списание
-      .t-muted Имущество на складах кооператива. «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен. Выделите позиции и нажмите «Новый черновик» в шапке.
+      .t-h3 Имущество на складах
+      .t-muted «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен. Выделите позиции, при необходимости укажите причину и подпишите в шапке.
+    BaseInput.q-mt-sm(
+      v-model="writeoffReason",
+      label="Причина списания (необязательно)",
+      placeholder="Например: порча, использование. Пусто — причина по состоянию позиции",
+      :disabled="selectedCandidates.length === 0"
+    )
     q-table.full-width.q-mt-sm(
       flat,
       :rows="candidates",
@@ -275,22 +282,6 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       template(#body-cell-amount="props")
         q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 
-  BaseCard(v-if="draft")
-    .writeoffs__draft
-      .writeoffs__draft-info
-        .t-h3 Открытый черновик
-        .t-muted {{ draft.items.length }} позиций · {{ formatAsset2Digits(draft.total_amount) }}
-        .t-muted Источник: {{ draft.trigger === Zeus.MarketplaceWriteoffProposalTrigger.CRON ? 'крон-сервис' : 'ручное создание' }} · {{ formatDate(draft.created_at) }}
-      .writeoffs__draft-actions
-        BaseButton(variant="secondary", @click="draftEditorOpen = true")
-          template(#icon-left)
-            q-icon(name="edit", size="16px")
-          | Изменить состав
-        BaseButton(variant="primary", @click="submitDialogOpen = true")
-          template(#icon-left)
-            q-icon(name="send", size="16px")
-          | Подписать и отправить в совет
-
   BaseCard
     .writeoffs__council
       div
@@ -301,7 +292,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   CardListSkeleton(v-if="loading && !inCouncil.length && !archive.length", :count="3")
 
   .writeoffs__empty(v-if="inCouncil.length === 0 && !loading")
-    | Нет проектов на повестке. Откройте новый черновик или дождитесь, пока крон-сервис подберёт скоропорт.
+    | Нет проектов на повестке. Выделите имущество в таблице выше и отправьте проект в совет.
   q-list(v-if="inCouncil.length > 0", bordered, separator)
     q-item(v-for="p in inCouncil", :key="p.id", clickable, @click="openDetails(p)")
       q-item-section
@@ -321,11 +312,6 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
       q-item-section(side)
         BaseBadge(:variant="statusVariant(p.status)") {{ humanStatus(p.status) }}
 
-  DraftEditorDialog(
-    v-model="draftEditorOpen",
-    :existing-draft="draft",
-    @saved="onDraftCreatedOrUpdated"
-  )
   SubmitToCouncilDialog(
     v-if="draft",
     v-model="submitDialogOpen",
@@ -345,31 +331,6 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    align-items: center;
-  }
-
-  &__draft {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--p-4, 16px);
-    flex-wrap: wrap;
-  }
-
-  &__draft-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-  }
-
-  &__draft-actions {
-    display: flex;
-    gap: var(--p-2, 8px);
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
 
   &__council {
     display: flex;
