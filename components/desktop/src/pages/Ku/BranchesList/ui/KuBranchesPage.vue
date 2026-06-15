@@ -9,6 +9,16 @@
     button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
       q-icon(name='close')
 
+  //- Состояние системы управления кооперативом (флаг is_branched из контракта branch):
+  //- при 3+ кооперативных участках общее собрание проходит через участки (мажоритарная модель).
+  //- Индикатор только для информации — флаг выставляется контрактом автоматически.
+  BaseCard.q-mb-md(title='Мажоритарная система управления')
+    template(#actions)
+      BaseChip(:variant="isBranched ? 'pos' : 'neutral'")
+        q-icon(:name="isBranched ? 'check_circle' : 'do_not_disturb_on'", size='14px')
+        span.q-ml-xs {{ isBranched ? 'Включена' : 'Не включена' }}
+    .t-sm.t-muted {{ branchModeText }}
+
   TableSkeleton(v-if='loading && !branches.length', :columns='skeletonColumns', :rows='4')
   .table-wrap(v-else-if='branches.length')
     .table-scroll
@@ -56,7 +66,7 @@ import { useBranchStore } from 'src/entities/Branch/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
-import { EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import { BaseCard, BaseChip, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 
 const skeletonColumns: TableSkeletonColumn[] = [
@@ -75,6 +85,15 @@ const loading = ref(true);
 
 // публичные данные участков (сертификаты с ФИО) — доступны любому пайщику
 const branches = computed(() => branchStore.publicBranches);
+
+// состояние системы управления из контракта: is_branched отдаётся системным стором
+// (system.info.cooperator_account). Контракт включает флаг при 3+ кооперативных участках.
+const isBranched = computed(() => !!system.info?.cooperator_account?.is_branched);
+const branchModeText = computed(() =>
+  isBranched.value
+    ? 'В кооперативе три и более кооперативных участков, поэтому общие собрания проходят через них: пайщики участвуют в собраниях своего участка, а участки представляют их на общем собрании пайщиков кооператива.'
+    : 'Пока в кооперативе меньше трёх кооперативных участков — все пайщики участвуют в общем собрании напрямую. Когда участков станет три и более, система управления автоматически переключится на мажоритарную: собрания будут проходить через кооперативные участки.',
+);
 
 function branchTitle(branch: any): string {
   return branch.short_name || branch.full_name || branch.braname;
