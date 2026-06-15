@@ -1,8 +1,6 @@
 <template lang="pug">
 .process-writeoff-info
-  div(v-if='loading')
-    q-spinner(size='sm')
-    span.q-ml-sm.text-grey-7 Загрузка проекта решения…
+  Loader(v-if='loading', text='Загрузка проекта решения…')
   div(v-else-if='snapshot')
     .row.q-col-gutter-md
       .col-12.col-sm-6
@@ -40,6 +38,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
+import { Loader } from 'src/shared/ui/Loader'
 
 interface Props {
   processHash: string

@@ -1,8 +1,6 @@
 <template lang="pug">
 .process-return-info
-  div(v-if='loading')
-    q-spinner(size='sm')
-    span.q-ml-sm.text-grey-7 Загрузка содержания заявления…
+  Loader(v-if='loading', text='Загрузка содержания заявления…')
   div(v-else-if='snapshot')
     .row.q-col-gutter-md
       .col-12.col-sm-6
@@ -39,6 +37,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
+import { Loader } from 'src/shared/ui/Loader'
 
 interface Props {
   processHash: string

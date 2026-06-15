@@ -11,11 +11,13 @@ BaseDialog(
   maximized
   @update:model-value='(v) => emit("update:modelValue", v)'
 )
-  BaseDocument(
-    v-if='modelValue && documentAggregate'
-    :document-aggregate='documentAggregate'
-  )
-  .text-body2.text-grey-7(v-else) Документ недоступен
+  //- Документ — листом А4 по центру экрана. На широком maximized-диалоге сам
+  //- q-card документа растягивается во всю ширину и визуально «прижимается»
+  //- влево; центрируем его контейнером с ограничением по ширине.
+  .document-viewer__center(v-if='modelValue && documentAggregate')
+    BaseDocument(:document-aggregate='documentAggregate')
+  .document-viewer__center(v-else)
+    .text-body2.text-grey-7 Документ недоступен
 </template>
 
 <script setup lang="ts">
@@ -33,3 +35,17 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 </script>
+
+<style lang="scss" scoped>
+.document-viewer__center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  // Лист документа — ограничен по ширине и центрирован (страница А4).
+  :deep(> *) {
+    width: 100%;
+    max-width: 900px;
+  }
+}
+</style>

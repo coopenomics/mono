@@ -143,10 +143,6 @@ th, td {
 
   <p>{% trans 'confirmation' %}</p>
 
-  <p style="margin: 0px">{% trans 'proposal_ref' %} {{ proposal_hash }}</p>
-
-  <p>{% trans 'ledger_note' %}</p>
-
   <p>{% trans 'signature' %}</p>
   <p style="margin: 0px">{% trans 'chairman_of_branch', branch_name %} {{ chairman.full_name_or_short_name }}</p>
   <p style="margin: 0px">{{ meta.created_at }}</p>
@@ -165,8 +161,6 @@ export const translations = {
     col_reason: 'Причина',
     total: 'ИТОГО',
     confirmation: 'Списание произведено. Имущество физически выбыло со склада кооперативного участка и снято с учёта.',
-    proposal_ref: 'Идентификатор проекта списания:',
-    ledger_note: 'Списание оформляется бухгалтерской проводкой Дт 86 «Целевое финансирование» / Кт 10 «Материалы»; движений по кошелькам пайщиков не производится.',
     signature: 'Подписано электронной подписью.',
     chairman_of_branch: 'Председатель кооперативного участка «{0}»:',
   },

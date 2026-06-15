@@ -4,6 +4,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { Loader } from 'src/shared/ui/Loader';
 import {
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
@@ -85,9 +86,7 @@ BaseDialog(
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  .submit-council__loading(v-if="loading")
-    q-spinner(color="primary", size="42px")
-    .t-muted Формируем Заявление…
+  Loader(v-if="loading", text="Формируем Заявление…")
 
   template(v-else-if="previewDoc")
     .t-muted.submit-council__intro

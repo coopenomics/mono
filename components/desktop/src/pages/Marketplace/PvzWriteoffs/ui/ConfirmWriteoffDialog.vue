@@ -4,6 +4,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { Loader } from 'src/shared/ui/Loader';
 import {
   confirmWriteoff,
   getWriteoffServiceMemoSignablePayload,
@@ -83,9 +84,7 @@ BaseDialog(
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  .confirm-writeoff(v-if="loading")
-    q-spinner(size="24px")
-    span.text-grey-7 Формируем Служебную записку…
+  Loader(v-if="loading", text="Формируем Служебную записку…")
 
   template(v-else-if="previewDoc")
     .t-muted.confirm-writeoff__intro
@@ -106,10 +105,6 @@ BaseDialog(
 
 <style lang="scss" scoped>
 .confirm-writeoff {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3, 12px);
-
   &__intro {
     margin-bottom: var(--p-4, 16px);
   }
