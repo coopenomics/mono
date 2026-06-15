@@ -87,18 +87,24 @@ export class MarketplaceOrderCancelService {
     if (order.orderer_account !== input.orderer_account) {
       throw new ForbiddenException('Отменить заказ может только его заказчик.');
     }
-    // Story 4.4 AC: отмена доступна заказчиком пока поставщик не запустил
-    // поставку. Это охватывает ACTIVE (in pool) и ACCEPTED_PENDING_SUPPLIER*
-    // (batch/individual ожидание подтверждения). После ACCEPTED отмена
-    // только через гарантийный возврат (Эпик 7).
+    // Отмена / отказ от получения заказчиком. Граница удержания — акцепт
+    // поставщиком (это решает КОНТРАКТ): до акцепта (ACTIVE / ожидание
+    // поставщика) — бесплатно, полный возврат; после акцепта и до открытия
+    // выдачи (ACCEPTED / SUPPLY_PREPARED / ACCEPTED_TO_COOP) — отказ с
+    // удержанием 50% (поставщик уже взял обязательство). На выдаче (отказ от
+    // позиции) заказ как раз в ACCEPTED_TO_COOP. После открытия акта выдачи
+    // (READY_TO_RECEIVE / RECEIVED) отмена закрыта — контракт её отвергнет.
     const CANCELABLE_STATUSES = [
       MarketplaceOrderStatuses.ACTIVE,
       MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER,
       MarketplaceOrderStatuses.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
+      MarketplaceOrderStatuses.ACCEPTED,
+      MarketplaceOrderStatuses.SUPPLY_PREPARED,
+      MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
     ] as const;
     if (!(CANCELABLE_STATUSES as readonly string[]).includes(order.status)) {
       throw new BadRequestException(
-        `Нельзя отменить заказ в статусе «${order.status}». Отмена доступна только до запуска поставщиком поставки.`
+        `Нельзя отменить заказ в статусе «${order.status}». Отмена закрыта после открытия акта выдачи.`
       );
     }
 

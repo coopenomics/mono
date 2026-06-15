@@ -119,11 +119,13 @@ describe('MarketplaceOrderCancelService', () => {
     expect(mocks.chainPort.cancelOrder).not.toHaveBeenCalled();
   });
 
+  // После открытия акта выдачи (readyrecv) и далее отмена закрыта —
+  // контракт её отвергнет; уже отменённый — тем более.
   it.each([
-    'ACCEPTED',
+    'READY_TO_RECEIVE',
     'RECEIVED',
     'CANCELLED_BY_ORDERER',
-  ] as const)('BadRequest когда status = %s (после акцепта/получения/уже отменён)', async (status) => {
+  ] as const)('BadRequest когда status = %s (акт выдачи открыт / уже отменён)', async (status) => {
     mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status }));
 
     await expect(
@@ -132,12 +134,16 @@ describe('MarketplaceOrderCancelService', () => {
     expect(mocks.chainPort.cancelOrder).not.toHaveBeenCalled();
   });
 
-  // Story 4.4 AC: ACCEPTED_PENDING_SUPPLIER* — отмена доступна до запуска
-  // поставщиком поставки. См. can_be_cancelled_by_orderer.
+  // Отмена/отказ доступны до открытия акта выдачи. Граница бесплатно/удержание
+  // 50% — на стороне контракта (до акцепта поставщиком vs после). Бэкенд лишь
+  // не закрывает действие раньше времени; на выдаче отказ идёт в ACCEPTED_TO_COOP.
   it.each([
     'ACTIVE',
     'ACCEPTED_PENDING_SUPPLIER',
     'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
+    'ACCEPTED',
+    'SUPPLY_PREPARED',
+    'ACCEPTED_TO_COOP',
   ] as const)('cancel доступен в статусе %s', async (status) => {
     mocks.orderRepo.findById.mockResolvedValue(buildOrder({ status }));
     mocks.chainPort.cancelOrder.mockResolvedValue({ transaction: { id: 'tx-cancel-abc' } } as any);
