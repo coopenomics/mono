@@ -55,6 +55,31 @@ const variantLabel = computed(() =>
 
 const deliveriesCount = computed(() => props.group?.receptions.length ?? 0);
 
+// Снятые оператором при приёмке позиции (факт = 0) — некондиция. Подписывая
+// поставку, поставщик той же подписью подтверждает их отмену: заказчику полный
+// возврат стоимости и членского взноса, поставщику без штрафа. Перечисляем по
+// товару (per-Order детализация поставщику не нужна) — он видит, что снято.
+const rejectedItems = computed<{ key: string; productName: string; count: number }[]>(() => {
+  if (!props.group) return [];
+  const map = new Map<string, { key: string; productName: string; count: number }>();
+  for (const r of props.group.receptions) {
+    for (const f of r.fact_quantity_per_order) {
+      if ((Number(f.fact_quantity) || 0) > 0) continue;
+      const key = f.product_name ?? '';
+      const ex = map.get(key);
+      if (ex) ex.count += 1;
+      else map.set(key, { key, productName: f.product_name || 'Товар по предложению', count: 1 });
+    }
+  }
+  return [...map.values()];
+});
+const hasRejected = computed(() => rejectedItems.value.length > 0);
+// В блоке «Принимается» нулевые строки (снятые позиции) не показываем — они
+// уходят в блок «Отклоняется».
+const acceptedLines = computed(() => (props.group?.lines ?? []).filter((l) => l.quantity > 0));
+const hasAccepted = computed(() => acceptedLines.value.length > 0);
+const confirmLabel = computed(() => (hasAccepted.value ? 'Подписать' : 'Подтвердить отмену'));
+
 // Человекочитаемое имя КУ-получателя + адрес вместо служебного braname —
 // стор уже наполнен родительской страницей (singleton-pinia).
 const kuStore = useMarketplaceKUDetailsStore();
@@ -159,22 +184,37 @@ BaseDialog(
         .sign-apl__ttn-list
           BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
 
-    table.sign-apl__table(v-if="!showActs")
-      thead
-        tr
-          th Товар
-          th.num Кол-во
-          th.num Сумма
-      tbody
-        tr(v-for="l in group.lines", :key="l.key")
-          td {{ l.productName }}
-          td.num {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
-          td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
-      tfoot
-        tr
-          td Итого к приёмке
-          td.num
-          td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
+    template(v-if="!showActs")
+      .sign-apl__section-head(v-if="hasRejected && hasAccepted") Принимается
+      table.sign-apl__table(v-if="hasAccepted")
+        thead
+          tr
+            th Товар
+            th.num Кол-во
+            th.num Сумма
+        tbody
+          tr(v-for="l in acceptedLines", :key="l.key")
+            td {{ l.productName }}
+            td.num {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+            td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
+        tfoot
+          tr
+            td Итого к приёмке
+            td.num
+            td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
+
+      .sign-apl__refuse(v-if="hasRejected")
+        .sign-apl__section-head.sign-apl__section-head--neg
+          q-icon(name="block", size="16px")
+          | Отклоняется (некондиция)
+        ul.sign-apl__refuse-list
+          li(v-for="r in rejectedItems", :key="r.key")
+            span {{ r.productName }}
+            BaseChip(variant="neutral", size="sm") {{ r.count }} поз.
+        p.sign-apl__refuse-note
+          | Эти позиции сняты при приёмке и не принимаются. Подтверждая, вы
+          | отменяете их поставку — заказчикам возвращается полная стоимость и
+          | членский взнос, удержания с вас нет.
 
     q-card(v-if="showActs", flat, bordered).sign-apl__preview
       q-inner-loading(:showing="previewLoading")
@@ -184,7 +224,7 @@ BaseDialog(
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
-    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
+    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group || !hasAccepted", @click="toggleActs")
       template(#icon-left)
         q-icon(name="description", size="16px")
       | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
@@ -192,7 +232,7 @@ BaseDialog(
       template(#icon-left)
         q-icon(name="draw", size="16px")
       span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
-      span(v-else) Подписать
+      span(v-else) {{ confirmLabel }}
 </template>
 
 <style scoped lang="scss">
@@ -306,6 +346,58 @@ BaseDialog(
     min-height: 80px;
     max-height: 60vh;
     overflow: auto;
+  }
+
+  &__section-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-meta, 12px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    margin-bottom: var(--p-1, 4px);
+
+    &--neg {
+      color: var(--p-neg);
+
+      .q-icon {
+        color: var(--p-neg);
+      }
+    }
+  }
+
+  &__refuse {
+    margin-top: var(--p-3, 12px);
+    padding: var(--p-3, 12px);
+    border: 1px solid var(--p-neg-soft, var(--p-line));
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-neg-soft);
+  }
+
+  &__refuse-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--p-2, 8px);
+      font-size: var(--p-fs-body-sm, 13px);
+      color: var(--p-ink);
+    }
+  }
+
+  &__refuse-note {
+    margin: var(--p-2, 8px) 0 0;
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-2);
   }
 }
 </style>
