@@ -14,6 +14,7 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getOrdererSignablePayload,
   finalizeOrdererIssuance,
+  cancelOrder,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 
@@ -30,10 +31,18 @@ import {
  * корректирующие операции (`signiss2`). Каждая позиция = свой акт.
  */
 
-const props = defineProps<{
-  modelValue: boolean;
-  orders: MarketplaceOrderIssuanceView[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean;
+    // Принимаемые позиции — пайщик подписывает АПП выдачи (signiss2).
+    orders: MarketplaceOrderIssuanceView[];
+    // Позиции, от которых пайщик отказывается на выдаче: оператор не открыл по
+    // ним выдачу (остались в acceptcoop). Подтверждая, пайщик одновременно
+    // отменяет их получение — контракт удержит 50% (поставка уже акцептована).
+    refusedOrders?: MarketplaceOrderIssuanceView[];
+  }>(),
+  { refusedOrders: () => [] },
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
@@ -48,7 +57,7 @@ const previewLoading = ref(false);
 const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
 
 const pointLabel = computed<string>(() => {
-  const o = props.orders[0];
+  const o = props.orders[0] ?? props.refusedOrders[0];
   if (!o) return '';
   return (
     [o.delivery_point_name, o.delivery_point_address].filter(Boolean).join(' · ') ||
@@ -86,6 +95,28 @@ const issuanceDiff = computed(() =>
     feePercent.value,
   ),
 );
+
+// Отказные позиции и удержание по ним: 50% стоимости + 50% членского взноса
+// (так считает контракт). Показываем пайщику, с чем он соглашается.
+const refused = computed(() => props.refusedOrders);
+
+function retainedOf(o: MarketplaceOrderIssuanceView): number {
+  const base = Number.parseFloat(o.total_cost) || 0;
+  const withFee = base * (1 + feePercent.value / 100);
+  return withFee * 0.5;
+}
+
+const retainedTotal = computed(() =>
+  refused.value.reduce((sum, o) => sum + retainedOf(o), 0),
+);
+
+const confirmLabel = computed<string>(() => {
+  const a = props.orders.length;
+  const r = refused.value.length;
+  if (a && r) return 'Подтвердить';
+  if (r) return 'Подтвердить отказ';
+  return `Подписать и получить${a > 1 ? ` (${a})` : ''}`;
+});
 
 const DIFF_BADGE: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   equal: { label: 'по заказу', variant: 'pos' },
@@ -130,32 +161,56 @@ async function loadPreview(): Promise<void> {
 }
 
 async function confirm(): Promise<void> {
-  if (!props.orders.length) return;
-  const wif = globalStore.wif?.toString();
-  if (!wif) {
+  const hasAccept = props.orders.length > 0;
+  const hasRefuse = refused.value.length > 0;
+  if (!hasAccept && !hasRefuse) return;
+
+  // Подпись нужна только для принимаемых позиций (signiss2). Отказ — это отмена
+  // получения (cancelOrder), подпись пайщика не требуется (на цепи подписывает
+  // кооператив). Подтверждая, пайщик соглашается с предложенным разделением
+  // целиком; «Отмена» в футере = не согласен → оператор переформировывает.
+  const wif = hasAccept ? globalStore.wif?.toString() : undefined;
+  if (hasAccept && !wif) {
     FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
     return;
   }
+
   signing.value = true;
-  // Крипто-флоу финальной подписи вынесен в api (finalizeOrdererIssuance) —
-  // единый источник с глобальным гейтом подписи на месте.
-  const { ok, failed } = await finalizeOrdererIssuance(
-    props.orders,
-    wif,
-    globalStore.username,
-  );
+
+  let acceptOk = 0;
+  let acceptFailedNames: string[] = [];
+  if (hasAccept) {
+    // Крипто-флоу финальной подписи — в api (единый источник с гейтом подписи).
+    const { ok, failed } = await finalizeOrdererIssuance(props.orders, wif!, globalStore.username);
+    acceptOk = ok;
+    acceptFailedNames = failed.map((f) => f.order.product_name || f.order.id.slice(0, 8));
+  }
+
+  let refuseOk = 0;
+  const refuseFailedNames: string[] = [];
+  for (const o of refused.value) {
+    try {
+      await cancelOrder(o.id);
+      refuseOk += 1;
+    } catch {
+      refuseFailedNames.push(o.product_name || o.id.slice(0, 8));
+    }
+  }
+
   signing.value = false;
 
-  if (ok > 0) emit('finalized');
-  if (failed.length === 0) {
-    SuccessAlert(`Имущество получено по ${ok} позиц. Заказы закрыты.`);
+  if (acceptOk > 0 || refuseOk > 0) emit('finalized');
+
+  const failedNames = [...acceptFailedNames, ...refuseFailedNames];
+  if (failedNames.length === 0) {
+    const parts: string[] = [];
+    if (acceptOk > 0) parts.push(`получено ${acceptOk}`);
+    if (refuseOk > 0) parts.push(`отказ по ${refuseOk} (удержано 50%)`);
+    SuccessAlert(`Готово: ${parts.join(', ')}. Заказы закрыты.`);
     emit('update:modelValue', false);
   } else {
-    const names = failed.map((f) => f.order.product_name || f.order.id.slice(0, 8));
     FailAlert(
-      new Error(
-        `Получено ${ok} из ${props.orders.length}. Не удалось: ${names.join(', ')}. Повторите по оставшимся.`,
-      ),
+      new Error(`Не удалось обработать: ${failedNames.join(', ')}. Повторите по оставшимся.`),
     );
   }
 }
@@ -172,58 +227,85 @@ BaseDialog(
   maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  .mp-orderer-finalize(v-if="orders.length")
+  .mp-orderer-finalize(v-if="orders.length || refused.length")
     .mp-orderer-finalize__point
       q-icon(name="place" size="16px")
       | {{ pointLabel }}
 
     .mp-orderer-finalize__intro
-      | Сверьте полученное имущество. Количество и стоимость зафиксированы при
-      | открытии выдачи — подтвердите получение по всем позициям одной подписью.
+      | Оператор сформировал состав получения. Сверьте: отмеченное вы получаете и
+      | подписываете, от остального отказываетесь. Подтвердите целиком одной
+      | кнопкой — или закройте, если не согласны, чтобы оператор переформировал.
 
     template(v-if="!showActs")
-      .table-wrap
-        .table-scroll
-          table.table
-            thead
-              tr
-                th Позиция
-                th.col-num Заказ
-                th.col-num К получению
-                th.col-num Сумма
-                th.col-state Итог
-            tbody
-              tr(v-for="o in orders", :key="o.id")
-                td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
-                td.col-num {{ o.quantity }} {{ unitShort(o) }}
-                td.col-num {{ factQty(o) }} {{ unitShort(o) }}
-                td.col-num {{ formatAsset2Digits(factCost(o)) }} ₽
-                td.col-state
-                  BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
+      template(v-if="orders.length")
+        .mp-orderer-finalize__section-head Получаете
+        .table-wrap
+          .table-scroll
+            table.table
+              thead
+                tr
+                  th Позиция
+                  th.col-num Заказ
+                  th.col-num К получению
+                  th.col-num Сумма
+                  th.col-state Итог
+              tbody
+                tr(v-for="o in orders", :key="o.id")
+                  td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
+                  td.col-num {{ o.quantity }} {{ unitShort(o) }}
+                  td.col-num {{ factQty(o) }} {{ unitShort(o) }}
+                  td.col-num {{ formatAsset2Digits(factCost(o)) }} ₽
+                  td.col-state
+                    BaseBadge(:variant="diffBadge(o).variant") {{ diffBadge(o).label }}
 
-      .mp-orderer-finalize__totals
-        .mp-orderer-finalize__sum
-          span.mp-orderer-finalize__sum-label Итого к получению
-          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
-        .mp-orderer-finalize__sum(v-if="issuanceDiff.refund > 0")
-          span.mp-orderer-finalize__sum-label Вернётся в кошелёк Стола заказов
-          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
-        .mp-orderer-finalize__sum(v-if="issuanceDiff.surcharge > 0")
-          span.mp-orderer-finalize__sum-label Доплата по факту (спишется с паевого)
-          span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
+        .mp-orderer-finalize__totals
+          .mp-orderer-finalize__sum
+            span.mp-orderer-finalize__sum-label Итого к получению
+            span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+          .mp-orderer-finalize__sum(v-if="issuanceDiff.refund > 0")
+            span.mp-orderer-finalize__sum-label Вернётся в кошелёк Стола заказов
+            span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
+          .mp-orderer-finalize__sum(v-if="issuanceDiff.surcharge > 0")
+            span.mp-orderer-finalize__sum-label Доплата по факту (спишется с паевого)
+            span.mp-orderer-finalize__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
+
+      template(v-if="refused.length")
+        .mp-orderer-finalize__section-head.mp-orderer-finalize__section-head--neg Отказываетесь от получения
+        .mp-orderer-finalize__refuse-note
+          q-icon(name="info", size="16px")
+          | По этим позициям удерживается 50% стоимости и членского взноса — поставка уже была принята поставщиком. Имущество остаётся на складе участка.
+        .table-wrap
+          .table-scroll
+            table.table
+              thead
+                tr
+                  th Позиция
+                  th.col-num Заказ
+                  th.col-num Удержим (50%)
+              tbody
+                tr(v-for="o in refused", :key="o.id")
+                  td.mp-orderer-finalize__name {{ o.product_name || 'Товар по предложению' }}
+                  td.col-num {{ o.quantity }} {{ unitShort(o) }}
+                  td.col-num.text-negative {{ formatAsset2Digits(retainedOf(o).toFixed(4)) }} ₽
+
+        .mp-orderer-finalize__totals
+          .mp-orderer-finalize__sum
+            span.mp-orderer-finalize__sum-label Будет удержано
+            span.mp-orderer-finalize__sum-value.text-negative {{ formatAsset2Digits(retainedTotal.toFixed(4)) }} ₽
 
     .mp-orderer-finalize__preview(v-if="showActs", v-html="previewHtml")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
-    BaseButton(variant="ghost", :loading="previewLoading", :disabled="!orders.length", @click="toggleActs")
+    BaseButton(v-if="orders.length", variant="ghost", :loading="previewLoading", :disabled="!orders.length", @click="toggleActs")
       template(#icon-left)
         q-icon(name="description", size="16px")
       | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
-    BaseButton(variant="primary", :loading="signing", :disabled="signing || !orders.length", @click="confirm")
+    BaseButton(variant="primary", :loading="signing", :disabled="signing || (!orders.length && !refused.length)", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="16px")
-      | Подписать и получить{{ orders.length > 1 ? ` (${orders.length})` : '' }}
+      | {{ confirmLabel }}
 </template>
 
 <style scoped lang="scss">
@@ -241,6 +323,26 @@ BaseDialog(
   }
 
   &__intro {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    line-height: 1.4;
+  }
+
+  &__section-head {
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 600;
+    color: var(--p-ink-2);
+    margin-top: var(--p-2, 8px);
+
+    &--neg {
+      color: var(--p-neg);
+    }
+  }
+
+  &__refuse-note {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-1, 4px);
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
     line-height: 1.4;

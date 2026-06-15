@@ -53,6 +53,17 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 // всем готовым позициям пункта выдачи (пайщик подтверждает получение разом).
 const finalizeDialogOpen = ref(false);
 const selectedOrders = ref<MarketplaceOrderView[]>([]);
+// Отказные позиции того же пункта: оператор не открыл по ним выдачу (остались в
+// ACCEPTED_TO_COOP) — пайщик отказывается от них в том же подтверждении.
+const selectedRefusedOrders = ref<MarketplaceOrderView[]>([]);
+
+// Остаток ACCEPTED_TO_COOP того же пункта = позиции, по которым оператор не
+// открыл выдачу → пайщик от них отказывается (контракт удержит 50%).
+function refusedSiblings(braname: string): MarketplaceOrderView[] {
+  return items.value.filter(
+    (o) => o.status === 'ACCEPTED_TO_COOP' && o.delivery_braname === braname,
+  );
+}
 
 // Код получения (account-bound QR) — диалогом из шапки, в одном месте.
 const receiveDialogOpen = ref(false);
@@ -311,6 +322,7 @@ function startFinalize(order: MarketplaceOrderView): void {
     (o) => o.status === 'READY_TO_RECEIVE' && o.delivery_braname === order.delivery_braname,
   );
   selectedOrders.value = siblings.length ? siblings : [order];
+  selectedRefusedOrders.value = refusedSiblings(order.delivery_braname);
   finalizeDialogOpen.value = true;
 }
 
@@ -319,6 +331,7 @@ function startFinalize(order: MarketplaceOrderView): void {
 function startFinalizePickup(orders: MarketplaceOrderView[]): void {
   if (!orders.length) return;
   selectedOrders.value = orders;
+  selectedRefusedOrders.value = refusedSiblings(orders[0].delivery_braname);
   finalizeDialogOpen.value = true;
 }
 
@@ -453,6 +466,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
   OrdererFinalizeIssuanceDialog(
     v-model="finalizeDialogOpen",
     :orders="selectedOrders",
+    :refused-orders="selectedRefusedOrders",
     @finalized="onFinalized"
   )
 
