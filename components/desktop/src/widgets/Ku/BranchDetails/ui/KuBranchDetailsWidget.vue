@@ -17,7 +17,7 @@ div
             q-icon.ku-members__icon(name='groups', size='28px')
             .ku-members__body
               .ku-members__count.t-num {{ participantsCount }}
-              .ku-members__hint участвуют в собраниях и голосовании участка
+              .ku-members__hint делегировали председателю кооперативного участка свой голос на общих собраниях пайщиков
         BaseCard.q-mt-md(title='Доверенные лица')
           template(v-if='trustedPersons.length')
             .q-pa-sm.column.q-gutter-sm
