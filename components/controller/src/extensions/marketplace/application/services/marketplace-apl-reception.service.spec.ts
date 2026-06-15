@@ -505,4 +505,46 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
       );
     });
   });
+
+  describe('cancelReception: откат черновика приёмки (поставщик не согласен)', () => {
+    it('на PENDING_SUPPLIER_SIGN → приёмка CANCELLED + партия назад в SUPPLY_PREPARED', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN,
+      });
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      const result = await service.cancelReception({
+        coopname: 'voskhod',
+        operator_account: 'operator1',
+        apl_reception_id: 'apl-1',
+      });
+
+      const patch = mocks.receptionRepo.applySignatures.mock.calls[0][1] as any;
+      expect(patch.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+      expect(mocks.shipmentRepo.applyStatusTransition).toHaveBeenCalledWith('ship-1', 'SUPPLY_PREPARED');
+      expect(result.apl_reception.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+    });
+
+    it('после подписи поставщика (PENDING_CHAIRMAN) → ConflictException, ничего не меняется', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
+      });
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+
+      await expect(
+        service.cancelReception({
+          coopname: 'voskhod',
+          operator_account: 'operator1',
+          apl_reception_id: 'apl-1',
+        })
+      ).rejects.toThrow(ConflictException);
+
+      expect(mocks.receptionRepo.applySignatures).not.toHaveBeenCalled();
+      expect(mocks.shipmentRepo.applyStatusTransition).not.toHaveBeenCalled();
+    });
+  });
 });

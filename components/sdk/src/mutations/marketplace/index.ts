@@ -29,6 +29,8 @@ export * as ClearInventoryLabel from './clearInventoryLabel'
 export * as CreateAplReception from './createAplReception'
 /** Эпик 14 (14.2): express-приёмка самовывоза по факту присутствия поставщика */
 export * as CreateExpressReception from './createExpressReception'
+/** Эпик 5: отмена акта приёмки оператором до подписи поставщика (пересборка) */
+export * as CancelAplReception from './cancelAplReception'
 /** Эпик 5: первая подпись поставщика на акте приёмки */
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */

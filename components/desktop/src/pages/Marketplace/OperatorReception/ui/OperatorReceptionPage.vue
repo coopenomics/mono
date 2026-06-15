@@ -26,6 +26,7 @@ import {
   type MarketplaceShipmentView,
 } from '../../OperatorIncomingShipments/api';
 import {
+  cancelAplReception,
   createAplReception,
   createExpressReception,
   listAplReceptionsByBraname,
@@ -632,6 +633,25 @@ async function onChairmanSigned(): Promise<void> {
   await load();
 }
 
+// Откат приёмки: поставщик не согласен со снятыми оператором позициями целиком
+// (повезёт замену в другой раз). До его подписи приёмка — черновик: отменяем
+// все акты группы, партия возвращается к приёмке, оператор пересоберёт.
+const cancellingKey = ref<string | null>(null);
+async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
+  cancellingKey.value = group.key;
+  try {
+    for (const r of group.receptions) {
+      await cancelAplReception({ apl_reception_id: r.id });
+    }
+    SuccessAlert('Приёмка отменена — партия снова доступна к приёмке, можно пересобрать.');
+  } catch (e) {
+    FailAlert(e, 'Не удалось отменить приёмку');
+  } finally {
+    cancellingKey.value = null;
+    await load();
+  }
+}
+
 watch(braname, () => void load());
 
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
@@ -745,6 +765,18 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             template(#icon-left)
               q-icon(name='draw', size='18px')
             | Подписать председателем
+
+        //- Поставщик ещё не подписал — оператор может отменить акт и пересобрать
+        //- (поставщик не согласен со снятыми позициями, повезёт замену позже).
+        .reception__card-foot(v-else-if='g.status === "PENDING_SUPPLIER_SIGN"')
+          BaseButton(
+            variant='ghost',
+            :loading='cancellingKey === g.key',
+            @click='cancelReceptionGroup(g)'
+          )
+            template(#icon-left)
+              q-icon(name='undo', size='18px')
+            | Отменить и пересобрать
 
       //- Ожидаемые поставки — примутся по скану QR поставщика (кнопка в шапке).
       BaseCard.reception__card(v-for='d in expectedDeliveries', :key='`exp-${d.offerer}`')

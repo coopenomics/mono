@@ -782,6 +782,45 @@ export class MarketplaceAplReceptionService {
   }
 
   /**
+   * Откат черновика приёмки: поставщик не согласен со снятыми оператором
+   * позициями целиком (повезёт замену в другой раз) — оператор отменяет акт и
+   * пересобирает его заново. Допустимо ТОЛЬКО до подписи поставщика
+   * (PENDING_SUPPLIER_SIGN): on-chain ещё ничего не произошло (заказы в ACCEPTED,
+   * signsupp не отправлялся), поэтому откат — чисто PG: приёмка → CANCELLED,
+   * партия возвращается в SUPPLY_PREPARED (готова к новой приёмке), заказы не
+   * трогаем. После подписи поставщика откат невозможен — signsupp/declineorder
+   * уже на цепи.
+   */
+  async cancelReception(input: {
+    coopname: string;
+    operator_account: string;
+    apl_reception_id: string;
+  }): Promise<MarketplaceAplReceptionResult> {
+    const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+    if (reception.status !== MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN) {
+      throw new ConflictException(
+        `Отменить приёмку можно только до подписи поставщика. Текущий статус: «${reception.status}».`
+      );
+    }
+
+    const cancelled = await this.receptionRepo.applySignatures(reception.id, {
+      status: MarketplaceAplReceptionStatuses.CANCELLED,
+    });
+    // Партия снова доступна к приёмке — оператор пересоберёт акт (findByShipmentId
+    // исключает CANCELLED, поэтому повторный create() по этой партии пройдёт).
+    await this.shipmentRepo.applyStatusTransition(
+      reception.shipment_id,
+      MarketplaceShipmentStatuses.SUPPLY_PREPARED
+    );
+
+    this.logger.log(
+      `АПП ${reception.id}: приёмка отменена оператором ${input.operator_account} (поставщик не согласен) — партия ${reception.shipment_id} снова готова к приёмке.`
+    );
+    this.emitReceptionStatusChanged(cancelled);
+    return { apl_reception: cancelled };
+  }
+
+  /**
    * Realtime-сигнал смены статуса акта: оператор у стойки и поставщик видят
    * проставленную подпись сразу, без поллинга. Эмитится ПОСЛЕ commit'а
    * статуса в PG (INV-12); маршрутизация по адресатам — в realtime-мосте.

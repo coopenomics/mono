@@ -8986,6 +8986,7 @@ marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] |
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAssignInventoryShelf?: [{	data: ValueTypes["MarketplaceAssignInventoryShelfInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceBindInventoryBarcode?: [{	data: ValueTypes["MarketplaceBindInventoryBarcodeInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
+marketplaceCancelAplReception?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
 marketplaceCancelOrder?: [{	input: ValueTypes["MarketplaceCancelOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceCancelOrderResult"]],
 marketplaceCancelStockOrder?: [{	data: ValueTypes["MarketplaceCancelStockOrderInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceCancelStockProposal?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
@@ -19779,6 +19780,7 @@ marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferI
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAssignInventoryShelf?: [{	data: ResolverInputTypes["MarketplaceAssignInventoryShelfInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceBindInventoryBarcode?: [{	data: ResolverInputTypes["MarketplaceBindInventoryBarcodeInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
+marketplaceCancelAplReception?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
 marketplaceCancelOrder?: [{	input: ResolverInputTypes["MarketplaceCancelOrderInput"]},ResolverInputTypes["MarketplaceCancelOrderResult"]],
 marketplaceCancelStockOrder?: [{	data: ResolverInputTypes["MarketplaceCancelStockOrderInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceCancelStockProposal?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposal"]],
@@ -30593,6 +30595,8 @@ export type ModelTypes = {
 	marketplaceAssignInventoryShelf: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
 	marketplaceBindInventoryBarcode: ModelTypes["MarketplaceInventoryMutationResult"],
+	/** Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования. */
+	marketplaceCancelAplReception: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
 	/** Оператор отменяет заказ со склада кооператива до открытия выдачи (например, при переформировании докладки). Средства возвращаются пайщику, позиции — в остаток. */
@@ -42195,6 +42199,8 @@ export type GraphQLTypes = {
 	marketplaceAssignInventoryShelf: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
 	marketplaceBindInventoryBarcode: GraphQLTypes["MarketplaceInventoryMutationResult"],
+	/** Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования. */
+	marketplaceCancelAplReception: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
 	/** Оператор отменяет заказ со склада кооператива до открытия выдачи (например, при переформировании докладки). Средства возвращаются пайщику, позиции — в остаток. */

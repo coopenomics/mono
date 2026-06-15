@@ -1471,6 +1471,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceBindInventoryBarcode:{
 			data:"MarketplaceBindInventoryBarcodeInput"
 		},
+		marketplaceCancelAplReception:{
+			data:"MarketplaceAplReceptionByIdInput"
+		},
 		marketplaceCancelOrder:{
 			input:"MarketplaceCancelOrderInput"
 		},
@@ -5223,6 +5226,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceAssignInventoryShelf:"MarketplaceInventoryMutationResult",
 		marketplaceBindInventoryBarcode:"MarketplaceInventoryMutationResult",
+		marketplaceCancelAplReception:"MarketplaceAplReceptionResult",
 		marketplaceCancelOrder:"MarketplaceCancelOrderResult",
 		marketplaceCancelStockOrder:"MarketplaceOrder",
 		marketplaceCancelStockProposal:"MarketplaceStockProposal",

@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
-import type { MarketplaceAplReceptionStatus } from '../../domain/entities/marketplace-apl-reception.types';
+import {
+  MarketplaceAplReceptionStatuses,
+  type MarketplaceAplReceptionStatus,
+} from '../../domain/entities/marketplace-apl-reception.types';
 import type {
   MarketplaceAplReceptionCreateInput,
   MarketplaceAplReceptionDomainRepository,
@@ -57,7 +60,12 @@ export class MarketplaceAplReceptionRepositoryAdapter
     coopname: string,
     shipment_id: string
   ): Promise<MarketplaceAplReceptionDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, shipment_id } });
+    // Отменённые приёмки (откат черновика оператором) не считаются активными —
+    // иначе повторное открытие приёмки по этой партии заблокировалось бы гардом
+    // «одна партия — одна активная АПП».
+    const row = await this.repo.findOne({
+      where: { coopname, shipment_id, status: Not(MarketplaceAplReceptionStatuses.CANCELLED) },
+    });
     return row ? this.mapper.toDomain(row) : null;
   }
 
