@@ -45,6 +45,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
+          # test:electron поднимает реальный electron — ему нужны GTK/ATK/ALSA-библиотеки,
+          # которых нет в наборе `playwright --with-deps chromium` (chromium на другом тулките).
+          # Симптом без них: electron «error while loading shared libraries: libgtk-3.so.0».
+          # Ubuntu 24.04 (noble) — пакеты с суффиксом t64; ставим по одному, чтобы расхождение
+          # имени пакета не валило весь шаг.
+          for pkg in libgtk-3-0t64 libnotify4 libnss3 libxss1 libxtst6 libatspi2.0-0t64 libasound2t64; do
+            sudo apt-get install -y "$pkg" || true
+          done
           cd components/auth && pnpm exec playwright install --with-deps chromium
 
       - name: Run cross-runtime smoke
