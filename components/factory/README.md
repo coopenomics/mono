@@ -113,6 +113,74 @@ test/                      # Тесты (Vitest)
 6. Подпись хеша документа EOSIO-ключом
 7. Генерация PDF через WeasyPrint
 
+## Приватные данные документа: `doc_data`
+
+Зарезервированный механизм для документов, содержащих персональные данные (ФИО экспедитора, паспорт, госномер, телефон и т.п.), которые **не должны попадать в блокчейн**.
+
+### Поток
+
+1. Контроллер собирает приватный payload и вызывает `generator.saveDocData(payload, registry_id)` — возвращается `{ hash }` (sha256, идемпотентный).
+2. `hash` передаётся on-chain в Action под зарезервированным именем `doc_data_hash`.
+3. При генерации/регенерации фабрика подгружает payload из `doc_private_data` через `generator.getDocData(hash)` и подставляет в `combinedData.doc_data`.
+4. Шаблон документа использует приватные поля как `{{ doc_data.<field> }}`.
+
+### Пример
+
+Контроллер:
+
+```ts
+const { hash } = await generator.saveDocData({
+  expeditor_full_name: 'Иванов Иван Иванович',
+  passport: '4509 123456',
+  phone: '+79991234567',
+  vehicle_registration_number: 'А123ВВ77',
+}, 1103)
+
+// в Action документа 1103 (MarketplaceTransportNote):
+await generator.generate({
+  registry_id: 1103,
+  coopname: 'voskhod',
+  username: operatorAccount,
+  shipment_id,
+  doc_data_hash: hash,
+})
+```
+
+Фабрика (`src/Actions/1103.MarketplaceTransportNote.ts`):
+
+```ts
+const doc_data = await this.loadDocData<TransportNoteDocData>(data)
+const combinedData = { ...base, doc_data }
+```
+
+Шаблон (`Templates/1103.MarketplaceTransportNote/index.ts`):
+
+```html
+<tr><th>Экспедитор</th><td>{{ doc_data.expeditor_full_name }}</td></tr>
+<tr><th>Госномер</th><td>{{ doc_data.vehicle_registration_number }}</td></tr>
+```
+
+### Зарезервированные имена шаблона
+
+| Имя | Источник | Применение |
+|---|---|---|
+| `meta` | factory | заголовки, дата, lang, hash |
+| `coop` | factory | реквизиты кооператива |
+| `vars` | factory | переменные кооператива |
+| `user` | factory | подписант (по сертификату) |
+| `request` / `program` / `decision` | factory | контекст ЦПП |
+| `branch` | factory | данные КУ |
+| **`doc_data`** | **DocDataService** | **приватные данные документа** |
+
+### Graceful degradation
+
+Если запись в `doc_private_data` удалена (например, по запросу пайщика), документ остаётся **верифицируемым по хэшу подписи** (хэш зафиксирован on-chain), но не регенерируется. Это явное архитектурное решение: ценность блокчейн-подписи сохраняется; восстановление PDF — обратимо deprecated.
+
+### Когда применять
+
+- **Новые документы** с персональными данными — сразу через `doc_data`.
+- **Существующие документы** (700-1099, 300-304 и т.д.) — остаются без изменений. Паттерн прогрессивный, переводить старые документы при отсутствии необходимости не нужно.
+
 ## Ключевые зависимости
 
 - **nunjucks / handlebars** — шаблонизаторы

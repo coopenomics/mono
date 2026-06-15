@@ -63,7 +63,7 @@
       .agenda-items
         .agenda-card(v-for='question in questions', :key='question.id')
           .agenda-card__head
-            AgendaNumberAvatar(:number='question.number')
+            AgendaNumberAvatar(:number='question.number ?? ""')
             span.agenda-card__title {{ question.title }}
           .agenda-card__decision
             span.agenda-card__label Проект решения
@@ -211,6 +211,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuDecision } from 'src/entities/Ku/model';
+import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
@@ -254,7 +255,7 @@ const isCancelOpen = ref(false);
 const cancelReason = ref('');
 // просмотр публикуемого документа собрания (протокол собрания / решение совета)
 const isDocOpen = ref(false);
-const docTarget = ref<object | null>(null);
+const docTarget = ref<IDocumentAggregate | null>(null);
 const docTitle = ref('');
 // предпросмотр пакета документов председателя перед подписанием и отправкой в совет
 const execPreviewOpen = ref(false);
@@ -302,7 +303,7 @@ const questions = computed(() =>
 const protocolDoc = computed(() => decision.value?.protocol_document ?? null);
 const authorizationDoc = computed(() => decision.value?.authorization_document ?? null);
 
-function openMeetingDoc(aggregate: object, title: string): void {
+function openMeetingDoc(aggregate: IDocumentAggregate, title: string): void {
   docTarget.value = aggregate;
   docTitle.value = title;
   isDocOpen.value = true;
@@ -313,9 +314,11 @@ function openMeetingDoc(aggregate: object, title: string): void {
 const execPreviewDocs = computed(() => {
   const d = execPreparedDocs.value;
   if (!d) return [];
+  // неподписанный сгенерированный документ: реальных подписей и хэшей ещё нет —
+  // оборачиваем в минимальный агрегат для предпросмотра (BaseDocument рендерит rawDocument)
   const wrap = (gen: object, title: string) => ({
     title,
-    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } },
+    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
   });
   return [
     wrap(d.petition, 'Заявление об учреждении кооперативного участка'),

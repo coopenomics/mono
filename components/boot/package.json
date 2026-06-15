@@ -26,6 +26,7 @@
     "boot:remote": "esno src/index.ts boot:remote",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
+    "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "create-coop": "esno src/index.ts create-coop",
     "clear": "./scripts/clear.sh",
     "start": "./scripts/restart.sh",

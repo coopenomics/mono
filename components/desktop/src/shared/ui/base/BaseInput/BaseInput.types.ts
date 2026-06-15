@@ -4,7 +4,7 @@ export interface BaseInputProps {
   hint?: string;
   error?: string;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local';
   /** Маска ввода Quasar: `#` — цифра (например `####` — серия паспорта, `###-###` — код подразделения) */
   mask?: string;
   /** Моноширинный шрифт (для аккаунт-имён, hash, и т.п.) */

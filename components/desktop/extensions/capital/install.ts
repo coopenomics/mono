@@ -1,7 +1,7 @@
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
-import { ContributorsPage } from './pages';
+import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage } from './pages';
 import { CapitalBase } from './pages/CapitalBase';
 import { ProjectsListPage } from './pages/ProjectsListPage';
 import { ProjectPage } from './pages/ProjectPage';
@@ -32,10 +32,21 @@ import { ProjectHistoryPage } from './pages/ProjectHistoryPage';
 import { ComponentHistoryPage } from './pages/ComponentHistoryPage';
 import { ActivityFeedPage } from './pages/ActivityFeedPage';
 import { registerCapitalDecisionHandlers } from './app/extensions';
+import { registerExpenseWallet } from 'src/shared/lib/expense-wallets';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Регистрируем обработчики решений для расширения capital
   registerCapitalDecisionHandlers();
+  // Пул расходов программы — в общесистемный реестр кошельков расходов
+  // (страница «Расходы» стола совета собирает пулы всех расширений).
+  registerExpenseWallet({
+    wallet: 'w.cap.pgexp',
+    title: 'Пул расходов программы «Благорост»',
+    subtitle: 'Программные расходы ЦПП «Благорост»',
+    icon: 'receipt_long',
+    program: 'blagorost',
+    route: { name: 'capital-program-expenses' },
+  });
   return [{
     workspace: 'capital',
     extension_name: 'capital',
@@ -186,6 +197,33 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               roles: ['chairman', 'member'],
               agreements: agreementsBase,
               requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'program-expenses',
+            name: 'capital-program-expenses',
+            component: markRaw(ProgramExpensesPage),
+            meta: {
+              title: 'Расходы',
+              icon: 'receipt_long',
+              roles: ['chairman', 'member'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+            children: [],
+          },
+          {
+            path: 'program-expenses/:expense_hash',
+            name: 'capital-program-expense',
+            component: markRaw(ProgramExpensePage),
+            meta: {
+              title: 'Расход',
+              icon: 'receipt_long',
+              roles: ['chairman', 'member'],
+              agreements: agreementsBase,
+              requiresAuth: true,
+              hidden: true,
             },
             children: [],
           },

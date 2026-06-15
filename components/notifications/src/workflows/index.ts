@@ -28,6 +28,7 @@ import { workflow as branchVotingStartedWorkflow } from './branch-voting-started
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
+import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -54,6 +55,7 @@ export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -85,6 +87,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   branchMeetingReminderWorkflow,
   branchTrustedRequestedWorkflow,
   branchTrustedResolvedWorkflow,
+  expenseAdvanceReportReminderWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

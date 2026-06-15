@@ -1,10 +1,17 @@
 <template lang="pug">
 q-page.payments-page
-  ListOfPaymentsWidget
+  //- Опциональный параметр маршрута :username? фильтрует реестр по владельцу
+  //- платежа (приходим так из детали расхода — «Открыть в реестре платежей»).
+  ListOfPaymentsWidget(:username='routeUsername')
 </template>
 
 <script lang="ts" setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { ListOfPaymentsWidget } from 'src/widgets/Cooperative/Payments';
+
+const route = useRoute();
+const routeUsername = computed(() => (route.params.username as string) || undefined);
 </script>
 
 <style lang="scss" scoped>

@@ -219,6 +219,91 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
+  // Шасси расходов (волна 6, MVP-SINGLE) — C28-30
+  it('генерируем СЗ-смету о расходах 2010 (шасси, массив items)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2010,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        {
+          number: '1',
+          description: 'Аренда серверов Yandex Cloud (тариф S, июнь)',
+          amount: '12000.00 RUB',
+          recipient_type: 'ORG',
+          mechanics: 'DIRECT',
+          recipient_name: 'ООО «Яндекс.Облако»',
+          requisites: 'ИНН 7704414297, р/с 40702810000000000000, БИК 044525000',
+        },
+        {
+          number: '2',
+          description: 'Канцелярия для офиса',
+          amount: '3000.00 RUB',
+          recipient_type: 'SELF',
+          mechanics: 'ADVANCE',
+        },
+      ],
+    })
+  })
+
+  it('генерируем протокол-1 утверждения СЗ 2011 (шасси, approve)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2011,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0xabc123def4560000000000000000000000000000000000000000000000000000',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
+        { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
+      ],
+      decision: {
+        kind: 'approve',
+        protocol_number: '15',
+        protocol_date: '03.06.2026',
+      },
+    })
+  })
+
+  it('генерируем протокол-1 ОТКАЗА по СЗ 2011 (шасси, decline + reason)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2011,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0xfedcba9876540000000000000000000000000000000000000000000000000000',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
+        { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
+      ],
+      decision: {
+        kind: 'decline',
+        reason: 'Просьба разделить позиции на отдельные СЗ — Yandex Cloud и канцелярия имеют разный контур контроля.',
+        protocol_number: '16',
+        protocol_date: '03.06.2026',
+      },
+    })
+  })
+
   // Документы инвестиций в генерацию
   it('генерируем заявление об инвестициях денег в генерацию', async () => {
     await testDocumentGeneration({

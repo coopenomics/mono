@@ -50,6 +50,7 @@
     "reboot": "cd components/boot/scripts && bash reboot.sh",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
+    "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "deploy": "lerna run deploy --scope @coopenomics/boot --",
     "clear": "lerna run clear --scope @coopenomics/boot",
     "enter": "lerna run run --scope @coopenomics/cleos",

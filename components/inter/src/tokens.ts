@@ -19,3 +19,6 @@ export const INTER_PROJECT_CAPITAL_CLEARANCE = Symbol.for('InterProjectCapitalCl
 
 /** FileStorage: универсальное файловое хранилище контура кооператива (MinIO в v1, S3 в v2). */
 export const INTER_FILE_STORAGE = Symbol.for('InterFileStorage');
+
+/** Шасси расходов (contract `expense`): read-side proposals для consumer-extension'ов (capital, marketplace, EMP). */
+export const INTER_EXPENSE_CHASSIS = Symbol.for('InterExpenseChassis');

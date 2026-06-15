@@ -55,9 +55,10 @@ export class PaymentNotificationService implements OnModuleInit {
       // Получаем отображаемое имя пользователя
       const userName = await this.accountPort.getDisplayName(payment.username);
 
-      // Выбираем workflow по статусу И направлению платежа: исходящий PAID — это
-      // возврат взноса пайщику, у него своё уведомление «Возврат выполнен», а не
-      // «Платёж принят» (иначе пайщик при возврате получает письмо как на приём).
+      // Выбираем workflow по статусу И направлению — но БЕЗ привязки к типу платежа
+      // (мы не всегда знаем, это возврат взноса, аванс под отчёт или доплата).
+      // Исходящий PAID → пайщик получил деньги → «Платёж выполнен»; входящий PAID →
+      // кооператив принял платёж пайщика → «Платёж принят». Оба текста универсальны.
       const isOutgoing = payment.direction === PaymentDirectionEnum.OUTGOING;
       const workflowId =
         payment.status === PaymentStatusEnum.PAID

@@ -172,6 +172,37 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Конвертация сегмента: РИД → ЦПП «Благорост»' },
 
+  { code: 'o.cap.pgtop', process_type: 'p.cap.pgexp',   contract: 'capital',
+    name: 'PROGRAM_EXPENSE_TOPUP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.pgexp',
+    debit: null, credit: null,
+    human_name: 'Пополнение пула программных расходов ЦПП «Благорост»' },
+
+  // expense — шасси расходов (оплата СЗ из кооперативного пула расходов)
+  { code: 'o.exp.blgadv',  process_type: 'p.exp.expns', contract: 'expense',
+    name: 'BLAGO_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.pgexp', wallet_to: 'w.exp.adv',
+    debit: 8, credit: 51,
+    human_name: 'Выдача подотчётных из пула расходов ЦПП «Благорост»' },
+
+  { code: 'o.exp.blgdir',  process_type: 'p.exp.expns', contract: 'expense',
+    name: 'BLAGO_DIRECT', wallet_op: 'BURN', wallet_from: 'w.cap.pgexp', wallet_to: null,
+    debit: 8, credit: 51,
+    human_name: 'Прямая оплата из пула расходов ЦПП «Благорост»' },
+
+  { code: 'o.exp.advrpt',  process_type: 'p.exp.expns', contract: 'expense',
+    name: 'ADVANCE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта пайщика по отчёту' },
+
+  { code: 'o.exp.advret',  process_type: 'p.exp.expns', contract: 'expense',
+    name: 'ADVANCE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.cap.pgexp',
+    debit: 51, credit: 8,
+    human_name: 'Возврат неиспользованного подотчёта в пул расходов' },
+
+  { code: 'o.exp.over',    process_type: 'p.exp.expns', contract: 'expense',
+    name: 'OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.cap.pgexp', wallet_to: 'w.exp.adv',
+    debit: 8, credit: 51,
+    human_name: 'Доплата сверх подотчёта (перерасход)' },
+
   // marketplace
   { code: 'o.mkt.supply',  process_type: 'p.mkt.reqst',   contract: 'marketplace',
     name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE',    wallet_from: null, wallet_to: 'w.wal.share',

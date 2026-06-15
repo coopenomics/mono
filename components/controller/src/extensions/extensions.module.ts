@@ -12,6 +12,7 @@ import { ChatCoopPluginModule } from './chatcoop/chatcoop-extension.module';
 import { OneCoopPluginModule } from './1ccoop/oneccoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { KuPluginModule } from './ku/ku-extension.module';
+import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
 import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 
@@ -38,6 +39,7 @@ export class ExtensionsModule {
         OneCoopPluginModule,
         ReportsExtensionModule,
         KuPluginModule,
+        ExpensesExtensionModule,
       ],
       providers: [],
       // Экспортируем все модули расширений, чтобы их провайдеры были доступны
@@ -56,6 +58,7 @@ export class ExtensionsModule {
         OneCoopPluginModule,
         ReportsExtensionModule,
         KuPluginModule,
+        ExpensesExtensionModule,
       ],
     };
   }

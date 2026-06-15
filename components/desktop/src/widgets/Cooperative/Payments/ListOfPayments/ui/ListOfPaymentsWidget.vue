@@ -4,7 +4,7 @@
     v-if='onLoading && !items.length',
     :columns='skeletonColumns',
     :rows='6',
-    :min-width='hideActions ? "880px" : "1000px"'
+    :min-width='hideActions ? "940px" : "1000px"'
   )
   template(v-else-if='items.length')
     //- Десктоп: канон-таблица. На мобиле скрыта — таблица из 7–8 колонок
@@ -20,12 +20,15 @@
               th.col-sort.col-date(@click='onSort("created_at")') Дата создания {{ sortMark('created_at') }}
               th.col-sort.col-num(@click='onSort("quantity")') Сумма {{ sortMark('quantity') }}
               th Тип платежа
+              //- «Направление» — относительно того, чей это стол: на столе совета
+              //- относительно кооператива (в/из кооператива), на личном столе
+              //- пайщика относительно пайщика (поступление/списание) — см. displayDirection.
               th Направление
               th.col-sort(@click='onSort("status")') Статус {{ sortMark('status') }}
               th.col-action(v-if='!hideActions') Действия
           tbody
             template(v-for='row in items', :key='row.id')
-              tr.data-row(@click='toggleExpand(row.id)')
+              tr.data-row(:id='`pay-row-${row.id}`', @click='toggleExpand(row.id)')
                 td.col-toggle
                   button.icon-btn(
                     type='button',
@@ -35,14 +38,25 @@
                     q-icon(:name='expanded.get(row.id) ? "expand_more" : "chevron_right"')
                 td.cell-name {{ getShortNameFromCertificate(row.username_certificate) || row.username }}
                 td {{ formatDateToHumanDateTime(row.created_at) }}
-                td.col-num {{ row.quantity }} {{ row.symbol }}
+                td.col-num {{ amountLabel(row) }}
                 td {{ row.type_label }}
                 td
-                  span.dir(:class='isIncoming(row.direction) ? "dir--in" : "dir--out"')
-                    q-icon.q-mr-xs(:name='getDirectionIcon(row.direction)', size='16px')
-                    span {{ row.direction_label }}
+                  span.dir(:class='isIncoming(displayDirection(row)) ? "dir--in" : "dir--out"')
+                    q-icon.q-mr-xs(:name='getDirectionIcon(displayDirection(row))', size='16px')
+                    span {{ directionLabel(row) }}
+                    q-tooltip {{ directionHint(row) }}
                 td
-                  BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
+                  .cell-status
+                    BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
+                    //- Статус отчёта по авансу (личный стол пайщика) — отдельная ось
+                    //- рядом со статусом платежа: требуется / подан / принят.
+                    BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
+                    //- Кассирская отметка «платёжка приложена» — только на столе совета
+                    //- (пайщику чужая бухгалтерия не показывается).
+                    q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
+                      q-tooltip Платёжка приложена
+                    q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
+                      q-tooltip Платёжка не приложена
                 td.col-action(v-if='!hideActions', @click.stop)
                   .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
@@ -54,6 +68,45 @@
               tr.expand-row(v-if='expanded.get(row.id)')
                 td(:colspan='hideActions ? 7 : 8')
                   PaymentDetails(:payment='row')
+                  //- Стол совета: кассир прикладывает платёжку и закрывающие документы;
+                  //- при личной передаче чеков — отчитывается за пайщика (панель
+                  //- отчёта сама скрывается для прямой оплаты организации, DIRECT).
+                  .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
+                    AttachExpenseProofPanel(
+                      :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
+                      :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+                      :step='{ number: 1, title: "Подтвердите оплату" }',
+                      @uploaded='onProofUploaded(row)'
+                    )
+                    ReportExpenseAdvancePanel(
+                      :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
+                      :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+                      :on-behalf='true',
+                      :report-state='advanceReportState(row)',
+                      :reported-amount='advanceReportedAmount(row)',
+                      :step='{ number: 2, title: "Отчёт пайщика" }',
+                      @reported='onReported'
+                    )
+                  //- Личный стол: пайщик-получатель отчитывается чеком по своей строке.
+                  ReportExpenseAdvancePanel.q-mt-sm(
+                    v-else-if='advanceReportRef(row)',
+                    :proposal-hash='advanceReportRef(row)?.proposal_hash ?? ""',
+                    :item-hash='advanceReportRef(row)?.item_hash ?? ""',
+                    :report-state='advanceReportState(row)',
+                    :reported-amount='advanceReportedAmount(row)',
+                    @reported='onReported'
+                  )
+                  //- Расчётная платёжка (возврат/доплата): кассиру/пайщику видно
+                  //- основание — исходный аванс, заявленный факт и документы.
+                  ExpenseSettlementBasisPanel.q-mt-sm(
+                    v-if='settlementRef(row)',
+                    :proposal-hash='settlementRef(row)?.proposal_hash ?? ""',
+                    :item-hash='settlementRef(row)?.item_hash ?? ""',
+                    :settlement-amount='`${row.quantity} ${row.symbol}`',
+                    :is-return='settlementRef(row)?.isReturn ?? false',
+                    :description='settlementRef(row)?.description ?? ""',
+                    @open-source='openSourcePayment'
+                  )
 
       .table-foot
         span {{ rangeLabel }}
@@ -67,22 +120,28 @@
 
     //- Мобайл: карточки вместо таблицы. Видны только на узких экранах.
     .payments-cards.pmt-mobile
-      .pay-card(v-for='row in items', :key='row.id')
+      .pay-card(v-for='row in items', :key='row.id', :id='`pay-card-${row.id}`')
         .pay-card__main(@click='toggleExpand(row.id)')
           .pay-card__row
             span.pay-card__name {{ getShortNameFromCertificate(row.username_certificate) || row.username }}
-            BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
+            .cell-status
+              BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
+              BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
+              q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
+                q-tooltip Платёжка приложена
+              q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
+                q-tooltip Платёжка не приложена
           .pay-card__row
             span.pay-card__amount
               q-icon.q-mr-xs(
-                :name='getDirectionIcon(row.direction)',
-                :class='isIncoming(row.direction) ? "dir--in" : "dir--out"',
+                :name='getDirectionIcon(displayDirection(row))',
+                :class='isIncoming(displayDirection(row)) ? "dir--in" : "dir--out"',
                 size='16px'
               )
-              | {{ row.quantity }} {{ row.symbol }}
+              | {{ amountLabel(row) }}
             span.pay-card__type {{ row.type_label }}
           .pay-card__row.pay-card__row--meta
-            span {{ row.direction_label }}
+            span {{ directionLabel(row) }}
             span {{ formatDateToHumanDateTime(row.created_at) }}
         .pay-card__actions(
           v-if='!hideActions && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)',
@@ -90,7 +149,41 @@
         )
           SetOrderPaidStatusButton(:id='row.id')
           SetOrderRefundedStatusButton(v-if='!isRefundType(row.type)', :id='row.id')
-        PaymentDetails.pay-card__details(v-if='expanded.get(row.id)', :payment='row')
+        template(v-if='expanded.get(row.id)')
+          PaymentDetails.pay-card__details(:payment='row')
+          .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
+            AttachExpenseProofPanel(
+              :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
+              :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+              :step='{ number: 1, title: "Подтвердите оплату" }',
+              @uploaded='onProofUploaded(row)'
+            )
+            ReportExpenseAdvancePanel(
+              :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
+              :item-hash='expenseProofRef(row)?.item_hash ?? ""',
+              :on-behalf='true',
+              :report-state='advanceReportState(row)',
+              :reported-amount='advanceReportedAmount(row)',
+              :step='{ number: 2, title: "Отчёт пайщика" }',
+              @reported='onReported'
+            )
+          ReportExpenseAdvancePanel.q-mt-sm(
+            v-else-if='advanceReportRef(row)',
+            :proposal-hash='advanceReportRef(row)?.proposal_hash ?? ""',
+            :item-hash='advanceReportRef(row)?.item_hash ?? ""',
+            :report-state='advanceReportState(row)',
+            :reported-amount='advanceReportedAmount(row)',
+            @reported='onReported'
+          )
+          ExpenseSettlementBasisPanel.q-mt-sm(
+            v-if='settlementRef(row)',
+            :proposal-hash='settlementRef(row)?.proposal_hash ?? ""',
+            :item-hash='settlementRef(row)?.item_hash ?? ""',
+            :settlement-amount='`${row.quantity} ${row.symbol}`',
+            :is-return='settlementRef(row)?.isReturn ?? false',
+            :description='settlementRef(row)?.description ?? ""',
+            @open-source='openSourcePayment'
+          )
 
       .table-foot
         span {{ rangeLabel }}
@@ -112,11 +205,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed, reactive } from 'vue';
+import { onMounted, ref, computed, reactive, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { usePaymentStore } from 'src/entities/Payment/model';
 import { SetOrderPaidStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderPaidStatusButton';
 import { SetOrderRefundedStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderRefundedStatusButton';
+import { AttachExpenseProofPanel } from 'src/features/Payment/AttachExpenseProof';
+import { ReportExpenseAdvancePanel } from 'src/features/Payment/ReportExpenseAdvance';
+import { ExpenseSettlementBasisPanel } from 'src/features/Payment/ExpenseSettlementBasis';
+import { useSessionStore } from 'src/entities/Session';
 import { PaymentDetails } from 'src/shared/ui';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
@@ -127,6 +225,12 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
 import type { IPayment } from 'src/entities/Payment/model/types';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
+import {
+  ExpenseReportState,
+  reportStateLabel,
+  reportStateVariant,
+} from 'src/shared/lib/expenses';
 import { Zeus } from '@coopenomics/sdk';
 
 const props = defineProps({
@@ -141,6 +245,7 @@ const props = defineProps({
   },
 });
 
+const route = useRoute();
 const paymentStore = usePaymentStore();
 const payments = computed(() => paymentStore.payments);
 // Zeus scalar ID не имеет резолвера → IPayment.id типизирован как unknown,
@@ -170,14 +275,119 @@ const getStatusVariant = (status?: string | null): BaseBadgeVariant => {
 const isIncoming = (direction?: string | null): boolean =>
   direction === Zeus.PaymentDirection.INCOMING;
 
-// Возврат вступительного/мин.паевого взноса при отказе совета — отклонению не
-// подлежит (см. шаблон): у такого исходящего платежа только «Подтвердить».
+// Направление показываем относительно того, чей это стол. on-chain `direction` —
+// всегда относительно кооператива (INCOMING = деньги в кооператив). Совет
+// (!hideActions) так и видит; на личном столе пайщика (hideActions) перспектива
+// обратная (исходящий из кооператива = поступление пайщику), поэтому инвертируем.
+const displayDirection = (row: IPaymentRow): string | null | undefined =>
+  props.hideActions
+    ? (isIncoming(row.direction) ? Zeus.PaymentDirection.OUTGOING : Zeus.PaymentDirection.INCOMING)
+    : row.direction;
+const directionLabel = (row: IPaymentRow): string =>
+  isIncoming(displayDirection(row)) ? 'Входящий' : 'Исходящий';
+const directionHint = (row: IPaymentRow): string => {
+  const incoming = isIncoming(displayDirection(row));
+  return props.hideActions
+    ? incoming ? 'Поступление вам' : 'Списание с вас'
+    : incoming ? 'В кооператив' : 'Из кооператива';
+};
+
+// Сумма — всегда 2 знака после запятой (не сырой on-chain precision=4).
+const amountLabel = (row: IPaymentRow): string =>
+  formatAsset2Digits(`${row.quantity} ${row.symbol}`);
+
+// Платежи, которые кассир не может отклонить — только «Подтвердить»:
+// возврат вступительного/мин.паевого (совет уже отказал в приёме) и оплата
+// расхода по СЗ (совет уже утвердил расход; отказ — только решением совета).
 const isRefundType = (type?: string | null): boolean =>
-  type === Zeus.PaymentType.REGISTRATION_REFUND;
+  type === Zeus.PaymentType.REGISTRATION_REFUND || type === Zeus.PaymentType.EXPENSE;
 
 // Material-иконки (канон запрещает FontAwesome fa-*).
 const getDirectionIcon = (direction?: string | null) => {
   return isIncoming(direction) ? 'arrow_downward' : 'arrow_upward';
+};
+
+// Ссылка на позицию СЗ для блока «Подтверждение оплаты»: только у платежей
+// расхода и только после подтверждения кассиром (платёжка появляется по факту).
+const expenseProofRef = (
+  row: IPaymentRow,
+): { proposal_hash: string; item_hash: string } | null => {
+  if (row.type !== Zeus.PaymentType.EXPENSE) return null;
+  if (![Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(row.status)) return null;
+  const data = row.blockchain_data as { proposal_hash?: string; item_hash?: string } | null;
+  if (!data?.proposal_hash || !data?.item_hash) return null;
+  return { proposal_hash: data.proposal_hash, item_hash: data.item_hash };
+};
+
+// Личный реестр пайщика (hideActions): получатель аванса под отчёт прикладывает
+// чек и подаёт отчёт по своей позиции. Механику (ADVANCE/DIRECT) панель
+// проверяет сама по данным СЗ и для DIRECT не отображается.
+const session = useSessionStore();
+const advanceReportRef = (
+  row: IPaymentRow,
+): { proposal_hash: string; item_hash: string } | null => {
+  if (!props.hideActions) return null;
+  if (row.username !== session.username) return null;
+  return expenseProofRef(row);
+};
+
+// Зеркало состояния отчёта и заявленной суммы (blockchain_data платежа выдачи
+// аванса) — панель отчёта прячет форму после подачи и показывает заявленный факт.
+const advanceReportState = (row: IPaymentRow): string =>
+  (row.blockchain_data as { report_state?: string } | null)?.report_state ?? '';
+const advanceReportedAmount = (row: IPaymentRow): string =>
+  (row.blockchain_data as { reported_amount?: string } | null)?.reported_amount ?? '';
+
+// Расчётная платёжка (возврат недорасхода / доплата перерасхода) — ссылка на
+// исходную позицию-аванс, чтобы кассир видел основание (аванс/факт/документы),
+// не выискивая исходный платёж среди сотен строк реестра.
+const settlementRef = (
+  row: IPaymentRow,
+): { proposal_hash: string; item_hash: string; isReturn: boolean; description: string } | null => {
+  const isReturn = row.type === Zeus.PaymentType.EXPENSE_RETURN;
+  const isOverspend = row.type === Zeus.PaymentType.EXPENSE_OVERSPEND;
+  if (!isReturn && !isOverspend) return null;
+  const data = row.blockchain_data as
+    | { proposal_hash?: string; item_hash?: string; description?: string }
+    | null;
+  if (!data?.proposal_hash || !data?.item_hash) return null;
+  return {
+    proposal_hash: data.proposal_hash,
+    item_hash: data.item_hash,
+    isReturn,
+    description: data.description ?? '',
+  };
+};
+
+// Статус отчёта по авансу — только на личном столе пайщика и только у платежа
+// выдачи аванса (EXPENSE). Источник — зеркало blockchain_data.report_state;
+// дефолт «Требуется отчёт», пока пайщик не отчитался. Расчётные платёжки
+// (EXPENSE_RETURN/EXPENSE_OVERSPEND) свой отчёт-бейдж не показывают.
+const reportBadge = (
+  row: IPaymentRow,
+): { label: string; variant: BaseBadgeVariant } | null => {
+  if (!props.hideActions) return null;
+  if (row.type !== Zeus.PaymentType.EXPENSE) return null;
+  if (![Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(row.status)) return null;
+  const data = row.blockchain_data as { proposal_hash?: string; report_state?: string } | null;
+  if (!data?.proposal_hash) return null;
+  const state = (data.report_state as ExpenseReportState) || ExpenseReportState.AWAITING;
+  if (state === ExpenseReportState.NOT_REQUIRED) return null;
+  return { label: reportStateLabel(state), variant: reportStateVariant(state) };
+};
+
+// Отметка отчитанности оплаченного расхода: бэкенд зеркалит число платёжек
+// в blockchain_data.proof_count при каждой загрузке/удалении файла.
+const proofState = (row: IPaymentRow): 'attached' | 'missing' | 'none' => {
+  if (!expenseProofRef(row)) return 'none';
+  const count = (row.blockchain_data as { proof_count?: number } | null)?.proof_count ?? 0;
+  return count > 0 ? 'attached' : 'missing';
+};
+
+// Локально отражаем загруженную платёжку, не перезагружая реестр.
+const onProofUploaded = (row: IPaymentRow): void => {
+  const data = (row.blockchain_data ?? {}) as { proof_count?: number };
+  row.blockchain_data = { ...data, proof_count: (data.proof_count ?? 0) + 1 };
 };
 
 // Колонки скелетона повторяют шапку реальной таблицы платежей; колонка
@@ -192,6 +402,7 @@ const skeletonColumns = computed<TableSkeletonColumn[]>(() => {
     { label: 'Направление', cell: 'text', cellWidth: '90px' },
     { label: 'Статус', cell: 'badge' },
   ];
+  // «Действия» — только на столе совета (не на личном столе пайщика).
   if (!props.hideActions) {
     cols.push({ label: 'Действия', class: 'col-action', cell: 'icon' });
   }
@@ -262,10 +473,60 @@ const toggleExpand = (id: string | number): void => {
   expanded.set(id, !expanded.get(id));
 };
 
-onMounted(() => {
+// После отчёта по авансу с недо-/перерасходом заводится отдельная платёжка
+// расчёта — перезагружаем реестр и сразу раскрываем её (по хэшу), чтобы пайщик
+// увидел реквизиты для оплаты, не догадываясь нажать «развернуть».
+const onReported = async (settlementHash?: string): Promise<void> => {
   paymentStore.clear();
   expanded.clear();
-  loadPayments();
+  await loadPayments(1);
+  if (!settlementHash) return;
+  const row = items.value.find((p) => p.hash === settlementHash);
+  if (row) expanded.set(row.id, true);
+};
+
+// Кассир жмёт «Основание» в расчётной платёжке (возврат/доплата) → раскрываем
+// платёж выдачи аванса (его hash == item_hash расчётной платёжки) и прокручиваем
+// к нему. Так видно, сколько выдавалось и что в чеке, без поиска строки вручную.
+const openSourcePayment = async (itemHash: string): Promise<void> => {
+  const target = items.value.find(
+    (p) => p.hash?.toLowerCase() === itemHash.toLowerCase(),
+  );
+  if (!target) {
+    FailAlert('Платёж выдачи аванса не найден на текущей странице реестра');
+    return;
+  }
+  expanded.set(target.id, true);
+  await nextTick();
+  const el =
+    document.getElementById(`pay-row-${target.id}`) ??
+    document.getElementById(`pay-card-${target.id}`);
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+// Пришли из детали расхода по «Открыть в реестре платежей» (?focus=<hash>) —
+// после загрузки тихо раскрываем нужный платёж и прокручиваем к нему. Если он
+// не на текущей странице — молчим (фильтр по :username? обычно укладывает все
+// платежи владельца в одну страницу).
+const focusPaymentByHash = async (hash: string): Promise<void> => {
+  const target = items.value.find(
+    (p) => p.hash?.toLowerCase() === hash.toLowerCase(),
+  );
+  if (!target) return;
+  expanded.set(target.id, true);
+  await nextTick();
+  const el =
+    document.getElementById(`pay-row-${target.id}`) ??
+    document.getElementById(`pay-card-${target.id}`);
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+onMounted(async () => {
+  paymentStore.clear();
+  expanded.clear();
+  await loadPayments();
+  const focus = route.query.focus;
+  if (typeof focus === 'string' && focus) await focusPaymentByHash(focus);
 });
 </script>
 
@@ -420,6 +681,19 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
 }
+
+.cell-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+}
+
+.proof-icon--ok {
+  color: var(--p-pos);
+}
+.proof-icon--missing {
+  color: var(--p-warn);
+}
 .dir--in {
   color: var(--p-pos);
 }
@@ -438,5 +712,18 @@ onMounted(() => {
 .expand-row td {
   padding: 0 20px 16px;
   background: var(--p-surface-2);
+}
+
+/* Последовательные этапы кассира (подтверждение оплаты → отчёт пайщика):
+   разделяем хайрлайном, чтобы видно было «сейчас этот этап, потом следующий». */
+.expense-flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+}
+
+.expense-flow > * + * {
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
 }
 </style>

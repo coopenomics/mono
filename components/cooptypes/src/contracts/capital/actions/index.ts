@@ -48,6 +48,12 @@ export * as CommitDecline from './commitDecline'
 // Долги
 export * as CreateDebt from './createDebt'
 
+// Расходы программы через шасси expense (Эпик 5 шасси)
+// capital — инициатор+callback, весь flow обслуживает контракт expense.
+export * as TopupProgramExpense from './topupProgramExpense'
+export * as CreateProgramExpense from './createProgramExpense'
+export * as OnProgramExpenseDone from './onProgramExpenseDone'
+
 // Регистрация участников
 export * as RegisterContributor from './registerContributor'
 

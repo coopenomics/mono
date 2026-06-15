@@ -130,6 +130,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { useKuStore } from 'src/entities/Ku/model';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
+import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useKuTrustedFlow } from 'src/features/Ku/TrustedFlow/model';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { useSystemStore } from 'src/entities/System/model';
@@ -170,9 +171,9 @@ const isDeclineOpen = ref(false);
 const declineReason = ref('');
 const declineTarget = ref<IKuTrustRequest | null>(null);
 const isDocumentOpen = ref(false);
-const documentTarget = ref<object | null>(null);
+const documentTarget = ref<IDocumentAggregate | null>(null);
 const isAuthorityOpen = ref(false);
-const authorityTarget = ref<object | null>(null);
+const authorityTarget = ref<IDocumentAggregate | null>(null);
 // предпросмотр пакета документов заявителя перед подписанием и подачей заявки
 const trustedPreviewOpen = ref(false);
 const trustedPrepared = ref<Awaited<ReturnType<typeof flow.prepareTrustedDocuments>> | null>(null);
@@ -294,9 +295,11 @@ async function confirmRequest() {
 const trustedPreviewDocs = computed(() => {
   const d = trustedPrepared.value;
   if (!d) return [];
+  // неподписанный сгенерированный документ: реальных подписей и хэшей ещё нет —
+  // оборачиваем в минимальный агрегат для предпросмотра (BaseDocument рендерит rawDocument)
   const wrap = (gen: object, title: string) => ({
     title,
-    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } },
+    aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
   });
   return [
     wrap(d.application, 'Договор о полной материальной ответственности'),
