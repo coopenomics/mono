@@ -1,8 +1,8 @@
-import { PrivateKey, PublicKey, Signature } from '@wharfkit/antelope'
+import { Checksum256, PrivateKey, PublicKey, Signature } from '@wharfkit/antelope'
 import { base64url, SignJWT } from 'jose'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { AuthV2Error, AuthV2ErrorCode } from '../src/errors'
-import { canonicalTimestampMessage, signDocument, signTimestamp } from '../src/signing'
+import { canonicalTimestampMessage, signChainDigest, signDocument, signTimestamp } from '../src/signing'
 import { storeUnlocked, wipeKeystore } from '../src/wallet/storage'
 
 const KEY = '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
@@ -82,6 +82,29 @@ describe('signTimestamp: COOPOS-native recoverable подпись', () => {
       .sign(new TextEncoder().encode('test-secret-padding-0000000000000000'))
     const err = await signTimestamp({ sessionBindingToken: noClaims }).then(() => null, e => e)
     expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.SessionBindingExpired)
+  })
+})
+
+describe('signChainDigest: подпись tx-дайджеста ключом из keystore (мост подписи CoopID)', () => {
+  it('подписывает дайджест; recoverDigest даёт pubkey подписанта (ключ наружу не выходит — только подпись)', async () => {
+    const digestHex = 'ab'.repeat(32) // 32 байта signing-дайджеста
+    const sig = await signChainDigest(digestHex)
+    expect(sig).toMatch(/^SIG_K1_/)
+    const recovered = Signature.from(sig).recoverDigest(Checksum256.from(digestHex)).toString()
+    expect(recovered).toBe(PUB)
+  })
+
+  it('подмена дайджеста ломает восстановление pubkey (integrity)', async () => {
+    const sig = await signChainDigest('ab'.repeat(32))
+    const recovered = Signature.from(sig).recoverDigest(Checksum256.from('cd'.repeat(32))).toString()
+    expect(recovered).not.toBe(PUB)
+  })
+
+  it('запертый кошелёк → WalletLocked (подпись транзакции невозможна без unlock)', async () => {
+    wipeKeystore()
+    const err = await signChainDigest('ab'.repeat(32)).then(() => null, e => e)
+    expect(err).toBeInstanceOf(AuthV2Error)
+    expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.WalletLocked)
   })
 })
 

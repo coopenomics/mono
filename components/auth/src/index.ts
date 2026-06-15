@@ -40,7 +40,7 @@ export type { FlowExecutorParams, HandshakeResult, LoginParams, LoginResult, Log
 export { authenticateWithFlowExecutor, configureCoopId, configureOidc, currentTokens, DEFAULT_AUTHENTICATION_FLOW, getAccessToken, getParticipantCertificate, login, loginWithMagicLink, logout, performTimestampHandshake, recover } from './oidc'
 export type { SignDocumentParams, TimestampSignature } from './signing'
 
-export { canonicalTimestampMessage, signDocument, signTimestamp } from './signing'
+export { canonicalTimestampMessage, signChainDigest, signDocument, signTimestamp } from './signing'
 export type { EncryptedVaultBlob, VaultSubject } from './vault'
 
 export { ARGON2ID_PARAMS, decryptPrivateKey, deriveKey, encryptPrivateKey } from './vault'

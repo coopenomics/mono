@@ -14,6 +14,25 @@ export interface SignDocumentParams {
   alg?: 'ES256K'
 }
 
+/**
+ * Подпись дайджеста транзакции COOPOS ключом пайщика из keystore (мост подписи
+ * CoopID, Эпик 7). Приватный ключ НЕ покидает keystore — наружу уходит только
+ * готовая подпись `SIG_K1_…`. Это та же операция, что внутри
+ * `@wharfkit/wallet-plugin-privatekey`, но ключ берётся из RAM-keystore (2.2), а
+ * не из аргумента: десктопный `WalletPluginCoopId` делегирует сюда `sign()`, и
+ * wharfkit `Session.transact()` подписывает чужими руками, не зная ключа.
+ *
+ * Вход — hex-строка signing-дайджеста (`transaction.signingDigest(chainId)`),
+ * чтобы не тащить wharfkit-типы через границу пакета (иначе ловушка двойного
+ * `Checksum256` из разных копий antelope). Бросает `WalletLocked`, если заперт.
+ */
+export async function signChainDigest(digestHex: string): Promise<string> {
+  currentView() // бросает WalletLocked, если keystore заперт
+  const { PrivateKey, Checksum256 } = await import('@wharfkit/antelope')
+  const signature = PrivateKey.from(readUnlockedKey()).signDigest(Checksum256.from(digestHex))
+  return signature.toString()
+}
+
 export interface TimestampSignature {
   ts: string
   binding_token_jti: string
