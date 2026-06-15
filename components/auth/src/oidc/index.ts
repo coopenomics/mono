@@ -74,14 +74,6 @@ export interface LoginWithMagicLinkParams {
   issuer: string
   /** Email пайщика — фактор-1 повторной аутентификации в authentik после смены ключа. */
   email: string
-  /**
-   * COOPOS-аккаунт пайщика (subject_id vault'а). Нужен дважды: как AAD при шифровании
-   * нового блоба и как субъект при последующем unlock — оба обязаны совпадать, иначе
-   * расшифровка провалится. Magic-link несёт только непрозрачный `token`; как получить
-   * по нему аккаунт — открытый контракт фронт-фазы 12.3 (кандидат — серверный
-   * whoami-by-token), здесь аккаунт подаёт вызывающий.
-   */
-  account: string
   /** Magic-link токен из ссылки восстановления (или `recovery_token` offline-канала, Story 3.4). */
   token: string
   /** TOTP-код из приложения-аутентификатора — второй фактор подтверждения (Story 3.2/3.6). */
@@ -100,13 +92,20 @@ export interface LoginWithMagicLinkParams {
  * поэтому клиент генерит НОВУЮ пару: приватный шифруется новым паролём в vault и
  * наружу/на сервер не уходит, on-chain едет только публичный.
  *
- * Шаги: (1) сгенерировать пару; (2) зашифровать новый ключ новым паролём (AAD=субъект);
- * (3) `POST /coop/recovery/confirm` {token, TOTP, public_key, vault, password} — сервер
- * (12.1) ставит пароль в authentik, сохраняет vault, ротирует active-ключ
- * (`registrator::changekey`) и отзывает старые сессии; (4) повторный вход новым контуром:
- * authentik-сессия новым паролём → `unlockWallet` (расшифровать только что записанный
- * блоб → keystore) → timestamp-handshake. Ключ к этому моменту уже ротирован on-chain,
- * поэтому verify увидит новый pubkey (при лаге узла handshake вернёт degraded, Story 9.6).
+ * Account на старте неизвестен — magic-link несёт только непрозрачный `token`. Но он и
+ * не нужен заранее: AAD vault'а больше не зависит от account (см. `vault/encrypt.ts`),
+ * а username для повторного входа отдаёт сам `confirm`, резолвнув его из токена. Так
+ * обходимся без отдельного whoami-by-token эндпоинта.
+ *
+ * Шаги: (1) сгенерировать пару; (2) зашифровать новый ключ новым паролём (AAD=тип
+ * субъекта, без account); (3) `POST /coop/recovery/confirm` {token, TOTP, public_key,
+ * vault, password} — сервер (12.1) ставит пароль в authentik, сохраняет vault под нужным
+ * account, ротирует active-ключ (`registrator::changekey`), отзывает старые сессии и
+ * возвращает `{ username }`; (4) повторный вход новым контуром: authentik-сессия новым
+ * паролём → `unlockWallet` по этому username (скачать только что записанный блоб →
+ * расшифровать → keystore) → timestamp-handshake. Ключ к этому моменту уже ротирован
+ * on-chain, поэтому verify увидит новый pubkey (при лаге узла handshake вернёт degraded,
+ * Story 9.6).
  */
 export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Promise<LoginResult> {
   const apiUrl = coopIdApiUrl()
@@ -117,9 +116,10 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
   const newPrivateKey = newKey.toWif()
   const newPublicKey = newKey.toPublic().toString()
 
-  // 2. Зашифровать новый ключ новым паролём. subject_id=account обязателен: тем же
-  //    субъектом пойдёт unlock на шаге 4, иначе AAD не сойдётся и расшифровка упадёт.
-  const subject: VaultSubject = { subject_type: 'participant', subject_id: params.account }
+  // 2. Зашифровать новый ключ новым паролём. AAD = тип субъекта (`participant`), а не
+  //    account: id в AAD не участвует (см. vault/encrypt.ts), поэтому шифруем, не зная
+  //    username. Сервер сохранит блоб под нужным account сам (по recovery-токену).
+  const subject: VaultSubject = { subject_type: 'participant', subject_id: '' }
   const vaultBlob = await encryptPrivateKey(newPrivateKey, params.newPassword, subject)
 
   // 3. confirm: токен magic-link + TOTP + новый материал. Тело — контракт RecoveryConfirmBody.
@@ -139,14 +139,21 @@ export async function loginWithMagicLink(params: LoginWithMagicLinkParams): Prom
   if (!res.ok)
     throw await authErrorFromResponse(res, AuthV2ErrorCode.InvalidRecoveryToken, `Подтверждение восстановления отклонено (HTTP ${res.status})`)
 
+  // confirm вернул account пайщика (резолвнут из токена) — по нему скачаем и
+  // расшифруем только что сохранённый сервером блоб при повторном входе.
+  const confirmed = (await res.json().catch(() => null)) as { username?: string } | null
+  if (!confirmed?.username)
+    throw new AuthV2Error(AuthV2ErrorCode.InvalidRecoveryToken, 'Подтверждение восстановления не вернуло аккаунт')
+  const account = confirmed.username
+
   // 4. Локальная копия нового блоба (best-effort на устройстве восстановления).
   if (params.storage)
-    await saveLocalVault(params.storage, params.account, vaultBlob)
+    await saveLocalVault(params.storage, account, vaultBlob)
 
   // 5. Повторный вход новым контуром. unlockWallet забирает только что сохранённый
   //    серверный блоб и расшифровывает новым паролём — заодно round-trip-проверка vault'а.
   const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.newPassword, flowSlug: params.flowSlug })
-  await unlockWallet({ apiUrl, account: params.account, password: params.newPassword })
+  await unlockWallet({ apiUrl, account, password: params.newPassword })
   const handshake = await performTimestampHandshake(apiUrl)
   return {
     accessToken: handshake.accessToken,

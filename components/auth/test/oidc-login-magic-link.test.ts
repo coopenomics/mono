@@ -25,10 +25,11 @@ const { decryptPrivateKey } = await import('../src/vault/encrypt')
 const { unlockWallet } = await import('../src/wallet')
 
 const BASE = 'https://coop.example'
+// account больше НЕ параметр — сервер возвращает его в ответе confirm (резолвит из токена).
+const ACCOUNT = 'ant'
 const PARAMS = {
   issuer: 'https://coop.example/application/o/coopid/',
   email: 'ant@example.com',
-  account: 'ant',
   token: 'magic-token-xyz',
   totp: '123456',
   newPassword: 'Strong#NewPass1',
@@ -42,7 +43,7 @@ afterEach(() => {
 
 describe('loginWithMagicLink (Story 12.2) — восстановление доступа', () => {
   it('happy: новая пара → корректное тело confirm → vault round-trip → повторный вход', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ username: ACCOUNT }) })
     vi.stubGlobal('fetch', fetchMock)
 
     const result = await loginWithMagicLink(PARAMS)
@@ -57,16 +58,24 @@ describe('loginWithMagicLink (Story 12.2) — восстановление до�
     expect(body.public_key).toMatch(/^PUB_K1_/)
     expect(body.vault).toMatchObject({ cipher_version: expect.any(String), salt: expect.any(String), ciphertext: expect.any(String) })
 
-    // vault расшифровывается новым паролём под тем же субъектом, и приватный ключ
-    // соответствует отправленному public_key — целостность сгенерированной пары.
-    const wif = await decryptPrivateKey(body.vault, PARAMS.newPassword, { subject_type: 'participant', subject_id: PARAMS.account })
+    // AAD больше НЕ зависит от account: тот же блоб расшифровывается под ЛЮБЫМ
+    // subject_id (важен только тип субъекта) — регресс-гард решения 2026-06-15.
+    // И приватный ключ соответствует отправленному public_key — целостность пары.
+    const wif = await decryptPrivateKey(body.vault, PARAMS.newPassword, { subject_type: 'participant', subject_id: 'any-other-account' })
     expect(PrivateKey.from(wif).toPublic().toString()).toBe(body.public_key)
 
-    // повторный вход новым контуром выполнен; результат собран из user + handshake.
+    // повторный вход новым контуром выполнен; account взят из ответа confirm.
     expect(authenticateWithAuthentik).toHaveBeenCalledWith(expect.objectContaining({ email: PARAMS.email, password: PARAMS.newPassword, issuer: PARAMS.issuer }))
-    expect(unlockWallet).toHaveBeenCalledWith({ apiUrl: BASE, account: PARAMS.account, password: PARAMS.newPassword })
+    expect(unlockWallet).toHaveBeenCalledWith({ apiUrl: BASE, account: ACCOUNT, password: PARAMS.newPassword })
     expect(performTimestampHandshake).toHaveBeenCalledWith(BASE)
     expect(result).toEqual({ accessToken: 'AT', idToken: 'ID_TOK', participantCertificate: 'CERT' })
+  }, 60000)
+
+  it('confirm вернул 200 без username → InvalidRecoveryToken; повторный вход не запускается', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }))
+    await expect(loginWithMagicLink(PARAMS)).rejects.toMatchObject({ code: 'invalid_recovery_token' })
+    expect(authenticateWithAuthentik).not.toHaveBeenCalled()
+    expect(performTimestampHandshake).not.toHaveBeenCalled()
   }, 60000)
 
   it('неверный TOTP (400 invalid_2fa_code) → проброс; повторный вход не запускается', async () => {
@@ -100,13 +109,13 @@ describe('loginWithMagicLink (Story 12.2) — восстановление до�
       set: vi.fn(async (k: string, v: string) => { store.set(k, v) }),
       remove: vi.fn(async (k: string) => { store.delete(k) }),
     }
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ username: ACCOUNT }) }))
 
     await loginWithMagicLink({ ...PARAMS, storage })
 
     expect(storage.set).toHaveBeenCalledTimes(1)
     const saved = JSON.parse(storage.set.mock.calls[0][1] as string)
-    expect(saved.account).toBe(PARAMS.account)
+    expect(saved.account).toBe(ACCOUNT)
     expect(saved.blob).toMatchObject({ cipher_version: expect.any(String) })
   }, 60000)
 })

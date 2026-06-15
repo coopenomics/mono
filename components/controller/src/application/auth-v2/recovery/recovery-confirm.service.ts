@@ -45,8 +45,16 @@ export class RecoveryConfirmService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Подтвердить смену ключа: проверить оба канала и запустить финализацию. */
-  async confirm(input: RecoveryConfirmInput, ip: string | null): Promise<void> {
+  /**
+   * Подтвердить смену ключа: проверить оба канала и запустить финализацию.
+   *
+   * Возвращает `{ username }` пайщика, резолвнутый из recovery-токена. Клиент
+   * шифрует новый vault ещё ДО этого вызова (одним запросом несёт блоб в теле),
+   * поэтому account на тот момент ему неизвестен и в AAD не закладывается; зато
+   * для повторного входа после смены ключа (скачать блоб по account, расшифровать)
+   * username нужен — его и отдаём здесь, без отдельного whoami-by-token эндпоинта.
+   */
+  async confirm(input: RecoveryConfirmInput, ip: string | null): Promise<{ username: string }> {
     // 1. Неразрушающее чтение: кому принадлежит токен (без потребления).
     const payload = await this.tokenStore.peek(input.token);
     if (!payload) throw this.invalidToken();
@@ -105,6 +113,8 @@ export class RecoveryConfirmService {
       context: { strategy: 'email_magic_link', second_factor: 'totp' },
       ip,
     });
+
+    return { username: claimed.username };
   }
 
   /**

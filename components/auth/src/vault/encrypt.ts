@@ -20,9 +20,20 @@ export function fromB64Url(s: string): Uint8Array {
   return out
 }
 
-/** AAD GCM привязывает шифртекст к субъекту: подмена subject_id ломает расшифровку. */
+/**
+ * AAD GCM привязывает шифртекст к ТИПУ субъекта (`participant`/`coop`/…), но НЕ к
+ * конкретному account-id. Раньше было `${type}|${id}` — это требовало знать
+ * username ещё до confirm при восстановлении (Эпик 12), хотя сервер и так
+ * резолвит account из recovery-токена; так родился лишний whoami-by-token.
+ *
+ * Account-id убран из AAD намеренно (решение владельца 2026-06-15): пер-юзер
+ * привязку даёт пароль + случайная соль, лежащая в самом блобе; контролем доступа
+ * AAD здесь не был (блоб и так публично читается по account через `GET /coop/vault`).
+ * Поэтому теперь клиент шифрует новый ключ просто паролём, а account для
+ * последующей выборки/расшифровки блоба берёт из ответа confirm.
+ */
 function aad(subject: VaultSubject): string {
-  return `${subject.subject_type}|${subject.subject_id}`
+  return subject.subject_type
 }
 
 /** WebCrypto в strict-TS требует ArrayBuffer-backed view; нормализуем Uint8Array. */

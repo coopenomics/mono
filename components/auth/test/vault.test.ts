@@ -31,9 +31,16 @@ describe('vault: Argon2id + AES-256-GCM', () => {
     expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.VaultDecryptionFailed)
   })
 
-  it('подмена subject_id (AAD) ломает расшифровку', async () => {
+  it('подмена subject_id НЕ ломает расшифровку: AAD не зависит от account (решение 2026-06-15)', async () => {
     const blob = await encryptPrivateKey(KEY, PW, SUBJECT)
-    const err = await decryptPrivateKey(blob, PW, { subject_type: 'participant', subject_id: 'petrov' }).then(() => null, e => e)
+    // другой subject_id, тот же тип и пароль → расшифровка проходит (id не в AAD).
+    const restored = await decryptPrivateKey(blob, PW, { subject_type: 'participant', subject_id: 'petrov' })
+    expect(restored).toBe(KEY)
+  })
+
+  it('подмена типа субъекта (AAD) ломает расшифровку', async () => {
+    const blob = await encryptPrivateKey(KEY, PW, SUBJECT)
+    const err = await decryptPrivateKey(blob, PW, { subject_type: 'coop', subject_id: 'ant' }).then(() => null, e => e)
     expect(err).toBeInstanceOf(AuthV2Error)
     expect((err as AuthV2Error).code).toBe(AuthV2ErrorCode.VaultDecryptionFailed)
   })

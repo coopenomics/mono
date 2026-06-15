@@ -116,7 +116,7 @@ export class RecoveryController {
     account: { ...LOGIN_ACCOUNT_RULE, escalating: ESCALATING_LOCKOUT, key: (req) => tokenFromBody(req) },
     error: TOO_MANY_RECOVERY,
   })
-  async confirm(@Body() body: RecoveryConfirmBody, @Req() req: Request): Promise<void> {
+  async confirm(@Body() body: RecoveryConfirmBody, @Req() req: Request): Promise<{ username: string }> {
     const token = requireString(body?.token, 'token');
     const code = requireString(body?.code, 'code');
     const newPublicKey = requireString(body?.public_key, 'public_key');
@@ -125,7 +125,9 @@ export class RecoveryController {
     if (!vaultBlob || typeof vaultBlob !== 'object') {
       throw new BadRequestException('Требуется зашифрованный vault-блоб');
     }
-    await this.confirmService.confirm(
+    // Возвращаем username (резолвнут из токена) — клиент скачает по нему новый
+    // vault-блоб и расшифрует при повторном входе; отдельный whoami-by-token не нужен.
+    return this.confirmService.confirm(
       { token, code, newPublicKey, vaultBlob, newPassword },
       req.ip ?? null,
     );

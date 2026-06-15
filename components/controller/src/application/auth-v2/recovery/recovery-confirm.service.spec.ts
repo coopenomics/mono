@@ -38,8 +38,9 @@ describe('RecoveryConfirmService (Story 3.2 — двухканальное по�
     twoFactor.verify.mockResolvedValueOnce(true);
     tokenStore.consume.mockResolvedValueOnce(PAYLOAD);
 
-    await service.confirm(INPUT, '1.2.3.4');
+    const result = await service.confirm(INPUT, '1.2.3.4');
 
+    expect(result).toEqual({ username: 'ant' });
     expect(twoFactor.verify).toHaveBeenCalledWith('u1', '123456');
     expect(tokenStore.consume).toHaveBeenCalledWith('tok-1');
     expect(finalization.finalize).toHaveBeenCalledWith(
