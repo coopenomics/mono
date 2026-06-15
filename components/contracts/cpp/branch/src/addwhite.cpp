@@ -1,10 +1,10 @@
 /**
- * @brief Добавление аккаунта в белый список кооперативного участка.
- * Аккаунты из белого списка могут выбрать приватный кооперативный участок при вступлении
- * или смене участка. Добавлять можно только физических лиц.
+ * @brief Добавление пайщика в белый список кооперативного участка.
+ * Пайщики из белого списка могут выбрать приватный кооперативный участок при вступлении
+ * или смене участка. В белый список можно добавить любого пайщика кооператива.
  * @param coopname Наименование кооператива
  * @param braname Наименование кооперативного участка
- * @param account Аккаунт пайщика для добавления (должен быть физическим лицом)
+ * @param account Аккаунт пайщика для добавления
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
@@ -17,8 +17,7 @@
     auto branch = branches.find(braname.value);
     eosio::check(branch != branches.end(), "Кооперативный участок не найден");
 
-    auto account_obj = get_account_or_fail(account);
-    eosio::check(account_obj.type == "individual"_n, "Только физическое лицо может быть добавлено в белый список кооперативного участка");
+    get_account_or_fail(account);
 
     branches.modify(branch, coopname, [&](auto &b) {
         b.add_account_to_whitelist(account);

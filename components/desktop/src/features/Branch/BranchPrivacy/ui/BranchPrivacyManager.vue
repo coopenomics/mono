@@ -12,6 +12,7 @@
       UserSearchSelector.branch-privacy__search(
         v-model='selected',
         label='Начните ввод ФИО пайщика',
+        :exclude='branchAccounts',
         dense
       )
       BaseButton(
@@ -37,7 +38,7 @@
 import { computed, ref } from 'vue';
 import { useBranchPrivacy } from '../model';
 import { useSystemStore } from 'src/entities/System/model';
-import type { IBranch } from 'src/entities/Branch/model';
+import { useBranchStore, type IBranch } from 'src/entities/Branch/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseCheckbox } from 'src/shared/ui/base';
 import { UserSearchSelector } from 'src/shared/ui';
@@ -45,6 +46,7 @@ import { UserSearchSelector } from 'src/shared/ui';
 const props = defineProps<{ branch: IBranch }>();
 
 const { info } = useSystemStore();
+const branchStore = useBranchStore();
 const { setBranchPrivate, addBranchWhitelist, deleteBranchWhitelist } = useBranchPrivacy();
 
 const busy = ref(false);
@@ -52,6 +54,9 @@ const selected = ref('');
 
 const isPrivate = computed(() => props.branch.is_private);
 const whitelist = computed(() => props.branch.whitelist_certificates ?? []);
+
+// аккаунты кооперативных участков — не пайщики, их нельзя добавлять в белый список
+const branchAccounts = computed(() => branchStore.branches.map((branch) => branch.braname));
 
 function memberName(member: any): string {
   return [member.last_name, member.first_name, member.middle_name].filter(Boolean).join(' ') || member.username;
