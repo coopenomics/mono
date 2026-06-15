@@ -6,11 +6,15 @@ import { useRegistratorStore } from 'src/entities/Registrator';
 import type { ITokens } from 'src/shared/lib/types/user';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Zeus } from '@coopenomics/sdk';
-import { migrate } from '@coopenomics/auth';
+import { configureTokenStorage, login as coopidLogin, migrate } from '@coopenomics/auth';
+import { env } from 'src/shared/config';
+import { useSystemStore } from 'src/entities/System/model';
+import { createCoopIdStorage } from 'src/entities/Session/lib/coopidStorage';
 
 export function useLoginUser() {
   const globalStore = useGlobalStore();
   const session = useSessionStore();
+  const systemStore = useSystemStore();
 
   async function login(email: string, wif: string): Promise<void> {
     const result = await api.loginUser(email, wif);
@@ -106,8 +110,35 @@ export function useLoginUser() {
     return result;
   }
 
+  /**
+   * Вход по паролю CoopID (Story 11.5): фактор-1 — пароль через authentik,
+   * фактор-2 — владение ключом (timestamp-handshake). Токены кладём в персистентное
+   * хранилище (паритет с легаси — переживание reload), затем строим CoopID-сессию
+   * поверх keystore (мост подписи Эпика 7).
+   *
+   * Деградация без инфры: вход по паролю опирается на OIDC-клиент authentik
+   * (Эпик 5) — пока `COOPID_ISSUER` не задан, путь недоступен и пайщик входит по
+   * ключу доступа (легаси не тронут). Полный фасад «authentik → unlock keystore →
+   * handshake» довершается в SDK (#23) — здесь сторона desktop.
+   */
+  async function loginWithPassword(email: string, password: string): Promise<void> {
+    if (!env.COOPID_ISSUER) {
+      throw new Error(
+        'Вход по паролю станет доступен после подключения авторизации кооператива. Пока войдите по ключу доступа.',
+      );
+    }
+    const storage = createCoopIdStorage(systemStore.info.coopname);
+    configureTokenStorage(storage);
+    await coopidLogin({ issuer: env.COOPID_ISSUER, email, password });
+    const ok = await session.establishCoopIdSession({ persistPin: true });
+    if (!ok) {
+      throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
+    }
+  }
+
   return {
     login,
     migrateAndLogin,
+    loginWithPassword,
   };
 }
