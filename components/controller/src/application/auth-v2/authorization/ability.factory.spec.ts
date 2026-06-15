@@ -14,6 +14,7 @@ const emptyRepo: IAccessRulesRepository = {
   findForPrincipal: async () => [],
   findForCapabilitySets: async () => [],
   insert: async () => undefined,
+  deleteExpired: async () => 0,
 };
 
 /** Stub репозитория наборов — пайщику ничего не назначено. */
@@ -147,6 +148,7 @@ describe('AbilityFactory — Layer 2 access_rules merge (Story 6.2)', () => {
       findForPrincipal: jest.fn(async () => [rule({ action: 'vote', resourceType: 'CriticalAction' })]),
       findForCapabilitySets: async () => [],
       insert: async () => undefined,
+      deleteExpired: async () => 0,
     };
     const f = new AbilityFactory(repo, emptySets);
     const ability = await f.createForParticipantWithRules({ username: 'eve', role: 'member' });
@@ -176,6 +178,7 @@ describe('AbilityFactory — назначаемые наборы возможн�
         keys.includes('cashier') ? [setRule('cashier', 'read', 'PaymentRegistry'), setRule('cashier', 'confirm', 'PaymentRegistry')] : [],
       ),
       insert: async () => undefined,
+      deleteExpired: async () => 0,
     };
     const sets: ICapabilitySetsRepository = {
       ...emptySets,
@@ -196,6 +199,7 @@ describe('AbilityFactory — назначаемые наборы возможн�
       findForPrincipal: async () => [],
       findForCapabilitySets: jest.fn(async () => []),
       insert: async () => undefined,
+      deleteExpired: async () => 0,
     };
     const f = new AbilityFactory(accessRules, emptySets);
     const ability = await f.createForParticipantWithRules({ username: 'bob', role: 'user' });

@@ -102,7 +102,10 @@ static const std::set<eosio::name> soviet_actions = {
 
     //WALLET
     "createwthd"_n, //создать заявление на возврат паевого взноса
-    
+
+    //EXPENSE
+    "createexp"_n, //служебная записка-смета о расходах (шасси расходов)
+
     //LEDGER
     "ledgerwthd"_n, //заявление на списание со счета через ledger
     
@@ -165,6 +168,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
     static constexpr eosio::name _apps = "apps"_n;
+    static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
     
@@ -193,7 +197,8 @@ static constexpr uint64_t _capital_program_id = 4;
         "ledger"_n,
         "ledger2"_n,
         "capital"_n,
-        "apps"_n
+        "apps"_n,
+        "expense"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

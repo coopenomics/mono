@@ -52,6 +52,8 @@ export class ContractManagementInteractor {
     return {
       coopname: blockchainState.coopname,
       global_available_invest_pool: blockchainState.global_available_invest_pool,
+      program_expense_pool: blockchainState.program_expense_pool,
+      program_expense_reserved: blockchainState.program_expense_reserved,
       program_membership_funded: blockchainState.program_membership_funded,
       program_membership_available: blockchainState.program_membership_available,
       program_membership_distributed: blockchainState.program_membership_distributed,

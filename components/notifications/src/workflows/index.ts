@@ -26,6 +26,7 @@ import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
+import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -54,6 +55,7 @@ export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -83,6 +85,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  expenseAdvanceReportReminderWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

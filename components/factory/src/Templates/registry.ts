@@ -29,6 +29,9 @@ import * as InitProjectDecision from './1006.InitProjectDecision'
 import * as ExpenseStatement from './1010.ExpenseStatement'
 import * as ExpenseDecision from './1011.ExpenseDecision'
 
+import * as ExpenseProposalStatement from './2010.ExpenseProposalStatement'
+import * as ExpenseProposalDecision from './2011.ExpenseProposalDecision'
+
 import * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 import * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'
 
@@ -127,4 +130,6 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  2010: ExpenseProposalStatement,
+  2011: ExpenseProposalDecision,
 }

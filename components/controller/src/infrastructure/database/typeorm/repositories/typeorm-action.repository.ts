@@ -24,7 +24,21 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
    */
   async save(actionData: Omit<ActionDomainInterface, 'id' | 'created_at'>): Promise<ActionDomainInterface> {
     const entity = this.actionRepository.create(actionData);
-    return await this.actionRepository.save(entity);
+    try {
+      return await this.actionRepository.save(entity);
+    } catch (err: any) {
+      // global_sequence — глобально-уникальный монотонный id действия в истории
+      // цепи. Дубль (23505) означает повторную доставку того же действия
+      // (re-scan/replay стрима) — оно уже сохранено. Идемпотентно: не бросаем,
+      // иначе consumer не ACK'ает сообщение и зацикливает recoverOwnPending.
+      if (err?.code === '23505' || err?.driverError?.code === '23505') {
+        const existing = await this.actionRepository.findOne({
+          where: { global_sequence: actionData.global_sequence },
+        });
+        if (existing) return existing;
+      }
+      throw err;
+    }
   }
 
   /**

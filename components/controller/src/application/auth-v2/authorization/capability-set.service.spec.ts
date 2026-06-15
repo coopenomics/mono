@@ -45,6 +45,7 @@ function build() {
       keys.includes('accountant') ? [setRule('accountant', 'read', 'AccountingDesk')] : [],
     ),
     insert: jest.fn(async (): Promise<void> => undefined),
+    deleteExpired: jest.fn(async (): Promise<number> => 0),
   } satisfies IAccessRulesRepository;
   const invalidation = { publish: jest.fn(async (): Promise<void> => undefined) } satisfies IAccessRulesInvalidationPublisher;
   const ability = { rules: [{ action: 'read', subject: 'AccountingDesk', inverted: false }] };

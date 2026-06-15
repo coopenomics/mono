@@ -63,6 +63,26 @@ export async function useInitAppProcess(router: Router) {
 
   const desktops = useDesktopStore();
 
+  // [SSR-HYDRATION FIX] При SSR-заходе Pinia гидратируется серверным состоянием,
+  // где workspaces[].routes сериализованы ВМЕСТЕ с component. Vue-компонент не
+  // переживает JSON (__INITIAL_STATE__): render-функция выпадает, маршруты
+  // становятся «мёртвыми». registerWorkspaceMenus регистрировал их в router,
+  // initExtensions живые не добавлял («маршрут уже есть») → пустой рендер на
+  // ВСЕХ страницах до F5 (после F5 SW отдаёт SPA-shell без гидратации — потому
+  // и «лечилось» перезагрузкой). Чистим routes ДО loadDesktop, иначе его merge
+  // перетащит мусор в новый desktop; живые маршруты добавит
+  // useInitExtensionsProcess ниже — ровно как при SPA-заходе.
+  if (!isServer && desktops.currentDesktop?.workspaces?.length) {
+    let cleaned = 0;
+    desktops.currentDesktop.workspaces.forEach((ws) => {
+      if ((ws as { routes?: unknown }).routes) {
+        delete (ws as { routes?: unknown }).routes;
+        cleaned++;
+      }
+    });
+    if (cleaned > 0) bootrace(`SSR-hydrated routes stripped (${cleaned} workspaces)`);
+  }
+
   try {
   await desktops.loadDesktop();
   bootrace('loadDesktop OK');

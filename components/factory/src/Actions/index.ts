@@ -34,6 +34,10 @@ export * as InitProjectDecision from './1006.InitProjectDecision'
 export * as ExpenseStatement from './1010.ExpenseStatement'
 export * as ExpenseDecision from './1011.ExpenseDecision'
 
+// Шасси расходов (волна 6, MVP-SINGLE) — C28-30
+export * as ExpenseProposalStatement from './2010.ExpenseProposalStatement'
+export * as ExpenseProposalDecision from './2011.ExpenseProposalDecision'
+
 export * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 export * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'
 

@@ -10,6 +10,7 @@ const emptyRepo: IAccessRulesRepository = {
   findForPrincipal: async () => [],
   findForCapabilitySets: async () => [],
   insert: async () => undefined,
+  deleteExpired: async () => 0,
 };
 
 const emptySets: ICapabilitySetsRepository = {

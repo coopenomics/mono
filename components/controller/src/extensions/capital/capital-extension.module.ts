@@ -374,6 +374,7 @@ import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
 import { ExpensesManagementService } from './application/services/expenses-management.service';
+import { ProgramExpensesManagementService } from './application/services/program-expenses-management.service';
 import { ContributorAccountSyncService } from './application/services/contributor-account-sync.service';
 import { CommitSyncService } from './application/syncers/commit-sync.service';
 import { CommitDeltaMapper } from './infrastructure/blockchain/mappers/commit-delta.mapper';
@@ -426,6 +427,7 @@ import { VotingResolver } from './application/resolvers/voting.resolver';
 import { ResultSubmissionResolver } from './application/resolvers/result-submission.resolver';
 import { DistributionManagementResolver } from './application/resolvers/distribution-management.resolver';
 import { ExpensesManagementResolver } from './application/resolvers/expenses-management.resolver';
+import { ProgramExpensesResolver } from './application/resolvers/program-expenses.resolver';
 import { SegmentsResolver } from './application/resolvers/segments.resolver';
 import { LogResolver } from './application/resolvers/log.resolver';
 import { MutationLogMapperService } from './application/services/mutation-log-mapper.service';
@@ -710,6 +712,7 @@ IssueIdGenerationService,
     ResultSubmissionService,
     DistributionManagementService,
     ExpensesManagementService,
+    ProgramExpensesManagementService,
     ContributorAccountSyncService,
     SegmentsService,
     SegmentMapper,
@@ -769,6 +772,7 @@ IssueIdGenerationService,
     ResultSubmissionResolver,
     DistributionManagementResolver,
     ExpensesManagementResolver,
+    ProgramExpensesResolver,
     SegmentsResolver,
     TimeTrackerResolver,
     LogResolver,

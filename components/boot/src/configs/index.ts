@@ -154,6 +154,10 @@ export default {
       name: 'apps',
       code_permissions_to: ['apps'],
     },
+    {
+      name: 'expense',
+      code_permissions_to: ['expense'],
+    },
     // {
     //   name: provider_chairman,
     // },

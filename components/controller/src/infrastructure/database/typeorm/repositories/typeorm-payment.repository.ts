@@ -167,6 +167,15 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
       queryBuilder.andWhere('payment.hash = :hash', { hash: filters.hash });
     }
 
+    // Все платежи, связанные с расходом (служебной запиской): proposal_hash
+    // лежит в json-поле blockchain_data у платежа выдачи аванса/оплаты и у
+    // расчётных платёжек (возврат/доплата). Извлекаем через ->> (json-оператор).
+    if (filters.proposal_hash) {
+      queryBuilder.andWhere("payment.blockchain_data ->> 'proposal_hash' = :proposalHash", {
+        proposalHash: filters.proposal_hash.toLowerCase(),
+      });
+    }
+
     queryBuilder.orderBy('payment.created_at', 'DESC');
 
     const limit = options.limit || 10;

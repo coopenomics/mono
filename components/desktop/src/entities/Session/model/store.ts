@@ -165,7 +165,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
       const storage = coopStorage();
       if (hasCustomPin.value) {
         // Кастомный PIN: спрашиваем у пользователя (повторяем до верного или отмены).
-        let wallet = null;
+        let wallet: Awaited<ReturnType<typeof unlockWithPin>> | null = null;
         while (!wallet) {
           const pin = await requestPin();
           if (pin === null)

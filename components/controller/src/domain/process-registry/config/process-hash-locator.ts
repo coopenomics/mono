@@ -119,6 +119,16 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   // Сущностная таблица — `capital::prgwithdraws.withdraw_hash`.
   'p.cap.wthcap': [{ code: 'capital', table: 'prgwithdraws', field: 'withdraw_hash' }],
 
+  // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
+  // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —
+  // entity-таблицы нет, данные из blockchain_actions.
+  'p.cap.pgexp': [],
+
+  // p.exp.expns — расход по СЗ (шасси expense): o.exp.blgadv/blgdir (оплата) +
+  // опц. o.exp.over + o.exp.advrpt (отчёт) + опц. o.exp.advret (возврат).
+  // Анкер процесса — proposal_hash в `expense::proposals`.
+  'p.exp.expns': [{ code: 'expense', table: 'proposals', field: 'proposal_hash' }],
+
   // marketplace::requests.hash — поле так и называется `hash`.
   'p.mkt.reqst': [{ code: 'marketplace', table: 'requests', field: 'hash' }],
 
