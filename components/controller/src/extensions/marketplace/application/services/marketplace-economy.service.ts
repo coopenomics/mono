@@ -154,6 +154,28 @@ export class MarketplaceEconomyService {
     return BigInt(int || '0') * BigInt(10) ** BigInt(decimals) + BigInt(fracPadded || '0');
   }
 
+  /**
+   * Asset-строка («X.XXXX RUB» или «X.XXXX») → минимальные единицы валюты.
+   * Символ отбрасывается; целочисленно, без float-погрешности.
+   */
+  assetToUnits(value: string): bigint {
+    const numeric = String(value).trim().split(/\s+/)[0] ?? '0';
+    return this.toUnits(numeric, this.assetConfig.decimals);
+  }
+
+  /** Минимальные единицы валюты → asset-строка «X.XXXX RUB». */
+  unitsToAsset(units: bigint): string {
+    const decimals = this.assetConfig.decimals;
+    const padded = units.toString().padStart(decimals + 1, '0');
+    return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
+  }
+
+  /** Сумма строки заказа (тело + членский взнос) в минимальных единицах валюты. */
+  lineUnits(pricePerUnit: string, quantity: number, contractPercent: number): bigint {
+    const totalUnits = this.toUnits(pricePerUnit, this.assetConfig.decimals) * BigInt(quantity);
+    return totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
+  }
+
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {
     const membership_fee_percent = this.toContractPercent(
       feePercentHuman,
