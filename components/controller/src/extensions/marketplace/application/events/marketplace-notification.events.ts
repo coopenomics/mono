@@ -58,6 +58,28 @@ export interface MarketplaceNewOrderForSupplierEvent {
 }
 
 /**
+ * Поставщик отклонил активный заказ до приёма к поставке (`declineorder`).
+ * Заказчику уходит multi-channel уведомление с причиной отказа — заблокированные
+ * средства возвращаются ему. Эмитится по одному событию на каждый отклонённый
+ * заказ (у каждого свой заказчик) ПОСЛЕ записи статуса в PG (INV-12).
+ */
+export const MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT =
+  'marketplace.order.orderer.declinedBySupplier';
+
+export interface MarketplaceOrderDeclinedBySupplierEvent {
+  coopname: string;
+  order_id: string;
+  /** Заказчик — адресат уведомления. */
+  orderer_account: string;
+  /** КУ доставки — для человекочитаемого текста (резолвится в имя участка). */
+  delivery_braname: string;
+  /** Название товара из предложения. */
+  product_name: string;
+  /** Причина отказа, указанная поставщиком. */
+  reason: string;
+}
+
+/**
  * Остаток предложения изменился (заказ заблокировал/освободил/списал единицы).
  * Сигнал широковещательному каналу каталога, чтобы у всех пайщиков карточка
  * обновила доступное количество без перехода по страницам.

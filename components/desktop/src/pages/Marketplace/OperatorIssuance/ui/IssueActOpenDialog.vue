@@ -164,6 +164,33 @@ const allValid = computed(() =>
   }),
 );
 
+// Человекочитаемая причина, почему «Подписать и открыть выдачу» недоступна —
+// чтобы оператор не гадал над перечёркнутой кнопкой. Порядок проверок = порядок
+// приоритета: сначала непоправимое (нет на складе), затем поправимое вводом.
+const blockReason = computed<string | null>(() => {
+  if (!props.orders.length) return null;
+  const names = (list: MarketplaceOrderIssuanceView[]) =>
+    list.map((o) => o.product_name || o.id.slice(0, 8)).join(', ');
+
+  const noStock = props.orders.filter((o) => availableOf(o) <= 0);
+  if (noStock.length) {
+    return `Нечего выдать — на склад принято 0 по позиц.: ${names(noStock)}. Эти позиции ждут поставки; открыть выдачу можно будет, когда имущество поступит на склад КУ.`;
+  }
+  if (anyOverStock.value) {
+    const over = props.orders.filter((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o));
+    return `Факт больше принятого на склад по позиц.: ${names(over)}. Уменьшите количество до значения «Принято».`;
+  }
+  const zeroQty = props.orders.filter((o) => (facts.value[o.id]?.qty ?? 0) <= 0);
+  if (zeroQty.length) {
+    return `Укажите фактическое количество больше нуля по позиц.: ${names(zeroQty)}.`;
+  }
+  const zeroPrice = props.orders.filter((o) => (facts.value[o.id]?.price ?? 0) <= 0);
+  if (zeroPrice.length) {
+    return `Укажите цену больше нуля по позиц.: ${names(zeroPrice)}.`;
+  }
+  return null;
+});
+
 watch(
   () => [props.modelValue, props.orders.map((o) => o.id).join(',')],
   ([visible]) => {
@@ -323,6 +350,12 @@ TakeoverDialog(
             span.mp-issue-open-dialog__sum-label Доплата по факту (спишется с паевого)
             span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
 
+        //- Почему кнопка «Подписать и открыть выдачу» недоступна — явно, чтобы
+        //- оператор не упирался в перечёркнутую кнопку без объяснения.
+        .mp-issue-open-dialog__blocker(v-if="blockReason")
+          q-icon(name="info" size="18px")
+          span {{ blockReason }}
+
       .mp-issue-open-dialog__preview(v-if="showActs", v-html="previewHtml")
 
   template(#actions="{ cancel: onCancel, confirm: onConfirm }")
@@ -383,6 +416,25 @@ TakeoverDialog(
     font-size: var(--p-fs-h3, 15px);
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__blocker {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-3, 12px);
+    padding: var(--p-3, 12px);
+    border: 1px solid var(--p-warn-line, var(--p-line));
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-warn-soft);
+    color: var(--p-warn);
+    font-size: var(--p-fs-body-sm, 13px);
+    line-height: 1.4;
+
+    .q-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
   }
 
   &__preview {

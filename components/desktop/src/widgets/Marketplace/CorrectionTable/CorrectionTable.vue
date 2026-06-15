@@ -120,6 +120,7 @@
         Итого позиций: {{ enrichedRows.length }}
       </div>
       <div class="mp-correction-table__summary-chips">
+        <span v-if="noStockCount" class="mp-status-chip mp-status-chip--error">Нет на складе · {{ noStockCount }}</span>
         <span v-if="overStockCount" class="mp-status-chip mp-status-chip--error">Больше принятого · {{ overStockCount }}</span>
         <span class="mp-status-chip mp-status-chip--success">Совпадает · {{ matchCount }}</span>
         <span class="mp-status-chip mp-status-chip--warning">Недостача · {{ shortCount }}</span>
@@ -174,6 +175,10 @@ const enrichedRows = computed(() =>
     ...r,
     delta: r.fact - r.expected,
     overStock: r.available !== undefined && r.fact > r.available,
+    // Принято 0 на склад — позицию физически нечего выдавать. Отдельный
+    // статус (а не общая «Недостача»): именно такие строки блокируют открытие
+    // выдачи, и оператор должен видеть это явно.
+    noStock: r.available !== undefined && r.available <= 0,
   }))
 )
 
@@ -207,9 +212,10 @@ function onPriceChange(row: CorrectionRow): void {
 
 type StatusKind = 'success' | 'warning' | 'info' | 'error'
 
-type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean }
+type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean; noStock: boolean }
 
 function statusLabel(r: EnrichedRow): string {
+  if (r.noStock) return 'Нет на складе'
   if (r.overStock) return 'Больше принятого'
   if (r.delta === 0) return 'Совпадает'
   if (r.delta < 0)  return 'Недостача'
@@ -217,6 +223,7 @@ function statusLabel(r: EnrichedRow): string {
 }
 
 function statusKind(r: EnrichedRow): StatusKind {
+  if (r.noStock) return 'error'
   if (r.overStock) return 'error'
   if (r.delta === 0) return 'success'
   if (r.delta < 0)  return 'warning'
@@ -224,15 +231,17 @@ function statusKind(r: EnrichedRow): StatusKind {
 }
 
 function deltaClass(r: EnrichedRow): string {
-  if (r.overStock) return 'text-negative'
+  if (r.noStock || r.overStock) return 'text-negative'
   if (r.delta === 0) return 'text-positive'
   if (r.delta < 0)  return 'text-warning'
   return 'text-info'
 }
 
-const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta === 0).length)
-const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta < 0).length)
-const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta > 0).length)
+// noStock-строки выносим в отдельный счётчик (не смешиваем с «Недостача»).
+const noStockCount = computed(() => enrichedRows.value.filter((r) => r.noStock).length)
+const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta === 0).length)
+const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta < 0).length)
+const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta > 0).length)
 const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overStock).length)
 </script>
 

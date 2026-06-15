@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
@@ -25,6 +26,8 @@ type CartOffer = Pick<
  */
 const system = useSystemStore();
 const cartStore = useMarketplaceCartStore();
+const router = useRouter();
+const route = useRoute();
 
 const props = defineProps<{
   modelValue: boolean;
@@ -102,7 +105,18 @@ async function onSubmit(): Promise<void> {
       Number(quantity.value),
       cartStore.currentBraname,
     );
-    SuccessAlert('Добавлено в корзину');
+    // CTA прямо в тосте: быстрый переход к оформлению, чтобы не искать корзину
+    // отдельно. Заказал одну позицию — сразу из всплывашки идёшь в корзину.
+    SuccessAlert('Добавлено в корзину', {
+      text: 'Перейти в корзину',
+      icon: 'shopping_cart',
+      handler: () => {
+        void router.push({
+          name: 'marketplace-cart',
+          params: { coopname: String(route.params.coopname ?? '') },
+        });
+      },
+    });
     emit('added');
     open.value = false;
   } catch (e) {
