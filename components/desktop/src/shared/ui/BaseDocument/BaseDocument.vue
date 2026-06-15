@@ -131,6 +131,15 @@ const shadowStyles = computed(
     text-align: center;
   }
 
+  /* Заголовок документа (h1) — всегда по центру. Документы задают это в своём
+     <style>, но DOMPurify вырезает содержимое <style>-блока (инлайн-стили
+     выживают, блочные правила — нет), поэтому центрирование заголовка держим
+     здесь, в shadowStyles, — этот канал инжектится мимо санитайзера. h3 НЕ
+     трогаем: это левые подзаголовки секций (ЧЛЕНЫ СОВЕТА, ПОВЕСТКА и т.п.). */
+  .digital-document h1 {
+    text-align: center;
+  }
+
   .digital-document {
     word-break: break-word !important;
     white-space: pre-wrap;
