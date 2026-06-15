@@ -8,6 +8,7 @@
 // ── p.mkt.supply (11 actions) ─── Stories Эпиков 4-5-6 ─────────────────
 #include "src/p.mkt.supply/createorder.cpp"
 #include "src/p.mkt.supply/stockorder.cpp"
+#include "src/p.mkt.supply/convert.cpp"
 #include "src/p.mkt.supply/markdown.cpp"
 #include "src/p.mkt.supply/setfee.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"

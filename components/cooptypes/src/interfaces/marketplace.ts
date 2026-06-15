@@ -65,6 +65,12 @@ export interface IStockOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+}
+
+export interface IConvert {
+  coopname: IName
+  orderer: IName
+  amount: IAsset
   convert_statement: IDocument2
 }
 

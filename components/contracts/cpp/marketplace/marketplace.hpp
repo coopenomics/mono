@@ -104,9 +104,15 @@ public:
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
    * Продавец — сам кооператив (`offerer == coopname`), имущество уже на
    * счёте 10 после ранее закрытых приёмок, поэтому Order создаётся сразу в
-   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Один шаг
-   * ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order). Этапы поставки
+   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Этапы поставки
    * и выплата поставщику для такого заказа не существуют.
+   *
+   * Заказ из остатка ВСЕГДА фондируется из членского кошелька «Стола заказов»
+   * пайщика начисто (без паевого): o.mkt.lockm (тело, w.mkt.member → w.mkt.order)
+   * + o.mkt.lockmf (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский
+   * кошелёк заранее отдельным действием `convert` (Заявление о конвертации). При
+   * замене непоставленного на свободный остаток высвобожденные отменой средства
+   * уже лежат в w.mkt.member — заказ создаётся без конвертации и доплаты.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void stockorder(eosio::name coopname,
@@ -117,8 +123,23 @@ public:
                                      uint64_t quantity,
                                      eosio::asset unit_price,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash,
-                                     document2 convert_statement);
+                                     checksum256 batch_hash);
+
+  /**
+   * @brief Конвертация паевого взноса пайщика в членский кошелёк «Стола
+   * заказов» (requirement 76, заказ из остатка из членских средств).
+   * Один шаг ledger2: o.mkt.conv (TRANSFER w.wal.share → w.mkt.member,
+   * Дт 80 / Кт 86). `convert_statement` — подписанное заказчиком Заявление о
+   * конвертации (шаблон 1110), публикуется в реестр документов отдельным
+   * пакетом (package = hash заявления). Выполняется перед `stockorder`, когда
+   * членских средств пайщика не хватает на заказ из остатка (на полную сумму
+   * или только на дельту превышения над высвобождённым при замене).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void convert(eosio::name coopname,
+                                 eosio::name orderer,
+                                 eosio::asset amount,
+                                 document2 convert_statement);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.

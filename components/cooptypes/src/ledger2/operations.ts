@@ -224,7 +224,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Уценка имущества при выдаче со склада кооператива' },
 
   // Членский взнос по заказу (requirement b6 «Экономика КУ»): блокировка по
-  // единой ставке кооператива на createorder/stockorder, дособор на signiss2.
+  // единой ставке кооператива на createorder с паевого, дособор на signiss2.
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.fee',
     debit: 80, credit: 86,
@@ -236,6 +236,14 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.member',
     debit: null, credit: null,
     human_name: 'Возврат членского взноса по заказу' },
+
+  // Членский взнос под заказ из остатка — из уже внесённых членских средств
+  // пайщика (stockorder фондируется из членского начисто). Парный по взносу к
+  // o.mkt.lockm; инверсия o.mkt.refund. Паевой пополняет членский заранее (o.mkt.conv).
+  { code: 'o.mkt.lockmf',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FEE_FROM_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Членский взнос «Стола заказов» из внесённых средств' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',

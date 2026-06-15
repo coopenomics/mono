@@ -13,9 +13,17 @@ export * as CreateOrder from './createOrder'
 
 /**
  * Заказ имущества из обезличенного остатка склада кооператива (requirement 76).
- * Продавец — кооператив; Order рождается сразу в acceptcoop. Один шаг ledger2: o.mkt.lock.
+ * Продавец — кооператив; Order рождается сразу в acceptcoop. Фондируется из
+ * членских средств: o.mkt.lockm (тело) + o.mkt.lockmf (взнос).
  */
 export * as StockOrder from './stockOrder'
+
+/**
+ * Конвертация паевого взноса в членский кошелёк «Стола заказов» (requirement 76):
+ * o.mkt.conv (w.wal.share → w.mkt.member). Пополняет членские средства под заказ
+ * со склада; выполняется перед stockorder, когда членских средств не хватает.
+ */
+export * as Convert from './convert'
 
 /**
  * Списание уценки по заказу из остатка (requirement 76): o.mkt.loss (Дт 91 / Кт 10)

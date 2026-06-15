@@ -97,6 +97,7 @@ namespace operations {
     inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает. Накопленный расход на 91 погашается позже отдельным процессом (Dr 86 / Cr 91, аналогично списанию скоропорта через совет — пока не реализован, requirement 76 вопрос 4).
     inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Блокировка членского взноса при создании заказа (TRANSFER w.wal.share → w.mkt.fee, Dr 80 / Cr 86 — как o.mkt.lock). Взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee; на signiss2 при факте больше заказа — дособирается этой же операцией.
     inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Возврат неиспользованной части членского взноса (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба кошелька на 86). Срабатывает при отмене заказа (полностью) и при недовыдаче (пропорционально факту); симметричен o.mkt.unlock для резерва стоимости.
+    inline constexpr eosio::name LOCK_FEE_FROM_MEMBER   = "o.mkt.lockmf"_n;   ///< Блокировка членского взноса под заказ из уже внесённых членских средств пайщика (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr — оба кошелька на 86). Парный по взносу к o.mkt.lockm (тот добирает тело заказа): stockorder фондируется из членского кошелька «Стола заказов» начисто, паевой сперва конвертируется отдельным действием (o.mkt.conv). Инверсия o.mkt.refund.
     inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, без Dr/Cr — оба кошелька на 86). Транзит: удержанная половина тела заказа кладётся в пул членских взносов, откуда вместе с удержанной половиной взноса единым o.brn.common (Branch::accrue) зачисляется в общий кошелёк КУ. Прямой TRANSFER w.mkt.order[пайщик] → w.brn.common[braname] невозможен — walletop держит один username на обе стороны. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
   }
 
@@ -401,6 +402,16 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
     0, 0,
     "Возврат членского взноса по заказу" },
+
+  // 12j². p.mkt.supply: Блокировка членского взноса под заказ из остатка из уже
+  //       внесённых членских средств (TRANSFER w.mkt.member → w.mkt.fee, без Dr/Cr —
+  //       оба кошелька на 86). Парный по взносу к LOCK_FROM_MEMBER (тело): stockorder
+  //       фондируется из членского начисто; паевой конвертируется заранее отдельным
+  //       действием (CONVERT_TO_MKT_MEMBER). Инверсия MEMBERSHIP_FEE_REFUND.
+  { operations::marketplace::LOCK_FEE_FROM_MEMBER, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_MEMBER_FUND, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    0, 0,
+    "Членский взнос «Стола заказов» из внесённых средств" },
 
   // 13a. p.brn.fees: Зачисление 100% членского взноса в общий кошелёк КУ
   //      (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname).

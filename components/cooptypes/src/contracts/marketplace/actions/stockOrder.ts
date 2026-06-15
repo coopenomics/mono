@@ -6,7 +6,9 @@ import { Actors } from '../../../common'
  * Заказ имущества из обезличенного остатка склада кооператива (requirement 76).
  * Продавец — сам кооператив (offerer == coopname); Order рождается сразу в
  * acceptcoop и идёт только через выдачу signiss1/signiss2.
- * Один шаг ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order).
+ * Фондируется из членских средств пайщика начисто: o.mkt.lockm (тело,
+ * w.mkt.member → w.mkt.order) + o.mkt.lockmf (взнос, w.mkt.member → w.mkt.fee).
+ * Паевой пополняет членский кошелёк заранее отдельным действием `convert`.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._username }] as const
 
