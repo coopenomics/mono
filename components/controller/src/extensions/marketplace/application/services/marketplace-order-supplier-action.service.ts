@@ -225,6 +225,48 @@ export class MarketplaceOrderSupplierActionService {
     return { cycle_id: null, orders: declined, tx_hashes: txHashes };
   }
 
+  /**
+   * Отказ в приёмке (некондиция): поставщик привёз позиции, которые оператор
+   * снял с приёмки (факт = 0). Переиспользует тот же on-chain путь, что и
+   * pre-cycle отказ — `declineorder` (полный возврат резерва и членского взноса
+   * заказчику без штрафа + erase), но заказы здесь уже акцептованы и в партии:
+   * статус ACCEPTED / SUPPLY_PREPARED, не ACTIVE, и `cycle_id != null`. Поэтому
+   * это отдельный публичный вход, минующий guard `ACTIVE && cycle_id == null`
+   * массового pre-cycle отказа; контракт `declineorder` сам допускает эти
+   * статусы (имущество ещё не оприходовано — клоубэка нет).
+   *
+   * Best-effort per-order: накладная подпись поставщика по принятым позициям
+   * уже зафиксирована вызывающим, откатить её нельзя — поэтому сбой отказа по
+   * отдельной позиции логируется (заказчику возврат не выполнен, требуется
+   * ручной разбор), но не валит всю операцию. Ownership заказов гарантирован
+   * вызывающим (приёмка принадлежит этому поставщику).
+   */
+  async declineOrdersAtReception(input: {
+    coopname: string;
+    offerer_account: string;
+    orders: MarketplaceOrderDomainEntity[];
+    reason: string;
+  }): Promise<MarketplaceOrderDomainEntity[]> {
+    const reason = (input.reason ?? '').trim() || 'Отказ в приёмке: некондиция';
+    const declined: MarketplaceOrderDomainEntity[] = [];
+    for (const order of input.orders) {
+      if (order.supplier_account !== input.offerer_account) continue;
+      try {
+        const res = await this.runDeclineChain(order, input.offerer_account, reason);
+        declined.push(res.order);
+      } catch (err: any) {
+        this.logger.error(
+          `MarketplaceOrderSupplierActionService.declineOrdersAtReception: отказ позиции ${order.id} (hash=${order.order_hash}) упал: ${err.message}; заказчику ${order.orderer_account} возврат не выполнен — требуется ручной разбор.`,
+          err.stack
+        );
+      }
+    }
+    if (declined.length > 0) {
+      await this.emitDeclinedNotifications(declined, reason);
+    }
+    return declined;
+  }
+
   private async emitDeclinedNotifications(
     declined: MarketplaceOrderDomainEntity[],
     reason: string
