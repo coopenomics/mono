@@ -66,7 +66,10 @@ export class RecoveryService {
       RECOVERY_TOKEN_TTL_SEC,
     );
 
-    const resetUrl = `${config.frontend_url}/recover/${token}`;
+    // Coopname-scoped путь как у остальных auth-ссылок десктопа (ср. invite:
+    // `${frontend_url}/${coopname}/auth/invite`) — magic-link открывается в контуре
+    // конкретного кооператива; десктопный роут — `:coopname/auth/recover/:token`.
+    const resetUrl = `${config.frontend_url}/${config.coopname}/auth/recover/${token}`;
     await this.notifications.notify({
       coopname: config.coopname,
       workflowId: Workflows.ResetKey.id,

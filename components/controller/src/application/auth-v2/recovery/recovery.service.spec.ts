@@ -54,7 +54,7 @@ describe('RecoveryService (Story 3.1 — magic-link recovery)', () => {
     expect(input.workflowId).toBe('vosstanovlenie-dostupa');
     expect(input.coopname).toBe('voskhod');
     expect(input.to).toEqual({ subscriberId: 'sub-1', email: 'ant@coop.test', username: 'ant' });
-    expect(input.payload.resetUrl).toBe(`https://app.test/recover/${token}`);
+    expect(input.payload.resetUrl).toBe(`https://app.test/voskhod/auth/recover/${token}`);
 
     // audit без секретов
     expect(audit.record).toHaveBeenCalledWith(

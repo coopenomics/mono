@@ -9,6 +9,7 @@ import { RouteRecordRaw } from 'vue-router';
 import { InstallCooperativePage } from 'src/pages/Union/InstallCooperative';
 import { LostKeyPage } from 'src/pages/Registrator/LostKey/ui';
 import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
+import { RecoverRequestPage, RecoverConfirmPage } from 'src/pages/Registrator/Recover/ui';
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { PrivacyPage } from 'src/pages/Privacy';
@@ -91,6 +92,36 @@ const baseRoutes: RouteRecordRaw[] = [
           icon: 'fa-solid fa-key',
           widget: {
             title: 'Сброс ключа',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Запрос восстановления доступа CoopID (magic-link на email) — Эпик 12, Story 12.3.
+        path: ':coopname/auth/recover',
+        name: 'recover',
+        component: RecoverRequestPage,
+        children: [],
+        meta: {
+          title: 'Восстановление доступа',
+          icon: 'key',
+          widget: {
+            title: 'Восстановление доступа',
+            hideHeader: true,
+          },
+        },
+      },
+      {
+        // Landing magic-link из письма: подтверждение смены ключа + новый пароль.
+        path: ':coopname/auth/recover/:token',
+        name: 'recoverConfirm',
+        component: RecoverConfirmPage,
+        children: [],
+        meta: {
+          title: 'Восстановление доступа',
+          icon: 'key',
+          widget: {
+            title: 'Восстановление доступа',
             hideHeader: true,
           },
         },
