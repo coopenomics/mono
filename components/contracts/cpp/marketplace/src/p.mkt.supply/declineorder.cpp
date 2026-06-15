@@ -1,14 +1,24 @@
 /**
- * @brief Поставщик отказывается от одного Order'а до акцепта (Story 4.5, p.mkt.supply).
+ * @brief Поставщик отказывается от одного Order'а (Story 4.5 + отказ в приёмке,
+ *        p.mkt.supply).
+ *
+ * Два случая, оба со стороны поставщика и оба без штрафа — полный возврат
+ * резерва и членского взноса заказчику (вина не его):
+ *  1. До акцепта (active) — поставщик не берёт заявку в работу.
+ *  2. Отказ в приёмке (accepted / supply_prepared) — поставщик привёз
+ *     некондицию; кооператив не принимает позицию (ноль единиц в факт),
+ *     поставщик подтверждает отмену поставки этой позиции и забирает имущество
+ *     обратно. Имущество ещё не оприходовано на склад (purch на закрывающей
+ *     подписи приёмки) и поставщик ещё не оплачен — клоубэка нет.
  *
  * Per-Order: o.mkt.unlock на total_cost (TRANSFER w.mkt.order → w.mkt.member —
- * резерв возвращается на членский «Стола заказов» заказчика) + статус active →
- * cancelled. Backend проходит циклом по orders соответствующего batch'а,
- * вызывая `declineorder` per Order — векторов order_hash нет.
+ * резерв возвращается на членский «Стола заказов» заказчика) + полный возврат
+ * взноса + erase. Backend проходит циклом по неотмеченным в приёмке orders —
+ * векторов order_hash нет.
  *
  * Guards:
- *  - Order существует и в статусе active.
- *  - actor == order.offerer.
+ *  - Order существует, actor == order.offerer.
+ *  - Статус active / accepted / supply_prepared (до оприходования имущества).
  *
  * @ingroup public_marketplace_actions
  */
@@ -19,8 +29,10 @@ void marketplace::declineorder(eosio::name coopname,
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.offerer == offerer, "Вы не поставщик этого заказа");
-  eosio::check(o.status == OrderStatus::ACTIVE,
-               "Заказ уже не в активном статусе — отклонить нельзя");
+  eosio::check(o.status == OrderStatus::ACTIVE ||
+               o.status == OrderStatus::ACCEPTED ||
+               o.status == OrderStatus::SUPPLY_PREPARED,
+               "Заказ нельзя отклонить: имущество уже принято кооперативом");
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::UNLOCK_ORDER,
