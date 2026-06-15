@@ -56,6 +56,9 @@ const globalStore = useGlobalStore();
 interface FactState {
   qty: number;
   price: number;
+  // Частичная выдача: выдаём ли позицию в этой операции. Снятая галочка =
+  // имущество остаётся на складе, акт по позиции не формируется.
+  included: boolean;
 }
 const facts = ref<Record<string, FactState>>({});
 const previewHtml = ref<string>('');
@@ -85,13 +88,21 @@ function initFacts(): void {
   const next: Record<string, FactState> = {};
   for (const o of props.orders) {
     // Дефолт факта — что реально можно выдать: min(заказано, принято на склад).
+    // По умолчанию выдаём то, что есть на складе; позиции с нулём на складе
+    // выключены из выдачи (выдавать нечего) — оператор включит вручную нельзя.
     next[o.id] = {
       qty: Math.min(o.quantity, availableOf(o)),
       price: Number.parseFloat(o.price_per_unit),
+      included: availableOf(o) > 0,
     };
   }
   facts.value = next;
 }
+
+// Позиции, которые реально уйдут в выдачу (галочка стоит и есть что выдать).
+const includedOrders = computed(() =>
+  props.orders.filter((o) => facts.value[o.id]?.included && availableOf(o) > 0),
+);
 
 const correctionRows = computed<CorrectionRow[]>(() =>
   props.orders.map((o) => {
@@ -106,14 +117,15 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
       expectedPrice: Number.parseFloat(o.price_per_unit),
       factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
+      included: f?.included ?? availableOf(o) > 0,
     };
   }),
 );
 
-// Итоговая сумма к выдаче по всем позициям.
+// Итоговая сумма к выдаче — только по выбранным к выдаче позициям.
 const totalFactCost = computed<string>(() => {
   let sum = 0;
-  for (const o of props.orders) {
+  for (const o of includedOrders.value) {
     const f = facts.value[o.id];
     if (f) sum += f.qty * f.price;
   }
@@ -128,7 +140,7 @@ const feePercent = ref(0);
 // сколько спишется с паевого.
 const issuanceDiff = computed(() =>
   computeIssuanceDiff(
-    props.orders.map((o) => {
+    includedOrders.value.map((o) => {
       const f = facts.value[o.id];
       return {
         orderedTotal: Number.parseFloat(o.total_cost),
@@ -140,51 +152,54 @@ const issuanceDiff = computed(() =>
 );
 
 const positionsCount = computed(() => props.orders.length);
+const includedCount = computed(() => includedOrders.value.length);
+// Сколько позиций остаётся на складе (не выдаём в этой операции).
+const leftCount = computed(() => positionsCount.value - includedCount.value);
 
 const recipientName = computed(
   () => props.orders.find((o) => o.orderer_name)?.orderer_name || props.orders[0]?.orderer_account || '',
 );
 
-// Хотя бы одна позиция вышла за пределы заказа — окрашиваем takeover в warning.
+// Хотя бы одна ВЫДАВАЕМАЯ позиция вышла за пределы заказа — окрашиваем в warning.
 const anyOver = computed(() =>
-  props.orders.some((o) => (facts.value[o.id]?.qty ?? o.quantity) > o.quantity),
+  includedOrders.value.some((o) => (facts.value[o.id]?.qty ?? o.quantity) > o.quantity),
 );
 
-// Превышение склада: ввод выше принятого. Кнопки подписи и превью блокируются.
+// Превышение склада среди выдаваемых: ввод выше принятого. Блокирует подпись.
 const anyOverStock = computed(() =>
-  props.orders.some((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o)),
+  includedOrders.value.some((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o)),
 );
 
+// Валидно, если есть хотя бы одна выбранная к выдаче позиция и все выбранные
+// корректны. Невыбранные (остаются на складе) на валидность не влияют.
 const allValid = computed(() =>
-  props.orders.length > 0 &&
+  includedOrders.value.length > 0 &&
   !anyOverStock.value &&
-  props.orders.every((o) => {
+  includedOrders.value.every((o) => {
     const f = facts.value[o.id];
     return f && f.qty > 0 && f.price > 0;
   }),
 );
 
 // Человекочитаемая причина, почему «Подписать и открыть выдачу» недоступна —
-// чтобы оператор не гадал над перечёркнутой кнопкой. Порядок проверок = порядок
-// приоритета: сначала непоправимое (нет на складе), затем поправимое вводом.
+// чтобы оператор не гадал над перечёркнутой кнопкой.
 const blockReason = computed<string | null>(() => {
   if (!props.orders.length) return null;
   const names = (list: MarketplaceOrderIssuanceView[]) =>
     list.map((o) => o.product_name || o.id.slice(0, 8)).join(', ');
 
-  const noStock = props.orders.filter((o) => availableOf(o) <= 0);
-  if (noStock.length) {
-    return `Нечего выдать — на склад принято 0 по позиц.: ${names(noStock)}. Эти позиции ждут поставки; открыть выдачу можно будет, когда имущество поступит на склад КУ.`;
+  if (includedOrders.value.length === 0) {
+    return 'Отметьте хотя бы одну позицию к выдаче. Невыбранные позиции останутся на складе.';
   }
   if (anyOverStock.value) {
-    const over = props.orders.filter((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o));
+    const over = includedOrders.value.filter((o) => (facts.value[o.id]?.qty ?? 0) > availableOf(o));
     return `Факт больше принятого на склад по позиц.: ${names(over)}. Уменьшите количество до значения «Принято».`;
   }
-  const zeroQty = props.orders.filter((o) => (facts.value[o.id]?.qty ?? 0) <= 0);
+  const zeroQty = includedOrders.value.filter((o) => (facts.value[o.id]?.qty ?? 0) <= 0);
   if (zeroQty.length) {
     return `Укажите фактическое количество больше нуля по позиц.: ${names(zeroQty)}.`;
   }
-  const zeroPrice = props.orders.filter((o) => (facts.value[o.id]?.price ?? 0) <= 0);
+  const zeroPrice = includedOrders.value.filter((o) => (facts.value[o.id]?.price ?? 0) <= 0);
   if (zeroPrice.length) {
     return `Укажите цену больше нуля по позиц.: ${names(zeroPrice)}.`;
   }
@@ -211,7 +226,7 @@ function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: nu
   const id = skuToId.value[payload.sku];
   if (!id) return;
   const order = props.orders.find((o) => o.id === id);
-  const f = facts.value[id] ?? { qty: 0, price: 0 };
+  const f = facts.value[id] ?? { qty: 0, price: 0, included: true };
   // Корректируем форму к потолку склада сразу при вводе: выдать больше
   // принятого нельзя, акт на большее не сформируется (двойная защита с
   // backend-гардом). Таблица показывает откорректированное значение.
@@ -223,6 +238,18 @@ function onCorrectionChange(payload: { sku: string; fact: number; factPrice?: nu
   previewHtml.value = '';
 }
 
+function onCorrectionToggle(payload: { sku: string; included: boolean }): void {
+  const id = skuToId.value[payload.sku];
+  if (!id) return;
+  const order = props.orders.find((o) => o.id === id);
+  // Позицию без склада включить нельзя — выдавать нечего.
+  if (payload.included && order && availableOf(order) <= 0) return;
+  const f = facts.value[id] ?? { qty: 0, price: 0, included: false };
+  f.included = payload.included;
+  facts.value = { ...facts.value, [id]: f };
+  previewHtml.value = '';
+}
+
 async function loadPreview(): Promise<void> {
   if (!allValid.value) {
     FailAlert(new Error('Укажите фактическое количество и цену больше нуля по всем позициям.'));
@@ -230,9 +257,9 @@ async function loadPreview(): Promise<void> {
   }
   previewLoading.value = true;
   try {
-    // Превью всех актов пайщика на одной странице — предварительное ознакомление.
+    // Превью актов только по выдаваемым позициям — предварительное ознакомление.
     const parts: string[] = [];
-    for (const o of props.orders) {
+    for (const o of includedOrders.value) {
       const f = facts.value[o.id];
       const doc = await getChairmanSignablePayload({
         order_id: o.id,
@@ -265,13 +292,13 @@ async function confirm(): Promise<void> {
   const docSigner = new Classes.Document(wifKey);
   const failed: string[] = [];
   let ok = 0;
-  // По позициям ПАРАЛЛЕЛЬНО: каждая — отдельный акт (председатель →
-  // openIssuance, signiss1). У заказов разные хэши — на цепи это разные
-  // документы, гонок подписи нет, и все позиции пункта взводятся в
-  // READY_TO_RECEIVE почти в один блок. Это устраняет «прилёт по одной»:
-  // заказчик видит весь комплект сразу, а не по мере ~0.5с/акт.
+  // По выдаваемым позициям ПАРАЛЛЕЛЬНО: каждая — отдельный акт (председатель →
+  // openIssuance, signiss1). Невыбранные позиции в выдачу не идут — остаются на
+  // складе в текущем статусе (частичная выдача). У заказов разные хэши — на цепи
+  // это разные документы, гонок подписи нет, и все позиции взводятся в
+  // READY_TO_RECEIVE почти в один блок.
   await Promise.all(
-    props.orders.map(async (o) => {
+    includedOrders.value.map(async (o) => {
       const f = facts.value[o.id];
       const priceStr = String(f.price);
       try {
@@ -298,14 +325,17 @@ async function confirm(): Promise<void> {
 
   if (ok > 0) emit('opened');
   if (failed.length === 0) {
+    const tail = leftCount.value > 0
+      ? ` Осталось на складе позиц.: ${leftCount.value}.`
+      : '';
     SuccessAlert(
-      `Выдача открыта по ${ok} позиц. — ждём подтверждение заказчика в его кабинете.`,
+      `Выдача открыта по ${ok} позиц. — ждём подтверждение заказчика.${tail}`,
     );
     emit('update:modelValue', false);
   } else {
     FailAlert(
       new Error(
-        `Открыто ${ok} из ${props.orders.length}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
+        `Открыто ${ok} из ${includedCount.value}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
       ),
     );
   }
@@ -321,7 +351,7 @@ TakeoverDialog(
   :model-value="modelValue"
   wide
   title="Открытие выдачи пайщику"
-  :lead-text="recipientName ? `${recipientName} · позиций: ${positionsCount} · к выдаче ${formatAsset2Digits(totalFactCost)} ₽${issuanceDiff.refund > 0 ? ` · вернётся в кошелёк ${formatAsset2Digits(issuanceDiff.refund.toFixed(4))} ₽` : ''}` : ''"
+  :lead-text="recipientName ? `${recipientName} · к выдаче ${includedCount} из ${positionsCount} · ${formatAsset2Digits(totalFactCost)} ₽${issuanceDiff.refund > 0 ? ` · вернётся в кошелёк ${formatAsset2Digits(issuanceDiff.refund.toFixed(4))} ₽` : ''}` : ''"
   :kind="anyOver ? 'warning' : 'info'"
   :loading="signing"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
@@ -331,18 +361,21 @@ TakeoverDialog(
   template(#default)
     .mp-issue-open-dialog
       .mp-issue-open-dialog__intro
-        | Сверьте имущество на складе с заказами пайщика: «План» — сколько
-        | заказано, «Принято» — сколько фактически принято на склад и доступно
-        | к выдаче. Выдать больше принятого нельзя — факт ограничен складом.
-        | Открытие выдачи сформирует и подпишет акты сразу по всем позициям.
+        | Сверьте имущество с заказами пайщика и отметьте галочкой «Выдать» то,
+        | что он забирает сейчас. «План» — сколько заказано, «Принято» — сколько
+        | на складе и доступно к выдаче (выдать больше нельзя). Снятые позиции
+        | остаются на складе и в эту выдачу не попадают — выдаём частично.
 
       template(v-if="!showActs")
-        CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
+        CorrectionTable(:rows="correctionRows" selectable @change="onCorrectionChange" @toggle="onCorrectionToggle")
 
         .mp-issue-open-dialog__totals
           .mp-issue-open-dialog__sum
-            span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
+            span.mp-issue-open-dialog__sum-label К выдаче ({{ includedCount }} из {{ positionsCount }} позиц.)
             span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+          .mp-issue-open-dialog__sum(v-if="leftCount > 0")
+            span.mp-issue-open-dialog__sum-label Остаётся на складе
+            span.mp-issue-open-dialog__sum-value {{ leftCount }} позиц.
           .mp-issue-open-dialog__sum(v-if="issuanceDiff.refund > 0")
             span.mp-issue-open-dialog__sum-label Вернётся в кошелёк Стола заказов
             span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
