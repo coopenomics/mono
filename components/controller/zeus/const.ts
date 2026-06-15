@@ -1,6 +1,7 @@
 /* eslint-disable */
 
 export const AllTypesProps: Record<string,any> = {
+	AccountKind: "enum" as const,
 	AccountType: "enum" as const,
 	ActionFiltersInput:{
 
@@ -2642,6 +2643,7 @@ export const AllTypesProps: Record<string,any> = {
 
 export const ReturnTypes: Record<string,any> = {
 	Account:{
+		account_kind:"AccountKind",
 		blockchain_account:"BlockchainAccount",
 		participant_account:"ParticipantAccount",
 		private_account:"PrivateAccount",

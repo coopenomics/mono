@@ -94,7 +94,18 @@ div.page-shell
               @click='copyText(props.row.processHash)'
             )
               q-tooltip Клик — копировать полный хэш
-          q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
+          q-td
+            span {{ subjectName(props.row.username) }}
+            q-chip.q-ml-xs(
+              v-if='isBranch(props.row.username)'
+              dense
+              square
+              size='sm'
+              color='orange-1'
+              text-color='orange-9'
+              label='КУ'
+            )
+              q-tooltip Кооперативный участок
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
@@ -124,7 +135,7 @@ div.page-shell
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
               .col-12.text-caption.text-grey-7
-                | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
+                | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
                 .text-caption.text-grey-7 ID процесса
                 EntityIdBadge(
@@ -151,13 +162,24 @@ import {
   processTypeLabel,
 } from 'src/shared/lib/ledger2'
 import { Ledger2 } from 'cooptypes'
+import { Zeus } from '@coopenomics/sdk'
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
 const processStore = useProcessStore()
-const { fioCache, enrichFio } = useFioCache()
+const { fioCache, kindCache, enrichFio } = useFioCache()
+
+// Человекочитаемое имя субъекта процесса (пайщик/КУ/кооператив) — резолв с бэка.
+function subjectName(username: string | null | undefined): string {
+  const u = username ?? ''
+  return fioCache.value.get(u) || u || '—'
+}
+// Субъект — кооперативный участок (показываем метку, чтобы не путать с пайщиком).
+function isBranch(username: string | null | undefined): boolean {
+  return kindCache.value.get(username ?? '') === Zeus.AccountKind.branch
+}
 
 const loading = ref(false)
 const items = ref<IProcessSummary[]>([])

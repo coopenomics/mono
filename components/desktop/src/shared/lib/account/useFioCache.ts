@@ -1,7 +1,8 @@
 import { ref } from 'vue'
 import { useAccountStore } from 'src/entities/Account'
-import { useBranchStore } from 'src/entities/Branch/model'
-import { useSystemStore } from 'src/entities/System/model'
+import type { IAccount } from 'src/entities/Account/types'
+
+type AccountKindValue = NonNullable<IAccount>['account_kind']
 
 /**
  * Кэш человекочитаемых имён по username — общий для реестров (процессы/заказы/
@@ -9,38 +10,17 @@ import { useSystemStore } from 'src/entities/System/model'
  * человеческое имя (НЕ braname). enrichFio догружает недостающие имена и кладёт
  * в кэш; в UI используется `fioCache.get(username) || username`.
  *
- * Два источника имени:
- *  1. Пайщик — ФИО/название из private_account (individual/organization/ИП).
- *  2. Кооперативный участок (КУ) — на цепочке actor некоторых процессов
- *     (например, списание скоропорта) пишется braname участка, а не пайщик;
- *     такой username не резолвится как ФИО, поэтому добираем имя КУ из реестра
- *     участков (short_name || full_name || full_address). Так в столе бухгалтера
- *     вместо «kaffjpgeznnu» показывается человеческое имя участка.
+ * Резолв имени системно живёт на бэкенде: getAccount по любому аккаунту
+ * (пайщик / организация / кооперативный участок / кооператив) собирает
+ * private_account с человеческим именем и возвращает account_kind. Поэтому здесь
+ * один путь — читаем private_account; КУ резолвится тем же каналом, что и
+ * организация (через organization_data.short_name). kindCache отдаёт вид
+ * аккаунта, чтобы UI мог пометить субъект (например, кооперативный участок).
  */
 export function useFioCache() {
   const accountStore = useAccountStore()
-  const branchStore = useBranchStore()
-  const systemStore = useSystemStore()
   const fioCache = ref(new Map<string, string>())
-  let branchesLoaded = false
-
-  // Лениво загружаем реестр КУ один раз и строим braname → имя участка.
-  async function branchNameByBraname(): Promise<Map<string, string>> {
-    if (!branchesLoaded) {
-      try {
-        await branchStore.loadBranches({ coopname: systemStore.info.coopname })
-      } catch {
-        // нет доступа к реестру КУ (не админ) — молча, останется fallback
-      }
-      branchesLoaded = true
-    }
-    const map = new Map<string, string>()
-    for (const b of branchStore.branches) {
-      const label = b.short_name || b.full_name || b.full_address
-      if (b.braname && label) map.set(b.braname, label)
-    }
-    return map
-  }
+  const kindCache = ref(new Map<string, AccountKindValue>())
 
   async function enrichFio(rawUsernames: (string | null | undefined)[]): Promise<void> {
     const usernames = [
@@ -51,6 +31,7 @@ export function useFioCache() {
       usernames.map(async (username) => {
         try {
           const acc = await accountStore.getAccount(username)
+          if (acc?.account_kind) kindCache.value.set(username, acc.account_kind)
           const pd = acc?.private_account
           if (!pd) return
           let fio = ''
@@ -69,16 +50,7 @@ export function useFioCache() {
         }
       }),
     )
-
-    // Те, что не зарезолвились как ФИО пайщика, пробуем как имя КУ (braname).
-    const unresolved = usernames.filter((u) => !fioCache.value.has(u))
-    if (!unresolved.length) return
-    const branchMap = await branchNameByBraname()
-    for (const u of unresolved) {
-      const name = branchMap.get(u)
-      if (name) fioCache.value.set(u, name)
-    }
   }
 
-  return { fioCache, enrichFio }
+  return { fioCache, kindCache, enrichFio }
 }
