@@ -9,7 +9,8 @@ import type { StorageAdapter } from './storage-adapter'
 import { AuthV2Error, AuthV2ErrorCode, notImplemented } from '../errors'
 import { decryptPrivateKey, encryptPrivateKey } from '../vault/encrypt'
 import { saveLocalVault } from './local-vault'
-import { currentView, isUnlocked, storeUnlocked, wipeKeystore } from './storage'
+import { clearPinProtected, DEFAULT_PIN, hasPinProtected, loadPinProtected, savePinProtected } from './pin'
+import { currentView, isUnlocked, readUnlockedKey, storeUnlocked, wipeKeystore } from './storage'
 
 /**
  * Несериализуемая обёртка кошелька: отдаёт только аккаунт и публичный ключ.
@@ -142,5 +143,55 @@ export async function rotateKey(): Promise<void> {
   notImplemented('rotateKey')
 }
 
+interface PersistPinParams {
+  /** ПИН для шифрования локального кэша; по умолчанию — `DEFAULT_PIN` ('000000', прозрачный). */
+  pin?: string
+  storage: StorageAdapter
+}
+
+/**
+ * Перешифровывает текущий разблокированный ключ ПИНом и кладёт в локальный кэш
+ * (уточнённая at-rest модель, см. `pin.ts`). Вызывается сразу после успешного
+ * `unlockWallet`/`migrate`, чтобы последующие входы шли по ПИН, а не по паролю.
+ * Бросает `WalletLocked`, если кошелёк заперт (нечего кэшировать). Ключ читается
+ * пакет-внутренней `readUnlockedKey()` и наружу не выходит — в кэш ложится шифр.
+ */
+export async function persistPinCache(params: PersistPinParams): Promise<void> {
+  const { account } = currentView() // бросает WalletLocked, если заперт
+  await savePinProtected(readUnlockedKey(), params.pin ?? DEFAULT_PIN, account, params.storage)
+}
+
+interface UnlockWithPinParams {
+  /** ПИН; по умолчанию — `DEFAULT_PIN` ('000000', прозрачная авто-разблокировка). */
+  pin?: string
+  storage: StorageAdapter
+}
+
+/**
+ * Разблокировка из локального PIN-кэша без round-trip к серверу и без пароля
+ * (reload устройства, авто-лок по простою). `null` — кэша нет (нужен полный вход
+ * `unlockWallet` паролём). Неверный ПИН → `VaultDecryptionFailed`. При успехе
+ * кладёт ключ в keystore и возвращает `Wallet`.
+ */
+export async function unlockWithPin(params: UnlockWithPinParams): Promise<Wallet | null> {
+  const loaded = await loadPinProtected(params.pin ?? DEFAULT_PIN, params.storage)
+  if (!loaded)
+    return null
+  const publicKey = await derivePublicKey(loaded.privateKey)
+  storeUnlocked({ account: loaded.account, publicKey, privateKey: loaded.privateKey })
+  return new Wallet({ account: loaded.account, publicKey })
+}
+
+/** Есть ли локальный PIN-кэш (выбор сценария разблокировки на загрузке). */
+export async function hasPinCache(storage: StorageAdapter): Promise<boolean> {
+  return hasPinProtected(storage)
+}
+
+/** Удаляет локальный PIN-кэш («забыть устройство» / смена аккаунта). */
+export async function clearPinCache(storage: StorageAdapter): Promise<void> {
+  await clearPinProtected(storage)
+}
+
 export { clearLocalVault, loadLocalVault, saveLocalVault } from './local-vault'
+export { DEFAULT_PIN } from './pin'
 export type { StorageAdapter } from './storage-adapter'
