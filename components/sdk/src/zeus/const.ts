@@ -11,6 +11,9 @@ export const AllTypesProps: Record<string,any> = {
 	AddAuthorInput:{
 
 	},
+	AddBranchWhitelistInput:{
+
+	},
 	AddParticipantInput:{
 		entrepreneur_data:"CreateEntrepreneurDataInput",
 		individual_data:"CreateIndividualDataInput",
@@ -507,6 +510,9 @@ export const AllTypesProps: Record<string,any> = {
 	DeleteBranchInput:{
 
 	},
+	DeleteBranchWhitelistInput:{
+
+	},
 	DeleteCapitalIssueByHashInput:{
 
 	},
@@ -794,6 +800,9 @@ export const AllTypesProps: Record<string,any> = {
 	Mutation:{
 		acceptChildOrder:{
 			data:"AcceptChildOrderInput"
+		},
+		addBranchWhitelist:{
+			data:"AddBranchWhitelistInput"
 		},
 		addParticipant:{
 			data:"AddParticipantInput"
@@ -1150,6 +1159,9 @@ export const AllTypesProps: Record<string,any> = {
 		deleteBranch:{
 			data:"DeleteBranchInput"
 		},
+		deleteBranchWhitelist:{
+			data:"DeleteBranchWhitelistInput"
+		},
 		deletePaymentMethod:{
 			data:"DeletePaymentMethodInput"
 		},
@@ -1417,6 +1429,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		sendAgreement:{
 			data:"SendAgreementInput"
+		},
+		setBranchPrivate:{
+			data:"SetBranchPrivateInput"
 		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
@@ -2047,6 +2062,9 @@ export const AllTypesProps: Record<string,any> = {
 	SendAgreementInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	SetBranchPrivateInput:{
+
+	},
 	SetCapitalProjectDevelopmentRepositoryUrlInput:{
 
 	},
@@ -2512,6 +2530,8 @@ export const ReturnTypes: Record<string,any> = {
 		fact_address:"String",
 		full_address:"String",
 		full_name:"String",
+		is_available:"Boolean",
+		is_private:"Boolean",
 		participants_count:"Int",
 		phone:"String",
 		represented_by:"RepresentedBy",
@@ -2520,7 +2540,8 @@ export const ReturnTypes: Record<string,any> = {
 		trusted_certificates:"IndividualCertificate",
 		trustee:"Individual",
 		trustee_certificate:"IndividualCertificate",
-		type:"String"
+		type:"String",
+		whitelist_certificates:"IndividualCertificate"
 	},
 	BuhotchBalanceEdits:{
 		assetsTotal:"BalanceRowEdits",
@@ -3884,6 +3905,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Mutation:{
 		acceptChildOrder:"Transaction",
+		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
@@ -3996,6 +4018,7 @@ export const ReturnTypes: Record<string,any> = {
 		declineRequest:"Transaction",
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
+		deleteBranchWhitelist:"Branch",
 		deletePaymentMethod:"Boolean",
 		deleteReportDraft:"Boolean",
 		deleteTrustedAccount:"Branch",
@@ -4075,6 +4098,7 @@ export const ReturnTypes: Record<string,any> = {
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
+		setBranchPrivate:"Branch",
 		setPaymentStatus:"GatewayPayment",
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",

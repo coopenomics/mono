@@ -114,6 +114,48 @@ export class BranchBlockchainAdapter implements BranchBlockchainPort {
     });
   }
 
+  async setBranchPrivate(data: BranchContract.Actions.SetPrivate.ISetPrivate): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.SetPrivate.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async addBranchWhitelist(data: BranchContract.Actions.AddWhite.IAddWhite): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.AddWhite.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async deleteBranchWhitelist(data: BranchContract.Actions.DelWhite.IDelWhite): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.DelWhite.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
   async selectBranch(data: SovietContract.Actions.Branches.SelectBranch.ISelectBranch): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');

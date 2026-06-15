@@ -64,6 +64,12 @@ public:
   [[eosio::action]] void addtrusted(eosio::name coopname, eosio::name braname, eosio::name trusted);
   [[eosio::action]] void deltrusted(eosio::name coopname, eosio::name braname, eosio::name trusted);
 
+  // Приватность кооперативного участка и управление белым списком (председатель совета).
+  // Приватный участок нельзя выбрать (selectbranch), если аккаунт не в белом списке участка.
+  [[eosio::action]] void setprivate(eosio::name coopname, eosio::name braname, bool is_private);
+  [[eosio::action]] void addwhite(eosio::name coopname, eosio::name braname, eosio::name account);
+  [[eosio::action]] void delwhite(eosio::name coopname, eosio::name braname, eosio::name account);
+
   // Универсальный механизм «собрание → решение» (L1)
   [[eosio::action]] void createdec(eosio::name coopname, eosio::checksum256 hash, eosio::name type, eosio::name initiator, document2 proposal, eosio::name braname, std::vector<decision_point> agenda);
   [[eosio::action]] void joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 statement);

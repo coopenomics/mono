@@ -15,7 +15,14 @@
   require_auth(coopname);
   
   verify_document_or_fail(document);
-  get_branch_or_fail(coopname, braname);
+  auto target_branch = get_branch_or_fail(coopname, braname);
+
+  // приватный кооперативный участок может выбрать только аккаунт из белого списка участка;
+  // белым списком управляет председатель совета (действия addwhite/delwhite контракта branch)
+  if (target_branch.is_branch_private()) {
+    eosio::check(target_branch.is_account_in_whitelist(username),
+                 "Кооперативный участок приватный — выбрать его могут только пайщики из белого списка участка");
+  }
 
   // председатель кооперативного участка привязан к собственному участку
   // и не может сменить его, пока исполняет обязанности

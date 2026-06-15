@@ -37,6 +37,10 @@ const rawBranchSelector = {
   bank_account: rawBankPaymentMethodSelector,
   type: true,
   participants_count: true,
+  is_private: true,
+  is_available: true,
+  // белый список (ФИО) — доступен председателю/совету для управления приватным участком
+  whitelist_certificates: rawIndividualCertificateSelector,
 }
 
 // Проверка валидности

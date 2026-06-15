@@ -35,11 +35,15 @@ const rawBranchSelectorForUsers = {
   trustee_certificate: rawIndividualCertificateSelector,
   trusted_certificates: rawIndividualCertificateSelector,
   participants_count: true,
+  // признак приватности и доступность участка для выбора — публичны (для значка и фильтра выбора);
+  // whitelist_certificates под ролью председателя, поэтому в публичный селектор не входит
+  is_private: true,
+  is_available: true,
 }
 
 // Проверка валидности
 const _validate: MakeAllFieldsRequired<
-  Omit<ValueTypes['Branch'], 'trustee' | 'trusted'>
+  Omit<ValueTypes['Branch'], 'trustee' | 'trusted' | 'whitelist_certificates'>
 > = rawBranchSelectorForUsers
 
 export const branchSelectorForUsers = Selector('Branch')(

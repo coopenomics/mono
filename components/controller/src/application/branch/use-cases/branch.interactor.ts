@@ -10,6 +10,9 @@ import type { EditBranchDomainInput } from '~/domain/branch/interfaces/edit-bran
 import type { DeleteBranchDomainInput } from '~/domain/branch/interfaces/delete-branch-domain-input';
 import type { AddTrustedAccountDomainInterface } from '~/domain/branch/interfaces/add-trusted-account-domain-input.interface';
 import type { DeleteTrustedAccountDomainInterface } from '~/domain/branch/interfaces/delete-trusted-account-domain-input.interface';
+import type { SetBranchPrivateDomainInterface } from '~/domain/branch/interfaces/set-branch-private-domain-input.interface';
+import type { AddBranchWhitelistDomainInterface } from '~/domain/branch/interfaces/add-branch-whitelist-domain-input.interface';
+import type { DeleteBranchWhitelistDomainInterface } from '~/domain/branch/interfaces/delete-branch-whitelist-domain-input.interface';
 import { INDIVIDUAL_REPOSITORY, IndividualRepository } from '~/domain/common/repositories/individual.repository';
 import { IndividualDomainEntity } from '~/domain/branch/entities/individual-domain.entity';
 import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-domain.entity';
@@ -51,7 +54,12 @@ export class BranchInteractor {
     return counts;
   }
 
-  async getBranch(coopname: string, braname: string, participantsCount?: number): Promise<BranchDomainEntity> {
+  async getBranch(
+    coopname: string,
+    braname: string,
+    participantsCount?: number,
+    currentUsername?: string
+  ): Promise<BranchDomainEntity> {
     const branch = await this.branchBlockchainPort.getBranch(coopname, braname);
 
     if (!branch) {
@@ -67,6 +75,19 @@ export class BranchInteractor {
       trustedData.push(new IndividualDomainEntity(tr));
     }
 
+    // белый список приватного участка — резолвим ФИО для управления председателем
+    // (поля is_private/whitelist приходят из binary_extension контракта и могут отсутствовать у старых записей)
+    const whitelist = branch.whitelist ?? [];
+    const whitelistMembers: IndividualDomainEntity[] = [];
+    for (const account of whitelist) {
+      const member = await this.individualRepository.findByUsername(account);
+      if (member) whitelistMembers.push(new IndividualDomainEntity(member));
+    }
+
+    // доступность участка для выбора текущим пайщиком: публичный либо пайщик в белом списке
+    const isPrivate = branch.is_private ?? false;
+    const isAvailable = !isPrivate || (!!currentUsername && whitelist.includes(currentUsername));
+
     const bankAccount = new BankPaymentMethodDTO(
       await this.paymentMethodRepository.get({
         username: braname,
@@ -78,10 +99,20 @@ export class BranchInteractor {
     // при одиночном запросе считаем число пайщиков сами; в списке оно приходит готовым
     const count = participantsCount ?? (await this.countParticipantsByBranch(coopname)).get(braname) ?? 0;
 
-    return new BranchDomainEntity(coopname, branch, databaseData, trusteeData, trustedData, bankAccount, count);
+    return new BranchDomainEntity(
+      coopname,
+      branch,
+      databaseData,
+      trusteeData,
+      trustedData,
+      bankAccount,
+      count,
+      whitelistMembers,
+      isAvailable
+    );
   }
 
-  async getBranches(data: GetBranchesDomainInput): Promise<BranchDomainEntity[]> {
+  async getBranches(data: GetBranchesDomainInput, currentUsername?: string): Promise<BranchDomainEntity[]> {
     const branches = await this.branchBlockchainPort.getBranches(data.coopname);
 
     // Фильтрация до сборки
@@ -93,7 +124,12 @@ export class BranchInteractor {
     const result: BranchDomainEntity[] = [];
     for (const branch of filteredBranches) {
       try {
-        const branchEntity = await this.getBranch(data.coopname, branch.braname, participantCounts.get(branch.braname) ?? 0);
+        const branchEntity = await this.getBranch(
+          data.coopname,
+          branch.braname,
+          participantCounts.get(branch.braname) ?? 0,
+          currentUsername
+        );
         result.push(branchEntity);
       } catch (error) {
         // Карточка участка (организация/председатель/реквизиты) после одобрения советом
@@ -267,6 +303,54 @@ export class BranchInteractor {
       coopname: data.coopname,
       braname: data.braname,
       trusted: data.trusted,
+    });
+
+    return await this.getBranch(data.coopname, data.braname);
+  }
+
+  async setBranchPrivate(data: SetBranchPrivateDomainInterface): Promise<BranchDomainEntity> {
+    const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
+
+    if (!existingBranch) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+    }
+
+    await this.branchBlockchainPort.setBranchPrivate({
+      coopname: data.coopname,
+      braname: data.braname,
+      is_private: data.is_private,
+    });
+
+    return await this.getBranch(data.coopname, data.braname);
+  }
+
+  async addBranchWhitelist(data: AddBranchWhitelistDomainInterface): Promise<BranchDomainEntity> {
+    const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
+
+    if (!existingBranch) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+    }
+
+    await this.branchBlockchainPort.addBranchWhitelist({
+      coopname: data.coopname,
+      braname: data.braname,
+      account: data.account,
+    });
+
+    return await this.getBranch(data.coopname, data.braname);
+  }
+
+  async deleteBranchWhitelist(data: DeleteBranchWhitelistDomainInterface): Promise<BranchDomainEntity> {
+    const existingBranch = await this.branchBlockchainPort.getBranch(data.coopname, data.braname);
+
+    if (!existingBranch) {
+      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Кооперативный участок не найден');
+    }
+
+    await this.branchBlockchainPort.deleteBranchWhitelist({
+      coopname: data.coopname,
+      braname: data.braname,
+      account: data.account,
     });
 
     return await this.getBranch(data.coopname, data.braname);

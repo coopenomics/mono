@@ -48,6 +48,9 @@ export interface ICoobranch {
   braname: IName
   trustee: IName
   trusted: IName[]
+  // binary_extension-поля: могут отсутствовать у строк, созданных до добавления приватности
+  is_private?: boolean
+  whitelist?: IName[]
 }
 
 export interface ICoodecision {
@@ -137,6 +140,24 @@ export interface IDeltrusted {
   coopname: IName
   braname: IName
   trusted: IName
+}
+
+export interface ISetprivate {
+  coopname: IName
+  braname: IName
+  is_private: boolean
+}
+
+export interface IAddwhite {
+  coopname: IName
+  braname: IName
+  account: IName
+}
+
+export interface IDelwhite {
+  coopname: IName
+  braname: IName
+  account: IName
 }
 
 export interface IDocument2 {

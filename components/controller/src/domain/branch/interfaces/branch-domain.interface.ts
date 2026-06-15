@@ -6,4 +6,6 @@ export type BranchDomainInterface = Omit<OrganizationDomainInterface, 'username'
   trustee: IndividualDomainInterface;
   trusted: IndividualDomainInterface[];
   participants_count: number; ///< количество пайщиков, состоящих в участке
+  is_private: boolean; ///< приватный участок: выбрать его можно только из белого списка
+  is_available: boolean; ///< доступен ли участок текущему пайщику для выбора (публичный или он в белом списке)
 };

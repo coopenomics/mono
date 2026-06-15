@@ -92,6 +92,21 @@ export class BranchDTO implements BranchDomainInterface {
   @Field(() => Int, { description: 'Количество пайщиков, состоящих в кооперативном участке' })
   public readonly participants_count: number;
 
+  @Field(() => Boolean, {
+    description: 'Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка',
+  })
+  public readonly is_private: boolean;
+
+  @Field(() => Boolean, {
+    description: 'Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке)',
+  })
+  public readonly is_available: boolean;
+
+  // список ФИО пайщиков белого списка нужен председателю для управления приватным участком
+  @Field(() => [IndividualCertificateDTO], { description: 'Пайщики в белом списке приватного участка (ФИО)' })
+  @AuthRoles(['chairman', 'member'])
+  public readonly whitelist_certificates: IndividualCertificateDTO[];
+
   constructor(entity: BranchDomainEntity) {
     this.coopname = entity.coopname;
     this.braname = entity.braname;
@@ -114,5 +129,10 @@ export class BranchDTO implements BranchDomainInterface {
     this.details = new OrganizationDetailsDTO(entity.details);
     this.bank_account = new BankPaymentMethodDTO(entity.bank_account);
     this.participants_count = entity.participants_count;
+    this.is_private = entity.is_private;
+    this.is_available = entity.is_available;
+    this.whitelist_certificates = entity.whitelist_members.map(
+      (member) => new IndividualCertificateDTO({ ...member, type: AccountType.individual }),
+    );
   }
 }

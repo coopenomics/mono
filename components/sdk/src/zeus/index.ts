@@ -1211,6 +1211,14 @@ export type ValueTypes = {
 	/** Хэш проекта */
 	project_hash: string | Variable<any, string>
 };
+	["AddBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, добавляемого в белый список участка */
+	account: string | Variable<any, string>,
+	/** Имя аккаунта кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>
+};
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
 	created_at: string | Variable<any, string>,
@@ -2270,6 +2278,10 @@ export type ValueTypes = {
 	full_address?:boolean | `@${string}`,
 	/** Полное название организации */
 	full_name?:boolean | `@${string}`,
+	/** Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке) */
+	is_available?:boolean | `@${string}`,
+	/** Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка */
+	is_private?:boolean | `@${string}`,
 	/** Количество пайщиков, состоящих в кооперативном участке */
 	participants_count?:boolean | `@${string}`,
 	/** Телефон */
@@ -2292,6 +2304,10 @@ export type ValueTypes = {
 	trustee_certificate?:ValueTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
+	/** Пайщики в белом списке приватного участка (ФИО)
+
+Требуемые роли: chairman, member.  */
+	whitelist_certificates?:ValueTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`,
 	['...on Branch']?: Omit<ValueTypes["Branch"], "...on Branch">
 }>;
@@ -5650,6 +5666,14 @@ export type ValueTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
 };
+	["DeleteBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, удаляемого из белого списка участка */
+	account: string | Variable<any, string>,
+	/** Имя аккаунта кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>
+};
 	/** Входные данные для удаления задачи по хэшу */
 ["DeleteCapitalIssueByHashInput"]: {
 	/** Хеш задачи для удаления */
@@ -7517,6 +7541,7 @@ export type ValueTypes = {
 };
 	["Mutation"]: AliasType<{
 acceptChildOrder?: [{	data: ValueTypes["AcceptChildOrderInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+addBranchWhitelist?: [{	data: ValueTypes["AddBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
 addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -7632,6 +7657,7 @@ declineDecision?: [{	data: ValueTypes["DeclineDecisionInput"] | Variable<any, st
 declineRequest?: [{	data: ValueTypes["DeclineRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 deleteAccount?: [{	data: ValueTypes["DeleteAccountInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteBranch?: [{	data: ValueTypes["DeleteBranchInput"] | Variable<any, string>},boolean | `@${string}`],
+deleteBranchWhitelist?: [{	data: ValueTypes["DeleteBranchWhitelistInput"] | Variable<any, string>},ValueTypes["Branch"]],
 deletePaymentMethod?: [{	data: ValueTypes["DeletePaymentMethodInput"] | Variable<any, string>},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -7712,6 +7738,7 @@ saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string
 saveReportDraft?: [{	input: ValueTypes["SaveReportDraftInput"] | Variable<any, string>},ValueTypes["ReportDraft"]],
 selectBranch?: [{	data: ValueTypes["SelectBranchInput"] | Variable<any, string>},boolean | `@${string}`],
 sendAgreement?: [{	data: ValueTypes["SendAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+setBranchPrivate?: [{	data: ValueTypes["SetBranchPrivateInput"] | Variable<any, string>},ValueTypes["Branch"]],
 setPaymentStatus?: [{	data: ValueTypes["SetPaymentStatusInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 setWif?: [{	data: ValueTypes["SetWifInput"] | Variable<any, string>},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ValueTypes["SignByPresiderOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -10027,6 +10054,14 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
+	["SetBranchPrivateInput"]: {
+	/** Имя аккаунта кооперативного участка */
+	braname: string | Variable<any, string>,
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Признак приватности участка: при включении выбрать участок смогут только пайщики из белого списка */
+	is_private: boolean | Variable<any, string>
+};
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null | Variable<any, string>,
@@ -11005,6 +11040,14 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, добавляемого в белый список участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
 };
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -12046,6 +12089,10 @@ export type ResolverInputTypes = {
 	full_address?:boolean | `@${string}`,
 	/** Полное название организации */
 	full_name?:boolean | `@${string}`,
+	/** Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке) */
+	is_available?:boolean | `@${string}`,
+	/** Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка */
+	is_private?:boolean | `@${string}`,
 	/** Количество пайщиков, состоящих в кооперативном участке */
 	participants_count?:boolean | `@${string}`,
 	/** Телефон */
@@ -12068,6 +12115,10 @@ export type ResolverInputTypes = {
 	trustee_certificate?:ResolverInputTypes["IndividualCertificate"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
+	/** Пайщики в белом списке приватного участка (ФИО)
+
+Требуемые роли: chairman, member.  */
+	whitelist_certificates?:ResolverInputTypes["IndividualCertificate"],
 		__typename?: boolean | `@${string}`
 }>;
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -15363,6 +15414,14 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["DeleteBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, удаляемого из белого списка участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
+};
 	/** Входные данные для удаления задачи по хэшу */
 ["DeleteCapitalIssueByHashInput"]: {
 	/** Хеш задачи для удаления */
@@ -17177,6 +17236,7 @@ export type ResolverInputTypes = {
 };
 	["Mutation"]: AliasType<{
 acceptChildOrder?: [{	data: ResolverInputTypes["AcceptChildOrderInput"]},ResolverInputTypes["Transaction"]],
+addBranchWhitelist?: [{	data: ResolverInputTypes["AddBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
 addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInputTypes["Account"]],
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
@@ -17292,6 +17352,7 @@ declineDecision?: [{	data: ResolverInputTypes["DeclineDecisionInput"]},ResolverI
 declineRequest?: [{	data: ResolverInputTypes["DeclineRequestInput"]},ResolverInputTypes["Transaction"]],
 deleteAccount?: [{	data: ResolverInputTypes["DeleteAccountInput"]},boolean | `@${string}`],
 deleteBranch?: [{	data: ResolverInputTypes["DeleteBranchInput"]},boolean | `@${string}`],
+deleteBranchWhitelist?: [{	data: ResolverInputTypes["DeleteBranchWhitelistInput"]},ResolverInputTypes["Branch"]],
 deletePaymentMethod?: [{	data: ResolverInputTypes["DeletePaymentMethodInput"]},boolean | `@${string}`],
 deleteReportDraft?: [{	id: string},boolean | `@${string}`],
 deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]},ResolverInputTypes["Branch"]],
@@ -17372,6 +17433,7 @@ saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInput
 saveReportDraft?: [{	input: ResolverInputTypes["SaveReportDraftInput"]},ResolverInputTypes["ReportDraft"]],
 selectBranch?: [{	data: ResolverInputTypes["SelectBranchInput"]},boolean | `@${string}`],
 sendAgreement?: [{	data: ResolverInputTypes["SendAgreementInput"]},ResolverInputTypes["Transaction"]],
+setBranchPrivate?: [{	data: ResolverInputTypes["SetBranchPrivateInput"]},ResolverInputTypes["Branch"]],
 setPaymentStatus?: [{	data: ResolverInputTypes["SetPaymentStatusInput"]},ResolverInputTypes["GatewayPayment"]],
 setWif?: [{	data: ResolverInputTypes["SetWifInput"]},boolean | `@${string}`],
 signByPresiderOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["SignByPresiderOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -19602,6 +19664,14 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["SetBranchPrivateInput"]: {
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Признак приватности участка: при включении выбрать участок смогут только пайщики из белого списка */
+	is_private: boolean
+};
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null,
@@ -20555,6 +20625,14 @@ export type ModelTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, добавляемого в белый список участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
 };
 	["AddParticipantInput"]: {
 	/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -21575,6 +21653,10 @@ export type ModelTypes = {
 	full_address: string,
 	/** Полное название организации */
 	full_name: string,
+	/** Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке) */
+	is_available: boolean,
+	/** Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка */
+	is_private: boolean,
 	/** Количество пайщиков, состоящих в кооперативном участке */
 	participants_count: number,
 	/** Телефон */
@@ -21596,7 +21678,11 @@ export type ModelTypes = {
 	/** Сертификат председателя кооперативного участка (ФИО) */
 	trustee_certificate: ModelTypes["IndividualCertificate"],
 	/** Тип организации */
-	type: string
+	type: string,
+	/** Пайщики в белом списке приватного участка (ФИО)
+
+Требуемые роли: chairman, member.  */
+	whitelist_certificates: Array<ModelTypes["IndividualCertificate"]>
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
 	/** Адрес привязки кооперативного участка */
@@ -24821,6 +24907,14 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["DeleteBranchWhitelistInput"]: {
+	/** Имя аккаунта пайщика, удаляемого из белого списка участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
+};
 	/** Входные данные для удаления задачи по хэшу */
 ["DeleteCapitalIssueByHashInput"]: {
 	/** Хеш задачи для удаления */
@@ -26571,6 +26665,10 @@ export type ModelTypes = {
 	["Mutation"]: {
 		/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: ModelTypes["Transaction"],
+	/** Добавить пайщика в белый список приватного кооперативного участка
+
+Требуемые роли: chairman.  */
+	addBranchWhitelist: ModelTypes["Branch"],
 	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
@@ -26999,6 +27097,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranch: boolean,
+	/** Удалить пайщика из белого списка приватного кооперативного участка
+
+Требуемые роли: chairman.  */
+	deleteBranchWhitelist: ModelTypes["Branch"],
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
 	/** Удалить черновик по id (только владелец)
@@ -27279,6 +27381,10 @@ export type ModelTypes = {
 	selectBranch: boolean,
 	/** Отправить соглашение */
 	sendAgreement: ModelTypes["Transaction"],
+	/** Установить приватность кооперативного участка (выбор только из белого списка)
+
+Требуемые роли: chairman.  */
+	setBranchPrivate: ModelTypes["Branch"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
@@ -29661,6 +29767,14 @@ export type ModelTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["SetBranchPrivateInput"]: {
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Признак приватности участка: при включении выбрать участок смогут только пайщики из белого списка */
+	is_private: boolean
+};
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 	/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null,
@@ -30598,6 +30712,14 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Хэш проекта */
 	project_hash: string
+};
+	["AddBranchWhitelistInput"]: {
+		/** Имя аккаунта пайщика, добавляемого в белый список участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
 };
 	["AddParticipantInput"]: {
 		/** Дата создания аккаунта в строковом формате даты EOSIO по UTC (2024-12-28T06:58:52.500) */
@@ -31659,6 +31781,10 @@ export type GraphQLTypes = {
 	full_address: string,
 	/** Полное название организации */
 	full_name: string,
+	/** Доступен ли участок текущему пайщику для выбора (публичный участок либо пайщик в белом списке) */
+	is_available: boolean,
+	/** Приватный кооперативный участок: выбрать его при вступлении или смене могут только пайщики из белого списка */
+	is_private: boolean,
 	/** Количество пайщиков, состоящих в кооперативном участке */
 	participants_count: number,
 	/** Телефон */
@@ -31681,6 +31807,10 @@ export type GraphQLTypes = {
 	trustee_certificate: GraphQLTypes["IndividualCertificate"],
 	/** Тип организации */
 	type: string,
+	/** Пайщики в белом списке приватного участка (ФИО)
+
+Требуемые роли: chairman, member.  */
+	whitelist_certificates: Array<GraphQLTypes["IndividualCertificate"]>,
 	['...on Branch']: Omit<GraphQLTypes["Branch"], "...on Branch">
 };
 	["BranchEstablishmentDecisionGenerateDocumentInput"]: {
@@ -35038,6 +35168,14 @@ export type GraphQLTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["DeleteBranchWhitelistInput"]: {
+		/** Имя аккаунта пайщика, удаляемого из белого списка участка */
+	account: string,
+	/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string
+};
 	/** Входные данные для удаления задачи по хэшу */
 ["DeleteCapitalIssueByHashInput"]: {
 		/** Хеш задачи для удаления */
@@ -36907,6 +37045,10 @@ export type GraphQLTypes = {
 	__typename: "Mutation",
 	/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: GraphQLTypes["Transaction"],
+	/** Добавить пайщика в белый список приватного кооперативного участка
+
+Требуемые роли: chairman.  */
+	addBranchWhitelist: GraphQLTypes["Branch"],
 	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
 
 Требуемые роли: chairman, member.  */
@@ -37335,6 +37477,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	deleteBranch: boolean,
+	/** Удалить пайщика из белого списка приватного кооперативного участка
+
+Требуемые роли: chairman.  */
+	deleteBranchWhitelist: GraphQLTypes["Branch"],
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
 	/** Удалить черновик по id (только владелец)
@@ -37615,6 +37761,10 @@ export type GraphQLTypes = {
 	selectBranch: boolean,
 	/** Отправить соглашение */
 	sendAgreement: GraphQLTypes["Transaction"],
+	/** Установить приватность кооперативного участка (выбор только из белого списка)
+
+Требуемые роли: chairman.  */
+	setBranchPrivate: GraphQLTypes["Branch"],
 	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
 
 Требуемые роли: chairman, member.  */
@@ -40194,6 +40344,14 @@ export type GraphQLTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
+	["SetBranchPrivateInput"]: {
+		/** Имя аккаунта кооперативного участка */
+	braname: string,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Признак приватности участка: при включении выбрать участок смогут только пайщики из белого списка */
+	is_private: boolean
+};
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: {
 		/** URL репозитория на github.com или формат owner/repo; пустая строка / null — сброс и отключение опроса для этого проекта */
 	development_repository_url?: string | undefined | null,
@@ -41502,6 +41660,7 @@ type ZEUS_VARIABLES = {
 	["AccountType"]: ValueTypes["AccountType"];
 	["ActionFiltersInput"]: ValueTypes["ActionFiltersInput"];
 	["AddAuthorInput"]: ValueTypes["AddAuthorInput"];
+	["AddBranchWhitelistInput"]: ValueTypes["AddBranchWhitelistInput"];
 	["AddParticipantInput"]: ValueTypes["AddParticipantInput"];
 	["AddPaymentMethodInput"]: ValueTypes["AddPaymentMethodInput"];
 	["AddTrustedAccountInput"]: ValueTypes["AddTrustedAccountInput"];
@@ -41659,6 +41818,7 @@ type ZEUS_VARIABLES = {
 	["DeclineRequestInput"]: ValueTypes["DeclineRequestInput"];
 	["DeleteAccountInput"]: ValueTypes["DeleteAccountInput"];
 	["DeleteBranchInput"]: ValueTypes["DeleteBranchInput"];
+	["DeleteBranchWhitelistInput"]: ValueTypes["DeleteBranchWhitelistInput"];
 	["DeleteCapitalIssueByHashInput"]: ValueTypes["DeleteCapitalIssueByHashInput"];
 	["DeleteCapitalStoryByHashInput"]: ValueTypes["DeleteCapitalStoryByHashInput"];
 	["DeletePaymentMethodInput"]: ValueTypes["DeletePaymentMethodInput"];
@@ -41845,6 +42005,7 @@ type ZEUS_VARIABLES = {
 	["SelectBranchSignedDocumentInput"]: ValueTypes["SelectBranchSignedDocumentInput"];
 	["SelectBranchSignedMetaDocumentInput"]: ValueTypes["SelectBranchSignedMetaDocumentInput"];
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
+	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];

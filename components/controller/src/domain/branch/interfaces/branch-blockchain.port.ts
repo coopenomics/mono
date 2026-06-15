@@ -10,6 +10,9 @@ export interface BranchBlockchainPort {
   deleteBranch(data: BranchContract.Actions.DeleteBranch.IDeleteBranch): Promise<TransactResult>;
   addTrustedAccount(data: BranchContract.Actions.AddTrusted.IAddTrusted): Promise<TransactResult>;
   deleteTrustedAccount(data: BranchContract.Actions.DeleteTrusted.IDeleteTrusted): Promise<TransactResult>;
+  setBranchPrivate(data: BranchContract.Actions.SetPrivate.ISetPrivate): Promise<TransactResult>;
+  addBranchWhitelist(data: BranchContract.Actions.AddWhite.IAddWhite): Promise<TransactResult>;
+  deleteBranchWhitelist(data: BranchContract.Actions.DelWhite.IDelWhite): Promise<TransactResult>;
   selectBranch(data: SovietContract.Actions.Branches.SelectBranch.ISelectBranch): Promise<TransactResult>;
 }
 
