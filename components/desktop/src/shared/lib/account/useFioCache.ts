@@ -1,15 +1,46 @@
 import { ref } from 'vue'
 import { useAccountStore } from 'src/entities/Account'
+import { useBranchStore } from 'src/entities/Branch/model'
+import { useSystemStore } from 'src/entities/System/model'
 
 /**
- * Кэш ФИО пайщиков по username — общий для реестров (процессы/заказы/предложения),
- * где из цепочки приходит служебный аккаунт, а показывать нужно человеческое имя
- * (НЕ braname). enrichFio догружает недостающие имена через accountStore и
- * кладёт в кэш; в UI используется `fioCache.get(username) || username`.
+ * Кэш человекочитаемых имён по username — общий для реестров (процессы/заказы/
+ * предложения), где из цепочки приходит служебный аккаунт, а показывать нужно
+ * человеческое имя (НЕ braname). enrichFio догружает недостающие имена и кладёт
+ * в кэш; в UI используется `fioCache.get(username) || username`.
+ *
+ * Два источника имени:
+ *  1. Пайщик — ФИО/название из private_account (individual/organization/ИП).
+ *  2. Кооперативный участок (КУ) — на цепочке actor некоторых процессов
+ *     (например, списание скоропорта) пишется braname участка, а не пайщик;
+ *     такой username не резолвится как ФИО, поэтому добираем имя КУ из реестра
+ *     участков (short_name || full_name || full_address). Так в столе бухгалтера
+ *     вместо «kaffjpgeznnu» показывается человеческое имя участка.
  */
 export function useFioCache() {
   const accountStore = useAccountStore()
+  const branchStore = useBranchStore()
+  const systemStore = useSystemStore()
   const fioCache = ref(new Map<string, string>())
+  let branchesLoaded = false
+
+  // Лениво загружаем реестр КУ один раз и строим braname → имя участка.
+  async function branchNameByBraname(): Promise<Map<string, string>> {
+    if (!branchesLoaded) {
+      try {
+        await branchStore.loadBranches({ coopname: systemStore.info.coopname })
+      } catch {
+        // нет доступа к реестру КУ (не админ) — молча, останется fallback
+      }
+      branchesLoaded = true
+    }
+    const map = new Map<string, string>()
+    for (const b of branchStore.branches) {
+      const label = b.short_name || b.full_name || b.full_address
+      if (b.braname && label) map.set(b.braname, label)
+    }
+    return map
+  }
 
   async function enrichFio(rawUsernames: (string | null | undefined)[]): Promise<void> {
     const usernames = [
@@ -38,6 +69,15 @@ export function useFioCache() {
         }
       }),
     )
+
+    // Те, что не зарезолвились как ФИО пайщика, пробуем как имя КУ (braname).
+    const unresolved = usernames.filter((u) => !fioCache.value.has(u))
+    if (!unresolved.length) return
+    const branchMap = await branchNameByBraname()
+    for (const u of unresolved) {
+      const name = branchMap.get(u)
+      if (name) fioCache.value.set(u, name)
+    }
   }
 
   return { fioCache, enrichFio }

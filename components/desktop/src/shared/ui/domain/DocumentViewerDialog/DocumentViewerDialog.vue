@@ -13,10 +13,11 @@ BaseDialog(
 )
   //- Документ — листом А4 по центру экрана. На широком maximized-диалоге сам
   //- q-card документа растягивается во всю ширину и визуально «прижимается»
-  //- влево; центрируем его контейнером с ограничением по ширине.
-  .document-viewer__center(v-if='modelValue && documentAggregate')
+  //- к краю; центрируем его листом фиксированной ширины с margin: auto
+  //- (тот же приём, что в ConfirmWriteoffDialog — надёжнее flex/:deep).
+  .document-viewer__sheet(v-if='modelValue && documentAggregate')
     BaseDocument(:document-aggregate='documentAggregate')
-  .document-viewer__center(v-else)
+  .document-viewer__sheet(v-else)
     .text-body2.text-grey-7 Документ недоступен
 </template>
 
@@ -37,15 +38,11 @@ const emit = defineEmits<{
 </script>
 
 <style lang="scss" scoped>
-.document-viewer__center {
-  display: flex;
-  justify-content: center;
+// Лист документа — ограничен по ширине и центрирован (страница А4):
+// margin: 0 auto в блочном потоке центрирует надёжнее, чем flex+:deep.
+.document-viewer__sheet {
   width: 100%;
-
-  // Лист документа — ограничен по ширине и центрирован (страница А4).
-  :deep(> *) {
-    width: 100%;
-    max-width: 900px;
-  }
+  max-width: 900px;
+  margin: 0 auto;
 }
 </style>
