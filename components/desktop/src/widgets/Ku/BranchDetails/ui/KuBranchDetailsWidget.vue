@@ -10,9 +10,15 @@ div
           DataRow(label='Телефон', :value='branch.phone || "—"')
         BaseCard.q-mt-md(title='Председатель участка')
           .q-pa-sm
-            PersonCard(:person='chairmanPerson')
+            PersonCard(:person='chairmanPerson', density='compact')
       .col-12.col-md-6
-        BaseCard(title='Доверенные лица')
+        BaseCard(title='Пайщики участка')
+          .ku-members
+            q-icon.ku-members__icon(name='groups', size='28px')
+            .ku-members__body
+              .ku-members__count.t-num {{ participantsCount }}
+              .ku-members__hint участвуют в собраниях и голосовании участка
+        BaseCard.q-mt-md(title='Доверенные лица')
           template(v-if='trustedPersons.length')
             .q-pa-sm.column.q-gutter-sm
               PersonCard(
@@ -183,6 +189,9 @@ const branchTitle = computed(
   () => branch.value?.short_name || branch.value?.full_name || 'Кооперативный участок',
 );
 
+// число пайщиков участка приходит в публичном payload ветки (participants_count)
+const participantsCount = computed(() => branch.value?.participants_count ?? 0);
+
 function fullName(person?: { last_name?: string; first_name?: string; middle_name?: string } | null): string {
   if (!person) return '—';
   return [person.last_name, person.first_name, person.middle_name].filter(Boolean).join(' ') || '—';
@@ -352,6 +361,28 @@ onMounted(load);
 </script>
 
 <style scoped>
+/* Карточка количества пайщиков участка */
+.ku-members {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+  padding: var(--p-2, 8px);
+}
+.ku-members__icon {
+  color: var(--p-primary);
+  flex-shrink: 0;
+}
+.ku-members__count {
+  font-size: var(--p-fs-display, 34px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--p-ink);
+}
+.ku-members__hint {
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink-2);
+}
+
 .ku-preview-doc__title {
   font-size: var(--p-fs-body-sm, 13px);
   font-weight: 600;
