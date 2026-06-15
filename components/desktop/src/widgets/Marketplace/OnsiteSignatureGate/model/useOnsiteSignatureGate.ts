@@ -17,7 +17,7 @@ import {
   getStockProposalSignablePayloads,
   type MarketplaceOrderIssuanceView,
   type MarketplaceStockProposalView,
-  type IStockProposalSignedLine,
+  type IStockConvertSigned,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
 /**
@@ -217,20 +217,20 @@ async function acceptProposal(task: MarketplaceStockProposalView): Promise<void>
   }
   signingKey.value = task.id;
   try {
-    // Каждая строка докладки сопровождается подписанным заявлением о
-    // конвертации паевого взноса — контракт публикует его в реестр документов.
-    const payloads = await getStockProposalSignablePayloads(task.id);
-    const signer = new Classes.Document(wifKey);
-    const lines: IStockProposalSignedLine[] = [];
-    for (const p of payloads) {
-      const signed = await signer.signDocument(p.document, global.username, 1);
-      lines.push({
-        offer_id: p.offer_id,
-        order_hash: p.order_hash,
-        signed_statement: signed as IStockProposalSignedLine['signed_statement'],
-      });
+    // Одно Заявление о конвертации на весь дефицит сверх членских средств; если
+    // средств хватает (замена из высвобожденных — «возьмите вот это»), документа
+    // нет и подписывать пайщику нечего.
+    const payload = await getStockProposalSignablePayloads(task.id);
+    let signed_convert: IStockConvertSigned | null = null;
+    if (payload.convert_document) {
+      const signer = new Classes.Document(wifKey);
+      signed_convert = (await signer.signDocument(
+        payload.convert_document,
+        global.username,
+        1,
+      )) as IStockConvertSigned;
     }
-    const { order_ids } = await acceptStockProposal(task.id, lines);
+    const { order_ids } = await acceptStockProposal(task.id, payload.order_lines, signed_convert);
     SuccessAlert(
       `Предложение принято: оформлено позиций со склада — ${order_ids.length}. Оператор откроет выдачу.`,
     );

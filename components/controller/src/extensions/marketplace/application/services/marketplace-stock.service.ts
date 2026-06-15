@@ -283,8 +283,32 @@ export class MarketplaceStockService {
   }
 
   /**
+   * Конвертация паевого взноса в членский кошелёк «Стола заказов» (chain
+   * `convert`). Пополняет членские средства под заказы из остатка — одним
+   * действием на весь дефицит принятия. Заявление о конвертации публикуется в
+   * реестр документов контрактом.
+   */
+  async convertToMember(input: {
+    coopname: string;
+    orderer: string;
+    amount: string;
+    convert_statement: MarketContract.Actions.Convert.IConvert['convert_statement'];
+  }): Promise<void> {
+    try {
+      await this.chainPort.convert({
+        coopname: input.coopname,
+        orderer: input.orderer,
+        amount: input.amount,
+        convert_statement: input.convert_statement,
+      });
+    } catch (error: any) {
+      rethrowChainError(error);
+    }
+  }
+
+  /**
    * Заказ из остатка кооператива: chain `stockorder` (Order сразу acceptcoop,
-   * паевые средства блокируются на акцепте) + резерв конкретных позиций.
+   * средства блокируются из членского кошелька на акцепте) + резерв позиций.
    */
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput

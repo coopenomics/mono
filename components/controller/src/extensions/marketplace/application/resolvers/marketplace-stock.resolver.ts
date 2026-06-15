@@ -33,13 +33,13 @@ import {
   MarketplaceListStockProposalsInputDTO,
   MarketplacePublishStockInputDTO,
   MarketplaceResolveStockProposalInputDTO,
+  MarketplaceStockAcceptPayloadDTO,
   MarketplaceStockProposalAcceptResultDTO,
   MarketplaceStockProposalDTO,
   MarketplaceUnpublishStockInputDTO,
   MarketplaceUnpublishStockResultDTO,
   toMarketplaceStockProposalDTO,
 } from '../dto/marketplace-stock.dto';
-import { MarketplaceCheckoutSignableLineDTO } from '../dto/marketplace-checkout.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
@@ -161,44 +161,51 @@ export class MarketplaceStockResolver {
     return toMarketplaceStockProposalDTO(proposal);
   }
 
-  @Query(() => [MarketplaceCheckoutSignableLineDTO], {
+  @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Заявления о конвертации паевого взноса к подписи по строкам предложения со склада. ' +
-      'Подписанные заявления возвращаются строками lines в marketplaceAcceptStockProposal.',
+      'Нагрузка к принятию предложения со склада: строки-заказы и ОДНО Заявление о конвертации ' +
+      'на всю сумму доплаты. Если членских средств хватает (замена из высвобожденных) — заявления нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
   async marketplaceStockProposalSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
-  ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
-    const lines = await this.proposalService.getAcceptSignablePayloads(
+  ): Promise<MarketplaceStockAcceptPayloadDTO> {
+    const payload = await this.proposalService.getAcceptSignablePayloads(
       config.coopname,
       data.proposal_id,
       member.username
     );
-    return lines.map((l) => {
-      const document = new GeneratedDocumentDTO();
-      document.full_title = l.document.full_title;
-      document.html = l.document.html;
-      document.hash = l.document.hash;
-      document.meta = l.document.meta;
-      document.binary = l.document.binary;
-      return new MarketplaceCheckoutSignableLineDTO({
+
+    let convert_document: GeneratedDocumentDTO | null = null;
+    if (payload.convert) {
+      convert_document = new GeneratedDocumentDTO();
+      convert_document.full_title = payload.convert.document.full_title;
+      convert_document.html = payload.convert.document.html;
+      convert_document.hash = payload.convert.document.hash;
+      convert_document.meta = payload.convert.document.meta;
+      convert_document.binary = payload.convert.document.binary;
+    }
+
+    return {
+      order_lines: payload.order_lines.map((l) => ({
         offer_id: l.offer_id,
         order_hash: l.order_hash,
-        amount: l.amount,
-        document,
-      });
-    });
+      })),
+      convert_amount: payload.convert?.amount ?? null,
+      convert_hash: payload.convert?.convert_hash ?? null,
+      convert_document,
+    };
   }
 
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceAcceptStockProposal',
     description:
-      'Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. ' +
-      'Каждая строка сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
+      'Пайщик принимает предложение со склада: создаются заказы из остатка, средства берутся из членского кошелька. ' +
+      'Дефицит сверх членских средств покрывается одним подписанным Заявлением о конвертации (signed_convert); ' +
+      'при замене из высвобожденных средств заявление не требуется.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
@@ -210,7 +217,7 @@ export class MarketplaceStockResolver {
       config.coopname,
       data.proposal_id,
       member.username,
-      data.lines ?? null
+      { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
     dto.proposal = toMarketplaceStockProposalDTO(result.proposal);

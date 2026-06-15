@@ -15,13 +15,13 @@ import {
   USER_WALLET_REPOSITORY,
   type UserWalletRepository,
 } from '~/domain/wallet/repositories/user-wallet.repository';
-import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
-import { computeStockOrderHash } from '../shared/order-hash.util';
+import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
+import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
 import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
 } from './marketplace-economy.service';
-import type { MarketplaceCheckoutSignableLine } from './marketplace-checkout.service';
 import {
   MARKETPLACE_STOCK_PROPOSAL_REPOSITORY,
   type MarketplaceStockProposalDomainRepository,
@@ -58,6 +58,33 @@ export interface MarketplaceStockProposalAcceptResult {
   order_ids: string[];
 }
 
+/** Строка-заказ к созданию при принятии: offer + предвычисленный order_hash. */
+export interface MarketplaceStockAcceptOrderLine {
+  offer_id: string;
+  order_hash: string;
+}
+
+/**
+ * Полезная нагрузка к подписи при принятии предложения/докладки. Заявление о
+ * конвертации — ОДНО на весь дефицит (не по каждой строке): `convert` != null
+ * только когда членских средств не хватает; при замене из высвобожденных средств
+ * `convert` == null — пайщику подписывать нечего.
+ */
+export interface MarketplaceStockAcceptPayload {
+  order_lines: MarketplaceStockAcceptOrderLine[];
+  convert: {
+    amount: string;
+    convert_hash: string;
+    document: DocumentDomainEntity;
+  } | null;
+}
+
+/** Вход принятия: строки-заказы + единое подписанное Заявление (или его нет). */
+export interface MarketplaceStockAcceptInput {
+  order_lines: MarketplaceStockAcceptOrderLine[];
+  signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
+}
+
 /**
  * requirement 76, решения 10–11: двухфазная докладка у стойки выдачи.
  *
@@ -92,16 +119,17 @@ export class MarketplaceStockProposalService {
   }
 
   /**
-   * Заявления о конвертации паевого взноса к подписи по строкам докладки —
-   * как в checkout'е корзины: order_hash будущего stock-заказа рождается
-   * здесь и зашивается в мету; подписанные заявления возвращаются в
-   * `acceptProposal` строками `lines`.
+   * Полезная нагрузка к подписи при принятии докладки. order_hash каждого
+   * будущего stock-заказа рождается здесь и возвращается в order_lines (пайщик
+   * вернёт их в acceptProposal). Заявление о конвертации — ОДНО на весь дефицит
+   * сверх уже внесённых членских средств; если членских хватает (замена из
+   * высвобожденных средств) — convert == null, подписывать нечего.
    */
   async getAcceptSignablePayloads(
     coopname: string,
     proposal_id: string,
     member_account: string
-  ): Promise<MarketplaceCheckoutSignableLine[]> {
+  ): Promise<MarketplaceStockAcceptPayload> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
       throw new ForbiddenException('Подписать заявления может только адресат предложения.');
@@ -109,29 +137,50 @@ export class MarketplaceStockProposalService {
     this.assertProposed(proposal);
 
     const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
-    const result: MarketplaceCheckoutSignableLine[] = [];
+
+    // order_hash на каждую строку + суммарная потребность в членских средствах.
+    const order_lines: MarketplaceStockAcceptOrderLine[] = [];
+    let neededUnits = 0n;
     for (const item of proposal.items) {
-      const order_hash = computeStockOrderHash(coopname, member_account, item.offer_id);
-      const amount = this.economyService.convertAmountForLine(
-        item.unit_price,
-        item.quantity,
-        feePercent
-      );
-      const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
-        registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
-        coopname,
-        username: member_account,
-        lang: 'ru',
-        order_hash,
-        amount,
-        // Тело сохраняется в стор — реестр документов пересобирает агрегат
-        // по doc_hash (rawDocument).
-        skip_save: false,
-      };
-      const document = await this.documentDomainService.generateDocument({ data: action });
-      result.push({ offer_id: item.offer_id, order_hash, amount, document });
+      order_lines.push({
+        offer_id: item.offer_id,
+        order_hash: computeStockOrderHash(coopname, member_account, item.offer_id),
+      });
+      neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
     }
-    return result;
+
+    // Дефицит = потребность − уже внесённые членские средства. Конвертируем
+    // только его, одним заявлением.
+    const memberUnits = await this.readMemberUnits(coopname, member_account);
+    const deficitUnits = neededUnits > memberUnits ? neededUnits - memberUnits : 0n;
+
+    if (deficitUnits === 0n) {
+      return { order_lines, convert: null };
+    }
+
+    const amount = this.economyService.unitsToAsset(deficitUnits);
+    const convert_hash = computeConvertAnchorHash(coopname, member_account, proposal_id);
+    const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
+      registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
+      coopname,
+      username: member_account,
+      lang: 'ru',
+      order_hash: convert_hash,
+      amount,
+      skip_save: false,
+    };
+    const document = await this.documentDomainService.generateDocument({ data: action });
+    return { order_lines, convert: { amount, convert_hash, document } };
+  }
+
+  /** Баланс членского кошелька «Стола заказов» пайщика в минимальных единицах. */
+  private async readMemberUnits(coopname: string, member_account: string): Promise<bigint> {
+    const wallet = await this.userWalletRepo.findByWalletAndUsername(
+      coopname,
+      'w.mkt.member',
+      member_account
+    );
+    return wallet?.available ? this.economyService.assetToUnits(wallet.available) : 0n;
   }
 
   async createProposal(
@@ -198,12 +247,12 @@ export class MarketplaceStockProposalService {
     return proposal;
   }
 
-  /** Пайщик принимает: по каждой строке — заказ из остатка (средства блокируются здесь). */
+  /** Пайщик принимает: одна конвертация на дефицит + заказ из остатка по строкам. */
   async acceptProposal(
     coopname: string,
     proposal_id: string,
     member_account: string,
-    lines?: MarketplaceCheckoutSignedLineInputDTO[] | null
+    input: MarketplaceStockAcceptInput
   ): Promise<MarketplaceStockProposalAcceptResult> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
@@ -212,80 +261,72 @@ export class MarketplaceStockProposalService {
     this.assertProposed(proposal);
 
     const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
-    const signedByOffer = new Map((lines ?? []).map((l) => [l.offer_id, l]));
 
-    // Заказ из остатка фондируется из членского кошелька «Стола заказов».
-    // Сколько членских средств уже есть у пайщика — столько паевого НЕ
-    // конвертируем (замена непоставленного: высвобожденные отменой средства уже
-    // здесь → доплаты с паевого нет). Дефицит покрываем конвертацией по строкам.
-    const memberWallet = await this.userWalletRepo.findByWalletAndUsername(
-      coopname,
-      'w.mkt.member',
-      member_account
+    // order_hash по строкам — из подписанной пайщиком нагрузки (привязка по offer_id).
+    const orderHashByOffer = new Map(
+      (input.order_lines ?? []).map((l) => [l.offer_id, l.order_hash])
     );
-    let memberUnits = memberWallet?.available
-      ? this.economyService.assetToUnits(memberWallet.available)
-      : 0n;
+
+    // Потребность в членских средствах и дефицит сверх уже внесённых (как в
+    // getAcceptSignablePayloads — суммы должны совпасть с подписанным заявлением).
+    let neededUnits = 0n;
+    for (const item of proposal.items) {
+      neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
+    }
+    const memberUnits = await this.readMemberUnits(coopname, member_account);
+    const deficitUnits = neededUnits > memberUnits ? neededUnits - memberUnits : 0n;
+
+    // Дефицит покрываем ОДНОЙ конвертацией паевого на всю сумму; при замене из
+    // высвобожденных средств дефицит 0 → конвертации и подписи нет.
+    if (deficitUnits > 0n) {
+      if (!input.signed_convert) {
+        throw new BadRequestException(
+          'Нет подписанного заявления о конвертации паевого взноса — обновите принятие предложения.'
+        );
+      }
+      const meta = input.signed_convert.meta;
+      const expectedAmount = this.economyService.unitsToAsset(deficitUnits);
+      const expectedHash = computeConvertAnchorHash(coopname, member_account, proposal_id);
+      if (
+        meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
+        meta.order_hash !== expectedHash ||
+        meta.amount !== expectedAmount
+      ) {
+        throw new BadRequestException(
+          'Заявление о конвертации не соответствует сумме доплаты — обновите принятие.'
+        );
+      }
+      const convert_statement = new SignedDigitalDocumentInputDTO(
+        input.signed_convert
+      ).toDocument() as MarketContract.Actions.Convert.IConvert['convert_statement'];
+      await this.stockService.convertToMember({
+        coopname,
+        orderer: member_account,
+        amount: expectedAmount,
+        convert_statement,
+      });
+    }
 
     // Построчно: успехи сохраняем, на первом фейле останавливаемся и
     // компенсируем уже созданные заказы (атомарность докладки — UX-инвариант:
-    // пайщик принимает её целиком).
+    // пайщик принимает её целиком). Все средства уже в членском → заказ из
+    // остатка фондируется из них, Заявление на строку не нужно.
     const order_ids: string[] = [];
     try {
       for (const item of proposal.items) {
-        // Заявление о конвертации — обязательный спутник каждой строки
-        // (пайщик подписывает на полную сумму строки; реально конвертируется
-        // только дефицит сверх уже внесённых членских средств — может быть 0).
-        const signedLine = signedByOffer.get(item.offer_id);
-        if (!signedLine) {
+        const order_hash = orderHashByOffer.get(item.offer_id);
+        if (!order_hash) {
           throw new BadRequestException(
-            'Нет подписанного заявления о конвертации паевого взноса — обновите принятие предложения.'
+            'Состав принятия не совпадает с предложением — обновите принятие предложения.'
           );
         }
-        const meta = signedLine.signed_statement.meta;
-        const expectedAmount = this.economyService.convertAmountForLine(
-          item.unit_price,
-          item.quantity,
-          feePercent
-        );
-        if (
-          meta.registry_id !== Cooperative.Registry.MarketplaceConvertStatement.registry_id ||
-          meta.order_hash !== signedLine.order_hash ||
-          meta.amount !== expectedAmount
-        ) {
-          throw new BadRequestException(
-            'Заявление о конвертации не соответствует строке предложения — обновите принятие.'
-          );
-        }
-
-        // Дефицит строки: списываем покрытие из уже внесённых членских средств,
-        // остаток добираем конвертацией паевого (Заявление подписано на полную
-        // сумму — конвертируем не больше дефицита).
-        const lineUnits = this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
-        const fromMember = memberUnits >= lineUnits ? lineUnits : memberUnits;
-        memberUnits -= fromMember;
-        const convertUnits = lineUnits - fromMember;
-
-        const convert_statement =
-          convertUnits > 0n
-            ? (new SignedDigitalDocumentInputDTO(
-                signedLine.signed_statement
-              ).toDocument() as MarketContract.Actions.Convert.IConvert['convert_statement'])
-            : null;
-        const convert_amount =
-          convertUnits > 0n ? this.economyService.unitsToAsset(convertUnits) : null;
-
         const { order } = await this.stockService.createStockOrder({
           coopname,
           orderer_account: member_account,
           offer_id: item.offer_id,
           quantity: item.quantity,
           checkout_id: proposal.id,
-          order_hash: signedLine.order_hash,
-          // Конвертация паевого только на дефицит сверх членских средств; при
-          // замене непоставленного дефицит 0 → заказ из членских без доплаты.
-          convert_statement,
-          convert_amount,
+          order_hash,
         });
         order_ids.push(order.id);
       }

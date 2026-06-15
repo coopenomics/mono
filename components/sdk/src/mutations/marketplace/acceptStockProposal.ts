@@ -5,7 +5,7 @@ export const name = 'marketplaceAcceptStockProposal'
 
 export const mutation = Selector('Mutation')({
   [name]: [
-    { data: $('data', 'MarketplaceResolveStockProposalInput!') },
+    { data: $('data', 'MarketplaceAcceptStockProposalInput!') },
     {
       proposal: marketplaceStockProposalSelector,
       order_ids: true,
@@ -19,7 +19,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  data: ModelTypes['MarketplaceResolveStockProposalInput']
+  data: ModelTypes['MarketplaceAcceptStockProposalInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

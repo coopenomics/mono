@@ -1,4 +1,4 @@
-import { marketplaceCheckoutSignableLineSelector } from '../../selectors/marketplace/cartSelector'
+import { marketplaceStockAcceptPayloadSelector } from '../../selectors/marketplace/stockProposalSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'marketplaceStockProposalSignablePayloads'
@@ -6,7 +6,7 @@ export const name = 'marketplaceStockProposalSignablePayloads'
 export const query = Selector('Query')({
   [name]: [
     { data: $('data', 'MarketplaceResolveStockProposalInput!') },
-    marketplaceCheckoutSignableLineSelector,
+    marketplaceStockAcceptPayloadSelector,
   ],
 })
 

@@ -655,7 +655,8 @@ export const AllTypesProps: Record<string,any> = {
 		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
 	MarketplaceAcceptStockProposalInput:{
-		lines:"MarketplaceCheckoutSignedLineInput"
+		order_lines:"MarketplaceStockAcceptOrderLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceAddToCartInput:{
 
@@ -939,6 +940,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceSplitInventoryInput:{
 		splits:"MarketplaceInventorySplitEntryInput"
+	},
+	MarketplaceStockAcceptOrderLineInput:{
+
 	},
 	MarketplaceStockProposalItemInput:{
 
@@ -4829,6 +4833,16 @@ export const ReturnTypes: Record<string,any> = {
 		packaging:"MarketplaceShipmentLinePackaging",
 		vehicle_number:"String"
 	},
+	MarketplaceStockAcceptOrderLine:{
+		offer_id:"String",
+		order_hash:"String"
+	},
+	MarketplaceStockAcceptPayload:{
+		convert_amount:"String",
+		convert_document:"GeneratedDocument",
+		convert_hash:"String",
+		order_lines:"MarketplaceStockAcceptOrderLine"
+	},
 	MarketplaceStockProposal:{
 		braname:"String",
 		created_at:"DateTime",
@@ -5948,7 +5962,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
 		marketplaceSearchRequests:"MarketplaceRequest",
-		marketplaceStockProposalSignablePayloads:"MarketplaceCheckoutSignableLine",
+		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",
 		marketplaceWriteoffPendingConfirmations:"MarketplaceWriteoffConfirmationGroup",
