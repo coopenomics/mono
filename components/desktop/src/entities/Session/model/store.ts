@@ -37,6 +37,26 @@ interface ISessionStore {
    * reload). Возвращает `true`, если сессия установлена.
    */
   establishCoopIdSession: (opts?: { persistPin?: boolean }) => Promise<boolean>;
+  /** Сессия построена поверх keystore CoopID (тогда применимо PIN-самообслуживание). */
+  isCoopIdSession: ComputedRef<boolean>;
+  /** Включён ли кастомный PIN (иначе дефолтный прозрачный `000000`). */
+  hasCustomPin: Ref<boolean>;
+  /** Открыт ли запрос PIN перед подписью (после авто-лока). */
+  pinPrompt: Ref<boolean>;
+  /** Активен ли блокирующий PIN-гейт после перезагрузки. */
+  pinUnlockPending: Ref<boolean>;
+  /** Текст ошибки последнего ввода PIN. */
+  pinError: Ref<string>;
+  /** Установить или сменить кастомный PIN. */
+  setCustomPin: (pin: string) => Promise<void>;
+  /** Снять кастомный PIN (вернуть прозрачный дефолт). */
+  removeCustomPin: () => Promise<void>;
+  /** Подтвердить введённый PIN для подписи. */
+  submitSignPin: (pin: string) => void;
+  /** Отменить ввод PIN (подпись/разблокировка не состоится). */
+  cancelPin: () => void;
+  /** Разблокировать keystore по PIN после reload (для PIN-гейта). */
+  completePinUnlock: (pin: string) => Promise<boolean>;
   close: () => Promise<void>;
   loadComplete: Ref<boolean>;
   // Добавляю данные текущего пользователя
@@ -74,6 +94,50 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   // а не легаси globalStore.wif). Источник fallback'а для username/isAuth.
   const coopIdAccount = ref('');
 
+  // PIN-кэш ключа (уточнённая модель Эпика 7): пароль/ключ — реальная at-rest
+  // защита; PIN — необязательный барьер «от постороннего» поверх уже
+  // разблокированного устройства. Дефолт `000000` прозрачен (авто-unlock без
+  // спроса); кастомный PIN спрашивается при подписи после авто-лока (30 мин) и на
+  // reload. Маркер «кастомный PIN включён» лежит рядом с кэшем (cache-запись есть
+  // всегда после входа, поэтому отдельный флаг кастомности).
+  const PIN_MARKER_KEY = 'coopid.wallet.pin-custom';
+  const hasCustomPin = ref(false);
+  const isCoopIdSession = computed(() => !!coopIdAccount.value);
+  // Запрос PIN у пользователя. 'sign' — перед подписью после авто-лока
+  // (промис-ориентированный, приложение уже смонтировано); pinUnlockPending —
+  // блокирующий гейт на reload (до загрузки кабинета). pinError — текст ошибки.
+  const pinPrompt = ref(false);
+  const pinUnlockPending = ref(false);
+  const pinError = ref('');
+  let pinResolver: ((pin: string | null) => void) | null = null;
+
+  const loadPinMarker = async (): Promise<void> => {
+    hasCustomPin.value = (await coopStorage().get(PIN_MARKER_KEY).catch(() => null)) === '1';
+  };
+
+  /** Запросить у пользователя PIN перед подписью (промис ждёт submit/cancel из PinPrompt). */
+  const requestPin = (): Promise<string | null> => {
+    pinError.value = '';
+    pinPrompt.value = true;
+    return new Promise((resolve) => {
+      pinResolver = resolve;
+    });
+  };
+
+  /** Пользователь ввёл PIN в диалоге подписи. */
+  const submitSignPin = (pin: string): void => {
+    pinPrompt.value = false;
+    pinResolver?.(pin);
+    pinResolver = null;
+  };
+
+  /** Пользователь отменил ввод PIN (подпись не состоится). */
+  const cancelPin = (): void => {
+    pinPrompt.value = false;
+    pinResolver?.(null);
+    pinResolver = null;
+  };
+
   // Авто-лок keystore по простою (уточнённая at-rest модель): RAM-ключ стирается
   // через AUTO_LOCK_MS, следующая подпись поднимет его из PIN-кэша (прозрачно при
   // дефолтном ПИН). Таймер скользящий — продлевается на каждой подписи (см.
@@ -98,11 +162,60 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
    */
   const ensureWalletUnlocked = async (): Promise<void> => {
     if (!isWalletUnlocked()) {
-      const wallet = await unlockWithPin({ storage: coopStorage() });
-      if (!wallet)
-        throw new Error('CoopID keystore заперт: войдите заново (нет локального ключа)');
+      const storage = coopStorage();
+      if (hasCustomPin.value) {
+        // Кастомный PIN: спрашиваем у пользователя (повторяем до верного или отмены).
+        let wallet = null;
+        while (!wallet) {
+          const pin = await requestPin();
+          if (pin === null)
+            throw new Error('Для подписи нужен PIN-код');
+          wallet = await unlockWithPin({ pin, storage }).catch(() => null);
+          if (!wallet) pinError.value = 'Неверный PIN-код';
+        }
+        pinError.value = '';
+      } else {
+        // Дефолтный PIN — прозрачная разблокировка без спроса.
+        const wallet = await unlockWithPin({ storage });
+        if (!wallet)
+          throw new Error('CoopID keystore заперт: войдите заново (нет локального ключа)');
+      }
     }
     armAutoLock();
+  };
+
+  /** Установить/сменить кастомный PIN: перешифровать RAM-ключ под новым PIN + маркер. */
+  const setCustomPin = async (pin: string): Promise<void> => {
+    await ensureWalletUnlocked();
+    const storage = coopStorage();
+    await persistPinCache({ pin, storage });
+    await storage.set(PIN_MARKER_KEY, '1');
+    hasCustomPin.value = true;
+  };
+
+  /** Снять кастомный PIN: вернуть прозрачный дефолтный PIN + убрать маркер. */
+  const removeCustomPin = async (): Promise<void> => {
+    await ensureWalletUnlocked();
+    const storage = coopStorage();
+    await persistPinCache({ storage });
+    await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
+    hasCustomPin.value = false;
+  };
+
+  /**
+   * Завершить reload-гейт: разблокировать keystore введённым PIN. На успехе
+   * снимает pinUnlockPending; загрузку кабинета доводит вызывающий
+   * (PinPrompt → useInitWalletProcess().run), чтобы не плодить циклический импорт.
+   */
+  const completePinUnlock = async (pin: string): Promise<boolean> => {
+    const wallet = await unlockWithPin({ pin, storage: coopStorage() }).catch(() => null);
+    if (!wallet) {
+      pinError.value = 'Неверный PIN-код';
+      return false;
+    }
+    pinError.value = '';
+    pinUnlockPending.value = false;
+    return true;
   };
 
   const establishCoopIdSession = async (opts?: {
@@ -151,12 +264,18 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     session.value = undefined;
     currentUserAccount.value = undefined;
     if (autoLockTimer) clearTimeout(autoLockTimer);
-    // CoopID-контур: затереть RAM-ключ и локальный PIN-кэш («забыть устройство»).
+    // CoopID-контур: затереть RAM-ключ, локальный PIN-кэш и маркер («забыть устройство»).
     if (coopIdAccount.value) {
       lockWallet();
-      await clearPinCache(coopStorage()).catch(() => undefined);
+      const storage = coopStorage();
+      await clearPinCache(storage).catch(() => undefined);
+      await storage.remove(PIN_MARKER_KEY).catch(() => undefined);
       coopIdAccount.value = '';
     }
+    hasCustomPin.value = false;
+    pinUnlockPending.value = false;
+    pinPrompt.value = false;
+    pinError.value = '';
     globalStore.logout();
   };
 
@@ -194,8 +313,15 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
       // аддитивно: если CoopID-артефактов нет, ветка — no-op, легаси не задет.
       try {
         configureTokenStorage(coopStorage());
-        await restoreSession();
-        await establishCoopIdSession();
+        const hasTokens = await restoreSession();
+        await loadPinMarker();
+        if (hasTokens && hasCustomPin.value && !isWalletUnlocked()) {
+          // Кастомный PIN: keystore заперт после reload — поднимаем блокирующий
+          // PIN-гейт. PinPrompt разблокирует ключ и до-инициализирует кабинет.
+          pinUnlockPending.value = true;
+        } else {
+          await establishCoopIdSession();
+        }
       } catch (e: any) {
         console.error(e);
       }
@@ -262,6 +388,16 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     init,
     session,
     establishCoopIdSession,
+    isCoopIdSession,
+    hasCustomPin,
+    pinPrompt,
+    pinUnlockPending,
+    pinError,
+    setCustomPin,
+    removeCustomPin,
+    submitSignPin,
+    cancelPin,
+    completePinUnlock,
     username,
     displayName,
     close,
