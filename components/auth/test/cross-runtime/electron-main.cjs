@@ -45,13 +45,17 @@ async function run() {
   const lockedErr = await sdk.signDocument({ payload: 'x' }).then(() => null, e => e)
   assert(lockedErr instanceof sdk.AuthV2Error && lockedErr.code === sdk.AuthV2ErrorCode.WalletLocked, 'WalletLocked при запертом кошельке')
 
-  // login/getAccessToken: скелет Story 1.2 — типизированная not_implemented (см. smoke.test.ts)
+  // login/getAccessToken реализованы (вход 1.7 + flow-executor Story 11.2): в stub-окружении
+  // без живого authentik/controller дают типизированную AuthV2Error (login→network_error,
+  // getAccessToken→wallet_locked). Конкретный код не пиннингуем — важно, что ошибка
+  // типизированная и код валиден для enum'а. Синхронно со smoke.test.ts.
+  const errorCodes = Object.values(sdk.AuthV2ErrorCode)
   for (const [name, call] of [
     ['login', () => sdk.login({ issuer: 'https://coop.stub/application/o/coopid/', email: 'a@b.c', password: 'p' })],
     ['getAccessToken', () => sdk.getAccessToken()],
   ]) {
     const err = await call().then(() => null, e => e)
-    assert(err instanceof sdk.AuthV2Error && err.code === sdk.AuthV2ErrorCode.NotImplemented, `${name}: типизированная not_implemented`)
+    assert(err instanceof sdk.AuthV2Error && errorCodes.includes(err.code), `${name}: типизированная AuthV2Error`)
   }
 }
 
