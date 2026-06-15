@@ -33,6 +33,7 @@ export class BranchDomainEntity implements BranchDomainInterface {
     ogrn: string;
     kpp: string;
   };
+  public readonly participants_count: number;
 
   constructor(
     coopname: string,
@@ -40,7 +41,8 @@ export class BranchDomainEntity implements BranchDomainInterface {
     organizationDatabaseData: OrganizationDomainInterface,
     trusteeData: IndividualDomainInterface,
     trustedData: IndividualDomainInterface[],
-    bankAccount: BankPaymentMethodDomainInterface
+    bankAccount: BankPaymentMethodDomainInterface,
+    participantsCount = 0
   ) {
     if (branchBlockchainData.braname != organizationDatabaseData.username)
       throw new Error(`Неверные данные для агрегата: username и braname кооперативного участка должны совпадать`);
@@ -63,5 +65,6 @@ export class BranchDomainEntity implements BranchDomainInterface {
     this.phone = organizationDatabaseData.phone;
     this.email = organizationDatabaseData.email;
     this.details = organizationDatabaseData.details;
+    this.participants_count = participantsCount;
   }
 }

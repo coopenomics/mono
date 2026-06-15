@@ -28,6 +28,7 @@
             th Участок
             th Председатель
             th Доверенные
+            th.col-count Пайщики
             th.col-action
         tbody
           tr.data-row(
@@ -43,6 +44,7 @@
               template(v-if='trustedNames(branch).length')
                 div(v-for='name in trustedNames(branch)', :key='name') {{ name }}
               span(v-else) —
+            td.col-count {{ branch.participants_count ?? 0 }}
             td.col-action
               button.icon-btn(
                 type='button',
@@ -73,6 +75,7 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Участок' },
   { label: 'Председатель' },
   { label: 'Доверенные' },
+  { label: 'Пайщики', class: 'col-count' },
   { label: '', class: 'col-action', cell: 'icon' },
 ];
 
@@ -135,5 +138,11 @@ onMounted(async () => {
 /* строка ведёт на страницу участка — показываем кликабельность */
 .data-row {
   cursor: pointer;
+}
+
+/* колонка с числом пайщиков — узкая, не растягивается */
+.col-count {
+  width: 1%;
+  white-space: nowrap;
 }
 </style>

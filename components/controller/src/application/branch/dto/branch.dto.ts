@@ -1,4 +1,4 @@
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { RepresentedByDTO } from '~/application/common/dto/represented-by.dto';
 import type { BranchDomainInterface } from '~/domain/branch/interfaces/branch-domain.interface';
 import type { BranchDomainEntity } from '~/domain/branch/entities/branch-domain.entity';
@@ -89,6 +89,9 @@ export class BranchDTO implements BranchDomainInterface {
   @IsJSON()
   public readonly details: OrganizationDetailsDTO;
 
+  @Field(() => Int, { description: 'Количество пайщиков, состоящих в кооперативном участке' })
+  public readonly participants_count: number;
+
   constructor(entity: BranchDomainEntity) {
     this.coopname = entity.coopname;
     this.braname = entity.braname;
@@ -110,5 +113,6 @@ export class BranchDTO implements BranchDomainInterface {
     this.email = entity.email;
     this.details = new OrganizationDetailsDTO(entity.details);
     this.bank_account = new BankPaymentMethodDTO(entity.bank_account);
+    this.participants_count = entity.participants_count;
   }
 }

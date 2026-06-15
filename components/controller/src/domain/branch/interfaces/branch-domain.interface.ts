@@ -5,4 +5,5 @@ export type BranchDomainInterface = Omit<OrganizationDomainInterface, 'username'
   braname: string; ///< имя аккаунта
   trustee: IndividualDomainInterface;
   trusted: IndividualDomainInterface[];
+  participants_count: number; ///< количество пайщиков, состоящих в участке
 };

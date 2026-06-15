@@ -37,7 +37,21 @@ export class BranchInteractor {
     private readonly documentInteractor: DocumentInteractor
   ) {}
 
-  async getBranch(coopname: string, braname: string): Promise<BranchDomainEntity> {
+  // Количество пайщиков на каждом участке: участники совета (status accepted),
+  // у которых проставлен braname. Председатель и доверенные участка — тоже пайщики
+  // и входят в это число. Возвращаем карту braname → количество за одно чтение таблицы.
+  private async countParticipantsByBranch(coopname: string): Promise<Map<string, number>> {
+    const participants = await this.branchBlockchainPort.getParticipants(coopname);
+    const counts = new Map<string, number>();
+    for (const participant of participants) {
+      if (participant.status === 'accepted' && participant.braname) {
+        counts.set(participant.braname, (counts.get(participant.braname) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }
+
+  async getBranch(coopname: string, braname: string, participantsCount?: number): Promise<BranchDomainEntity> {
     const branch = await this.branchBlockchainPort.getBranch(coopname, braname);
 
     if (!branch) {
@@ -61,7 +75,10 @@ export class BranchInteractor {
       })
     );
 
-    return new BranchDomainEntity(coopname, branch, databaseData, trusteeData, trustedData, bankAccount);
+    // при одиночном запросе считаем число пайщиков сами; в списке оно приходит готовым
+    const count = participantsCount ?? (await this.countParticipantsByBranch(coopname)).get(braname) ?? 0;
+
+    return new BranchDomainEntity(coopname, branch, databaseData, trusteeData, trustedData, bankAccount, count);
   }
 
   async getBranches(data: GetBranchesDomainInput): Promise<BranchDomainEntity[]> {
@@ -70,10 +87,13 @@ export class BranchInteractor {
     // Фильтрация до сборки
     const filteredBranches = data.braname ? branches.filter((branch) => branch.braname === data.braname) : branches;
 
+    // одно чтение таблицы участников на весь список, далее раздаём по braname
+    const participantCounts = await this.countParticipantsByBranch(data.coopname);
+
     const result: BranchDomainEntity[] = [];
     for (const branch of filteredBranches) {
       try {
-        const branchEntity = await this.getBranch(data.coopname, branch.braname);
+        const branchEntity = await this.getBranch(data.coopname, branch.braname, participantCounts.get(branch.braname) ?? 0);
         result.push(branchEntity);
       } catch (error) {
         // Карточка участка (организация/председатель/реквизиты) после одобрения советом

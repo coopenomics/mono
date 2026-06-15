@@ -2270,6 +2270,8 @@ export type ValueTypes = {
 	full_address?:boolean | `@${string}`,
 	/** Полное название организации */
 	full_name?:boolean | `@${string}`,
+	/** Количество пайщиков, состоящих в кооперативном участке */
+	participants_count?:boolean | `@${string}`,
 	/** Телефон */
 	phone?:boolean | `@${string}`,
 	/** Представитель организации */
@@ -12044,6 +12046,8 @@ export type ResolverInputTypes = {
 	full_address?:boolean | `@${string}`,
 	/** Полное название организации */
 	full_name?:boolean | `@${string}`,
+	/** Количество пайщиков, состоящих в кооперативном участке */
+	participants_count?:boolean | `@${string}`,
 	/** Телефон */
 	phone?:boolean | `@${string}`,
 	/** Представитель организации */
@@ -21571,6 +21575,8 @@ export type ModelTypes = {
 	full_address: string,
 	/** Полное название организации */
 	full_name: string,
+	/** Количество пайщиков, состоящих в кооперативном участке */
+	participants_count: number,
 	/** Телефон */
 	phone: string,
 	/** Представитель организации */
@@ -31653,6 +31659,8 @@ export type GraphQLTypes = {
 	full_address: string,
 	/** Полное название организации */
 	full_name: string,
+	/** Количество пайщиков, состоящих в кооперативном участке */
+	participants_count: number,
 	/** Телефон */
 	phone: string,
 	/** Представитель организации */

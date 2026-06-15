@@ -36,6 +36,7 @@ const rawBranchSelector = {
   trusted_certificates: rawIndividualCertificateSelector,
   bank_account: rawBankPaymentMethodSelector,
   type: true,
+  participants_count: true,
 }
 
 // Проверка валидности

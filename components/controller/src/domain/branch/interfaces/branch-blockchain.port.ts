@@ -6,6 +6,7 @@ export interface BranchBlockchainPort {
   editBranch(data: BranchContract.Actions.EditBranch.IEditBranch): Promise<TransactResult>;
   getBranches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]>;
   getBranch(coopname: string, braname: string): Promise<BranchContract.Tables.Branches.IBranch | null>;
+  getParticipants(coopname: string): Promise<SovietContract.Tables.Participants.IParticipants[]>;
   deleteBranch(data: BranchContract.Actions.DeleteBranch.IDeleteBranch): Promise<TransactResult>;
   addTrustedAccount(data: BranchContract.Actions.AddTrusted.IAddTrusted): Promise<TransactResult>;
   deleteTrustedAccount(data: BranchContract.Actions.DeleteTrusted.IDeleteTrusted): Promise<TransactResult>;

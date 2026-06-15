@@ -2512,6 +2512,7 @@ export const ReturnTypes: Record<string,any> = {
 		fact_address:"String",
 		full_address:"String",
 		full_name:"String",
+		participants_count:"Int",
 		phone:"String",
 		represented_by:"RepresentedBy",
 		short_name:"String",

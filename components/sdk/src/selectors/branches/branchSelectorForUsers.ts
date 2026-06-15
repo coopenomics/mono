@@ -34,6 +34,7 @@ const rawBranchSelectorForUsers = {
   // публичные сертификаты (ФИО) — доступны любому пайщику
   trustee_certificate: rawIndividualCertificateSelector,
   trusted_certificates: rawIndividualCertificateSelector,
+  participants_count: true,
 }
 
 // Проверка валидности

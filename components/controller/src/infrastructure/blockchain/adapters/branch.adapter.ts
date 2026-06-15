@@ -31,6 +31,16 @@ export class BranchBlockchainAdapter implements BranchBlockchainPort {
     );
   }
 
+  // Членство пайщика в кооперативном участке хранится в таблице участников совета
+  // (participant.braname проставляется при выборе участка через soviet::selectbranch).
+  async getParticipants(coopname: string): Promise<SovietContract.Tables.Participants.IParticipants[]> {
+    return this.blockchainService.getAllRows(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.Participants.tableName
+    );
+  }
+
   async createBranch(data: BranchContract.Actions.CreateBranch.ICreateBranch): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
