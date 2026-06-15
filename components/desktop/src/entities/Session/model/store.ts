@@ -5,10 +5,12 @@ import { Session } from '@wharfkit/session';
 import { WalletPluginPrivateKey } from '@wharfkit/wallet-plugin-privatekey';
 import {
   clearPinCache,
+  configureTokenStorage,
   getWallet,
   isWalletUnlocked,
   lockWallet,
   persistPinCache,
+  restoreSession,
   unlockWithPin,
 } from '@coopenomics/auth';
 import { FailAlert } from 'src/shared/api';
@@ -186,10 +188,13 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
         return;
       }
 
-      // Легаси-ключа нет — пробуем контур CoopID: keystore уже разблокирован после
-      // входа, либо поднимаем его из локального PIN-кэша (мост подписи, Эпик 7).
-      // Полностью аддитивно: если CoopID-кэша нет, ветка — no-op, легаси не задет.
+      // Легаси-ключа нет — пробуем контур CoopID: токены восстанавливаем из
+      // персистентного хранилища (паритет с легаси — переживание F5), ключ
+      // поднимаем из локального PIN-кэша (мост подписи, Эпик 7). Полностью
+      // аддитивно: если CoopID-артефактов нет, ветка — no-op, легаси не задет.
       try {
+        configureTokenStorage(coopStorage());
+        await restoreSession();
         await establishCoopIdSession();
       } catch (e: any) {
         console.error(e);

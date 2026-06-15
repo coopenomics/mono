@@ -1,3 +1,4 @@
+import type { StorageAdapter } from '../wallet/storage-adapter'
 /**
  * Lifecycle платформенных токенов сессии CoopID (Эпик 7). Источник истины токена —
  * этот модуль `@coopenomics/auth`; `@coopenomics/sdk` копирует access в свои
@@ -22,16 +23,67 @@ const REFRESH_SKEW_SEC = 30
 let tokens: SessionTokens | null = null
 let apiBase: string | null = null
 
-/** Кладёт токены текущей сессии (вызывается из handshake/login). `apiUrl` — база controller'а для refresh. */
+/**
+ * Опциональная персистентность токенов между перезагрузками (паритет с легаси,
+ * у которого токены лежат в IndexedDB). По умолчанию контур RAM-only; приложение
+ * подключает `StorageAdapter` (frontend — IndexedDB) через `configureTokenStorage`.
+ * Без этого CoopID-сессия не переживала бы F5 (ключ поднимается из PIN-кэша, а
+ * токен терялся бы), т.е. была бы СЛАБЕЕ легаси.
+ */
+const TOKEN_STORAGE_KEY = 'coopid.session.tokens'
+let storage: StorageAdapter | null = null
+
+interface PersistedSession {
+  apiBase: string
+  tokens: SessionTokens
+}
+
+/** Подключает (или снимает — `null`) персистентность токенов сессии. */
+export function configureTokenStorage(adapter: StorageAdapter | null): void {
+  storage = adapter
+}
+
+/** Кладёт токены текущей сессии (вызывается из handshake/login/refresh). `apiUrl` — база controller'а для refresh. */
 export function setSession(apiUrl: string, next: SessionTokens): void {
   apiBase = apiUrl.replace(/\/$/, '')
   tokens = next
+  // best-effort персист: сбой записи не должен ронять вход (токены уже в RAM).
+  if (storage)
+    void storage.set(TOKEN_STORAGE_KEY, JSON.stringify({ apiBase, tokens: next } satisfies PersistedSession)).catch(() => undefined)
 }
 
-/** Затирает токены сессии (logout). Идемпотентно. */
+/**
+ * Восстанавливает токены сессии из персистентного хранилища на старте приложения
+ * (после reload). `true` — сессия поднята в RAM. Уже активная RAM-сессия не
+ * перетирается. Без подключённого storage или записи — `false`.
+ */
+export async function restoreSession(): Promise<boolean> {
+  if (tokens && apiBase)
+    return true
+  if (!storage)
+    return false
+  const raw = await storage.get(TOKEN_STORAGE_KEY)
+  if (!raw)
+    return false
+  try {
+    const parsed = JSON.parse(raw) as PersistedSession
+    if (!parsed?.apiBase || !parsed?.tokens?.accessToken || !parsed?.tokens?.refreshToken)
+      return false
+    apiBase = parsed.apiBase
+    tokens = parsed.tokens
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
+/** Затирает токены сессии (logout). Идемпотентно. Стирает и персистентную копию. */
 export function clearSession(): void {
   tokens = null
   apiBase = null
+  if (storage)
+    void storage.remove(TOKEN_STORAGE_KEY).catch(() => undefined)
 }
 
 /** Снимок текущих токенов (или null, если сессии нет). */
@@ -88,6 +140,8 @@ export async function getAccessToken(): Promise<string> {
     return tokens.accessToken
 
   const refreshed = await refreshSession(apiBase, tokens.refreshToken)
-  tokens = refreshed
-  return tokens.accessToken
+  // setSession обновляет RAM И персистентную копию — иначе на диске остался бы
+  // устаревший refresh-токен и следующий reload поднял бы протухшую сессию.
+  setSession(apiBase, refreshed)
+  return refreshed.accessToken
 }

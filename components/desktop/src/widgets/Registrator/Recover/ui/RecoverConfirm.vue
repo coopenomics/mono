@@ -54,7 +54,6 @@
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { useRecoverAccess } from 'src/features/User/RecoverAccess';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -70,7 +69,6 @@ const props = defineProps<{
 
 const MIN_PASSWORD_LENGTH = 8;
 
-const router = useRouter();
 const { confirmRecovery } = useRecoverAccess();
 const { emailIsValid } = useCreateUser();
 
@@ -124,8 +122,12 @@ const submit = async (): Promise<void> => {
       totp: totp.value,
       newPassword: newPassword.value,
     });
-    SuccessAlert('Доступ восстановлен. Войдите с новым паролём.');
-    void router.push({ name: 'signin', params: { coopname: props.coopname } });
+    SuccessAlert('Доступ восстановлен. Входим…');
+    // Сессия CoopID построена, токены и PIN-кэш ключа персистнуты — перезагрузка
+    // по каноническому boot-пути сама поднимет сессию (токены из IndexedDB + ключ
+    // из PIN-кэша) и доведёт до рабочего стола; переживает F5 (паритет с легаси).
+    window.location.hash = `#/${props.coopname}`;
+    window.location.reload();
   } catch (e: any) {
     errorMessage.value =
       e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';

@@ -17,7 +17,7 @@ export type { FlowExecutorParams } from './flow-executor'
 export type { HandshakeResult } from './handshake'
 export { performTimestampHandshake } from './handshake'
 export type { SessionTokens } from './tokens'
-export { currentTokens } from './tokens'
+export { configureTokenStorage, currentTokens, restoreSession } from './tokens'
 
 export interface LoginParams {
   /** Issuer кооператива, например `https://coop.example/application/o/coopid/` */
