@@ -180,6 +180,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Снятие резерва при отмене заказа' },
 
+  // Удержание 50% при отказе пайщика от получения после акцепта поставщиком:
+  // удержанная половина тела заказа транзитом через пул членских взносов уходит
+  // в общий кошелёк КУ (тем же o.brn.common). Прямой перевод на w.brn.common
+  // невозможен — walletop держит один username на обе стороны.
+  { code: 'o.mkt.penal',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'REFUSAL_PENALTY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком' },
+
   { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
     debit: 10, credit: 86,

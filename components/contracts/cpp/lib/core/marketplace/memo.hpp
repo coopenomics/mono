@@ -63,6 +63,14 @@ namespace Marketplace::Memo {
     return "Возврат резерва по отменённому заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
+  inline std::string get_refusal_penalty_transit_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
+  }
+
+  inline std::string get_refusal_penalty_distribute_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в общий кошелёк кооперативного участка";
+  }
+
   inline std::string get_decline_order_memo(uint64_t order_id) {
     return "Возврат резерва по отклонённому поставщиком заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }

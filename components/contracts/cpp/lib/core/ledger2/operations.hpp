@@ -97,6 +97,7 @@ namespace operations {
     inline constexpr eosio::name MARKDOWN_LOSS          = "o.mkt.loss"_n;     ///< Уценка при выдаче из остатка кооператива (NONE Dr 91 / Cr 10): разница между ценой прибытия и фактической ценой выдачи выбывает со склада в прочие расходы. Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на счёте 10 ничего не зависает. Накопленный расход на 91 погашается позже отдельным процессом (Dr 86 / Cr 91, аналогично списанию скоропорта через совет — пока не реализован, requirement 76 вопрос 4).
     inline constexpr eosio::name MEMBERSHIP_FEE_LOCK    = "o.mkt.fee"_n;      ///< Блокировка членского взноса при создании заказа (TRANSFER w.wal.share → w.mkt.fee, Dr 80 / Cr 86 — как o.mkt.lock). Взнос считается от единой ставки кооператива и фиксируется явным полем Order.membership_fee; на signiss2 при факте больше заказа — дособирается этой же операцией.
     inline constexpr eosio::name MEMBERSHIP_FEE_REFUND  = "o.mkt.refund"_n;   ///< Возврат неиспользованной части членского взноса (TRANSFER w.mkt.fee → w.mkt.member, без Dr/Cr — оба кошелька на 86). Срабатывает при отмене заказа (полностью) и при недовыдаче (пропорционально факту); симметричен o.mkt.unlock для резерва стоимости.
+    inline constexpr eosio::name REFUSAL_PENALTY        = "o.mkt.penal"_n;    ///< Удержание 50% при отказе пайщика от получения после акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, без Dr/Cr — оба кошелька на 86). Транзит: удержанная половина тела заказа кладётся в пул членских взносов, откуда вместе с удержанной половиной взноса единым o.brn.common (Branch::accrue) зачисляется в общий кошелёк КУ. Прямой TRANSFER w.mkt.order[пайщик] → w.brn.common[braname] невозможен — walletop держит один username на обе стороны. Имущество остаётся на складе КУ; вторая половина возвращается пайщику (o.mkt.unlock + o.mkt.refund).
   }
 
   // branch — экономика кооперативного участка (requirement b6).
@@ -321,6 +322,18 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_MEMBER_FUND,
     0, 0,
     "Снятие резерва при отмене заказа" },
+
+  // 12b². p.mkt.supply: Удержание 50% при отказе пайщика от получения после
+  //       акцепта поставщиком (TRANSFER w.mkt.order → w.mkt.fee, без Dr/Cr —
+  //       оба кошелька на 86). Транзит: удержанная половина тела заказа кладётся
+  //       в пул членских взносов, откуда вместе с удержанной половиной взноса
+  //       единым Branch::accrue (o.brn.common) уходит в общий кошелёк КУ.
+  //       Прямой перевод на w.brn.common невозможен — walletop держит один
+  //       username на обе стороны (USER_SHARED[пайщик] ↛ USER_SHARED[braname]).
+  { operations::marketplace::REFUSAL_PENALTY, processes::marketplace::SUPPLY, WalletOp::TRANSFER,
+    ledger2_wallets::MARKETPLACE_ORDER_LOCK, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    0, 0,
+    "Удержание при отказе пайщика от получения после акцепта поставщиком" },
 
   // 12c. p.mkt.supply: Приёмка имущества кооперативом по АПП приёмки
   //      (Dr 10 / Cr 86, NONE — только бухпроводка, кошельки не двигаются).
