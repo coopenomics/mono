@@ -239,7 +239,7 @@ export class MarketplaceStockProposalService {
         }
         const convert_statement = new SignedDigitalDocumentInputDTO(
           signedLine.signed_statement
-        ).toDocument() as MarketContract.Actions.StockOrder.IStockOrder['convert_statement'];
+        ).toDocument() as MarketContract.Actions.Convert.IConvert['convert_statement'];
 
         const { order } = await this.stockService.createStockOrder({
           coopname,
@@ -248,7 +248,10 @@ export class MarketplaceStockProposalService {
           quantity: item.quantity,
           checkout_id: proposal.id,
           order_hash: signedLine.order_hash,
+          // Заказ из остатка из членских: паевой конвертируется на сумму строки
+          // (тело + взнос) отдельным действием перед заказом.
           convert_statement,
+          convert_amount: expectedAmount,
         });
         order_ids.push(order.id);
       }

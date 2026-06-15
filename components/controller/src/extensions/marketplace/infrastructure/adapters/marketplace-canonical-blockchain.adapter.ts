@@ -68,6 +68,27 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     });
   }
 
+  async convert(data: MarketContract.Actions.Convert.IConvert): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit convert');
+    }
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.Convert.actionName,
+      authorization: [
+        {
+          actor: data.coopname,
+          permission: 'active',
+        },
+      ],
+      data,
+    });
+  }
+
   async markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) {
