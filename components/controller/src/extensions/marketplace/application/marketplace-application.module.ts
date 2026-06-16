@@ -17,7 +17,7 @@ import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboardin
 import { MarketplaceMemberWalletResolver } from './resolvers/marketplace-member-wallet.resolver';
 import { MarketplaceCoopAcceptanceResolver } from './resolvers/marketplace-coop-acceptance.resolver';
 import { MarketplaceRegistrationOfferResolver } from './resolvers/marketplace-registration-offer.resolver';
-import { MarketplaceWhitelistResolver } from './resolvers/marketplace-whitelist.resolver';
+import { MarketplaceSupplierResolver } from './resolvers/marketplace-supplier.resolver';
 import { MarketplaceVitrineResolver } from './resolvers/marketplace-vitrine.resolver';
 import { MarketplaceOfferResolver } from './resolvers/marketplace-offer.resolver';
 import {
@@ -37,9 +37,9 @@ import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-
 import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
 import {
-  MarketplaceWhitelistService,
-  MARKETPLACE_WHITELIST_SERVICE,
-} from './services/marketplace-whitelist.service';
+  MarketplaceSupplierRegistryService,
+  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+} from './services/marketplace-supplier-registry.service';
 import {
   MarketplaceKuChairmanService,
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
@@ -226,7 +226,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
     MarketplaceRegistrationOfferResolver,
-    MarketplaceWhitelistResolver,
+    MarketplaceSupplierResolver,
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,
@@ -266,12 +266,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
-    // Story 3.1
+    // Реестр поставщиков
     {
-      provide: MARKETPLACE_WHITELIST_SERVICE,
-      useClass: MarketplaceWhitelistService,
+      provide: MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+      useClass: MarketplaceSupplierRegistryService,
     },
-    MarketplaceWhitelistService,
+    MarketplaceSupplierRegistryService,
     // Эпик 2 / Story 2.x — источник isKuChairman (trustee ИЛИ trusted
     // одного из branches кооператива) для marketplace-роли `operator`.
     {
@@ -439,8 +439,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
-    MARKETPLACE_WHITELIST_SERVICE,
-    MarketplaceWhitelistService,
+    MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+    MarketplaceSupplierRegistryService,
     MARKETPLACE_KU_CHAIRMAN_SERVICE,
     MarketplaceKuChairmanService,
     MARKETPLACE_VITRINE_SERVICE,
@@ -465,7 +465,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceMemberWalletResolver,
     MarketplaceCoopAcceptanceResolver,
     MarketplaceRegistrationOfferResolver,
-    MarketplaceWhitelistResolver,
+    MarketplaceSupplierResolver,
     MarketplaceVitrineResolver,
     MarketplaceOfferResolver,
     MarketplaceModerationResolver,

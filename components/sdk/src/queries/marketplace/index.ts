@@ -109,3 +109,7 @@ export * as ListAids from './listAids'
 export * as AidStatementSignablePayload from './aidStatementSignablePayload'
 export * as CheckoutSignablePayloads from './checkoutSignablePayloads'
 export * as StockProposalSignablePayloads from './stockProposalSignablePayloads'
+/** Реестр поставщиков кооператива (стол администратора) */
+export * as ListSuppliers from './listSuppliers'
+/** Запись текущего пайщика в реестре поставщиков (онбординг стола поставщика) */
+export * as MySupplierState from './mySupplierState'

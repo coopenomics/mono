@@ -85,6 +85,10 @@ import {
   MarketplaceSupplierSettingsService,
 } from './marketplace-supplier-settings.service';
 import {
+  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+  MarketplaceSupplierRegistryService,
+} from './marketplace-supplier-registry.service';
+import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from './marketplace-order-supplier-action.service';
@@ -221,6 +225,8 @@ export class MarketplaceAplReceptionService {
     private readonly coreGateway: GatewayInteractorPort,
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
     private readonly supplierSettings: MarketplaceSupplierSettingsService,
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
     private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     private readonly documentDomainService: DocumentDomainService,
@@ -855,6 +861,18 @@ export class MarketplaceAplReceptionService {
    * statement остаётся ACCEPTED_TO_COOP, кооператив может повторить
    * через ручной retry (отдельный API-шаг).
    */
+  /**
+   * Назначение платежа выплаты поставщику — по его договору. Дата заключения
+   * (`ГГГГ-ММ-ДД`) приводится к человеческому виду `ДД.ММ.ГГГГ`. Если у
+   * поставщика номер договора не задан — обобщённая формулировка без акта.
+   */
+  private buildPayoutPurpose(contractNumber: string | null, contractDate: string | null): string {
+    if (!contractNumber) return 'Оплата по договору поставки';
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(contractDate ?? '');
+    const datePart = m ? ` от ${m[3]}.${m[2]}.${m[1]}` : '';
+    return `Оплата по договору № ${contractNumber}${datePart}`;
+  }
+
   private async initiatePayouts(
     reception: MarketplaceAplReceptionDomainEntity,
     allOrders: MarketplaceOrderDomainEntity[],
@@ -887,6 +905,19 @@ export class MarketplaceAplReceptionService {
       );
     }
 
+    // Назначение платежа — по договору поставщика (номер + дата заключения),
+    // одинаковое для всех заказов группы: оплата поставки как обычной покупки.
+    // Номер акта приёма-передачи в назначение НЕ выносим — основанием выступает
+    // договор. Режим налогообложения поставщика (НДС) пока не настраивается.
+    const supplier = await this.supplierRegistry.findByMember(
+      reception.coopname,
+      reception.offerer_account
+    );
+    const purpose = this.buildPayoutPurpose(
+      supplier?.contract_number ?? null,
+      supplier?.contract_date ?? null
+    );
+
     for (const order of groupOrders) {
       const orderHash = orderHashByOrderId.get(order.id);
       if (!orderHash) {
@@ -897,12 +928,6 @@ export class MarketplaceAplReceptionService {
       }
       const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
       const amount = (factQuantity * Number.parseFloat(order.price_per_unit)).toFixed(4);
-      // Назначение — по номеру акта (тот же 16-символьный номер, что в шапке
-      // печатного АПП «АКТ №…»): оплата поставки как обычной покупки.
-      // Формулировка про НДС намеренно не добавляется — режим налогообложения
-      // поставщика пока не настраивается (открытый вопрос).
-      const actNumber = computeActNumber(orderHash, reception.id);
-      const purpose = `Оплата по акту приёма-передачи № ${actNumber}`;
 
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,

@@ -119,3 +119,15 @@ export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
 export * as ConvertBranchFunds from './convertBranchFunds'
 export * as CreateAid from './createAid'
+
+// Реестр поставщиков
+/** Заявка пайщика на допуск поставщика (членская модель, путь 1) */
+export * as RequestSupplier from './requestSupplier'
+/** Прямое добавление поставщика администратором (путь 2) */
+export * as AddSupplier from './addSupplier'
+/** Одобрение заявки поставщика (председатель) */
+export * as ApproveSupplier from './approveSupplier'
+/** Отклонение заявки поставщика (председатель) */
+export * as RejectSupplier from './rejectSupplier'
+/** Смена модели работы поставщика (переподписание договора) */
+export * as SwitchSupplierModel from './switchSupplierModel'

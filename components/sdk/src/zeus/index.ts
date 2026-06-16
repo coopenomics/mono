@@ -6146,6 +6146,16 @@ export type ValueTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ValueTypes["MarketplaceReturnStatementSignedInput"] | undefined | null | Variable<any, string>
 };
+	["MarketplaceAddSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null | Variable<any, string>,
+	/** Номер договора */
+	contract_number?: string | undefined | null | Variable<any, string>,
+	/** Аккаунт поставщика */
+	member_account: string | Variable<any, string>,
+	/** Модель работы (по умолчанию членская) */
+	model?: ValueTypes["MarketplaceSupplierModel"] | undefined | null | Variable<any, string>
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -6154,10 +6164,6 @@ export type ValueTypes = {
 	offer_id: string | Variable<any, string>,
 	/** Количество единиц (целое, ≥ 1). */
 	quantity: number | Variable<any, string>
-};
-	["MarketplaceAddToWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
-	member_account: string | Variable<any, string>
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: AliasType<{
@@ -7782,10 +7788,6 @@ export type ValueTypes = {
 	/** Идентификатор предложения позиции. */
 	offer_id: string | Variable<any, string>
 };
-	["MarketplaceRemoveFromWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика */
-	member_account: string | Variable<any, string>
-};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string | Variable<any, string>
 };
@@ -7953,6 +7955,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceRequestStatistics']?: Omit<ValueTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
 }>;
+	["MarketplaceRequestSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date: string | Variable<any, string>,
+	/** Номер договора с кооперативом */
+	contract_number: string | Variable<any, string>
+};
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
 	proposal_id: ValueTypes["ID"] | Variable<any, string>
@@ -8403,6 +8411,34 @@ export type ValueTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
+	["MarketplaceSupplier"]: AliasType<{
+	/** Дата заключения договора */
+	contract_date?:boolean | `@${string}`,
+	/** Ссылка на документ договора */
+	contract_document_url?:boolean | `@${string}`,
+	/** Номер договора с поставщиком */
+	contract_number?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Идентификатор записи реестра */
+	id?:boolean | `@${string}`,
+	/** Аккаунт поставщика */
+	member_account?:boolean | `@${string}`,
+	/** Модель работы поставщика */
+	model?:boolean | `@${string}`,
+	/** Когда подана заявка / создана запись */
+	requested_at?:boolean | `@${string}`,
+	/** Кто подал/добавил запись */
+	requested_by?:boolean | `@${string}`,
+	/** Когда заявка рассмотрена */
+	reviewed_at?:boolean | `@${string}`,
+	/** Кто рассмотрел заявку (председатель) */
+	reviewed_by?:boolean | `@${string}`,
+	/** Статус допуска поставщика */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplier']?: Omit<ValueTypes["MarketplaceSupplier"], "...on MarketplaceSupplier">
+}>;
 	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
 ["MarketplaceSupplierBatchActionResult"]: AliasType<{
 	/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
@@ -8414,6 +8450,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierBatchActionResult']?: Omit<ValueTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
 }>;
+	["MarketplaceSupplierMemberInput"]: {
+	/** Аккаунт поставщика */
+	member_account: string | Variable<any, string>
+};
+	/** Модель работы поставщика: членская или боевая (паевая) */
+["MarketplaceSupplierModel"]:MarketplaceSupplierModel;
 	["MarketplaceSupplierPaymentSettings"]: AliasType<{
 	/** Есть ли у поставщика реквизиты, на которые уйдёт выплата. Без них публикация предложений недоступна. */
 	has_payout_method?:boolean | `@${string}`,
@@ -8424,6 +8466,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierPaymentSettings']?: Omit<ValueTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 }>;
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
+	["MarketplaceSwitchSupplierModelInput"]: {
+	/** Дата нового договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null | Variable<any, string>,
+	/** Номер нового договора (для членской) */
+	contract_number?: string | undefined | null | Variable<any, string>,
+	/** Новая модель работы */
+	model: ValueTypes["MarketplaceSupplierModel"] | Variable<any, string>
+};
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -8506,21 +8558,6 @@ export type ValueTypes = {
 	program_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceWalletEntry']?: Omit<ValueTypes["MarketplaceWalletEntry"], "...on MarketplaceWalletEntry">
-}>;
-	["MarketplaceWhitelistEntry"]: AliasType<{
-	added_at?:boolean | `@${string}`,
-	/** Кто добавил (eosio::name админа) */
-	added_by?:boolean | `@${string}`,
-	/** eosio::name кооператива */
-	coopname?:boolean | `@${string}`,
-	/** UUID записи whitelist */
-	id?:boolean | `@${string}`,
-	/** eosio::name пайщика-поставщика */
-	member_account?:boolean | `@${string}`,
-	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
-	role?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceWhitelistEntry']?: Omit<ValueTypes["MarketplaceWhitelistEntry"], "...on MarketplaceWhitelistEntry">
 }>;
 	["MarketplaceWithdrawOfferInput"]: {
 	id: string | Variable<any, string>
@@ -9032,10 +9069,11 @@ marketplaceAcceptOrdersBatch?: [{	input: ValueTypes["MarketplaceAcceptOrdersBatc
 marketplaceAcceptReturnAtVisit?: [{	data: ValueTypes["MarketplaceAcceptReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategoriesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
+marketplaceAddSupplier?: [{	input: ValueTypes["MarketplaceAddSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
-marketplaceAddToWhitelist?: [{	input: ValueTypes["MarketplaceAddToWhitelistInput"] | Variable<any, string>},ValueTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
+marketplaceApproveSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceAssignInventoryShelf?: [{	data: ValueTypes["MarketplaceAssignInventoryShelfInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceBindInventoryBarcode?: [{	data: ValueTypes["MarketplaceBindInventoryBarcodeInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceCancelAplReception?: [{	data: ValueTypes["MarketplaceAplReceptionByIdInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
@@ -9075,12 +9113,13 @@ marketplacePublishStock?: [{	data: ValueTypes["MarketplacePublishStockInput"] | 
 marketplaceRejectOffer?: [{	input: ValueTypes["MarketplaceRejectOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ValueTypes["MarketplaceRejectReturnAtVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ValueTypes["MarketplaceRejectReturnRemoteInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
+marketplaceRejectSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveFromCart?: [{	input: ValueTypes["MarketplaceRemoveFromCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
-marketplaceRemoveFromWhitelist?: [{	input: ValueTypes["MarketplaceRemoveFromWhitelistInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceRequestSupplier?: [{	input: ValueTypes["MarketplaceRequestSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
@@ -9092,6 +9131,7 @@ marketplaceSignAplReceptionAsSupplier?: [{	data: ValueTypes["MarketplaceSignAplR
 marketplaceSignOnboardingOffer?: [{	input: ValueTypes["MarketplaceSignOnboardingOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ValueTypes["MarketplaceSplitInventoryInput"] | Variable<any, string>},ValueTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ValueTypes["MarketplaceSubmitWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
+marketplaceSwitchSupplierModel?: [{	input: ValueTypes["MarketplaceSwitchSupplierModelInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceUnpublishStock?: [{	data: ValueTypes["MarketplaceUnpublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ValueTypes["MarketplaceUpdateCartItemInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
@@ -10544,13 +10584,15 @@ marketplaceListStock?: [{	braname?: string | undefined | null | Variable<any, st
 marketplaceListStockProposals?: [{	data?: ValueTypes["MarketplaceListStockProposalsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
 marketplaceListSupplierOrders?: [{	input?: ValueTypes["MarketplaceListOrdersInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSupplierPickupOrdersInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
-	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
-	marketplaceListWhitelist?:ValueTypes["MarketplaceWhitelistEntry"],
+	/** Реестр поставщиков кооператива */
+	marketplaceListSuppliers?:ValueTypes["MarketplaceSupplier"],
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates?:ValueTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
+	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
+	marketplaceMySupplierState?:ValueTypes["MarketplaceSupplier"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ValueTypes["MarketplaceOnboardingState"],
 	/** Открытый черновик проекта списания (если есть). Один на кооператив. */
@@ -17109,6 +17151,16 @@ export type ResolverInputTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ResolverInputTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAddSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер договора */
+	contract_number?: string | undefined | null,
+	/** Аккаунт поставщика */
+	member_account: string,
+	/** Модель работы (по умолчанию членская) */
+	model?: ResolverInputTypes["MarketplaceSupplierModel"] | undefined | null
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -17117,10 +17169,6 @@ export type ResolverInputTypes = {
 	offer_id: string,
 	/** Количество единиц (целое, ≥ 1). */
 	quantity: number
-};
-	["MarketplaceAddToWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
-	member_account: string
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: AliasType<{
@@ -18688,10 +18736,6 @@ export type ResolverInputTypes = {
 	/** Идентификатор предложения позиции. */
 	offer_id: string
 };
-	["MarketplaceRemoveFromWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика */
-	member_account: string
-};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
 };
@@ -18855,6 +18899,12 @@ export type ResolverInputTypes = {
 	totalRequests?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceRequestSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date: string,
+	/** Номер договора с кооперативом */
+	contract_number: string
+};
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
 	proposal_id: ResolverInputTypes["ID"]
@@ -19287,6 +19337,33 @@ export type ResolverInputTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
+	["MarketplaceSupplier"]: AliasType<{
+	/** Дата заключения договора */
+	contract_date?:boolean | `@${string}`,
+	/** Ссылка на документ договора */
+	contract_document_url?:boolean | `@${string}`,
+	/** Номер договора с поставщиком */
+	contract_number?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Идентификатор записи реестра */
+	id?:boolean | `@${string}`,
+	/** Аккаунт поставщика */
+	member_account?:boolean | `@${string}`,
+	/** Модель работы поставщика */
+	model?:boolean | `@${string}`,
+	/** Когда подана заявка / создана запись */
+	requested_at?:boolean | `@${string}`,
+	/** Кто подал/добавил запись */
+	requested_by?:boolean | `@${string}`,
+	/** Когда заявка рассмотрена */
+	reviewed_at?:boolean | `@${string}`,
+	/** Кто рассмотрел заявку (председатель) */
+	reviewed_by?:boolean | `@${string}`,
+	/** Статус допуска поставщика */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
 ["MarketplaceSupplierBatchActionResult"]: AliasType<{
 	/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
@@ -19297,6 +19374,12 @@ export type ResolverInputTypes = {
 	tx_hashes?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceSupplierMemberInput"]: {
+	/** Аккаунт поставщика */
+	member_account: string
+};
+	/** Модель работы поставщика: членская или боевая (паевая) */
+["MarketplaceSupplierModel"]:MarketplaceSupplierModel;
 	["MarketplaceSupplierPaymentSettings"]: AliasType<{
 	/** Есть ли у поставщика реквизиты, на которые уйдёт выплата. Без них публикация предложений недоступна. */
 	has_payout_method?:boolean | `@${string}`,
@@ -19306,6 +19389,16 @@ export type ResolverInputTypes = {
 	payout_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
+	["MarketplaceSwitchSupplierModelInput"]: {
+	/** Дата нового договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер нового договора (для членской) */
+	contract_number?: string | undefined | null,
+	/** Новая модель работы */
+	model: ResolverInputTypes["MarketplaceSupplierModel"]
+};
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: AliasType<{
 	/** Баланс персонального кошелька участника. */
@@ -19383,20 +19476,6 @@ export type ResolverInputTypes = {
 	name?:boolean | `@${string}`,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["MarketplaceWhitelistEntry"]: AliasType<{
-	added_at?:boolean | `@${string}`,
-	/** Кто добавил (eosio::name админа) */
-	added_by?:boolean | `@${string}`,
-	/** eosio::name кооператива */
-	coopname?:boolean | `@${string}`,
-	/** UUID записи whitelist */
-	id?:boolean | `@${string}`,
-	/** eosio::name пайщика-поставщика */
-	member_account?:boolean | `@${string}`,
-	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
-	role?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceWithdrawOfferInput"]: {
@@ -19894,10 +19973,11 @@ marketplaceAcceptOrdersBatch?: [{	input: ResolverInputTypes["MarketplaceAcceptOr
 marketplaceAcceptReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceAcceptReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCategoriesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
+marketplaceAddSupplier?: [{	input: ResolverInputTypes["MarketplaceAddSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
-marketplaceAddToWhitelist?: [{	input: ResolverInputTypes["MarketplaceAddToWhitelistInput"]},ResolverInputTypes["MarketplaceWhitelistEntry"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
+marketplaceApproveSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceAssignInventoryShelf?: [{	data: ResolverInputTypes["MarketplaceAssignInventoryShelfInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceBindInventoryBarcode?: [{	data: ResolverInputTypes["MarketplaceBindInventoryBarcodeInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceCancelAplReception?: [{	data: ResolverInputTypes["MarketplaceAplReceptionByIdInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
@@ -19937,12 +20017,13 @@ marketplacePublishStock?: [{	data: ResolverInputTypes["MarketplacePublishStockIn
 marketplaceRejectOffer?: [{	input: ResolverInputTypes["MarketplaceRejectOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRejectReturnAtVisit?: [{	data: ResolverInputTypes["MarketplaceRejectReturnAtVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceRejectReturnRemote?: [{	data: ResolverInputTypes["MarketplaceRejectReturnRemoteInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
+marketplaceRejectSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
 marketplaceRemoveFromCart?: [{	input: ResolverInputTypes["MarketplaceRemoveFromCartInput"]},ResolverInputTypes["MarketplaceCart"]],
-marketplaceRemoveFromWhitelist?: [{	input: ResolverInputTypes["MarketplaceRemoveFromWhitelistInput"]},boolean | `@${string}`],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceRequestSupplier?: [{	input: ResolverInputTypes["MarketplaceRequestSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
@@ -19954,6 +20035,7 @@ marketplaceSignAplReceptionAsSupplier?: [{	data: ResolverInputTypes["Marketplace
 marketplaceSignOnboardingOffer?: [{	input: ResolverInputTypes["MarketplaceSignOnboardingOfferInput"]},ResolverInputTypes["MarketplaceOnboardingState"]],
 marketplaceSplitInventory?: [{	data: ResolverInputTypes["MarketplaceSplitInventoryInput"]},ResolverInputTypes["MarketplaceInventoryMutationResult"]],
 marketplaceSubmitWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceSubmitWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
+marketplaceSwitchSupplierModel?: [{	input: ResolverInputTypes["MarketplaceSwitchSupplierModelInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceUnpublishStock?: [{	data: ResolverInputTypes["MarketplaceUnpublishStockInput"]},ResolverInputTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ResolverInputTypes["MarketplaceUpdateCartItemInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
@@ -21349,13 +21431,15 @@ marketplaceListStock?: [{	braname?: string | undefined | null},ResolverInputType
 marketplaceListStockProposals?: [{	data?: ResolverInputTypes["MarketplaceListStockProposalsInput"] | undefined | null},ResolverInputTypes["MarketplaceStockProposal"]],
 marketplaceListSupplierOrders?: [{	input?: ResolverInputTypes["MarketplaceListOrdersInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceOrderPaginationResult"]],
 marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceListSupplierPickupOrdersInput"]},ResolverInputTypes["MarketplaceOrder"]],
-	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
-	marketplaceListWhitelist?:ResolverInputTypes["MarketplaceWhitelistEntry"],
+	/** Реестр поставщиков кооператива */
+	marketplaceListSuppliers?:ResolverInputTypes["MarketplaceSupplier"],
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates?:ResolverInputTypes["MarketplaceWriteoffCandidate"],
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
+	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
+	marketplaceMySupplierState?:ResolverInputTypes["MarketplaceSupplier"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState?:ResolverInputTypes["MarketplaceOnboardingState"],
 	/** Открытый черновик проекта списания (если есть). Один на кооператив. */
@@ -27719,6 +27803,16 @@ export type ModelTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: ModelTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAddSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер договора */
+	contract_number?: string | undefined | null,
+	/** Аккаунт поставщика */
+	member_account: string,
+	/** Модель работы (по умолчанию членская) */
+	model?: ModelTypes["MarketplaceSupplierModel"] | undefined | null
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 	/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -27727,10 +27821,6 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Количество единиц (целое, ≥ 1). */
 	quantity: number
-};
-	["MarketplaceAddToWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
-	member_account: string
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: {
@@ -29212,10 +29302,6 @@ export type ModelTypes = {
 	/** Идентификатор предложения позиции. */
 	offer_id: string
 };
-	["MarketplaceRemoveFromWhitelistInput"]: {
-	/** eosio::name пайщика-поставщика */
-	member_account: string
-};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
 };
@@ -29374,6 +29460,12 @@ export type ModelTypes = {
 	requestsByCategory: Array<ModelTypes["MarketplaceCategoryRequestCount"]>,
 	/** Общее количество заявок */
 	totalRequests: number
+};
+	["MarketplaceRequestSupplierInput"]: {
+	/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date: string,
+	/** Номер договора с кооперативом */
+	contract_number: string
 };
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
@@ -29783,6 +29875,32 @@ export type ModelTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: ModelTypes["SignedDigitalDocumentInput"]
 };
+	["MarketplaceSupplier"]: {
+		/** Дата заключения договора */
+	contract_date?: string | undefined | null,
+	/** Ссылка на документ договора */
+	contract_document_url?: string | undefined | null,
+	/** Номер договора с поставщиком */
+	contract_number?: string | undefined | null,
+	/** Кооператив */
+	coopname: string,
+	/** Идентификатор записи реестра */
+	id: string,
+	/** Аккаунт поставщика */
+	member_account: string,
+	/** Модель работы поставщика */
+	model: ModelTypes["MarketplaceSupplierModel"],
+	/** Когда подана заявка / создана запись */
+	requested_at: ModelTypes["DateTime"],
+	/** Кто подал/добавил запись */
+	requested_by?: string | undefined | null,
+	/** Когда заявка рассмотрена */
+	reviewed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Кто рассмотрел заявку (председатель) */
+	reviewed_by?: string | undefined | null,
+	/** Статус допуска поставщика */
+	status: ModelTypes["MarketplaceSupplierStatus"]
+};
 	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
 ["MarketplaceSupplierBatchActionResult"]: {
 		/** Идентификатор партии-накопителя, в которую обёрнуты принятые заказы (null при отказе). */
@@ -29792,6 +29910,11 @@ export type ModelTypes = {
 	/** Идентификаторы транзакций приёма/отказа в блокчейне. */
 	tx_hashes: Array<string>
 };
+	["MarketplaceSupplierMemberInput"]: {
+	/** Аккаунт поставщика */
+	member_account: string
+};
+	["MarketplaceSupplierModel"]:MarketplaceSupplierModel;
 	["MarketplaceSupplierPaymentSettings"]: {
 		/** Есть ли у поставщика реквизиты, на которые уйдёт выплата. Без них публикация предложений недоступна. */
 	has_payout_method: boolean,
@@ -29799,6 +29922,15 @@ export type ModelTypes = {
 	payout_destination?: string | undefined | null,
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?: string | undefined | null
+};
+	["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
+	["MarketplaceSwitchSupplierModelInput"]: {
+	/** Дата нового договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер нового договора (для членской) */
+	contract_number?: string | undefined | null,
+	/** Новая модель работы */
+	model: ModelTypes["MarketplaceSupplierModel"]
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -29874,19 +30006,6 @@ export type ModelTypes = {
 	name: string,
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number
-};
-	["MarketplaceWhitelistEntry"]: {
-		added_at: ModelTypes["DateTime"],
-	/** Кто добавил (eosio::name админа) */
-	added_by?: string | undefined | null,
-	/** eosio::name кооператива */
-	coopname: string,
-	/** UUID записи whitelist */
-	id: string,
-	/** eosio::name пайщика-поставщика */
-	member_account: string,
-	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
-	role: string
 };
 	["MarketplaceWithdrawOfferInput"]: {
 	id: string
@@ -30767,14 +30886,16 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<ModelTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить поставщика в реестр напрямую с одобрением (путь 2, администратор) */
+	marketplaceAddSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
-	/** Добавить пайщика в whitelist поставщиков (admin) */
-	marketplaceAddToWhitelist: ModelTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
 	marketplaceApproveReturnVisit: ModelTypes["MarketplaceReturnClaimResult"],
+	/** Одобрить заявку поставщика (председатель) */
+	marketplaceApproveSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Оператор КУ назначает позиции склада полку (свободная строка) или очищает её. */
 	marketplaceAssignInventoryShelf: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
@@ -30855,6 +30976,8 @@ export type ModelTypes = {
 	marketplaceRejectReturnAtVisit: ModelTypes["MarketplaceReturnClaimResult"],
 	/** Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет. */
 	marketplaceRejectReturnRemote: ModelTypes["MarketplaceReturnClaimResult"],
+	/** Отклонить заявку поставщика (председатель) */
+	marketplaceRejectSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -30865,14 +30988,14 @@ export type ModelTypes = {
 	marketplaceRemoveAvailableCategoryTypes: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: ModelTypes["MarketplaceCart"],
-	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
-	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
 	marketplaceReplaceAvailableItems: Array<ModelTypes["MarketplaceAvailableCategory"]>,
 	/** Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION) */
 	marketplaceRepublishOffer: ModelTypes["MarketplaceOffer"],
+	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
+	marketplaceRequestSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -30899,6 +31022,8 @@ export type ModelTypes = {
 	marketplaceSplitInventory: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: ModelTypes["MarketplaceWriteoffProposal"],
+	/** Сменить модель работы поставщика (требует переподписания договора) */
+	marketplaceSwitchSupplierModel: ModelTypes["MarketplaceSupplier"],
 	/** Оператор снимает свободные позиции остатка с витрины каталога. */
 	marketplaceUnpublishStock: ModelTypes["MarketplaceUnpublishStockResult"],
 	/** Изменить количество позиции в корзине. */
@@ -32537,14 +32662,16 @@ export type ModelTypes = {
 	marketplaceListSupplierOrders: ModelTypes["MarketplaceOrderPaginationResult"],
 	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
 	marketplaceListSupplierPickupOrders: Array<ModelTypes["MarketplaceOrder"]>,
-	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
-	marketplaceListWhitelist: Array<ModelTypes["MarketplaceWhitelistEntry"]>,
+	/** Реестр поставщиков кооператива */
+	marketplaceListSuppliers: Array<ModelTypes["MarketplaceSupplier"]>,
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates: Array<ModelTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
+	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
+	marketplaceMySupplierState?: ModelTypes["MarketplaceSupplier"] | undefined | null,
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: ModelTypes["MarketplaceOnboardingState"],
 	/** Открытый черновик проекта списания (если есть). Один на кооператив. */
@@ -39151,6 +39278,16 @@ export type GraphQLTypes = {
 	/** Заявление пайщика со второй подписью председателя — принятие возврата оформляется со-подписью на том же документе. */
 	signed_statement?: GraphQLTypes["MarketplaceReturnStatementSignedInput"] | undefined | null
 };
+	["MarketplaceAddSupplierInput"]: {
+		/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер договора */
+	contract_number?: string | undefined | null,
+	/** Аккаунт поставщика */
+	member_account: string,
+	/** Модель работы (по умолчанию членская) */
+	model?: GraphQLTypes["MarketplaceSupplierModel"] | undefined | null
+};
 	/** Добавить позицию в корзину (с привязкой к пункту выдачи). */
 ["MarketplaceAddToCartInput"]: {
 		/** Пункт выдачи (ПВЗ) корзины. Если корзина пуста — задаёт её КУ; если непуста — должен совпадать с текущим КУ корзины (один заказ — один КУ). */
@@ -39159,10 +39296,6 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** Количество единиц (целое, ≥ 1). */
 	quantity: number
-};
-	["MarketplaceAddToWhitelistInput"]: {
-		/** eosio::name пайщика-поставщика (3-12 chars, [.12345abcdefghijklmnopqrstuvwxyz]) */
-	member_account: string
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
 ["MarketplaceAid"]: {
@@ -40788,10 +40921,6 @@ export type GraphQLTypes = {
 		/** Идентификатор предложения позиции. */
 	offer_id: string
 };
-	["MarketplaceRemoveFromWhitelistInput"]: {
-		/** eosio::name пайщика-поставщика */
-	member_account: string
-};
 	["MarketplaceRepublishOfferInput"]: {
 		id: string
 };
@@ -40958,6 +41087,12 @@ export type GraphQLTypes = {
 	/** Общее количество заявок */
 	totalRequests: number,
 	['...on MarketplaceRequestStatistics']: Omit<GraphQLTypes["MarketplaceRequestStatistics"], "...on MarketplaceRequestStatistics">
+};
+	["MarketplaceRequestSupplierInput"]: {
+		/** Дата заключения договора (ГГГГ-ММ-ДД) */
+	contract_date: string,
+	/** Номер договора с кооперативом */
+	contract_number: string
 };
 	["MarketplaceResolveStockProposalInput"]: {
 		/** Предложение со склада кооператива. */
@@ -41409,6 +41544,34 @@ export type GraphQLTypes = {
 	/** Подписанное председателем Заявление о списании скоропорта (registry_id=1106). */
 	signed_statement: GraphQLTypes["SignedDigitalDocumentInput"]
 };
+	["MarketplaceSupplier"]: {
+	__typename: "MarketplaceSupplier",
+	/** Дата заключения договора */
+	contract_date?: string | undefined | null,
+	/** Ссылка на документ договора */
+	contract_document_url?: string | undefined | null,
+	/** Номер договора с поставщиком */
+	contract_number?: string | undefined | null,
+	/** Кооператив */
+	coopname: string,
+	/** Идентификатор записи реестра */
+	id: string,
+	/** Аккаунт поставщика */
+	member_account: string,
+	/** Модель работы поставщика */
+	model: GraphQLTypes["MarketplaceSupplierModel"],
+	/** Когда подана заявка / создана запись */
+	requested_at: GraphQLTypes["DateTime"],
+	/** Кто подал/добавил запись */
+	requested_by?: string | undefined | null,
+	/** Когда заявка рассмотрена */
+	reviewed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Кто рассмотрел заявку (председатель) */
+	reviewed_by?: string | undefined | null,
+	/** Статус допуска поставщика */
+	status: GraphQLTypes["MarketplaceSupplierStatus"],
+	['...on MarketplaceSupplier']: Omit<GraphQLTypes["MarketplaceSupplier"], "...on MarketplaceSupplier">
+};
 	/** Результат массового приёма или отказа поставщика над выбранными заказами. */
 ["MarketplaceSupplierBatchActionResult"]: {
 	__typename: "MarketplaceSupplierBatchActionResult",
@@ -41420,6 +41583,12 @@ export type GraphQLTypes = {
 	tx_hashes: Array<string>,
 	['...on MarketplaceSupplierBatchActionResult']: Omit<GraphQLTypes["MarketplaceSupplierBatchActionResult"], "...on MarketplaceSupplierBatchActionResult">
 };
+	["MarketplaceSupplierMemberInput"]: {
+		/** Аккаунт поставщика */
+	member_account: string
+};
+	/** Модель работы поставщика: членская или боевая (паевая) */
+["MarketplaceSupplierModel"]: MarketplaceSupplierModel;
 	["MarketplaceSupplierPaymentSettings"]: {
 	__typename: "MarketplaceSupplierPaymentSettings",
 	/** Есть ли у поставщика реквизиты, на которые уйдёт выплата. Без них публикация предложений недоступна. */
@@ -41429,6 +41598,16 @@ export type GraphQLTypes = {
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?: string | undefined | null,
 	['...on MarketplaceSupplierPaymentSettings']: Omit<GraphQLTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
+};
+	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+["MarketplaceSupplierStatus"]: MarketplaceSupplierStatus;
+	["MarketplaceSwitchSupplierModelInput"]: {
+		/** Дата нового договора (ГГГГ-ММ-ДД) */
+	contract_date?: string | undefined | null,
+	/** Номер нового договора (для членской) */
+	contract_number?: string | undefined | null,
+	/** Новая модель работы */
+	model: GraphQLTypes["MarketplaceSupplierModel"]
 };
 	/** Участник распределения членских взносов кооперативного участка. */
 ["MarketplaceTrusteeWeight"]: {
@@ -41512,21 +41691,6 @@ export type GraphQLTypes = {
 	/** program_id: 1 — Цифровой Кошелёк, 2 — Стол Заказов */
 	program_id: number,
 	['...on MarketplaceWalletEntry']: Omit<GraphQLTypes["MarketplaceWalletEntry"], "...on MarketplaceWalletEntry">
-};
-	["MarketplaceWhitelistEntry"]: {
-	__typename: "MarketplaceWhitelistEntry",
-	added_at: GraphQLTypes["DateTime"],
-	/** Кто добавил (eosio::name админа) */
-	added_by?: string | undefined | null,
-	/** eosio::name кооператива */
-	coopname: string,
-	/** UUID записи whitelist */
-	id: string,
-	/** eosio::name пайщика-поставщика */
-	member_account: string,
-	/** auto-coop — сам кооператив (неудаляема, FR5); manual — добавлен админом */
-	role: string,
-	['...on MarketplaceWhitelistEntry']: Omit<GraphQLTypes["MarketplaceWhitelistEntry"], "...on MarketplaceWhitelistEntry">
 };
 	["MarketplaceWithdrawOfferInput"]: {
 		id: string
@@ -42440,14 +42604,16 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	marketplaceAddAvailableCategoryTypes: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
+	/** Добавить поставщика в реестр напрямую с одобрением (путь 2, администратор) */
+	marketplaceAddSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
-	/** Добавить пайщика в whitelist поставщиков (admin) */
-	marketplaceAddToWhitelist: GraphQLTypes["MarketplaceWhitelistEntry"],
 	/** Одобрить Offer (status → ACTIVE) (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
 	marketplaceApproveReturnVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
+	/** Одобрить заявку поставщика (председатель) */
+	marketplaceApproveSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Оператор КУ назначает позиции склада полку (свободная строка) или очищает её. */
 	marketplaceAssignInventoryShelf: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
@@ -42528,6 +42694,8 @@ export type GraphQLTypes = {
 	marketplaceRejectReturnAtVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
 	/** Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет. */
 	marketplaceRejectReturnRemote: GraphQLTypes["MarketplaceReturnClaimResult"],
+	/** Отклонить заявку поставщика (председатель) */
+	marketplaceRejectSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Удалить категории из доступных для кооператива (включая все их типы)
 
 Требуемые роли: chairman.  */
@@ -42538,14 +42706,14 @@ export type GraphQLTypes = {
 	marketplaceRemoveAvailableCategoryTypes: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: GraphQLTypes["MarketplaceCart"],
-	/** Удалить пайщика из whitelist (admin); auto-coop запись неудаляема */
-	marketplaceRemoveFromWhitelist: boolean,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
 	marketplaceReplaceAvailableItems: Array<GraphQLTypes["MarketplaceAvailableCategory"]>,
 	/** Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION) */
 	marketplaceRepublishOffer: GraphQLTypes["MarketplaceOffer"],
+	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
+	marketplaceRequestSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -42572,6 +42740,8 @@ export type GraphQLTypes = {
 	marketplaceSplitInventory: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff). */
 	marketplaceSubmitWriteoffDraft: GraphQLTypes["MarketplaceWriteoffProposal"],
+	/** Сменить модель работы поставщика (требует переподписания договора) */
+	marketplaceSwitchSupplierModel: GraphQLTypes["MarketplaceSupplier"],
 	/** Оператор снимает свободные позиции остатка с витрины каталога. */
 	marketplaceUnpublishStock: GraphQLTypes["MarketplaceUnpublishStockResult"],
 	/** Изменить количество позиции в корзине. */
@@ -44345,14 +44515,16 @@ export type GraphQLTypes = {
 	marketplaceListSupplierOrders: GraphQLTypes["MarketplaceOrderPaginationResult"],
 	/** Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка. */
 	marketplaceListSupplierPickupOrders: Array<GraphQLTypes["MarketplaceOrder"]>,
-	/** Список пайщиков-поставщиков, допущенных к публикации оферт */
-	marketplaceListWhitelist: Array<GraphQLTypes["MarketplaceWhitelistEntry"]>,
+	/** Реестр поставщиков кооператива */
+	marketplaceListSuppliers: Array<GraphQLTypes["MarketplaceSupplier"]>,
 	/** Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания. */
 	marketplaceListWriteoffCandidates: Array<GraphQLTypes["MarketplaceWriteoffCandidate"]>,
 	/** Лента всех проектов списания кооператива с фильтром по статусу. */
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика, релевантные столу заказов: w.wal.share, w.wal.member, w.mkt.order */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
+	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
+	marketplaceMySupplierState?: GraphQLTypes["MarketplaceSupplier"] | undefined | null,
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
 	marketplaceOnboardingState: GraphQLTypes["MarketplaceOnboardingState"],
 	/** Открытый черновик проекта списания (если есть). Один на кооператив. */
@@ -46408,6 +46580,17 @@ export enum MarketplaceStockProposalStatus {
 	DECLINED = "DECLINED",
 	PROPOSED = "PROPOSED"
 }
+/** Модель работы поставщика: членская или боевая (паевая) */
+export enum MarketplaceSupplierModel {
+	MEMBERSHIP = "MEMBERSHIP",
+	SHARE = "SHARE"
+}
+/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
+export enum MarketplaceSupplierStatus {
+	APPROVED = "APPROVED",
+	PENDING = "PENDING",
+	REJECTED = "REJECTED"
+}
 /** Состояние проекта решения совета о списании скоропорта на пути от черновика до итогового списания. */
 export enum MarketplaceWriteoffProposalStatus {
 	AUTHORIZED = "AUTHORIZED",
@@ -46861,8 +47044,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAcceptCppInput"]: ValueTypes["MarketplaceAcceptCppInput"];
 	["MarketplaceAcceptOrdersBatchInput"]: ValueTypes["MarketplaceAcceptOrdersBatchInput"];
 	["MarketplaceAcceptReturnAtVisitInput"]: ValueTypes["MarketplaceAcceptReturnAtVisitInput"];
+	["MarketplaceAddSupplierInput"]: ValueTypes["MarketplaceAddSupplierInput"];
 	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
-	["MarketplaceAddToWhitelistInput"]: ValueTypes["MarketplaceAddToWhitelistInput"];
 	["MarketplaceAidStatementSignablePayloadInput"]: ValueTypes["MarketplaceAidStatementSignablePayloadInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
@@ -46943,8 +47126,8 @@ type ZEUS_VARIABLES = {
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
 	["MarketplaceRemoveFromCartInput"]: ValueTypes["MarketplaceRemoveFromCartInput"];
-	["MarketplaceRemoveFromWhitelistInput"]: ValueTypes["MarketplaceRemoveFromWhitelistInput"];
 	["MarketplaceRepublishOfferInput"]: ValueTypes["MarketplaceRepublishOfferInput"];
+	["MarketplaceRequestSupplierInput"]: ValueTypes["MarketplaceRequestSupplierInput"];
 	["MarketplaceResolveStockProposalInput"]: ValueTypes["MarketplaceResolveStockProposalInput"];
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
 	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
@@ -46971,6 +47154,10 @@ type ZEUS_VARIABLES = {
 	["MarketplaceStockProposalItemInput"]: ValueTypes["MarketplaceStockProposalItemInput"];
 	["MarketplaceStockProposalStatus"]: ValueTypes["MarketplaceStockProposalStatus"];
 	["MarketplaceSubmitWriteoffDraftInput"]: ValueTypes["MarketplaceSubmitWriteoffDraftInput"];
+	["MarketplaceSupplierMemberInput"]: ValueTypes["MarketplaceSupplierMemberInput"];
+	["MarketplaceSupplierModel"]: ValueTypes["MarketplaceSupplierModel"];
+	["MarketplaceSupplierStatus"]: ValueTypes["MarketplaceSupplierStatus"];
+	["MarketplaceSwitchSupplierModelInput"]: ValueTypes["MarketplaceSwitchSupplierModelInput"];
 	["MarketplaceUnpublishStockInput"]: ValueTypes["MarketplaceUnpublishStockInput"];
 	["MarketplaceUpdateCartItemInput"]: ValueTypes["MarketplaceUpdateCartItemInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];

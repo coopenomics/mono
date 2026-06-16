@@ -104,7 +104,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Offer: ['moderate', 'read', 'read:all'],
     Order: ['read:all'],
     KU: ['manage'],
-    Whitelist: ['manage'],
+    // Реестр поставщиков: администратор видит реестр и добавляет поставщика
+    // напрямую (путь 2). Одобрение/отклонение заявок (`approve`/`reject`) —
+    // действие председателя, проверяется отдельно в резолвере по Chairman-роли.
+    Supplier: ['manage'],
     Vitrine: ['manage', 'read'],
     Warehouse: ['read:all'],
     Shipment: ['read:all'],
