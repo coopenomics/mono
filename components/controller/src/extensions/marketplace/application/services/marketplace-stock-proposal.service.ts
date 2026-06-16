@@ -71,7 +71,17 @@ export interface MarketplaceStockAcceptOrderLine {
  * `convert` == null — пайщику подписывать нечего.
  */
 export interface MarketplaceStockAcceptPayload {
+  /**
+   * Сколько из стоимости докладки спишется с уже внесённых членских средств
+   * «Стола заказов» (покрытие имеющимся; включая высвобожденные недосдачей).
+   * Вместе с convert.amount даёт полную стоимость докладки.
+   */
+  member_amount: string;
   order_lines: MarketplaceStockAcceptOrderLine[];
+  /**
+   * Дефицит сверх членских — доплата с паевого через Заявление о конвертации.
+   * null, если членских хватает (подписывать нечего).
+   */
   convert: {
     amount: string;
     convert_hash: string;
@@ -153,9 +163,12 @@ export class MarketplaceStockProposalService {
     // только его, одним заявлением.
     const memberUnits = await this.readMemberUnits(coopname, member_account);
     const deficitUnits = neededUnits > memberUnits ? neededUnits - memberUnits : 0n;
+    // Покрытие имеющимися членскими = вся стоимость минус дефицит (= min(needed, member)).
+    const coveredUnits = neededUnits - deficitUnits;
+    const member_amount = this.economyService.unitsToAsset(coveredUnits);
 
     if (deficitUnits === 0n) {
-      return { order_lines, convert: null };
+      return { member_amount, order_lines, convert: null };
     }
 
     const amount = this.economyService.unitsToAsset(deficitUnits);
@@ -170,7 +183,7 @@ export class MarketplaceStockProposalService {
       skip_save: false,
     };
     const document = await this.documentDomainService.generateDocument({ data: action });
-    return { order_lines, convert: { amount, convert_hash, document } };
+    return { member_amount, order_lines, convert: { amount, convert_hash, document } };
   }
 
   /** Баланс членского кошелька «Стола заказов» пайщика в минимальных единицах. */

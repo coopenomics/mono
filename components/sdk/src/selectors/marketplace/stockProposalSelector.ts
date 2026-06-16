@@ -11,6 +11,7 @@ export const marketplaceStockAcceptPayloadSelector = Selector('MarketplaceStockA
     offer_id: true,
     order_hash: true,
   },
+  member_amount: true,
   convert_amount: true,
   convert_hash: true,
   convert_document: rawDocumentSelector,

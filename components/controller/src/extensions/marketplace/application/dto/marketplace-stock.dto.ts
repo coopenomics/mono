@@ -120,8 +120,13 @@ export class MarketplaceStockAcceptPayloadDTO {
   public readonly order_lines!: MarketplaceStockAcceptOrderLineDTO[];
 
   @Field(() => String, {
+    description: 'Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского).',
+  })
+  public readonly member_amount!: string;
+
+  @Field(() => String, {
     nullable: true,
-    description: 'Сумма единой доплаты к конвертации. Пусто — членских средств хватает, доплаты нет.',
+    description: 'Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет.',
   })
   public readonly convert_amount?: string | null;
 

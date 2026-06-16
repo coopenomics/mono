@@ -8296,12 +8296,14 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>
 };
 	["MarketplaceStockAcceptPayload"]: AliasType<{
-	/** Сумма единой доплаты к конвертации. Пусто — членских средств хватает, доплаты нет. */
+	/** Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет. */
 	convert_amount?:boolean | `@${string}`,
 	/** Единое Заявление о конвертации к подписи. Пусто — подписывать нечего (доплаты нет). */
 	convert_document?:ValueTypes["GeneratedDocument"],
 	/** Идентификатор Заявления о конвертации (для подписи). */
 	convert_hash?:boolean | `@${string}`,
+	/** Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского). */
+	member_amount?:boolean | `@${string}`,
 	/** Строки-заказы к созданию — вернуть их в принятии предложения. */
 	order_lines?:ValueTypes["MarketplaceStockAcceptOrderLine"],
 		__typename?: boolean | `@${string}`,
@@ -19144,12 +19146,14 @@ export type ResolverInputTypes = {
 	order_hash: string
 };
 	["MarketplaceStockAcceptPayload"]: AliasType<{
-	/** Сумма единой доплаты к конвертации. Пусто — членских средств хватает, доплаты нет. */
+	/** Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет. */
 	convert_amount?:boolean | `@${string}`,
 	/** Единое Заявление о конвертации к подписи. Пусто — подписывать нечего (доплаты нет). */
 	convert_document?:ResolverInputTypes["GeneratedDocument"],
 	/** Идентификатор Заявления о конвертации (для подписи). */
 	convert_hash?:boolean | `@${string}`,
+	/** Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского). */
+	member_amount?:boolean | `@${string}`,
 	/** Строки-заказы к созданию — вернуть их в принятии предложения. */
 	order_lines?:ResolverInputTypes["MarketplaceStockAcceptOrderLine"],
 		__typename?: boolean | `@${string}`
@@ -29606,12 +29610,14 @@ export type ModelTypes = {
 	order_hash: string
 };
 	["MarketplaceStockAcceptPayload"]: {
-		/** Сумма единой доплаты к конвертации. Пусто — членских средств хватает, доплаты нет. */
+		/** Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет. */
 	convert_amount?: string | undefined | null,
 	/** Единое Заявление о конвертации к подписи. Пусто — подписывать нечего (доплаты нет). */
 	convert_document?: ModelTypes["GeneratedDocument"] | undefined | null,
 	/** Идентификатор Заявления о конвертации (для подписи). */
 	convert_hash?: string | undefined | null,
+	/** Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского). */
+	member_amount: string,
 	/** Строки-заказы к созданию — вернуть их в принятии предложения. */
 	order_lines: Array<ModelTypes["MarketplaceStockAcceptOrderLine"]>
 };
@@ -41179,12 +41185,14 @@ export type GraphQLTypes = {
 };
 	["MarketplaceStockAcceptPayload"]: {
 	__typename: "MarketplaceStockAcceptPayload",
-	/** Сумма единой доплаты к конвертации. Пусто — членских средств хватает, доплаты нет. */
+	/** Сумма доплаты с паевого через конвертацию. Пусто — членских средств хватает, доплаты с паевого нет. */
 	convert_amount?: string | undefined | null,
 	/** Единое Заявление о конвертации к подписи. Пусто — подписывать нечего (доплаты нет). */
 	convert_document?: GraphQLTypes["GeneratedDocument"] | undefined | null,
 	/** Идентификатор Заявления о конвертации (для подписи). */
 	convert_hash?: string | undefined | null,
+	/** Сколько спишется с уже внесённых членских средств «Стола заказов» (доплата с членского). */
+	member_amount: string,
 	/** Строки-заказы к созданию — вернуть их в принятии предложения. */
 	order_lines: Array<GraphQLTypes["MarketplaceStockAcceptOrderLine"]>,
 	['...on MarketplaceStockAcceptPayload']: Omit<GraphQLTypes["MarketplaceStockAcceptPayload"], "...on MarketplaceStockAcceptPayload">

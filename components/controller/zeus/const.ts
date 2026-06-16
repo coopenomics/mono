@@ -4841,6 +4841,7 @@ export const ReturnTypes: Record<string,any> = {
 		convert_amount:"String",
 		convert_document:"GeneratedDocument",
 		convert_hash:"String",
+		member_amount:"String",
 		order_lines:"MarketplaceStockAcceptOrderLine"
 	},
 	MarketplaceStockProposal:{

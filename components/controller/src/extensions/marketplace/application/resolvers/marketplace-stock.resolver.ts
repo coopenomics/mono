@@ -194,6 +194,7 @@ export class MarketplaceStockResolver {
         offer_id: l.offer_id,
         order_hash: l.order_hash,
       })),
+      member_amount: payload.member_amount,
       convert_amount: payload.convert?.amount ?? null,
       convert_hash: payload.convert?.convert_hash ?? null,
       convert_document,
