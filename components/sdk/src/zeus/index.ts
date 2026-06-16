@@ -10445,6 +10445,7 @@ getReportPreview?: [{	input: ValueTypes["ReportPreviewInput"] | Variable<any, st
 	getReportRequisites?:ValueTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ValueTypes["SystemInfo"],
+getUserWallets?: [{	coopname?: string | undefined | null | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["UserWallet"]],
 getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] | Variable<any, string>},ValueTypes["WebPushSubscriptionDto"]],
 	/** Получить статистику веб-пуш подписок (только для председателя)
 
@@ -11930,6 +11931,26 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 }>;
 	/** Статус пользователя */
 ["UserStatus"]:UserStatus;
+	["UserWallet"]: AliasType<{
+	/** Доступный остаток (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Заблокированный остаток (формат: "0.0000 RUB") */
+	blocked?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Человекочитаемое название кошелька */
+	human_name?:boolean | `@${string}`,
+	/** Идентификатор записи кошелька */
+	id?:boolean | `@${string}`,
+	/** Идентификатор программы кошелька */
+	program_id?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+	/** Идентификатор кошелька */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on UserWallet']?: Omit<ValueTypes["UserWallet"], "...on UserWallet">
+}>;
 	["ValidateAttributeValuesInput"]: {
 	/** ID атрибута */
 	attributeId: number | Variable<any, string>,
@@ -21229,6 +21250,7 @@ getReportPreview?: [{	input: ResolverInputTypes["ReportPreviewInput"]},ResolverI
 	getReportRequisites?:ResolverInputTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ResolverInputTypes["SystemInfo"],
+getUserWallets?: [{	coopname?: string | undefined | null,	username: string},ResolverInputTypes["UserWallet"]],
 getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsInput"]},ResolverInputTypes["WebPushSubscriptionDto"]],
 	/** Получить статистику веб-пуш подписок (только для председателя)
 
@@ -22676,6 +22698,25 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 }>;
 	/** Статус пользователя */
 ["UserStatus"]:UserStatus;
+	["UserWallet"]: AliasType<{
+	/** Доступный остаток (формат: "100.0000 RUB") */
+	available?:boolean | `@${string}`,
+	/** Заблокированный остаток (формат: "0.0000 RUB") */
+	blocked?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Человекочитаемое название кошелька */
+	human_name?:boolean | `@${string}`,
+	/** Идентификатор записи кошелька */
+	id?:boolean | `@${string}`,
+	/** Идентификатор программы кошелька */
+	program_id?:boolean | `@${string}`,
+	/** Имя пользователя */
+	username?:boolean | `@${string}`,
+	/** Идентификатор кошелька */
+	wallet_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ValidateAttributeValuesInput"]: {
 	/** ID атрибута */
 	attributeId: number,
@@ -32332,6 +32373,10 @@ export type ModelTypes = {
 	getReportRequisites: ModelTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: ModelTypes["SystemInfo"],
+	/** Кошельки пайщика — каждый кошелёк отдельной строкой, без объединения паевого и членского
+
+Требуемые роли: chairman, member.  */
+	getUserWallets: Array<ModelTypes["UserWallet"]>,
 	/** Получить веб-пуш подписки пользователя
 
 Требуемые роли: chairman, member.  */
@@ -33814,6 +33859,24 @@ export type ModelTypes = {
 	/** Объединение сертификатов пользователей (сокращенная информация) */
 ["UserCertificateUnion"]:ModelTypes["EntrepreneurCertificate"] | ModelTypes["IndividualCertificate"] | ModelTypes["OrganizationCertificate"];
 	["UserStatus"]:UserStatus;
+	["UserWallet"]: {
+		/** Доступный остаток (формат: "100.0000 RUB") */
+	available: string,
+	/** Заблокированный остаток (формат: "0.0000 RUB") */
+	blocked: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Идентификатор записи кошелька */
+	id: ModelTypes["ID"],
+	/** Идентификатор программы кошелька */
+	program_id?: ModelTypes["ID"] | undefined | null,
+	/** Имя пользователя */
+	username: string,
+	/** Идентификатор кошелька */
+	wallet_name: string
+};
 	["ValidateAttributeValuesInput"]: {
 	/** ID атрибута */
 	attributeId: number,
@@ -44118,6 +44181,10 @@ export type GraphQLTypes = {
 	getReportRequisites: GraphQLTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: GraphQLTypes["SystemInfo"],
+	/** Кошельки пайщика — каждый кошелёк отдельной строкой, без объединения паевого и членского
+
+Требуемые роли: chairman, member.  */
+	getUserWallets: Array<GraphQLTypes["UserWallet"]>,
 	/** Получить веб-пуш подписки пользователя
 
 Требуемые роли: chairman, member.  */
@@ -45695,6 +45762,26 @@ export type GraphQLTypes = {
 };
 	/** Статус пользователя */
 ["UserStatus"]: UserStatus;
+	["UserWallet"]: {
+	__typename: "UserWallet",
+	/** Доступный остаток (формат: "100.0000 RUB") */
+	available: string,
+	/** Заблокированный остаток (формат: "0.0000 RUB") */
+	blocked: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Человекочитаемое название кошелька */
+	human_name: string,
+	/** Идентификатор записи кошелька */
+	id: GraphQLTypes["ID"],
+	/** Идентификатор программы кошелька */
+	program_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Имя пользователя */
+	username: string,
+	/** Идентификатор кошелька */
+	wallet_name: string,
+	['...on UserWallet']: Omit<GraphQLTypes["UserWallet"], "...on UserWallet">
+};
 	["ValidateAttributeValuesInput"]: {
 		/** ID атрибута */
 	attributeId: number,

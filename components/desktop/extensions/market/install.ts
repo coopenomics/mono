@@ -1,4 +1,5 @@
 import { markRaw } from 'vue'
+import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
 import { CartPage } from 'src/pages/Marketplace/Cart'
@@ -838,3 +839,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     },
   ]
 }
+
+/**
+ * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
+ * Членский кошелёк программы (`w.mkt.member`) — туда зачисляются возвратные
+ * членские средства стола заказов. Главный членский ЦК (`w.wal.member`) и
+ * резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ */
+export const walletCards: DesktopWalletCard[] = [
+  {
+    wallet_name: 'w.mkt.member',
+    label: 'Членский кошелёк',
+    description: 'Стол заказов · возврату не подлежит',
+    accent: 'wallet',
+    icon: 'card_membership',
+  },
+]

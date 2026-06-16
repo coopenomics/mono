@@ -2100,6 +2100,9 @@ export const AllTypesProps: Record<string,any> = {
 		getReportPreview:{
 			input:"ReportPreviewInput"
 		},
+		getUserWallets:{
+
+		},
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
 		},
@@ -5880,6 +5883,7 @@ export const ReturnTypes: Record<string,any> = {
 		getReportPreview:"ReportPreview",
 		getReportRequisites:"ReportRequisitesView",
 		getSystemInfo:"SystemInfo",
+		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		listExpensePlans:"ExpensePlan",
@@ -6265,6 +6269,16 @@ export const ReturnTypes: Record<string,any> = {
 		"...on EntrepreneurCertificate":"EntrepreneurCertificate",
 		"...on IndividualCertificate":"IndividualCertificate",
 		"...on OrganizationCertificate":"OrganizationCertificate"
+	},
+	UserWallet:{
+		available:"String",
+		blocked:"String",
+		coopname:"String",
+		human_name:"String",
+		id:"ID",
+		program_id:"ID",
+		username:"String",
+		wallet_name:"String"
 	},
 	Vars:{
 		confidential_email:"String",
