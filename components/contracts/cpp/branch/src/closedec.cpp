@@ -30,17 +30,32 @@
   bool all_voted = dec.signed_ballots >= dec.participants.size();
   eosio::check(window_passed || all_voted, "Голосование ещё идёт");
 
-  // Протокол завершает пакет документов собрания в реестре (привязка к якорному хэшу)
-  Soviet::make_complete_document(_branch, coopname, dec.initiator, get_valid_soviet_action("branchdec"_n), hash, protocol);
-
   if (dec.type == "free"_n) {
-    // Свободное решение зафиксировано протоколом и завершается (история — в журнале действий)
+    // Свободное решение: протокол — самостоятельный завершённый документ (отдельный пакет в реестре).
+    Soviet::make_complete_document(_branch, coopname, dec.initiator, get_valid_soviet_action("branchdec"_n), hash, protocol);
+    // Решение зафиксировано протоколом и завершается (история — в журнале действий)
     decision_index decisions(_branch, coopname.value);
     auto itr = decisions.find(dec.id);
     erase_coodecquests(coopname, dec.id);
     decisions.erase(itr);
     return;
   }
+
+  // Решение об учреждении участка: протокол НЕ заводит отдельный пакет, а линкуется по
+  // якорному хэшу к пакету заявления председателя в совет (его заводит exec → create_agenda).
+  // Иначе процесс плодит две почти одинаковые карточки документов (протокол + заявление)
+  // вместо одной: заявление в совет — единственный statement пакета, всё прочее (протокол,
+  // бюллетени, договор матответственности, доверенность, решение совета) — приложения к нему.
+  Action::send<newlink_interface>(
+    _soviet,
+    "newlink"_n,
+    _branch,
+    coopname,
+    dec.initiator,
+    get_valid_soviet_action("branchdec"_n),
+    hash,
+    protocol
+  );
 
   // Автоматизируемое решение — переходит в ожидание исполнения (exec → совет)
   decision_index decisions(_branch, coopname.value);
