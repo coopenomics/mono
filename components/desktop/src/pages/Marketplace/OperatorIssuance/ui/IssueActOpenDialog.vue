@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton } from 'src/shared/ui/base';
+import { BaseButton, BaseBadge } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
 import {
@@ -16,8 +16,10 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
   openIssuance,
+  createStockProposal,
   type MarketplaceOrderIssuanceView,
 } from '../api';
+import StockPickDialog, { type StockPickLine } from './StockPickDialog.vue';
 
 /**
  * Story 6.1 / FR21: full-screen takeover для открытия выдачи на ПВЗ —
@@ -64,6 +66,35 @@ const facts = ref<Record<string, FactState>>({});
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 const signing = ref(false);
+
+// ── Докладка со склада (requirement 76): оператор добавляет в этот же акт
+// опубликованный остаток КУ; пайщику он уйдёт вместе с заказом (принятие и
+// подпись — у пайщика). Здесь — только набор корзины сверх заказа. ─────────
+const stockPickOpen = ref(false);
+const restockLines = ref<StockPickLine[]>([]);
+const recipientAccount = computed(() => props.orders[0]?.orderer_account ?? '');
+const issueBraname = computed(() => props.orders[0]?.delivery_braname ?? '');
+const restockTotal = computed(() =>
+  restockLines.value
+    .reduce((sum, l) => sum + l.quantity * Number.parseFloat(l.price_per_unit), 0)
+    .toFixed(4),
+);
+
+function restockLineSum(l: StockPickLine): string {
+  return (Number.parseFloat(l.price_per_unit) * l.quantity).toFixed(4);
+}
+function onAddRestock(lines: StockPickLine[]): void {
+  const map = new Map(restockLines.value.map((l) => [l.offer_id, { ...l }]));
+  for (const line of lines) {
+    const existing = map.get(line.offer_id);
+    if (existing) existing.quantity += line.quantity;
+    else map.set(line.offer_id, { ...line });
+  }
+  restockLines.value = [...map.values()];
+}
+function removeRestock(offer_id: string): void {
+  restockLines.value = restockLines.value.filter((l) => l.offer_id !== offer_id);
+}
 // Единый паттерн «Показать / Скрыть акты»: таблица сверки прячется при показе.
 const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewHtml);
 
@@ -212,6 +243,7 @@ watch(
     if (visible && props.orders.length) {
       initFacts();
       resetActs();
+      restockLines.value = [];
       if (!feePercent.value) {
         getMembershipFeePercent()
           .then((p) => (feePercent.value = p))
@@ -321,6 +353,22 @@ async function confirm(): Promise<void> {
       }
     }),
   );
+
+  // Докладка со склада: создаём предложение тем же действием — пайщику оно
+  // уйдёт в гейт вместе с заказом (принятие и подпись получения — у пайщика).
+  if (restockLines.value.length && recipientAccount.value && issueBraname.value) {
+    try {
+      await createStockProposal({
+        braname: issueBraname.value,
+        member_account: recipientAccount.value,
+        items: restockLines.value.map((l) => ({ offer_id: l.offer_id, quantity: l.quantity })),
+      });
+      restockLines.value = [];
+    } catch (e) {
+      FailAlert(e, 'Не удалось доложить со склада');
+    }
+  }
+
   signing.value = false;
 
   if (ok > 0) emit('opened');
@@ -367,7 +415,25 @@ TakeoverDialog(
         | остаются на складе и в эту выдачу не попадают — выдаём частично.
 
       template(v-if="!showActs")
+        .mp-issue-open-dialog__toolbar
+          BaseButton(variant="ghost" size="sm" @click="stockPickOpen = true")
+            template(#icon-left)
+              q-icon(name="add_shopping_cart" size="16px")
+            | Со склада
         CorrectionTable(:rows="correctionRows" selectable @change="onCorrectionChange" @toggle="onCorrectionToggle")
+
+        //- Доложено со склада — позиции, добавленные оператором сверх заказа.
+        .mp-issue-open-dialog__restock(v-if="restockLines.length")
+          .mp-issue-open-dialog__restock-head
+            BaseBadge(variant="info") Доложено со склада
+          .mp-issue-open-dialog__restock-row(v-for="l in restockLines" :key="l.offer_id")
+            .mp-issue-open-dialog__restock-info
+              span.mp-issue-open-dialog__restock-name {{ l.product_name }}
+              span.mp-issue-open-dialog__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ l.quantity }}
+            .mp-issue-open-dialog__restock-right
+              span.mp-issue-open-dialog__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
+              BaseButton(variant="ghost" size="sm" @click="removeRestock(l.offer_id)")
+                q-icon(name="close" size="16px")
 
         .mp-issue-open-dialog__totals
           .mp-issue-open-dialog__sum
@@ -382,6 +448,9 @@ TakeoverDialog(
           .mp-issue-open-dialog__sum(v-if="issuanceDiff.surcharge > 0")
             span.mp-issue-open-dialog__sum-label Доплата по факту (спишется с паевого)
             span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
+          .mp-issue-open-dialog__sum(v-if="restockLines.length")
+            span.mp-issue-open-dialog__sum-label Доложено со склада
+            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
 
         //- Почему кнопка «Подписать и открыть выдачу» недоступна — явно, чтобы
         //- оператор не упирался в перечёркнутую кнопку без объяснения.
@@ -390,6 +459,12 @@ TakeoverDialog(
           span {{ blockReason }}
 
       .mp-issue-open-dialog__preview(v-if="showActs", v-html="previewHtml")
+
+    StockPickDialog(
+      v-model="stockPickOpen"
+      :braname="issueBraname"
+      @add="onAddRestock"
+    )
 
   template(#actions="{ cancel: onCancel, confirm: onConfirm }")
     BaseButton(variant="ghost" @click="onCancel") Закрыть
@@ -423,6 +498,64 @@ TakeoverDialog(
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
     line-height: 1.4;
+  }
+
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__restock {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-3, 12px);
+    border: 1px solid var(--p-info-line, var(--p-line));
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-info-soft);
+
+    &-head {
+      display: flex;
+    }
+
+    &-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--p-2, 8px);
+    }
+
+    &-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    &-name {
+      font-size: var(--p-fs-body-sm, 13px);
+      color: var(--p-ink);
+      overflow-wrap: anywhere;
+    }
+
+    &-meta {
+      font-size: var(--p-fs-meta, 12px);
+      color: var(--p-ink-3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    &-right {
+      display: flex;
+      align-items: center;
+      gap: var(--p-2, 8px);
+      flex: 0 0 auto;
+    }
+
+    &-sum {
+      font-weight: 600;
+      color: var(--p-ink);
+      font-variant-numeric: tabular-nums;
+    }
   }
 
   &__totals {
