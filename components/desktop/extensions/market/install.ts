@@ -850,7 +850,7 @@ export const walletCards: DesktopWalletCard[] = [
   {
     wallet_name: 'w.mkt.member',
     label: 'Членский кошелёк',
-    description: 'Стол заказов · возврату не подлежит',
+    description: 'Стол заказов',
     accent: 'wallet',
     icon: 'card_membership',
   },
