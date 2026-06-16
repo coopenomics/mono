@@ -13,14 +13,15 @@
  *          w.mkt.member на разницу (остаток резерва на членский «Стола заказов»).
  *      затем — consum на fact_cost.
  *
- * 3) actual > ordered (доплата по факту — НЕ списываем с паевого напрямую):
+ * 3) actual > ordered (доплата по факту — ТОЛЬКО с членского, паевой не трогаем):
  *      diff = fact_cost - ordered_cost
- *      проверка достаточности средств для diff на w.wal.share (источник конвертации).
- *      o.mkt.conv(diff) — TRANSFER w.wal.share → w.mkt.member, Дт 80 / Кт 86 —
- *          дополнительный паевой взнос конвертируется в членский «Стола заказов».
+ *      проверка достаточности diff на w.mkt.member (членский «Стола заказов»).
  *      o.mkt.lockm(diff) — TRANSFER w.mkt.member → w.mkt.order (без проводки) —
- *          добор резерва на этот же Order ИМЕННО с членского программы.
+ *          добор резерва на этот же Order с членского программы.
  *      Затем — consum на fact_cost.
+ *      Недостающее на членском пайщик переводит ЗАРАНЕЕ отдельным Заявлением о
+ *      конвертации (action convert, o.mkt.conv) — авто-конвертации паевого на
+ *      выдаче нет НИГДЕ; при нехватке членского транзакция фейлится.
  *
  * Status: ready_to_receive → received. actual_quantity, fact_cost,
  * issue_act_signiss2, warranty_until заполняются.
@@ -85,25 +86,20 @@ void marketplace::signiss2(eosio::name coopname,
                    Marketplace::Memo::get_signiss2_correction_less_memo(o.id));
 
   } else if (fact_cost > o.total_cost) {
-    // actual > ordered: доплату НЕ списываем с паевого напрямую. Дополнительный
-    // паевой взнос конвертируется в членский «Стола заказов» (o.mkt.conv), и уже
-    // с членского программы добирается резерв этого же заказа (o.mkt.lockm).
+    // actual > ordered: доплата по факту — ТОЛЬКО с членского «Стола заказов».
+    // Паевой на выдаче не трогаем НИКОГДА: недостающее пайщик переводит в членский
+    // ЗАРАНЕЕ отдельным Заявлением о конвертации (action convert, o.mkt.conv).
+    // Здесь — проверка членского и добор резерва этого же заказа из него (o.mkt.lockm).
     const eosio::asset diff = fact_cost - o.total_cost;
 
-    // Проверка доступности diff на паевом заказчика — источнике конвертации.
-    auto bal_share = Marketplace::get_user_wallet_balance(
-        coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-    eosio::check(bal_share.available >= diff,
-                 std::string{"Недостаточно средств для дооплаты по факту: требуется "} +
-                   diff.to_string() + ", доступно " + bal_share.available.to_string());
+    auto bal_member = Marketplace::get_user_wallet_balance(
+        coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
+    eosio::check(bal_member.available >= diff,
+                 std::string{"Недостаточно членских средств «Стола заказов» для дооплаты по факту: требуется "} +
+                   diff.to_string() + ", доступно " + bal_member.available.to_string() +
+                   ". Сперва переведите паевой в членский (Заявление о конвертации).");
 
-    // 1) Конвертация паевой → членский «Стола заказов» (Дт 80 / Кт 86).
-    Ledger2::apply(_marketplace, coopname,
-                   operations::marketplace::CONVERT_TO_MKT_MEMBER,
-                   diff, orderer, o.hash,
-                   Marketplace::Memo::get_signiss2_correction_more_convert_memo(o.id));
-
-    // 2) Добор резерва заказа с членского «Стола заказов» (без проводки, оба на 86).
+    // Добор резерва заказа с членского «Стола заказов» (без проводки, оба на 86).
     Ledger2::apply(_marketplace, coopname,
                    operations::marketplace::LOCK_FROM_MEMBER,
                    diff, orderer, o.hash,
@@ -139,12 +135,19 @@ void marketplace::signiss2(eosio::name coopname,
                      locked_fee - fact_fee, orderer, o.hash,
                      Marketplace::Memo::get_membership_fee_refund_memo(o.id));
     } else if (fact_fee > locked_fee) {
-      // Факт больше заказа: взнос дособирается с паевого по той же ставке.
-      // Достаточность проверена выше вместе с доплатой стоимости — при
-      // нехватке упадёт walletop с человекочитаемым сообщением.
+      // Факт больше заказа: довзнос дособирается ТОЖЕ с членского «Стола заказов»
+      // (o.mkt.lockmf: w.mkt.member → w.mkt.fee, без проводки), не с паевого.
+      // Недостающее — заранее через Заявление о конвертации; здесь проверка членского.
+      const eosio::asset fee_diff = fact_fee - locked_fee;
+      auto bal_member_fee = Marketplace::get_user_wallet_balance(
+          coopname, ledger2_wallets::MARKETPLACE_MEMBER_FUND, orderer);
+      eosio::check(bal_member_fee.available >= fee_diff,
+                   std::string{"Недостаточно членских средств «Стола заказов» для довзноса по факту: требуется "} +
+                     fee_diff.to_string() + ", доступно " + bal_member_fee.available.to_string() +
+                     ". Сперва переведите паевой в членский (Заявление о конвертации).");
       Ledger2::apply(_marketplace, coopname,
-                     operations::marketplace::MEMBERSHIP_FEE_LOCK,
-                     fact_fee - locked_fee, orderer, o.hash,
+                     operations::marketplace::LOCK_FEE_FROM_MEMBER,
+                     fee_diff, orderer, o.hash,
                      Marketplace::Memo::get_membership_fee_topup_memo(o.id));
     }
 
