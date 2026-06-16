@@ -68,6 +68,12 @@ const ordererOrders = ref<MarketplaceOrderIssuanceView[]>([]);
 // Входящие предложения имущества со склада кооператива (докладка): оператор
 // накинул у стойки — пайщик решает прямо в гейте (принять / отказаться).
 const stockProposals = ref<MarketplaceStockProposalView[]>([]);
+// Разложение стоимости докладки по предложению: сколько спишется с уже внесённых
+// членских и сколько уйдёт в конвертацию с паевого (по Заявлению). Предзагружается,
+// чтобы пайщик видел суммы ДО подписи; кэш по proposal_id.
+const proposalSums = ref<Record<string, { member_amount: string; convert_amount: string | null }>>(
+  {},
+);
 const loading = ref(false);
 /** Ключ задачи (group.key / task.key), которая сейчас подписывается. */
 const signingKey = ref<string | null>(null);
@@ -140,6 +146,9 @@ async function refresh(source = 'ручной'): Promise<void> {
     supplierReceptions.value = receptions;
     ordererOrders.value = orders;
     stockProposals.value = proposals;
+    // Подтягиваем разложение сумм (с членского / с паевого) для показа в карточке —
+    // не блокирует дочитку; кэш по id, ушедшие предложения чистятся.
+    void loadProposalSums(proposals);
   } finally {
     loading.value = false;
   }
@@ -151,6 +160,34 @@ async function refresh(source = 'ручной'): Promise<void> {
     `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, заказчик=${ordererTasks.value.length}, предложений=${proposalTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
     appeared ? 'color:#16a34a;font-weight:bold' : 'color:#64748b',
   );
+}
+
+/**
+ * Предзагрузка разложения сумм по каждому предложению докладки для показа
+ * пайщику до подписи. Кэш по proposal_id (генерация payload включает документ
+ * конвертации — не дёргаем повторно); ушедшие предложения вычищаются.
+ */
+async function loadProposalSums(proposals: MarketplaceStockProposalView[]): Promise<void> {
+  const ids = new Set(proposals.map((p) => p.id));
+  const pruned = Object.fromEntries(
+    Object.entries(proposalSums.value).filter(([id]) => ids.has(id)),
+  );
+  proposalSums.value = pruned;
+  for (const p of proposals) {
+    if (proposalSums.value[p.id]) continue;
+    try {
+      const payload = await getStockProposalSignablePayloads(p.id);
+      proposalSums.value = {
+        ...proposalSums.value,
+        [p.id]: {
+          member_amount: payload.member_amount,
+          convert_amount: payload.convert_amount ?? null,
+        },
+      };
+    } catch {
+      // Без разложения — карточка покажет итог по предложению.
+    }
+  }
 }
 
 async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
@@ -263,6 +300,7 @@ export function useOnsiteSignatureGate() {
     supplierTasks,
     ordererTasks,
     proposalTasks,
+    proposalSums,
     refresh,
     signSupplier,
     signOrderer,

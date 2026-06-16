@@ -26,6 +26,7 @@ const {
   supplierTasks,
   ordererTasks,
   proposalTasks,
+  proposalSums,
   refresh,
   signSupplier,
   signOrderer,
@@ -201,8 +202,16 @@ BaseDialog(
             td.num {{ i.quantity }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
-          tr
-            td Итого (паевой взнос)
+          tr(v-if='proposalSums[p.id]')
+            td Спишется с членского «Стола заказов»
+            td.num
+            td.num {{ formatAsset2Digits(proposalSums[p.id].member_amount) }} ₽
+          tr(v-if='proposalSums[p.id]?.convert_amount')
+            td Конвертация с паевого (по заявлению)
+            td.num
+            td.num {{ formatAsset2Digits(proposalSums[p.id].convert_amount) }} ₽
+          tr(v-if='!proposalSums[p.id]')
+            td Итого
             td.num
             td.num {{ formatAsset2Digits(p.total_cost) }} ₽
 
