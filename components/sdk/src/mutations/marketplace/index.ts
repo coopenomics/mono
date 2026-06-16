@@ -101,12 +101,12 @@ export * as CheckoutCart from './checkoutCart'
 export * as PublishStock from './publishStock'
 /** Склад кооператива: снятие свободного остатка с витрины */
 export * as UnpublishStock from './unpublishStock'
-/** Докладка у стойки: оператор предлагает пайщику имущество со склада */
+/** Докладка у стойки: оператор формирует докладку со склада (с подписью передачи) */
 export * as CreateStockProposal from './createStockProposal'
 /** Докладка: оператор отзывает неотвеченное предложение */
 export * as CancelStockProposal from './cancelStockProposal'
-/** Докладка: пайщик принимает предложение (создаются заказы со склада) */
-export * as AcceptStockProposal from './acceptStockProposal'
+/** Докладка: пайщик одной подписью утверждает докладку как акт (заказ+выдача со склада) */
+export * as FinalizeStockIssuance from './finalizeStockIssuance'
 /** Докладка: пайщик отказывается от предложения */
 export * as DeclineStockProposal from './declineStockProposal'
 /** Склад кооператива: отмена заказа со склада до открытия выдачи */

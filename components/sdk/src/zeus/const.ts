@@ -654,10 +654,6 @@ export const AllTypesProps: Record<string,any> = {
 		inspection_photos:"MarketplaceReturnClaimPhotoUploadInput",
 		signed_statement:"MarketplaceReturnStatementSignedInput"
 	},
-	MarketplaceAcceptStockProposalInput:{
-		order_lines:"MarketplaceStockAcceptOrderLineInput",
-		signed_convert:"MarketplaceConvertStatementSignedInput"
-	},
 	MarketplaceAddToCartInput:{
 
 	},
@@ -749,7 +745,10 @@ export const AllTypesProps: Record<string,any> = {
 		groups:"MarketplaceShipmentGroupInput"
 	},
 	MarketplaceCreateStockProposalInput:{
-		items:"MarketplaceStockProposalItemInput"
+		items:"MarketplaceCreateStockProposalLineInput"
+	},
+	MarketplaceCreateStockProposalLineInput:{
+		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
 	},
 	MarketplaceCreateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
@@ -771,6 +770,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MarketplaceFinalizeIssuanceInput:{
 		signed_document:"MarketplaceIssueActSignedDocumentInput"
+	},
+	MarketplaceFinalizeStockIssuanceInput:{
+		order_lines:"MarketplaceStockFinalizeLineInput",
+		signed_convert:"MarketplaceConvertStatementSignedInput"
 	},
 	MarketplaceGenerateInventoryLabelInput:{
 		format:"MarketplaceBarcodeFormat"
@@ -941,8 +944,11 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSplitInventoryInput:{
 		splits:"MarketplaceInventorySplitEntryInput"
 	},
-	MarketplaceStockAcceptOrderLineInput:{
-
+	MarketplaceStockFinalizeLineInput:{
+		signed_signiss2_act:"MarketplaceIssueActSignedDocumentInput"
+	},
+	MarketplaceStockIssuancePrepareInput:{
+		items:"MarketplaceStockProposalItemInput"
 	},
 	MarketplaceStockProposalItemInput:{
 
@@ -1448,9 +1454,6 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceAcceptReturnAtVisit:{
 			data:"MarketplaceAcceptReturnAtVisitInput"
 		},
-		marketplaceAcceptStockProposal:{
-			data:"MarketplaceAcceptStockProposalInput"
-		},
 		marketplaceAddAvailableCategories:{
 			input:"AddAvailableCategoriesInput"
 		},
@@ -1552,6 +1555,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceFinalizeIssuance:{
 			data:"MarketplaceFinalizeIssuanceInput"
+		},
+		marketplaceFinalizeStockIssuance:{
+			data:"MarketplaceFinalizeStockIssuanceInput"
 		},
 		marketplaceGenerateInventoryLabel:{
 			data:"MarketplaceGenerateInventoryLabelInput"
@@ -2280,6 +2286,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSearchRequests:{
 			data:"SearchRequestsInput"
+		},
+		marketplaceStockIssuancePayloads:{
+			data:"MarketplaceStockIssuancePrepareInput"
 		},
 		marketplaceStockProposalSignablePayloads:{
 			data:"MarketplaceResolveStockProposalInput"
@@ -4835,7 +4844,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceStockAcceptOrderLine:{
 		offer_id:"String",
-		order_hash:"String"
+		order_hash:"String",
+		signiss1_aggregate:"DocumentAggregate"
 	},
 	MarketplaceStockAcceptPayload:{
 		convert_amount:"String",
@@ -4843,6 +4853,14 @@ export const ReturnTypes: Record<string,any> = {
 		convert_hash:"String",
 		member_amount:"String",
 		order_lines:"MarketplaceStockAcceptOrderLine"
+	},
+	MarketplaceStockIssuanceOperatorLine:{
+		offer_id:"ID",
+		order_hash:"String",
+		product_name:"String",
+		quantity:"Int",
+		signiss1_document:"GeneratedDocument",
+		unit_price:"String"
 	},
 	MarketplaceStockProposal:{
 		braname:"String",
@@ -5232,7 +5250,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAcceptCpp:"MarketplaceCppStatus",
 		marketplaceAcceptOrdersBatch:"MarketplaceSupplierBatchActionResult",
 		marketplaceAcceptReturnAtVisit:"MarketplaceReturnClaimResult",
-		marketplaceAcceptStockProposal:"MarketplaceStockProposalAcceptResult",
 		marketplaceAddAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddToCart:"MarketplaceCart",
@@ -5269,6 +5286,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceDetailKU:"MarketplaceKUDetails",
 		marketplaceDistributeBranchFunds:"Boolean",
 		marketplaceFinalizeIssuance:"MarketplaceIssuanceResult",
+		marketplaceFinalizeStockIssuance:"MarketplaceStockProposalAcceptResult",
 		marketplaceGenerateInventoryLabel:"MarketplaceInventoryMutationResult",
 		marketplaceOpenIssuance:"MarketplaceIssuanceResult",
 		marketplacePublishStock:"MarketplaceOffer",
@@ -5963,6 +5981,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSearchAttributes:"MarketplaceAttribute",
 		marketplaceSearchDictionaryValues:"MarketplaceDictionaryValue",
 		marketplaceSearchRequests:"MarketplaceRequest",
+		marketplaceStockIssuancePayloads:"MarketplaceStockIssuanceOperatorLine",
 		marketplaceStockProposalSignablePayloads:"MarketplaceStockAcceptPayload",
 		marketplaceValidateAttributeValues:"MarketplaceAttributeValidation",
 		marketplaceWhoAmI:"MarketplaceCurrentMember",

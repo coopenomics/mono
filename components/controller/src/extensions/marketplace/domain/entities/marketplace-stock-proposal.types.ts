@@ -1,3 +1,5 @@
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+
 /**
  * Предложение докладки из остатка склада КУ (requirement 76, решения 10–11).
  *
@@ -29,6 +31,19 @@ export interface MarketplaceStockProposalItem {
   unit_price: string;
   /** Снапшот наименования — для показа пайщику без дозапросов. */
   product_name: string;
+  /**
+   * Детерминированный order_hash будущего заказа из остатка — рождается при
+   * формировании бандла (оператором у стойки), чтобы и signiss1-акт оператора,
+   * и заказ создавались по одному и тому же хэшу.
+   */
+  order_hash?: string;
+  /**
+   * АПП-выдачи (registry 1105), уже подписанный ОПЕРАТОРОМ КУ (первая подпись,
+   * signiss1) на этапе формирования бандла. Пайщик контрподписывает его
+   * (signiss2) одной кнопкой; на финализации бэкенд создаёт заказ из остатка и
+   * проводит обе подписи. Хранится в jsonb строки бандла.
+   */
+  signiss1_act?: ISignedDocumentDomainInterface;
 }
 
 export interface MarketplaceStockProposalProps {

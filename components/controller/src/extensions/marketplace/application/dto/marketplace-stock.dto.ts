@@ -12,7 +12,9 @@ import {
 } from 'class-validator';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
+import { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 
 export enum MarketplaceStockProposalStatusEnum {
   PROPOSED = 'PROPOSED',
@@ -73,6 +75,76 @@ export class MarketplaceStockProposalItemInputDTO {
   quantity!: number;
 }
 
+@InputType('MarketplaceStockIssuancePrepareInput')
+export class MarketplaceStockIssuancePrepareInputDTO {
+  @Field(() => String, { description: 'Кооперативный участок, со склада которого идёт докладка.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Пайщик-адресат докладки.' })
+  @IsString()
+  @IsNotEmpty()
+  member_account!: string;
+
+  @Field(() => [MarketplaceStockProposalItemInputDTO], {
+    description: 'Корзина докладки: что и сколько предлагается со склада.',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceStockProposalItemInputDTO)
+  items!: MarketplaceStockProposalItemInputDTO[];
+}
+
+@ObjectType('MarketplaceStockIssuanceOperatorLine')
+export class MarketplaceStockIssuanceOperatorLineDTO {
+  @Field(() => ID, { description: 'Предложение кооператива из остатка.' })
+  offer_id!: string;
+
+  @Field(() => Int, { description: 'Количество единиц.' })
+  quantity!: number;
+
+  @Field(() => String, { description: 'Детерминированный order_hash будущего заказа из остатка.' })
+  order_hash!: string;
+
+  @Field(() => String, { description: 'Цена за единицу.' })
+  unit_price!: string;
+
+  @Field(() => String, { description: 'Наименование товара.' })
+  product_name!: string;
+
+  @Field(() => GeneratedDocumentDTO, {
+    description: 'Акт приёма-передачи к подписи оператором КУ (первая подпись).',
+  })
+  signiss1_document!: GeneratedDocumentDTO;
+}
+
+@InputType('MarketplaceCreateStockProposalLineInput')
+export class MarketplaceCreateStockProposalLineInputDTO {
+  @Field(() => ID, { description: 'Предложение кооператива из остатка.' })
+  @IsString()
+  @IsNotEmpty()
+  offer_id!: string;
+
+  @Field(() => Int, { description: 'Количество единиц.' })
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+
+  @Field(() => String, { description: 'order_hash из подготовки (marketplaceStockIssuancePayloads).' })
+  @IsString()
+  @IsNotEmpty()
+  order_hash!: string;
+
+  @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
+    description: 'Акт приёма-передачи, подписанный оператором КУ первой подписью.',
+  })
+  @ValidateNested()
+  @Type(() => MarketplaceIssueActSignedDocumentInputDTO)
+  signiss1_act!: MarketplaceIssueActSignedDocumentInputDTO;
+}
+
 @InputType('MarketplaceCreateStockProposalInput')
 export class MarketplaceCreateStockProposalInputDTO {
   @Field(() => String, { description: 'Кооперативный участок, со склада которого идёт докладка.' })
@@ -80,19 +152,19 @@ export class MarketplaceCreateStockProposalInputDTO {
   @IsNotEmpty()
   braname!: string;
 
-  @Field(() => String, { description: 'Пайщик-адресат предложения.' })
+  @Field(() => String, { description: 'Пайщик-адресат докладки.' })
   @IsString()
   @IsNotEmpty()
   member_account!: string;
 
-  @Field(() => [MarketplaceStockProposalItemInputDTO], {
-    description: 'Строки предложения: что и сколько предлагается со склада.',
+  @Field(() => [MarketplaceCreateStockProposalLineInputDTO], {
+    description: 'Строки докладки с order_hash и подписью оператора (signiss1).',
   })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => MarketplaceStockProposalItemInputDTO)
-  items!: MarketplaceStockProposalItemInputDTO[];
+  @Type(() => MarketplaceCreateStockProposalLineInputDTO)
+  items!: MarketplaceCreateStockProposalLineInputDTO[];
 }
 
 @InputType('MarketplaceResolveStockProposalInput')
@@ -110,6 +182,12 @@ export class MarketplaceStockAcceptOrderLineDTO {
 
   @Field(() => String, { description: 'order_hash будущего заказа из остатка.' })
   public readonly order_hash!: string;
+
+  @Field(() => DocumentAggregateDTO, {
+    description:
+      'Акт приёма-передачи, уже подписанный оператором КУ. Пайщик накладывает свою подпись поверх (получение).',
+  })
+  public readonly signiss1_aggregate!: DocumentAggregateDTO;
 }
 
 @ObjectType('MarketplaceStockAcceptPayload')
@@ -143,34 +221,36 @@ export class MarketplaceStockAcceptPayloadDTO {
   public readonly convert_document?: GeneratedDocumentDTO | null;
 }
 
-@InputType('MarketplaceStockAcceptOrderLineInput')
-export class MarketplaceStockAcceptOrderLineInputDTO {
+@InputType('MarketplaceStockFinalizeLineInput')
+export class MarketplaceStockFinalizeLineInputDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции (из payloads).' })
   @IsString()
   @IsNotEmpty()
   public readonly offer_id!: string;
 
-  @Field(() => String, { description: 'order_hash будущего заказа (из payloads).' })
-  @IsString()
-  @IsNotEmpty()
-  public readonly order_hash!: string;
+  @Field(() => MarketplaceIssueActSignedDocumentInputDTO, {
+    description: 'Акт приёма-передачи, контрподписанный пайщиком (подпись получения).',
+  })
+  @ValidateNested()
+  @Type(() => MarketplaceIssueActSignedDocumentInputDTO)
+  public readonly signed_signiss2_act!: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
-@InputType('MarketplaceAcceptStockProposalInput')
-export class MarketplaceAcceptStockProposalInputDTO extends MarketplaceResolveStockProposalInputDTO {
-  @Field(() => [MarketplaceStockAcceptOrderLineInputDTO], {
-    description: 'Строки-заказы (offer_id + order_hash) из marketplaceStockProposalSignablePayloads.',
+@InputType('MarketplaceFinalizeStockIssuanceInput')
+export class MarketplaceFinalizeStockIssuanceInputDTO extends MarketplaceResolveStockProposalInputDTO {
+  @Field(() => [MarketplaceStockFinalizeLineInputDTO], {
+    description: 'Строки докладки с подписью получения (signiss2) из marketplaceStockProposalSignablePayloads.',
   })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => MarketplaceStockAcceptOrderLineInputDTO)
-  public readonly order_lines!: MarketplaceStockAcceptOrderLineInputDTO[];
+  @Type(() => MarketplaceStockFinalizeLineInputDTO)
+  public readonly order_lines!: MarketplaceStockFinalizeLineInputDTO[];
 
   @Field(() => MarketplaceConvertStatementSignedInputDTO, {
     nullable: true,
     description:
-      'Единое подписанное Заявление о конвертации на всю сумму доплаты. Не передаётся, когда членских средств хватает (замена из высвобожденных средств).',
+      'Единое подписанное Заявление о конвертации на всю сумму доплаты с паевого. Не передаётся, когда членских средств хватает.',
   })
   @IsOptional()
   @ValidateNested()
