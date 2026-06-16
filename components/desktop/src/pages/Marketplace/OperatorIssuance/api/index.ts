@@ -159,19 +159,37 @@ export async function cancelStockProposal(proposal_id: string): Promise<Marketpl
   return result as MarketplaceStockProposalView;
 }
 
+/** Строка корзины докладки для подготовки актов оператору (offer_id + quantity). */
+export type StockIssuancePayloadInput = Queries.Marketplace.StockIssuancePayloads.IInput['data'];
+/** Строка к подписи оператором: order_hash + АПП-выдачи (signiss1_document). */
+export type IStockIssuanceOperatorLine =
+  Queries.Marketplace.StockIssuancePayloads.IOutput['marketplaceStockIssuancePayloads'][number];
+
 /**
- * Нагрузка к принятию предложения со склада: строки-заказы + ОДНО Заявление о
- * конвертации на весь дефицит (convert_document пустой — членских средств
- * хватает, при замене из высвобожденных подписывать нечего).
+ * Нагрузка к ОДНОЙ подписи пайщика: по строке — order_hash и подписанный
+ * оператором АПП-выдачи (signiss1_aggregate, для контрподписи получения), плюс
+ * ОДНО Заявление о конвертации на весь дефицит (convert_document пустой —
+ * членских средств хватает, подписывать нужно только сами акты).
  */
 export type IStockProposalAcceptPayload =
   Queries.Marketplace.StockProposalSignablePayloads.IOutput['marketplaceStockProposalSignablePayloads'];
 
-export type IStockAcceptInput = Mutations.Marketplace.AcceptStockProposal.IInput['data'];
-/** Строка-заказ принятия (offer_id + order_hash). */
-export type IStockAcceptOrderLine = IStockAcceptInput['order_lines'][number];
+export type IStockFinalizeInput = Mutations.Marketplace.FinalizeStockIssuance.IInput['data'];
+/** Строка финализации (offer_id + контрподписанный пайщиком signiss2-акт). */
+export type IStockFinalizeOrderLine = IStockFinalizeInput['order_lines'][number];
 /** Подписанное единое Заявление о конвертации (если был дефицит). */
-export type IStockConvertSigned = NonNullable<IStockAcceptInput['signed_convert']>;
+export type IStockConvertSigned = NonNullable<IStockFinalizeInput['signed_convert']>;
+
+/** Акты приёма-передачи к подписи оператором при формировании докладки. */
+export async function getStockIssuancePayloads(
+  data: StockIssuancePayloadInput,
+): Promise<IStockIssuanceOperatorLine[]> {
+  const { [Queries.Marketplace.StockIssuancePayloads.name]: result } = await client.Query(
+    Queries.Marketplace.StockIssuancePayloads.query,
+    { variables: { data } },
+  );
+  return result as IStockIssuanceOperatorLine[];
+}
 
 export async function getStockProposalSignablePayloads(
   proposal_id: string,
@@ -184,14 +202,22 @@ export async function getStockProposalSignablePayloads(
   return result as IStockProposalAcceptPayload;
 }
 
-export async function acceptStockProposal(
+/**
+ * Пайщик одной подписью утверждает докладку: по строкам — контрподписанные
+ * signiss2-акты, при дефиците — единое подписанное Заявление о конвертации.
+ */
+export async function finalizeStockIssuance(
   proposal_id: string,
-  order_lines: IStockAcceptOrderLine[],
+  order_lines: IStockFinalizeOrderLine[],
   signed_convert?: IStockConvertSigned | null,
 ): Promise<{ proposal: MarketplaceStockProposalView; order_ids: string[] }> {
-  const data: IStockAcceptInput = { proposal_id, order_lines, signed_convert: signed_convert ?? null };
-  const { [Mutations.Marketplace.AcceptStockProposal.name]: result } = await client.Mutation(
-    Mutations.Marketplace.AcceptStockProposal.mutation,
+  const data: IStockFinalizeInput = {
+    proposal_id,
+    order_lines,
+    signed_convert: signed_convert ?? null,
+  };
+  const { [Mutations.Marketplace.FinalizeStockIssuance.name]: result } = await client.Mutation(
+    Mutations.Marketplace.FinalizeStockIssuance.mutation,
     { variables: { data } },
   );
   return result as { proposal: MarketplaceStockProposalView; order_ids: string[] };

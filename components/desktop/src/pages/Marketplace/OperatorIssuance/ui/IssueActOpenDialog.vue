@@ -16,7 +16,9 @@ import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
   openIssuance,
+  getStockIssuancePayloads,
   createStockProposal,
+  type CreateStockProposalInput,
   type MarketplaceOrderIssuanceView,
 } from '../api';
 import StockPickDialog, { type StockPickLine } from './StockPickDialog.vue';
@@ -354,14 +356,33 @@ async function confirm(): Promise<void> {
     }),
   );
 
-  // Докладка со склада: создаём предложение тем же действием — пайщику оно
-  // уйдёт в гейт вместе с заказом (принятие и подпись получения — у пайщика).
+  // Докладка со склада: оператор формирует бандл и СРАЗУ подписывает акты
+  // приёма-передачи первой подписью (signiss1) — пайщику докладка уйдёт в гейт
+  // готовым актом с одной кнопкой «Подписать» (получение), без отдельного
+  // «Принять». Заказ из остатка и сама выдача рождаются на подписи пайщика.
   if (restockLines.value.length && recipientAccount.value && issueBraname.value) {
     try {
-      await createStockProposal({
+      const payloads = await getStockIssuancePayloads({
         braname: issueBraname.value,
         member_account: recipientAccount.value,
         items: restockLines.value.map((l) => ({ offer_id: l.offer_id, quantity: l.quantity })),
+      });
+      const items = await Promise.all(
+        payloads.map(async (p) => ({
+          offer_id: p.offer_id,
+          quantity: p.quantity,
+          order_hash: p.order_hash,
+          signiss1_act: (await docSigner.signDocument(
+            p.signiss1_document,
+            globalStore.username,
+            1,
+          )) as CreateStockProposalInput['items'][number]['signiss1_act'],
+        })),
+      );
+      await createStockProposal({
+        braname: issueBraname.value,
+        member_account: recipientAccount.value,
+        items,
       });
       restockLines.value = [];
     } catch (e) {

@@ -12,12 +12,13 @@ import {
   listMyReadyToReceive,
   finalizeOrdererIssuance,
   listStockProposals,
-  acceptStockProposal,
+  finalizeStockIssuance,
   declineStockProposal,
   getStockProposalSignablePayloads,
   type MarketplaceOrderIssuanceView,
   type MarketplaceStockProposalView,
   type IStockConvertSigned,
+  type IStockFinalizeOrderLine,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
 /**
@@ -240,12 +241,13 @@ async function signOrderer(task: OrdererPickupTask): Promise<void> {
 }
 
 /**
- * Пайщик принимает предложение со склада: по строкам создаются заказы (средства
- * резервируются на акцепте — при нехватке паевых средств backend вернёт
- * человеческую ошибку), и следом оператор открывает выдачу — акт придёт в этот
- * же гейт обычной задачей заказчика.
+ * Пайщик ОДНОЙ подписью утверждает докладку как акт получения. Подписывает:
+ * при дефиците членских — единое Заявление о конвертации (paевой → членский),
+ * затем по каждой строке контрподписывает АПП-выдачи (signiss2) поверх подписи
+ * оператора. Backend создаёт заказы из остатка и проводит выдачу — имущество
+ * выдаётся сразу. Никакого отдельного «Принять»: принятие = подпись акта.
  */
-async function acceptProposal(task: MarketplaceStockProposalView): Promise<void> {
+async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   const global = useGlobalStore();
   const wifKey = global.wif?.toString();
   if (!wifKey) {
@@ -254,23 +256,37 @@ async function acceptProposal(task: MarketplaceStockProposalView): Promise<void>
   }
   signingKey.value = task.id;
   try {
-    // Одно Заявление о конвертации на весь дефицит сверх членских средств; если
-    // средств хватает (замена из высвобожденных — «возьмите вот это»), документа
-    // нет и подписывать пайщику нечего.
     const payload = await getStockProposalSignablePayloads(task.id);
+    const signer = new Classes.Document(wifKey);
+
+    // 1. Заявление о конвертации — только при дефиците членских средств (иначе
+    //    convert_document пустой и подписывать нечего, кроме самих актов).
     let signed_convert: IStockConvertSigned | null = null;
     if (payload.convert_document) {
-      const signer = new Classes.Document(wifKey);
       signed_convert = (await signer.signDocument(
         payload.convert_document,
         global.username,
         1,
       )) as IStockConvertSigned;
     }
-    const { order_ids } = await acceptStockProposal(task.id, payload.order_lines, signed_convert);
-    SuccessAlert(
-      `Предложение принято: оформлено позиций со склада — ${order_ids.length}. Оператор откроет выдачу.`,
+
+    // 2. Контрподпись получения (signiss2) поверх подписи оператора по каждой
+    //    строке — документ НЕ перегенерируется, берётся агрегат rawDocument +
+    //    document с подписью оператора (канон 2-подписи).
+    const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
+      payload.order_lines.map(async (line) => ({
+        offer_id: line.offer_id,
+        signed_signiss2_act: (await signer.signDocument(
+          line.signiss1_aggregate.rawDocument,
+          global.username,
+          2,
+          [line.signiss1_aggregate.document],
+        )) as IStockFinalizeOrderLine['signed_signiss2_act'],
+      })),
     );
+
+    const { order_ids } = await finalizeStockIssuance(task.id, order_lines, signed_convert);
+    SuccessAlert(`Имущество получено по ${order_ids.length} позиц. со склада. Акт подписан.`);
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -304,7 +320,7 @@ export function useOnsiteSignatureGate() {
     refresh,
     signSupplier,
     signOrderer,
-    acceptProposal,
+    signProposal,
     declineProposal,
   };
 }

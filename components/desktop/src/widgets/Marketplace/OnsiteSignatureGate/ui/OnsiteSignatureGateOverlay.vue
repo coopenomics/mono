@@ -30,7 +30,7 @@ const {
   refresh,
   signSupplier,
   signOrderer,
-  acceptProposal,
+  signProposal,
   declineProposal,
 } = useOnsiteSignatureGate();
 
@@ -180,15 +180,15 @@ BaseDialog(
             q-icon(name='draw', size='18px')
           | Подписать и получить
 
-    //- Докладка: оператор предложил имущество со склада кооператива — пайщик
-    //- решает на месте. На принятии средства резервируются и акт придёт сюда же.
+    //- Докладка со склада кооператива: оператор уже подписал акт передачи —
+    //- пайщику остаётся одна подпись получения (принятие = подпись акта).
     BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
       template(#head)
         .onsite-gate__head
-          q-icon(name='add_shopping_cart', size='28px')
+          q-icon(name='inventory_2', size='28px')
           .onsite-gate__ident
-            span.onsite-gate__name Предложение со склада кооператива
-            span.onsite-gate__sub Оператор пункта выдачи предлагает добавить к получению
+            span.onsite-gate__name Получение со склада кооператива
+            span.onsite-gate__sub Подтвердите получение имущества — ваша подпись акта
 
       table.onsite-gate__table
         thead
@@ -225,11 +225,11 @@ BaseDialog(
           variant='primary',
           :loading='proposalBusy(p.id)',
           :disabled='anySigning && !proposalBusy(p.id)',
-          @click='acceptProposal(p)'
+          @click='signProposal(p)'
         )
           template(#icon-left)
-            q-icon(name='check', size='18px')
-          | Принять предложение
+            q-icon(name='draw', size='18px')
+          | Подписать
 </template>
 
 <style scoped lang="scss">
