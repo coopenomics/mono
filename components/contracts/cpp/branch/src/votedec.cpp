@@ -79,7 +79,9 @@
     d.signed_ballots++;
   });
 
-  // Бюллетень линкуется в реестре документов к якорному хэшу собрания
+  // Бюллетень линкуется к ПАКЕТУ СОБРАНИЯ (якорь = хэш предложения proposal.hash),
+  // туда же закрывающим документом ляжет протокол (см. closedec). Не на хэш процесса,
+  // иначе бюллетени попадут в пакет заявления в совет.
   Action::send<newlink_interface>(
     _soviet,
     "newlink"_n,
@@ -87,7 +89,7 @@
     coopname,
     username,
     get_valid_soviet_action("ballot"_n),
-    hash,
+    dec.proposal.hash,
     ballot
   );
 }
