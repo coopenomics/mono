@@ -15,12 +15,15 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
-  openIssuance,
   getStockIssuancePayloads,
   createStockProposal,
   type CreateStockProposalInput,
   type MarketplaceOrderIssuanceView,
 } from '../api';
+
+// Подписанный signiss1-акт в строке бандла — тип берём прямо из SDK-входа.
+type StockBundleStockLine = NonNullable<CreateStockProposalInput['items']>[number];
+type StockBundleOrderLine = NonNullable<CreateStockProposalInput['order_items']>[number];
 import StockPickDialog, { type StockPickLine } from './StockPickDialog.vue';
 
 /**
@@ -34,14 +37,19 @@ import StockPickDialog, { type StockPickLine } from './StockPickDialog.vue';
  * позиции и сохраняется на заказе. Финальная подпись заказчика факт не
  * редактирует.
  *
+ * ЕДИНЫЙ ПУТЬ ВЫДАЧИ: оператор подписывает АПП-выдачи первой подписью (signiss1)
+ * по выдаваемым заказам И докладке со склада и складывает всё в ОДИН бандл
+ * (оффчейн, через БД). На цепи до подписи пайщика НИЧЕГО не происходит, поэтому
+ * отмена пайщиком = отказ от бандла без он-чейн отката, а выдача (signiss1+
+ * signiss2) уходит на цепь только при контрподписи получения пайщиком у стойки.
+ *
  * Поток:
  *  1. Оператор корректирует количество/цену в сводной таблице сверки (строка на
- *     позицию, предзаполнена заказом).
- *  2. «Открыть выдачу» — UI ЦИКЛОМ по всем позициям: формирует акт на
- *     фактическое количество, подписывает ключом председателя сессии
- *     (signatureId=1) и отправляет в `openIssuance`. Каждая позиция = свой акт
- *     (результаты могут различаться). Заказы переходят в «Готово к получению»,
- *     заказчику — уведомление; финальную подпись он поставит сам.
+ *     позицию, предзаполнена заказом) и при желании добавляет докладку со склада.
+ *  2. «Подписать и отправить пайщику» — UI по каждой позиции формирует акт на
+ *     фактическое количество, подписывает ключом оператора (signatureId=1) и
+ *     отправляет единым `createStockProposal`. Пайщику немедленно приходит один
+ *     акт на подпись получения (карточка в гейте «подпись на месте»).
  */
 
 const props = defineProps<{
@@ -322,52 +330,51 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
     return;
   }
+  if (!recipientAccount.value || !issueBraname.value) {
+    FailAlert(new Error('Не определён получатель или пункт выдачи.'));
+    return;
+  }
   signing.value = true;
   const docSigner = new Classes.Document(wifKey);
-  const failed: string[] = [];
-  let ok = 0;
-  // По выдаваемым позициям ПАРАЛЛЕЛЬНО: каждая — отдельный акт (председатель →
-  // openIssuance, signiss1). Невыбранные позиции в выдачу не идут — остаются на
-  // складе в текущем статусе (частичная выдача). У заказов разные хэши — на цепи
-  // это разные документы, гонок подписи нет, и все позиции взводятся в
-  // READY_TO_RECEIVE почти в один блок.
-  await Promise.all(
-    includedOrders.value.map(async (o) => {
+  try {
+    // ЕДИНЫЙ ПУТЬ: оператор подписывает АПП-выдачи первой подписью (signiss1) по
+    // выдаваемым позициям И докладке, и кладёт всё в ОДИН бандл (оффчейн, в БД).
+    // На цепи до подписи пайщика НИЧЕГО не происходит — поэтому отмена пайщиком
+    // = отказ от бандла, без он-чейн отката. Выдача (signiss1+signiss2) уходит
+    // в цепь только когда пайщик контрподписывает акт у стойки.
+
+    // 1) Обычные заказы пайщика → строки бандла order_items.
+    const order_items: StockBundleOrderLine[] = [];
+    for (const o of includedOrders.value) {
       const f = facts.value[o.id];
       const priceStr = String(f.price);
-      try {
-        const generated = await getChairmanSignablePayload({
-          order_id: o.id,
-          actual_quantity: f.qty,
-          actual_unit_price: priceStr,
-        });
-        const signed = await docSigner.signDocument(generated, globalStore.username, 1);
-        await openIssuance({
-          order_id: o.id,
-          actual_quantity: f.qty,
-          actual_unit_price: priceStr,
-          signed_document: signed,
-        });
-        ok += 1;
-      } catch (e) {
-        console.error('openIssuance failed for order', o.id, e);
-        failed.push(o.product_name || o.id.slice(0, 8));
-      }
-    }),
-  );
+      const generated = await getChairmanSignablePayload({
+        order_id: o.id,
+        actual_quantity: f.qty,
+        actual_unit_price: priceStr,
+      });
+      const signiss1_act = (await docSigner.signDocument(
+        generated,
+        globalStore.username,
+        1,
+      )) as StockBundleOrderLine['signiss1_act'];
+      order_items.push({
+        order_id: o.id,
+        actual_quantity: f.qty,
+        actual_unit_price: priceStr,
+        signiss1_act,
+      });
+    }
 
-  // Докладка со склада: оператор формирует бандл и СРАЗУ подписывает акты
-  // приёма-передачи первой подписью (signiss1) — пайщику докладка уйдёт в гейт
-  // готовым актом с одной кнопкой «Подписать» (получение), без отдельного
-  // «Принять». Заказ из остатка и сама выдача рождаются на подписи пайщика.
-  if (restockLines.value.length && recipientAccount.value && issueBraname.value) {
-    try {
+    // 2) Докладка со склада → строки бандла items (заказ родится на подписи пайщика).
+    let items: StockBundleStockLine[] = [];
+    if (restockLines.value.length) {
       const payloads = await getStockIssuancePayloads({
         braname: issueBraname.value,
         member_account: recipientAccount.value,
         items: restockLines.value.map((l) => ({ offer_id: l.offer_id, quantity: l.quantity })),
       });
-      const items = await Promise.all(
+      items = await Promise.all(
         payloads.map(async (p) => ({
           offer_id: p.offer_id,
           quantity: p.quantity,
@@ -376,37 +383,29 @@ async function confirm(): Promise<void> {
             p.signiss1_document,
             globalStore.username,
             1,
-          )) as CreateStockProposalInput['items'][number]['signiss1_act'],
+          )) as StockBundleStockLine['signiss1_act'],
         })),
       );
-      await createStockProposal({
-        braname: issueBraname.value,
-        member_account: recipientAccount.value,
-        items,
-      });
-      restockLines.value = [];
-    } catch (e) {
-      FailAlert(e, 'Не удалось доложить со склада');
     }
-  }
 
-  signing.value = false;
+    // 3) Один бандл — пайщику уйдёт один акт на подпись (получение).
+    await createStockProposal({
+      braname: issueBraname.value,
+      member_account: recipientAccount.value,
+      items,
+      order_items,
+    });
+    restockLines.value = [];
 
-  if (ok > 0) emit('opened');
-  if (failed.length === 0) {
-    const tail = leftCount.value > 0
-      ? ` Осталось на складе позиц.: ${leftCount.value}.`
-      : '';
-    SuccessAlert(
-      `Выдача открыта по ${ok} позиц. — ждём подтверждение заказчика.${tail}`,
-    );
+    signing.value = false;
+    emit('opened');
+    const total = order_items.length + items.length;
+    const tail = leftCount.value > 0 ? ` Осталось на складе позиц.: ${leftCount.value}.` : '';
+    SuccessAlert(`Акт отправлен пайщику на подпись (${total} позиц.) — ждём подтверждение получения.${tail}`);
     emit('update:modelValue', false);
-  } else {
-    FailAlert(
-      new Error(
-        `Открыто ${ok} из ${includedCount.value}. Не удалось: ${failed.join(', ')}. Повторите по оставшимся.`,
-      ),
-    );
+  } catch (e) {
+    signing.value = false;
+    FailAlert(e, 'Не удалось отправить акт пайщику на подпись');
   }
 }
 
@@ -506,7 +505,7 @@ TakeoverDialog(
     )
       template(#icon-left)
         q-icon(name="draw" size="16px")
-      | Подписать и открыть выдачу
+      | Подписать и отправить пайщику
 </template>
 
 <style scoped lang="scss">

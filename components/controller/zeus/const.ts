@@ -736,6 +736,9 @@ export const AllTypesProps: Record<string,any> = {
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
 		images:"MarketplaceOfferImageUploadInput"
 	},
+	MarketplaceCreateOrderProposalLineInput:{
+		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
+	},
 	MarketplaceCreateReturnClaimInput:{
 		defect_category:"MarketplaceReturnClaimDefectCategory",
 		photos:"MarketplaceReturnClaimPhotoUploadInput",
@@ -745,7 +748,8 @@ export const AllTypesProps: Record<string,any> = {
 		groups:"MarketplaceShipmentGroupInput"
 	},
 	MarketplaceCreateStockProposalInput:{
-		items:"MarketplaceCreateStockProposalLineInput"
+		items:"MarketplaceCreateStockProposalLineInput",
+		order_items:"MarketplaceCreateOrderProposalLineInput"
 	},
 	MarketplaceCreateStockProposalLineInput:{
 		signiss1_act:"MarketplaceIssueActSignedDocumentInput"

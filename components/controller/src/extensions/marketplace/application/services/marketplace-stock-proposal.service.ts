@@ -42,6 +42,10 @@ import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
 import { MarketplaceStockService, MARKETPLACE_STOCK_SERVICE } from './marketplace-stock.service';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
@@ -68,12 +72,30 @@ export interface MarketplaceStockProposalCreateLine {
   signiss1_act: ISignedDocumentDomainInterface;
 }
 
+/**
+ * Строка обычного заказа в бандле: заказ уже существует (ACCEPTED_TO_COOP),
+ * оператор сверил факт (кол-во/цену) и подписал signiss1-акт. На финализации
+ * заказ не создаётся — сразу выдача (openIssuance+signiss2).
+ */
+export interface MarketplaceOrderProposalCreateLine {
+  order_id: string;
+  /** Фактическое количество к выдаче (оператор сверил при открытии). */
+  actual_quantity: number;
+  /** Фактическая цена за единицу (оператор мог скорректировать). */
+  actual_unit_price: string;
+  /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
+  signiss1_act: ISignedDocumentDomainInterface;
+}
+
 export interface MarketplaceStockProposalCreateInput {
   coopname: string;
   operator_account: string;
   braname: string;
   member_account: string;
+  /** Строки докладки со склада (заказ родится на финализации). */
   items: MarketplaceStockProposalCreateLine[];
+  /** Строки уже существующих обычных заказов пайщика к выдаче. */
+  order_items?: MarketplaceOrderProposalCreateLine[];
 }
 
 export interface MarketplaceStockProposalAcceptResult {
@@ -131,9 +153,9 @@ export interface MarketplaceStockAcceptPayload {
   } | null;
 }
 
-/** Строка финализации: offer + контрподписанный пайщиком АПП-выдачи (signiss2). */
+/** Строка финализации: order_hash + контрподписанный пайщиком АПП-выдачи (signiss2). */
 export interface MarketplaceStockFinalizeLine {
-  offer_id: string;
+  order_hash: string;
   signed_signiss2_act: MarketplaceIssueActSignedDocumentInputDTO;
 }
 
@@ -163,6 +185,8 @@ export class MarketplaceStockProposalService {
     private readonly proposalRepo: MarketplaceStockProposalDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_STOCK_SERVICE)
     private readonly stockService: MarketplaceStockService,
     @Inject(MARKETPLACE_ISSUANCE_SERVICE)
@@ -224,7 +248,13 @@ export class MarketplaceStockProposalService {
         order_hash: item.order_hash,
         signiss1_aggregate,
       });
-      neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
+      // Конвертация паевого нужна ТОЛЬКО под докладку (строка без order_id):
+      // её полная стоимость блокируется с членского на stockorder. Обычный
+      // заказ уже профондирован с паевого на createorder — доплату по факту
+      // (overage) signiss2 берёт с членского сам и фейлится при нехватке.
+      if (!item.order_id) {
+        neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
+      }
     }
 
     // Дефицит = потребность − уже внесённые членские средства. Конвертируем
@@ -295,6 +325,60 @@ export class MarketplaceStockProposalService {
   }
 
   /**
+   * Валидация строки обычного заказа в бандле + снапшот для показа пайщику.
+   * Заказ обязан быть ACCEPTED_TO_COOP без открытой выдачи, принадлежать
+   * адресату бандла и выдаваться ИМЕННО с этого КУ. order_hash берётся из
+   * заказа (бэкенд авторитетен), product_name — из оффера заказа.
+   */
+  private async buildOrderItem(
+    coopname: string,
+    braname: string,
+    member_account: string,
+    line: MarketplaceOrderProposalCreateLine
+  ): Promise<MarketplaceStockProposalItem> {
+    if (!Number.isInteger(line.actual_quantity) || line.actual_quantity <= 0) {
+      throw new BadRequestException('Количество в строке заказа должно быть целым больше нуля.');
+    }
+    if (Number.parseFloat(line.actual_unit_price) <= 0) {
+      throw new BadRequestException('Цена в строке заказа должна быть больше нуля.');
+    }
+    if (!line.signiss1_act?.signatures?.length) {
+      throw new BadRequestException(
+        'Строка заказа без подписи оператора (signiss1) — переподпишите выдачу.'
+      );
+    }
+    const order = await this.orderRepo.findById(line.order_id);
+    if (!order || order.coopname !== coopname) {
+      throw new NotFoundException(`Заказ ${line.order_id} не найден.`);
+    }
+    if (order.orderer_account !== member_account) {
+      throw new BadRequestException(
+        'Заказ принадлежит другому пайщику — нельзя включить его в бандл этого получателя.'
+      );
+    }
+    if (order.delivery_braname !== braname) {
+      throw new BadRequestException(
+        `Заказ выдаётся на другом КУ (${order.delivery_braname}), со стойки ${braname} не выдаётся.`
+      );
+    }
+    if (!order.awaits_chairman_issue_open) {
+      throw new ConflictException(
+        `Заказ ${order.id} (статус «${order.status}») не готов к открытию выдачи.`
+      );
+    }
+    const offer = await this.offerRepo.findById(order.offer_id);
+    return {
+      order_id: order.id,
+      offer_id: order.offer_id,
+      quantity: line.actual_quantity,
+      unit_price: line.actual_unit_price,
+      product_name: offer?.product_name ?? 'Товар по предложению',
+      order_hash: order.order_hash,
+      signiss1_act: line.signiss1_act,
+    };
+  }
+
+  /**
    * Нагрузка оператору для подписи signiss1 при формировании бандла докладки.
    * По строке: детерминированный order_hash (он же уйдёт в будущий stockorder) +
    * сгенерированный АПП-выдачи (registry 1105), который оператор подписывает
@@ -350,16 +434,21 @@ export class MarketplaceStockProposalService {
   async createProposal(
     input: MarketplaceStockProposalCreateInput
   ): Promise<MarketplaceStockProposalDomainEntity> {
-    if (input.items.length === 0) {
-      throw new BadRequestException('Предложение пустое — добавьте позиции из остатка.');
+    const orderLines = input.order_items ?? [];
+    if (input.items.length === 0 && orderLines.length === 0) {
+      throw new BadRequestException('Бандл пуст — добавьте позиции заказа или докладку со склада.');
     }
     if (input.member_account === input.operator_account) {
       throw new BadRequestException('Нельзя отправить предложение самому себе.');
     }
 
-    // Снапшоты строк: только активные офферы кооператива ИМЕННО этого КУ,
-    // количество в пределах остатка. Каждая строка несёт order_hash и
-    // подписанный оператором signiss1-акт — пайщику останется одна подпись.
+    // Единый бандл несёт строки двух видов:
+    //  • докладка — активные офферы остатка ИМЕННО этого КУ, кол-во в пределах
+    //    остатка; заказ родится на финализации.
+    //  • обычный заказ — уже существующий ACCEPTED_TO_COOP заказ пайщика
+    //    (профондирован с паевого), сразу к выдаче.
+    // Каждая строка несёт order_hash и подписанный оператором signiss1-акт —
+    // пайщику останется одна подпись.
     const items: MarketplaceStockProposalItem[] = [];
     for (const line of input.items) {
       const offer = await this.validateStockLine(
@@ -384,6 +473,11 @@ export class MarketplaceStockProposalService {
         order_hash: line.order_hash,
         signiss1_act: line.signiss1_act,
       });
+    }
+    for (const line of orderLines) {
+      items.push(
+        await this.buildOrderItem(input.coopname, input.braname, input.member_account, line)
+      );
     }
 
     const proposal = await this.proposalRepo.create({
@@ -433,9 +527,10 @@ export class MarketplaceStockProposalService {
 
     const feePercent = await this.economyService.getMembershipFeeContractPercent(coopname);
 
-    // signiss2-акт по offer_id из подписанной пайщиком нагрузки.
-    const signiss2ByOffer = new Map(
-      (input.order_lines ?? []).map((l) => [l.offer_id, l.signed_signiss2_act])
+    // signiss2-акт по order_hash строки (уникален в бандле; offer_id мог бы
+    // совпасть у двух обычных заказов одного оффера).
+    const signiss2ByHash = new Map(
+      (input.order_lines ?? []).map((l) => [l.order_hash, l.signed_signiss2_act])
     );
 
     // ── 0) Контрольная сверка: пайщик подписал РОВНО тот акт, что мы выдали ──
@@ -446,23 +541,26 @@ export class MarketplaceStockProposalService {
     for (const item of proposal.items) {
       if (!item.order_hash || !item.signiss1_act) {
         throw new ConflictException(
-          'Докладка в устаревшем формате (без подписи оператора) — переформируйте её у стойки.'
+          'Бандл в устаревшем формате (без подписи оператора) — переформируйте его у стойки.'
         );
       }
-      const submitted = signiss2ByOffer.get(item.offer_id);
+      const submitted = signiss2ByHash.get(item.order_hash);
       if (!submitted) {
         throw new BadRequestException(
-          'Состав подписания не совпадает с докладкой — обновите подписание.'
+          'Состав подписания не совпадает с бандлом — обновите подписание.'
         );
       }
       await this.assertCountersignMatchesStored(item, submitted, member_account);
     }
 
-    // Потребность и дефицит сверх членских (как в getAcceptSignablePayloads —
-    // суммы обязаны совпасть с подписанным Заявлением).
+    // Потребность и дефицит сверх членских — ТОЛЬКО по докладке (как в
+    // getAcceptSignablePayloads; суммы обязаны совпасть с подписанным Заявлением).
+    // Обычный заказ профондирован с паевого ранее и в дефицит не входит.
     let neededUnits = 0n;
     for (const item of proposal.items) {
-      neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
+      if (!item.order_id) {
+        neededUnits += this.economyService.lineUnits(item.unit_price, item.quantity, feePercent);
+      }
     }
     const memberUnits = await this.readMemberUnits(coopname, member_account);
     const deficitUnits = neededUnits > memberUnits ? neededUnits - memberUnits : 0n;
@@ -497,21 +595,33 @@ export class MarketplaceStockProposalService {
       });
     }
 
-    // ── 2) Создание заказов из остатка (атомарно: на фейле — отмена всех) ────
-    const created: Array<{ order_id: string; item: MarketplaceStockProposalItem }> = [];
+    // ── 2) Заказы к выдаче: докладка → создаём из остатка (атомарно, на фейле —
+    //    отмена созданных); обычный заказ → уже существует, берём его order_id.
+    const issuables: Array<{
+      order_id: string;
+      item: MarketplaceStockProposalItem;
+      signiss2: MarketplaceIssueActSignedDocumentInputDTO;
+    }> = [];
+    const createdStock: Array<{ order_id: string }> = [];
     try {
       for (const item of proposal.items) {
         if (!item.order_hash || !item.signiss1_act) {
           throw new ConflictException(
-            'Докладка в устаревшем формате (без подписи оператора) — переформируйте её у стойки.'
+            'Бандл в устаревшем формате (без подписи оператора) — переформируйте его у стойки.'
           );
         }
-        if (!signiss2ByOffer.get(item.offer_id)) {
+        const signiss2 = signiss2ByHash.get(item.order_hash);
+        if (!signiss2) {
           throw new BadRequestException(
-            'Состав подписания не совпадает с докладкой — обновите подписание.'
+            'Состав подписания не совпадает с бандлом — обновите подписание.'
           );
         }
-        // Средства уже в членском (конвертация выше при дефиците) — без Заявления.
+        if (item.order_id) {
+          // Обычный заказ — уже ACCEPTED_TO_COOP, создавать нечего.
+          issuables.push({ order_id: item.order_id, item, signiss2 });
+          continue;
+        }
+        // Докладка: средства уже в членском (конвертация выше при дефиците) — без Заявления.
         const { order } = await this.stockService.createStockOrder({
           coopname,
           orderer_account: member_account,
@@ -520,16 +630,17 @@ export class MarketplaceStockProposalService {
           checkout_id: proposal.id,
           order_hash: item.order_hash,
         });
-        created.push({ order_id: order.id, item });
+        createdStock.push({ order_id: order.id });
+        issuables.push({ order_id: order.id, item, signiss2 });
       }
     } catch (error) {
-      for (const { order_id } of created) {
+      for (const { order_id } of createdStock) {
         try {
           await this.stockService.cancelStockOrder(
             coopname,
             order_id,
             member_account,
-            'Подписание докладки не завершилось — строка отменена'
+            'Подписание бандла не завершилось — строка отменена'
           );
         } catch (compErr: any) {
           this.logger.error(
@@ -542,7 +653,7 @@ export class MarketplaceStockProposalService {
 
     // ── 3) Выдача: signiss1 оператора → signiss2 пайщика (заказ RECEIVED) ────
     const order_ids: string[] = [];
-    for (const { order_id, item } of created) {
+    for (const { order_id, item, signiss2 } of issuables) {
       await this.issuanceService.openIssuance({
         coopname,
         chairman_account: proposal.operator_account,
@@ -555,7 +666,7 @@ export class MarketplaceStockProposalService {
         coopname,
         orderer_account: member_account,
         order_id,
-        signed_document: signiss2ByOffer.get(item.offer_id)!,
+        signed_document: signiss2,
       });
       order_ids.push(order_id);
     }

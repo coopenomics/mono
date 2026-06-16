@@ -9,13 +9,10 @@ import {
 } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
 import { Classes } from '@coopenomics/sdk';
 import {
-  listMyReadyToReceive,
-  finalizeOrdererIssuance,
   listStockProposals,
   finalizeStockIssuance,
   declineStockProposal,
   getStockProposalSignablePayloads,
-  type MarketplaceOrderIssuanceView,
   type MarketplaceStockProposalView,
   type IStockConvertSigned,
   type IStockFinalizeOrderLine,
@@ -48,16 +45,6 @@ import {
  * откатил — после ближайшей дочитки список пустеет. Поллинга нет.
  */
 
-interface OrdererPickupTask {
-  /** Ключ группировки — braname пункта выдачи. */
-  key: string;
-  pointName: string;
-  pointAddress: string;
-  orders: MarketplaceOrderIssuanceView[];
-  /** Совокупная сумма к получению по всем позициям пункта. */
-  totalCost: string;
-}
-
 const PENDING_SUPPLIER_SIGN = 'PENDING_SUPPLIER_SIGN';
 // Очная приёмка кодируется как 'A' / 'IN_PERSON' в зависимости от слоя — гейт
 // блокирует ТОЛЬКО её; экспедиторскую (B / EXPEDITOR) не трогает.
@@ -65,9 +52,9 @@ const IN_PERSON_VARIANTS = new Set(['A', 'IN_PERSON']);
 
 // Singleton-состояние (как у SelectBranchOverlay): один гейт на всё приложение.
 const supplierReceptions = ref<MarketplaceAplReceptionView[]>([]);
-const ordererOrders = ref<MarketplaceOrderIssuanceView[]>([]);
-// Входящие предложения имущества со склада кооператива (докладка): оператор
-// накинул у стойки — пайщик решает прямо в гейте (принять / отказаться).
+// Единый бандл выдачи: оператор у стойки подписал акты (signiss1) по заказам
+// и/или докладке и отправил пайщику — пайщик решает прямо в гейте (подписать
+// получение / отменить). До его подписи на цепи ничего нет.
 const stockProposals = ref<MarketplaceStockProposalView[]>([]);
 // Разложение стоимости докладки по предложению: сколько спишется с уже внесённых
 // членских и сколько уйдёт в конвертацию с паевого (по Заявлению). Предзагружается,
@@ -85,40 +72,11 @@ const supplierTasks = computed<ReceptionGroup<MarketplaceAplReceptionView>[]>(()
   ),
 );
 
-const ordererTasks = computed<OrdererPickupTask[]>(() => {
-  // listMyReadyToReceive отдаёт заказы со статусом READY_TO_RECEIVE; фильтруем
-  // ещё не подписанные заказчиком и группируем по пункту выдачи — одна подпись
-  // на пункт (как в карточке «Моих заказов», задача #53).
-  const pending = ordererOrders.value.filter((o) => !o.orderer_signed_at);
-  const byPoint = new Map<string, MarketplaceOrderIssuanceView[]>();
-  for (const o of pending) {
-    const key = o.delivery_braname || o.delivery_point_name || o.id;
-    const arr = byPoint.get(key) ?? [];
-    arr.push(o);
-    byPoint.set(key, arr);
-  }
-  return [...byPoint.entries()].map(([key, orders]) => ({
-    key,
-    pointName: orders[0]?.delivery_point_name ?? '',
-    pointAddress: orders[0]?.delivery_point_address ?? '',
-    orders,
-    totalCost: orders
-      .reduce(
-        (sum, o) => sum + Number.parseFloat(o.issuance_fact?.fact_cost ?? o.total_cost ?? '0'),
-        0,
-      )
-      .toFixed(4),
-  }));
-});
-
 const proposalTasks = computed(() => stockProposals.value);
 
 /** Гейт виден, пока есть хоть одна личная подпись/решение, которых ждут от пайщика. */
 const isVisible = computed(
-  () =>
-    supplierTasks.value.length > 0 ||
-    ordererTasks.value.length > 0 ||
-    proposalTasks.value.length > 0,
+  () => supplierTasks.value.length > 0 || proposalTasks.value.length > 0,
 );
 
 /**
@@ -130,22 +88,19 @@ async function refresh(source = 'ручной'): Promise<void> {
   if (!global.wif) {
     // Не залогинен — гейта нет, очищаем возможный хвост.
     supplierReceptions.value = [];
-    ordererOrders.value = [];
     stockProposals.value = [];
     return;
   }
   const wasVisible = isVisible.value;
   loading.value = true;
   try {
-    const [receptions, orders, proposals] = await Promise.all([
+    const [receptions, proposals] = await Promise.all([
       listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
-      listMyReadyToReceive().catch(() => [] as MarketplaceOrderIssuanceView[]),
       listStockProposals({ statuses: ['PROPOSED'] }).catch(
         () => [] as MarketplaceStockProposalView[],
       ),
     ]);
     supplierReceptions.value = receptions;
-    ordererOrders.value = orders;
     stockProposals.value = proposals;
     // Подтягиваем разложение сумм (с членского / с паевого) для показа в карточке —
     // не блокирует дочитку; кэш по id, ушедшие предложения чистятся.
@@ -158,7 +113,7 @@ async function refresh(source = 'ручной'): Promise<void> {
   // сокет; если перед этим был «POLL» — сработала страховочная дочитка.
   const appeared = !wasVisible && isVisible.value;
   console.info(
-    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, заказчик=${ordererTasks.value.length}, предложений=${proposalTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
+    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, актов на подпись=${proposalTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
     appeared ? 'color:#16a34a;font-weight:bold' : 'color:#64748b',
   );
 }
@@ -214,34 +169,8 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
   }
 }
 
-async function signOrderer(task: OrdererPickupTask): Promise<void> {
-  const global = useGlobalStore();
-  const wif = global.wif?.toString();
-  if (!wif) {
-    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
-    return;
-  }
-  signingKey.value = task.key;
-  try {
-    const { ok, failed } = await finalizeOrdererIssuance(task.orders, wif, global.username);
-    if (failed.length === 0) {
-      SuccessAlert(`Имущество получено по ${ok} позиц. Заказы закрыты.`);
-    } else {
-      const names = failed.map((f) => f.order.product_name || f.order.id.slice(0, 8));
-      FailAlert(
-        new Error(
-          `Получено ${ok} из ${task.orders.length}. Не удалось: ${names.join(', ')}. Повторите по оставшимся.`,
-        ),
-      );
-    }
-    await refresh();
-  } finally {
-    signingKey.value = null;
-  }
-}
-
 /**
- * Пайщик ОДНОЙ подписью утверждает докладку как акт получения. Подписывает:
+ * Пайщик ОДНОЙ подписью утверждает бандл как акт получения. Подписывает:
  * при дефиците членских — единое Заявление о конвертации (paевой → членский),
  * затем по каждой строке контрподписывает АПП-выдачи (signiss2) поверх подписи
  * оператора. Backend создаёт заказы из остатка и проводит выдачу — имущество
@@ -275,7 +204,7 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
     //    document с подписью оператора (канон 2-подписи).
     const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
       payload.order_lines.map(async (line) => ({
-        offer_id: line.offer_id,
+        order_hash: line.order_hash,
         signed_signiss2_act: (await signer.signDocument(
           line.signiss1_aggregate.rawDocument,
           global.username,
@@ -286,7 +215,7 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
     );
 
     const { order_ids } = await finalizeStockIssuance(task.id, order_lines, signed_convert);
-    SuccessAlert(`Имущество получено по ${order_ids.length} позиц. со склада. Акт подписан.`);
+    SuccessAlert(`Имущество получено по ${order_ids.length} позиц. Акт подписан.`);
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -299,7 +228,7 @@ async function declineProposal(task: MarketplaceStockProposalView): Promise<void
   signingKey.value = task.id;
   try {
     await declineStockProposal(task.id);
-    SuccessAlert('Предложение отклонено.');
+    SuccessAlert('Получение отменено. Оператор сформирует акт заново.');
   } catch (error) {
     FailAlert(error);
   } finally {
@@ -314,16 +243,13 @@ export function useOnsiteSignatureGate() {
     loading,
     signingKey,
     supplierTasks,
-    ordererTasks,
     proposalTasks,
     proposalSums,
     refresh,
     signSupplier,
-    signOrderer,
     signProposal,
     declineProposal,
   };
 }
 
-export type { OrdererPickupTask };
 export type { MarketplaceStockProposalView };

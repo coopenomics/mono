@@ -159,7 +159,7 @@ export class MarketplaceStockResolver {
   @Mutation(() => MarketplaceStockProposalDTO, {
     name: 'marketplaceCreateStockProposal',
     description:
-      'Оператор у стойки формирует докладку пайщику со склада кооператива (с уже подписанными им актами передачи) — пайщику немедленно приходит акт на подпись получения.',
+      'Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
@@ -173,10 +173,16 @@ export class MarketplaceStockResolver {
       operator_account: member.username,
       braname: data.braname,
       member_account: data.member_account,
-      items: data.items.map((i) => ({
+      items: (data.items ?? []).map((i) => ({
         offer_id: i.offer_id,
         quantity: i.quantity,
         order_hash: i.order_hash,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+      })),
+      order_items: (data.order_items ?? []).map((i) => ({
+        order_id: i.order_id,
+        actual_quantity: i.actual_quantity,
+        actual_unit_price: i.actual_unit_price,
         signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
       })),
     });
