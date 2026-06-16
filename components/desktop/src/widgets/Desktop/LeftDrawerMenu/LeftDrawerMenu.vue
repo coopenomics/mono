@@ -25,7 +25,7 @@
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
-        balance-label='Паевой кошелёк',
+        balance-label='Главный паевой кошелёк',
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,

@@ -108,7 +108,7 @@ async function onSubmit(): Promise<void> {
     // CTA прямо в тосте: быстрый переход к оформлению, чтобы не искать корзину
     // отдельно. Заказал одну позицию — сразу из всплывашки идёшь в корзину.
     SuccessAlert('Добавлено в корзину', {
-      text: 'Перейти в корзину',
+      text: 'В корзину',
       icon: 'shopping_cart',
       handler: () => {
         void router.push({

@@ -12,8 +12,9 @@ import { walletCards as marketWalletCards } from '../../../extensions/market/ins
  * объединяет их декларации с core и дедупит по `wallet_name` (первое
  * вхождение выигрывает — так пересечение нескольких расширений на один
  * кошелёк схлопывается в одну карточку). Главный паевой кошелёк ЦК
- * (`w.wal.share`) идёт ПОСЛЕ кошельков расширений — это такая же ЦПП, как
- * «Стол заказов», и стоит рядом с программными кошельками, а не первым.
+ * (`w.wal.share`) идёт ПЕРВЫМ (сразу после минимального неснижаемого
+ * остатка, который рендерится отдельной карточкой виджета) — у него
+ * приоритет; кошельки расширений идут после него.
  *
  * Что НЕ устанавливается на стол пайщика: главный членский (`w.wal.member`,
  * программа ЦК) и Генератор (`w.cap.gen`, кооперативный кошелёк без L3).
@@ -23,8 +24,8 @@ import { walletCards as marketWalletCards } from '../../../extensions/market/ins
 const CORE_WALLET_CARDS: DesktopWalletCard[] = [
   {
     wallet_name: 'w.wal.share',
-    label: 'Главный кошелёк',
-    description: 'Паевой взнос',
+    label: 'Главный паевой кошелёк',
+    description: 'Цифровой кошелёк',
     accent: 'wallet',
     icon: 'account_balance_wallet',
   },
@@ -40,15 +41,15 @@ const WALLET_CARDS_BY_EXTENSION: Record<string, DesktopWalletCard[]> = {
  * установленных расширений (их `extension_name`). Дедуп по `wallet_name`.
  */
 export function collectWalletCards(installedExtensionNames: Iterable<string>): DesktopWalletCard[] {
-  const collected: DesktopWalletCard[] = [];
+  // Главный паевой кошелёк ЦК — первым (приоритет), сразу за ним кошельки
+  // расширений. Минимальный неснижаемый остаток рендерится ещё выше отдельной
+  // карточкой виджета, мимо реестра.
+  const collected: DesktopWalletCard[] = [...CORE_WALLET_CARDS];
 
   for (const ext of installedExtensionNames) {
     const cards = WALLET_CARDS_BY_EXTENSION[ext];
     if (cards) collected.push(...cards);
   }
-
-  // Главный паевой кошелёк ЦК — после кошельков расширений (вниз списка).
-  collected.push(...CORE_WALLET_CARDS);
 
   const seen = new Set<string>();
   return collected.filter((card) => {
