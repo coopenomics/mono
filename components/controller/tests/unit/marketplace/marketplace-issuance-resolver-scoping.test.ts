@@ -63,10 +63,6 @@ const orderOf = (overrides: Record<string, unknown>) =>
 const makePayloadResolver = (order: any, isMember: boolean) => {
   const service = {
     getOpenIssuanceSignablePayload: jest.fn().mockResolvedValue({}),
-    getFinalizeIssuanceSignablePayload: jest.fn().mockResolvedValue({
-      hash: 'h',
-      document: { version: '1', hash: 'dh', doc_hash: 'dh', meta_hash: 'mh', meta: '{}', signatures: [] },
-    }),
   } as any;
   const orderRepo = { findById: jest.fn().mockResolvedValue(order) } as any;
   const kuChairmanService = { isMemberOfBranch: jest.fn().mockResolvedValue(isMember) } as any;
@@ -99,25 +95,5 @@ describe('marketplaceIssueActChairmanSignablePayload ownership-scoping', () => {
       } as any)
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(service.getOpenIssuanceSignablePayload).not.toHaveBeenCalled();
-  });
-});
-
-describe('marketplaceIssueActOrdererSignablePayload ownership-scoping', () => {
-  it('заказчик своего заказа → превью отдаётся', async () => {
-    const { resolver, service } = makePayloadResolver(orderOf({ orderer_account: 'op' }), false);
-    await resolver.marketplaceIssueActOrdererSignablePayload(asMember(['orderer']), {
-      order_id: 'o1',
-    } as any);
-    expect(service.getFinalizeIssuanceSignablePayload).toHaveBeenCalledWith('voskhod', 'o1');
-  });
-
-  it('НЕ заказчик заказа → ForbiddenException, сервис не дёргается', async () => {
-    const { resolver, service } = makePayloadResolver(orderOf({ orderer_account: 'someoneelse' }), false);
-    await expect(
-      resolver.marketplaceIssueActOrdererSignablePayload(asMember(['orderer']), {
-        order_id: 'o1',
-      } as any)
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(service.getFinalizeIssuanceSignablePayload).not.toHaveBeenCalled();
   });
 });

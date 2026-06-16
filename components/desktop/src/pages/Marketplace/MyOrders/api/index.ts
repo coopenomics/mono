@@ -2,22 +2,9 @@ import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { MarketplaceOrderPage, MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
-// Финальную подпись получения («Подписать и получить») заказчик ставит прямо
-// в карточке «Моих заказов» — переиспользуем запрос акта (агрегат с подписью
-// председателя) и mutation финализации из operator-стола выдачи. Отдельной
-// страницы «Готово к получению» больше нет: статус READY_TO_RECEIVE — обычный
-// этап заказа в общем списке.
-export {
-  getOrdererSignablePayload,
-  finalizeIssuance,
-  finalizeOrdererIssuance,
-} from '../../OperatorIssuance/api';
-export type {
-  MarketplaceOrderIssuanceView,
-  MarketplaceOrderIssuanceFactView,
-  MarketplaceIssuanceAggregateView,
-  SignedDocumentInput,
-} from '../../OperatorIssuance/api';
+// Получение оформляется у стойки ПВЗ: оператор формирует акт-бандл, пайщик
+// подписывает его в гейте «подпись на месте» (единый путь выдачи). Поэтому
+// «Мои заказы» подпись получения больше не несут — здесь только список и отмена.
 
 export interface ListMyOrdersVariables {
   statuses?: MarketplaceOrderStatusView[];

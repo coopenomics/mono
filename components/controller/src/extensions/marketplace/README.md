@@ -1,8 +1,74 @@
-# Marketplace - Расширение маркетплейса
+# Marketplace — расширение «Стол заказов»
 
-Расширение для работы с категориями товаров и атрибутами маркетплейса. Предоставляет GraphQL API для управления деревом категорий и типов товаров на основе данных Ozon API.
+Бэкенд кооперативной закупки/распределения имущества (членская модель): каталог
+оферт, коллективные заказы, приёмка на склад КУ (ПВЗ), **выдача пайщику**,
+возвраты, списание скоропорта, экономика КУ (членский взнос/распределение).
+Ниже — быстрый контекст по самому нетривиальному потоку (выдача); внизу файла
+осталась справка по дереву категорий (донорская часть Ozon).
 
-## Возможности
+---
+
+## ⭐ Выдача имущества — ЕДИНЫЙ ПУТЬ (бандл-пропозал)
+
+Главный инвариант: **до подписи пайщика в блокчейне по выдаче не происходит
+ничего.** И обычные заказы, и докладку со склада оператор кладёт в ОДИН
+оффчейн-бандл (PG), подписывая свою (первую) подпись акта. Связка подписей
+уходит на цепь только когда пайщик у стойки контрподписывает акт. Поэтому
+отмена пайщиком = отказ от бандла (оффчейн), без он-чейн отката, и нет двух
+веток «уже в цепи / ещё в БД».
+
+```
+ОПЕРАТОР у стойки (IssueActOpenDialog):
+  по выдаваемым заказам И докладке со склада подписывает АПП-выдачи первой
+  подписью (signiss1) → marketplaceCreateStockProposal (бандл в PG).
+  Заказы остаются ACCEPTED_TO_COOP; в цепи — ничего.
+        │  (пайщику realtime-сигнал → гейт «подпись на месте»)
+        ▼
+ПАЙЩИК в OnsiteSignatureGate — одна карточка-акт, две кнопки:
+  ├─ «Подписать и получить»  → marketplaceFinalizeStockIssuance:
+  │     (0) контрольная сверка: контрподписанный акт байт-в-байт = выданный
+  │         оператором signiss1 (защита от подмены тела «вагон алюминия»);
+  │     (1) при дефиците членских — ОДНА конвертация паевого по Заявлению;
+  │     (2) докладка → createStockOrder (обычный заказ уже существует);
+  │     (3) по строке: openIssuance(signiss1 оператора) → finalizeIssuance(signiss2 пайщика).
+  │     Заказы → RECEIVED.
+  └─ «Отменить»               → marketplaceDeclineStockProposal (оффчейн).
+                                 Заказы остаются ACCEPTED_TO_COOP — оператор
+                                 переоткрывает выдачу и формирует акт заново.
+```
+
+**Экономика по типу строки бандла** (`order_id` в `MarketplaceStockProposalItem`
+— дискриминатор): докладка (нет `order_id`) фондируется целиком с членского
+(lock на stockorder, дефицит закрывает конвертация); обычный заказ (есть
+`order_id`) уже профондирован с паевого на `createorder` — конвертация ему не
+нужна, доплату при факт>заказ берёт сам `signiss2` на цепи и фейлится при
+нехватке членских.
+
+**`READY_TO_RECEIVE` теперь транзитный**: `signiss1` ставит его, `signiss2`
+сразу читает и переводит в `RECEIVED` внутри одной finalize-связки. Отдельного
+member-видимого состояния «готов к получению» НЕТ (поэтому в «Мои заказы» нет
+подписи получения и нет вкладки «Готовы к выдаче»).
+
+### Ключевые файлы выдачи
+
+| Слой | Файл | Роль |
+|---|---|---|
+| Сервис-оркестратор | `application/services/marketplace-stock-proposal.service.ts` | бандл: createProposal / getAcceptSignablePayloads / **finalizeStockIssuance** / decline / cancel + контрольная сверка `assertCountersignMatchesStored` |
+| Сервис выдачи | `application/services/marketplace-issuance.service.ts` | `openIssuance`/`finalizeIssuance` (signiss1/signiss2 на цепь) + генерация АПП (1105); зовутся ИЗНУТРИ бандла, не из GraphQL |
+| Резолвер бандла | `application/resolvers/marketplace-stock.resolver.ts` | `marketplaceCreateStockProposal` / `marketplaceStockProposalSignablePayloads` / `marketplaceFinalizeStockIssuance` / decline / cancel |
+| Резолвер выдачи | `application/resolvers/marketplace-issuance.resolver.ts` | `marketplaceIssueActChairmanSignablePayload` (signiss1-превью оператору) + `marketplaceListIssuancesByBraname` (лента оператора) |
+| Домен-строка | `domain/entities/marketplace-stock-proposal.types.ts` | `MarketplaceStockProposalItem` (+ `order_id`/`order_hash`/`signiss1_act`) |
+| Фронт оператора | `desktop/.../OperatorIssuance/ui/IssueActOpenDialog.vue` | сборка одного бандла (order_items + докладка), подпись signiss1 |
+| Фронт пайщика | `desktop/.../OnsiteSignatureGate/` | единая карточка-акт: «Подписать и получить» / «Отменить» |
+
+> Контракт не меняли: используются существующие `signiss1`/`signiss2`/`stockorder`/
+> `convert`. Старого немедленного он-чейн-пути выдачи (`marketplaceOpenIssuance`/
+> `marketplaceFinalizeIssuance`/`marketplaceListMyReadyToReceive`/orderer-payload)
+> больше нет — он удалён как мёртвый после унификации.
+
+---
+
+## Возможности (дерево категорий — донорская часть Ozon)
 
 ### 🗂️ Дерево категорий
 - Получение полного дерева категорий с иерархией

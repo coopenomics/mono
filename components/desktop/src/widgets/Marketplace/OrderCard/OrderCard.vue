@@ -95,8 +95,6 @@ export interface Order {
   statusVariant: BaseBadgeVariant
   /** Доступна ли отмена заказчиком (только до акцепта поставщика). */
   cancellable?: boolean
-  /** Готов к получению заказчиком (оператор открыл выдачу, ждёт финальной подписи). */
-  receivable?: boolean
   createdAt: string | Date
   /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
   pvzName?: string
@@ -188,12 +186,11 @@ const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus
 const actionsForRole = computed<OrderAction[]>(() => {
   if (props.readonly) return []
   const role = props.role
-  // Заказчик: «Подписать и получить», когда оператор открыл выдачу
-  // (receivable), и «Отменить», пока заказ отменяем (до акцепта поставщика).
-  // Полную карточку открывает клик по телу (openable → emit 'open').
+  // Заказчик: «Отменить», пока заказ отменяем (до акцепта поставщика). Подпись
+  // получения — у стойки ПВЗ в гейте «подпись на месте» (единый путь выдачи),
+  // в карточке заказа её нет. Полную карточку открывает клик по телу (openable).
   if (role === 'orderer') {
     const actions: OrderAction[] = []
-    if (props.order.receivable) actions.push({ key: 'receive', label: 'Подписать и получить', kind: 'primary' })
     if (props.order.cancellable) actions.push({ key: 'cancel', label: 'Отменить', kind: 'danger' })
     return actions
   }

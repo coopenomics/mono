@@ -18,7 +18,6 @@ import {
 } from './marketplace-asset.config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
@@ -160,39 +159,6 @@ export class MarketplaceIssuanceService {
       actual_quantity: fact_quantity,
       actual_unit_price: fact_unit_price,
     });
-  }
-
-  /**
-   * Документ для финальной подписи заказчика (вторая подпись АПП выдачи).
-   * Канон двухподписного акта (как закрытие АПП приёмки председателем):
-   * backend отдаёт DocumentAggregate — исходный документ из стора по doc_hash
-   * (`rawDocument`, для ознакомления) + документ, уже подписанный председателем
-   * (`document`, с его подписью). Заказчик накладывает свою подпись поверх:
-   * `signDocument(rawDocument, orderer, 2, [document])`. Фронтенд цепь не читает.
-   */
-  async getFinalizeIssuanceSignablePayload(
-    coopname: string,
-    order_id: string
-  ): Promise<DocumentDomainAggregate> {
-    const order = await this.loadOrder(coopname, order_id);
-    if (order.status !== 'READY_TO_RECEIVE') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}», финальная подпись выдачи недопустима.`
-      );
-    }
-    const signed = order.issue_act_signiss1_document;
-    if (!signed) {
-      throw new ConflictException(
-        `Заказ ${order.id}: нет документа, подписанного председателем при открытии выдачи — финальная подпись недоступна до открытия выдачи.`
-      );
-    }
-    const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
-    if (!aggregate) {
-      throw new ConflictException(
-        `Заказ ${order.id}: исходный документ акта выдачи по doc_hash ${signed.doc_hash} не найден в сторе. Требуется заново открыть выдачу (тело документа не сохранено).`
-      );
-    }
-    return aggregate;
   }
 
   async openIssuance(input: MarketplaceOpenIssuanceInput): Promise<MarketplaceIssuanceResult> {

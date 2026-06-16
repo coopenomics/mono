@@ -47,11 +47,9 @@ export * as AplReceptionChairmanSignablePayloads from './aplReceptionChairmanSig
 /** Эпик 6: лента выдач текущего КУ для operator-стола */
 export * as ListIssuancesByBraname from './listIssuancesByBraname'
 /** Эпик 6: заказы пайщика, готовые к получению на ПВЗ */
-export * as ListMyReadyToReceive from './listMyReadyToReceive'
 /** Эпик 6: превью акта выдачи для подписи председателем КУ (первая подпись) */
 export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayload'
 /** Эпик 6: превью акта выдачи для финальной подписи заказчика */
-export * as IssueActOrdererSignablePayload from './issueActOrdererSignablePayload'
 /** Эпик 7: все заявления текущего пайщика на гарантийный возврат */
 export * as ListMyReturnClaims from './listMyReturnClaims'
 /** Эпик 7: заявления на возврат текущего КУ для operator-стола */

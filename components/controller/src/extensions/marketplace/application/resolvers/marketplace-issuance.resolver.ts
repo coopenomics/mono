@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
@@ -14,11 +14,8 @@ import {
 } from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
-  MarketplaceFinalizeIssuanceInputDTO,
-  MarketplaceIssuanceResultDTO,
   MarketplaceIssueActPayloadInputDTO,
   MarketplaceListIssuancesByBranameInputDTO,
-  MarketplaceOpenIssuanceInputDTO,
 } from '../dto/marketplace-issuance.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import {
@@ -34,7 +31,6 @@ import {
   MarketplaceOrderDisplayService,
 } from '../services/marketplace-order-display.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -61,53 +57,12 @@ export class MarketplaceIssuanceResolver {
     private readonly displayService: MarketplaceOrderDisplayService
   ) {}
 
-  @Mutation(() => MarketplaceIssuanceResultDTO, {
-    name: 'marketplaceOpenIssuance',
-    description:
-      'Председатель кооперативного участка открывает выдачу первой подписью акта — заказ готов к получению пайщиком.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Issuance', 'sign:first')
-  async marketplaceOpenIssuance(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceOpenIssuanceInputDTO
-  ): Promise<MarketplaceIssuanceResultDTO> {
-    const result = await this.service.openIssuance({
-      coopname: config.coopname,
-      chairman_account: member.username,
-      order_id: data.order_id,
-      actual_quantity: data.actual_quantity,
-      actual_unit_price: data.actual_unit_price,
-      signed_document: data.signed_document,
-    });
-    return new MarketplaceIssuanceResultDTO({
-      order: toMarketplaceOrderDTO(result.order),
-      tx_hash: result.tx_hash,
-    });
-  }
-
-  @Mutation(() => MarketplaceIssuanceResultDTO, {
-    name: 'marketplaceFinalizeIssuance',
-    description:
-      'Заказчик ставит финальную подпись акта выдачи — имущество переходит к нему, в зависимости от сверки факта применяются корректирующие операции.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Issuance', 'sign:final')
-  async marketplaceFinalizeIssuance(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceFinalizeIssuanceInputDTO
-  ): Promise<MarketplaceIssuanceResultDTO> {
-    const result = await this.service.finalizeIssuance({
-      coopname: config.coopname,
-      orderer_account: member.username,
-      order_id: data.order_id,
-      signed_document: data.signed_document,
-    });
-    return new MarketplaceIssuanceResultDTO({
-      order: toMarketplaceOrderDTO(result.order),
-      tx_hash: result.tx_hash,
-    });
-  }
+  // Единый путь выдачи (см. README расширения): оператор подписывает signiss1 и
+  // кладёт его в бандл (marketplaceCreateStockProposal); связка signiss1+signiss2
+  // уходит на цепь только при подписи пайщика внутри marketplaceFinalizeStockIssuance.
+  // Отдельных он-чейн мутаций открытия/финализации выдачи и member-запросов
+  // «готово к получению»/«акт для подписи заказчика» больше нет — сервис-методы
+  // openIssuance/finalizeIssuance вызываются ИЗНУТРИ бандла, не из GraphQL.
 
   @Query(() => GeneratedDocumentDTO, {
     name: 'marketplaceIssueActChairmanSignablePayload',
@@ -154,56 +109,6 @@ export class MarketplaceIssuanceResolver {
     return toGeneratedDocumentDTO(doc);
   }
 
-  @Query(() => DocumentAggregateDTO, {
-    name: 'marketplaceIssueActOrdererSignablePayload',
-    description:
-      'Акт выдачи, уже подписанный председателем, для финальной подписи заказчика. Содержит исходный документ для ознакомления и подпись председателя; заказчик накладывает свою подпись поверх.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Issuance', 'sign:final')
-  async marketplaceIssueActOrdererSignablePayload(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceIssueActPayloadInputDTO
-  ): Promise<DocumentAggregateDTO> {
-    const coopname = config.coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-
-    // Ownership-фильтрация — ответственность резолвера. `sign:final` есть у
-    // каждого пайщика (роль orderer), поэтому без проверки владельца любой
-    // пайщик прочитал бы акт чужого заказа по подставленному order_id.
-    //
-    // Канон выдачи (UX-DR4, см. finalizeIssuance): заказчик ставит финальную
-    // подпись на устройстве оператора КУ (operator-assisted POS) — сессия при
-    // этом оператора, а не заказчика. Поэтому превью доступно либо самому
-    // заказчику, либо члену КУ выдачи (председатель/доверенное лицо/оператор),
-    // который проводит выдачу — иначе превью утечёт по подставленному order_id.
-    // Сама финальная подпись всё равно обязана нести ключ заказчика-владельца —
-    // это отдельно проверяет finalizeIssuance по signer'у подписи.
-    if (!canAccess(roles, 'Issuance', 'read:all')) {
-      const order = await this.orderRepo.findById(data.order_id);
-      if (!order || order.coopname !== coopname) {
-        throw new NotFoundException('Заказ не найден.');
-      }
-      const isOrderer = order.orderer_account === member.username;
-      const isKuMember = await this.kuChairmanService.isMemberOfBranch(
-        coopname,
-        order.delivery_braname,
-        member.username
-      );
-      if (!isOrderer && !isKuMember) {
-        throw new ForbiddenException(
-          'Превью акта выдачи доступно заказчику или члену кооперативного участка выдачи.'
-        );
-      }
-    }
-
-    const aggregate = await this.service.getFinalizeIssuanceSignablePayload(
-      coopname,
-      data.order_id
-    );
-    return new DocumentAggregateDTO(aggregate);
-  }
-
   @Query(() => [MarketplaceOrderDTO], {
     name: 'marketplaceListIssuancesByBraname',
     description:
@@ -241,27 +146,6 @@ export class MarketplaceIssuanceResolver {
     );
     // withWarehouseQuantity: оператор обязан видеть, сколько по заказу реально
     // принято на склад — выдача ограничена этим количеством, не заказанным.
-    const display = await this.displayService.enrich(orders, {
-      withParticipantNames: true,
-      withWarehouseQuantity: true,
-    });
-    return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
-  }
-
-  @Query(() => [MarketplaceOrderDTO], {
-    name: 'marketplaceListMyReadyToReceive',
-    description:
-      'Список заказов текущего пайщика, готовых к получению на пункте выдачи.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Issuance', 'read:own')
-  async marketplaceListMyReadyToReceive(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
-  ): Promise<MarketplaceOrderDTO[]> {
-    const orders = await this.orderRepo.listReadyToReceiveByOrderer(
-      config.coopname,
-      member.username
-    );
     const display = await this.displayService.enrich(orders, {
       withParticipantNames: true,
       withWarehouseQuantity: true,
