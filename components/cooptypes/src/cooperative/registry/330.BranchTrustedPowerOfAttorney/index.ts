@@ -36,28 +36,24 @@ export interface Model {
 
 export const title = 'Доверенность доверенному лицу кооперативного участка'
 export const description = 'Форма доверенности, выдаваемой председателем кооперативного участка доверенному лицу участка (пайщику-оператору) на право действовать в качестве бухгалтера-кассира/оператора участка'
-export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;font-size: 16px;}.digital-document {padding: 20px;white-space: pre-wrap;}.digital-document p {margin: 0px;padding-top: 10px;text-align: justify;}.requisites p {padding-top: 2px;}.signature {padding-top: 20px;}</style><div class="digital-document"><h1 class="header">{% trans 'POA_TITLE' %}</h1><p style="text-align: right; padding-top: 20px;">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'PREAMBLE', branch_name, vars.full_abbr, vars.name, trustee_full_name, individual.last_name, individual.first_name, individual.middle_name, branch_name, vars.full_abbr, vars.name, branch_name, vars.full_abbr, vars.name, trustee_full_name %}</p><p>{% trans 'RESPONSIBILITY', individual.last_name, individual.first_name, individual.middle_name, vars.full_abbr, vars.name %}</p><p>{% trans 'SIGNATURE_CERTIFIED', individual.last_name, individual.first_name, individual.middle_name %}</p><p>{% trans 'NON_TRANSFERABLE' %}</p><p>{% trans 'TERM_ONE_YEAR' %}</p><div class="requisites" style="padding-top: 30px;"><p><strong>{% trans 'PRINCIPAL_LABEL' %}</strong></p><p>{% trans 'BRANCH_LINE', branch_name, vars.full_abbr, vars.name %}</p><p>{% trans 'INN' %} {{ coop.details.inn }}</p><p>{% trans 'KPP' %} {{ coop.details.kpp }}</p><p>{% trans 'OGRN' %} {{ coop.details.ogrn }}</p><p>{% trans 'BRANCH_CHAIRMAN_LABEL' %} {{ trustee_full_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div><div class="requisites" style="padding-top: 20px;"><p><strong>{% trans 'AUTHORIZED_LABEL' %} {{ individual.last_name }} {{ individual.first_name }} {{ individual.middle_name }}</strong></p>{% if individual.passport %}<p>{% trans 'PASSPORT_SERIES_NUMBER', individual.passport.series, individual.passport.number %}</p><p>{% trans 'PASSPORT_ISSUED', individual.passport.issued_by, individual.passport.code %}</p><p>{% trans 'PASSPORT_ISSUED_AT', individual.passport.issued_at %}</p>{% endif %}<p>{% trans 'REGISTRATION_ADDRESS' %} {{ individual.full_address }}</p><p>{% trans 'CONTACT_PHONE' %} {{ individual.phone }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
+export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;font-size: 16px;}.digital-document {padding: 20px;white-space: pre-wrap;}.digital-document p {margin: 0px;padding-top: 10px;text-align: justify;}.coop-header {text-align: center;padding-bottom: 10px;}.coop-header p {padding-top: 2px;text-align: center;}.signature {padding-top: 20px;}</style><div class="digital-document"><div class="coop-header"><p><strong>{% trans 'BRANCH_HEADER', branch_name %}</strong></p><p><strong>{{ vars.full_abbr_genitive }} «{{ vars.name }}»</strong></p><p>{% trans 'OGRN' %} {{ coop.details.ogrn }}</p><p>{% trans 'INN' %} {{ coop.details.inn }} / {% trans 'KPP' %} {{ coop.details.kpp }}</p></div><h1 class="header">{% trans 'POA_TITLE' %}</h1><p style="text-align: right; padding-top: 10px;">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'PREAMBLE_INTRO', branch_name, vars.full_abbr, vars.name, trustee_full_name %} <strong>{{ individual.last_name }} {{ individual.first_name }} {{ individual.middle_name }}</strong>{% if individual.passport %} ({% trans 'PASSPORT_INLINE', individual.passport.series, individual.passport.number, individual.passport.issued_at, individual.passport.issued_by, individual.passport.code, individual.full_address %}){% endif %} {% trans 'PREAMBLE_POWERS', branch_name, vars.full_abbr, vars.name, branch_name, vars.full_abbr, vars.name, trustee_full_name %}</p><p>{% trans 'RESPONSIBILITY', individual.last_name, individual.first_name, individual.middle_name, vars.full_abbr, vars.name %}</p><p>{% trans 'SIGNATURE_CERTIFIED', individual.last_name, individual.first_name, individual.middle_name %}</p><p>{% trans 'NON_TRANSFERABLE' %}</p><p>{% trans 'TERM_ONE_YEAR' %}</p><div class="signature" style="padding-top: 30px;"><p>{% trans 'PRINCIPAL_SIGNATURE', branch_name, vars.full_abbr_genitive, vars.name, trustee_full_name %}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p><p style="padding-top: 10px;">{% trans 'SEAL' %}</p></div></div>`
 
 export const translations = {
   ru: {
     POA_TITLE: 'ДОВЕРЕННОСТЬ',
-    PREAMBLE: 'Председатель Кооперативного участка «{0}» {1} «{2}» {3}, действующий на основании Протокола Собрания Совета и Доверенности, выданной кооперативом, настоящей доверенностью уполномочивает пайщика {4} {5} {6} действовать в качестве бухгалтера-кассира/оператора на Кооперативном участке «{7}» и осуществлять взаимодействие с пайщиками {8} «{9}» по оформлению, приёму, выдаче, расчётам, обороту имущества и иных ценностей в соответствии с указаниями Председателя Кооперативного участка «{10}» {11} «{12}» {13}.',
+    BRANCH_HEADER: 'Кооперативный участок «{0}»',
+    PREAMBLE_INTRO: 'Председатель Кооперативного участка «{0}» {1} «{2}» {3}, действующий на основании Протокола № — и Доверенности № —, настоящей доверенностью уполномочивает пайщика',
+    PASSPORT_INLINE: 'паспорт серия: {0} № {1}, выдан: {2} {3}, к/п {4}, зарегистрирован: {5}',
+    PREAMBLE_POWERS: 'действовать в качестве бухгалтера-кассира/оператора на Кооперативном участке «{0}» и осуществлять взаимодействие с пайщиками {1} «{2}» по оформлению, приёму, выдаче, расчётам, обороту имущества и иных ценностей в соответствии с указаниями Председателя Кооперативного участка «{3}» {4} «{5}» {6}.',
     RESPONSIBILITY: 'Гражданин {0} {1} {2} несёт ответственность за все свои действия и деловые операции, осуществляемые в интересах {3} «{4}».',
     SIGNATURE_CERTIFIED: 'Подпись гражданина {0} {1} {2} удостоверяю.',
     NON_TRANSFERABLE: 'Полномочия по настоящей доверенности не могут быть переданы другим лицам.',
     TERM_ONE_YEAR: 'Доверенность выдана на срок один год.',
+    PRINCIPAL_SIGNATURE: 'Подпись доверителя / Председатель Кооперативного участка «{0}» {1} «{2}» {3}',
     INN: 'ИНН',
     KPP: 'КПП',
     OGRN: 'ОГРН',
-    PRINCIPAL_LABEL: 'Доверитель:',
-    BRANCH_LINE: 'Кооперативный участок «{0}» {1} «{2}»',
-    BRANCH_CHAIRMAN_LABEL: 'Председатель Кооперативного участка:',
-    AUTHORIZED_LABEL: 'Уполномоченный (доверенное лицо): ФИО (полностью)',
-    PASSPORT_SERIES_NUMBER: 'Паспорт серии: {0} № {1}',
-    PASSPORT_ISSUED: 'Выдан: {0}, к/п {1}',
-    PASSPORT_ISSUED_AT: 'Дата выдачи: {0}',
-    REGISTRATION_ADDRESS: 'Адрес регистрации:',
-    CONTACT_PHONE: 'Контактный телефон:',
+    SEAL: 'М.П. (КУ)',
     SIGNED_DIGITALLY: 'подписано электронной подписью',
   },
 }
@@ -93,6 +89,7 @@ export const exampleData = {
   trustee_full_name: 'Иванов Пётр Сидорович',
   vars: {
     full_abbr: 'Потребительский кооператив',
+    full_abbr_genitive: 'Потребительского кооператива',
     name: 'ВОСХОД',
     passport_request: 'yes',
   },

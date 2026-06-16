@@ -217,6 +217,7 @@ import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
 import { CollectPassportDialog, useRequirePassport } from 'src/features/User/CollectPassport';
 import { useSessionStore } from 'src/entities/Session';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useSystemStore } from 'src/entities/System/model';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import {
   BaseBadge,
@@ -243,6 +244,7 @@ const router = useRouter();
 const kuStore = useKuStore();
 const session = useSessionStore();
 const desktop = useDesktopStore();
+const system = useSystemStore();
 const flow = useKuDecisionFlow();
 const { passportDialogOpen, requirePassport, onPassportSaved } = useRequirePassport();
 
@@ -524,15 +526,22 @@ async function onStart() {
   if (isCreateBranchType.value) {
     const branchName = startForm.value.branchName.trim();
     const chairmanFullName = displayName(startForm.value.chairman);
+    // принадлежность участка кооперативу указывается в каждом вопросе (требование методолога):
+    // «...кооперативного участка «Петрушка» потребительского кооператива «Восход»»
+    const coopName = system.info?.vars?.name ?? '';
+    const coopGenitive = system.info?.vars?.full_abbr_genitive ?? 'потребительского кооператива';
+    const coopSuffix = coopName ? ` ${coopGenitive} «${coopName}»` : '';
+    const councilTarget = coopName ? `Совет ${coopGenitive} «${coopName}»` : 'Совет кооператива';
     agenda = [
       {
-        title: `Об организации кооперативного участка «${branchName}»`,
-        decision: `Организовать кооперативный участок «${branchName}» по адресу: ${startForm.value.address.trim()}`,
+        title: `Об организации кооперативного участка «${branchName}»${coopSuffix}`,
+        decision: `Организовать кооперативный участок «${branchName}»${coopSuffix} по адресу: ${startForm.value.address.trim()}`,
         context: '',
       },
       {
-        title: 'Об избрании председателя кооперативного участка',
-        decision: `Избрать председателем кооперативного участка «${branchName}» ${chairmanFullName}`,
+        // полномочие обратиться в совет входит во второй вопрос — отдельного третьего вопроса нет
+        title: `Об избрании председателя кооперативного участка «${branchName}»${coopSuffix} и уполномочивании его обратиться в совет`,
+        decision: `Избрать председателем кооперативного участка «${branchName}»${coopSuffix} ${chairmanFullName} и уполномочить ${chairmanFullName} обратиться в ${councilTarget} по организации кооперативного участка`,
         context: '',
       },
       ...extra,

@@ -210,24 +210,33 @@ function openCreateDialog() {
   isCreateOpen.value = true;
 }
 
-// стандартная повестка собрания об учреждении кооперативного участка
-const CREATE_BRANCH_AGENDA = [
-  {
-    title: 'Об организации кооперативного участка',
-    decision: 'Организовать кооперативный участок по адресу, определённому собранием пайщиков',
-    context: '',
-  },
-  {
-    title: 'Об избрании председателя кооперативного участка',
-    decision: 'Избрать председателем кооперативного участка пайщика, избранного собранием из числа участников',
-    context: '',
-  },
-];
+// предварительная повестка собрания об учреждении кооперативного участка.
+// Наименование участка и председатель ещё не известны — итоговые формулировки с
+// именем участка и кооператива подставляются при открытии голосования (см. startdec).
+function buildCreateBranchAgenda() {
+  const coopName = system.info?.vars?.name ?? '';
+  const coopGenitive = system.info?.vars?.full_abbr_genitive ?? 'потребительского кооператива';
+  const coopSuffix = coopName ? ` ${coopGenitive} «${coopName}»` : '';
+  const councilTarget = coopName ? `Совет ${coopGenitive} «${coopName}»` : 'Совет кооператива';
+  return [
+    {
+      title: `Об организации кооперативного участка${coopSuffix}`,
+      decision: `Организовать кооперативный участок${coopSuffix} по адресу, определённому собранием пайщиков`,
+      context: '',
+    },
+    {
+      // полномочие обратиться в совет входит во второй вопрос — отдельного третьего вопроса нет
+      title: `Об избрании председателя кооперативного участка${coopSuffix} и уполномочивании его обратиться в совет`,
+      decision: `Избрать председателем кооперативного участка${coopSuffix} пайщика, избранного собранием из числа участников, и уполномочить его обратиться в ${councilTarget} по организации кооперативного участка`,
+      context: '',
+    },
+  ];
+}
 
 async function submitCreate() {
   const isCreateBranch = form.value.type === 'createbranch';
   const agenda = isCreateBranch
-    ? CREATE_BRANCH_AGENDA
+    ? buildCreateBranchAgenda()
     : freeAgenda.value.filter((point) => point.title.trim() && point.decision.trim());
   if (!agenda.length) {
     FailAlert('Добавьте хотя бы один вопрос повестки');
