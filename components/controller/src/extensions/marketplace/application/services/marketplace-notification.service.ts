@@ -22,6 +22,7 @@ import {
   MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
+  MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
@@ -33,6 +34,7 @@ import {
   type MarketplaceReturnAcceptedForSupplierEvent,
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
+  type MarketplaceNewSupplierRequestEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -155,6 +157,57 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push кассиру (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT)
+  async handleNewSupplierRequest(event: MarketplaceNewSupplierRequestEvent): Promise<void> {
+    try {
+      // Адресат — председатель кооператива: он рассматривает заявки в реестре
+      // поставщиков (стол администратора). extension-роль cashier/registrar
+      // появится позже — тогда поменять фильтр.
+      const chairmen = await this.accountPort.getAccounts(
+        { role: 'chairman' },
+        { page: 1, limit: 1, sortOrder: 'ASC' }
+      );
+      if (!chairmen.items || chairmen.items.length === 0) {
+        this.logger.warn(
+          `Заявка поставщика ${event.member_account}: председатель не найден — push пропущен.`
+        );
+        return;
+      }
+      const chairman = chairmen.items[0];
+      const subscriberId = chairman.provider_account?.subscriber_id?.trim();
+      const email = chairman.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Заявка поставщика ${event.member_account}: subscriber_id/email председателя ${chairman.username} не найден — push пропущен.`
+        );
+        return;
+      }
+
+      const chairmanName = await this.accountPort.getDisplayName(chairman.username);
+      const supplierName = await this.accountPort.getDisplayName(event.member_account);
+      const payload: Workflows.MarketplaceNewSupplierRequest.IPayload = {
+        chairmanName,
+        supplierName,
+        contractNumber: event.contract_number,
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-admin/suppliers`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceNewSupplierRequest.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Заявка поставщика ${event.member_account}: push председателю ${chairman.username} отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявка поставщика ${event.member_account}: ошибка отправки push председателю (${err.message}) — flow не блокируется.`
       );
     }
   }

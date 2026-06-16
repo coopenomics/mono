@@ -1,8 +1,13 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   MARKETPLACE_SUPPLIER_REPOSITORY,
   type MarketplaceSupplierDomainRepository,
 } from '../../domain/repositories/marketplace-supplier.repository';
+import {
+  MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
+  type MarketplaceNewSupplierRequestEvent,
+} from '../events/marketplace-notification.events';
 import type { MarketplaceSupplierDomainEntity } from '../../domain/entities/marketplace-supplier.entity';
 import {
   MarketplaceSupplierModel,
@@ -37,7 +42,8 @@ export class MarketplaceSupplierRegistryService {
 
   constructor(
     @Inject(MARKETPLACE_SUPPLIER_REPOSITORY)
-    private readonly repo: MarketplaceSupplierDomainRepository
+    private readonly repo: MarketplaceSupplierDomainRepository,
+    private readonly eventBus: EventEmitter2
   ) {}
 
   async list(coopname: string): Promise<MarketplaceSupplierDomainEntity[]> {
@@ -102,6 +108,7 @@ export class MarketplaceSupplierRegistryService {
         reviewed_at: null,
       });
       this.invalidateCache(coopname);
+      this.emitNewRequest(coopname, member_account, contract_number);
       return reopened;
     }
 
@@ -116,7 +123,26 @@ export class MarketplaceSupplierRegistryService {
       reviewed_by: null,
     });
     this.invalidateCache(coopname);
+    this.emitNewRequest(coopname, member_account, contract_number);
     return created;
+  }
+
+  /**
+   * Сигнал о новой заявке поставщика — listener шлёт председателю push на
+   * рассмотрение. Эмитится после записи в PG (INV-12); доставка не влияет на
+   * основной flow.
+   */
+  private emitNewRequest(
+    coopname: string,
+    member_account: string,
+    contract_number: string
+  ): void {
+    const event: MarketplaceNewSupplierRequestEvent = {
+      coopname,
+      member_account,
+      contract_number,
+    };
+    this.eventBus.emit(MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT, event);
   }
 
   /**
