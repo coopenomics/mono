@@ -10,6 +10,10 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cooperative, type MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
+import {
+  DOCUMENT_VALIDATION_SERVICE,
+  type DocumentValidationService,
+} from '~/domain/document/services/document-validation.service';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   USER_WALLET_REPOSITORY,
@@ -167,6 +171,8 @@ export class MarketplaceStockProposalService {
     private readonly economyService: MarketplaceEconomyService,
     @Inject(USER_WALLET_REPOSITORY)
     private readonly userWalletRepo: UserWalletRepository,
+    @Inject(DOCUMENT_VALIDATION_SERVICE)
+    private readonly documentValidationService: DocumentValidationService,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
@@ -432,6 +438,26 @@ export class MarketplaceStockProposalService {
       (input.order_lines ?? []).map((l) => [l.offer_id, l.signed_signiss2_act])
     );
 
+    // ── 0) Контрольная сверка: пайщик подписал РОВНО тот акт, что мы выдали ──
+    //    Защита от подмены тела («выдали вагон алюминия»): по каждой строке
+    //    контрподписанный пайщиком документ обязан совпасть с сохранённым
+    //    signiss1-актом оператора и пройти крипто-/структурную валидацию. Делаем
+    //    ДО любых транзакций и блокировок средств — на подмене падаем рано.
+    for (const item of proposal.items) {
+      if (!item.order_hash || !item.signiss1_act) {
+        throw new ConflictException(
+          'Докладка в устаревшем формате (без подписи оператора) — переформируйте её у стойки.'
+        );
+      }
+      const submitted = signiss2ByOffer.get(item.offer_id);
+      if (!submitted) {
+        throw new BadRequestException(
+          'Состав подписания не совпадает с докладкой — обновите подписание.'
+        );
+      }
+      await this.assertCountersignMatchesStored(item, submitted, member_account);
+    }
+
     // Потребность и дефицит сверх членских (как в getAcceptSignablePayloads —
     // суммы обязаны совпасть с подписанным Заявлением).
     let neededUnits = 0n;
@@ -618,6 +644,71 @@ export class MarketplaceStockProposalService {
       throw new NotFoundException('Предложение докладки не найдено.');
     }
     return proposal;
+  }
+
+  /**
+   * Контрольная сверка контрподписанного пайщиком акта со ВЗ сохранённым актом
+   * оператора. Закрывает вектор подмены: пайщику передаётся signiss1-акт
+   * оператора на его устройство, и без сверки он мог бы подписать ПОДМЕНЁННОЕ
+   * тело (другой товар/количество) и вернуть его — мы бы выдали не то.
+   *
+   * Бьёт, если: тело/мета не совпадают с выданным к подписи; подпись оператора
+   * не сохранена/подменена; пайщик не подписал; документ не прошёл крипто-,
+   * структурную валидацию или сверку тела с оригиналом в сторе (канон-валидатор
+   * recompute'ит signed_hash из doc_hash+meta_hash, поэтому произвольный hash не
+   * пройдёт). Контракт дополнительно режет подделку on-chain
+   * (verify_document_or_fail требует валидную подпись оператора над телом) — это
+   * defence-in-depth и ранний внятный отказ.
+   */
+  private async assertCountersignMatchesStored(
+    item: MarketplaceStockProposalItem,
+    submitted: MarketplaceIssueActSignedDocumentInputDTO,
+    member_account: string
+  ): Promise<void> {
+    const stored = item.signiss1_act!;
+    const sub = submitted as unknown as ISignedDocumentDomainInterface;
+    const label = item.product_name || item.offer_id;
+
+    // 1. Тот же документ, что подписал оператор: тело и мета НЕ подменены.
+    if (sub.doc_hash !== stored.doc_hash || sub.meta_hash !== stored.meta_hash) {
+      throw new ForbiddenException(
+        `Подписанный акт по «${label}» не совпадает с выданным к подписи — подпись отклонена.`
+      );
+    }
+
+    // 2. Подпись оператора (первая) сохранена нетронутой — её не подменили.
+    const opSig = stored.signatures?.[0];
+    const opPreserved =
+      !!opSig &&
+      sub.signatures.some(
+        (s) =>
+          s.signer === opSig.signer &&
+          s.signature === opSig.signature &&
+          s.public_key === opSig.public_key
+      );
+    if (!opPreserved) {
+      throw new ForbiddenException(
+        `Подпись оператора по «${label}» утеряна или подменена — подпись отклонена.`
+      );
+    }
+
+    // 3. Пайщик подписал акт своим ключом (вторая подпись, получение).
+    if (!sub.signatures.some((s) => s.signer === member_account)) {
+      throw new ForbiddenException(
+        `Акт по «${label}» не подписан получателем — подпись отклонена.`
+      );
+    }
+
+    // 4. Крипто + структура + сверка тела с оригиналом в сторе документов.
+    const validation = await this.documentValidationService.validateSignedDocument(
+      item.offer_id,
+      sub
+    );
+    if (!validation.is_valid) {
+      throw new ForbiddenException(
+        `Акт по «${label}» не прошёл проверку подлинности: ${validation.error_message ?? 'причина не указана'}.`
+      );
+    }
   }
 
   private assertProposed(proposal: MarketplaceStockProposalDomainEntity): void {
