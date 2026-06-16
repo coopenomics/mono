@@ -36,6 +36,8 @@ import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
+import { SupplierOnboardingPage } from 'src/pages/Marketplace/SupplierOnboarding'
+import { SupplierRegistryPage } from 'src/pages/Marketplace/SupplierRegistry'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerGlobalOverlay } from 'src/shared/lib/overlays'
@@ -311,6 +313,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           path: '/:coopname/market-supplier',
           name: 'market-supplier',
           children: [
+            {
+              // Онбординг поставщика: backend выдаёт `Onboarding:offerer`
+              // пайщику без одобренного допуска в реестре — тогда виден только
+              // этот экран (выбор модели + реквизиты договора + заявка). После
+              // одобрения offerer-роль даёт `Offer:read` и открывает стол.
+              // Зеркало L3-гейта заказчика (marketplace-onboarding-member-cpp).
+              path: 'onboarding',
+              name: 'marketplace-onboarding-supplier',
+              component: markRaw(SupplierOnboardingPage),
+              meta: {
+                title: 'Подключение к Столу поставщика',
+                icon: 'storefront',
+                requires: 'Onboarding:offerer',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
             {
               // Эпик 3 / Story 3.4: «Мои предложения» — поставщик видит все
               // свои Offer'ы во всех 4 статусах (PENDING_MODERATION / ACTIVE /
@@ -649,6 +669,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Реестр заказов',
                 icon: 'receipt_long',
                 requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Реестр поставщиков: модель работы, договор (номер + дата),
+              // статус допуска. Администратор видит реестр и добавляет поставщика
+              // напрямую (`Supplier:manage`); одобрение/отклонение заявок —
+              // действие председателя (кнопки в строке видны только ему).
+              path: 'suppliers',
+              name: 'marketplace-suppliers',
+              component: markRaw(SupplierRegistryPage),
+              meta: {
+                title: 'Реестр поставщиков',
+                icon: 'storefront',
+                requires: 'Supplier:manage',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
