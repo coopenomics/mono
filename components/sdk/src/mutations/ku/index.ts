@@ -29,9 +29,6 @@ export * as GenerateMeetingBallot from './generateMeetingBallot'
 /** Сгенерировать протокол решения собрания пайщиков участка */
 export * as GenerateMeetingDecision from './generateMeetingDecision'
 
-/** Сгенерировать заявление о присоединении к собранию */
-export * as GenerateMeetingJoinStatement from './generateMeetingJoinStatement'
-
 /** Сгенерировать предложение повестки собрания пайщиков участка */
 export * as GenerateMeetingProposal from './generateMeetingProposal'
 

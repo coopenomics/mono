@@ -83,7 +83,6 @@ export * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecisio
 
 // самоорганизация кооперативных участков
 export * as BranchMeetingProposal from './320.BranchMeetingProposal'
-export * as BranchMeetingJoinStatement from './321.BranchMeetingJoinStatement'
 export * as BranchMeetingBallot from './322.BranchMeetingBallot'
 export * as BranchMeetingDecision from './323.BranchMeetingDecision'
 export * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'

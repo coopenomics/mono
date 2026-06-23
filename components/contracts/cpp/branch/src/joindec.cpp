@@ -1,19 +1,16 @@
 /**
  * @brief Присоединение пайщика к собранию.
- * Пайщик подписывает заявление о присоединении и фиксируется в списке участников.
+ * Пайщик фиксируется в списке участников собрания.
  * @param coopname Наименование кооператива
  * @param hash Якорь процесса
  * @param username Имя присоединяющегося пайщика
- * @param statement Подписанное заявление о присоединении
  * @ingroup public_actions
  * @ingroup public_branch_actions
 
  * @note Авторизация требуется от аккаунта: @p coopname
  */
-[[eosio::action]] void branch::joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 statement) {
+[[eosio::action]] void branch::joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username) {
   check_auth_or_fail(_branch, coopname, coopname, "joindec"_n);
-
-  verify_document_or_fail(statement);
 
   get_participant_or_fail(coopname, username);
 

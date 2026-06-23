@@ -196,45 +196,6 @@ export class BranchMeetingProposalSignedDocumentInputDTO extends SignedDigitalDo
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 321 — Заявление о присоединении к собранию
-// ─────────────────────────────────────────────────────────────────────────────
-
-type joinAction = Cooperative.Registry.BranchMeetingJoinStatement.Action;
-
-@InputType('BaseBranchMeetingJoinStatementMetaDocumentInput')
-class BaseBranchMeetingJoinStatementMetaDocumentInputDTO implements ExcludeCommonProps<joinAction> {
-  @Field(() => String, { description: 'Хэш решения собрания' })
-  @IsString()
-  @IsNotEmpty()
-  hash!: string;
-}
-
-@InputType('BranchMeetingJoinStatementGenerateDocumentInput')
-export class BranchMeetingJoinStatementGenerateDocumentInputDTO
-  extends IntersectionType(
-    BaseBranchMeetingJoinStatementMetaDocumentInputDTO,
-    OmitType(GenerateMetaDocumentInputDTO, ['registry_id'] as const)
-  )
-  implements joinAction
-{
-  registry_id!: number;
-}
-
-@InputType('BranchMeetingJoinStatementSignedMetaDocumentInput')
-export class BranchMeetingJoinStatementSignedMetaDocumentInputDTO extends IntersectionType(
-  BaseBranchMeetingJoinStatementMetaDocumentInputDTO,
-  MetaDocumentInputDTO
-) {}
-
-@InputType('BranchMeetingJoinStatementSignedDocumentInput')
-export class BranchMeetingJoinStatementSignedDocumentInputDTO extends SignedDigitalDocumentInputDTO {
-  @Field(() => BranchMeetingJoinStatementSignedMetaDocumentInputDTO, {
-    description: 'Метаинформация заявления о присоединении к собранию',
-  })
-  public readonly meta!: BranchMeetingJoinStatementSignedMetaDocumentInputDTO;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 322 — Бюллетень голосования на собрании участка
 // ─────────────────────────────────────────────────────────────────────────────
 

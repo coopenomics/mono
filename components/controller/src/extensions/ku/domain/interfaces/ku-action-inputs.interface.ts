@@ -29,7 +29,6 @@ export interface JoinKuDecisionInputDomainInterface {
   coopname: string;
   hash: string;
   username: string;
-  statement: ISignedDocumentDomainInterface;
 }
 
 export interface StartKuDecisionInputDomainInterface {

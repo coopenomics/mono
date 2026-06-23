@@ -66,7 +66,6 @@ import * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNot
 import * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVotingBallot'
 import * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
 import * as BranchMeetingProposal from './320.BranchMeetingProposal'
-import * as BranchMeetingJoinStatement from './321.BranchMeetingJoinStatement'
 import * as BranchMeetingBallot from './322.BranchMeetingBallot'
 import * as BranchMeetingDecision from './323.BranchMeetingDecision'
 import * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
@@ -102,7 +101,6 @@ export const Registry = {
   303: AnnualGeneralMeetingVotingBallot,
   304: AnnualGeneralMeetingDecision,
   320: BranchMeetingProposal,
-  321: BranchMeetingJoinStatement,
   322: BranchMeetingBallot,
   323: BranchMeetingDecision,
   324: BranchEstablishmentPetition,

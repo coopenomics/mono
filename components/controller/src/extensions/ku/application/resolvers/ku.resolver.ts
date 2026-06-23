@@ -33,7 +33,6 @@ import {
   BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO,
   BranchMeetingBallotGenerateDocumentInputDTO,
   BranchMeetingDecisionGenerateDocumentInputDTO,
-  BranchMeetingJoinStatementGenerateDocumentInputDTO,
   BranchMeetingProposalGenerateDocumentInputDTO,
   BranchTrustedStatementGenerateDocumentInputDTO,
 } from '../dto/ku-documents.dto';
@@ -203,20 +202,6 @@ export class KuResolver {
     @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return (await this.kuService.generateBranchMeetingProposal(data, options)) as GeneratedDocumentDTO;
-  }
-
-  @Mutation(() => GeneratedDocumentDTO, {
-    name: 'kuGenerateMeetingJoinStatement',
-    description: 'Сгенерировать заявление о присоединении к собранию',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
-  async kuGenerateMeetingJoinStatement(
-    @Args('data', { type: () => BranchMeetingJoinStatementGenerateDocumentInputDTO })
-    data: BranchMeetingJoinStatementGenerateDocumentInputDTO,
-    @Args('options', { nullable: true }) options?: GenerateDocumentOptionsInputDTO
-  ): Promise<GeneratedDocumentDTO> {
-    return (await this.kuService.generateBranchMeetingJoinStatement(data, options)) as GeneratedDocumentDTO;
   }
 
   @Mutation(() => GeneratedDocumentDTO, {

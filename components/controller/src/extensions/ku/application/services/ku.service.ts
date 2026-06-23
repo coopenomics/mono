@@ -274,13 +274,6 @@ export class KuService {
     return this.generate(data, Cooperative.Registry.BranchMeetingProposal.registry_id, options);
   }
 
-  async generateBranchMeetingJoinStatement(
-    data: Cooperative.Registry.BranchMeetingJoinStatement.Action,
-    options?: GenerateDocumentOptionsInputDTO
-  ): Promise<DocumentDomainEntity> {
-    return this.generate(data, Cooperative.Registry.BranchMeetingJoinStatement.registry_id, options);
-  }
-
   async generateBranchMeetingBallot(
     data: Cooperative.Registry.BranchMeetingBallot.Action,
     options?: GenerateDocumentOptionsInputDTO

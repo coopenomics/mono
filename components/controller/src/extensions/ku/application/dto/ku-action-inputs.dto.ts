@@ -24,7 +24,6 @@ import {
   BranchTrustedPowerOfAttorneySignedDocumentInputDTO,
   BranchMeetingBallotSignedDocumentInputDTO,
   BranchMeetingDecisionSignedDocumentInputDTO,
-  BranchMeetingJoinStatementSignedDocumentInputDTO,
   BranchMeetingProposalSignedDocumentInputDTO,
 } from './ku-documents.dto';
 
@@ -110,13 +109,6 @@ export class JoinKuDecisionInputDTO implements JoinKuDecisionInputDomainInterfac
   @IsString()
   @IsNotEmpty()
   username!: string;
-
-  @Field(() => BranchMeetingJoinStatementSignedDocumentInputDTO, {
-    description: 'Подписанное заявление о присоединении',
-  })
-  @ValidateNested()
-  @Type(() => BranchMeetingJoinStatementSignedDocumentInputDTO)
-  statement!: BranchMeetingJoinStatementSignedDocumentInputDTO;
 }
 
 @InputType('StartKuDecisionInput', { description: 'Открытие голосования на собрании участка' })

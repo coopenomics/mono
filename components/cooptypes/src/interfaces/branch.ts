@@ -218,7 +218,6 @@ export interface IJoindec {
   coopname: IName
   hash: IChecksum256
   username: IName
-  statement: IDocument2
 }
 
 export interface IMigrate {

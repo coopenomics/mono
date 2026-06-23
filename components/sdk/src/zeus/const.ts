@@ -173,16 +173,6 @@ export const AllTypesProps: Record<string,any> = {
 	BranchMeetingDecisionSignedMetaDocumentInput:{
 		questions:"KuProtocolQuestionInput"
 	},
-	BranchMeetingJoinStatementGenerateDocumentInput:{
-
-	},
-	BranchMeetingJoinStatementSignedDocumentInput:{
-		meta:"BranchMeetingJoinStatementSignedMetaDocumentInput",
-		signatures:"SignatureInfoInput"
-	},
-	BranchMeetingJoinStatementSignedMetaDocumentInput:{
-
-	},
 	BranchMeetingProposalGenerateDocumentInput:{
 		questions:"KuAgendaQuestionInput"
 	},
@@ -803,7 +793,7 @@ export const AllTypesProps: Record<string,any> = {
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
 	JoinKuDecisionInput:{
-		statement:"BranchMeetingJoinStatementSignedDocumentInput"
+
 	},
 	KuAgendaPointInput:{
 
@@ -1433,10 +1423,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		kuGenerateMeetingDecision:{
 			data:"BranchMeetingDecisionGenerateDocumentInput",
-			options:"GenerateDocumentOptionsInput"
-		},
-		kuGenerateMeetingJoinStatement:{
-			data:"BranchMeetingJoinStatementGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		kuGenerateMeetingProposal:{
@@ -4377,7 +4363,6 @@ export const ReturnTypes: Record<string,any> = {
 		kuGenerateEstablishmentPetition:"GeneratedDocument",
 		kuGenerateMeetingBallot:"GeneratedDocument",
 		kuGenerateMeetingDecision:"GeneratedDocument",
-		kuGenerateMeetingJoinStatement:"GeneratedDocument",
 		kuGenerateMeetingProposal:"GeneratedDocument",
 		kuGenerateTrustedLiabilityAgreement:"GeneratedDocument",
 		kuGenerateTrustedPowerOfAttorney:"GeneratedDocument",

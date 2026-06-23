@@ -109,7 +109,6 @@ export class Generator implements IGenerator {
 
       // самоорганизация кооперативных участков
       [Actions.BranchMeetingProposal.Template.registry_id]: new Actions.BranchMeetingProposal.Factory(this.storage), // 320
-      [Actions.BranchMeetingJoinStatement.Template.registry_id]: new Actions.BranchMeetingJoinStatement.Factory(this.storage), // 321
       [Actions.BranchMeetingBallot.Template.registry_id]: new Actions.BranchMeetingBallot.Factory(this.storage), // 322
       [Actions.BranchMeetingDecision.Template.registry_id]: new Actions.BranchMeetingDecision.Factory(this.storage), // 323
       [Actions.BranchEstablishmentPetition.Template.registry_id]: new Actions.BranchEstablishmentPetition.Factory(this.storage), // 324

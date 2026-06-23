@@ -2,7 +2,7 @@ import type { GraphQLTypes, InputType, ModelTypes } from '../../zeus/index'
 import { rawPaymentMethodPaginationSelector } from '../../selectors/paymentMethods/paginatedPaymentMethodsSelector'
 import { $, Selector } from '../../zeus/index'
 
-const name = 'getPaymentMethods'
+export const name = 'getPaymentMethods'
 
 /**
  * Извлекает методы платежа

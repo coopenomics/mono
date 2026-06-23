@@ -15,7 +15,8 @@ export * from './types';
 
 /**
  * Процессы собрания пайщиков кооперативного участка:
- * каждый шаг — генерация документа, подпись пайщика и отправка действия.
+ * шаги с документами — генерация, подпись пайщика и отправка действия;
+ * присоединение к собранию — только действие joindec без отдельного документа.
  */
 export function useKuDecisionFlow() {
   const system = useSystemStore();
@@ -77,28 +78,14 @@ export function useKuDecisionFlow() {
     }
   }
 
-  /** Присоединиться к собранию: заявление (321) + joindec */
+  /** Присоединиться к собранию: joindec */
   async function joinDecision(decision: IKuDecision): Promise<void> {
     isSubmitting.value = true;
     try {
-      const digitalDocument = new DigitalDocument();
-
-      await digitalDocument.generate<Cooperative.Registry.BranchMeetingJoinStatement.Action>({
-        registry_id: Cooperative.Registry.BranchMeetingJoinStatement.registry_id,
-        coopname: system.info.coopname,
-        username: session.username,
-        hash: decision.hash,
-      });
-
-      const statement = await digitalDocument.sign<Cooperative.Registry.BranchMeetingJoinStatement.Meta>(
-        session.username,
-      );
-
       await api.joinDecision({
         coopname: system.info.coopname,
         hash: decision.hash,
         username: session.username,
-        statement,
       });
     } finally {
       isSubmitting.value = false;

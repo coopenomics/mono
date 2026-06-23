@@ -135,7 +135,7 @@ describe('KuService — проверки прав', () => {
 
   it('joinDecision и voteOnDecision требуют совпадения username с текущим пользователем', async () => {
     const { service, kuPort } = makeService();
-    const join = { coopname: COOP, hash: HASH, username: 'alice', statement: {} } as any;
+    const join = { coopname: COOP, hash: HASH, username: 'alice' } as any;
     const vote = { coopname: COOP, hash: HASH, username: 'alice', ballot: {}, votes: [] } as any;
 
     await expect(service.joinDecision(join, makeUser('mallory'))).rejects.toThrow();
