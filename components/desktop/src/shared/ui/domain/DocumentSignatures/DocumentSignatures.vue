@@ -6,7 +6,10 @@
       q-icon(:name='hashIcon' size='14px')
       span Контрольная сумма
     .doc-sig__hash {{ docHash }}
-    .doc-sig__hash-hint(v-if='regeneratedHash !== undefined && !hashMatches')
+    .doc-sig__hash-hint(v-if='hashLoading')
+      q-spinner(color='primary' size='14px')
+      span Проверяем контрольную сумму…
+    .doc-sig__hash-hint(v-else-if='regeneratedHash !== undefined && !hashMatches')
       q-icon(name='warning_amber' size='14px')
       span Локально пересчитанный хеш не совпадает
 
@@ -82,6 +85,7 @@ import type { DocumentSignaturesProps } from './DocumentSignatures.types';
 const props = withDefaults(defineProps<DocumentSignaturesProps>(), {
   signatures: () => [],
   verifying: false,
+  hashLoading: false,
   hideDownload: false,
   hideVerify: false,
 });
@@ -96,7 +100,7 @@ const hashMatches = computed((): boolean =>
 );
 
 const hashState = computed((): 'pos' | 'neutral' | 'neg' => {
-  if (props.regeneratedHash === undefined) return 'neutral';
+  if (props.hashLoading || props.regeneratedHash === undefined) return 'neutral';
   return hashMatches.value ? 'pos' : 'neg';
 });
 
@@ -168,6 +172,9 @@ function toggle(idx: number): void {
   gap: var(--p-1, 4px);
   color: var(--p-neg);
   font-size: var(--p-fs-meta, 12px);
+}
+.doc-sig__hash-hint:has(.q-spinner) {
+  color: var(--p-ink-2);
 }
 
 /* ============ Список подписей ============ */
