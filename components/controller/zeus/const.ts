@@ -3971,6 +3971,7 @@ export const ReturnTypes: Record<string,any> = {
 		voters_for:"String"
 	},
 	KuMeetingParticipant:{
+		account_type:"AccountType",
 		display_name:"String",
 		username:"String"
 	},

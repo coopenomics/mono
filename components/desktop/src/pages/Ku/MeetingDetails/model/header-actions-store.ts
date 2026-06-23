@@ -10,7 +10,6 @@ export interface KuMeetingHeaderActionsState {
   canStart: boolean;
   hasQuorum: boolean;
   canClose: boolean;
-  canCloseNow: boolean;
   canExec: boolean;
   canCancel: boolean;
   busy: boolean;

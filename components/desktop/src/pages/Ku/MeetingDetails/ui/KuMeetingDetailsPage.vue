@@ -152,7 +152,7 @@ BaseDialog(v-model='isStartOpen', title='Открыть голосование',
         v-model='startForm.chairman',
         label='Председатель кооперативного участка',
         :options='participantOptions',
-        hint='Избирается собранием из числа присоединившихся участников',
+        hint='Избирается собранием из числа присоединившихся участников — только физические лица',
         required
       )
 
@@ -285,7 +285,11 @@ const participants = computed(() => decision.value?.participants ?? []);
 // Участники с отображаемыми именами (ФИО) — пайщики выбираются по имени, не по username
 const participantsInfo = computed(
   () =>
-    (decision.value?.participants_info ?? []).filter(Boolean) as { username: string; display_name: string }[],
+    (decision.value?.participants_info ?? []).filter(Boolean) as {
+      username: string;
+      display_name: string;
+      account_type?: Zeus.AccountType;
+    }[],
 );
 
 function displayName(username?: string | null): string {
@@ -330,11 +334,19 @@ const execPreviewDocs = computed(() => {
 });
 
 const participantOptions = computed(() =>
-  participantsInfo.value.map((participant) => ({
-    label: participant.display_name,
-    value: participant.username,
-  })),
+  participantsInfo.value
+    .filter((participant) => participant.account_type === Zeus.AccountType.individual)
+    .map((participant) => ({
+      label: participant.display_name,
+      value: participant.username,
+    })),
 );
+
+watchEffect(() => {
+  if (!startForm.value.chairman) return;
+  const isEligible = participantOptions.value.some((option) => option.value === startForm.value.chairman);
+  if (!isEligible) startForm.value.chairman = '';
+});
 
 const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
   [Zeus.KuDecisionStatus.OPENED]: { label: 'Сбор участников', variant: 'info' },
@@ -375,10 +387,7 @@ let nowTimer: ReturnType<typeof setInterval> | undefined;
 // смена статуса и новые бюллетени подтягиваются без перезагрузки страницы
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
-// протокол утверждает и направляет в совет председатель собрания — им является организатор
-const canClose = computed(() => isLive.value && status.value === Zeus.KuDecisionStatus.VOTING && isInitiator.value);
-
-// регламент: протокол утверждается после голосования всех участников либо по истечении окна
+// регламент closedec: протокол утверждается после голосования всех участников либо по истечении окна
 const canCloseNow = computed(() => {
   const allVoted = (decision.value?.signed_ballots ?? 0) >= participants.value.length;
   const closeAt = decision.value?.close_at ? new Date(decision.value.close_at).getTime() : 0;
@@ -404,12 +413,22 @@ const votingAccepted = computed(
     ),
 );
 
-// принятое собранием решение организатор отменить не может — только утвердить протокол
-// и направить в совет; отмена остаётся при сборе участников и при неуспешном голосовании
+// протокол утверждает организатор (председатель собрания) — только после окончания голосования
+// и при принятой повестке (по каждому вопросу «за» больше «против», см. closedec + votingAccepted)
+const canClose = computed(
+  () =>
+    isLive.value &&
+    status.value === Zeus.KuDecisionStatus.VOTING &&
+    isInitiator.value &&
+    canCloseNow.value &&
+    votingAccepted.value,
+);
+
+// отмена на этапе сбора участников; после окончания голосования — только если повестка не принята
 const canCancel = computed(() => {
   if (!isLive.value || !isInitiator.value || !status.value) return false;
   if (status.value === Zeus.KuDecisionStatus.OPENED) return true;
-  if (status.value === Zeus.KuDecisionStatus.VOTING) return !(canCloseNow.value && votingAccepted.value);
+  if (status.value === Zeus.KuDecisionStatus.VOTING) return canCloseNow.value && !votingAccepted.value;
   return false;
 });
 
@@ -596,7 +615,6 @@ watchEffect(() => {
     canStart: canStart.value,
     hasQuorum: hasQuorum.value,
     canClose: canClose.value,
-    canCloseNow: canCloseNow.value,
     canExec: canExec.value,
     canCancel: canCancel.value,
     busy: busy.value,

@@ -7404,6 +7404,8 @@ export type ValueTypes = {
 ["KuDecisionType"]:KuDecisionType;
 	/** Участник собрания пайщиков кооперативного участка */
 ["KuMeetingParticipant"]: AliasType<{
+	/** Тип аккаунта участника */
+	account_type?:boolean | `@${string}`,
 	/** Отображаемое имя участника (ФИО) */
 	display_name?:boolean | `@${string}`,
 	/** Имя аккаунта участника */
@@ -17769,6 +17771,8 @@ export type ResolverInputTypes = {
 ["KuDecisionType"]:KuDecisionType;
 	/** Участник собрания пайщиков кооперативного участка */
 ["KuMeetingParticipant"]: AliasType<{
+	/** Тип аккаунта участника */
+	account_type?:boolean | `@${string}`,
 	/** Отображаемое имя участника (ФИО) */
 	display_name?:boolean | `@${string}`,
 	/** Имя аккаунта участника */
@@ -27850,7 +27854,9 @@ export type ModelTypes = {
 	["KuDecisionType"]:KuDecisionType;
 	/** Участник собрания пайщиков кооперативного участка */
 ["KuMeetingParticipant"]: {
-		/** Отображаемое имя участника (ФИО) */
+		/** Тип аккаунта участника */
+	account_type: ModelTypes["AccountType"],
+	/** Отображаемое имя участника (ФИО) */
 	display_name: string,
 	/** Имя аккаунта участника */
 	username: string
@@ -28935,7 +28941,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенно�� повестке
+	/** Сгенерировать протокол решения по предложенной повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: ModelTypes["GeneratedDocument"],
@@ -29057,9 +29063,6 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateMeetingDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о присоединении к собранию
-
-Требуемые роли: user, member, chairman.  */
 	/** Сгенерировать предложение повестки собрания пайщиков участка
 
 Требуемые роли: user, member, chairman.  */
@@ -32605,7 +32608,10 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    ["AcceptChildOrderInput"]: {
+    // ------------------------------------------------------;
+	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
+	// ------------------------------------------------------;
+	["AcceptChildOrderInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Подписанное заявление на имущественный паевый взнос */
@@ -38903,6 +38909,8 @@ export type GraphQLTypes = {
 	/** Участник собрания пайщиков кооперативного участка */
 ["KuMeetingParticipant"]: {
 	__typename: "KuMeetingParticipant",
+	/** Тип аккаунта участника */
+	account_type: GraphQLTypes["AccountType"],
 	/** Отображаемое имя участника (ФИО) */
 	display_name: string,
 	/** Имя аккаунта участника */
@@ -40040,7 +40048,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенно�� повестке
+	/** Сгенерировать протокол решения по предложенной повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: GraphQLTypes["GeneratedDocument"],
@@ -40162,9 +40170,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuGenerateMeetingDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о присоединении к собранию
-
-Требуемые роли: user, member, chairman.  */
 	/** Сгенерировать предложение повестки собрания пайщиков участка
 
 Требуемые роли: user, member, chairman.  */

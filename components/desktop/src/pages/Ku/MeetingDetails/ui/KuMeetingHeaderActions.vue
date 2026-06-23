@@ -18,17 +18,13 @@
     q-tooltip(v-if='!state.hasQuorum')
       | Для открытия голосования нужно не менее 3 участников собрания.
       | Пока их меньше — собрание можно только отменить.
-  span(v-if='state.canClose')
-    BaseButton(
-      variant='primary',
-      size='sm',
-      :disabled='!state.canCloseNow',
-      :loading='state.busy',
-      @click='state.onClose'
-    ) Завершить и утвердить протокол
-    q-tooltip(v-if='!state.canCloseNow')
-      | Голосование идёт. Протокол можно утвердить, когда проголосуют
-      | все участники или истекут 15 минут регламента.
+  BaseButton(
+    v-if='state.canClose',
+    variant='primary',
+    size='sm',
+    :loading='state.busy',
+    @click='state.onClose'
+  ) Завершить и утвердить протокол
   BaseButton(
     v-if='state.canExec',
     variant='primary',

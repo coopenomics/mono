@@ -87,7 +87,10 @@ function makeDocumentService() {
 
 function makeAccountPort() {
   return {
-    getAccount: jest.fn(async (username: string) => ({ provider_account: { email: `${username}@x`, subscriber_id: 's' } })),
+    getAccount: jest.fn(async (username: string) => ({
+      provider_account: { email: `${username}@x`, subscriber_id: 's' },
+      private_account: { type: 'individual' },
+    })),
     getDisplayName: jest.fn(async (username: string) => `ФИО ${username}`),
   } as any;
 }
@@ -160,7 +163,9 @@ describe('KuService — проверки прав', () => {
   });
 
   it('startDecision доступна только организатору; председатель — из участников; для учреждения нужно наименование', async () => {
-    const { service, kuPort, repos } = makeService();
+    const { service, kuPort, repos, accountPort } = makeService({
+      decision: makeDecision({ participants: ['initiator1', 'chairman1', 'org1'] }),
+    });
     const start = {
       coopname: COOP,
       hash: HASH,
@@ -181,6 +186,14 @@ describe('KuService — проверки прав', () => {
     await expect(
       service.startDecision({ ...start, branch_email: '' }, makeUser('initiator1'))
     ).rejects.toThrow('email и телефон');
+
+    accountPort.getAccount.mockImplementation(async (username: string) => ({
+      provider_account: { email: `${username}@x`, subscriber_id: 's' },
+      private_account: { type: username === 'org1' ? 'organization' : 'individual' },
+    }));
+    await expect(
+      service.startDecision({ ...start, chairman: 'org1' }, makeUser('initiator1'))
+    ).rejects.toThrow('только физическое лицо');
 
     await service.startDecision(start, makeUser('initiator1'));
     expect(kuPort.startDecision).toHaveBeenCalledTimes(1);
@@ -262,7 +275,7 @@ describe('KuService — маппинг DTO', () => {
     expect(dto.hash).toBe(HASH);
     // участники обогащены отображаемыми именами для выбора председателя по ФИО
     expect(dto.participants_info).toEqual(
-      expect.arrayContaining([{ username: 'chairman1', display_name: 'ФИО chairman1' }])
+      expect.arrayContaining([{ username: 'chairman1', display_name: 'ФИО chairman1', account_type: 'individual' }])
     );
   });
 

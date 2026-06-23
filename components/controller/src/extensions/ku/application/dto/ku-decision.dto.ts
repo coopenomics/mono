@@ -4,6 +4,7 @@ import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { KuDecisionType } from '../../domain/enums/ku-decision-type.enum';
 import { KuDecisionStatus } from '../../domain/enums/ku-decision-status.enum';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 
 @ObjectType('KuDecisionQuestion', { description: 'Вопрос повестки собрания пайщиков кооперативного участка' })
 export class KuDecisionQuestionDTO {
@@ -51,6 +52,9 @@ export class KuMeetingParticipantDTO {
 
   @Field(() => String, { description: 'Отображаемое имя участника (ФИО)' })
   display_name!: string;
+
+  @Field(() => AccountType, { description: 'Тип аккаунта участника' })
+  account_type!: AccountType;
 }
 
 @ObjectType('KuDecision', { description: 'Решение собрания пайщиков кооперативного участка' })

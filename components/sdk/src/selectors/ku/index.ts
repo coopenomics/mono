@@ -28,6 +28,7 @@ export const kuDecisionQuestionSelector = Selector('KuDecisionQuestion')(rawKuDe
 export const rawKuMeetingParticipantSelector = {
   username: true,
   display_name: true,
+  account_type: true,
 }
 
 const _validateParticipant: MakeAllFieldsRequired<ValueTypes['KuMeetingParticipant']> =

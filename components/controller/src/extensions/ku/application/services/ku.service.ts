@@ -11,6 +11,7 @@ import type { TransactionDTO } from '~/application/common/dto/transaction-result
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
+import { AccountType } from '~/application/account/enum/account-type.enum';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { PaginationResult } from '~/application/common/dto/pagination.dto';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
@@ -162,6 +163,15 @@ export class KuService {
     // контакты нужны для добавления участка как подразделения после решения совета
     if (decision.type === 'createbranch' && (!data.branch_email || !data.branch_phone)) {
       throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите email и телефон кооперативного участка');
+    }
+    if (decision.type === 'createbranch') {
+      const chairmanAccount = await this.accountPort.getAccount(data.chairman);
+      if (chairmanAccount.private_account?.type !== AccountType.individual) {
+        throw new HttpApiError(
+          httpStatus.BAD_REQUEST,
+          'Председателем кооперативного участка может быть только физическое лицо'
+        );
+      }
     }
 
     // Наименование и контакты участка — приватные данные, в блокчейн не публикуются
@@ -372,15 +382,19 @@ export class KuService {
     };
   }
 
-  /** Отображаемые имена участников собрания (для выбора председателя по ФИО) */
-  private async resolveParticipantsInfo(participants: string[]): Promise<{ username: string; display_name: string }[]> {
+  /** Отображаемые имена и типы аккаунтов участников собрания (для выбора председателя по ФИО) */
+  private async resolveParticipantsInfo(
+    participants: string[]
+  ): Promise<{ username: string; display_name: string; account_type: AccountType }[]> {
     return Promise.all(
       participants.map(async (username) => {
         try {
+          const account = await this.accountPort.getAccount(username);
           const display_name = await this.accountPort.getDisplayName(username);
-          return { username, display_name: display_name || username };
+          const account_type = (account.private_account?.type as AccountType) ?? AccountType.individual;
+          return { username, display_name: display_name || username, account_type };
         } catch {
-          return { username, display_name: username };
+          return { username, display_name: username, account_type: AccountType.individual };
         }
       })
     );
