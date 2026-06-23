@@ -51,12 +51,12 @@
                     //- Статус отчёта по авансу (личный стол пайщика) — отдельная ось
                     //- рядом со статусом платежа: требуется / подан / принят.
                     BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
-                    //- Кассирская отметка «платёжка приложена» — только на столе совета
+                    //- Кассирская отметка «чек об оплате приложен» — только на столе совета
                     //- (пайщику чужая бухгалтерия не показывается).
                     q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                      q-tooltip Платёжка приложена
+                      q-tooltip Чек об оплате приложен
                     q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                      q-tooltip Платёжка не приложена
+                      q-tooltip Чек об оплате не приложен
                 td.col-action(v-if='!hideActions', @click.stop)
                   .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
@@ -68,15 +68,19 @@
               tr.expand-row(v-if='expanded.get(row.id)')
                 td(:colspan='hideActions ? 7 : 8')
                   PaymentDetails(:payment='row')
-                  //- Стол совета: кассир прикладывает платёжку и закрывающие документы;
-                  //- при личной передаче чеков — отчитывается за пайщика (панель
-                  //- отчёта сама скрывается для прямой оплаты организации, DIRECT).
+                  //- Чек об оплате — ядро, для любого исходящего платежа (стол кассира).
+                  .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
+                    AttachPaymentProofPanel(
+                      :payment-hash='paymentProofHash(row) ?? ""',
+                      :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+                      @uploaded='onProofUploaded(row)'
+                    )
+                  //- Расход: закрывающие документы (DIRECT, панель сама скрывается)
+                  //- + отчёт пайщика.
                   .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
                     AttachExpenseProofPanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-                      :item-hash='expenseProofRef(row)?.item_hash ?? ""',
-                      :step='{ number: 1, title: "Подтвердите оплату" }',
-                      @uploaded='onProofUploaded(row)'
+                      :item-hash='expenseProofRef(row)?.item_hash ?? ""'
                     )
                     ReportExpenseAdvancePanel(
                       :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
@@ -96,7 +100,7 @@
                     :reported-amount='advanceReportedAmount(row)',
                     @reported='onReported'
                   )
-                  //- Расчётная платёжка (возврат/доплата): кассиру/пайщику видно
+                  //- Расчётный платёж (возврат/доплата): кассиру/пайщику видно
                   //- основание — исходный аванс, заявленный факт и документы.
                   ExpenseSettlementBasisPanel.q-mt-sm(
                     v-if='settlementRef(row)',
@@ -128,9 +132,9 @@
               BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
               BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
               q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                q-tooltip Платёжка приложена
+                q-tooltip Чек об оплате приложен
               q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                q-tooltip Платёжка не приложена
+                q-tooltip Чек об оплате не приложен
           .pay-card__row
             span.pay-card__amount
               q-icon.q-mr-xs(
@@ -151,12 +155,17 @@
           SetOrderRefundedStatusButton(v-if='!isRefundType(row.type)', :id='row.id')
         template(v-if='expanded.get(row.id)')
           PaymentDetails.pay-card__details(:payment='row')
+          //- Чек об оплате — ядро, для любого исходящего платежа (стол кассира).
+          .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
+            AttachPaymentProofPanel(
+              :payment-hash='paymentProofHash(row) ?? ""',
+              :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+              @uploaded='onProofUploaded(row)'
+            )
           .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
             AttachExpenseProofPanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
-              :item-hash='expenseProofRef(row)?.item_hash ?? ""',
-              :step='{ number: 1, title: "Подтвердите оплату" }',
-              @uploaded='onProofUploaded(row)'
+              :item-hash='expenseProofRef(row)?.item_hash ?? ""'
             )
             ReportExpenseAdvancePanel(
               :proposal-hash='expenseProofRef(row)?.proposal_hash ?? ""',
@@ -212,6 +221,7 @@ import { usePaymentStore } from 'src/entities/Payment/model';
 import { SetOrderPaidStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderPaidStatusButton';
 import { SetOrderRefundedStatusButton } from 'src/features/Payment/SetStatus/ui/SetOrderRefundedStatusButton';
 import { AttachExpenseProofPanel } from 'src/features/Payment/AttachExpenseProof';
+import { AttachPaymentProofPanel } from 'src/features/Payment/AttachPaymentProof';
 import { ReportExpenseAdvancePanel } from 'src/features/Payment/ReportExpenseAdvance';
 import { ExpenseSettlementBasisPanel } from 'src/features/Payment/ExpenseSettlementBasis';
 import { useSessionStore } from 'src/entities/Session';
@@ -308,7 +318,7 @@ const getDirectionIcon = (direction?: string | null) => {
 };
 
 // Ссылка на позицию СЗ для блока «Подтверждение оплаты»: только у платежей
-// расхода и только после подтверждения кассиром (платёжка появляется по факту).
+// расхода и только после подтверждения кассиром (чек появляется по факту).
 const expenseProofRef = (
   row: IPaymentRow,
 ): { proposal_hash: string; item_hash: string } | null => {
@@ -317,6 +327,15 @@ const expenseProofRef = (
   const data = row.blockchain_data as { proposal_hash?: string; item_hash?: string } | null;
   if (!data?.proposal_hash || !data?.item_hash) return null;
   return { proposal_hash: data.proposal_hash, item_hash: data.item_hash };
+};
+
+// Ядровый «чек об оплате»: любой ИСХОДЯЩИЙ платёж после оплаты (PAID/COMPLETED)
+// сопровождается чеком, привязка по hash платежа. Единый механизм на все
+// исходящие (возврат паевого/withdrawal/registration-refund/аванс расхода).
+const paymentProofHash = (row: IPaymentRow): string | null => {
+  if (row.direction !== Zeus.PaymentDirection.OUTGOING) return null;
+  if (![Zeus.PaymentStatus.PAID, Zeus.PaymentStatus.COMPLETED].includes(row.status)) return null;
+  return row.hash ?? null;
 };
 
 // Личный реестр пайщика (hideActions): получатель аванса под отчёт прикладывает
@@ -338,7 +357,7 @@ const advanceReportState = (row: IPaymentRow): string =>
 const advanceReportedAmount = (row: IPaymentRow): string =>
   (row.blockchain_data as { reported_amount?: string } | null)?.reported_amount ?? '';
 
-// Расчётная платёжка (возврат недорасхода / доплата перерасхода) — ссылка на
+// Расчётный платёж (возврат недорасхода / доплата перерасхода) — ссылка на
 // исходную позицию-аванс, чтобы кассир видел основание (аванс/факт/документы),
 // не выискивая исходный платёж среди сотен строк реестра.
 const settlementRef = (
@@ -361,7 +380,7 @@ const settlementRef = (
 
 // Статус отчёта по авансу — только на личном столе пайщика и только у платежа
 // выдачи аванса (EXPENSE). Источник — зеркало blockchain_data.report_state;
-// дефолт «Требуется отчёт», пока пайщик не отчитался. Расчётные платёжки
+// дефолт «Требуется отчёт», пока пайщик не отчитался. Расчётные платежи
 // (EXPENSE_RETURN/EXPENSE_OVERSPEND) свой отчёт-бейдж не показывают.
 const reportBadge = (
   row: IPaymentRow,
@@ -376,15 +395,16 @@ const reportBadge = (
   return { label: reportStateLabel(state), variant: reportStateVariant(state) };
 };
 
-// Отметка отчитанности оплаченного расхода: бэкенд зеркалит число платёжек
-// в blockchain_data.proof_count при каждой загрузке/удалении файла.
+// Отметка «чек об оплате приложен»: бэкенд зеркалит число чеков в
+// blockchain_data.proof_count при каждой загрузке/удалении файла. Для любого
+// исходящего платежа после оплаты.
 const proofState = (row: IPaymentRow): 'attached' | 'missing' | 'none' => {
-  if (!expenseProofRef(row)) return 'none';
+  if (!paymentProofHash(row)) return 'none';
   const count = (row.blockchain_data as { proof_count?: number } | null)?.proof_count ?? 0;
   return count > 0 ? 'attached' : 'missing';
 };
 
-// Локально отражаем загруженную платёжку, не перезагружая реестр.
+// Локально отражаем загруженный чек, не перезагружая реестр.
 const onProofUploaded = (row: IPaymentRow): void => {
   const data = (row.blockchain_data ?? {}) as { proof_count?: number };
   row.blockchain_data = { ...data, proof_count: (data.proof_count ?? 0) + 1 };
@@ -473,7 +493,7 @@ const toggleExpand = (id: string | number): void => {
   expanded.set(id, !expanded.get(id));
 };
 
-// После отчёта по авансу с недо-/перерасходом заводится отдельная платёжка
+// После отчёта по авансу с недо-/перерасходом заводится отдельный платёж
 // расчёта — перезагружаем реестр и сразу раскрываем её (по хэшу), чтобы пайщик
 // увидел реквизиты для оплаты, не догадываясь нажать «развернуть».
 const onReported = async (settlementHash?: string): Promise<void> => {
@@ -485,8 +505,8 @@ const onReported = async (settlementHash?: string): Promise<void> => {
   if (row) expanded.set(row.id, true);
 };
 
-// Кассир жмёт «Основание» в расчётной платёжке (возврат/доплата) → раскрываем
-// платёж выдачи аванса (его hash == item_hash расчётной платёжки) и прокручиваем
+// Кассир жмёт «Основание» в расчётном платеже (возврат/доплата) → раскрываем
+// платёж выдачи аванса (его hash == item_hash расчётного платежа) и прокручиваем
 // к нему. Так видно, сколько выдавалось и что в чеке, без поиска строки вручную.
 const openSourcePayment = async (itemHash: string): Promise<void> => {
   const target = items.value.find(

@@ -1,34 +1,9 @@
 <template lang="pug">
-.attach-proof
-  .exp-step(v-if='step')
-    .exp-step__num {{ step.number }}
-    .exp-step__title {{ step.title }}
-  //- Секция 1 — платёжка/квитанция об исполненной оплате (для любой механики).
+//- Закрывающие документы организации (акт, счёт-фактура, накладная) — только
+//- прямая оплата по счёту (DIRECT). Чек об оплате теперь общий, в ядре
+//- (AttachPaymentProofPanel по payment_hash) — здесь остаётся expense-специфика.
+.attach-proof(v-if='isDirect')
   .attach-proof__section
-    .t-sm.t-muted(v-if='step') Приложите платёжку или квитанцию — это подтверждает, что оплата исполнена.
-    .t-sm.t-muted(v-else) Платёжка об оплате
-    .files(v-if='proofFiles.length')
-      button.file-link(
-        v-for='file in proofFiles',
-        :key='file.id',
-        type='button',
-        :disabled='openingId === file.id',
-        @click='openFile(file)'
-      )
-        q-icon(name='attach_file', size='16px')
-        span {{ fileLabel(file) }}
-        q-spinner(v-if='openingId === file.id', size='14px')
-    FileUploader(
-      v-model='pendingProof',
-      accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
-      :max-size='20 * 1024 * 1024',
-      title='Приложите платёжку или квитанцию',
-      hint='Изображение или PDF до 20 МБ — отправится сразу',
-      :disabled='uploading'
-    )
-
-  //- Секция 2 — закрывающие документы организации (только прямая оплата по счёту).
-  .attach-proof__section(v-if='isDirect')
     .t-sm.t-muted Закрывающие документы (акт, счёт-фактура, накладная)
     .files(v-if='closingFiles.length')
       button.file-link(
@@ -62,28 +37,15 @@ import { api, type IExpenseFile } from '../api';
 const props = defineProps<{
   proposalHash: string;
   itemHash: string;
-  // Опциональный заголовок-этап (номер + название) для последовательной подачи
-  // на столе кассира.
-  step?: { number: number | string; title: string };
-}>();
-
-const emit = defineEmits<{
-  // Срабатывает только при загрузке ПЛАТЁЖКИ — реестр по ней инкрементит отметку
-  // proof_count (закрывающие документы на эту отметку не влияют).
-  (e: 'uploaded'): void;
 }>();
 
 const system = useSystemStore();
 const files = ref<IExpenseFile[]>([]);
-const pendingProof = ref<File | null>(null);
 const pendingClosing = ref<File | null>(null);
 const uploading = ref(false);
 const mechanics = ref<Zeus.ExpenseMechanics | null>(null);
 
 const isDirect = computed(() => mechanics.value === Zeus.ExpenseMechanics.DIRECT);
-const proofFiles = computed(() =>
-  files.value.filter((f) => f.kind === Zeus.ExpenseFileKind.PAYMENT_PROOF),
-);
 const closingFiles = computed(() =>
   files.value.filter((f) => f.kind === Zeus.ExpenseFileKind.CLOSING_DOC),
 );
@@ -96,7 +58,6 @@ async function refresh(): Promise<void> {
       props.itemHash,
     );
   } catch {
-    // список файлов — вспомогательный; ошибки загрузки списка не прерывают кассира
     files.value = [];
   }
 }
@@ -107,8 +68,6 @@ function fileLabel(file: IExpenseFile): string {
   return `Документ от ${date}`;
 }
 
-// Списочные запросы файлов отдают записи без read_url (он короткоживущий) —
-// свежая ссылка запрашивается по id в момент клика и сразу открывается.
 const openingId = ref<number | null>(null);
 async function openFile(file: IExpenseFile): Promise<void> {
   try {
@@ -137,7 +96,7 @@ function toBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-async function upload(file: File, kind: Zeus.ExpenseFileKind): Promise<void> {
+async function upload(file: File): Promise<void> {
   try {
     uploading.value = true;
     const buffer = await file.arrayBuffer();
@@ -145,21 +104,15 @@ async function upload(file: File, kind: Zeus.ExpenseFileKind): Promise<void> {
       coopname: system.info.coopname,
       proposal_hash: props.proposalHash,
       item_hash: props.itemHash,
-      kind,
+      kind: Zeus.ExpenseFileKind.CLOSING_DOC,
       mime_type: file.type,
       size_bytes: file.size,
       checksum_sha256: await sha256Hex(buffer),
       content_base64: toBase64(buffer),
       original_filename: file.name,
     });
-    SuccessAlert(
-      kind === Zeus.ExpenseFileKind.PAYMENT_PROOF
-        ? 'Платёжка приложена'
-        : 'Закрывающий документ приложен',
-    );
+    SuccessAlert('Закрывающий документ приложен');
     await refresh();
-    // proof_count в реестре считает только платёжки.
-    if (kind === Zeus.ExpenseFileKind.PAYMENT_PROOF) emit('uploaded');
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -167,16 +120,9 @@ async function upload(file: File, kind: Zeus.ExpenseFileKind): Promise<void> {
   }
 }
 
-// Выбор файла = загрузка: отдельная кнопка «Загрузить» не нужна.
-watch(pendingProof, (file) => {
-  if (!file || uploading.value) return;
-  void upload(file, Zeus.ExpenseFileKind.PAYMENT_PROOF).then(() => {
-    pendingProof.value = null;
-  });
-});
 watch(pendingClosing, (file) => {
   if (!file || uploading.value) return;
-  void upload(file, Zeus.ExpenseFileKind.CLOSING_DOC).then(() => {
+  void upload(file).then(() => {
     pendingClosing.value = null;
   });
 });
@@ -196,31 +142,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
-}
-
-.exp-step {
-  display: flex;
-  align-items: center;
-  gap: var(--p-2);
-}
-
-.exp-step__num {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--p-r-pill);
-  background: var(--p-primary-soft);
-  color: var(--p-primary);
-  font-size: var(--p-fs-body-sm);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.exp-step__title {
-  font-weight: 600;
-  color: var(--p-ink);
 }
 
 .attach-proof__section {

@@ -61,6 +61,7 @@ namespace operations {
     inline constexpr eosio::name SETTLE_MINSHARE = "o.reg.setmin"_n; ///< Зачисление минимального паевого по решению совета (Dr 76 / Cr 80, TRANSFER REGISTRATION_PENDING → MIN_SHARE_FUND).
     inline constexpr eosio::name SETTLE_ENTRANCE = "o.reg.setent"_n; ///< Зачисление вступительного по решению совета (Dr 76 / Cr 86, TRANSFER REGISTRATION_PENDING → ENTRANCE_FEES).
     inline constexpr eosio::name REFUND          = "o.reg.refund"_n; ///< Возврат регистрационного взноса при отказе совета (Dr 76 / Cr 51, BURN REGISTRATION_PENDING — деньги уходят из системы банковским переводом кандидату).
+    inline constexpr eosio::name MOVE_MINSHARE   = "o.reg.mvmin"_n;  ///< Перенос минимального паевого на главный паевой при выходе из кооператива (TRANSFER MIN_SHARE_FUND → SHARE_FUND_PAY, без Dr/Cr — оба кошелька на счёте 80). Готовит полный паевой к возврату.
   }
 
   // wallet
@@ -241,6 +242,15 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::REGISTRATION_PENDING, eosio::name{},
     ledger2_accounts::PARTICIPANT_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
     "Возврат регистрационного взноса при отказе совета" },
+
+  // 2e. Перенос минимального паевого на главный при выходе из кооператива:
+  // TRANSFER MIN_SHARE_FUND → SHARE_FUND_PAY (без Dr/Cr — оба кошелька на счёте 80).
+  // Консолидирует минимальный паевой на главный, чтобы вернуть его вместе с
+  // основным паевым через wallet-withdraw (o.wal.wthcpl, Дт 80 / Кт 51).
+  { operations::registrator::MOVE_MINSHARE, processes::wallet::WITHDRAW, WalletOp::TRANSFER,
+    ledger2_wallets::MIN_SHARE_FUND, ledger2_wallets::SHARE_FUND_PAY,
+    0, 0,
+    "Перенос минимального паевого на главный при выходе из кооператива" },
 
   // 3. Внесение паевого взноса: Dr 51 / Cr 80, ISSUE SHARE_FUND_PAY
   { operations::wallet::COMPLETE_DEPOSIT, processes::wallet::DEPOSIT, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::SHARE_FUND_PAY,

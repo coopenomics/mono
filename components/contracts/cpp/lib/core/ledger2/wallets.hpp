@@ -253,6 +253,37 @@ inline constexpr std::array<Ledger2WalletProgramMapping, 8> LEDGER2_USER_SHARED_
 }};
 
 /**
+ * @brief Сет «боевых» (паевых) кошельков пайщика, возвращаемых при выходе из
+ * кооператива (заявление registry 200 → одобрение совета `confirmexit`).
+ *
+ * Единый источник истины для суммы возврата. При одобрении выхода советом
+ * `registrator::confirmexit` обходит этот сет в цикле, аккумулирует доступный
+ * L3-баланс пайщика по каждому кошельку (>0), консолидирует на главный паевой
+ * (`w.wal.share`) и ставит всю сумму на возврат единым платежом. Тот же сет
+ * генерируется в cooptypes (`gen:from-cpp` → `wallets.generated.ts`) и
+ * используется backend-preview, поэтому расчёт на фронте всегда совпадает с
+ * тем, что реально вернёт контракт.
+ *
+ * Состав — только паевые/возвратные USER_SHARED-кошельки:
+ *   w.reg.minshr — минимальный паевой взнос;
+ *   w.wal.share  — целевой паевой взнос (ЦК);
+ *   w.cap.blago  — паевой взнос в ЦПП «Благорост».
+ *
+ * НЕ входят: w.wal.member (членский — невозвратный), w.exp.adv (подотчёт под
+ * расход), w.cap.gen (Генератор — COOPERATIVE, без L3-разреза по пайщику),
+ * w.cap.preimp (пред-импорт-учёт РИД).
+ *
+ * Каждому не-главному кошельку сета должна соответствовать операция переноса
+ * на `w.wal.share` в `Registrator::consolidate_share_to_main` (exit_helpers.hpp)
+ * — иначе runtime упадёт с явным сообщением (защита от тихой потери средств).
+ */
+inline constexpr std::array<eosio::name, 3> LEDGER2_EXIT_REFUND_WALLETS = {{
+  ledger2_wallets::MIN_SHARE_FUND,
+  ledger2_wallets::SHARE_FUND_PAY,
+  ledger2_wallets::BLAGOROST_FUND,
+}};
+
+/**
  * @brief Возвращает required program_id для USER_SHARED-кошелька.
  *
  * Возвращает 0 если:

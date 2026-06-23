@@ -1,5 +1,7 @@
 #pragma once
 
+#include <eosio/binary_extension.hpp>
+
 using namespace eosio;
 using std::string;
 
@@ -39,10 +41,18 @@ namespace Capital {
     asset program_membership_distributed = asset(0, _root_govern_symbol); ///< Распределенная сумма членских взносов по программе
     double program_membership_cumulative_reward_per_share;               ///< Накопительное вознаграждение на долю в членских взносах
 
-    asset program_expense_pool = asset(0, _root_govern_symbol);     ///< Доступная сумма программы под целевые расходы (без аллокации в проекты)
-    asset program_expense_reserved = asset(0, _root_govern_symbol); ///< Сумма, зарезервированная под approved/authorized программные расходы
-
     config config;                                           ///< Управляемая конфигурация контракта
+
+    // ВНИМАНИЕ: поля программных расходов добавлены ПОСЛЕ config и обёрнуты в
+    // binary_extension. Поля в таблицу EOSIO можно дописывать только в ХВОСТ
+    // struct и только через binary_extension — иначе ломается десериализация
+    // уже записанного global_state. Инцидент 2026-06-16: эти поля были вставлены
+    // перед config напрямую (без extension) и задеплоены на прод — таблица state
+    // перестала читаться (get table → "Invalid symbol", action'ы падали на unpack).
+    // Инвариант: оба поля материализуются вместе (всегда оба has_value или оба
+    // пустые), чтобы порядок хвостовых extension оставался консистентным.
+    eosio::binary_extension<asset> program_expense_pool;     ///< Доступная сумма программы под целевые расходы (без аллокации в проекты)
+    eosio::binary_extension<asset> program_expense_reserved; ///< Сумма, зарезервированная под approved/authorized программные расходы
 
     uint64_t primary_key() const { return coopname.value; }     ///< Первичный ключ (1)
   };
@@ -53,6 +63,16 @@ namespace Capital {
   
 
 namespace State {
+
+/**
+  * @brief Значение binary_extension<asset> или ноль с символом @p sym, если поле
+  *        ещё не материализовано (старая запись, созданная до добавления
+  *        program_expense_* через binary_extension).
+  */
+inline asset ext_or_zero(const eosio::binary_extension<asset>& v, const eosio::symbol& sym) {
+  return v.has_value() ? v.value() : asset(0, sym);
+}
+
 /**
   * @brief Обновляет глобальное состояние новыми значениями.
   *
@@ -103,8 +123,12 @@ inline void topup_program_expense_pool(eosio::name coopname, const asset &amount
                "Недостаточно свободных инвестиций программы для пополнения пула расходов");
 
   global_state_inst.modify(itr, _capital, [&](auto &s) {
+    asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
+    asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
     s.global_available_invest_pool -= amount;
-    s.program_expense_pool += amount;
+    pool += amount;
+    s.program_expense_pool     = pool;
+    s.program_expense_reserved = reserved;
   });
 }
 
@@ -117,12 +141,16 @@ inline void reserve_program_expense(eosio::name coopname, const asset &amount) {
   auto itr = global_state_inst.find(coopname.value);
   eosio::check(itr != global_state_inst.end(), "Контракт не инициализирован");
   eosio::check(amount.is_valid() && amount.amount > 0, "Сумма резерва должна быть положительной");
-  eosio::check(itr->program_expense_pool >= amount,
+  eosio::check(ext_or_zero(itr->program_expense_pool, amount.symbol) >= amount,
                "Недостаточно средств в пуле программных расходов");
 
   global_state_inst.modify(itr, _capital, [&](auto &s) {
-    s.program_expense_pool -= amount;
-    s.program_expense_reserved += amount;
+    asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
+    asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
+    pool     -= amount;
+    reserved += amount;
+    s.program_expense_pool     = pool;
+    s.program_expense_reserved = reserved;
   });
 }
 
@@ -135,12 +163,16 @@ inline void release_program_expense(eosio::name coopname, const asset &amount) {
   auto itr = global_state_inst.find(coopname.value);
   eosio::check(itr != global_state_inst.end(), "Контракт не инициализирован");
   eosio::check(amount.is_valid() && amount.amount > 0, "Сумма освобождения должна быть положительной");
-  eosio::check(itr->program_expense_reserved >= amount,
+  eosio::check(ext_or_zero(itr->program_expense_reserved, amount.symbol) >= amount,
                "Зарезервированных программных расходов меньше указанной суммы");
 
   global_state_inst.modify(itr, _capital, [&](auto &s) {
-    s.program_expense_reserved -= amount;
-    s.program_expense_pool += amount;
+    asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
+    asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
+    reserved -= amount;
+    pool     += amount;
+    s.program_expense_pool     = pool;
+    s.program_expense_reserved = reserved;
   });
 }
 
@@ -154,11 +186,15 @@ inline void consume_program_expense(eosio::name coopname, const asset &amount) {
   auto itr = global_state_inst.find(coopname.value);
   eosio::check(itr != global_state_inst.end(), "Контракт не инициализирован");
   eosio::check(amount.is_valid() && amount.amount > 0, "Сумма списания должна быть положительной");
-  eosio::check(itr->program_expense_reserved >= amount,
+  eosio::check(ext_or_zero(itr->program_expense_reserved, amount.symbol) >= amount,
                "Зарезервированных программных расходов меньше указанной суммы");
 
   global_state_inst.modify(itr, _capital, [&](auto &s) {
-    s.program_expense_reserved -= amount;
+    asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
+    asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
+    reserved -= amount;
+    s.program_expense_pool     = pool;
+    s.program_expense_reserved = reserved;
   });
 }
 
@@ -172,11 +208,15 @@ inline void spend_program_expense_pool(eosio::name coopname, const asset &amount
   auto itr = global_state_inst.find(coopname.value);
   eosio::check(itr != global_state_inst.end(), "Контракт не инициализирован");
   eosio::check(amount.is_valid() && amount.amount > 0, "Сумма списания должна быть положительной");
-  eosio::check(itr->program_expense_pool >= amount,
+  eosio::check(ext_or_zero(itr->program_expense_pool, amount.symbol) >= amount,
                "Недостаточно средств в пуле программных расходов для покрытия перерасхода — пополните пул (topupprogexp)");
 
   global_state_inst.modify(itr, _capital, [&](auto &s) {
-    s.program_expense_pool -= amount;
+    asset pool     = ext_or_zero(s.program_expense_pool, amount.symbol);
+    asset reserved = ext_or_zero(s.program_expense_reserved, amount.symbol);
+    pool -= amount;
+    s.program_expense_pool     = pool;
+    s.program_expense_reserved = reserved;
   });
 }
 }// namespace State

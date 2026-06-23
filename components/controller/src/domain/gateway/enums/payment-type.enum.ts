@@ -9,6 +9,10 @@ export enum PaymentTypeEnum {
   // Исходящий возврат вступительного и мин. паевого взносов при отказе совета
   // в приёме. Отдельный тип, не WITHDRAWAL — чтобы не путать с возвратом паевого.
   REGISTRATION_REFUND = 'registration_refund',
+  // Исходящий возврат всего паевого взноса при выходе пайщика из кооператива.
+  // Отдельный тип, не WITHDRAWAL — это полный выход с блокировкой аккаунта,
+  // а не частичный возврат паевого действующему пайщику.
+  MEMBERSHIP_EXIT = 'membership_exit',
   // Исходящая оплата позиции служебной записки-сметы (шасси expense). Создаётся
   // автоматически после авторизации СЗ советом; подтверждение кассиром проводит
   // on-chain оплату expense::payexp по позиции.
@@ -41,6 +45,7 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
   [PaymentTypeEnum.WITHDRAWAL]: 'Возврат паевого взноса',
   [PaymentTypeEnum.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
+  [PaymentTypeEnum.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
   [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
   [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
   [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
@@ -84,6 +89,7 @@ export const INCOMING_PAYMENT_TYPES = [
 export const OUTGOING_PAYMENT_TYPES = [
   PaymentTypeEnum.WITHDRAWAL,
   PaymentTypeEnum.REGISTRATION_REFUND,
+  PaymentTypeEnum.MEMBERSHIP_EXIT,
   PaymentTypeEnum.EXPENSE,
   PaymentTypeEnum.EXPENSE_OVERSPEND,
 ];

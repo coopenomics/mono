@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/inter",
   "type": "module",
-  "version": "2026.6.9-18",
+  "version": "2026.6.16-1",
   "description": "Контракты и DI-токены для связи расширений контроллера без прямых зависимостей",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",

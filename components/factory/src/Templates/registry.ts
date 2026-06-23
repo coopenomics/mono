@@ -6,6 +6,8 @@ import * as CoopenomicsAgreement from './50.CoopenomicsAgreement'
 import * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 import * as ParticipantApplication from './100.ParticipantApplication'
 import * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+import * as ParticipantExitApplication from './200.ParticipantExitApplication'
+import * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 import * as SelectBranchStatement from './101.SelectBranchStatement'
 import * as ProjectFreeDecision from './599.ProjectFreeDecision'
 import * as FreeDecision from './600.FreeDecision'
@@ -92,6 +94,8 @@ export const Registry = {
   51: ConvertToAxonStatement,
   100: ParticipantApplication,
   101: SelectBranchStatement,
+  200: ParticipantExitApplication,
+  201: DecisionOfParticipantExit,
   300: AnnualGeneralMeetingAgenda,
   301: AnnualGeneralMeetingSovietDecision,
   302: AnnualGeneralMeetingNotification,

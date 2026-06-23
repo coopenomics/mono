@@ -443,6 +443,9 @@ export const AllTypesProps: Record<string,any> = {
 	CreateMatrixAccountInputDTO:{
 
 	},
+	CreateMembershipExitInput:{
+		statement:"MembershipExitApplicationSignedDocumentInput"
+	},
 	CreateOrganizationDataInput:{
 		bank_account:"BankAccountInput",
 		details:"OrganizationDetailsInput",
@@ -851,6 +854,20 @@ export const AllTypesProps: Record<string,any> = {
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
 	},
+	MembershipExitApplicationGenerateDocumentInput:{
+
+	},
+	MembershipExitApplicationSignedDocumentInput:{
+		meta:"MembershipExitApplicationSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MembershipExitApplicationSignedMetaDocumentInput:{
+
+	},
+	MembershipExitDecisionGenerateDocumentInput:{
+
+	},
+	MembershipExitStatus: "enum" as const,
 	ModerateRequestInput:{
 
 	},
@@ -875,6 +892,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
+		},
+		cancelMembershipExit:{
+
 		},
 		cancelRequest:{
 			data:"CancelRequestInput"
@@ -1174,6 +1194,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
+		confirmMembershipExit:{
+
+		},
 		confirmReceiveOnRequest:{
 			data:"ConfirmReceiveOnRequestInput"
 		},
@@ -1197,6 +1220,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		createInitialPayment:{
 			data:"CreateInitialPaymentInput"
+		},
+		createMembershipExit:{
+			data:"CreateMembershipExitInput"
 		},
 		createParentOffer:{
 			data:"CreateParentOfferInput"
@@ -1294,6 +1320,14 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateFreeDecision:{
 			data:"FreeDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitApplication:{
+			data:"MembershipExitApplicationGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitDecision:{
+			data:"MembershipExitDecisionGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateParticipantApplication:{
@@ -1579,6 +1613,9 @@ export const AllTypesProps: Record<string,any> = {
 		uploadExpenseFile:{
 			data:"UploadExpenseFileInput"
 		},
+		uploadPaymentProof:{
+			data:"UploadPaymentProofInput"
+		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
 		},
@@ -1636,6 +1673,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	PaymentDirection: "enum" as const,
+	PaymentFileKind: "enum" as const,
 	PaymentFiltersInput:{
 		direction:"PaymentDirection",
 		status:"PaymentStatus",
@@ -2033,8 +2071,20 @@ export const AllTypesProps: Record<string,any> = {
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
 		},
+		membershipExit:{
+
+		},
+		membershipExitReturnPreview:{
+
+		},
 		onecoopGetDocuments:{
 			data:"GetOneCoopDocumentsInput"
+		},
+		paymentFile:{
+
+		},
+		paymentProofs:{
+
 		},
 		process:{
 
@@ -2344,6 +2394,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UploadExpenseFileInput:{
 		kind:"ExpenseFileKind"
+	},
+	UploadPaymentProofInput:{
+
 	},
 	UserStatus: "enum" as const,
 	VarsInput:{
@@ -4115,6 +4168,22 @@ export const ReturnTypes: Record<string,any> = {
 		votes_against:"Int",
 		votes_for:"Int"
 	},
+	MembershipExit:{
+		created_at:"String",
+		exit_hash:"String",
+		payment_status:"PaymentStatus",
+		quantity:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitResult:{
+		exit_hash:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitReturnPreview:{
+		minimum_contribution:"String",
+		share_contribution:"String",
+		total:"String"
+	},
 	MissingRequisiteField:{
 		key:"String",
 		label:"String",
@@ -4144,6 +4213,7 @@ export const ReturnTypes: Record<string,any> = {
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		authorizeDecision:"Transaction",
+		cancelMembershipExit:"Boolean",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",
@@ -4237,6 +4307,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		completeRequest:"Transaction",
 		confirmAgreement:"Transaction",
+		confirmMembershipExit:"MembershipExitResult",
 		confirmReceiveOnRequest:"Transaction",
 		confirmSupplyOnRequest:"Transaction",
 		createAnnualGeneralMeet:"MeetAggregate",
@@ -4245,6 +4316,7 @@ export const ReturnTypes: Record<string,any> = {
 		createDepositPayment:"GatewayPayment",
 		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
+		createMembershipExit:"MembershipExitResult",
 		createParentOffer:"Transaction",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
@@ -4274,6 +4346,8 @@ export const ReturnTypes: Record<string,any> = {
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
+		generateMembershipExitApplication:"GeneratedDocument",
+		generateMembershipExitDecision:"GeneratedDocument",
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
@@ -4361,6 +4435,7 @@ export const ReturnTypes: Record<string,any> = {
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
 		uploadExpenseFile:"ExpenseFile",
+		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
@@ -4653,6 +4728,20 @@ export const ReturnTypes: Record<string,any> = {
 		fee_amount:"String",
 		fee_percent:"Float",
 		tolerance_percent:"Float"
+	},
+	PaymentFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		kind:"PaymentFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		payment_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
 	},
 	PaymentMethod:{
 		created_at:"DateTime",
@@ -4969,7 +5058,11 @@ export const ReturnTypes: Record<string,any> = {
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
 		listReportDrafts:"ReportDraft",
+		membershipExit:"MembershipExit",
+		membershipExitReturnPreview:"MembershipExitReturnPreview",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
+		paymentFile:"PaymentFile",
+		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",

@@ -4,6 +4,7 @@ import { useUpdateWatch } from 'src/entities/AppVersion/model';
 import { useInitWalletProcess } from 'src/processes/init-wallet';
 import type { Router } from 'vue-router';
 import { useBranchOverlayProcess } from '../watch-branch-overlay';
+import { useExitOverlayProcess } from '../watch-exit-overlay';
 import { setupNavigationGuard } from '../navigation-guard-setup';
 import { useInitExtensionsProcess } from 'src/processes/init-installed-extensions';
 import { applyThemeFromStorage } from 'src/shared/lib/utils';
@@ -108,6 +109,7 @@ export async function useInitAppProcess(router: Router) {
   }
 
   useBranchOverlayProcess();
+  useExitOverlayProcess();
 
   setupNavigationGuard(router);
   bootrace('navigationGuard installed');

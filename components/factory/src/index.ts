@@ -96,6 +96,8 @@ export class Generator implements IGenerator {
       [Actions.CoopenomicsAgreement.Template.registry_id]: new Actions.CoopenomicsAgreement.Factory(this.storage), // 50
       [Actions.ConvertToAxonStatement.Template.registry_id]: new Actions.ConvertToAxonStatement.Factory(this.storage), // 51
       [Actions.ParticipantApplication.Template.registry_id]: new Actions.ParticipantApplication.Factory(this.storage), // 100
+      [Actions.ParticipantExitApplication.Template.registry_id]: new Actions.ParticipantExitApplication.Factory(this.storage), // 200
+      [Actions.DecisionOfParticipantExit.Template.registry_id]: new Actions.DecisionOfParticipantExit.Factory(this.storage), // 201
       [Actions.SelectBranchStatement.Template.registry_id]: new Actions.SelectBranchStatement.Factory(this.storage), // 101
 
       // общее собрание

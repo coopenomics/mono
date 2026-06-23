@@ -62,3 +62,15 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.exp.adv", required_program_id: 0, program_label: null },
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
 ] as const
+
+/**
+ * Сет паевых («боевых») кошельков пайщика, возвращаемых при выходе из кооператива.
+ * Точная копия `LEDGER2_EXIT_REFUND_WALLETS` из C++. Контракт `confirmexit` обходит
+ * этот сет, собирает доступные балансы и ставит их на возврат; backend-preview
+ * считает по нему же — расчёт на фронте всегда совпадает с тем, что вернёт контракт.
+ */
+export const LEDGER2_EXIT_REFUND_WALLETS: readonly IName[] = [
+  "w.reg.minshr",
+  "w.wal.share",
+  "w.cap.blago",
+] as const

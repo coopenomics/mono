@@ -33,7 +33,22 @@ on:
     branches: [testnet, main]
     paths:
       - 'lerna.json'
+  # Ручной деплой: выбрать окружение и (опционально) версию/коммит. Нужен для
+  # отката на старую версию, редеплоя без бампа и точечного hotfix в один контур —
+  # всё, что FF-промоушн (scripts/promote.sh, только вперёд) сделать не может.
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Куда деплоить'
+        type: choice
+        options:
+          - testnet
+          - main
+        required: true
+      ref:
+        description: 'Релизный тег/коммит для сборки (пусто = верхушка выбранного окружения)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -50,13 +65,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # push → собираем пушнутый коммит; ручной запуск → выбранный ref
+          # (пусто = верхушка ветки окружения, на которой запущен workflow).
+          ref: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.ref) || github.sha }}
 
       - name: Resolve branch, build mode and version
         id: resolve
         run: |
-          # Ветка — это ветка push'а (или выбранная в workflow_dispatch).
-          BRANCH="${{ github.ref_name }}"
-          SHA="${{ github.sha }}"
+          # Окружение: при ручном workflow_dispatch — из inputs.environment;
+          # при push — это ветка push'а (testnet/main). Версия/сборка берутся
+          # из реально вычекнутого дерева, не из ветки-триггера.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRANCH="${{ github.event.inputs.environment }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          SHA="$(git rev-parse HEAD)"
 
           # Версия — из закоммиченного lerna.json. Её бампит lerna version ОДИН
           # раз на dev (scripts/cut-release.sh), и тот же коммит едет по FF в

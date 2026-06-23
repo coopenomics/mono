@@ -35,6 +35,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
   {
     "program_label": null,
     "required_program_id": 0,
+    "wallet_name": "w.exp.adv",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
     "wallet_name": "w.reg.pend",
   },
 ]
@@ -66,6 +71,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Первичный учёт РИД-взносов до перехода на электронный учёт",
     "kind": "USER_SHARED",
     "name": "w.cap.preimp",
+  },
+  {
+    "human_name": "Подотчётные средства пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.exp.adv",
   },
   {
     "human_name": "Регистрационный взнос в ожидании решения совета",
@@ -121,6 +131,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Выплаты поставщикам",
     "kind": "COOPERATIVE",
     "name": "w.mkt.payout",
+  },
+  {
+    "human_name": "Пул программных расходов ЦПП «Благорост»",
+    "kind": "COOPERATIVE",
+    "name": "w.cap.pgexp",
   },
 ]
 `;

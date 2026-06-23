@@ -96,7 +96,7 @@ export function itemStatusVariant(
 export function fileKindLabel(kind: Zeus.ExpenseFileKind): string {
   switch (kind) {
     case Zeus.ExpenseFileKind.PAYMENT_PROOF:
-      return 'Платёжка';
+      return 'Чек об оплате';
     case Zeus.ExpenseFileKind.REPORT_FILE:
       return 'Чек';
     case Zeus.ExpenseFileKind.RETURN_PROOF:

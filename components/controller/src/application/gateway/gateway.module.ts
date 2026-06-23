@@ -1,6 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { GatewayResolver } from './resolvers/gateway.resolver';
+import { PaymentFilesResolver } from './resolvers/payment-files.resolver';
 import { GatewayService } from './services/gateway.service';
+import { PaymentFilesService } from './services/payment-files.service';
 import { PaymentNotificationService } from './services/payment-notification.service';
 import { WithdrawAuthorizationListener } from './services/withdraw-authorization.listener';
 import { PaymentController } from './controllers/payment.controller';
@@ -13,6 +15,7 @@ import { SystemModule } from '~/application/system/system.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
+import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 
 @Module({
   imports: [
@@ -24,16 +27,20 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
     AccountInfrastructureModule,
     SystemModule,
     RedisModule,
+    // Чек об оплате (gateway:files) — ядровый механизм, бакет по @UseBucket.
+    FileStorageInfrastructureModule.forFeature([PaymentFilesService]),
   ],
   controllers: [PaymentController],
   providers: [
     GatewayResolver,
+    PaymentFilesResolver,
     GatewayService,
+    PaymentFilesService,
     PaymentNotificationService,
     GatewayInteractor,
     GatewayNotificationHandler,
     WithdrawAuthorizationListener,
   ],
-  exports: [GatewayService, PaymentNotificationService, GatewayInteractor],
+  exports: [GatewayService, PaymentNotificationService, GatewayInteractor, PaymentFilesService],
 })
 export class GatewayModule {}

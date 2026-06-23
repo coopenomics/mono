@@ -311,6 +311,7 @@ import { GitHubSyncSchedulerService } from './infrastructure/services/github-syn
 import { ProgramShareRegistrationSchedulerService } from './infrastructure/services/program-share-registration-scheduler.service';
 import { ProgramShareRegistrationService } from './application/services/program-share-registration.service';
 import { ProgramShareRegistrationOnUserWalletDeltaListener } from './application/listeners/program-share-registration-on-user-wallet-delta.listener';
+import { ProgramShareRegistrationOnProjectDeltaListener } from './application/listeners/program-share-registration-on-project-delta.listener';
 import { CapitalDevelopmentRepositoryGitSyncService } from './application/services/capital-development-repository-git-sync.service';
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
@@ -875,6 +876,7 @@ IssueIdGenerationService,
     ProgramShareRegistrationService,
     ProgramShareRegistrationSchedulerService,
     ProgramShareRegistrationOnUserWalletDeltaListener,
+    ProgramShareRegistrationOnProjectDeltaListener,
     GitCommitMarkersSyncService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,

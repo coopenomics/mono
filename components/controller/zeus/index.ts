@@ -5392,6 +5392,16 @@ export type ValueTypes = {
 	password: string | Variable<any, string>,
 	username: string | Variable<any, string>
 };
+	["CreateMembershipExitInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш процесса выхода (генерируется на клиенте) */
+	exit_hash: string | Variable<any, string>,
+	/** Подписанное пайщиком заявление о выходе из кооператива */
+	statement: ValueTypes["MembershipExitApplicationSignedDocumentInput"] | Variable<any, string>,
+	/** Имя пайщика, выходящего из кооператива */
+	username: string | Variable<any, string>
+};
 	["CreateOrganizationDataInput"]: {
 	/** Банковский счет организации */
 	bank_account: ValueTypes["BankAccountInput"] | Variable<any, string>,
@@ -7903,6 +7913,127 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MeetQuestionResult']?: Omit<ValueTypes["MeetQuestionResult"], "...on MeetQuestionResult">
 }>;
+	["MembershipExit"]: AliasType<{
+	/** Дата подачи заявления на выход */
+	created_at?:boolean | `@${string}`,
+	/** Хеш процесса выхода */
+	exit_hash?:boolean | `@${string}`,
+	/** Статус исходящего платежа возврата паевого взноса в реестре кассира. Создаётся при одобрении советом; null — платёж ещё не заведён. */
+	payment_status?:boolean | `@${string}`,
+	/** Сумма к возврату (фиксируется советом при одобрении; до одобрения — 0) */
+	quantity?:boolean | `@${string}`,
+	/** Статус процесса выхода */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MembershipExit']?: Omit<ValueTypes["MembershipExit"], "...on MembershipExit">
+}>;
+	["MembershipExitApplicationGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["MembershipExitApplicationSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string | Variable<any, string>,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string | Variable<any, string>,
+	meta: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"] | Variable<any, string>,
+	/** Хэш мета-данных */
+	meta_hash: string | Variable<any, string>,
+	/** Вектор подписей */
+	signatures: Array<ValueTypes["SignatureInfoInput"]> | Variable<any, string>,
+	/** Версия стандарта документа */
+	version: string | Variable<any, string>
+};
+	["MembershipExitApplicationSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at: string | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator: string | Variable<any, string>,
+	/** Язык документа */
+	lang: string | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links: Array<string> | Variable<any, string>,
+	/** ID документа в реестре */
+	registry_id: number | Variable<any, string>,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string | Variable<any, string>,
+	/** Название документа */
+	title: string | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version: string | Variable<any, string>
+};
+	["MembershipExitDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null | Variable<any, string>,
+	/** Название кооператива, связанное с документом */
+	coopname: string | Variable<any, string>,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null | Variable<any, string>,
+	/** Идентификатор протокола решения собрания совета */
+	decision_id: number | Variable<any, string>,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null | Variable<any, string>,
+	/** Язык документа */
+	lang?: string | undefined | null | Variable<any, string>,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null | Variable<any, string>,
+	/** Название документа */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Имя пользователя, создавшего документ */
+	username: string | Variable<any, string>,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null | Variable<any, string>
+};
+	["MembershipExitResult"]: AliasType<{
+	/** Хеш созданного процесса выхода */
+	exit_hash?:boolean | `@${string}`,
+	/** Статус процесса выхода после подачи (ожидает подтверждения по ссылке из письма) */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MembershipExitResult']?: Omit<ValueTypes["MembershipExitResult"], "...on MembershipExitResult">
+}>;
+	["MembershipExitReturnPreview"]: AliasType<{
+	/** Минимальный паевой взнос пайщика */
+	minimum_contribution?:boolean | `@${string}`,
+	/** Целевой паевой взнос пайщика */
+	share_contribution?:boolean | `@${string}`,
+	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MembershipExitReturnPreview']?: Omit<ValueTypes["MembershipExitReturnPreview"], "...on MembershipExitReturnPreview">
+}>;
+	/** Статус процесса выхода пайщика из кооператива */
+["MembershipExitStatus"]:MembershipExitStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -7966,6 +8097,7 @@ addParticipant?: [{	data: ValueTypes["AddParticipantInput"] | Variable<any, stri
 addPaymentMethod?: [{	data: ValueTypes["AddPaymentMethodInput"] | Variable<any, string>},ValueTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any, string>},ValueTypes["Branch"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
@@ -8062,6 +8194,7 @@ completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneral
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
 completeRequest?: [{	data: ValueTypes["CompleteRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 confirmReceiveOnRequest?: [{	data: ValueTypes["ConfirmReceiveOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ValueTypes["ConfirmSupplyOnRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -8070,6 +8203,7 @@ createChildOrder?: [{	data: ValueTypes["CreateChildOrderInput"] | Variable<any, 
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createInitialPayment?: [{	data: ValueTypes["CreateInitialPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
+createMembershipExit?: [{	data: ValueTypes["CreateMembershipExitInput"] | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createParentOffer?: [{	data: ValueTypes["CreateParentOfferInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createProjectOfFreeDecision?: [{	data: ValueTypes["CreateProjectFreeDecisionInput"] | Variable<any, string>},ValueTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ValueTypes["CreateSubscriptionInput"] | Variable<any, string>},ValueTypes["CreateSubscriptionResponse"]],
@@ -8099,6 +8233,8 @@ generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<a
 generateExpenseProposalDecisionDocument?: [{	data: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ValueTypes["ExpenseProposalStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ValueTypes["FreeDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateMembershipExitApplication?: [{	data: ValueTypes["MembershipExitApplicationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateMembershipExitDecision?: [{	data: ValueTypes["MembershipExitDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateParticipantApplication?: [{	data: ValueTypes["ParticipantApplicationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateParticipantApplicationDecision?: [{	data: ValueTypes["ParticipantApplicationDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generatePrivacyAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -8187,6 +8323,7 @@ updateRequest?: [{	data: ValueTypes["UpdateRequestInput"] | Variable<any, string
 updateSettings?: [{	data: ValueTypes["UpdateSettingsInput"] | Variable<any, string>},ValueTypes["Settings"]],
 updateSystem?: [{	data: ValueTypes["Update"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 uploadExpenseFile?: [{	data: ValueTypes["UploadExpenseFileInput"] | Variable<any, string>},ValueTypes["ExpenseFile"]],
+uploadPaymentProof?: [{	data: ValueTypes["UploadPaymentProofInput"] | Variable<any, string>},ValueTypes["PaymentFile"]],
 verifyEmail?: [{	data: ValueTypes["VerifyEmailInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 voteOnAnnualGeneralMeet?: [{	data: ValueTypes["VoteOnAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},ValueTypes["Ledger2AdjustmentResult"]],
@@ -8948,6 +9085,37 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 }>;
 	/** Направление платежа */
 ["PaymentDirection"]:PaymentDirection;
+	/** Запись о файле, приложенном к платежу (чек об оплате). */
+["PaymentFile"]: AliasType<{
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256?:boolean | `@${string}`,
+	/** Имя кооператива (scope). */
+	coopname?:boolean | `@${string}`,
+	/** Внутренний ID записи. */
+	id?:boolean | `@${string}`,
+	/** Назначение файла. */
+	kind?:boolean | `@${string}`,
+	/** MIME-тип содержимого. */
+	mime_type?:boolean | `@${string}`,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?:boolean | `@${string}`,
+	/** Хеш платежа. */
+	payment_hash?:boolean | `@${string}`,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** MinIO-ключ внутри бакета. */
+	storage_key?:boolean | `@${string}`,
+	/** Когда загружено. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто загрузил (username). */
+	uploaded_by_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaymentFile']?: Omit<ValueTypes["PaymentFile"], "...on PaymentFile">
+}>;
+	/** Тип файла, приложенного к платежу. */
+["PaymentFileKind"]:PaymentFileKind;
 	["PaymentFiltersInput"]: {
 	/** Название кооператива */
 	coopname?: string | undefined | null | Variable<any, string>,
@@ -9673,7 +9841,11 @@ kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
+membershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExit"]],
+membershipExitReturnPreview?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExitReturnPreview"]],
 onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
+paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
+paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
@@ -11239,6 +11411,22 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	original_filename?: string | undefined | null | Variable<any, string>,
 	/** Хеш сметы расхода. */
 	proposal_hash: string | Variable<any, string>,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number | Variable<any, string>
+};
+	["UploadPaymentProofInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string | Variable<any, string>,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string | Variable<any, string>,
+	/** Имя кооператива. */
+	coopname: string | Variable<any, string>,
+	/** MIME-тип содержимого. */
+	mime_type: string | Variable<any, string>,
+	/** Оригинальное имя файла — для отображения и поиска. */
+	original_filename?: string | undefined | null | Variable<any, string>,
+	/** Хеш платежа, к которому прикладывается чек. */
+	payment_hash: string | Variable<any, string>,
 	/** Размер файла в байтах (для серверной валидации). */
 	size_bytes: number | Variable<any, string>
 };
@@ -15679,6 +15867,16 @@ export type ResolverInputTypes = {
 	password: string,
 	username: string
 };
+	["CreateMembershipExitInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш процесса выхода (генерируется на клиенте) */
+	exit_hash: string,
+	/** Подписанное пайщиком заявление о выходе из кооператива */
+	statement: ResolverInputTypes["MembershipExitApplicationSignedDocumentInput"],
+	/** Имя пайщика, выходящего из кооператива */
+	username: string
+};
 	["CreateOrganizationDataInput"]: {
 	/** Банковский счет организации */
 	bank_account: ResolverInputTypes["BankAccountInput"],
@@ -18128,6 +18326,124 @@ export type ResolverInputTypes = {
 	votes_for?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MembershipExit"]: AliasType<{
+	/** Дата подачи заявления на выход */
+	created_at?:boolean | `@${string}`,
+	/** Хеш процесса выхода */
+	exit_hash?:boolean | `@${string}`,
+	/** Статус исходящего платежа возврата паевого взноса в реестре кассира. Создаётся при одобрении советом; null — платёж ещё не заведён. */
+	payment_status?:boolean | `@${string}`,
+	/** Сумма к возврату (фиксируется советом при одобрении; до одобрения — 0) */
+	quantity?:boolean | `@${string}`,
+	/** Статус процесса выхода */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MembershipExitApplicationGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitApplicationSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: ResolverInputTypes["MembershipExitApplicationSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ResolverInputTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MembershipExitApplicationSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MembershipExitDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор протокола решения собрания совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitResult"]: AliasType<{
+	/** Хеш созданного процесса выхода */
+	exit_hash?:boolean | `@${string}`,
+	/** Статус процесса выхода после подачи (ожидает подтверждения по ссылке из письма) */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MembershipExitReturnPreview"]: AliasType<{
+	/** Минимальный паевой взнос пайщика */
+	minimum_contribution?:boolean | `@${string}`,
+	/** Целевой паевой взнос пайщика */
+	share_contribution?:boolean | `@${string}`,
+	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	total?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Статус процесса выхода пайщика из кооператива */
+["MembershipExitStatus"]:MembershipExitStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -18189,6 +18505,7 @@ addParticipant?: [{	data: ResolverInputTypes["AddParticipantInput"]},ResolverInp
 addPaymentMethod?: [{	data: ResolverInputTypes["AddPaymentMethodInput"]},ResolverInputTypes["PaymentMethod"]],
 addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},ResolverInputTypes["Branch"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
+cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
@@ -18285,6 +18602,7 @@ completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardin
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
 completeRequest?: [{	data: ResolverInputTypes["CompleteRequestInput"]},ResolverInputTypes["Transaction"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
+confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 confirmReceiveOnRequest?: [{	data: ResolverInputTypes["ConfirmReceiveOnRequestInput"]},ResolverInputTypes["Transaction"]],
 confirmSupplyOnRequest?: [{	data: ResolverInputTypes["ConfirmSupplyOnRequestInput"]},ResolverInputTypes["Transaction"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -18293,6 +18611,7 @@ createChildOrder?: [{	data: ResolverInputTypes["CreateChildOrderInput"]},Resolve
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
 createInitialPayment?: [{	data: ResolverInputTypes["CreateInitialPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
+createMembershipExit?: [{	data: ResolverInputTypes["CreateMembershipExitInput"]},ResolverInputTypes["MembershipExitResult"]],
 createParentOffer?: [{	data: ResolverInputTypes["CreateParentOfferInput"]},ResolverInputTypes["Transaction"]],
 createProjectOfFreeDecision?: [{	data: ResolverInputTypes["CreateProjectFreeDecisionInput"]},ResolverInputTypes["CreatedProjectFreeDecision"]],
 createWebPushSubscription?: [{	data: ResolverInputTypes["CreateSubscriptionInput"]},ResolverInputTypes["CreateSubscriptionResponse"]],
@@ -18322,6 +18641,8 @@ generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},Res
 generateExpenseProposalDecisionDocument?: [{	data: ResolverInputTypes["ExpenseProposalDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ResolverInputTypes["ExpenseProposalStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateFreeDecision?: [{	data: ResolverInputTypes["FreeDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateMembershipExitApplication?: [{	data: ResolverInputTypes["MembershipExitApplicationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateMembershipExitDecision?: [{	data: ResolverInputTypes["MembershipExitDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateParticipantApplication?: [{	data: ResolverInputTypes["ParticipantApplicationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateParticipantApplicationDecision?: [{	data: ResolverInputTypes["ParticipantApplicationDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generatePrivacyAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -18410,6 +18731,7 @@ updateRequest?: [{	data: ResolverInputTypes["UpdateRequestInput"]},ResolverInput
 updateSettings?: [{	data: ResolverInputTypes["UpdateSettingsInput"]},ResolverInputTypes["Settings"]],
 updateSystem?: [{	data: ResolverInputTypes["Update"]},ResolverInputTypes["SystemInfo"]],
 uploadExpenseFile?: [{	data: ResolverInputTypes["UploadExpenseFileInput"]},ResolverInputTypes["ExpenseFile"]],
+uploadPaymentProof?: [{	data: ResolverInputTypes["UploadPaymentProofInput"]},ResolverInputTypes["PaymentFile"]],
 verifyEmail?: [{	data: ResolverInputTypes["VerifyEmailInputDTO"]},boolean | `@${string}`],
 voteOnAnnualGeneralMeet?: [{	data: ResolverInputTypes["VoteOnAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputTypes["Ledger2AdjustmentResult"]],
@@ -19130,6 +19452,36 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 }>;
 	/** Направление платежа */
 ["PaymentDirection"]:PaymentDirection;
+	/** Запись о файле, приложенном к платежу (чек об оплате). */
+["PaymentFile"]: AliasType<{
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256?:boolean | `@${string}`,
+	/** Имя кооператива (scope). */
+	coopname?:boolean | `@${string}`,
+	/** Внутренний ID записи. */
+	id?:boolean | `@${string}`,
+	/** Назначение файла. */
+	kind?:boolean | `@${string}`,
+	/** MIME-тип содержимого. */
+	mime_type?:boolean | `@${string}`,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?:boolean | `@${string}`,
+	/** Хеш платежа. */
+	payment_hash?:boolean | `@${string}`,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?:boolean | `@${string}`,
+	/** Размер файла в байтах. */
+	size_bytes?:boolean | `@${string}`,
+	/** MinIO-ключ внутри бакета. */
+	storage_key?:boolean | `@${string}`,
+	/** Когда загружено. */
+	uploaded_at?:boolean | `@${string}`,
+	/** Кто загрузил (username). */
+	uploaded_by_username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Тип файла, приложенного к платежу. */
+["PaymentFileKind"]:PaymentFileKind;
 	["PaymentFiltersInput"]: {
 	/** Название кооператива */
 	coopname?: string | undefined | null,
@@ -19833,7 +20185,11 @@ kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
+membershipExit?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExit"]],
+membershipExitReturnPreview?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExitReturnPreview"]],
 onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
+paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
+paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
@@ -21360,6 +21716,22 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	original_filename?: string | undefined | null,
 	/** Хеш сметы расхода. */
 	proposal_hash: string,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number
+};
+	["UploadPaymentProofInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения и поиска. */
+	original_filename?: string | undefined | null,
+	/** Хеш платежа, к которому прикладывается чек. */
+	payment_hash: string,
 	/** Размер файла в байтах (для серверной валидации). */
 	size_bytes: number
 };
@@ -25703,6 +26075,16 @@ export type ModelTypes = {
 	password: string,
 	username: string
 };
+	["CreateMembershipExitInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш процесса выхода (генерируется на клиенте) */
+	exit_hash: string,
+	/** Подписанное пайщиком заявление о выходе из кооператива */
+	statement: ModelTypes["MembershipExitApplicationSignedDocumentInput"],
+	/** Имя пайщика, выходящего из кооператива */
+	username: string
+};
 	["CreateOrganizationDataInput"]: {
 	/** Банковский счет организации */
 	bank_account: ModelTypes["BankAccountInput"],
@@ -28070,6 +28452,120 @@ export type ModelTypes = {
 	/** Количество голосов за */
 	votes_for: number
 };
+	["MembershipExit"]: {
+		/** Дата подачи заявления на выход */
+	created_at: string,
+	/** Хеш процесса выхода */
+	exit_hash: string,
+	/** Статус исходящего платежа возврата паевого взноса в реестре кассира. Создаётся при одобрении советом; null — платёж ещё не заведён. */
+	payment_status?: ModelTypes["PaymentStatus"] | undefined | null,
+	/** Сумма к возврату (фиксируется советом при одобрении; до одобрения — 0) */
+	quantity: string,
+	/** Статус процесса выхода */
+	status: ModelTypes["MembershipExitStatus"]
+};
+	["MembershipExitApplicationGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitApplicationSignedDocumentInput"]: {
+	/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: ModelTypes["MembershipExitApplicationSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<ModelTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MembershipExitApplicationSignedMetaDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MembershipExitDecisionGenerateDocumentInput"]: {
+	/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор протокола решения собрания совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitResult"]: {
+		/** Хеш созданного процесса выхода */
+	exit_hash: string,
+	/** Статус процесса выхода после подачи (ожидает подтверждения по ссылке из письма) */
+	status: ModelTypes["MembershipExitStatus"]
+};
+	["MembershipExitReturnPreview"]: {
+		/** Минимальный паевой взнос пайщика */
+	minimum_contribution: string,
+	/** Целевой паевой взнос пайщика */
+	share_contribution: string,
+	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	total: string
+};
+	["MembershipExitStatus"]:MembershipExitStatus;
 	["MissingRequisiteField"]: {
 		key: string,
 	label: string,
@@ -28143,6 +28639,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	authorizeDecision: ModelTypes["Transaction"],
+	/** Отменить заявление на выход до подтверждения по email. */
+	cancelMembershipExit: boolean,
 	/** Отменить заявку */
 	cancelRequest: ModelTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -28507,6 +29005,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: ModelTypes["Transaction"],
+	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
+	confirmMembershipExit: ModelTypes["MembershipExitResult"],
 	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
 	confirmReceiveOnRequest: ModelTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
@@ -28533,6 +29033,8 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	createInitialPayment: ModelTypes["GatewayPayment"],
+	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
+	createMembershipExit: ModelTypes["MembershipExitResult"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: ModelTypes["Transaction"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
@@ -28633,10 +29135,16 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенной повестке
+	/** Сгенерировать протокол решения по предложенно�� повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать документ заявления о выходе из кооператива. */
+	generateMembershipExitApplication: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать документ решения собрания совета о выходе пайщика.
+
+Требуемые роли: chairman, member.  */
+	generateMembershipExitDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ заявления о вступлении в кооператив.
 
 Требуемые роли: chairman, member.  */
@@ -28943,6 +29451,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	uploadExpenseFile: ModelTypes["ExpenseFile"],
+	/** Приложить чек об оплате к платежу (бакет gateway:files).
+
+Требуемые роли: chairman, member.  */
+	uploadPaymentProof: ModelTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
 	/** Голосование на общем собрании пайщиков
@@ -29623,6 +30135,34 @@ export type ModelTypes = {
 	tolerance_percent: number
 };
 	["PaymentDirection"]:PaymentDirection;
+	/** Запись о файле, приложенном к платежу (чек об оплате). */
+["PaymentFile"]: {
+		/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256: string,
+	/** Имя кооператива (scope). */
+	coopname: string,
+	/** Внутренний ID записи. */
+	id: number,
+	/** Назначение файла. */
+	kind: ModelTypes["PaymentFileKind"],
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?: string | undefined | null,
+	/** Хеш платежа. */
+	payment_hash: string,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** MinIO-ключ внутри бакета. */
+	storage_key: string,
+	/** Когда загружено. */
+	uploaded_at: ModelTypes["DateTime"],
+	/** Кто загрузил (username). */
+	uploaded_by_username: string
+};
+	["PaymentFileKind"]:PaymentFileKind;
 	["PaymentFiltersInput"]: {
 	/** Название кооператива */
 	coopname?: string | undefined | null,
@@ -30520,8 +31060,20 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
+	/** Текущий процесс выхода пайщика из кооператива (статус заявления и планируемая сумма возврата). null — активного выхода нет. */
+	membershipExit?: ModelTypes["MembershipExit"] | undefined | null,
+	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
+	membershipExitReturnPreview: ModelTypes["MembershipExitReturnPreview"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: ModelTypes["OneCoopDocumentsResponse"],
+	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
+	paymentFile: ModelTypes["PaymentFile"],
+	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
+	paymentProofs: Array<ModelTypes["PaymentFile"]>,
 	/** Получить полную картину процесса ledger2 по process_hash
 
 Требуемые роли: chairman, member.  */
@@ -32018,6 +32570,22 @@ export type ModelTypes = {
 	/** Размер файла в байтах (для серверной валидации). */
 	size_bytes: number
 };
+	["UploadPaymentProofInput"]: {
+	/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения и поиска. */
+	original_filename?: string | undefined | null,
+	/** Хеш платежа, к которому прикладывается чек. */
+	payment_hash: string,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number
+};
 	["UserAccount"]: {
 		/** Метаинформация */
 	meta: string,
@@ -32238,10 +32806,7 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    // ------------------------------------------------------;
-	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
-	// ------------------------------------------------------;
-	["AcceptChildOrderInput"]: {
+    ["AcceptChildOrderInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Подписанное заявление на имущественный паевый взнос */
@@ -36526,6 +37091,16 @@ export type GraphQLTypes = {
 		password: string,
 	username: string
 };
+	["CreateMembershipExitInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хеш процесса выхода (генерируется на клиенте) */
+	exit_hash: string,
+	/** Подписанное пайщиком заявление о выходе из кооператива */
+	statement: GraphQLTypes["MembershipExitApplicationSignedDocumentInput"],
+	/** Имя пайщика, выходящего из кооператива */
+	username: string
+};
 	["CreateOrganizationDataInput"]: {
 		/** Банковский счет организации */
 	bank_account: GraphQLTypes["BankAccountInput"],
@@ -39037,6 +39612,127 @@ export type GraphQLTypes = {
 	votes_for: number,
 	['...on MeetQuestionResult']: Omit<GraphQLTypes["MeetQuestionResult"], "...on MeetQuestionResult">
 };
+	["MembershipExit"]: {
+	__typename: "MembershipExit",
+	/** Дата подачи заявления на выход */
+	created_at: string,
+	/** Хеш процесса выхода */
+	exit_hash: string,
+	/** Статус исходящего платежа возврата паевого взноса в реестре кассира. Создаётся при одобрении советом; null — платёж ещё не заведён. */
+	payment_status?: GraphQLTypes["PaymentStatus"] | undefined | null,
+	/** Сумма к возврату (фиксируется советом при одобрении; до одобрения — 0) */
+	quantity: string,
+	/** Статус процесса выхода */
+	status: GraphQLTypes["MembershipExitStatus"],
+	['...on MembershipExit']: Omit<GraphQLTypes["MembershipExit"], "...on MembershipExit">
+};
+	["MembershipExitApplicationGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitApplicationSignedDocumentInput"]: {
+		/** Хэш содержимого документа */
+	doc_hash: string,
+	/** Общий хэш (doc_hash + meta_hash) */
+	hash: string,
+	meta: GraphQLTypes["MembershipExitApplicationSignedMetaDocumentInput"],
+	/** Хэш мета-данных */
+	meta_hash: string,
+	/** Вектор подписей */
+	signatures: Array<GraphQLTypes["SignatureInfoInput"]>,
+	/** Версия стандарта документа */
+	version: string
+};
+	["MembershipExitApplicationSignedMetaDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num: number,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at: string,
+	/** Имя генератора, использованного для создания документа */
+	generator: string,
+	/** Язык документа */
+	lang: string,
+	/** Ссылки, связанные с документом */
+	links: Array<string>,
+	/** ID документа в реестре */
+	registry_id: number,
+	/** Флаг пропуска сохранения документа (используется для предварительной генерации и демонстрации пользователю) */
+	skip_save: boolean,
+	/** Часовой пояс, в котором был создан документ */
+	timezone: string,
+	/** Название документа */
+	title: string,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version: string
+};
+	["MembershipExitDecisionGenerateDocumentInput"]: {
+		/** Номер блока, на котором был создан документ */
+	block_num?: number | undefined | null,
+	/** Название кооператива, связанное с документом */
+	coopname: string,
+	/** Дата и время создания документа */
+	created_at?: string | undefined | null,
+	/** Идентификатор протокола решения собрания совета */
+	decision_id: number,
+	/** Имя генератора, использованного для создания документа */
+	generator?: string | undefined | null,
+	/** Язык документа */
+	lang?: string | undefined | null,
+	/** Ссылки, связанные с документом */
+	links?: Array<string> | undefined | null,
+	/** Часовой пояс, в котором был создан документ */
+	timezone?: string | undefined | null,
+	/** Название документа */
+	title?: string | undefined | null,
+	/** Имя пользователя, создавшего документ */
+	username: string,
+	/** Версия генератора, использованного для создания документа */
+	version?: string | undefined | null
+};
+	["MembershipExitResult"]: {
+	__typename: "MembershipExitResult",
+	/** Хеш созданного процесса выхода */
+	exit_hash: string,
+	/** Статус процесса выхода после подачи (ожидает подтверждения по ссылке из письма) */
+	status: GraphQLTypes["MembershipExitStatus"],
+	['...on MembershipExitResult']: Omit<GraphQLTypes["MembershipExitResult"], "...on MembershipExitResult">
+};
+	["MembershipExitReturnPreview"]: {
+	__typename: "MembershipExitReturnPreview",
+	/** Минимальный паевой взнос пайщика */
+	minimum_contribution: string,
+	/** Целевой паевой взнос пайщика */
+	share_contribution: string,
+	/** Итоговая сумма к возврату (минимальный + целевой паевой) */
+	total: string,
+	['...on MembershipExitReturnPreview']: Omit<GraphQLTypes["MembershipExitReturnPreview"], "...on MembershipExitReturnPreview">
+};
+	/** Статус процесса выхода пайщика из кооператива */
+["MembershipExitStatus"]: MembershipExitStatus;
 	["MissingRequisiteField"]: {
 	__typename: "MissingRequisiteField",
 	key: string,
@@ -39115,6 +39811,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	authorizeDecision: GraphQLTypes["Transaction"],
+	/** Отменить заявление на выход до подтверждения по email. */
+	cancelMembershipExit: boolean,
 	/** Отменить заявку */
 	cancelRequest: GraphQLTypes["Transaction"],
 	/** Добавление автора проекта в CAPITAL контракте
@@ -39479,6 +40177,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: GraphQLTypes["Transaction"],
+	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
+	confirmMembershipExit: GraphQLTypes["MembershipExitResult"],
 	/** Подтвердить получение имущества Уполномоченным лицом от Заказчика по новации и акту приёмки-передачи */
 	confirmReceiveOnRequest: GraphQLTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
@@ -39505,6 +40205,8 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
+	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
+	createMembershipExit: GraphQLTypes["MembershipExitResult"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: GraphQLTypes["Transaction"],
 	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
@@ -39605,10 +40307,16 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенной повестке
+	/** Сгенерировать протокол решения по предложенно�� повестке
 
 Требуемые роли: chairman, member.  */
 	generateFreeDecision: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать документ заявления о выходе из кооператива. */
+	generateMembershipExitApplication: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать документ решения собрания совета о выходе пайщика.
+
+Требуемые роли: chairman, member.  */
+	generateMembershipExitDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ заявления о вступлении в кооператив.
 
 Требуемые роли: chairman, member.  */
@@ -39915,6 +40623,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	uploadExpenseFile: GraphQLTypes["ExpenseFile"],
+	/** Приложить чек об оплате к платежу (бакет gateway:files).
+
+Требуемые роли: chairman, member.  */
+	uploadPaymentProof: GraphQLTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
 	/** Голосование на общем собрании пайщиков
@@ -40682,6 +41394,37 @@ export type GraphQLTypes = {
 };
 	/** Направление платежа */
 ["PaymentDirection"]: PaymentDirection;
+	/** Запись о файле, приложенном к платежу (чек об оплате). */
+["PaymentFile"]: {
+	__typename: "PaymentFile",
+	/** SHA-256 содержимого, hex-lowercase. */
+	checksum_sha256: string,
+	/** Имя кооператива (scope). */
+	coopname: string,
+	/** Внутренний ID записи. */
+	id: number,
+	/** Назначение файла. */
+	kind: GraphQLTypes["PaymentFileKind"],
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя загруженного файла. */
+	original_filename?: string | undefined | null,
+	/** Хеш платежа. */
+	payment_hash: string,
+	/** Короткоживущий URL на скачивание (HMAC-signed). */
+	read_url?: string | undefined | null,
+	/** Размер файла в байтах. */
+	size_bytes: number,
+	/** MinIO-ключ внутри бакета. */
+	storage_key: string,
+	/** Когда загружено. */
+	uploaded_at: GraphQLTypes["DateTime"],
+	/** Кто загрузил (username). */
+	uploaded_by_username: string,
+	['...on PaymentFile']: Omit<GraphQLTypes["PaymentFile"], "...on PaymentFile">
+};
+	/** Тип файла, приложенного к платежу. */
+["PaymentFileKind"]: PaymentFileKind;
 	["PaymentFiltersInput"]: {
 		/** Название кооператива */
 	coopname?: string | undefined | null,
@@ -41642,8 +42385,20 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
+	/** Текущий процесс выхода пайщика из кооператива (статус заявления и планируемая сумма возврата). null — активного выхода нет. */
+	membershipExit?: GraphQLTypes["MembershipExit"] | undefined | null,
+	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
+	membershipExitReturnPreview: GraphQLTypes["MembershipExitReturnPreview"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: GraphQLTypes["OneCoopDocumentsResponse"],
+	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
+	paymentFile: GraphQLTypes["PaymentFile"],
+	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
+	paymentProofs: Array<GraphQLTypes["PaymentFile"]>,
 	/** Получить полную картину процесса ledger2 по process_hash
 
 Требуемые роли: chairman, member.  */
@@ -43224,6 +43979,22 @@ export type GraphQLTypes = {
 	/** Размер файла в байтах (для серверной валидации). */
 	size_bytes: number
 };
+	["UploadPaymentProofInput"]: {
+		/** SHA-256 содержимого, hex-lowercase (64 hex-символа). */
+	checksum_sha256: string,
+	/** Содержимое файла, base64 без префикса data:. */
+	content_base64: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** MIME-тип содержимого. */
+	mime_type: string,
+	/** Оригинальное имя файла — для отображения и поиска. */
+	original_filename?: string | undefined | null,
+	/** Хеш платежа, к которому прикладывается чек. */
+	payment_hash: string,
+	/** Размер файла в байтах (для серверной валидации). */
+	size_bytes: number
+};
 	["UserAccount"]: {
 	__typename: "UserAccount",
 	/** Метаинформация */
@@ -43742,6 +44513,13 @@ export enum ManagedRoomKind {
 	MEMBERS = "MEMBERS",
 	SECRETARY = "SECRETARY"
 }
+/** Статус процесса выхода пайщика из кооператива */
+export enum MembershipExitStatus {
+	AUTHORIZED = "AUTHORIZED",
+	AWAITING_CONFIRMATION = "AWAITING_CONFIRMATION",
+	COMPLETED = "COMPLETED",
+	PENDING = "PENDING"
+}
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
 	COUNCIL = "COUNCIL",
@@ -43782,6 +44560,10 @@ export enum PaymentDirection {
 	INCOMING = "INCOMING",
 	OUTGOING = "OUTGOING"
 }
+/** Тип файла, приложенного к платежу. */
+export enum PaymentFileKind {
+	PAYMENT_PROOF = "PAYMENT_PROOF"
+}
 /** Статус платежа */
 export enum PaymentStatus {
 	AWAITING_AUTHORIZATION = "AWAITING_AUTHORIZATION",
@@ -43800,6 +44582,7 @@ export enum PaymentType {
 	EXPENSE = "EXPENSE",
 	EXPENSE_OVERSPEND = "EXPENSE_OVERSPEND",
 	EXPENSE_RETURN = "EXPENSE_RETURN",
+	MEMBERSHIP_EXIT = "MEMBERSHIP_EXIT",
 	REGISTRATION = "REGISTRATION",
 	REGISTRATION_REFUND = "REGISTRATION_REFUND",
 	WITHDRAWAL = "WITHDRAWAL"
@@ -44068,6 +44851,7 @@ type ZEUS_VARIABLES = {
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
 	["CreateKuDecisionInput"]: ValueTypes["CreateKuDecisionInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
+	["CreateMembershipExitInput"]: ValueTypes["CreateMembershipExitInput"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateParentOfferInput"]: ValueTypes["CreateParentOfferInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
@@ -44211,6 +44995,11 @@ type ZEUS_VARIABLES = {
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
+	["MembershipExitApplicationGenerateDocumentInput"]: ValueTypes["MembershipExitApplicationGenerateDocumentInput"];
+	["MembershipExitApplicationSignedDocumentInput"]: ValueTypes["MembershipExitApplicationSignedDocumentInput"];
+	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
+	["MembershipExitDecisionGenerateDocumentInput"]: ValueTypes["MembershipExitDecisionGenerateDocumentInput"];
+	["MembershipExitStatus"]: ValueTypes["MembershipExitStatus"];
 	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
@@ -44232,6 +45021,7 @@ type ZEUS_VARIABLES = {
 	["PassportInput"]: ValueTypes["PassportInput"];
 	["PayExpenseItemInput"]: ValueTypes["PayExpenseItemInput"];
 	["PaymentDirection"]: ValueTypes["PaymentDirection"];
+	["PaymentFileKind"]: ValueTypes["PaymentFileKind"];
 	["PaymentFiltersInput"]: ValueTypes["PaymentFiltersInput"];
 	["PaymentStatus"]: ValueTypes["PaymentStatus"];
 	["PaymentType"]: ValueTypes["PaymentType"];
@@ -44350,6 +45140,7 @@ type ZEUS_VARIABLES = {
 	["UpdateSettingsInput"]: ValueTypes["UpdateSettingsInput"];
 	["UpdateStoryInput"]: ValueTypes["UpdateStoryInput"];
 	["UploadExpenseFileInput"]: ValueTypes["UploadExpenseFileInput"];
+	["UploadPaymentProofInput"]: ValueTypes["UploadPaymentProofInput"];
 	["UserStatus"]: ValueTypes["UserStatus"];
 	["VarsInput"]: ValueTypes["VarsInput"];
 	["VerifyEmailInputDTO"]: ValueTypes["VerifyEmailInputDTO"];

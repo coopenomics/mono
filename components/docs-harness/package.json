@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/docs-harness",
-  "version": "2026.6.9-18",
+  "version": "2026.6.16-1",
   "private": true,
   "description": "Playwright harness для съёмки скриншотов в документацию (см. bin/shoot.mjs)",
   "type": "module",

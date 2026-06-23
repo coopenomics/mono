@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/desktop",
-  "version": "2026.6.9-18",
+  "version": "2026.6.16-1",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
