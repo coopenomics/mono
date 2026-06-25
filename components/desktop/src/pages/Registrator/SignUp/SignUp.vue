@@ -1,7 +1,14 @@
 <template lang="pug">
 .signup-page
   AuthCard.signup-page__card(:max-width='720', title='Вступить в пайщики')
+    template(v-if='isRegistrationClosed')
+      EmptyState.signup-page__closed(
+        title='Регистрация временно недоступна',
+        body='Кооператив завершает подготовку к приёму новых пайщиков. Пожалуйста, зайдите позже.'
+      )
+
     q-stepper.signup-page__stepper(
+      v-else,
       v-model='store.step',
       vertical,
       animated,
@@ -26,7 +33,7 @@
 
       WaitingRegistration
 
-  .signup-page__restart
+  .signup-page__restart(v-if='!isRegistrationClosed')
     q-btn(@click='out', dense, size='sm', flat color='grey') начать с начала
 </template>
 
@@ -42,6 +49,7 @@ import PayInitial from './PayInitial.vue';
 import WaitingRegistration from './WaitingRegistration.vue';
 import SelectBranch from './SelectBranch.vue';
 import { AuthCard } from 'src/shared/ui/domain/AuthCard';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 
 import { useRegistratorStore } from 'src/entities/Registrator';
 import { useLogoutUser } from 'src/features/User/Logout';
@@ -64,6 +72,8 @@ const agreementer = useAgreementStore();
 const desktops = useDesktopStore();
 const system = useSystemStore();
 const { info } = system;
+
+const isRegistrationClosed = computed(() => info.settings?.is_registration_open === false);
 
 // Диалог разрешения уведомлений
 const { showDialog } = useNotificationPermissionDialog();
@@ -305,5 +315,8 @@ const isBranched = computed(() => info.cooperator_account.is_branched);
 .signup-page__restart {
   margin-top: var(--p-4, 16px);
   text-align: center;
+}
+.signup-page__closed {
+  padding: var(--p-4, 16px) 0;
 }
 </style>

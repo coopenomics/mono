@@ -5232,6 +5232,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorized_default_workspace:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		is_registration_open:"Boolean",
 		non_authorized_default_route:"String",
 		non_authorized_default_workspace:"String",
 		provider_name:"String",

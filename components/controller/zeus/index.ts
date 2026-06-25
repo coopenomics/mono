@@ -10754,6 +10754,8 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	coopname?:boolean | `@${string}`,
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
+	/** Открыта ли регистрация новых пайщиков */
+	is_registration_open?:boolean | `@${string}`,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -21009,6 +21011,8 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	coopname?:boolean | `@${string}`,
 	/** Дата создания */
 	created_at?:boolean | `@${string}`,
+	/** Открыта ли регистрация новых пайщиков */
+	is_registration_open?:boolean | `@${string}`,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route?:boolean | `@${string}`,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -31810,6 +31814,8 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата создания */
 	created_at: ModelTypes["DateTime"],
+	/** Открыта ли регистрация новых пайщиков */
+	is_registration_open: boolean,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
@@ -43122,6 +43128,8 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата создания */
 	created_at: GraphQLTypes["DateTime"],
+	/** Открыта ли регистрация новых пайщиков */
+	is_registration_open: boolean,
 	/** Маршрут по умолчанию для неавторизованных пользователей */
 	non_authorized_default_route: string,
 	/** Рабочий стол по умолчанию для неавторизованных пользователей */
