@@ -7,7 +7,7 @@ import type { MarketplaceSupplierDomainEntity } from '../../domain/entities/mark
 
 registerEnumType(MarketplaceSupplierModel, {
   name: 'MarketplaceSupplierModel',
-  description: 'Модель работы поставщика: членская или боевая (паевая)',
+  description: 'Модель работы поставщика: членская или паевая',
 });
 
 registerEnumType(MarketplaceSupplierStatus, {

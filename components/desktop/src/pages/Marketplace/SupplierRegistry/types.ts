@@ -14,5 +14,5 @@ export const SUPPLIER_STATUS_VARIANT: Record<string, BaseBadgeVariant> = {
 
 export const SUPPLIER_MODEL_LABEL: Record<string, string> = {
   MEMBERSHIP: 'Членская',
-  SHARE: 'Боевая',
+  SHARE: 'Паевая',
 };

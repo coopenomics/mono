@@ -4,7 +4,6 @@ import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -250,15 +249,6 @@ q-page.collective(role="region", aria-label="Коллективный заказ
         total-label="Ваше участие в партии",
         :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits} ${p.unitLabel}`"
       )
-        template(#hint)
-          template(v-if="p.collecting && reachedMin(p)")
-            q-icon(name="check_circle", size="14px", color="positive")
-            span Минимальный объём набран — поставщик может принять партию.
-          template(v-else-if="p.collecting")
-            span Сбор продолжается. Поставщик может принять партию и раньше — минимум лишь ориентир.
-          template(v-else)
-            q-icon(name="local_shipping", size="14px")
-            span Этап: {{ orderStatusDisplay(p.stageStatus).label }}.
 </template>
 
 <style scoped lang="scss">

@@ -5,6 +5,7 @@ import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseCard, BaseButton, BaseInput, BaseChip } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
   fetchMySupplierState,
@@ -17,7 +18,7 @@ import {
  * `Onboarding:offerer` пайщику без одобренного допуска, поэтому до одобрения
  * виден только этот экран; после одобрения offerer-роль открывает полный стол.
  *
- * Шаги: выбор модели работы (членская — активна, боевая — заглушка «скоро»),
+ * Шаги: выбор модели работы (членская — активна, паевая — заглушка «скоро»),
  * для членской — ввод номера и даты бумажного договора с кооперативом и подача
  * заявки. До рассмотрения председателем — статус «заявка на рассмотрении».
  */
@@ -47,6 +48,21 @@ const canSubmit = computed(
     contractNumber.value.trim().length > 0 &&
     contractDate.value.length > 0,
 );
+
+function formatContractDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
+}
+
+const contractLabel = computed((): string => {
+  const number = state.value?.contract_number?.trim();
+  if (!number) return '';
+  const date = formatContractDate(state.value?.contract_date);
+  return date ? `№ ${number} от ${date}` : `№ ${number}`;
+});
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -111,9 +127,13 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
             | Ваша заявка на допуск поставщика передана председателю кооператива.
             | Как только её рассмотрят, стол поставщика откроется — здесь появятся
             | публикация предложений и приёмка партий.
-      .supplier-onboarding__req(v-if="state?.contract_number")
-        BaseChip(variant="neutral", size="sm") Договор № {{ state.contract_number }}
-        BaseChip(v-if="state?.contract_date", variant="neutral", size="sm") от {{ state.contract_date }}
+          .supplier-onboarding__contract(v-if="contractLabel")
+            DataRow(
+              label="Договор",
+              :value="contractLabel",
+              align="horizontal",
+              mono
+            )
 
     //- Форма заявки (нет записи или предыдущая отклонена).
     template(v-else)
@@ -129,7 +149,7 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
           q-icon(name="info", size="16px")
           span Предыдущая заявка отклонена. Уточните реквизиты договора и подайте повторно.
 
-        //- Рубильник модели: членская активна, боевая — заглушка «скоро».
+        //- Рубильник модели: членская активна, паевая — заглушка «скоро».
         .supplier-onboarding__models
           .supplier-onboarding__model(
             :class="{ 'supplier-onboarding__model--active': model === 'MEMBERSHIP' }",
@@ -146,13 +166,13 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
                 name="check_circle",
                 size="18px"
               )
-            .text-body2.text-grey-7 Работа по бумажному договору с кооперативом — укажите его номер и дату.
+            .text-body2.text-grey-7 Кооператив закупает имущество по договору поставщика.
           .supplier-onboarding__model.supplier-onboarding__model--disabled(aria-disabled="true")
             .supplier-onboarding__model-head
               q-icon(name="workspace_premium", size="20px")
-              .text-weight-medium Боевая модель
+              .text-weight-medium Паевая модель
               BaseChip.supplier-onboarding__soon(variant="neutral", size="sm") Скоро
-            .text-body2.text-grey-7 Договор участия в хозяйственной деятельности (электронно). В разработке.
+            .text-body2.text-grey-7 Поставщик вносит паевой взнос имуществом по договору участия хозяйственной деятельности кооператива.
 
         //- Реквизиты договора по членской модели.
         .supplier-onboarding__form(v-if="model === 'MEMBERSHIP'")
@@ -249,10 +269,20 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
     gap: var(--p-1, 4px);
   }
 
-  &__req {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
+  &__contract {
+    margin-top: var(--p-2, 8px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+
+    :deep(.data-row) {
+      padding: 0;
+      border-bottom: none;
+    }
+
+    :deep(.data-row--horizontal) {
+      grid-template-columns: minmax(72px, auto) 1fr;
+      column-gap: var(--p-3, 12px);
+    }
   }
 
   &__rejected {

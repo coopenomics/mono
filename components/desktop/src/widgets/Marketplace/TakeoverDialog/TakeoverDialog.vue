@@ -69,8 +69,8 @@ const props = defineProps({
   confirmLabel: { type: String, default: 'Подтвердить' },
   loading: { type: Boolean, default: false },
   disableConfirm: { type: Boolean, default: false },
-  // Широкий контент-контейнер для takeover'ов с таблицами (сводная выдача,
-  // приёмка): 720px тесно для многоколоночной сверки. Дефолт не меняется.
+  // Полноширинный контент для takeover'ов с таблицами (сводная выдача,
+  // приёмка): многоколоночная сверка не должна упираться в max-width. Дефолт не меняется.
   wide: { type: Boolean, default: false },
 })
 
@@ -170,7 +170,7 @@ function onConfirm() {
     width: 100%;
 
     &--wide {
-      max-width: 1100px;
+      max-width: none;
     }
   }
 

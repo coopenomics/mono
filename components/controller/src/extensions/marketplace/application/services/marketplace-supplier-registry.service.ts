@@ -218,7 +218,7 @@ export class MarketplaceSupplierRegistryService {
   /**
    * Смена модели работы поставщика — требует переподписания договора.
    * Членская: новый бумажный договор (номер + дата) → запись возвращается в
-   * `PENDING` на повторное одобрение. Боевая модель пока не реализована.
+   * `PENDING` на повторное одобрение. Паевая модель пока не реализована.
    */
   async switchModel(
     coopname: string,
@@ -228,7 +228,7 @@ export class MarketplaceSupplierRegistryService {
     contract_date: string | null
   ): Promise<MarketplaceSupplierDomainEntity> {
     if (model === MarketplaceSupplierModel.SHARE) {
-      throw new ConflictException('Боевая модель работы поставщика пока недоступна.');
+      throw new ConflictException('Паевая модель работы поставщика пока недоступна.');
     }
     const result = await this.repo.patch(coopname, member_account, {
       model,

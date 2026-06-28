@@ -395,9 +395,6 @@ export class MarketplaceStockProposalService {
     if (input.items.length === 0) {
       throw new BadRequestException('Корзина докладки пуста — добавьте позиции из остатка.');
     }
-    if (input.member_account === input.operator_account) {
-      throw new BadRequestException('Нельзя доложить самому себе.');
-    }
     const lines: MarketplaceStockIssuanceOperatorLine[] = [];
     for (const item of input.items) {
       const offer = await this.validateStockLine(
@@ -437,9 +434,6 @@ export class MarketplaceStockProposalService {
     const orderLines = input.order_items ?? [];
     if (input.items.length === 0 && orderLines.length === 0) {
       throw new BadRequestException('Бандл пуст — добавьте позиции заказа или докладку со склада.');
-    }
-    if (input.member_account === input.operator_account) {
-      throw new BadRequestException('Нельзя отправить предложение самому себе.');
     }
 
     // Единый бандл несёт строки двух видов:

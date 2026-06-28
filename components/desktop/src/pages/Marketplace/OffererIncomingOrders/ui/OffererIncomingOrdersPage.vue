@@ -342,15 +342,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         total-label='Итого',
         :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
-        template(#hint)
-          template(v-if='p.kind === "collecting" && hasTarget(p) && reachedMin(p)')
-            q-icon(name='check_circle', size='14px', color='positive')
-            span Минимальный объём набран — можно принимать партию.
-          template(v-else-if='p.kind === "collecting" && hasTarget(p)')
-            span Можно принять и сейчас — минимум лишь ориентир сбора.
-          template(v-else-if='p.kind === "collecting"')
-            span Поштучный приём — каждый заказ можно принять сразу.
-          //- Принятая партия: этап уже в бейдже справа-вверху — hint не дублируем.
         template(#actions)
           template(v-if='p.kind === "collecting"')
             BaseButton(variant='ghost', size='sm', @click='onDeclineParty(p)') Отклонить

@@ -287,11 +287,23 @@ const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overSto
   gap: var(--p-3, 12px);
 
   &__grid {
+    width: 100%;
     background: var(--p-surface);
     border-radius: var(--p-r-md, 12px);
 
+    :deep(.q-table__container),
+    :deep(.q-table__middle) {
+      width: 100%;
+    }
+
+    :deep(table) {
+      width: 100%;
+      table-layout: fixed;
+    }
+
     :deep(td), :deep(th) {
       font-size: var(--p-fs-body, 14px);
+      overflow-wrap: anywhere;
     }
 
     // Поле «факт» не должно быть микроскопическим — даём минимум на ввод
