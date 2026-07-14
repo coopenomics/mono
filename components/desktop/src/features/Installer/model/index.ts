@@ -1,7 +1,7 @@
 import type { Mutations, Queries } from '@coopenomics/sdk';
 import { useInstallCooperativeStore } from 'src/entities/Installer/model'
 import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
-import { getMinSovietMembersCount } from '../lib';
+import { getMinSovietMembersCount, isSovietMemberComplete } from '../lib';
 import { api } from '../api'
 
 export type IInstallInput = Mutations.System.InstallSystem.IInput['data']
@@ -59,6 +59,15 @@ export const useInstallCooperative = (): {
           ? 'Совет не установлен'
           : `Совет должен включать не менее ${minSovietMembers} человек (председатель и члены совета)`,
       );
+    }
+
+    const incompleteIndex = store.soviet.findIndex((member) => !isSovietMemberComplete(member));
+    if (incompleteIndex >= 0) {
+      const roleLabel =
+        store.soviet[incompleteIndex]?.role === 'chairman' || incompleteIndex === 0
+          ? 'председателя совета'
+          : `члена совета №${incompleteIndex + 1}`;
+      throw new Error(`Заполните все обязательные поля для ${roleLabel}`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

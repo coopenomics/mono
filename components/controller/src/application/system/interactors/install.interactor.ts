@@ -28,6 +28,39 @@ import { normalizeUserEmail } from '~/utils/normalize-user-email';
 /** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
 const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;
 
+function councilRoleLabel(index: number, role?: string): string {
+  if (role === 'chairman' || index === 0) return 'председателя совета';
+  return `члена совета №${index + 1}`;
+}
+
+function assertSovietMemberComplete(
+  member: InstallInputDomainInterface['soviet'][number],
+  index: number,
+): void {
+  const data = member?.individual_data;
+  const label = councilRoleLabel(index, member?.role);
+  const email = typeof data?.email === 'string' ? data.email.trim() : '';
+
+  if (!email) {
+    throw new BadRequestException(`Не указан email для ${label}`);
+  }
+
+  const requiredStringFields: Array<[keyof Cooperative.Users.IIndividualData, string]> = [
+    ['last_name', 'фамилия'],
+    ['first_name', 'имя'],
+    ['full_address', 'адрес регистрации'],
+    ['birthdate', 'дата рождения'],
+    ['phone', 'телефон'],
+  ];
+
+  for (const [field, humanName] of requiredStringFields) {
+    const value = data?.[field];
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new BadRequestException(`Не заполнено поле «${humanName}» для ${label}`);
+    }
+  }
+}
+
 @Injectable()
 export class InstallInteractor {
   constructor(
@@ -139,6 +172,8 @@ export class InstallInteractor {
         `Количество членов совета должно быть не менее ${MIN_SOVIET_MEMBERS_COUNT}`
       );
     }
+
+    data.soviet.forEach((member, index) => assertSovietMemberComplete(member, index));
 
     // Повтор после прерванной установки: снимаем maintenance, дальше — обычный прогон.
     if (isIncompleteInstallMaintenance) {

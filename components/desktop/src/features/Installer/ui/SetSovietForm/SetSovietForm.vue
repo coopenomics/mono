@@ -64,6 +64,7 @@ import {
   getMinSovietMembersCount,
   getSovietMembersProgressHint,
   getSovietContinueBlockedTooltip,
+  isSovietMemberComplete,
 } from '../../lib';
 import { notEmpty } from 'src/shared/lib/utils';
 import { validEmail } from 'src/shared/lib/utils/validEmailRule';
@@ -74,11 +75,15 @@ const minSovietMembers = getMinSovietMembersCount();
 
 installStore.is_finish = false;
 
-const sovietCount = computed(() => installStore.soviet.length);
-const canContinue = computed(() => sovietCount.value >= minSovietMembers);
-const progressHint = computed(() => getSovietMembersProgressHint(sovietCount.value, minSovietMembers));
+const sovietMembers = computed(() => installStore.soviet);
+const canContinue = computed(
+  () =>
+    sovietMembers.value.length >= minSovietMembers &&
+    sovietMembers.value.every(isSovietMemberComplete),
+);
+const progressHint = computed(() => getSovietMembersProgressHint(sovietMembers.value, minSovietMembers));
 const continueBlockedTooltip = computed(() =>
-  getSovietContinueBlockedTooltip(sovietCount.value, minSovietMembers),
+  getSovietContinueBlockedTooltip(sovietMembers.value, minSovietMembers),
 );
 
 const add = () => {
