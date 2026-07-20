@@ -182,6 +182,8 @@ export class Generator implements IGenerator {
       // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
       [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
       [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
+      [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
+      [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
     }
     await this.storage.connect()
   }

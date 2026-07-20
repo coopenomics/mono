@@ -27,6 +27,7 @@ import {
 } from '../dto/marketplace-inventory.dto';
 import { MarketplaceOfferDTO, toMarketplaceOfferDTO } from '../dto/marketplace-offer.dto';
 import {
+  MarketplaceAcceptStockProposalInputDTO,
   MarketplaceCancelStockOrderInputDTO,
   MarketplaceCreateStockProposalInputDTO,
   MarketplaceListStockProposalsInputDTO,
@@ -38,6 +39,8 @@ import {
   MarketplaceUnpublishStockResultDTO,
   toMarketplaceStockProposalDTO,
 } from '../dto/marketplace-stock.dto';
+import { MarketplaceCheckoutSignableLineDTO } from '../dto/marketplace-checkout.dto';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
 
@@ -158,21 +161,56 @@ export class MarketplaceStockResolver {
     return toMarketplaceStockProposalDTO(proposal);
   }
 
+  @Query(() => [MarketplaceCheckoutSignableLineDTO], {
+    name: 'marketplaceStockProposalSignablePayloads',
+    description:
+      'Заявления о конвертации паевого взноса к подписи по строкам предложения со склада. ' +
+      'Подписанные заявления возвращаются строками lines в marketplaceAcceptStockProposal.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  async marketplaceStockProposalSignablePayloads(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceResolveStockProposalInputDTO
+  ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
+    const lines = await this.proposalService.getAcceptSignablePayloads(
+      config.coopname,
+      data.proposal_id,
+      member.username
+    );
+    return lines.map((l) => {
+      const document = new GeneratedDocumentDTO();
+      document.full_title = l.document.full_title;
+      document.html = l.document.html;
+      document.hash = l.document.hash;
+      document.meta = l.document.meta;
+      document.binary = l.document.binary;
+      return new MarketplaceCheckoutSignableLineDTO({
+        offer_id: l.offer_id,
+        order_hash: l.order_hash,
+        amount: l.amount,
+        document,
+      });
+    });
+  }
+
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
     name: 'marketplaceAcceptStockProposal',
     description:
-      'Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись.',
+      'Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. ' +
+      'Каждая строка сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
   async marketplaceAcceptStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceResolveStockProposalInputDTO
+    @Args('data') data: MarketplaceAcceptStockProposalInputDTO
   ): Promise<MarketplaceStockProposalAcceptResultDTO> {
     const result = await this.proposalService.acceptProposal(
       config.coopname,
       data.proposal_id,
-      member.username
+      member.username,
+      data.lines ?? null
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
     dto.proposal = toMarketplaceStockProposalDTO(result.proposal);

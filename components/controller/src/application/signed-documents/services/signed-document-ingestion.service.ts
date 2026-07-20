@@ -38,6 +38,28 @@ export class SignedDocumentIngestionService {
     private readonly aggregator: DocumentPackageAggregator
   ) {}
 
+  /**
+   * Очередь обработки per-документ. make_complete_document шлёт newsubmitted+newresolved одной
+   * транзакцией — оба листенера стартуют почти одновременно, оба читают getState «записи нет»,
+   * и финальный статус решал случайный порядок upsert'ов (submitted перетирал resolved — документ
+   * «зависал поданным»). Очередь в памяти достаточна: события шины слушает один процесс.
+   */
+  private readonly docChains = new Map<string, Promise<unknown>>();
+
+  private enqueueByDoc<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.docChains.get(key) ?? Promise.resolve();
+    const next = prev.then(fn);
+    const tail = next.then(
+      () => undefined,
+      () => undefined
+    );
+    this.docChains.set(key, tail);
+    void tail.then(() => {
+      if (this.docChains.get(key) === tail) this.docChains.delete(key);
+    });
+    return next;
+  }
+
   @OnEvent(`action::${SOVIET}::${Registry.NewSubmitted.actionName}`)
   async onNewSubmitted(action: IAction): Promise<void> {
     await this.safeStatusEvent(action, SignedDocumentStatus.Submitted, Registry.NewSubmitted.actionName);
@@ -85,6 +107,18 @@ export class SignedDocumentIngestionService {
     const packageHash: string = data.package || '';
     const coopname: string = data.coopname || config.coopname;
     const incomingBlock = this.toBlockNum(action?.block_num);
+
+    return this.enqueueByDoc(`${coopname}:${docHash}`, () =>
+      this.ingestActionExclusive(action, status, { coopname, docHash, hash, packageHash, incomingBlock })
+    );
+  }
+
+  private async ingestActionExclusive(
+    action: IAction,
+    status: SignedDocumentStatus,
+    ctx: { coopname: string; docHash: string; hash: string; packageHash: string; incomingBlock: number | null }
+  ): Promise<IngestResult> {
+    const { coopname, docHash, hash, packageHash, incomingBlock } = ctx;
 
     const existing = await this.repository.getState(coopname, docHash);
     if (existing) {
@@ -142,14 +176,19 @@ export class SignedDocumentIngestionService {
       let rebuilt = 0;
       for (const row of rows) {
         if (!row.sourceActionData) continue;
-        await this.assembleAndUpsert(
-          row.sourceActionData as unknown as IAction,
-          row.status,
-          coopname,
-          row.doc_hash,
-          row.hash,
-          packageHash
-        );
+        await this.enqueueByDoc(`${coopname}:${row.doc_hash}`, async () => {
+          // Статус перечитываем уже внутри очереди: параллельный newresolved мог успеть
+          // повысить его, и пересборка со снапшотом row.status откатила бы документ назад.
+          const fresh = await this.repository.getState(coopname, row.doc_hash);
+          await this.assembleAndUpsert(
+            row.sourceActionData as unknown as IAction,
+            fresh?.status ?? row.status,
+            coopname,
+            row.doc_hash,
+            row.hash,
+            packageHash
+          );
+        });
         rebuilt++;
       }
       if (rebuilt > 0) {

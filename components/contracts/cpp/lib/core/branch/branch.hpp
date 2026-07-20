@@ -1,5 +1,11 @@
 #pragma once
 
+#include <string>
+#include <tuple>
+
+#include <eosio/action.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 
 #include "../../consts.hpp"
@@ -38,6 +44,24 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
   }
 
   return branch_itr->is_account_in_trusted(username);
+}
+
+/**
+ * @brief Inline-вызов branch::accrue от контракта-источника членских
+ * взносов (requirement b6 «Экономика КУ», раунд 5: приоритет общего
+ * кошелька): зачисление 100% взноса в общий кошелёк КУ (o.brn.common).
+ * Дальнейшее использование — отдельные команды председателя
+ * (distribute / createspend) после контроля планового резерва бэкендом.
+ */
+inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
+                   eosio::asset amount,
+                   eosio::checksum256 process_hash, std::string memo) {
+  eosio::action(
+    eosio::permission_level{actor, "active"_n},
+    _branch,
+    "accrue"_n,
+    std::make_tuple(coopname, braname, actor, amount, process_hash, memo)
+  ).send();
 }
 
 } // namespace Branch

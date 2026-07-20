@@ -19,6 +19,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         v-else-if='canRepublish',
         variant='primary',
         :loading='republishing',
+        :disabled='payoutBlocked',
         @click='onRepublish'
       )
         q-icon(name='publish', size='16px')
@@ -32,6 +33,17 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         .text-weight-medium Предложение отклонено модератором
         .q-mt-xs(v-if='rejectReason') Причина: {{ rejectReason }}
         .q-mt-xs Исправьте указанное и нажмите «Отправить на модерацию» — оферта уйдёт на повторную проверку с тем же содержимым.
+
+    //- Гейт публикации: предложение нельзя опубликовать без реквизитов для
+    //- выплат (backend отклонит) — объясняем и ведём в настройку.
+    .banner.banner--warn(v-if='payoutBlocked')
+      q-icon.banner__icon(name='warning_amber', size='18px')
+      .banner__body
+        .text-weight-medium Укажите реквизиты для выплат
+        .q-mt-xs Выплаты по актам приёмки приходят на ваши реквизиты. Пока они не указаны, опубликовать предложение нельзя.
+        BaseButton.q-mt-sm(variant='primary', size='sm', @click='goToPayouts')
+          q-icon(name='payments', size='16px')
+          span.q-ml-sm Указать реквизиты
 
     //- Канон-подсказка (одна на страницу, закрывается крестиком): заполнение +
     //- правила модерации. Для отклонённой показываем баннер причины выше — этот
@@ -297,7 +309,13 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
       BaseButton(v-if='activeKey !== "review"', variant='primary', @click='goNext')
         span.q-mr-sm Далее
         q-icon(name='arrow_forward', size='16px')
-      BaseButton(v-else, variant='primary', :loading='submitting', @click='onSubmit')
+      BaseButton(
+        v-else,
+        variant='primary',
+        :loading='submitting',
+        :disabled='payoutBlocked && !isEdit',
+        @click='onSubmit'
+      )
         q-icon(name='send', size='16px')
         span.q-ml-sm {{ submitLabel }}
 
@@ -328,6 +346,10 @@ import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
 import { republishOffer, withdrawOffer } from 'src/entities/MarketplaceOffer';
+import {
+  loadSupplierPaymentSettings,
+  type MarketplaceSupplierPaymentSettingsView,
+} from 'src/entities/MarketplaceSupplierSettings';
 import {
   createOffer,
   fetchCategories,
@@ -391,6 +413,21 @@ const editId = computed(() => {
 const isEdit = computed(() => editId.value !== null);
 const prefilling = ref(false);
 const submitting = ref(false);
+
+// Гейт публикации: без реквизитов для выплат backend отклонит публикацию —
+// предупреждаем заранее и блокируем кнопки. Пока настройки не загрузились
+// (null) — не блокируем, чтобы форма не мигала.
+const payoutSettings = ref<MarketplaceSupplierPaymentSettingsView | null>(null);
+const payoutBlocked = computed(
+  () => payoutSettings.value !== null && !payoutSettings.value.has_payout_method,
+);
+
+function goToPayouts(): void {
+  void router.push({
+    name: 'marketplace-payments',
+    params: { coopname: systemStore.info?.coopname },
+  });
+}
 
 // Единая карточка-подсказка: при создании — про публикацию и модерацию; при
 // правке снятой — что она остаётся снятой до возврата на публикацию; при правке
@@ -975,6 +1012,12 @@ async function prefillForEdit(id: string): Promise<void> {
 }
 
 onMounted(async () => {
+  // Гейт публикации: тихо в фоне — недоступность настроек не блокирует форму.
+  void loadSupplierPaymentSettings()
+    .then((s) => {
+      payoutSettings.value = s;
+    })
+    .catch(() => undefined);
   try {
     categories.value = await fetchCategories();
   } catch (e) {

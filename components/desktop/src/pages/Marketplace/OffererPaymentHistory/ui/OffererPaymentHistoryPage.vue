@@ -1,50 +1,120 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
-import { FailAlert } from 'src/shared/api';
-import { BaseBadge, EmptyState, TableSkeleton } from 'src/shared/ui/base';
-import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
+import { useRouter } from 'vue-router';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
+import { useWalletStore } from 'src/entities/Wallet';
+import type { IBankTransferData, ISBPData } from 'src/entities/Wallet/model/types';
+import {
+  loadSupplierPaymentSettings,
+  setSupplierPayoutMethod,
+  type MarketplaceSupplierPaymentSettingsView,
+} from 'src/entities/MarketplaceSupplierSettings';
+import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
- * Эпик 5 / Story 5.9: offerer-стол «История выплат».
+ * Стол поставщика «Выплаты»: настройка «выплаты получаю на…» + история выплат.
  *
- * Поставщик видит исходящие выплаты по своим актам приёмки и их статус.
- * Вёрстка по канону MONO Platform v2: инфо-баннер, canon-таблица
- * (`.table-wrap`) со статус-бейджами, скелетон вместо спиннера, EmptyState.
+ * Реквизиты — платёжные методы ядра (раздел «Реквизиты» стола пайщика);
+ * здесь поставщик выбирает, на какой из них уходят выплаты по актам приёмки.
+ * Выбор глобальный (не per-карточка): смена счёта — одно действие. Без
+ * реквизитов публикация предложений закрыта backend-гейтом, поэтому страница
+ * подсказывает добавить их сразу.
  */
 
+const router = useRouter();
+const { info } = useSystemStore();
+const session = useSessionStore();
+const wallet = useWalletStore();
+
+// ── настройка «выплаты получаю на…» ──
+const settings = ref<MarketplaceSupplierPaymentSettingsView | null>(null);
+const settingsLoading = ref(false);
+const savingMethod = ref(false);
+
+function methodLabel(method: { method_type: string; data: unknown }): string {
+  if (method.method_type === 'sbp') {
+    const phone = (method.data as ISBPData).phone ?? '';
+    return phone ? `СБП ${phone}` : 'СБП';
+  }
+  const bank = method.data as IBankTransferData;
+  const tail = (bank.account_number ?? '').slice(-4);
+  const name = bank.bank_name?.trim() || 'Банковский счёт';
+  return tail ? `${name} •${tail}` : name;
+}
+
+const methodOptions = computed<BaseSelectOption[]>(() =>
+  (wallet.methods ?? []).map((m) => ({ value: m.method_id, label: methodLabel(m) })),
+);
+
+const hasMethods = computed(() => methodOptions.value.length > 0);
+
+// Выбранное значение селектора: явный выбор поставщика; если выбора не было —
+// показываем пусто, а действующий фолбэк (метод по умолчанию) описывает hint.
+const selectedMethodId = computed(() => settings.value?.payout_method_id ?? null);
+
+const selectHint = computed(() => {
+  if (!settings.value) return undefined;
+  if (!settings.value.payout_method_id && settings.value.has_payout_method) {
+    return `Используются реквизиты по умолчанию: ${settings.value.payout_destination ?? ''}`;
+  }
+  return undefined;
+});
+
+async function loadSettings(): Promise<void> {
+  settingsLoading.value = true;
+  try {
+    settings.value = await loadSupplierPaymentSettings();
+  } catch (e) {
+    FailAlert(e, 'Не удалось загрузить настройки выплат');
+  } finally {
+    settingsLoading.value = false;
+  }
+}
+
+async function onPickMethod(method_id: string | number | null): Promise<void> {
+  if (!method_id || savingMethod.value) return;
+  savingMethod.value = true;
+  try {
+    settings.value = await setSupplierPayoutMethod(String(method_id));
+    SuccessAlert('Реквизиты для выплат сохранены');
+  } catch (e) {
+    FailAlert(e, 'Не удалось сохранить реквизиты для выплат');
+  } finally {
+    savingMethod.value = false;
+  }
+}
+
+function goToRequisites(): void {
+  // Живой роут раздела «Реквизиты» — `payment-methods` из расширения
+  // participant (одноимённый `user-payment-methods` в src/desktops/* — мёртвый
+  // legacy-манифест, его нет в раутере).
+  void router.push({ name: 'payment-methods', params: { coopname: info.coopname } });
+}
+
+// ── история выплат ──
 const items = ref<MarketplaceOutgoingPaymentRequestView[]>([]);
 const loading = ref(false);
 
-// Статус выплаты → человекочитаемая метка + canon-вариант бейджа.
+// Статус выплаты (PENDING/COMPLETED/DECLINED) → метка + canon-вариант бейджа.
 const PAYMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  AWAITING_AUTHORIZATION: { label: 'Ожидает решения совета', variant: 'warn' },
   PENDING: { label: 'Ожидает оплаты', variant: 'warn' },
-  PROCESSING: { label: 'Обрабатывается', variant: 'info' },
-  PAID: { label: 'Оплачен', variant: 'pos' },
-  COMPLETED: { label: 'Обработан', variant: 'pos' },
-  FAILED: { label: 'Не удался', variant: 'neg' },
-  EXPIRED: { label: 'Истёк', variant: 'neutral' },
-  CANCELLED: { label: 'Отменён', variant: 'neutral' },
-  REFUNDED: { label: 'Отклонён', variant: 'neg' },
+  COMPLETED: { label: 'Оплачена', variant: 'pos' },
+  DECLINED: { label: 'Отклонена', variant: 'neg' },
 };
 
 function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
   if (!v) return { label: '—', variant: 'neutral' };
   return PAYMENT_STATUS[v] ?? PAYMENT_STATUS[v.toUpperCase()] ?? { label: v, variant: 'neutral' };
 }
-
-// Колонки скелетона повторяют шапку реальной таблицы — каркас не дёргается.
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Дата', cell: 'text', cellWidth: '120px' },
-  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '80px' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Референс банка', cell: 'text' },
-  { label: 'Назначение', cell: 'text' },
-];
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -74,6 +144,8 @@ useMarketplaceRealtime(
 
 onMounted(() => {
   void load();
+  void loadSettings();
+  void wallet.loadUserWallet({ coopname: info.coopname, username: session.username });
 });
 </script>
 
@@ -83,31 +155,46 @@ q-page.offerer-payments
     | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
     | она уходит в банк — статус обновляется здесь по мере обработки.
 
+  //- ───────── Куда получаю выплаты ─────────
+  BaseCard(title='Выплаты получаю на')
+    template(#actions)
+      BaseButton(variant='ghost', size='sm', @click='goToRequisites')
+        q-icon(name='add_card', size='16px')
+        span.q-ml-sm Добавить реквизиты
 
-  TableSkeleton(
-    v-if='loading && !items.length',
-    :columns='skeletonColumns',
-    :rows='6',
-    min-width='820px'
-  )
-  .table-wrap(v-else-if='items.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-date Дата
-            th.col-num Сумма
-            th.col-status Статус
-            th Референс банка
-            th Назначение
-        tbody
-          tr(v-for='row in items', :key='row.id')
-            td.col-date {{ row.created_at }}
-            td.col-num {{ row.amount }} {{ row.symbol }}
-            td.col-status
-              BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
-            td {{ row.payment_reference || '—' }}
-            td {{ row.purpose || '—' }}
+    .payout-method(v-if='hasMethods')
+      BaseSelect.payout-method__select(
+        :model-value='selectedMethodId',
+        :options='methodOptions',
+        label='Реквизиты для выплат',
+        placeholder='Выберите реквизиты',
+        :hint='selectHint',
+        :disabled='savingMethod || settingsLoading',
+        @update:model-value='onPickMethod'
+      )
+
+    .banner.banner--warn(v-else)
+      q-icon.banner__icon(name='warning_amber', size='18px')
+      .banner__body
+        | У вас нет сохранённых реквизитов. Добавьте банковский счёт или СБП
+        | в разделе «Реквизиты» — без них публикация предложений недоступна.
+
+  //- ───────── История выплат ─────────
+  //- Карточки, не таблица: на узких экранах таблица уезжала в горизонтальный
+  //- скролл и дёргалась — карточки мотаются просто вниз.
+  CardListSkeleton(v-if='loading && !items.length', :count='4')
+  .payout-list(v-else-if='items.length')
+    BaseCard(v-for='row in items', :key='row.id')
+      .payout-card
+        .payout-card__top
+          .payout-card__amount {{ formatAsset2Digits(`${row.amount} ${row.symbol}`) }}
+          BaseBadge(:variant='statusOf(row.status).variant') {{ statusOf(row.status).label }}
+        .payout-card__date {{ formatDateToHumanDateTime(row.created_at) }}
+        .payout-card__row(v-if='row.payout_destination')
+          q-icon(name='account_balance', size='14px')
+          span {{ row.payout_destination }}
+        .payout-card__purpose(v-if='row.purpose') {{ row.purpose }}
+        .payout-card__decline(v-if='row.decline_reason') Причина отказа: {{ row.decline_reason }}
 
   EmptyState(
     v-else,
@@ -124,27 +211,50 @@ q-page.offerer-payments
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
 }
 
-.table-scroll {
-  overflow-x: auto;
+.payout-method__select {
+  max-width: 420px;
 }
-.table {
-  table-layout: fixed;
-  min-width: 820px;
+
+.payout-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3, 12px);
 }
-.col-date {
-  width: 160px;
-  white-space: nowrap;
+
+.payout-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2, 8px);
 }
-.col-num {
-  width: 140px;
-  text-align: right;
+.payout-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3, 12px);
+}
+.payout-card__amount {
+  font-size: var(--p-fs-h3, 18px);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.col-status {
-  width: 200px;
+.payout-card__date {
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-sm, 13px);
+}
+.payout-card__row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  color: var(--p-ink-2);
+}
+.payout-card__purpose {
+  color: var(--p-ink-2);
+  overflow-wrap: anywhere;
+}
+.payout-card__decline {
+  color: var(--p-neg);
 }
 
 @media (max-width: 768px) {

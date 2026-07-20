@@ -33,6 +33,7 @@ export * as CancelOrder from './cancelOrder'
  * Backend закрывает Order по таймауту цикла отсечки (Story 4.3). Per-Order: o.mkt.unblk + cancellation.
  */
 export * as ExpireOrder from './expireOrder'
+export * as CloseOrder from './closeOrder'
 
 /**
  * Поставщик акцептует один Order (Story 4.5). Без ledger2-операций — статус active → accepted.
@@ -89,6 +90,17 @@ export * as SignIss1 from './signIss1'
  */
 export * as SignIss2 from './signIss2'
 
+/**
+ * Единая ставка членского взноса кооператива (requirement b6, «Экономика КУ»).
+ * Задаёт администратор; новые заказы блокируют взнос операцией o.mkt.fee.
+ */
+export * as SetFee from './setFee'
+
+/**
+ * Отсечка персонального распределения членского взноса КУ (requirement b6).
+ * Меняет председатель КУ; применяется при финализации заказов в branch::distribute.
+ */
+
 // ── p.mkt.return (5 actions) — Stories Эпика 7 ─────────────────────────
 
 /**
@@ -135,7 +147,7 @@ export * as OnMktWoAuth from './onMktWoAuth'
 
 /**
  * Callback от `soviet::cancelexprd` или decline-эффекта (Story 8.4).
- * PROPOSED → REJECTED, сохраняет reason в wroffprops.reject_reason.
+ * Терминал: стирает запись проекта из RAM, reason — в журнале действий.
  */
 export * as OnMktWoDecl from './onMktWoDecl'
 

@@ -64,7 +64,7 @@
         <div class="mp-correction-table__card-head">
           <div>
             <div class="mp-correction-table__card-title">{{ r.title }}</div>
-            <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}</div>
+            <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}<template v-if="r.shelf"> · Полка {{ r.shelf }}</template></div>
           </div>
           <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(r)}`">
             {{ statusLabel(r) }}
@@ -145,6 +145,8 @@ export interface CorrectionRow {
    * склада больше, чем физически есть, нельзя.
    */
   available?: number
+  /** Полка/полки склада, где лежит позиция после раскладки (лента выдачи). */
+  shelf?: string
   expectedPrice?: number  // цена за единицу по заказу (план)
   factPrice?: number       // фактическая цена за единицу (редактируется оператором)
 }
@@ -164,6 +166,8 @@ const compact = computed(() => $q.screen.lt.sm)
 const hasPrice = computed(() => props.rows.some((r) => r.expectedPrice !== undefined))
 // Колонка «Принято» (склад) показывается, если потолок задан хотя бы у одной строки.
 const hasAvailable = computed(() => props.rows.some((r) => r.available !== undefined))
+// Колонка «Полка» — только если хоть одна позиция размечена по полкам.
+const hasShelf = computed(() => props.rows.some((r) => !!r.shelf))
 
 const enrichedRows = computed(() =>
   props.rows.map((r) => ({
@@ -179,6 +183,9 @@ const columns = computed<QTableProps['columns']>(() => {
     { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
     { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
   ]
+  if (hasShelf.value) {
+    base.splice(2, 0, { name: 'shelf', label: 'Полка', field: 'shelf', align: 'left' })
+  }
   if (hasAvailable.value) {
     base.push({ name: 'available', label: 'Принято', field: 'available', align: 'right' })
   }

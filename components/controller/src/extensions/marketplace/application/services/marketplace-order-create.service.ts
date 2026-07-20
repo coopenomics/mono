@@ -1,6 +1,8 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
+import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { computeOrderHash } from '../shared/order-hash.util';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -46,6 +48,19 @@ export interface MarketplaceOrderCreateInputDto {
    * legacy покарточного заказа — не передаётся (null).
    */
   checkout_id?: string | null;
+  /**
+   * Предвычисленный order_hash из подписываемого заявления о конвертации:
+   * заявление подписывается клиентом ДО chain submit и несёт order_hash в
+   * мете, поэтому hash рождается на этапе превью (checkout signable
+   * payloads), а не здесь. Без него генерируется на месте.
+   */
+  order_hash?: string;
+  /**
+   * Подписанное заказчиком заявление о конвертации паевого взноса в
+   * членский (registry 1110) — обязательный параметр
+   * `marketplace::createorder`; контракт публикует его в реестр документов.
+   */
+  convert_statement: MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
 }
 
 export interface MarketplaceOrderCreateResult {
@@ -137,7 +152,8 @@ export class MarketplaceOrderCreateService {
     }
 
     // ── 2. Вычисление производных полей Order'а ─────────────────────
-    const order_hash = this.computeOrderHash(input.coopname, input.orderer_account, offer.id);
+    const order_hash =
+      input.order_hash ?? computeOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = this.deriveOfferHash(offer.id);
     const total_cost_amount = this.computeTotalCostAmount(offer.price_per_unit, input.quantity);
     const unit_price_asset = this.formatAsset(offer.price_per_unit);
@@ -164,6 +180,7 @@ export class MarketplaceOrderCreateService {
         unit_price: unit_price_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
+        convert_statement: input.convert_statement,
       });
       const result = this.normalizeTxResult(tx);
       txHash = result.tx_hash;
@@ -195,7 +212,7 @@ export class MarketplaceOrderCreateService {
       signed_at: new Date().toISOString(),
     };
 
-    let order = await this.orderRepo.persistAfterBlock({
+    const order = await this.orderRepo.persistAfterBlock({
       coopname: input.coopname,
       order_hash,
       orderer_account: input.orderer_account,
@@ -237,12 +254,6 @@ export class MarketplaceOrderCreateService {
     if (!input.offer_id) {
       throw new BadRequestException('Не указан offer_id.');
     }
-  }
-
-  private computeOrderHash(coopname: string, orderer: string, offer_id: string): string {
-    const nonce = randomBytes(16).toString('hex');
-    const payload = `${coopname}|${orderer}|${offer_id}|${nonce}`;
-    return createHash('sha256').update(payload).digest('hex');
   }
 
   /**

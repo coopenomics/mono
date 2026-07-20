@@ -17,7 +17,9 @@ using namespace eosio;
 /**
  * @brief Статусы Order'а в процессе p.mkt.supply.
  *
- * Граф: ∅ → active → cancelled (canceled by orderer | expireorder | declineorder)
+ * Граф: ∅ → active → терминал-отмена (cancelorder | expireorder | declineorder
+ *                    стирают запись из RAM — статуса «отменён» в таблице нет,
+ *                    история в журнале действий)
  *                  → accepted → supply_prepared → accepted_to_coop
  *                                               → ready_to_receive → received
  *
@@ -31,7 +33,6 @@ using namespace eosio;
  */
 namespace OrderStatus {
   inline constexpr eosio::name ACTIVE           = "active"_n;
-  inline constexpr eosio::name CANCELLED        = "cancelled"_n;
   inline constexpr eosio::name ACCEPTED         = "accepted"_n;
   inline constexpr eosio::name SUPPLY_PREPARED  = "supplyprep"_n;
   inline constexpr eosio::name ACCEPTED_TO_COOP = "acceptcoop"_n;
@@ -152,6 +153,18 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    * action'а `markdown` (повторное списание по заказу не пройдёт).
    */
   eosio::binary_extension<eosio::asset> markdown_cost;
+
+  /**
+   * Членский взнос по заказу (requirement b6 «Экономика КУ»): считается от
+   * единой ставки кооператива на момент создания заказа и блокируется вместе
+   * со стоимостью имущества (o.mkt.fee, Дт 80 / Кт 86, пул w.mkt.fee).
+   * Включается в общую стоимость заказа для заказчика. При отмене
+   * возвращается полностью (o.mkt.refund); при финализации пересчитывается
+   * пропорционально факту и распределяется в кошельки КУ (branch::distribute).
+   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
+   * старых строк эквивалентно «взнос не начислялся».
+   */
+  eosio::binary_extension<eosio::asset> membership_fee;
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

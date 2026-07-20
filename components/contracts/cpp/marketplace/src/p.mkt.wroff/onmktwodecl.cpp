@@ -9,10 +9,9 @@
  * допустимая авторизация — `_soviet`.
  *
  * Эффект:
- *  - Находит wroffprops по proposal_hash == `hash`.
- *  - Проверяет, что текущий статус == PROPOSED.
- *  - Записывает `reason` в `proposal.reject_reason`.
- *  - Переводит статус PROPOSED → REJECTED.
+ *  - Находит wroffprops по proposal_hash == `hash`, проверяет статус PROPOSED.
+ *  - Терминал жизненного цикла: запись проекта стирается из RAM; причина
+ *    отказа остаётся в журнале действий (аргумент reason) и решении совета.
  *
  * Без ledger2-движений.
  *
@@ -27,8 +26,5 @@ void marketplace::onmktwodecl(eosio::name coopname,
   eosio::check(p.status == WroffStatus::PROPOSED,
                "Проект списания не находится на повестке (callback повторный или поздний)");
 
-  Marketplace::update_writeoff_proposal(coopname, p.id, [&](auto& upd) {
-    upd.status        = WroffStatus::REJECTED;
-    upd.reject_reason = reason;
-  });
+  Marketplace::erase_writeoff_proposal(coopname, p.id);
 }

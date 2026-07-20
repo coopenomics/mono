@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
+import { ExpensesPluginModule } from '../../expenses/expenses-extension.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { GatewayInfrastructureModule } from '~/infrastructure/gateway/gateway-infrastructure.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
@@ -97,10 +98,15 @@ import {
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
 import { MarketplaceStockResolver } from './resolvers/marketplace-stock.resolver';
+import { MarketplaceEconomyResolver } from './resolvers/marketplace-economy.resolver';
 import {
   MarketplaceStockService,
   MARKETPLACE_STOCK_SERVICE,
 } from './services/marketplace-stock.service';
+import {
+  MarketplaceEconomyService,
+  MARKETPLACE_ECONOMY_SERVICE,
+} from './services/marketplace-economy.service';
 import {
   MarketplaceStockProposalService,
   MARKETPLACE_STOCK_PROPOSAL_SERVICE,
@@ -115,6 +121,11 @@ import {
   MARKETPLACE_PAYOUT_SYNC_SERVICE,
 } from './services/marketplace-payout-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
+import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
+import {
+  MarketplaceSupplierSettingsService,
+  MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+} from './services/marketplace-supplier-settings.service';
 import { MarketplaceNotificationService } from './services/marketplace-notification.service';
 import {
   MarketplaceIssuanceService,
@@ -135,6 +146,9 @@ import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
+// Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
+import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
+import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
 import {
@@ -162,6 +176,9 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // (а не транзит через ExtensionsModule, который ломается forwardRef'ом
     // на ExtensionDomainModule ниже).
     MarketplaceInfrastructureModule,
+    // Общесистемный реестр плановых расходов (резерв 30 дней для распределения
+    // членских взносов КУ) — расширение `expenses`, requirement b6 раунд 5.
+    ExpensesPluginModule,
     // ACCOUNT_DATA_PORT для MarketplaceNotificationService (Эпик 5+ push-уведомления).
     AccountInfrastructureModule,
     // ScheduleModule для @Cron marketplace-сервисов. forRoot() идемпотентен —
@@ -187,8 +204,9 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       // Story 3.2 (доп.): bucket `stol-zakazov:images` для изображений Offer'а.
       MarketplaceOfferImagesService,
     ]),
-    // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory
-    TypeOrmModule.forFeature([MarketplaceInventoryEntity], 'marketplace'),
+    // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
+    // крон-закрытие выданных заказов — marketplace_orders
+    TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
     PubSubModule,
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
@@ -217,8 +235,10 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
     MarketplaceStockResolver,
+    MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
+    MarketplaceSupplierSettingsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
     // Эпик 16 — корзина заказчика
@@ -268,6 +288,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceVitrineService,
     },
     MarketplaceVitrineService,
+    // Настройки выплат поставщика — «выплаты получаю на…» + гейт публикации
+    {
+      provide: MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+      useClass: MarketplaceSupplierSettingsService,
+    },
+    MarketplaceSupplierSettingsService,
     // Story 3.2
     {
       provide: MARKETPLACE_OFFER_SERVICE,
@@ -366,6 +392,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplaceStockService,
     },
     MarketplaceStockService,
+    // requirement b6 «Экономика КУ» — ставка взноса, распределение, матпомощь.
+    {
+      provide: MARKETPLACE_ECONOMY_SERVICE,
+      useClass: MarketplaceEconomyService,
+    },
+    MarketplaceEconomyService,
     {
       provide: MARKETPLACE_STOCK_PROPOSAL_SERVICE,
       useClass: MarketplaceStockProposalService,
@@ -383,6 +415,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
     MarketplaceWriteoffResolver,
+    // Конечный жизненный цикл заказов: закрытие выданных после гарантии
+    MarketplaceOrderCloseCronService,
     // Эпик 16 — корзина заказчика
     {
       provide: MARKETPLACE_CART_SERVICE,
@@ -469,6 +503,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,
     MARKETPLACE_STOCK_SERVICE,
+    MARKETPLACE_ECONOMY_SERVICE,
     MarketplaceStockService,
     MARKETPLACE_STOCK_PROPOSAL_SERVICE,
     MarketplaceStockProposalService,

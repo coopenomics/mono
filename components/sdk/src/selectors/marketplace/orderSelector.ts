@@ -49,6 +49,7 @@ export const rawOrderSelector = {
   delivery_point_lng: true,
   quantity: true,
   warehouse_quantity: true,
+  warehouse_shelves: true,
   group_accumulated_quantity: true,
   group_min_volume: true,
   price_per_unit: true,
@@ -80,11 +81,6 @@ export const rawOrderSelector = {
 const _validateOrder: MakeAllFieldsRequired<ValueTypes['MarketplaceOrder']> = rawOrderSelector
 
 export const marketplaceOrderSelector = Selector('MarketplaceOrder')(rawOrderSelector)
-
-export const marketplaceCreateOrderResultSelector = Selector('MarketplaceCreateOrderResult')({
-  order: rawOrderSelector,
-  tx_snapshot: rawOrderCreateTxSnapshotSelector,
-})
 
 export const marketplaceCancelOrderResultSelector = Selector('MarketplaceCancelOrderResult')({
   order: rawOrderSelector,

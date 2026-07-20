@@ -32,6 +32,7 @@ import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-clai
 import { MarketplaceWriteoffProposalEntity } from './entities/marketplace-writeoff-proposal.entity';
 import { MarketplaceCartEntity } from './entities/marketplace-cart.entity';
 import { MarketplaceCartItemEntity } from './entities/marketplace-cart-item.entity';
+import { MarketplaceSupplierSettingsEntity } from './entities/marketplace-supplier-settings.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
@@ -61,6 +62,7 @@ import { MarketplaceTtnDocumentRepositoryAdapter } from './adapters/marketplace-
 import { MarketplaceReturnClaimRepositoryAdapter } from './adapters/marketplace-return-claim-repository.adapter';
 import { MarketplaceWriteoffProposalRepositoryAdapter } from './adapters/marketplace-writeoff-proposal-repository.adapter';
 import { MarketplaceCartRepositoryAdapter } from './adapters/marketplace-cart-repository.adapter';
+import { MarketplaceSupplierSettingsRepositoryAdapter } from './adapters/marketplace-supplier-settings-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -110,6 +112,7 @@ import { MARKETPLACE_TTN_DOCUMENT_REPOSITORY } from '../domain/repositories/mark
 import { MARKETPLACE_RETURN_CLAIM_REPOSITORY } from '../domain/repositories/marketplace-return-claim.repository';
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
+import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
 import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 
 @Module({
@@ -153,6 +156,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceWriteoffProposalEntity,
         MarketplaceCartEntity,
         MarketplaceCartItemEntity,
+        MarketplaceSupplierSettingsEntity,
       ],
       synchronize: true,
       logging: false,
@@ -189,6 +193,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceWriteoffProposalEntity,
         MarketplaceCartEntity,
         MarketplaceCartItemEntity,
+        MarketplaceSupplierSettingsEntity,
       ],
       'marketplace'
     ), // Указываем имя подключения
@@ -336,6 +341,11 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
       provide: MARKETPLACE_CART_REPOSITORY,
       useClass: MarketplaceCartRepositoryAdapter,
     },
+    // Настройки выплат поставщика — «выплаты получаю на…»
+    {
+      provide: MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
+      useClass: MarketplaceSupplierSettingsRepositoryAdapter,
+    },
   ],
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
@@ -374,6 +384,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
     // Эпик 16 — корзина заказчика
     MARKETPLACE_CART_REPOSITORY,
+    // Настройки выплат поставщика
+    MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

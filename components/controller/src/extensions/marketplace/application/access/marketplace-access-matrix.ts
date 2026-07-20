@@ -47,6 +47,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // requirement 76 (докладка): пайщик видит свои входящие предложения со
     // склада кооператива и решает их судьбу — принять или отказаться.
     StockProposal: ['read:own', 'resolve:own'],
+    // requirement b6: единая ставка членского взноса видна заказчику —
+    // каталог показывает цену с учётом взноса.
+    Economy: ['read'],
   },
   offerer: {
     Offer: ['create:own', 'update:own', 'delete:own', 'read'],
@@ -58,6 +61,7 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Receiving: ['sign:first', 'sign:as-supplier'],
     KU: ['read'],
     Vitrine: ['read'],
+    Economy: ['read'],
   },
   operator: {
     Receiving: ['create', 'sign:closing'],
@@ -83,6 +87,12 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // заказ из остатка до своей подписи на акте выдачи.
     Stock: ['read:own-KU', 'publish:own-KU'],
     StockProposal: ['create:own-KU', 'read:own-KU', 'cancel:own-KU'],
+    // requirement b6 «Экономика КУ»: председатель настраивает отсечку и веса
+    // распределения членских взносов своего КУ (configure — внутри сервис
+    // дополнительно сверяет, что инициатор — именно trustee); председатель и
+    // доверенные видят экономику своих КУ и распоряжаются персональными
+    // средствами (перевод в «Стол заказов», материальная помощь).
+    Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
   },
   admin: {
     Offer: ['moderate', 'read'],
@@ -99,6 +109,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Writeoff: ['manage_draft', 'propose', 'read:all'],
     Stock: ['read:all', 'publish:all'],
     StockProposal: ['create:all', 'read:all', 'cancel:all'],
+    // requirement b6: администратор устанавливает единую ставку членского
+    // взноса кооператива и видит экономику любого КУ и все заявки на помощь.
+    Economy: ['read', 'read:all', 'read:own-KU', 'set-fee', 'use:own'],
   },
   board_readonly: {
     Warehouse: ['read:all'],

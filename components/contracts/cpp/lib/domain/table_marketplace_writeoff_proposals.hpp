@@ -24,19 +24,18 @@ using namespace eosio;
  *   ├─ propwroff (admin) ─────────────►  proposed
  *   │  └─ soviet::createagenda(type=mktwroff, callback=onmktwoauth/onmktwodecl)
  *   ├─ onmktwoauth (callback от soviet) ► authorized (хранит protocol2)
- *   │  └─ execwroff per-item (backend цикл) ► executed (final)
- *   └─ onmktwodecl (callback от soviet) ► rejected   (final, без ledger2-операций)
+ *   │  └─ execwroff per-item (backend цикл): последняя позиция СТИРАЕТ запись
+ *   └─ onmktwodecl (callback от soviet) — СТИРАЕТ запись (без ledger2-операций)
  *
- * Источник правды — `p.mkt.wroff.standard.yaml` секция `states:`.
+ * Терминальных статусов в таблице не бывает — запись живёт только пока
+ * проект на повестке или исполняется; история и причина отказа — в журнале
+ * действий и решении совета. Источник правды — `p.mkt.wroff.standard.yaml`.
  */
 namespace WroffStatus {
-  // on-chain имена 1:1 совпадают с YAML; PROPOSED/AUTHORIZED/EXECUTED/REJECTED —
-  // C++-константы (имя PROPOSED вместо DRAFT — чтобы не конфликтовать с макросом
-  // DRAFT из lib/consts.hpp).
+  // on-chain имена 1:1 совпадают с YAML (имя PROPOSED вместо DRAFT — чтобы
+  // не конфликтовать с макросом DRAFT из lib/consts.hpp).
   inline constexpr eosio::name PROPOSED   = "proposed"_n;
   inline constexpr eosio::name AUTHORIZED = "authorized"_n;
-  inline constexpr eosio::name EXECUTED   = "executed"_n;
-  inline constexpr eosio::name REJECTED   = "rejected"_n;
 }
 
 /**
@@ -62,8 +61,8 @@ namespace WroffStatus {
  * не валидируется контрактом.
  *
  * `executed` — true после успешного списания этой позиции (см. execwroff
- * per-item action). Когда все items в proposal.items имеют executed=true,
- * статус proposal автоматически переходит в EXECUTED.
+ * per-item action). Исполнение последней позиции стирает запись proposal
+ * из RAM.
  */
 struct wroff_item {
   uint64_t source_order_id = 0;                               ///< 0 если списание из складского остатка без привязки к order'у
@@ -99,8 +98,7 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] writeoff_proposal {
   eosio::asset total_amount = asset(0, _root_govern_symbol);  ///< Σ items.amount (для UI / отчёта)
 
   eosio::name status = WroffStatus::PROPOSED;
-  document2 protocol;                                         ///< Подписанный советом протокол решения; кладётся в callback onmktwoauth/onmktwodecl
-  std::string reject_reason;                                  ///< Причина отклонения (можно достать из meta protocol в onmktwodecl)
+  document2 protocol;                                         ///< Подписанный советом протокол решения; кладётся в callback onmktwoauth
 
   // Связка с soviet.decisions — через decisions.hash == proposal.hash; backend стыкует обе таблицы по hash.
   // Timestamp'ы propwroff / onmktwoauth / onmktwodecl / execwroff фиксируются

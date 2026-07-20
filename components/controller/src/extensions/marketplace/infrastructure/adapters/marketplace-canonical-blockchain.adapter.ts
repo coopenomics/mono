@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { MarketContract } from 'cooptypes';
+import { BranchContract, Ledger2Contract, MarketContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import {
@@ -100,6 +100,27 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     return await this.blockchainService.transact({
       account: MarketContract.contractName.production,
       name: MarketContract.Actions.ExpireOrder.actionName,
+      authorization: [
+        {
+          actor: data.coopname,
+          permission: 'active',
+        },
+      ],
+      data,
+    });
+  }
+
+  async closeOrder(data: MarketContract.Actions.CloseOrder.ICloseOrder): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) {
+      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ кооператива для submit closeorder');
+    }
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: MarketContract.contractName.production,
+      name: MarketContract.Actions.CloseOrder.actionName,
       authorization: [
         {
           actor: data.coopname,
@@ -406,6 +427,142 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
       authorization: [{ actor: data.coopname, permission: 'active' }],
       data,
     });
+  }
+
+  // ── Экономика КУ (requirement b6) ────────────────────────────────────
+
+  /** Общий submit от ключа кооператива для actions экономики КУ (DRY). */
+  private async submitAsCoop(
+    coopname: string,
+    account: string,
+    name: string,
+    data: unknown,
+    actionLabel: string
+  ): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(coopname);
+    if (!wif) {
+      throw new HttpApiError(
+        httpStatus.BAD_GATEWAY,
+        `Не найден приватный ключ кооператива для submit ${actionLabel}`
+      );
+    }
+    this.blockchainService.initialize(coopname, wif);
+    return await this.blockchainService.transact({
+      account,
+      name,
+      authorization: [{ actor: coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async setFee(data: MarketContract.Actions.SetFee.ISetFee): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      MarketContract.contractName.production,
+      MarketContract.Actions.SetFee.actionName,
+      data,
+      'setfee'
+    );
+  }
+
+  async distribute(data: BranchContract.Actions.Distribute.IDistribute): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.Distribute.actionName,
+      data,
+      'distribute'
+    );
+  }
+
+  async setWeight(data: BranchContract.Actions.SetWeight.ISetweight): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.SetWeight.actionName,
+      data,
+      'setweight'
+    );
+  }
+
+  async delWeight(data: BranchContract.Actions.DelWeight.IDelweight): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.DelWeight.actionName,
+      data,
+      'delweight'
+    );
+  }
+
+  async convertBranchFunds(data: BranchContract.Actions.Convert.IConvert): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.Convert.actionName,
+      data,
+      'convert'
+    );
+  }
+
+  async createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.CreateAid.actionName,
+      data,
+      'createaid'
+    );
+  }
+
+  // ── Чтение on-chain состояния экономики КУ ───────────────────────────
+
+  async getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null> {
+    const rows = await this.blockchainService.getAllRows(
+      MarketContract.contractName.production,
+      coopname,
+      MarketContract.Tables.Config.tableName
+    );
+    return (rows[0] as MarketContract.Tables.Config.IMktConfig | undefined) ?? null;
+  }
+
+  async getBranchWeights(coopname: string): Promise<BranchContract.Tables.Weights.IBranchWeight[]> {
+    return this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.Weights.tableName
+    );
+  }
+
+  async getBranchWeightTotals(coopname: string): Promise<BranchContract.Tables.WeightTotals.IBranchWeightTotal[]> {
+    return this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.WeightTotals.tableName
+    );
+  }
+
+  async listAids(coopname: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+    return this.blockchainService.getAllRows(
+      BranchContract.contractName.production,
+      coopname,
+      BranchContract.Tables.Aids.tableName
+    );
+  }
+
+  async listBranchWalletBalances(coopname: string): Promise<Ledger2Contract.Tables.UserWallets.IUserWallet[]> {
+    // Полный скан userwallets кооператива с фильтром по кошелькам экономики КУ.
+    // Объём = пайщики × кошельки — приемлем для MVP; при росте перевести на
+    // запрос по secondary-индексу byuserwallet (i128).
+    const rows: Ledger2Contract.Tables.UserWallets.IUserWallet[] =
+      await this.blockchainService.getAllRows(
+        Ledger2Contract.contractName.production,
+        coopname,
+        Ledger2Contract.Tables.UserWallets.tableName
+      );
+    return rows.filter(
+      (r) => r.wallet_name === 'w.brn.person' || r.wallet_name === 'w.brn.common'
+    );
   }
 
 }

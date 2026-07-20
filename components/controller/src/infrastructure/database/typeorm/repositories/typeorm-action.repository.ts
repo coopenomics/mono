@@ -20,11 +20,28 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
   ) {}
 
   /**
-   * Сохранение действия
+   * Сохранение действия.
+   *
+   * Идемпотентно по global_sequence: Redis Stream доставляет at-least-once,
+   * и после crash'а между записью в PG и XACK то же действие приходит
+   * повторно. Дубликат — не ошибка, а признак уже выполненной работы:
+   * возвращаем существующую запись, чтобы consumer мог ACK'нуть сообщение
+   * и не зациклиться на retry.
    */
   async save(actionData: Omit<ActionDomainInterface, 'id' | 'created_at'>): Promise<ActionDomainInterface> {
     const entity = this.actionRepository.create(actionData);
-    return await this.actionRepository.save(entity);
+    try {
+      return await this.actionRepository.save(entity);
+    } catch (e: any) {
+      const pgCode = e?.code ?? e?.driverError?.code;
+      if (pgCode === '23505') {
+        const existing = await this.actionRepository.findOne({
+          where: { global_sequence: actionData.global_sequence },
+        });
+        if (existing) return existing;
+      }
+      throw e;
+    }
   }
 
   /**

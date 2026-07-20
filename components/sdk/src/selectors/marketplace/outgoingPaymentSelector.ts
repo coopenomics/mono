@@ -11,6 +11,7 @@ const rawOutgoingPaymentSelector = {
   amount: true,
   symbol: true,
   purpose: true,
+  payout_destination: true,
   status: true,
   completed_at: true,
   decline_reason: true,

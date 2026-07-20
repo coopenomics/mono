@@ -1,10 +1,9 @@
-import { marketplaceCreateOrderResultSelector } from '../../selectors/marketplace/orderSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceCreateOrder'
+export const name = 'marketplaceDeleteTrusteeWeight'
 
 export const mutation = Selector('Mutation')({
-  [name]: [{ input: $('input', 'MarketplaceCreateOrderInput!') }, marketplaceCreateOrderResultSelector],
+  [name]: [{ data: $('data', 'MarketplaceDeleteTrusteeWeightInput!') }, true],
 })
 
 export interface IInput {
@@ -13,7 +12,7 @@ export interface IInput {
    */
   [key: string]: unknown
 
-  input: ModelTypes['MarketplaceCreateOrderInput']
+  data: ModelTypes['MarketplaceDeleteTrusteeWeightInput']
 }
 
 export type IOutput = InputType<GraphQLTypes['Mutation'], typeof mutation>

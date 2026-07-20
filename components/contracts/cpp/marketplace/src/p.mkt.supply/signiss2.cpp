@@ -117,6 +117,44 @@ void marketplace::signiss2(eosio::name coopname,
                  fact_cost, orderer, o.hash,
                  Marketplace::Memo::get_consume_by_member_memo(o.id));
 
+  // ── Финализация членского взноса (requirement b6 «Экономика КУ») ─────
+  // Взнос принят окончательно вместе с фактом выдачи: пересчитывается
+  // пропорционально факту (ставка зафиксирована в Order на момент заказа),
+  // излишек возвращается (o.mkt.refund), недостающее при факте больше заказа
+  // дособирается с паевого (o.mkt.fee), затем 100% фактической суммы взноса
+  // инлайн-вызовом branch::accrue зачисляется в общий кошелёк КУ выдачи —
+  // приоритет общего кошелька (раунд 5): распределение доверенным —
+  // отдельная команда председателя после контроля планового резерва.
+  const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
+  if (locked_fee.amount > 0) {
+    const eosio::asset fact_fee = eosio::asset(
+        static_cast<int64_t>(static_cast<uint128_t>(locked_fee.amount) *
+                             fact_cost.amount / o.total_cost.amount),
+        _root_govern_symbol);
+
+    if (fact_fee < locked_fee) {
+      // Недовыдача: неиспользованная часть взноса — на членский «Стола заказов».
+      Ledger2::apply(_marketplace, coopname,
+                     operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                     locked_fee - fact_fee, orderer, o.hash,
+                     Marketplace::Memo::get_membership_fee_refund_memo(o.id));
+    } else if (fact_fee > locked_fee) {
+      // Факт больше заказа: взнос дособирается с паевого по той же ставке.
+      // Достаточность проверена выше вместе с доплатой стоимости — при
+      // нехватке упадёт walletop с человекочитаемым сообщением.
+      Ledger2::apply(_marketplace, coopname,
+                     operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                     fact_fee - locked_fee, orderer, o.hash,
+                     Marketplace::Memo::get_membership_fee_topup_memo(o.id));
+    }
+
+    if (fact_fee.amount > 0) {
+      Branch::accrue(_marketplace, coopname, o.delivery_braname,
+                     fact_fee, o.hash,
+                     Marketplace::Memo::get_membership_fee_distribute_memo(o.id));
+    }
+  }
+
   // ── Закрытие Order'а ────────────────────────────────────────────────
   const auto now = eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
   const auto warranty_until = (o.warranty_period_secs > 0)
@@ -130,4 +168,9 @@ void marketplace::signiss2(eosio::name coopname,
     upd.issue_act_signiss2  = act;
     upd.warranty_until      = warranty_until;
   });
+
+  // Двухподписный АПП выдачи публикуется в реестр документов в пакете
+  // процесса заказа (package = order_hash) — рядом с АПП приёмки.
+  Soviet::make_complete_document(_marketplace, coopname, orderer,
+                                 "signiss2"_n, order_hash, act);
 }

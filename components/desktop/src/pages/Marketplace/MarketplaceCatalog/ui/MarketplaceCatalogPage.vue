@@ -17,6 +17,7 @@ import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
   fetchCatalog,
   fetchCategories,
@@ -250,7 +251,19 @@ async function onKUChanged(): Promise<void> {
 }
 
 
+// requirement b6: ставка членского взноса для отображения цены «с взносом».
+const feePercent = ref(0);
+
+async function loadFeePercent(): Promise<void> {
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Ставка не критична для витрины — без неё показываем базовые цены.
+  }
+}
+
 onMounted(async () => {
+  void loadFeePercent();
   // Корзина хранит текущий КУ — грузим её первой (если упадёт, напр. у гостя
   // без orderer-прав, витрину всё равно показываем — без КУ-фильтра).
   try {
@@ -379,7 +392,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", @click="goToDetail(o)")
           template(v-if="needsKU && offerKUNames(o).length", #details)
             .catalog__offer-ku
               q-icon(name="location_on", size="14px")

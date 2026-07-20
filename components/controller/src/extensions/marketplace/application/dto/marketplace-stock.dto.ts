@@ -11,6 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
+import { MarketplaceCheckoutSignedLineInputDTO } from './marketplace-checkout.dto';
 
 export enum MarketplaceStockProposalStatusEnum {
   PROPOSED = 'PROPOSED',
@@ -99,6 +100,21 @@ export class MarketplaceResolveStockProposalInputDTO {
   @IsString()
   @IsNotEmpty()
   proposal_id!: string;
+}
+
+@InputType('MarketplaceAcceptStockProposalInput')
+export class MarketplaceAcceptStockProposalInputDTO extends MarketplaceResolveStockProposalInputDTO {
+  @Field(() => [MarketplaceCheckoutSignedLineInputDTO], {
+    nullable: true,
+    description:
+      'Подписанные заявления о конвертации паевого взноса — по одному на каждую строку предложения ' +
+      '(из превью marketplaceStockProposalSignablePayloads).',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceCheckoutSignedLineInputDTO)
+  lines?: MarketplaceCheckoutSignedLineInputDTO[] | null;
 }
 
 @InputType('MarketplaceCancelStockOrderInput')

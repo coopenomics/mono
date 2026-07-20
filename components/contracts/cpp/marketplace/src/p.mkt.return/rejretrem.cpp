@@ -1,8 +1,9 @@
 /**
  * @brief Председатель удалённо отказывает в гарантийном возврате (Story 7.2, p.mkt.return).
  *
- * Финальное решение, без ledger2-операций. Статус: pending_review → rejected_remote.
- * reason сохраняется в return_request.reason_remote для UI заказчика.
+ * Финальное решение, без ledger2-операций — терминал жизненного цикла:
+ * запись заявления стирается из RAM, причина отказа остаётся в журнале
+ * действий (аргумент reason).
  *
  * Guards:
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
@@ -28,8 +29,11 @@ void marketplace::rejretrem(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::PENDING_REVIEW,
                "Заявление не находится на рассмотрении");
 
-  Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status        = ReturnStatus::REJECTED_REMOTE;
-    upd.reason_remote = reason;
-  });
+  // Запись реестра документов (создана newsubmitted в submretrn) доводится
+  // до «отклонён»; причина отказа остаётся в журнале действий (reason).
+  Action::send<newdeclined_interface>(_soviet, "newdeclined"_n, _marketplace,
+                                      coopname, r.orderer,
+                                      r.original_order_hash, r.statement);
+
+  Marketplace::erase_return_request(coopname, r.id);
 }

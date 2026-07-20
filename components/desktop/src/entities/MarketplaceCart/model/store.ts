@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { api } from '../api'
+import { Classes } from '@coopenomics/sdk'
+import { useGlobalStore } from 'src/shared/store'
+import { api, type ICheckoutSignedLine } from '../api'
 import type { IMarketplaceCart, IMarketplaceCartItem, IMarketplaceCheckoutResult } from './types'
 
 const namespace = 'marketplaceCartStore'
@@ -101,10 +103,31 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
     }
   }
 
+  /**
+   * Оформление = подпись заявлений о конвертации паевого взноса (по одному на
+   * позицию, программно ключом пайщика) + сама мутация оформления. Заявления
+   * публикуются контрактом в реестр документов при создании заказов.
+   */
   async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
     checkingOut.value = true
     try {
-      const result = await api.checkout(checkout_id)
+      const global = useGlobalStore()
+      const wifKey = global.wif?.toString()
+      if (!wifKey) throw new Error('Приватный ключ не найден. Войдите в кооператив заново.')
+
+      const payloads = await api.getCheckoutSignablePayloads()
+      const signer = new Classes.Document(wifKey)
+      const lines: ICheckoutSignedLine[] = []
+      for (const p of payloads) {
+        const signed = await signer.signDocument(p.document, global.username, 1)
+        lines.push({
+          offer_id: p.offer_id,
+          order_hash: p.order_hash,
+          signed_statement: signed as ICheckoutSignedLine['signed_statement'],
+        })
+      }
+
+      const result = await api.checkout(checkout_id, lines)
       // Сервер вернул корзину с непрошедшим остатком — синхронизируем состояние.
       cart.value = result.cart
       lastCheckout.value = result

@@ -207,6 +207,58 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 86, credit: 10,
     human_name: 'Утилизация скоропорта' },
 
+  // Уценка при выдаче из остатка кооператива: разница цены прибытия и факта
+  // выбывает со склада в прочие расходы (requirement 76, вопрос 4).
+  { code: 'o.mkt.loss',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MARKDOWN_LOSS',  wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 91, credit: 10,
+    human_name: 'Уценка имущества при выдаче со склада кооператива' },
+
+  // Членский взнос по заказу (requirement b6 «Экономика КУ»): блокировка по
+  // единой ставке кооператива на createorder/stockorder, дособор на signiss2.
+  { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.fee',
+    debit: 80, credit: 86,
+    human_name: 'Членский взнос «Стола заказов» по заказу' },
+
+  // Возврат неиспользованной части взноса: отмена — полностью, недовыдача —
+  // пропорционально факту.
+  { code: 'o.mkt.refund',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Возврат членского взноса по заказу' },
+
+  // branch — экономика кооперативного участка (requirement b6)
+  { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Членский взнос в общий кошелёк кооперативного участка' },
+
+  { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',
+    debit: null, credit: null,
+    human_name: 'Изъятие из общего кошелька кооперативного участка на распределение' },
+
+  { code: 'o.brn.person',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'DISTRIBUTE_PERSONAL', wallet_op: 'TRANSFER', wallet_from: 'w.brn.pool', wallet_to: 'w.brn.person',
+    debit: null, credit: null,
+    human_name: 'Распределение членского взноса доверенному кооперативного участка' },
+
+  { code: 'o.brn.spend',   process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.common', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Оплата расхода кооперативного участка из общего кошелька' },
+
+  { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Материальная помощь доверенному кооперативного участка' },
+
+  { code: 'o.brn.conv',    process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'CONVERT_TO_MKT', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Перевод персональных средств доверенного в членский кошелёк «Стола заказов»' },
+
   // soviet
   { code: 'o.sov.axncnv',  process_type: 'p.sov.axncnv',  contract: 'soviet',
     name: 'CONVERT_AXN',    wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.sov.delgte',

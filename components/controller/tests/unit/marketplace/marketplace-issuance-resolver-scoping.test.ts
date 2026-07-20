@@ -82,7 +82,13 @@ describe('marketplaceIssueActChairmanSignablePayload ownership-scoping', () => {
       order_id: 'o1',
     } as any);
     expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
-    expect(service.getOpenIssuanceSignablePayload).toHaveBeenCalledWith('voskhod', 'o1', 'op');
+    expect(service.getOpenIssuanceSignablePayload).toHaveBeenCalledWith(
+      'voskhod',
+      'o1',
+      'op',
+      undefined,
+      undefined
+    );
   });
 
   it('operator НЕ член КУ заказа → ForbiddenException, сервис не дёргается', async () => {

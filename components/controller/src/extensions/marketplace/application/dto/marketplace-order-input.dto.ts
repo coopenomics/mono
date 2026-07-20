@@ -1,17 +1,5 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
+import { Field, InputType } from '@nestjs/graphql';
 import { MarketplaceOrderStatusEnum } from './marketplace-order.dto';
-
-@InputType('MarketplaceCreateOrderInput', { description: 'Параметры оформления нового заказа пайщиком.' })
-export class MarketplaceCreateOrderInputDTO {
-  @Field(() => String, { description: 'Идентификатор предложения, по которому пайщик оформляет заказ.' })
-  public readonly offer_id!: string;
-
-  @Field(() => Int, { description: 'Количество единиц товара (от 1; для не-безлимитных предложений — не больше доступного остатка).' })
-  public readonly quantity!: number;
-
-  @Field(() => String, { description: 'Имя пункта выдачи (ПВЗ), куда пайщик хочет получить заказ.' })
-  public readonly delivery_braname!: string;
-}
 
 @InputType('MarketplaceCancelOrderInput', { description: 'Параметры отмены своего заказа пайщиком.' })
 export class MarketplaceCancelOrderInputDTO {

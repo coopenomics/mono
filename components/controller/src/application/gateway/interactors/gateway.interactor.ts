@@ -553,12 +553,16 @@ export class GatewayInteractor {
       username: data.username,
       quantity: data.quantity,
       symbol: data.symbol,
-      type: PaymentTypeEnum.WITHDRAWAL,
+      // Системная выплата расширения — оплата (обычная покупка, например по
+      // акту приёма-передачи), НЕ возврат паевого взноса: разная правовая
+      // природа и разное отображение в реестре кассира.
+      type: PaymentTypeEnum.PAYMENT,
       direction: PaymentDirectionEnum.OUTGOING,
       provider,
       status: PaymentStatusEnum.PENDING,
       memo: data.memo,
       secret: generateUniqueHash(),
+      payment_method_id: data.payment_method_id,
       payment_details: paymentDetails,
       expired_at: this.createPaymentExpirationDate(-1),
       created_at: now,

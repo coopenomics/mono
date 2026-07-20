@@ -40,11 +40,15 @@ void marketplace::stockorder(eosio::name coopname,
                               uint64_t quantity,
                               eosio::asset unit_price,
                               uint32_t warranty_period_secs,
-                              checksum256 batch_hash) {
+                              checksum256 batch_hash,
+                              document2 convert_statement) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
   eosio::check(quantity > 0, "Количество должно быть больше нуля");
+  eosio::check(!is_empty_document(convert_statement),
+               "Отсутствует заявление о конвертации паевого взноса");
+  verify_document_or_fail(convert_statement, { orderer });
   eosio::check(unit_price.is_valid() && unit_price.amount > 0,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
@@ -67,12 +71,21 @@ void marketplace::stockorder(eosio::name coopname,
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 
-  // ── Достаточность средств: w.wal.share.available >= total_cost ──────
+  // ── Членский взнос по единой ставке кооператива (requirement b6) ─────
+  const eosio::asset membership_fee = Marketplace::calc_membership_fee(
+      total_cost, Marketplace::get_membership_fee_percent(coopname));
+
+  // ── Достаточность средств: w.wal.share.available >= стоимость + взнос ──
+  const eosio::asset required_total = total_cost + membership_fee;
   auto bal_share = Marketplace::get_user_wallet_balance(
       coopname, ledger2_wallets::SHARE_FUND_PAY, orderer);
-  eosio::check(bal_share.available >= total_cost,
+  eosio::check(bal_share.available >= required_total,
                std::string{"Недостаточно средств для заказа: требуется "} +
-                 total_cost.to_string() + ", доступно " + bal_share.available.to_string());
+                 required_total.to_string() +
+                 (membership_fee.amount > 0
+                      ? " (включая членский взнос " + membership_fee.to_string() + ")"
+                      : "") +
+                 ", доступно " + bal_share.available.to_string());
 
   // ── Создание Order entity сразу в acceptcoop ─────────────────────────
   orders_index orders(_marketplace, coopname.value);
@@ -100,6 +113,11 @@ void marketplace::stockorder(eosio::name coopname,
 
     o.status      = OrderStatus::ACCEPTED_TO_COOP; // имущество уже в кооперативе
     o.batch_hash  = batch_hash;
+
+    // binary_extension-поля заполняются оба (сериализация требует
+    // непрерывного хвоста): уценки ещё нет, взнос — по ставке на момент заказа.
+    o.markdown_cost  = eosio::asset(0, _root_govern_symbol);
+    o.membership_fee = membership_fee;
   });
 
   // ── o.mkt.lock: TRANSFER w.wal.share → w.mkt.order (Дт 80 / Кт 86) ───
@@ -107,4 +125,19 @@ void marketplace::stockorder(eosio::name coopname,
                  operations::marketplace::LOCK_ORDER,
                  total_cost, orderer, order_hash,
                  Marketplace::Memo::get_stock_order_block_memo(new_id));
+
+  // ── o.mkt.fee: членский взнос — TRANSFER w.wal.share → w.mkt.fee
+  //    (Дт 80 / Кт 86); ставка зафиксирована в Order.membership_fee ─────
+  if (membership_fee.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::MEMBERSHIP_FEE_LOCK,
+                   membership_fee, orderer, order_hash,
+                   Marketplace::Memo::get_membership_fee_lock_memo(new_id));
+  }
+
+  // Заявление о конвертации публикуется в реестр документов отдельным
+  // самостоятельным пакетом (package = hash самого заявления) — как в createorder.
+  Soviet::make_complete_document(_marketplace, coopname, orderer,
+                                 "stockorder"_n,
+                                 convert_statement.hash, convert_statement);
 }

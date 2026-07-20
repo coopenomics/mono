@@ -48,3 +48,140 @@ export interface IInit {
 
 export interface IMigrate {
 }
+
+// ── Экономика кооперативного участка (requirement b6) ────────────────────
+
+export type IAsset = string
+export type IChecksum256 = string
+export type IUint32 = number
+export type IPublicKey = string
+export type ISignature = string
+export type ITimePointSec = string
+
+export interface ISignatureInfo {
+  id: IUint32
+  signed_hash: IChecksum256
+  signer: IName
+  public_key: IPublicKey
+  signature: ISignature
+  signed_at: ITimePointSec
+  meta: string
+}
+
+export interface IDocument2 {
+  version: string
+  hash: IChecksum256
+  doc_hash: IChecksum256
+  meta_hash: IChecksum256
+  meta: string
+  signatures: ISignatureInfo[]
+}
+
+export interface ISetweight {
+  coopname: IName
+  braname: IName
+  contract: IName
+  username: IName
+  weight: IUint64
+}
+
+export interface IDelweight {
+  coopname: IName
+  braname: IName
+  contract: IName
+  username: IName
+}
+
+export interface IAccrue {
+  coopname: IName
+  braname: IName
+  source_contract: IName
+  amount: IAsset
+  process_hash: IChecksum256
+  memo: string
+}
+
+export interface IDistribute {
+  coopname: IName
+  braname: IName
+  source_contract: IName
+  round_hash: IChecksum256
+  amount: IAsset
+  memo: string
+}
+
+export interface IConvert {
+  coopname: IName
+  username: IName
+  convert_hash: IChecksum256
+  amount: IAsset
+}
+
+export interface ICreateaid {
+  coopname: IName
+  username: IName
+  aid_hash: IChecksum256
+  amount: IAsset
+  statement: IDocument2
+}
+
+export interface IAidconfirm {
+  coopname: IName
+  outcome_hash: IChecksum256
+}
+
+export interface IAiddecline {
+  coopname: IName
+  outcome_hash: IChecksum256
+  reason: string
+}
+
+export interface ICreatespend {
+  coopname: IName
+  braname: IName
+  spend_hash: IChecksum256
+  amount: IAsset
+  memo: string
+}
+
+export interface ISpendconfirm {
+  coopname: IName
+  outcome_hash: IChecksum256
+}
+
+export interface ISpenddecline {
+  coopname: IName
+  outcome_hash: IChecksum256
+  reason: string
+}
+
+export interface IBranchWeight {
+  id: IUint64
+  braname: IName
+  contract: IName
+  username: IName
+  weight: IUint64
+}
+
+export interface IBranchWeightTotal {
+  id: IUint64
+  braname: IName
+  contract: IName
+  total_weight: IUint64
+}
+
+export interface IBranchAid {
+  id: IUint64
+  hash: IChecksum256
+  username: IName
+  amount: IAsset
+  statement: IDocument2
+}
+
+export interface IBranchSpend {
+  id: IUint64
+  hash: IChecksum256
+  braname: IName
+  amount: IAsset
+  memo: string
+}

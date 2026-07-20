@@ -7,14 +7,17 @@ import {
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
 } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
+import { Classes } from '@coopenomics/sdk';
 import {
   listMyReadyToReceive,
   finalizeOrdererIssuance,
   listStockProposals,
   acceptStockProposal,
   declineStockProposal,
+  getStockProposalSignablePayloads,
   type MarketplaceOrderIssuanceView,
   type MarketplaceStockProposalView,
+  type IStockProposalSignedLine,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
 /**
@@ -206,9 +209,28 @@ async function signOrderer(task: OrdererPickupTask): Promise<void> {
  * же гейт обычной задачей заказчика.
  */
 async function acceptProposal(task: MarketplaceStockProposalView): Promise<void> {
+  const global = useGlobalStore();
+  const wifKey = global.wif?.toString();
+  if (!wifKey) {
+    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив заново.'));
+    return;
+  }
   signingKey.value = task.id;
   try {
-    const { order_ids } = await acceptStockProposal(task.id);
+    // Каждая строка докладки сопровождается подписанным заявлением о
+    // конвертации паевого взноса — контракт публикует его в реестр документов.
+    const payloads = await getStockProposalSignablePayloads(task.id);
+    const signer = new Classes.Document(wifKey);
+    const lines: IStockProposalSignedLine[] = [];
+    for (const p of payloads) {
+      const signed = await signer.signDocument(p.document, global.username, 1);
+      lines.push({
+        offer_id: p.offer_id,
+        order_hash: p.order_hash,
+        signed_statement: signed as IStockProposalSignedLine['signed_statement'],
+      });
+    }
+    const { order_ids } = await acceptStockProposal(task.id, lines);
     SuccessAlert(
       `Предложение принято: оформлено позиций со склада — ${order_ids.length}. Оператор откроет выдачу.`,
     );

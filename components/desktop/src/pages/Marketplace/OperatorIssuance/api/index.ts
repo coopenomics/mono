@@ -159,10 +159,31 @@ export async function cancelStockProposal(proposal_id: string): Promise<Marketpl
   return result as MarketplaceStockProposalView;
 }
 
+/** Заявления о конвертации к подписи по строкам предложения со склада. */
+export type IStockProposalSignableLine =
+  Queries.Marketplace.StockProposalSignablePayloads.IOutput['marketplaceStockProposalSignablePayloads'][number];
+
+/** Подписанная строка принятия предложения (offer_id + order_hash + заявление). */
+export type IStockProposalSignedLine = NonNullable<
+  Mutations.Marketplace.AcceptStockProposal.IInput['data']['lines']
+>[number];
+
+export async function getStockProposalSignablePayloads(
+  proposal_id: string,
+): Promise<IStockProposalSignableLine[]> {
+  const data: Queries.Marketplace.StockProposalSignablePayloads.IInput['data'] = { proposal_id };
+  const { [Queries.Marketplace.StockProposalSignablePayloads.name]: result } = await client.Query(
+    Queries.Marketplace.StockProposalSignablePayloads.query,
+    { variables: { data } },
+  );
+  return result as IStockProposalSignableLine[];
+}
+
 export async function acceptStockProposal(
   proposal_id: string,
+  lines: IStockProposalSignedLine[],
 ): Promise<{ proposal: MarketplaceStockProposalView; order_ids: string[] }> {
-  const data: Mutations.Marketplace.AcceptStockProposal.IInput['data'] = { proposal_id };
+  const data: Mutations.Marketplace.AcceptStockProposal.IInput['data'] = { proposal_id, lines };
   const { [Mutations.Marketplace.AcceptStockProposal.name]: result } = await client.Mutation(
     Mutations.Marketplace.AcceptStockProposal.mutation,
     { variables: { data } },

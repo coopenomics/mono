@@ -5,7 +5,6 @@ export * as SetKUStatus from './setKUStatus'
 /** Повторно запустить геокодинг адреса ПВЗ */
 export * as RetryKUGeocode from './retryKUGeocode'
 /** Оформить заказ по предложению и заблокировать средства */
-export * as CreateOrder from './createOrder'
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
 /** Эпик 15: поставщик принимает к поставке выбранные заказы (offer × КУ) единым массивом */
@@ -108,3 +107,13 @@ export * as AcceptStockProposal from './acceptStockProposal'
 export * as DeclineStockProposal from './declineStockProposal'
 /** Склад кооператива: отмена заказа со склада до открытия выдачи */
 export * as CancelStockOrder from './cancelStockOrder'
+
+// requirement b6 «Экономика КУ»
+export * as SetMembershipFee from './setMembershipFee'
+export * as DistributeBranchFunds from './distributeBranchFunds'
+/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки */
+export * as SetSupplierPayoutMethod from './setSupplierPayoutMethod'
+export * as SetTrusteeWeight from './setTrusteeWeight'
+export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
+export * as ConvertBranchFunds from './convertBranchFunds'
+export * as CreateAid from './createAid'

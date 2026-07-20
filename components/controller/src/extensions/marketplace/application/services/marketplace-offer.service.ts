@@ -46,6 +46,10 @@ import {
   type MarketplaceOfferApprovedEvent,
   type MarketplaceOfferModerationRequestedEvent,
 } from '../events/marketplace-notification.events';
+import {
+  MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
+  MarketplaceSupplierSettingsService,
+} from './marketplace-supplier-settings.service';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
@@ -121,11 +125,21 @@ export class MarketplaceOfferService {
     @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
     private readonly availableCategoryService: AvailableCategoryDomainService,
     private readonly imagesService: MarketplaceOfferImagesService,
-    private readonly eventBus: EventEmitter2
+    private readonly eventBus: EventEmitter2,
+    @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
+    private readonly supplierSettings: MarketplaceSupplierSettingsService
   ) {}
 
   async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
     this.validateCreateInput(input);
+    // Гейт публикации: без реквизитов для выплат предложение не публикуется —
+    // выплата по будущему акту приёмки не должна рождаться «в никуда».
+    // Публикация остатка кооперативом идёт мимо этого сервиса (offerRepo
+    // напрямую в stock-сервисе) и под гейт не попадает.
+    await this.supplierSettings.assertPayoutMethodConfigured(
+      input.coopname,
+      input.supplier_account
+    );
     await this.ensureCategoryExists(input.category_id);
     await this.assertRateLimit(input.supplier_account);
 
@@ -338,6 +352,12 @@ export class MarketplaceOfferService {
         'Вернуть на публикацию можно только снятое предложение.'
       );
     }
+    // Тот же гейт, что и при создании: за время простоя поставщик мог удалить
+    // реквизиты — возвращать предложение в каталог без них нельзя.
+    await this.supplierSettings.assertPayoutMethodConfigured(
+      offer.coopname,
+      supplier_account
+    );
     const wasApproved = offer.approved_at != null;
     const updated = await this.repo.applyUpdate(offer.id, {
       status: wasApproved

@@ -14,6 +14,8 @@ export interface MarketplaceOutgoingPaymentRequestCreateInput {
   amount: string;
   symbol: string;
   purpose: string;
+  /** Маскированные реквизиты получателя на момент создания выплаты. */
+  payout_destination?: string | null;
   payout_tx_hash?: string | null;
   core_payment_id?: string | null;
 }

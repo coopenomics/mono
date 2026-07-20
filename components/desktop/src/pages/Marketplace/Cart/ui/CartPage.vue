@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
@@ -11,7 +11,7 @@ import {
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 
 /**
  * Эпик 16 / Story 16.1 + 16.2: страница корзины заказчика и оформление.
@@ -153,7 +153,18 @@ useMarketplaceRealtime(
   { onResync: () => reloadLive() },
 );
 
+// requirement b6: членский взнос входит в общую стоимость заказа — сводка
+// показывает его отдельной строкой и итог с учётом взноса.
+const feePercent = ref(0);
+const feeAmount = computed(() => (cartStore.totalCost * feePercent.value) / 100);
+const totalWithFee = computed(() => cartStore.totalCost + feeAmount.value);
+
 onMounted(async () => {
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Без ставки показываем сводку без строки взноса.
+  }
   try {
     await cartStore.load();
   } catch (e) {
@@ -259,9 +270,15 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
         .mp-cart__summary-line
           span Всего единиц
           span.mp-cart__summary-val {{ cartStore.totalQuantity }}
+        .mp-cart__summary-line(v-if="feePercent > 0")
+          span Стоимость имущества
+          span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
+        .mp-cart__summary-line(v-if="feePercent > 0")
+          span Членский взнос ({{ feePercent }}%)
+          span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
           span Итого
-          span {{ money(cartStore.totalCost) }} {{ symbol }}
+          span {{ money(totalWithFee) }} {{ symbol }}
         BaseButton.mp-cart__checkout(
           variant="primary",
           :loading="cartStore.checkingOut",

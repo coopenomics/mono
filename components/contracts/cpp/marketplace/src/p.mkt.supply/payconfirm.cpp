@@ -7,7 +7,11 @@
  * Здесь — единственное место, где применяется бухгалтерская проводка
  * выплаты:
  *
- *  - Ledger2::apply(o.mkt.payout, total_cost, …, hash=order.hash) — Дт 86 / Кт 51.
+ *  - Ledger2::apply(o.mkt.payout, fact_cost, …, hash=order.hash) — Дт 86 / Кт 51.
+ *
+ * Сумма — `o.fact_cost` (фактически принятое после отбраковки на приёмке), а не
+ * исходный `o.total_cost`: проводка должна совпадать с приходованием имущества
+ * (Кт 86 = fact_cost из signchair) и с реальной суммой банковского перевода.
  *
  * `outcome_hash` приходит из gateway и равен `order.hash` (так его задал
  * marketplace::payout). Поиск Order'а — по индексу `byhash`.
@@ -29,7 +33,7 @@ void marketplace::payconfirm(eosio::name coopname, checksum256 outcome_hash) {
 
   Ledger2::apply(_marketplace, coopname,
                  operations::marketplace::PAY_SUPPLIER,
-                 o.total_cost, o.offerer, o.hash,
+                 o.fact_cost, o.offerer, o.hash,
                  Marketplace::Memo::get_pay_supplier_memo(o.id));
 
   Marketplace::update_order(coopname, o.id, [&](auto& upd) {

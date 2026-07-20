@@ -6,7 +6,11 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
-import { useActsPreview } from 'src/shared/lib/marketplace';
+import {
+  useActsPreview,
+  getMembershipFeePercent,
+  computeIssuanceDiff,
+} from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -98,6 +102,7 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       unit: marketplaceUnitShort(o.unit_of_measure),
       expected: o.quantity,
       available: availableOf(o),
+      shelf: (o.warehouse_shelves ?? []).join(', ') || undefined,
       fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
       expectedPrice: Number.parseFloat(o.price_per_unit),
       factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),
@@ -114,6 +119,25 @@ const totalFactCost = computed<string>(() => {
   }
   return sum.toFixed(4);
 });
+
+// Ставка членского взноса — для оценки возврата/доплаты при расхождении факта.
+const feePercent = ref(0);
+
+// Недосдача видна сразу: сколько вернётся пайщику в кошелёк Стола заказов
+// (остаток резерва + пропорциональная часть взноса), при факте больше заказа —
+// сколько спишется с паевого.
+const issuanceDiff = computed(() =>
+  computeIssuanceDiff(
+    props.orders.map((o) => {
+      const f = facts.value[o.id];
+      return {
+        orderedTotal: Number.parseFloat(o.total_cost),
+        factTotal: f ? f.qty * f.price : Number.parseFloat(o.total_cost),
+      };
+    }),
+    feePercent.value,
+  ),
+);
 
 const positionsCount = computed(() => props.orders.length);
 
@@ -146,6 +170,11 @@ watch(
     if (visible && props.orders.length) {
       initFacts();
       resetActs();
+      if (!feePercent.value) {
+        getMembershipFeePercent()
+          .then((p) => (feePercent.value = p))
+          .catch(() => undefined); // нет ставки — возврат покажем без взноса
+      }
     }
   },
   { immediate: false },
@@ -265,7 +294,7 @@ TakeoverDialog(
   :model-value="modelValue"
   wide
   title="Открытие выдачи пайщику"
-  :lead-text="recipientName ? `${recipientName} · позиций: ${positionsCount} · к выдаче ${formatAsset2Digits(totalFactCost)} ₽` : ''"
+  :lead-text="recipientName ? `${recipientName} · позиций: ${positionsCount} · к выдаче ${formatAsset2Digits(totalFactCost)} ₽${issuanceDiff.refund > 0 ? ` · вернётся в кошелёк ${formatAsset2Digits(issuanceDiff.refund.toFixed(4))} ₽` : ''}` : ''"
   :kind="anyOver ? 'warning' : 'info'"
   :loading="signing"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
@@ -283,9 +312,16 @@ TakeoverDialog(
       template(v-if="!showActs")
         CorrectionTable(:rows="correctionRows" @change="onCorrectionChange")
 
-        .mp-issue-open-dialog__sum
-          span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
-          span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+        .mp-issue-open-dialog__totals
+          .mp-issue-open-dialog__sum
+            span.mp-issue-open-dialog__sum-label К выдаче по всем позициям
+            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+          .mp-issue-open-dialog__sum(v-if="issuanceDiff.refund > 0")
+            span.mp-issue-open-dialog__sum-label Вернётся в кошелёк Стола заказов
+            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
+          .mp-issue-open-dialog__sum(v-if="issuanceDiff.surcharge > 0")
+            span.mp-issue-open-dialog__sum-label Доплата по факту (спишется с паевого)
+            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
 
       .mp-issue-open-dialog__preview(v-if="showActs", v-html="previewHtml")
 
@@ -321,6 +357,12 @@ TakeoverDialog(
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
     line-height: 1.4;
+  }
+
+  &__totals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
   }
 
   &__sum {

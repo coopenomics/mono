@@ -82,6 +82,8 @@ export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
 // Marketplace (Стол заказов) — Эпик 8: списание скоропорта (заявление + протокол)
 export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
 export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
+export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
+export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'

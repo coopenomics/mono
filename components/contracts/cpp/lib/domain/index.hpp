@@ -45,8 +45,11 @@
 #include "table_fund_expfunds.hpp"
 #include "table_fund_fwithdraws.hpp"
 
+#include "table_branch_aids.hpp"
 #include "table_branch_branches.hpp"
 #include "table_branch_branchstat.hpp"
+#include "table_branch_spends.hpp"
+#include "table_branch_weights.hpp"
 
 // wallet / gateway / ledger / loan / marketplace
 #include "table_wallet_deposits.hpp"
@@ -70,6 +73,7 @@
 // p.mkt.supply / p.mkt.return / p.mkt.wroff. Donor-таблицы (requests/segments/
 // shipments) удалены вместе с donor-actions (AR30). Batch (consolidated request)
 // — backend-only, on-chain не хранится (Locked Decision L10).
+#include "table_marketplace_fee_config.hpp"
 #include "table_marketplace_orders.hpp"
 #include "table_marketplace_return_requests.hpp"
 #include "table_marketplace_writeoff_proposals.hpp"

@@ -52,6 +52,7 @@ export interface ICreateOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+  convert_statement: IDocument2
 }
 
 export interface IStockOrder {
@@ -64,12 +65,22 @@ export interface IStockOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+  convert_statement: IDocument2
 }
 
 export interface IMarkdown {
   coopname: IName
   order_hash: IChecksum256
   amount: IAsset
+}
+
+export interface ISetFee {
+  coopname: IName
+  membership_fee_percent: IUint64
+}
+
+export interface IMktConfig {
+  membership_fee_percent: IUint64
 }
 
 export interface ICancelOrder {
@@ -79,6 +90,11 @@ export interface ICancelOrder {
 }
 
 export interface IExpireOrder {
+  coopname: IName
+  order_hash: IChecksum256
+}
+
+export interface ICloseOrder {
   coopname: IName
   order_hash: IChecksum256
 }
@@ -265,6 +281,8 @@ export interface IOrder {
   return_request_id: IUint64
   /** Списанная уценка по заказу из остатка (binary_extension; у старых строк отсутствует). */
   markdown_cost?: IAsset
+  /** Членский взнос по заказу (requirement b6; binary_extension; у старых строк отсутствует). */
+  membership_fee?: IAsset
 }
 
 export interface IReturnRequest {
@@ -281,10 +299,6 @@ export interface IReturnRequest {
   photos: IChecksum256[]
   status: IName
   statement: IDocument2
-  decision_remote: IDocument2
-  decision_visit: IDocument2
-  reason_remote: string
-  reason_visit: string
 }
 
 export interface IWroffItem {
@@ -305,5 +319,4 @@ export interface IWriteoffProposal {
   total_amount: IAsset
   status: IName
   protocol: IDocument2
-  reject_reason: string
 }

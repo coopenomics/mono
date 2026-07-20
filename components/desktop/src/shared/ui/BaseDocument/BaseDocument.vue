@@ -1,6 +1,10 @@
 <template lang="pug">
+//- Пока документ формируется, рамку-карточку не показываем: висячая пустая
+//- рамка вокруг спиннера выглядит как сломанный блок. Рамка появляется
+//- вместе с готовым документом.
 q-card.dynamic-padding(
-  :flat='isMobile',
+  :flat='isMobile || loading',
+  :class='{ "base-document--generating": loading }',
   style='word-break: break-all !important; white-space: normal !important'
 )
   .base-document__loader(v-if='loading')
@@ -264,6 +268,14 @@ const canonSignatures = computed<DocumentSignatureEntry[]>(() =>
   .dynamic-padding {
     padding: 10px !important;
   }
+}
+
+/* Без рамки/фона на время генерации — flat-проп убирает тень, но не
+   hairline-границу канона; transparent, чтобы спиннер висел прямо на канвасе. */
+.base-document--generating {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .base-document__loader {

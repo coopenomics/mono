@@ -77,13 +77,34 @@ async function setDeliveryPoint(delivery_braname: string): Promise<IMarketplaceC
   return cart as IMarketplaceCart
 }
 
+/** Заявления о конвертации паевого взноса к подписи — по одному на позицию корзины. */
+export type ICheckoutSignableLine =
+  Queries.Marketplace.CheckoutSignablePayloads.IOutput['marketplaceCheckoutSignablePayloads'][number]
+
+/** Подписанная строка оформления (offer_id + order_hash + подписанное заявление). */
+export type ICheckoutSignedLine = NonNullable<
+  NonNullable<Mutations.Marketplace.CheckoutCart.IInput['input']>['lines']
+>[number]
+
+async function getCheckoutSignablePayloads(): Promise<ICheckoutSignableLine[]> {
+  const { [Queries.Marketplace.CheckoutSignablePayloads.name]: result } = await client.Query(
+    Queries.Marketplace.CheckoutSignablePayloads.query,
+    {},
+  )
+  return result as ICheckoutSignableLine[]
+}
+
 /**
  * Оформить корзину в заказ-агрегат. Без `checkout_id` — новый заказ; с ним —
  * повтор непрошедшего остатка прошлого оформления в тот же заказ.
+ * Каждая позиция сопровождается подписанным заявлением о конвертации (lines).
  * Частичный сбой не откатывает прошедшее: возвращает failed_lines + остаток.
  */
-async function checkout(checkout_id?: string): Promise<IMarketplaceCheckoutResult> {
-  const input = checkout_id ? { checkout_id } : undefined
+async function checkout(
+  checkout_id: string | undefined,
+  lines: ICheckoutSignedLine[],
+): Promise<IMarketplaceCheckoutResult> {
+  const input = { ...(checkout_id ? { checkout_id } : {}), lines }
   const { [Mutations.Marketplace.CheckoutCart.name]: result } = await client.Mutation(
     Mutations.Marketplace.CheckoutCart.mutation,
     { variables: { input } },
@@ -98,5 +119,6 @@ export const api = {
   removeFromCart,
   clearCart,
   setDeliveryPoint,
+  getCheckoutSignablePayloads,
   checkout,
 }

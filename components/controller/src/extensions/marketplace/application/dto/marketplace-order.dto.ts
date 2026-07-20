@@ -159,6 +159,15 @@ export class MarketplaceOrderDTO {
   })
   public readonly warehouse_quantity!: number | null;
 
+  @Field(() => [String], {
+    nullable: true,
+    description:
+      'Полки склада пункта выдачи, на которых лежат позиции заказа после ' +
+      'раскладки. Пусто — позиции ещё не разложены по полкам. Заполняется в ' +
+      'лентах выдачи.',
+  })
+  public readonly warehouse_shelves!: string[] | null;
+
   @Field(() => Int, {
     nullable: true,
     description:
@@ -290,20 +299,6 @@ export class MarketplaceOrderDTO {
   }
 }
 
-@ObjectType('MarketplaceCreateOrderResult')
-export class MarketplaceCreateOrderResultDTO {
-  @Field(() => MarketplaceOrderDTO)
-  public readonly order!: MarketplaceOrderDTO;
-
-  @Field(() => MarketplaceOrderCreateTxSnapshotDTO)
-  public readonly tx_snapshot!: MarketplaceOrderCreateTxSnapshotDTO;
-
-  constructor(init: { order: MarketplaceOrderDTO; tx_snapshot: MarketplaceOrderCreateTxSnapshotDTO }) {
-    this.order = init.order;
-    this.tx_snapshot = init.tx_snapshot;
-  }
-}
-
 @ObjectType('MarketplaceCancelOrderResult', { description: 'Результат отмены заказа пайщиком.' })
 export class MarketplaceCancelOrderResultDTO {
   @Field(() => MarketplaceOrderDTO, { description: 'Заказ после перевода в отменённое состояние.' })
@@ -372,6 +367,7 @@ export interface MarketplaceOrderDisplayFields {
   group_accumulated_quantity?: number | null;
   group_min_volume?: number | null;
   warehouse_quantity?: number | null;
+  warehouse_shelves?: string[] | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -397,6 +393,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
     warehouse_quantity: display?.warehouse_quantity ?? null,
+    warehouse_shelves: display?.warehouse_shelves ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
     group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,

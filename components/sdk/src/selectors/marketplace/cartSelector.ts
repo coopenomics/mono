@@ -1,6 +1,7 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { rawOrderSelector } from './orderSelector'
+import { rawDocumentSelector } from '../common/documentSelector'
 
 /** Эпик 16: позиция корзины (оффер + кол-во + обогащение для UI). */
 const rawCartItemSelector = {
@@ -59,4 +60,22 @@ const _validateCheckoutResult: MakeAllFieldsRequired<ValueTypes['MarketplaceChec
 
 export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutResult')(
   rawCheckoutResultSelector
+)
+
+/**
+ * Заявление о конвертации паевого взноса к подписи по позиции корзины /
+ * строке предложения со склада (подписывается заказчиком при оформлении).
+ */
+const rawCheckoutSignableLineSelector = {
+  offer_id: true,
+  order_hash: true,
+  amount: true,
+  document: rawDocumentSelector,
+}
+
+const _validateSignableLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutSignableLine']> =
+  rawCheckoutSignableLineSelector
+
+export const marketplaceCheckoutSignableLineSelector = Selector('MarketplaceCheckoutSignableLine')(
+  rawCheckoutSignableLineSelector
 )

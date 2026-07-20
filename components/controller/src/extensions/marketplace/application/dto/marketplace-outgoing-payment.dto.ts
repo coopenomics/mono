@@ -79,6 +79,12 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   @Field(() => String, { description: 'Назначение платежа для распечатки.' })
   purpose!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Куда уходит выплата — короткая подпись реквизитов, например «Сбербанк •1234».',
+  })
+  payout_destination!: string | null;
+
   @Field(() => MarketplaceOutgoingPaymentRequestStatusEnum)
   status!: MarketplaceOutgoingPaymentRequestStatusEnum;
 
@@ -125,6 +131,7 @@ export function toMarketplaceOutgoingPaymentRequestDTO(
   dto.amount = e.amount;
   dto.symbol = e.symbol;
   dto.purpose = e.purpose;
+  dto.payout_destination = e.payout_destination;
   dto.status = e.status as MarketplaceOutgoingPaymentRequestStatusEnum;
   dto.completed_at = e.completed_at;
   dto.decline_reason = e.decline_reason;

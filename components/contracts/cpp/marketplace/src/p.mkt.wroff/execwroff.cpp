@@ -11,8 +11,9 @@
  * неисполненным позициям, вызывая `execwroff(proposal_hash, item_index)`
  * per item — это снимает ограничение на максимальный размер протокола.
  *
- * Status: AUTHORIZED → EXECUTED наступает автоматически после исполнения
- * последней позиции (когда все items[i].executed становятся true).
+ * Исполнение последней позиции (все items[i].executed == true) — терминал
+ * жизненного цикла: запись проекта стирается из RAM, история — в журнале
+ * действий и решении совета.
  *
  * Подписанный советом protocol уже лежит в `proposal.protocol` (положен
  * callback'ом `onmktwoauth`), отдельно его передавать не нужно.
@@ -45,17 +46,19 @@ void marketplace::execwroff(eosio::name coopname,
                  item.amount, item.braname, p.hash,
                  Marketplace::Memo::get_writeoff_memo(p.id, item_index));
 
-  // Помечаем позицию исполненной + финализируем proposal если все позиции готовы
-  Marketplace::update_writeoff_proposal(coopname, p.id, [&](auto& upd) {
-    upd.items[item_index].executed = true;
-    upd.decided_by = signer;
+  // Последняя позиция закрывает проект: запись стирается из RAM. Иначе —
+  // помечаем позицию исполненной (рабочее состояние частичного исполнения).
+  bool all_done = true;
+  for (uint64_t i = 0; i < p.items.size(); ++i) {
+    if (i != item_index && !p.items[i].executed) { all_done = false; break; }
+  }
 
-    bool all_done = true;
-    for (const auto& it : upd.items) {
-      if (!it.executed) { all_done = false; break; }
-    }
-    if (all_done) {
-      upd.status = WroffStatus::EXECUTED;
-    }
-  });
+  if (all_done) {
+    Marketplace::erase_writeoff_proposal(coopname, p.id);
+  } else {
+    Marketplace::update_writeoff_proposal(coopname, p.id, [&](auto& upd) {
+      upd.items[item_index].executed = true;
+      upd.decided_by = signer;
+    });
+  }
 }

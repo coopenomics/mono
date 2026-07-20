@@ -6,6 +6,8 @@ import { OrderConfirmationPage } from 'src/pages/Marketplace/OrderConfirmation'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
+import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
+import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
 import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode'
@@ -422,14 +424,14 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 5 / Story 5.9: offerer-стол «История выплат». Поставщик
-              // видит список MarketplaceOutgoingPaymentRequest по своим закрытым
-              // актам приёмки.
+              // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
+              // «выплаты получаю на…» (реквизиты ядра) + история выплат
+              // MarketplaceOutgoingPaymentRequest по закрытым актам приёмки.
               path: 'payments',
               name: 'marketplace-payments',
               component: markRaw(OffererPaymentHistoryPage),
               meta: {
-                title: 'История выплат',
+                title: 'Выплаты',
                 icon: 'fa-solid fa-money-bill-transfer',
                 requires: 'Offer:read',
                 requiresAuth: true,
@@ -557,6 +559,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Экономика участка (requirement b6): ставка кооператива,
+              // отсечка и веса распределения членских взносов (правки —
+              // председателю КУ), персональные кошельки доверенных с
+              // переводом в Стол заказов и материальной помощью.
+              path: 'economy',
+              name: 'marketplace-pvz-economy',
+              component: markRaw(OperatorBranchEconomyPage),
+              meta: {
+                title: 'Экономика участка',
+                icon: 'savings',
+                requires: 'Economy:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // «Сканировать QR» — сквозной универсальный считыватель. Пункт меню
               // НЕ открывает страницу (нет component), а вызывает действие
               // `marketplaceUniversalScan` (всплывающий сканер, как кнопка
@@ -636,6 +654,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             {
               // Эпик 3 / Story 3.x: chairman-настройка whitelist'а категорий.
               // Только председатель (`Whitelist:manage` есть лишь у admin).
+              path: 'economy',
+              name: 'marketplace-admin-economy',
+              component: markRaw(AdminMarketEconomyPage),
+              meta: {
+                title: 'Экономика',
+                icon: 'percent',
+                requires: 'Economy:set-fee',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
               path: 'category-whitelist',
               name: 'marketplace-category-whitelist',
               component: markRaw(ChairmanCategoryWhitelistPage),

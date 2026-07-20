@@ -90,6 +90,33 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return new Map(rows.map((r) => [r.order_id, Number(r.total)]));
   }
 
+  async shelvesOnWarehouseByOrders(
+    coopname: string,
+    order_ids: string[]
+  ): Promise<Map<string, string[]>> {
+    if (order_ids.length === 0) return new Map();
+    const rows = await this.repo
+      .createQueryBuilder('inv')
+      .select('inv.order_id', 'order_id')
+      .addSelect('inv.shelf', 'shelf')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
+      .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.ORDER })
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .andWhere('inv.shelf IS NOT NULL')
+      .distinct(true)
+      .getRawMany<{ order_id: string; shelf: string }>();
+    const out = new Map<string, string[]>();
+    for (const r of rows) {
+      const arr = out.get(r.order_id) ?? [];
+      if (!arr.includes(r.shelf)) arr.push(r.shelf);
+      out.set(r.order_id, arr);
+    }
+    return out;
+  }
+
   async list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.order_id) where.order_id = filter.order_id;

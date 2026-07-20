@@ -19,6 +19,7 @@ export class MarketplaceOutgoingPaymentRequestDomainEntity {
   public readonly amount: string;
   public readonly symbol: string;
   public readonly purpose: string;
+  public readonly payout_destination: string | null;
   public status: MarketplaceOutgoingPaymentRequestStatus;
   public completed_at: Date | null;
   public decline_reason: string | null;
@@ -37,6 +38,7 @@ export class MarketplaceOutgoingPaymentRequestDomainEntity {
     this.amount = props.amount;
     this.symbol = props.symbol;
     this.purpose = props.purpose;
+    this.payout_destination = props.payout_destination;
     this.status = props.status;
     this.completed_at = props.completed_at;
     this.decline_reason = props.decline_reason;

@@ -27,9 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (11 actions): createorder, stockorder, cancelorder,
+ *  - **p.mkt.supply** (13 actions): createorder, stockorder, cancelorder,
  *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
- *    signiss2, markdown.
+ *    signiss2, closeorder, markdown, setfee.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -83,6 +83,9 @@ public:
   /**
    * @brief Заказчик размещает заказ на товар из каталога (Story 4.1).
    * Один шаг ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order).
+   * `convert_statement` — подписанное заказчиком заявление о конвертации
+   * паевого взноса в членский по программе «Стол заказов»; публикуется в
+   * реестр документов отдельным пакетом (package = hash заявления).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void createorder(eosio::name coopname,
@@ -94,7 +97,8 @@ public:
                                       uint64_t quantity,
                                       eosio::asset unit_price,
                                       uint32_t warranty_period_secs,
-                                      checksum256 batch_hash);
+                                      checksum256 batch_hash,
+                                      document2 convert_statement);
 
   /**
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
@@ -113,7 +117,8 @@ public:
                                      uint64_t quantity,
                                      eosio::asset unit_price,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash);
+                                     checksum256 batch_hash,
+                                     document2 convert_statement);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
@@ -135,6 +140,17 @@ public:
    */
   [[eosio::action]] void expireorder(eosio::name coopname,
                                       checksum256 order_hash);
+
+  /**
+   * @brief Закрыть выданный заказ после выхода гарантийного срока:
+   * терминал жизненного цикла, запись стирается из RAM. Вызывается
+   * автоматизированной службой по расписанию; до выхода гарантийного
+   * срока, при незавершённой выплате поставщику или открытом возврате
+   * закрытие отклоняется.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void closeorder(eosio::name coopname,
+                                     checksum256 order_hash);
 
   /**
    * @brief Поставщик акцептует один Order (Story 4.5).
@@ -264,6 +280,16 @@ public:
                                    eosio::asset actual_unit_price,
                                    eosio::name delivery_signer,
                                    document2 act);
+
+  /**
+   * @brief Установка единой ставки членского взноса «Стола заказов»
+   * (requirement b6). Одна ставка на весь кооператив (HUNDR_PERCENTS = 100%);
+   * задаёт администратор. Применяется к новым заказам; в созданных заказах
+   * взнос зафиксирован полем Order.membership_fee.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void setfee(eosio::name coopname,
+                                 uint64_t membership_fee_percent);
 
   // ── p.mkt.return ─────────────────────────────────────────────────────
 

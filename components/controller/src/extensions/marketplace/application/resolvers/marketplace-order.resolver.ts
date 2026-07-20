@@ -12,8 +12,6 @@ import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCancelOrderResultDTO,
-  MarketplaceCreateOrderResultDTO,
-  MarketplaceOrderCreateTxSnapshotDTO,
   MarketplaceOrderDTO,
   MarketplaceOrderPaginationResultDTO,
   MarketplaceSupplierBatchActionResultDTO,
@@ -22,7 +20,6 @@ import {
 import {
   MarketplaceAcceptOrdersBatchInputDTO,
   MarketplaceCancelOrderInputDTO,
-  MarketplaceCreateOrderInputDTO,
   MarketplaceDeclineOrdersBatchInputDTO,
   MarketplaceGetOrderInputDTO,
   MarketplaceListOrdersInputDTO,
@@ -40,10 +37,6 @@ import { canAccess } from '../access/marketplace-access-matrix';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import type { MarketplaceOrderStatus } from '../../domain/entities/marketplace-order.types';
 import {
-  MARKETPLACE_ORDER_CREATE_SERVICE,
-  MarketplaceOrderCreateService,
-} from '../services/marketplace-order-create.service';
-import {
   MARKETPLACE_ORDER_CANCEL_SERVICE,
   MarketplaceOrderCancelService,
 } from '../services/marketplace-order-cancel.service';
@@ -51,20 +44,13 @@ import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from '../services/marketplace-order-supplier-action.service';
-import type { MarketplaceOrderCreateTxSnapshot } from '../../domain/entities/marketplace-order.types';
 
 const toOrderDTO = toMarketplaceOrderDTO;
-
-function toTxSnapshotDTO(s: MarketplaceOrderCreateTxSnapshot): MarketplaceOrderCreateTxSnapshotDTO {
-  return new MarketplaceOrderCreateTxSnapshotDTO(s);
-}
 
 @Resolver()
 @Injectable()
 export class MarketplaceOrderResolver {
   constructor(
-    @Inject(MARKETPLACE_ORDER_CREATE_SERVICE)
-    private readonly createService: MarketplaceOrderCreateService,
     @Inject(MARKETPLACE_ORDER_CANCEL_SERVICE)
     private readonly cancelService: MarketplaceOrderCancelService,
     @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
@@ -74,29 +60,6 @@ export class MarketplaceOrderResolver {
     @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
     private readonly displayService: MarketplaceOrderDisplayService
   ) {}
-
-  @Mutation(() => MarketplaceCreateOrderResultDTO, {
-    name: 'marketplaceCreateOrder',
-    description: 'Оформить заказ по предложению и заблокировать средства пайщика.',
-  })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'create')
-  async marketplaceCreateOrder(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('input') input: MarketplaceCreateOrderInputDTO
-  ): Promise<MarketplaceCreateOrderResultDTO> {
-    const result = await this.createService.execute({
-      coopname: config.coopname,
-      orderer_account: member.username,
-      offer_id: input.offer_id,
-      quantity: input.quantity,
-      delivery_braname: input.delivery_braname,
-    });
-    return new MarketplaceCreateOrderResultDTO({
-      order: toOrderDTO(result.order),
-      tx_snapshot: toTxSnapshotDTO(result.tx_snapshot),
-    });
-  }
 
   @Mutation(() => MarketplaceCancelOrderResultDTO, {
     name: 'marketplaceCancelOrder',

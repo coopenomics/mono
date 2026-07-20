@@ -803,12 +803,18 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 | Заказано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
                 template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
             .reception__unit-fact
+              //- Кламп на каждом изменении, не только на blur: стрелки
+              //- спиннера успевали показать «11 при заказе 10», хотя при
+              //- отправке значение всё равно срезалось — вводило в заблуждение.
               BaseInput(
                 v-model.number='pickupFact[o.id]',
                 type='number',
                 label='Кол-во',
+                :min='0',
+                :max='o.quantity',
                 :disable='!isSelected(o.id)',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                @update:model-value='() => clampFact(o.id, o.quantity)',
                 @blur='clampFact(o.id, o.quantity)'
               )
               BaseInput(
@@ -837,8 +843,11 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 v-model.number='pickupFact[o.id]',
                 type='number',
                 label='Кол-во',
+                :min='0',
+                :max='o.quantity',
                 :disable='!takeAddon',
                 :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                @update:model-value='() => clampFact(o.id, o.quantity)',
                 @blur='clampFact(o.id, o.quantity)'
               )
               BaseInput(

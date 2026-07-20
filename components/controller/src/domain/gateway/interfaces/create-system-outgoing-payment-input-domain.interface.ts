@@ -22,6 +22,12 @@ export interface CreateSystemOutgoingPaymentInputDomainInterface {
   related_entity_id: string;
   /** Детерминированный hash для идемпотентности (на стороне extension). */
   payment_hash: string;
+  /**
+   * Опционально — платёжный метод получателя (реквизиты пайщика из ядра),
+   * снапшот которых extension кладёт в payment_details: кассир видит,
+   * куда переводить, прямо в реестре платежей.
+   */
+  payment_method_id?: string;
   /** Опционально — payment_details (если extension умеет их сформировать). */
   payment_details?: {
     data: any;

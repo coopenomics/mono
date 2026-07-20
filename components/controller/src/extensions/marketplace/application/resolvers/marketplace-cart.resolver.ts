@@ -24,7 +24,12 @@ import {
   MARKETPLACE_CHECKOUT_SERVICE,
   MarketplaceCheckoutService,
 } from '../services/marketplace-checkout.service';
-import { MarketplaceCheckoutCartInputDTO, MarketplaceCheckoutResultDTO } from '../dto/marketplace-checkout.dto';
+import {
+  MarketplaceCheckoutCartInputDTO,
+  MarketplaceCheckoutResultDTO,
+  MarketplaceCheckoutSignableLineDTO,
+} from '../dto/marketplace-checkout.dto';
+import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 
 /**
  * Эпик 16: корзина заказчика — точка оформления заказа. Все операции
@@ -123,11 +128,43 @@ export class MarketplaceCartResolver {
     });
   }
 
+  @Query(() => [MarketplaceCheckoutSignableLineDTO], {
+    name: 'marketplaceCheckoutSignablePayloads',
+    description:
+      'Заявления о конвертации паевого взноса к подписи — по одному на каждую позицию корзины. ' +
+      'Подписанные заявления возвращаются строками lines в marketplaceCheckoutCart.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Cart', 'manage:own')
+  async marketplaceCheckoutSignablePayloads(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
+  ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
+    const lines = await this.checkoutService.getSignablePayloads({
+      coopname: config.coopname,
+      orderer_account: member.username,
+    });
+    return lines.map((l) => {
+      const document = new GeneratedDocumentDTO();
+      document.full_title = l.document.full_title;
+      document.html = l.document.html;
+      document.hash = l.document.hash;
+      document.meta = l.document.meta;
+      document.binary = l.document.binary;
+      return new MarketplaceCheckoutSignableLineDTO({
+        offer_id: l.offer_id,
+        order_hash: l.order_hash,
+        amount: l.amount,
+        document,
+      });
+    });
+  }
+
   @Mutation(() => MarketplaceCheckoutResultDTO, {
     name: 'marketplaceCheckoutCart',
     description:
       'Оформить заказ из корзины: предвалидация баланса, построчное создание заказов с общим ' +
-      'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора.',
+      'идентификатором заказа и КУ; непрошедший остаток остаётся в корзине для повтора. ' +
+      'Каждая позиция сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Cart', 'manage:own')
@@ -137,7 +174,7 @@ export class MarketplaceCartResolver {
   ): Promise<MarketplaceCheckoutResultDTO> {
     return this.checkoutService.execute(
       { coopname: config.coopname, orderer_account: member.username },
-      { checkout_id: input?.checkout_id ?? null }
+      { checkout_id: input?.checkout_id ?? null, lines: input?.lines ?? null }
     );
   }
 

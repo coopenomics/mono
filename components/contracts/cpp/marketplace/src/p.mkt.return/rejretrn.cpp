@@ -1,8 +1,9 @@
 /**
  * @brief Председатель отказывает в гарантийном возврате на очном осмотре (Story 7.3, p.mkt.return).
  *
- * Финальное решение, без ledger2-операций. Статус: approved_for_visit → rejected_at_ku.
- * reason сохраняется в return_request.reason_visit для UI заказчика.
+ * Финальное решение, без ledger2-операций — терминал жизненного цикла:
+ * запись заявления стирается из RAM, причина отказа остаётся в журнале
+ * действий (аргумент reason).
  *
  * Guards:
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
@@ -28,8 +29,11 @@ void marketplace::rejretrn(eosio::name coopname,
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
                "Заявление не одобрено для очного осмотра");
 
-  Marketplace::update_return_request(coopname, r.id, [&](auto& upd) {
-    upd.status       = ReturnStatus::REJECTED_AT_KU;
-    upd.reason_visit = reason;
-  });
+  // Запись реестра документов (создана newsubmitted в submretrn) доводится
+  // до «отклонён»; причина отказа остаётся в журнале действий (reason).
+  Action::send<newdeclined_interface>(_soviet, "newdeclined"_n, _marketplace,
+                                      coopname, r.orderer,
+                                      r.original_order_hash, r.statement);
+
+  Marketplace::erase_return_request(coopname, r.id);
 }
