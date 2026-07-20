@@ -97,6 +97,12 @@ export class MarketplaceKuChairmanService {
    * требуется именно `trustee` (например, on-chain действие, где adressee
    * — формальный председатель), не операционный персонал.
    */
+  /** Все участки кооператива — для ролей с правом «по всему кооперативу». */
+  async listAllBranames(coopname: string): Promise<string[]> {
+    const branches = await this.getBranches(coopname);
+    return branches.map((b) => b.braname);
+  }
+
   async getTrusteeOfBranch(coopname: string, braname: string): Promise<string | null> {
     const branches = await this.getBranches(coopname);
     return branches.find((b) => b.braname === braname)?.trustee ?? null;

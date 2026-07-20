@@ -15,6 +15,8 @@ import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
+  MARKETPLACE_STOCK_PROPOSAL_CREATED_EVENT,
+  MARKETPLACE_STOCK_PROPOSAL_RESOLVED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_WRITEOFF_AUTHORIZED_EVENT,
@@ -32,6 +34,8 @@ import {
   MarketplaceOrderStatusChangedEvent,
   MarketplaceReturnClaimDecidedEvent,
   MarketplaceReturnClaimSubmittedEvent,
+  MarketplaceStockProposalCreatedEvent,
+  MarketplaceStockProposalResolvedEvent,
   MarketplaceSupplierPaymentConfirmedEvent,
   MarketplaceSupplierPaymentDeclinedEvent,
   MarketplaceWriteoffAuthorizedPayload,
@@ -51,6 +55,8 @@ import {
   MarketplacePaymentStatusChangedEventDTO,
   MarketplaceReceptionPendingSignEventDTO,
   MarketplaceReturnClaimStatusChangedEventDTO,
+  MarketplaceStockProposalCreatedEventDTO,
+  MarketplaceStockProposalResolvedEventDTO,
   MarketplaceWriteoffStatusChangedEventDTO,
 } from '../dto/marketplace-event.dto';
 import type { MarketplaceAplReceptionStatusEnum } from '../dto/marketplace-apl-reception.dto';
@@ -160,6 +166,40 @@ export class MarketplaceRealtimeBridge {
       `[mp-ws] PUBLISH OFFER_PUBLISHED → topic=${topic} offer=${event.offer_id} category=${event.category_id}`
     );
     await this.pubSub.publish(topic, payload);
+  }
+
+  // requirement 76 (двухфазная докладка): персональный сигнал пайщику —
+  // у него немедленно всплывает экран принятия предложения со склада.
+  @OnEvent(MARKETPLACE_STOCK_PROPOSAL_CREATED_EVENT)
+  async onStockProposalCreated(event: MarketplaceStockProposalCreatedEvent): Promise<void> {
+    const payload: MarketplaceStockProposalCreatedEventDTO = {
+      eventType: MarketplaceEventType.STOCK_PROPOSAL_CREATED,
+      proposal_id: event.proposal_id,
+      braname: event.braname,
+    };
+    const topic = marketplaceMemberTopic(event.coopname, event.member_account);
+    logger.info(
+      `[mp-ws] PUBLISH STOCK_PROPOSAL_CREATED → topic=${topic} proposal=${event.proposal_id}`
+    );
+    await this.pubSub.publish(topic, payload);
+  }
+
+  // Разрешение докладки: стойке оператора (live-статус предложения) и
+  // пайщику (его экран закрывается/обновляется).
+  @OnEvent(MARKETPLACE_STOCK_PROPOSAL_RESOLVED_EVENT)
+  async onStockProposalResolved(event: MarketplaceStockProposalResolvedEvent): Promise<void> {
+    const payload: MarketplaceStockProposalResolvedEventDTO = {
+      eventType: MarketplaceEventType.STOCK_PROPOSAL_RESOLVED,
+      proposal_id: event.proposal_id,
+      braname: event.braname,
+    };
+    const staffTopic = marketplaceStaffTopic(event.coopname);
+    const memberTopic = marketplaceMemberTopic(event.coopname, event.member_account);
+    logger.info(
+      `[mp-ws] PUBLISH STOCK_PROPOSAL_RESOLVED → topics=${staffTopic},${memberTopic} proposal=${event.proposal_id} resolution=${event.resolution}`
+    );
+    await this.pubSub.publish(staffTopic, payload);
+    await this.pubSub.publish(memberTopic, payload);
   }
 
   // Статус заказа сменился — адресный сигнал обеим сторонам заказа в их

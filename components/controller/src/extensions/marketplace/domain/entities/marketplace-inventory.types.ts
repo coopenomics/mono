@@ -49,6 +49,25 @@ export const MarketplaceInventoryOnWarehouseStatuses: readonly MarketplaceInvent
 ];
 
 /**
+ * Принадлежность позиции склада (requirement 76 «Склад кооператива на КУ»).
+ *
+ *  - `ORDER` — адресная позиция: лежит на складе под конкретный заказ
+ *    пайщика (`order_id`), путь — выдача этому заказчику.
+ *  - `COOP` — обезличенный остаток кооператива: адресность снята
+ *    (недовыдача, отказ от излишка). Имущество принадлежит кооперативу
+ *    (на счёте 10 после первичной приёмки) и может быть заново предложено
+ *    пайщикам публикацией в каталог (`published_offer_id`) и заказом из
+ *    остатка (`reserved_order_id` — резерв под такой заказ).
+ *    `order_id` сохраняется как провенанс (из какого заказа пришла дельта).
+ */
+export type MarketplaceInventoryOwnership = 'ORDER' | 'COOP';
+
+export const MarketplaceInventoryOwnerships = {
+  ORDER: 'ORDER',
+  COOP: 'COOP',
+} as const satisfies Record<string, MarketplaceInventoryOwnership>;
+
+/**
  * Стратегия маркировки per-Offer (определяется поставщиком при создании
  * Offer'а, в MVP — single config-default).
  *
@@ -106,6 +125,20 @@ export interface MarketplaceInventoryProps {
    * исторических записей без warranty_days.
    */
   expiry_date: Date | null;
+  /**
+   * Принадлежность позиции (requirement 76): адресная под заказ (`ORDER`,
+   * дефолт) либо обезличенный остаток кооператива (`COOP`).
+   */
+  ownership: MarketplaceInventoryOwnership;
+  /**
+   * Цена прибытия за единицу (закупочная из акта приёмки, numeric-строка).
+   * База цены при публикации остатка; nullable для записей до введения остатка.
+   */
+  arrival_price: string | null;
+  /** Оффер кооператива, которым позиция остатка опубликована в каталог; NULL — не опубликована. */
+  published_offer_id: string | null;
+  /** Заказ из остатка, под который позиция зарезервирована; NULL — свободна. */
+  reserved_order_id: string | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository, type EntityManager } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 import {
   MarketplaceInventoryOnWarehouseStatuses,
+  MarketplaceInventoryOwnerships,
   MarketplaceInventoryStatuses,
   type MarketplaceInventoryStatus,
 } from '../../domain/entities/marketplace-inventory.types';
@@ -42,6 +43,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       labeled_at: input.labeled_at ?? null,
       labeled_by_operator_account: input.labeled_by_operator_account ?? null,
       expiry_date: input.expiry_date ?? null,
+      ownership: input.ownership ?? MarketplaceInventoryOwnerships.ORDER,
+      arrival_price: input.arrival_price ?? null,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);
@@ -75,6 +78,9 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       .addSelect('SUM(inv.quantity_per_label)', 'total')
       .where('inv.coopname = :coopname', { coopname })
       .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
+      // Только адресные позиции: COOP-остаток хранит order_id лишь как
+      // провенанс и «принятым по заказу» не считается (requirement 76).
+      .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.ORDER })
       .andWhere('inv.status IN (:...statuses)', {
         statuses: MarketplaceInventoryOnWarehouseStatuses,
       })
@@ -94,6 +100,11 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     if (filter.status) {
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }
+    if (filter.ownership) where.ownership = filter.ownership;
+    if (filter.free_only) where.reserved_order_id = IsNull();
+    if (filter.published !== undefined) {
+      where.published_offer_id = filter.published ? Not(IsNull()) : IsNull();
+    }
     const rows = await this.repo.find({ where, order: { received_at: 'DESC', created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
@@ -112,6 +123,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       {
         coopname,
         order_id,
+        ownership: MarketplaceInventoryOwnerships.ORDER,
         status: In([
           MarketplaceInventoryStatuses.RECEIVED,
           MarketplaceInventoryStatuses.LABELED,
@@ -173,5 +185,255 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
 
   async deleteById(id: string): Promise<void> {
     await this.repo.delete({ id });
+  }
+
+  // ── requirement 76: обезличенный остаток склада КУ ──────────────────
+
+  async detachRemainderToStock(
+    coopname: string,
+    order_id: string,
+    issued_quantity: number,
+    arrival_price: string | null
+  ): Promise<number> {
+    return this.repo.manager.transaction(async (em) => {
+      const rows = await em.getRepository(MarketplaceInventoryEntity).find({
+        where: {
+          coopname,
+          order_id,
+          ownership: MarketplaceInventoryOwnerships.ORDER,
+          status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+        },
+        // Выдаём в первую очередь то, что портится раньше; остаток — более свежее.
+        order: { expiry_date: 'ASC', created_at: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      let remainingToIssue = issued_quantity;
+      let detached = 0;
+      for (const row of rows) {
+        if (remainingToIssue >= row.quantity_per_label) {
+          remainingToIssue -= row.quantity_per_label;
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            status: MarketplaceInventoryStatuses.ISSUED,
+          });
+        } else if (remainingToIssue > 0) {
+          // Пограничная позиция: выданная часть остаётся адресной (ISSUED),
+          // невостребованная — отдельной записью уходит в остаток кооператива.
+          const stockQty = row.quantity_per_label - remainingToIssue;
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            status: MarketplaceInventoryStatuses.ISSUED,
+            quantity_per_label: remainingToIssue,
+          });
+          await em.insert(MarketplaceInventoryEntity, this.buildStockSplitRow(row, stockQty, arrival_price));
+          detached += stockQty;
+          remainingToIssue = 0;
+        } else {
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            ownership: MarketplaceInventoryOwnerships.COOP,
+            arrival_price: row.arrival_price ?? arrival_price,
+          });
+          detached += row.quantity_per_label;
+        }
+      }
+      return detached;
+    });
+  }
+
+  async reserveStock(
+    coopname: string,
+    published_offer_id: string,
+    quantity: number,
+    order_id: string
+  ): Promise<void> {
+    await this.repo.manager.transaction(async (em) => {
+      const rows = await em.getRepository(MarketplaceInventoryEntity).find({
+        where: {
+          coopname,
+          published_offer_id,
+          ownership: MarketplaceInventoryOwnerships.COOP,
+          status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+          reserved_order_id: IsNull(),
+        },
+        // FIFO по сроку годности: первым уходит то, что портится раньше.
+        order: { expiry_date: 'ASC', created_at: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      let needed = quantity;
+      for (const row of rows) {
+        if (needed <= 0) break;
+        if (row.quantity_per_label <= needed) {
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, { reserved_order_id: order_id });
+          needed -= row.quantity_per_label;
+        } else {
+          // Пограничная позиция: режем — зарезервированная часть отдельной записью.
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            quantity_per_label: row.quantity_per_label - needed,
+          });
+          await em.insert(MarketplaceInventoryEntity, {
+            ...this.buildStockSplitRow(row, needed, row.arrival_price),
+            published_offer_id: row.published_offer_id,
+            reserved_order_id: order_id,
+          });
+          needed = 0;
+        }
+      }
+      if (needed > 0) {
+        throw new ConflictException(
+          `Свободного остатка недостаточно: не хватает ${needed} ед. для резерва под заказ.`
+        );
+      }
+    });
+  }
+
+  async releaseReservation(coopname: string, order_id: string): Promise<number> {
+    const res = await this.repo.update(
+      {
+        coopname,
+        reserved_order_id: order_id,
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+      },
+      { reserved_order_id: null }
+    );
+    return res.affected ?? 0;
+  }
+
+  async sumReservedByOrders(coopname: string, order_ids: string[]): Promise<Map<string, number>> {
+    if (order_ids.length === 0) return new Map();
+    const rows = await this.repo
+      .createQueryBuilder('inv')
+      .select('inv.reserved_order_id', 'order_id')
+      .addSelect('SUM(inv.quantity_per_label)', 'total')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.reserved_order_id IN (:...order_ids)', { order_ids })
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .groupBy('inv.reserved_order_id')
+      .getRawMany<{ order_id: string; total: string }>();
+    return new Map(rows.map((r) => [r.order_id, Number(r.total)]));
+  }
+
+  async finalizeReservedIssue(
+    coopname: string,
+    order_id: string,
+    issued_quantity: number,
+    fallback_arrival_price: string
+  ): Promise<{ released: number; issued_arrival_cost: string }> {
+    const fallbackPrice = Number.parseFloat(fallback_arrival_price) || 0;
+    return this.repo.manager.transaction(async (em) => {
+      const rows = await em.getRepository(MarketplaceInventoryEntity).find({
+        where: {
+          coopname,
+          reserved_order_id: order_id,
+          status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+        },
+        order: { expiry_date: 'ASC', created_at: 'ASC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      let remainingToIssue = issued_quantity;
+      let released = 0;
+      // Стоимость выданного по ценам прибытия — основание для списания
+      // уценки (o.mkt.loss): цены прибытия у позиций одного заказа могут
+      // отличаться (FIFO-резерв).
+      let issuedArrivalCost = 0;
+      const arrivalOf = (row: MarketplaceInventoryEntity): number =>
+        row.arrival_price !== null ? Number.parseFloat(row.arrival_price) : fallbackPrice;
+      for (const row of rows) {
+        if (remainingToIssue >= row.quantity_per_label) {
+          remainingToIssue -= row.quantity_per_label;
+          issuedArrivalCost += arrivalOf(row) * row.quantity_per_label;
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            status: MarketplaceInventoryStatuses.ISSUED,
+          });
+        } else if (remainingToIssue > 0) {
+          const releaseQty = row.quantity_per_label - remainingToIssue;
+          issuedArrivalCost += arrivalOf(row) * remainingToIssue;
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, {
+            status: MarketplaceInventoryStatuses.ISSUED,
+            quantity_per_label: remainingToIssue,
+          });
+          // Невыданная часть возвращается в свободный опубликованный остаток.
+          await em.insert(MarketplaceInventoryEntity, {
+            ...this.buildStockSplitRow(row, releaseQty, row.arrival_price),
+            published_offer_id: row.published_offer_id,
+          });
+          released += releaseQty;
+          remainingToIssue = 0;
+        } else {
+          await em.update(MarketplaceInventoryEntity, { id: row.id }, { reserved_order_id: null });
+          released += row.quantity_per_label;
+        }
+      }
+      return { released, issued_arrival_cost: issuedArrivalCost.toFixed(4) };
+    });
+  }
+
+  async setPublication(
+    coopname: string,
+    inventory_ids: string[],
+    published_offer_id: string | null
+  ): Promise<number> {
+    if (inventory_ids.length === 0) return 0;
+    const where: Parameters<Repository<MarketplaceInventoryEntity>['update']>[0] = {
+      coopname,
+      id: In(inventory_ids),
+      ownership: MarketplaceInventoryOwnerships.COOP,
+      status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+    };
+    // Снять с публикации можно только свободную позицию: зарезервированная
+    // уже обещана заказу из остатка.
+    if (published_offer_id === null) {
+      (where as Record<string, unknown>).reserved_order_id = IsNull();
+    }
+    const res = await this.repo.update(where, { published_offer_id });
+    return res.affected ?? 0;
+  }
+
+  async sumFreePublishedByOffer(coopname: string, published_offer_id: string): Promise<number> {
+    const row = await this.repo
+      .createQueryBuilder('inv')
+      .select('COALESCE(SUM(inv.quantity_per_label), 0)', 'total')
+      .where('inv.coopname = :coopname', { coopname })
+      .andWhere('inv.published_offer_id = :published_offer_id', { published_offer_id })
+      .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.COOP })
+      .andWhere('inv.reserved_order_id IS NULL')
+      .andWhere('inv.status IN (:...statuses)', {
+        statuses: MarketplaceInventoryOnWarehouseStatuses,
+      })
+      .getRawOne<{ total: string }>();
+    return Number(row?.total ?? 0);
+  }
+
+  /**
+   * Заготовка новой записи остатка при split'е пограничной позиции: копия
+   * исходной без штрих-кода (уникален) и маркировки, со статусом RECEIVED,
+   * ownership=COOP и провенансом исходного заказа.
+   */
+  private buildStockSplitRow(
+    row: MarketplaceInventoryEntity,
+    quantity: number,
+    arrival_price: string | null
+  ): Omit<MarketplaceInventoryEntity, 'id' | 'created_at' | 'updated_at'> {
+    return {
+      coopname: row.coopname,
+      barcode_value: null,
+      barcode_format: null,
+      order_id: row.order_id,
+      shipment_id: row.shipment_id,
+      braname: row.braname,
+      status: MarketplaceInventoryStatuses.RECEIVED,
+      product_name_snapshot: row.product_name_snapshot,
+      quantity_per_label: quantity,
+      orderer_account_snapshot: row.orderer_account_snapshot,
+      shelf: row.shelf,
+      received_at: row.received_at,
+      received_by_operator_account: row.received_by_operator_account,
+      labeled_at: null,
+      labeled_by_operator_account: null,
+      expiry_date: row.expiry_date,
+      ownership: MarketplaceInventoryOwnerships.COOP,
+      arrival_price: row.arrival_price ?? arrival_price,
+      published_offer_id: null,
+      reserved_order_id: null,
+    };
   }
 }

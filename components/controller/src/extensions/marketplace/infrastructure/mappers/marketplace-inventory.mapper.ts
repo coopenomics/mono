@@ -26,6 +26,10 @@ export class MarketplaceInventoryMapper {
       labeled_at: row.labeled_at,
       labeled_by_operator_account: row.labeled_by_operator_account,
       expiry_date: row.expiry_date,
+      ownership: row.ownership,
+      arrival_price: row.arrival_price,
+      published_offer_id: row.published_offer_id,
+      reserved_order_id: row.reserved_order_id,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });

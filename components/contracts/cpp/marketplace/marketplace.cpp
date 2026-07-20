@@ -5,8 +5,10 @@
 // p.mkt.wroff.standard.yaml). Имена подпапок 1:1 совпадают с process_type
 // — связь от файла → к стандарту прозрачная.
 
-// ── p.mkt.supply (9 actions) ─── Stories Эпиков 4-5-6 ──────────────────
+// ── p.mkt.supply (11 actions) ─── Stories Эпиков 4-5-6 ─────────────────
 #include "src/p.mkt.supply/createorder.cpp"
+#include "src/p.mkt.supply/stockorder.cpp"
+#include "src/p.mkt.supply/markdown.cpp"
 #include "src/p.mkt.supply/cancelorder.cpp"
 #include "src/p.mkt.supply/expireorder.cpp"
 #include "src/p.mkt.supply/acceptorder.cpp"

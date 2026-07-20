@@ -27,6 +27,7 @@ const rawOfferSelector = {
   warranty_days: true,
   barcode_strategy: true,
   pack_size: true,
+  stock_braname: true,
   status: true,
   approved_by: true,
   approved_at: true,

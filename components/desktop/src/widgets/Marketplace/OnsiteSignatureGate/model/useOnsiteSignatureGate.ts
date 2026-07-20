@@ -10,7 +10,11 @@ import {
 import {
   listMyReadyToReceive,
   finalizeOrdererIssuance,
+  listStockProposals,
+  acceptStockProposal,
+  declineStockProposal,
   type MarketplaceOrderIssuanceView,
+  type MarketplaceStockProposalView,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
 
 /**
@@ -58,6 +62,9 @@ const IN_PERSON_VARIANTS = new Set(['A', 'IN_PERSON']);
 // Singleton-состояние (как у SelectBranchOverlay): один гейт на всё приложение.
 const supplierReceptions = ref<MarketplaceAplReceptionView[]>([]);
 const ordererOrders = ref<MarketplaceOrderIssuanceView[]>([]);
+// Входящие предложения имущества со склада кооператива (докладка): оператор
+// накинул у стойки — пайщик решает прямо в гейте (принять / отказаться).
+const stockProposals = ref<MarketplaceStockProposalView[]>([]);
 const loading = ref(false);
 /** Ключ задачи (group.key / task.key), которая сейчас подписывается. */
 const signingKey = ref<string | null>(null);
@@ -94,8 +101,15 @@ const ordererTasks = computed<OrdererPickupTask[]>(() => {
   }));
 });
 
-/** Гейт виден, пока есть хоть одна личная подпись, которую ждут от пайщика. */
-const isVisible = computed(() => supplierTasks.value.length > 0 || ordererTasks.value.length > 0);
+const proposalTasks = computed(() => stockProposals.value);
+
+/** Гейт виден, пока есть хоть одна личная подпись/решение, которых ждут от пайщика. */
+const isVisible = computed(
+  () =>
+    supplierTasks.value.length > 0 ||
+    ordererTasks.value.length > 0 ||
+    proposalTasks.value.length > 0,
+);
 
 /**
  * Тихий опрос обоих источников. Запросы независимы: сбой одного не гасит другой
@@ -107,17 +121,22 @@ async function refresh(source = 'ручной'): Promise<void> {
     // Не залогинен — гейта нет, очищаем возможный хвост.
     supplierReceptions.value = [];
     ordererOrders.value = [];
+    stockProposals.value = [];
     return;
   }
   const wasVisible = isVisible.value;
   loading.value = true;
   try {
-    const [receptions, orders] = await Promise.all([
+    const [receptions, orders, proposals] = await Promise.all([
       listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
       listMyReadyToReceive().catch(() => [] as MarketplaceOrderIssuanceView[]),
+      listStockProposals({ statuses: ['PROPOSED'] }).catch(
+        () => [] as MarketplaceStockProposalView[],
+      ),
     ]);
     supplierReceptions.value = receptions;
     ordererOrders.value = orders;
+    stockProposals.value = proposals;
   } finally {
     loading.value = false;
   }
@@ -126,7 +145,7 @@ async function refresh(source = 'ручной'): Promise<void> {
   // сокет; если перед этим был «POLL» — сработала страховочная дочитка.
   const appeared = !wasVisible && isVisible.value;
   console.info(
-    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, заказчик=${ordererTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
+    `%c[OnsiteGate] refresh ← ${source}: поставщик=${supplierTasks.value.length}, заказчик=${ordererTasks.value.length}, предложений=${proposalTasks.value.length}, гейт виден=${isVisible.value}${appeared ? ' (ВСПЛЫЛ только что)' : ''}`,
     appeared ? 'color:#16a34a;font-weight:bold' : 'color:#64748b',
   );
 }
@@ -180,6 +199,40 @@ async function signOrderer(task: OrdererPickupTask): Promise<void> {
   }
 }
 
+/**
+ * Пайщик принимает предложение со склада: по строкам создаются заказы (средства
+ * резервируются на акцепте — при нехватке паевых средств backend вернёт
+ * человеческую ошибку), и следом оператор открывает выдачу — акт придёт в этот
+ * же гейт обычной задачей заказчика.
+ */
+async function acceptProposal(task: MarketplaceStockProposalView): Promise<void> {
+  signingKey.value = task.id;
+  try {
+    const { order_ids } = await acceptStockProposal(task.id);
+    SuccessAlert(
+      `Предложение принято: оформлено позиций со склада — ${order_ids.length}. Оператор откроет выдачу.`,
+    );
+  } catch (error) {
+    FailAlert(error);
+  } finally {
+    signingKey.value = null;
+    await refresh();
+  }
+}
+
+async function declineProposal(task: MarketplaceStockProposalView): Promise<void> {
+  signingKey.value = task.id;
+  try {
+    await declineStockProposal(task.id);
+    SuccessAlert('Предложение отклонено.');
+  } catch (error) {
+    FailAlert(error);
+  } finally {
+    signingKey.value = null;
+    await refresh();
+  }
+}
+
 export function useOnsiteSignatureGate() {
   return {
     isVisible,
@@ -187,10 +240,14 @@ export function useOnsiteSignatureGate() {
     signingKey,
     supplierTasks,
     ordererTasks,
+    proposalTasks,
     refresh,
     signSupplier,
     signOrderer,
+    acceptProposal,
+    declineProposal,
   };
 }
 
 export type { OrdererPickupTask };
+export type { MarketplaceStockProposalView };

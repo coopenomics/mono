@@ -35,6 +35,14 @@ namespace Marketplace::Memo {
     return "Конвертация паевого взноса в членский для заказа имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
 
+  inline std::string get_stock_order_block_memo(uint64_t order_id) {
+    return "Резерв средств под заказ имущества № " + std::to_string(order_id) + " со склада кооператива";
+  }
+
+  inline std::string get_markdown_loss_memo(uint64_t order_id) {
+    return "Уценка имущества при выдаче со склада кооператива по заказу № " + std::to_string(order_id);
+  }
+
   inline std::string get_cancel_order_memo(uint64_t order_id) {
     return "Возврат резерва по отменённому заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }

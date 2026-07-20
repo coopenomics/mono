@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import type {
   MarketplaceBarcodeFormat,
+  MarketplaceInventoryOwnership,
   MarketplaceInventoryStatus,
 } from '../../domain/entities/marketplace-inventory.types';
 
@@ -30,6 +31,10 @@ import type {
 @Index(['coopname', 'shipment_id'])
 // Story 8.3: cron сканирует позиции на складе (RECEIVED/LABELED) с приближающимся expiry_date.
 @Index('IDX_marketplace_inventory_expiry_scan', ['coopname', 'status', 'expiry_date'])
+// requirement 76: обезличенный остаток КУ (вкладка склада) и резерв под заказ из остатка.
+@Index(['coopname', 'braname', 'ownership', 'status'])
+@Index(['coopname', 'reserved_order_id'])
+@Index(['coopname', 'published_offer_id'])
 export class MarketplaceInventoryEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -90,6 +95,24 @@ export class MarketplaceInventoryEntity {
    */
   @Column({ type: 'timestamptz', nullable: true })
   public expiry_date!: Date | null;
+
+  // requirement 76: принадлежность позиции — адресная под заказ (ORDER) либо
+  // обезличенный остаток кооператива (COOP). Default — для legacy-записей.
+  @Column({ type: 'varchar', length: 8, default: 'ORDER' })
+  public ownership!: MarketplaceInventoryOwnership;
+
+  // Цена прибытия за единицу (закупочная из акта приёмки) — база публикации
+  // остатка. nullable: synchronize добавляет колонку без backfill.
+  @Column({ type: 'numeric', precision: 18, scale: 4, nullable: true })
+  public arrival_price!: string | null;
+
+  // Оффер кооператива, которым остаток опубликован в каталоге; NULL — нет.
+  @Column({ type: 'uuid', nullable: true })
+  public published_offer_id!: string | null;
+
+  // Заказ из остатка, под который позиция зарезервирована; NULL — свободна.
+  @Column({ type: 'uuid', nullable: true })
+  public reserved_order_id!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

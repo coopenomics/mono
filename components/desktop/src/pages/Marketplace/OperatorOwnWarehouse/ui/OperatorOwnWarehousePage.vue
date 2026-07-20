@@ -11,6 +11,7 @@ import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
   listInventory,
   assignInventoryShelf,
@@ -368,10 +369,18 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     )
       template(#icon)
         q-icon(name='inventory_2', size='48px')
+
+    //- Остаток кооператива (requirement 76): обезличенные позиции после
+    //- недовыдач/отказов — публикация в каталог предложением от кооператива.
+    CoopStockSection.warehouse__stock
 </template>
 
 <style scoped lang="scss">
 .warehouse {
+  &__stock {
+    margin-top: var(--p-5, 20px);
+  }
+
   padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;

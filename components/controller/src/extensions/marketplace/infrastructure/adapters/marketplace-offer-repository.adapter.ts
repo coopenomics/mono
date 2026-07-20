@@ -160,7 +160,15 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,
       images: input.images ?? [],
-      status: MarketplaceOfferStatuses.PENDING_MODERATION,
+      stock_braname: input.stock_braname ?? null,
+      stock_origin_offer_id: input.stock_origin_offer_id ?? null,
+      // Оффер кооператива из остатка публикуется оператором сразу ACTIVE —
+      // модерация председателем для остатка не применяется (requirement 76,
+      // открытый вопрос 8: если решат модерировать — заменить на
+      // PENDING_MODERATION).
+      status: input.stock_braname
+        ? MarketplaceOfferStatuses.ACTIVE
+        : MarketplaceOfferStatuses.PENDING_MODERATION,
     });
     const saved = await this.repo.save(row);
     return this.mapper.toDomain(saved);

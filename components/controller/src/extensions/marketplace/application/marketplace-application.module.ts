@@ -96,6 +96,15 @@ import {
   MARKETPLACE_INVENTORY_LABEL_SERVICE,
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
+import { MarketplaceStockResolver } from './resolvers/marketplace-stock.resolver';
+import {
+  MarketplaceStockService,
+  MARKETPLACE_STOCK_SERVICE,
+} from './services/marketplace-stock.service';
+import {
+  MarketplaceStockProposalService,
+  MARKETPLACE_STOCK_PROPOSAL_SERVICE,
+} from './services/marketplace-stock-proposal.service';
 import {
   MarketplaceAplReceptionService,
   MARKETPLACE_APL_RECEPTION_SERVICE,
@@ -207,6 +216,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceStockResolver,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,
@@ -351,6 +361,16 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       provide: MARKETPLACE_ISSUANCE_SERVICE,
       useClass: MarketplaceIssuanceService,
     },
+    {
+      provide: MARKETPLACE_STOCK_SERVICE,
+      useClass: MarketplaceStockService,
+    },
+    MarketplaceStockService,
+    {
+      provide: MARKETPLACE_STOCK_PROPOSAL_SERVICE,
+      useClass: MarketplaceStockProposalService,
+    },
+    MarketplaceStockProposalService,
     MarketplaceIssuanceService,
     // Эпик 7 — гарантийный возврат (compensating forward к o.mkt.consum).
     {
@@ -448,6 +468,10 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Story 6.1 / 6.3 / 6.4
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,
+    MARKETPLACE_STOCK_SERVICE,
+    MarketplaceStockService,
+    MARKETPLACE_STOCK_PROPOSAL_SERVICE,
+    MarketplaceStockProposalService,
     // Эпик 7
     MARKETPLACE_RETURN_CLAIM_SERVICE,
     MarketplaceReturnClaimService,

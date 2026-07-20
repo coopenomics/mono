@@ -219,6 +219,18 @@ export class MarketplaceIssuanceService {
     const available = await this.loadAvailableOnWarehouse(order);
     this.assertWithinWarehouse(order, input.actual_quantity, available);
 
+    // Заказ из остатка: цена публикации уже не выше цены прибытия (только
+    // уценка) — повышение цены на выдаче открыло бы «наценку», под которую
+    // нет доходной проводки (requirement 76, вопрос 4).
+    if (
+      this.isStockOrder(order) &&
+      Number.parseFloat(input.actual_unit_price) > Number.parseFloat(order.price_per_unit) + 1e-9
+    ) {
+      throw new ConflictException(
+        'По заказу со склада кооператива цену при выдаче можно только снизить.'
+      );
+    }
+
     this.verifyDocumentSignature(input.signed_document);
 
     // Факт (кол-во + цена) фиксируется оператором при открытии выдачи и
@@ -380,19 +392,48 @@ export class MarketplaceIssuanceService {
       warranty_until: warrantyUntil,
     });
 
-    // Выдача завершена — имущество ушло пайщику: переводим позиции склада
-    // этого заказа RECEIVED/LABELED → ISSUED, чтобы учёт расхода/остатка на
-    // складе КУ отражал выдачу (иначе расход на сводном складе всегда 0).
+    // Выдача завершена — имущество ушло пайщику: выданное помечаем ISSUED,
+    // а невостребованная дельта (выдано меньше принятого) переходит в
+    // обезличенный остаток склада КУ (requirement 76) — собственность
+    // кооператива, доступная к перепредложению пайщикам после публикации.
     // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
     try {
-      const issued = await this.inventoryRepo.markIssuedByOrder(order.coopname, order.id);
-      this.logger.log(
-        `Выдача order ${order.id}: переведено в ISSUED позиций склада: ${issued}.`
-      );
+      if (this.isStockOrder(order)) {
+        // Заказ из остатка: выданное — ISSUED, невыданный резерв возвращается
+        // в свободный опубликованный остаток.
+        const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(
+          order.coopname,
+          order.id,
+          actual_quantity,
+          order.price_per_unit
+        );
+        this.logger.log(
+          `Выдача stock-order ${order.id}: выдано ${actual_quantity}, возвращено в остаток ${released} ед.`
+        );
+        // requirement 76 (вопрос 4): уценка — разница между стоимостью прибытия
+        // выданного и фактической суммой — выбывает со счёта 10 в прочие
+        // расходы (o.mkt.loss, Дт 91 / Кт 10). Вместе с o.mkt.consum даёт
+        // выбытие по полной стоимости прибытия: на складе ничего не зависает.
+        // Погашение накопленного на 91 (Дт 86 / Кт 91) — отдельный будущий
+        // процесс по образцу списания скоропорта.
+        await this.submitMarkdownLoss(order, issued_arrival_cost, factSnapshot.fact_cost);
+      } else {
+        // Цена прибытия = цена заказа (закупочная при приёмке); если приёмка
+        // прошла по скорректированной цене, оператор уточнит цену публикации.
+        const detached = await this.inventoryRepo.detachRemainderToStock(
+          order.coopname,
+          order.id,
+          actual_quantity,
+          order.price_per_unit
+        );
+        this.logger.log(
+          `Выдача order ${order.id}: выдано ${actual_quantity}, в обезличенный остаток КУ ушло ${detached} ед.`
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Выдача order ${order.id}: не удалось перевести позиции склада в ISSUED (${message}); склад покажет их как остаток до ручной сверки.`
+        `Выдача order ${order.id}: не удалось закрыть складские позиции (${message}); склад покажет их как остаток до ручной сверки.`
       );
     }
 
@@ -405,11 +446,52 @@ export class MarketplaceIssuanceService {
 
   // ── private ──
 
+  /**
+   * Заказ из остатка кооператива (requirement 76): продавец — сам кооператив.
+   * Такой заказ не имеет приёмки — выдача идёт из зарезервированных позиций
+   * обезличенного остатка.
+   */
+  private isStockOrder(order: MarketplaceOrderDomainEntity): boolean {
+    return order.supplier_account === order.coopname;
+  }
+
+  /**
+   * Списание уценки по заказу из остатка (chain `markdown`, o.mkt.loss).
+   * Best-effort: сбой не роняет закрытие выдачи — расход дослать можно
+   * повторным вызовом (на цепи guard идемпотентности по заказу).
+   */
+  private async submitMarkdownLoss(
+    order: MarketplaceOrderDomainEntity,
+    issued_arrival_cost: string,
+    fact_cost: string
+  ): Promise<void> {
+    const delta = Number.parseFloat(issued_arrival_cost) - Number.parseFloat(fact_cost);
+    const minStep = 10 ** -this.assetConfig.decimals;
+    if (!Number.isFinite(delta) || delta < minStep) return;
+    try {
+      await this.chainPort.markdown({
+        coopname: order.coopname,
+        order_hash: order.order_hash,
+        amount: this.formatAsset(delta.toFixed(this.assetConfig.decimals)),
+      });
+      this.logger.log(
+        `Stock-order ${order.id}: уценка ${delta.toFixed(this.assetConfig.decimals)} списана в прочие расходы (o.mkt.loss, Дт 91 / Кт 10).`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Stock-order ${order.id}: списание уценки не прошло (${message}); на счёте 10 осталась разница ${delta.toFixed(this.assetConfig.decimals)} — дослать вручную повторным markdown.`
+      );
+    }
+  }
+
   /** Принято на склад КУ по заказу и ещё не выдано (Σ RECEIVED/LABELED). */
   private async loadAvailableOnWarehouse(
     order: MarketplaceOrderDomainEntity
   ): Promise<number> {
-    const sums = await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
+    const sums = this.isStockOrder(order)
+      ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
+      : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
     return sums.get(order.id) ?? 0;
   }
 

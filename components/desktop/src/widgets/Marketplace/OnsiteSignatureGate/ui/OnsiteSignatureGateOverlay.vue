@@ -20,8 +20,18 @@ import { useOnsiteSignatureGate, type OrdererPickupTask } from '../model/useOnsi
  * осознанный consent-gate, как онбординг-оферты.
  */
 
-const { isVisible, signingKey, supplierTasks, ordererTasks, refresh, signSupplier, signOrderer } =
-  useOnsiteSignatureGate();
+const {
+  isVisible,
+  signingKey,
+  supplierTasks,
+  ordererTasks,
+  proposalTasks,
+  refresh,
+  signSupplier,
+  signOrderer,
+  acceptProposal,
+  declineProposal,
+} = useOnsiteSignatureGate();
 
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
@@ -55,9 +65,13 @@ function factQty(o: OrdererPickupTask['orders'][number]): number {
 function factCost(o: OrdererPickupTask['orders'][number]): string {
   return o.issuance_fact?.fact_cost ?? o.total_cost ?? '0';
 }
+function proposalLineCost(i: { quantity: number; unit_price: string }): string {
+  return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
+}
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
 const ordererBusy = (t: OrdererPickupTask) => signingKey.value === t.key;
+const proposalBusy = (id: string) => signingKey.value === id;
 const anySigning = computed(() => signingKey.value !== null);
 
 // Первичная загрузка состояния при монтировании оверлея (он живёт всё время
@@ -164,6 +178,49 @@ BaseDialog(
           template(#icon-left)
             q-icon(name='draw', size='18px')
           | Подписать и получить
+
+    //- Докладка: оператор предложил имущество со склада кооператива — пайщик
+    //- решает на месте. На принятии средства резервируются и акт придёт сюда же.
+    BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
+      template(#head)
+        .onsite-gate__head
+          q-icon(name='add_shopping_cart', size='28px')
+          .onsite-gate__ident
+            span.onsite-gate__name Предложение со склада кооператива
+            span.onsite-gate__sub Оператор пункта выдачи предлагает добавить к получению
+
+      table.onsite-gate__table
+        thead
+          tr
+            th Товар
+            th.num Кол-во
+            th.num Сумма
+        tbody
+          tr(v-for='i in p.items', :key='i.offer_id')
+            td {{ i.product_name }}
+            td.num {{ i.quantity }}
+            td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
+        tfoot
+          tr
+            td Итого (паевой взнос)
+            td.num
+            td.num {{ formatAsset2Digits(p.total_cost) }} ₽
+
+      .onsite-gate__foot.onsite-gate__foot--split
+        BaseButton(
+          variant='ghost',
+          :disabled='anySigning',
+          @click='declineProposal(p)'
+        ) Отказаться
+        BaseButton(
+          variant='primary',
+          :loading='proposalBusy(p.id)',
+          :disabled='anySigning && !proposalBusy(p.id)',
+          @click='acceptProposal(p)'
+        )
+          template(#icon-left)
+            q-icon(name='check', size='18px')
+          | Принять предложение
 </template>
 
 <style scoped lang="scss">
@@ -268,6 +325,10 @@ BaseDialog(
   &__foot {
     display: flex;
     justify-content: flex-end;
+
+    &--split {
+      justify-content: space-between;
+    }
   }
 }
 </style>

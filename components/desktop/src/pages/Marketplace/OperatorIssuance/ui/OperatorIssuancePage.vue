@@ -7,6 +7,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -231,13 +232,8 @@ function onQrScanned(code: string): void {
     });
     return;
   }
-  const has = items.value.some(
-    (o) => o.orderer_account === token.account && ISSUANCE_STATUSES.includes(o.status),
-  );
-  if (!has) {
-    FailAlert(new Error(`У заказчика ${token.account} нет заказов на выдачу на этом пункте.`));
-    return;
-  }
+  // Заказы не обязательны: пайщик мог «просто зайти» — оператор предложит
+  // ему имущество со склада кооператива (докладка, requirement 76).
   pickupAccount.value = token.account;
   pickupDialogOpen.value = true;
 }
@@ -372,7 +368,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     .issuance__resolve
       .issuance__resolve-account {{ pickupAccount }}
       .issuance__resolve-hint(v-if='pickupOrders.length') Готовы к выдаче на этом пункте:
-      .issuance__resolve-empty(v-else) Все заказы этого заказчика уже выданы.
+      .issuance__resolve-empty(v-else) Заказов на выдачу нет — можно предложить имущество со склада.
       .issuance__resolve-item(v-for='line in pickupLines', :key='line.key')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
@@ -391,6 +387,14 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         template(#icon-left)
           q-icon(name='draw', size='16px')
         | Открыть выдачу{{ pickupToIssueCount > 1 ? ` (${pickupToIssueCount})` : '' }}
+
+      //- Докладка со склада кооператива (requirement 76): накидка опубликованного
+      //- остатка этого КУ, отправка предложения пайщику, live-статус, отзыв.
+      StockRestockPanel(
+        v-if='pickupAccount',
+        :braname='braname',
+        :member-account='pickupAccount'
+      )
 </template>
 
 <style scoped lang="scss">

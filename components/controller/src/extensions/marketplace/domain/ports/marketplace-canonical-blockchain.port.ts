@@ -25,6 +25,30 @@ export interface MarketplaceCanonicalBlockchainPort {
   createOrder(data: MarketContract.Actions.CreateOrder.ICreateOrder): Promise<TransactResult>;
 
   /**
+   * requirement 76: заказ из обезличенного остатка склада кооператива.
+   * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
+   * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
+   * и идёт только через выдачу signiss1/signiss2. Один шаг ledger2:
+   * o.mkt.lock (TRANSFER w.wal.share → w.mkt.order) — средства пайщика
+   * блокируются в момент акцепта предложения/заказа.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<TransactResult>;
+
+  /**
+   * requirement 76 (вопрос 4): списание уценки по заказу из остатка после
+   * финализации выдачи — o.mkt.loss (NONE, Дт 91 / Кт 10) на разницу между
+   * стоимостью прибытия выданного и фактической суммой выдачи. Вместе с
+   * o.mkt.consum даёт выбытие со счёта 10 по полной стоимости прибытия.
+   * Погашение накопленного на 91 (Дт 86 / Кт 91) — будущий процесс по
+   * образцу списания скоропорта через совет.
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  markdown(data: MarketContract.Actions.Markdown.IMarkdown): Promise<TransactResult>;
+
+  /**
    * Story 4.3: backend cron закрывает один Order по таймауту цикла (или
    * pending-acceptance timeout). Per-Order: триггерит C++
    * `marketplace::expireorder` → o.mkt.unlock на total_cost + статус

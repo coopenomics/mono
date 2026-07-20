@@ -24,6 +24,8 @@ export class MarketplaceOfferMapper {
       barcode_strategy: row.barcode_strategy,
       pack_size: row.pack_size,
       images: row.images ?? [],
+      stock_braname: row.stock_braname,
+      stock_origin_offer_id: row.stock_origin_offer_id,
       status: row.status,
       approved_by: row.approved_by,
       approved_at: row.approved_at,

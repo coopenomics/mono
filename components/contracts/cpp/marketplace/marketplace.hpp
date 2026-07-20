@@ -27,8 +27,9 @@ using namespace Marketplace;
  * членских взносов.
  *
  * Реализует canonical actions трёх процессов из YAML-стандартов:
- *  - **p.mkt.supply** (9 actions): createorder, cancelorder, expireorder,
- *    acceptorder, declineorder, signsupp, signchair, signiss1, signiss2.
+ *  - **p.mkt.supply** (11 actions): createorder, stockorder, cancelorder,
+ *    expireorder, acceptorder, declineorder, signsupp, signchair, signiss1,
+ *    signiss2, markdown.
  *  - **p.mkt.return** (5 actions): submretrn, aprretrem, rejretrem, accretrn,
  *    rejretrn.
  *  - **p.mkt.wroff** (4 actions): propwroff, execwroff, onmktwoauth, onmktwodecl.
@@ -96,7 +97,29 @@ public:
                                       checksum256 batch_hash);
 
   /**
+   * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
+   * Продавец — сам кооператив (`offerer == coopname`), имущество уже на
+   * счёте 10 после ранее закрытых приёмок, поэтому Order создаётся сразу в
+   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Один шаг
+   * ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order). Этапы поставки
+   * и выплата поставщику для такого заказа не существуют.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void stockorder(eosio::name coopname,
+                                     eosio::name orderer,
+                                     checksum256 order_hash,
+                                     checksum256 offer_hash,
+                                     eosio::name delivery_braname,
+                                     uint64_t quantity,
+                                     eosio::asset unit_price,
+                                     uint32_t warranty_period_secs,
+                                     checksum256 batch_hash);
+
+  /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
+   * Заказ из остатка кооператива (offerer == coopname) отменяется и в
+   * `acceptcoop` — до первой подписи акта выдачи (откат оператора,
+   * requirement 76 решение 11).
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void cancelorder(eosio::name coopname,
@@ -199,6 +222,20 @@ public:
   [[eosio::action]] void paydecline(eosio::name coopname,
                                      checksum256 outcome_hash,
                                      std::string reason);
+
+  /**
+   * @brief Списание уценки по заказу из остатка кооператива (requirement 76).
+   * Разница между стоимостью прибытия выданного и фактической суммой выдачи
+   * выбывает со счёта 10 в прочие расходы: o.mkt.loss (NONE, Дт 91 / Кт 10).
+   * Вместе с o.mkt.consum даёт выбытие по полной стоимости прибытия — на
+   * складе ничего не зависает. Вызывает backend после финализации выдачи
+   * (сумму считает по выданным позициям). Погашение накопленного на 91
+   * (Дт 86 / Кт 91) — будущий процесс по образцу списания скоропорта.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void markdown(eosio::name coopname,
+                                   checksum256 order_hash,
+                                   eosio::asset amount);
 
   /**
    * @brief Председатель КУ выдачи открывает выдачу первой подписью АПП-выдачи

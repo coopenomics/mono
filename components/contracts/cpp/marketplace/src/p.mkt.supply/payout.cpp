@@ -30,6 +30,8 @@ void marketplace::payout(eosio::name coopname, checksum256 order_hash) {
   require_auth(coopname);
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
+  eosio::check(o.offerer != coopname,
+               "По заказу из остатка кооператива выплата поставщику не предусмотрена: имущество уже оплачено при первичной приёмке");
   eosio::check(o.status == OrderStatus::ACCEPTED_TO_COOP ||
                o.status == OrderStatus::READY_TO_RECEIVE ||
                o.status == OrderStatus::RECEIVED,

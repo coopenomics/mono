@@ -82,3 +82,7 @@ export * as GetAvailabilityStats from './getAvailabilityStats'
 export * as MarketplaceOnboardingState from './marketplaceOnboardingState'
 /** Эпик 16: корзина текущего заказчика */
 export * as GetCart from './getCart'
+/** Склад кооператива (requirement 76): обезличенный остаток КУ */
+export * as ListStock from './listStock'
+/** Докладка: предложения со склада кооператива (стойка оператора / входящие пайщика) */
+export * as ListStockProposals from './listStockProposals'
