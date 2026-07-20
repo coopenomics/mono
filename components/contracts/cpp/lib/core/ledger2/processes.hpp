@@ -38,7 +38,8 @@ namespace processes {
 
   // registrator
   namespace registrator {
-    inline constexpr eosio::name ACCEPT    = "p.reg.accept"_n;   ///< Приём пайщика в кооператив (o.reg.payent + o.reg.putmin).
+    inline constexpr eosio::name ACCEPT    = "p.reg.accept"_n;   ///< Приём пайщика в кооператив (o.reg.payent + o.reg.putmin; для потока через совет — o.reg.inpay + o.reg.setmin + o.reg.setent).
+    inline constexpr eosio::name REFUND    = "p.reg.refund"_n;   ///< Возврат регистрационного взноса при отказе совета (o.reg.refund). Отдельный процесс: приём взноса прерывается, начинается возврат.
   }
 
   // wallet
@@ -56,6 +57,7 @@ namespace processes {
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
     inline constexpr eosio::name PREIMP    = "p.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (одноактовый, anchor = preimp register hash).
     inline constexpr eosio::name WTHCAP    = "p.cap.wthcap"_n;   ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (одноактовый).
+    inline constexpr eosio::name PGEXP     = "p.cap.pgexp"_n;    ///< Пул программных расходов: пополнение из инвестиций программы (o.cap.pgtop, одноактовый).
   }
 
   // marketplace
@@ -70,6 +72,11 @@ namespace processes {
     inline constexpr eosio::name FEES  = "p.brn.fees"_n;  ///< Членские взносы КУ: зачисление в общий кошелёк при финализации заказа (o.brn.common), ручное распределение председателем (o.brn.release + o.brn.person) и использование персональных средств доверенным (o.brn.conv).
     inline constexpr eosio::name AID   = "p.brn.aid"_n;   ///< Материальная помощь доверенному КУ из его персонального кошелька (o.brn.aid; заявление → выплата кассиром).
     inline constexpr eosio::name SPEND = "p.brn.spend"_n; ///< Оплата расхода КУ из общего кошелька (o.brn.spend; команда председателя → выплата кассиром по реквизитам). Плановый реестр расходов и резерв 30 дней ведёт бэкенд.
+  }
+
+  // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
+  namespace expense {
+    inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
   }
 
   // soviet

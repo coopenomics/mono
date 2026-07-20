@@ -4,6 +4,11 @@
 export * as VerificateAccount from './verificateAccount'
 
 /**
+ * Действие отклонения регистрации кандидата советом (отказ в приёме).
+ */
+export * as DeclineRegistration from './declineRegistration'
+
+/**
  * Действие обновления публичных данных аккаунта
  */
 export * as UpdateAccount from './updateAccount'
@@ -22,6 +27,11 @@ export * as CreateAccount from './createAccount'
  * Действие регистрации карточки пользователя в кооперативе
  */
 export * as RegisterUser from './registerUser'
+
+/**
+ * Действие подачи заявления на выход пайщика из кооператива (возврат паевого взноса)
+ */
+export * as ExitCoop from './exitCoop'
 
 /**
  * Действие регистрации карточки организации в кооперативе

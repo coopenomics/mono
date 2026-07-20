@@ -24,6 +24,14 @@ on:
     branches: [dev]
   workflow_call:
 
+# Новый push в PR-ветку отменяет ещё бегущий typecheck по той же ветке —
+# иначе 30-минутные прогоны копятся очередью. Группа по head_ref (исходная
+# ветка PR), для workflow_call fallback на ref. Отмена только своих же
+# прежних прогонов, разные PR друг друга не трогают.
+concurrency:
+  group: typecheck-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   desktop:
     runs-on: ubuntu-latest

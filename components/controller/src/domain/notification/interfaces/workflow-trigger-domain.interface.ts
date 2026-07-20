@@ -1,5 +1,5 @@
 /**
- * Доменный интерфейс для триггера NOVU workflow
+ * Доменный интерфейс актора/получателя уведомления
  * Представляет данные для запуска воркфлоу уведомлений
  */
 export interface WorkflowTriggerDomainInterface {
@@ -39,7 +39,7 @@ export interface WorkflowTriggerDomainInterface {
  */
 export interface WorkflowRecipientDomainInterface {
   /**
-   * ID подписчика в NOVU
+   * ID подписчика
    */
   subscriberId: string;
 

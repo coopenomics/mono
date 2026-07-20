@@ -19,7 +19,6 @@ import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfa
 import { GATEWAY_INTERACTOR_PORT, GatewayInteractorPort } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
-import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import type { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
 import { UserWalletDTO } from '../dto/user-wallet.dto';
 import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
@@ -86,22 +85,25 @@ export class WalletInteractor {
     // Используем payment_hash из параметров вместо генерации нового
     const withdraw_hash = data.payment_hash;
 
-    let createdPayment: PaymentDomainEntity | null = null;
+    // 1. Валидируем и подготавливаем платёж БЕЗ записи в БД. Все проверки
+    //    (символ, дубликат hash, наличие платёжного метода) выполняются здесь,
+    //    до блокчейна, чтобы не создать on-chain заявку без записи о платеже.
+    const preparedPayment = await this.gatewayInteractorPort.prepareWithdraw({
+      coopname: data.coopname,
+      username: data.username,
+      quantity: data.quantity,
+      symbol: data.symbol,
+      method_id: data.method_id,
+      statement: data.statement,
+      payment_hash: data.payment_hash,
+    });
 
+    // 2. Создаём withdraw в wallet контракте. Если средств на L3 недостаточно
+    //    (или иная on-chain ошибка) — упадёт здесь, и НИ ОДНОЙ записи о платеже
+    //    в БД не появится. Раньше платёж писался до блокчейна и оставался висеть
+    //    в разделе «Платежи» со статусом FAILED при отклонении транзакцией.
+    //    wallet контракт автоматически создаст outcome в gateway контракте.
     try {
-      // 1. Создаем исходящий платеж в gateway для отслеживания
-      createdPayment = await this.gatewayInteractorPort.createWithdraw({
-        coopname: data.coopname,
-        username: data.username,
-        quantity: data.quantity,
-        symbol: data.symbol,
-        method_id: data.method_id,
-        statement: data.statement,
-        payment_hash: data.payment_hash,
-      });
-
-      // 2. Создаем withdraw в wallet контракте
-      // wallet контракт автоматически создаст outcome в gateway контракте
       await this.walletBlockchainPort.createWithdraw({
         coopname: data.coopname,
         username: data.username,
@@ -109,30 +111,28 @@ export class WalletInteractor {
         quantity: `${data.quantity} ${data.symbol}`,
         statement: data.statement,
       });
-
-      this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, outcome будет создан автоматически в gateway`);
-
-      return { withdraw_hash };
     } catch (error: any) {
-      this.logger.error(`Ошибка при создании withdraw: ${error.message}`, error);
-
-      // Если платеж был создан, но произошла ошибка при создании withdraw в блокчейне
-      if (createdPayment?.id) {
-        try {
-          // Обновляем статус платежа на FAILED с сообщением об ошибке
-          await this.gatewayInteractorPort.setPaymentStatus({
-            id: createdPayment.id,
-            status: PaymentStatusEnum.FAILED,
-          });
-
-          this.logger.log(`Платеж ${createdPayment.id} помечен как FAILED из-за ошибки создания withdraw`);
-        } catch (updateError: any) {
-          this.logger.error(`Ошибка при обновлении статуса платежа: ${updateError.message}`, updateError);
-        }
-      }
-
+      this.logger.error(`Ошибка при создании withdraw в блокчейне (платёж не зафиксирован): ${error.message}`, error);
       throw error;
     }
+
+    // 3. Только после успешной on-chain заявки фиксируем платёж в БД для
+    //    отслеживания кассиром и последующего перехода статусов.
+    try {
+      await this.gatewayInteractorPort.persistWithdraw(preparedPayment);
+    } catch (error: any) {
+      // Редкий случай: on-chain заявка прошла, но запись в БД не удалась (например,
+      // недоступна БД). On-chain withdraw существует — требуется ручная сверка.
+      this.logger.error(
+        `КРИТИЧНО: on-chain withdraw ${withdraw_hash} создан, но не удалось зафиксировать платёж в БД: ${error.message}`,
+        error
+      );
+      throw error;
+    }
+
+    this.logger.log(`Создан withdraw в wallet: ${withdraw_hash}, платёж зафиксирован в gateway`);
+
+    return { withdraw_hash };
   }
 
   /**

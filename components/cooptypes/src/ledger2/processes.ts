@@ -22,6 +22,7 @@ export interface ProcessMeta {
 export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   // registrator
   { type: 'p.reg.accept',   contract: 'registrator',  name: 'ACCEPT',      human_name: 'Приём пайщика' },
+  { type: 'p.reg.refund',   contract: 'registrator',  name: 'REFUND',      human_name: 'Возврат регистрационного взноса при отказе совета' },
 
   // wallet
   { type: 'p.wal.depo',     contract: 'wallet',       name: 'DEPOSIT',     human_name: 'Внесение паевого взноса' },
@@ -35,6 +36,10 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.cap.prop',     contract: 'capital',      name: 'PROPERTY',    human_name: 'Приём имущественного паевого взноса' },
   { type: 'p.cap.preimp',   contract: 'capital',      name: 'PREIMP',      human_name: 'Первичный учёт РИД-взноса до перехода на электронный учёт' },
   { type: 'p.cap.wthcap',   contract: 'capital',      name: 'WTHCAP',      human_name: 'Возврат паевого из ЦПП «Благорост» в кошелёк' },
+  { type: 'p.cap.pgexp',    contract: 'capital',      name: 'PGEXP',       human_name: 'Пополнение пула программных расходов' },
+
+  // expense
+  { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 
   // marketplace
   { type: 'p.mkt.supply',   contract: 'marketplace',  name: 'SUPPLY',      human_name: 'Поставка и приобретение имущества пайщика' },

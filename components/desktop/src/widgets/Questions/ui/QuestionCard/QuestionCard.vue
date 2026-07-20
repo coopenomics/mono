@@ -16,6 +16,7 @@
     .question-card__voting(@click.stop)
       VotingButtons(
         :decision='agenda.table',
+        :is-rejected='isRejected',
         :is-voted-for='isVotedFor',
         :is-voted-against='isVotedAgainst',
         :is-voted-any='isVotedAny',
@@ -32,7 +33,16 @@
   //- У обычного пайщика — только срок, узкая панелька.
   .question-card__footer(@click.stop)
     span.question-card__expires Истекает {{ formatToFromNow(agenda.table.expired_at) }}
-    .question-card__approve(v-if='isChairman')
+    //- Отрицательный консенсус: председатель явно отклоняет решение (контракт
+    //- declinedec). Иначе — обычное утверждение (доступно после принятия советом).
+    .question-card__approve(v-if='isChairman && isRejected')
+      BaseButton(
+        variant='negative',
+        size='sm',
+        :loading='isProcessing',
+        @click='$emit("decline")'
+      ) Отклонить
+    .question-card__approve(v-else-if='isChairman')
       BaseButton(
         variant='primary',
         size='sm',
@@ -90,10 +100,20 @@ const props = defineProps({
   },
 });
 
-defineEmits(['authorize', 'vote-for', 'vote-against']);
+defineEmits(['authorize', 'decline', 'vote-for', 'vote-against']);
 
 const session = useSessionStore();
 const isChairman = computed(() => session.isChairman);
+
+// Отрицательный консенсус: против проголосовало большинство состава совета.
+// Порог зеркален контракту (votefor/declinedec): против*100 > состав*50, строго.
+// council_members_count приходит обогащённым в DTO решения с бэкенда.
+const isRejected = computed(() => {
+  const table = props.agenda.table as { votes_against?: string[]; council_members_count?: number };
+  const against = table.votes_against?.length ?? 0;
+  const members = table.council_members_count ?? 0;
+  return members > 0 && against * 100 > members * 50;
+});
 
 // Состояние раскрытия — локальное для каждой карточки.
 const expanded = ref(false);

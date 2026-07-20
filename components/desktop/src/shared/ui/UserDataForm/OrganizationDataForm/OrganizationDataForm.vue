@@ -174,15 +174,6 @@
   )
 
   q-input(
-    v-model='userData.organization_data.bank_account.details.kpp',
-    outlined color='primary',
-    mask='#########',
-    label='КПП банка (9 цифр)',
-    :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "КПП должен содержать 9 цифр"]',
-    autocomplete='off'
-  )
-
-  q-input(
     v-model='userData.organization_data.bank_account.account_number',
     outlined color='primary',
     mask='####################',

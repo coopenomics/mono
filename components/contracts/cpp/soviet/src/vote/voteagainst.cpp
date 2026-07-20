@@ -60,8 +60,12 @@ void soviet::voteagainst(
   auto board = get_board_by_type_or_fail(coopname, "soviet"_n);
   eosio::check(board.is_voting_member(username), "У вас нет права голоса");
   
-  decision -> check_for_any_vote_exist(username); 
+  decision -> check_for_any_vote_exist(username);
 
+  // Голос «против» только фиксируется. Отрицательный консенсус НЕ затирает
+  // решение автоматически: отказ при достигнутом большинстве «против» проводит
+  // председатель явным действием declinedec (развязано с авто-отменой по сроку
+  // cancelexprd). Так принятое отрицательно решение не исчезает само из повестки.
   add_vote_against(coopname, username, decision->id);
 };
 

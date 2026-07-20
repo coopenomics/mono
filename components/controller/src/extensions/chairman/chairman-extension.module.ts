@@ -70,7 +70,6 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
 export const defaultConfig = {
   checkInterval: 10,
   lastCheckDate: '',
-  cancelApprovedDecisions: false,
   onboarding_init_at: '',
   onboarding_expire_at: '',
   onboarding_wallet_agreement_hash: '',
@@ -107,15 +106,6 @@ export const Schema = z.object({
     .string()
     .default(defaultConfig.lastCheckDate)
     .describe(describeField({ label: 'Дата последней проверки', visible: false })),
-  cancelApprovedDecisions: z
-    .boolean()
-    .default(defaultConfig.cancelApprovedDecisions)
-    .describe(
-      describeField({
-        label: 'Отменять принятые решения с истекшим сроком',
-        note: 'Если включено, истекшие принятые решения также будут отменяться',
-      })
-    ),
   onboarding_init_at: z
     .string()
     .default(defaultConfig.onboarding_init_at)

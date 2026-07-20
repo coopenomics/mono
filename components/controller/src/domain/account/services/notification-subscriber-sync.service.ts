@@ -1,32 +1,30 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import cron from 'node-cron';
-import { generateSubscriberHash } from '~/utils/novu.utils';
+import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import config from '~/config/config';
-import { NotificationDomainService } from '~/domain/notification/services/notification-domain.service';
-import { AccountDomainService } from './account-domain.service';
 import { USER_DOMAIN_SERVICE, UserDomainService } from '~/domain/user/services/user-domain.service';
 
-const NOVU_CREATE_SUBSCRIBER_TIMEOUT_MS = 20_000;
-
+/**
+ * Backfill identity получателя уведомлений: догенерирует `subscriber_id`/`subscriber_hash`
+ * пользователям, у которых их нет (создание аккаунта ставит их в обычном потоке;
+ * этот cron — страховка для legacy/сбойных профилей). `subscriber_id` — immutable
+ * адресация Центра уведомлений; внешней синхронизации подписчиков больше нет.
+ */
 @Injectable()
 export class NotificationSubscriberSyncService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationSubscriberSyncService.name);
   private isProcessing = false;
   private cronJob: cron.ScheduledTask | null = null;
 
-  constructor(
-    private readonly notificationDomainService: NotificationDomainService,
-    private readonly accountDomainService: AccountDomainService,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService
-  ) {}
+  constructor(@Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService) {}
 
   onModuleInit() {
-    // Синхронизация подписчиков каждые 30 минут
+    // Backfill identity каждые 30 минут
     this.cronJob = cron.schedule('*/30 * * * *', async () => {
       await this.syncNotificationSubscribers();
     });
 
-    this.logger.log('node-cron задача для синхронизации подписчиков уведомлений запущена (каждые 30 минут)');
+    this.logger.log('node-cron backfill subscriber_id запущен (каждые 30 минут)');
   }
 
   onModuleDestroy() {
@@ -83,45 +81,20 @@ export class NotificationSubscriberSyncService implements OnModuleInit, OnModule
   }
 
   /**
-   * Настраивает подписчика для конкретного пользователя
+   * Генерирует и сохраняет identity получателя (`subscriber_id`/`subscriber_hash`).
    * @param username Имя пользователя
    */
   private async setupSubscriberForUser(username: string): Promise<void> {
     try {
-      // Генерируем subscriber_id и subscriber_hash
       const subscriberId = await this.userDomainService.generateSubscriberId(config.coopname);
       const subscriberHash = generateSubscriberHash(subscriberId);
 
-      // Обновляем пользователя с subscriber данными
       await this.userDomainService.updateUserByUsername(username, {
         subscriber_id: subscriberId,
         subscriber_hash: subscriberHash,
       });
-
-      const account = await this.accountDomainService.getAccount(username);
-
-      try {
-        await Promise.race([
-          this.notificationDomainService.createSubscriberFromAccount(account),
-          new Promise<never>((_, reject) => {
-            setTimeout(
-              () => reject(new Error('NOVU_CREATE_TIMEOUT')),
-              NOVU_CREATE_SUBSCRIBER_TIMEOUT_MS,
-            );
-          }),
-        ]);
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message === 'NOVU_CREATE_TIMEOUT') {
-          this.logger.warn(
-            `Novu: таймаут ${NOVU_CREATE_SUBSCRIBER_TIMEOUT_MS} мс при createSubscriber для ${username}`,
-          );
-          return;
-        }
-        throw error;
-      }
     } catch (error: any) {
-      this.logger.error(`Не удалось настроить подписчика для пользователя ${username}: ${error.message}`);
+      this.logger.error(`Не удалось настроить identity получателя для ${username}: ${error.message}`);
       throw error;
     }
   }

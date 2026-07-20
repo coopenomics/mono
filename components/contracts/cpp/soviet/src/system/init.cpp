@@ -124,7 +124,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
       row.type = "user"_n;
       row.coopname = coopname;
       row.program_id = 0;
-      row.draft_id = 3;
+      row.draft_id = 4;
     });
     
     //создаём соглашение для шаблона политики конфиденциальности
@@ -132,7 +132,7 @@ void soviet::make_base_coagreements( eosio::name coopname, eosio::symbol govern_
       row.type = "privacy"_n;
       row.coopname = coopname;
       row.program_id = 0;
-      row.draft_id = 4;
+      row.draft_id = 3;
     });
     
 }

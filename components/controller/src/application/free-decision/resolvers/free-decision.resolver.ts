@@ -12,6 +12,7 @@ import { CreateProjectFreeDecisionInputDTO } from '../dto/create-project-free-de
 import { FreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/free-decision-document.dto';
 import { FreeDecisionService } from '../services/free-decision.service';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 
 @Resolver()
 export class FreeDecisionResolver {
@@ -49,16 +50,18 @@ export class FreeDecisionResolver {
     return this.freeDecisionService.generateFreeDecision(data, options);
   }
 
-  @Mutation(() => Boolean, {
+  @Mutation(() => AgendaWithDocumentsDTO, {
     name: 'publishProjectOfFreeDecision',
-    description: 'Опубликовать предложенную повестку и проект решения для дальнейшего голосования совета по нему',
+    nullable: true,
+    description:
+      'Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member'])
   async publishProjectOfFreeDecision(
     @Args('data', { type: () => PublishProjectFreeDecisionInputDTO })
     data: PublishProjectFreeDecisionInputDTO
-  ): Promise<boolean> {
+  ): Promise<AgendaWithDocumentsDTO | null> {
     return this.freeDecisionService.publishProjectOfFreeDecision(data);
   }
 

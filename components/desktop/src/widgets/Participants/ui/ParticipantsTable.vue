@@ -1,5 +1,5 @@
 <template lang="pug">
-q-table(
+q-table.participants-table(
   flat,
   :grid='isMobile',
   :rows='accounts',
@@ -32,15 +32,11 @@ q-table(
 
       q-td {{ props.row.provider_account?.email || 'Не указан' }}
 
-      q-td {{ formatDate(props.row.participant_account?.created_at) == '' ? 'отсутствует' : formatDate(props.row.participant_account?.created_at) }}
+      q-td {{ joinDate(props.row) }}
 
       q-td
-        q-checkbox(
-          :model-value='props.row.participant_account?.status === "accepted"',
-          disable,
-          color='primary',
-          size='sm'
-        )
+        .participants-table__status
+          BaseBadge(:variant='getAccountStatusBadge(props.row).variant') {{ getAccountStatusBadge(props.row).label }}
 
     q-tr.q-virtual-scroll--with-prev.no-hover(
       no-hover,
@@ -70,6 +66,7 @@ import moment from 'src/shared/lib/utils/dates/moment';
 import { ParticipantCard, ParticipantDetails } from '.';
 import { getName } from 'src/shared/lib/utils';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { getAccountStatusBadge } from 'src/entities/Account';
 import {
   type IAccount,
   type IIndividualData,
@@ -131,7 +128,7 @@ const columns: any[] = [
   {
     name: 'status',
     align: 'left',
-    label: 'Активен',
+    label: 'Статус',
     field: 'status',
     sortable: true,
   },
@@ -140,6 +137,15 @@ const columns: any[] = [
 // Форматирование даты
 const formatDate = (date?: string) =>
   date ? moment(date).format('DD.MM.YY HH:mm:ss') : '';
+
+// Дата вступления: дата приёма советом (participant_account.created_at). У вышедших
+// пайщик-запись стёрта (delpartcpnt) — фолбэк на дату регистрации аккаунта on-chain
+// (user_account.registered_at), чтобы не показывать «отсутствует».
+const joinDate = (row: IAccount): string => {
+  const raw = row.participant_account?.created_at || row.user_account?.registered_at;
+  const f = formatDate(raw ? String(raw) : undefined);
+  return f === '' ? 'отсутствует' : f;
+};
 
 // События
 const onToggleExpand = (id: string) => {
@@ -156,6 +162,20 @@ const onUpdate = (
 </script>
 
 <style>
+.participants-table__status {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+}
+
+/* Грид-режим (мобайл): карточки во всю ширину. Вертикальный отступ задаёт
+   сама .participant-card (margin-bottom) — его virtual-scroll учитывает,
+   тогда как margin/padding на grid-item игнорируется. */
+.participants-table .q-table__grid-item {
+  width: 100%;
+  padding: 0;
+}
+
 .no-hover.q-tr--hover,
 .no-hover.q-table__tr--hover,
 .no-hover:hover,

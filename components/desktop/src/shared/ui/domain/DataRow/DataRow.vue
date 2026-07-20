@@ -77,6 +77,14 @@ async function onCopy(): Promise<void> {
 .data-row--vertical {
   grid-template-columns: 1fr;
 }
+/* На телефоне горизонтальная пара label|value схлопывается в узкие колонки —
+   value-колонка ~150px рвёт длинные mono-значения (публичный ключ) в столбик.
+   Стекаем в одну колонку: подпись сверху, значение на всю ширину карточки. */
+@media (max-width: 599px) {
+  .data-row--horizontal {
+    grid-template-columns: 1fr;
+  }
+}
 
 .data-row__label {
   color: var(--p-ink-2);

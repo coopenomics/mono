@@ -5,6 +5,7 @@ import { rawMonoAccountSelector } from './monoAccountSelector'
 import { rawParticipantAccountSelector } from './participantAccountSelector'
 import { rawPrivateAccountSelector } from './privateAccountSelector'
 import { rawUserAccountSelector } from './userAccountSelector'
+import { rawRegistrationPaymentSelector } from './registrationPaymentSelector'
 
 const rawAccountSelector = {
   username: true,
@@ -14,6 +15,7 @@ const rawAccountSelector = {
   participant_account: rawParticipantAccountSelector,
   user_account: rawUserAccountSelector,
   private_account: rawPrivateAccountSelector,
+  registration_payment: rawRegistrationPaymentSelector,
 }
 
 // Проверка валидности

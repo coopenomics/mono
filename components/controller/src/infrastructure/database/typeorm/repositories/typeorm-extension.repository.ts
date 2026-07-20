@@ -58,27 +58,39 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
     return existingEntity.toDomainEntity();
   }
 
-  async patchConfig(name: string, patch: Record<string, unknown>): Promise<ExtensionDomainEntity<TConfig>> {
-    if (!name) throw new Error('Имя расширения для обновления обязательный параметр');
+  async patchConfig(name: string, patch: Partial<TConfig>): Promise<ExtensionDomainEntity<TConfig>> {
+    // TypeORM оборачивает .query() для UPDATE/DELETE в кортеж [rows, affectedCount]
+    // (в отличие от INSERT, где возвращается голый rows-массив) — распаковываем явно,
+    // иначе row оказывается всем кортежем и все поля читаются как undefined.
+    const [rows] = (await this.ormRepo.query(
+      `UPDATE extensions
+          SET config = COALESCE(config, '{}'::jsonb) || $2::jsonb,
+              updated_at = NOW()
+        WHERE name = $1
+        RETURNING name, enabled, config, schema_version, created_at, updated_at`,
+      [name, JSON.stringify(patch)]
+    )) as [
+      Array<{
+        name: string;
+        enabled: boolean;
+        config: TConfig;
+        schema_version: number;
+        created_at: Date;
+        updated_at: Date;
+      }>,
+      number,
+    ];
 
-    // Транзакция + pessimistic_write (SELECT … FOR UPDATE) сериализует
-    // конкурентных писателей по этой строке: второй ждёт коммита первого и
-    // читает уже слитый config, поэтому патчи разных ключей не затирают друг
-    // друга (lost-update в update(), пишущем весь config из устаревшего снимка).
-    return this.ormRepo.manager.transaction(async (em) => {
-      const repo = em.getRepository(ExtensionEntity);
-      const existing = await repo.findOne({
-        where: { name } as FindOptionsWhere<ExtensionEntity>,
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!existing) {
-        throw new Error('Расширение не найдено в установленных');
-      }
+    const row = rows[0];
+    if (!row) throw new Error('Расширение не найдено в установленных');
 
-      existing.config = { ...((existing.config as Record<string, unknown>) ?? {}), ...patch } as TConfig;
-      await repo.save(existing);
-
-      return (existing as ExtensionEntity<TConfig>).toDomainEntity();
-    });
+    return new ExtensionDomainEntity<TConfig>(
+      row.name,
+      row.enabled,
+      row.config,
+      row.created_at,
+      row.updated_at,
+      row.schema_version
+    );
   }
 }

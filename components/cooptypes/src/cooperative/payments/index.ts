@@ -6,7 +6,6 @@ export interface IBankAccount {
   details: {
     bik: string // < бик
     corr: string // < корр счёт
-    kpp: string // < кпп
   }
 }
 

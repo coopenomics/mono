@@ -17,14 +17,42 @@ export function useWebPushNotifications() {
 
   const isProcessing = ref(false);
 
+  // Endpoint push-подписки ИМЕННО этого браузера/устройства (а не любого
+  // устройства пользователя). Заполняется через refreshDeviceState() и после
+  // subscribe(). Нужен, чтобы отличать «на этом устройстве подписан» от «у
+  // аккаунта вообще есть подписка на другом устройстве».
+  const thisDeviceEndpoint = ref<string | null>(null);
+
+  // Есть ли РЕАЛЬНО зарегистрированный/активный Service Worker (а не просто
+  // наличие API в браузере). store.support.isSupported = true как только есть
+  // `serviceWorker in navigator`, но в dev/без-PWA сам SW не зарегистрирован
+  // (register-service-worker.ts вешает его только в проде/ENABLE_PWA_DEV) —
+  // тогда подписка физически невозможна, и кнопку показывать нельзя
+  // (иначе клик молча умирает на «Service Worker не активен»).
+  // Заполняется в refreshDeviceState() (async — getRegistrations).
+  const hasActiveServiceWorker = ref(false);
+
+  // Подписан ли ИМЕННО ЭТОТ браузер (его endpoint есть в активных подписках
+  // аккаунта). store.isSubscribed = «есть хоть одна подписка у аккаунта» —
+  // непригоден для multi-device: на втором устройстве он true из-за первого.
+  const isThisDeviceSubscribed = computed(
+    () =>
+      !!thisDeviceEndpoint.value &&
+      store.subscriptions.some(
+        (sub) => sub.endpoint === thisDeviceEndpoint.value && sub.isActive,
+      ),
+  );
+
   // Computed свойства
   const canSubscribe = computed(
     () =>
-      store.support.canSubscribe && sessionStore.isAuth && !store.isSubscribed,
+      store.support.canSubscribe &&
+      sessionStore.isAuth &&
+      !isThisDeviceSubscribed.value,
   );
 
   const canUnsubscribe = computed(
-    () => store.isSubscribed && sessionStore.isAuth,
+    () => isThisDeviceSubscribed.value && sessionStore.isAuth,
   );
 
   const subscriptionStatus = computed(() => {
@@ -366,6 +394,9 @@ export function useWebPushNotifications() {
         return false;
       }
 
+      // Запоминаем endpoint этого устройства для device-aware проверок
+      thisDeviceEndpoint.value = browserSubscription.endpoint;
+
       // Преобразуем в формат для сервера
       const subscriptionData =
         convertPushSubscriptionToData(browserSubscription);
@@ -458,6 +489,68 @@ export function useWebPushNotifications() {
   };
 
   /**
+   * Определить endpoint текущего устройства из браузерной подписки.
+   * Без этого isThisDeviceSubscribed не может отличить это устройство от других.
+   */
+  const refreshDeviceState = async (): Promise<void> => {
+    try {
+      updateSupport();
+      const registration = await getServiceWorkerRegistration();
+      hasActiveServiceWorker.value = !!registration;
+      if (!registration) {
+        thisDeviceEndpoint.value = null;
+        return;
+      }
+      const browserSubscription =
+        await registration.pushManager.getSubscription();
+      thisDeviceEndpoint.value = browserSubscription?.endpoint ?? null;
+    } catch (error) {
+      console.warn('Не удалось определить состояние устройства:', error);
+      hasActiveServiceWorker.value = false;
+      thisDeviceEndpoint.value = null;
+    }
+  };
+
+  /**
+   * Переподписка: сбрасывает старую браузерную подписку (и деактивирует её на
+   * сервере) и создаёт свежую. Нужна, когда в БД лежит устаревший/неправильный
+   * subscriber, из-за чего push «доставляется», но не приходит.
+   */
+  const resubscribe = async (): Promise<boolean> => {
+    if (isProcessing.value) return false;
+    try {
+      const registration = await getServiceWorkerRegistration();
+      if (registration) {
+        const browserSubscription =
+          await registration.pushManager.getSubscription();
+        if (browserSubscription) {
+          // Деактивируем старую запись на сервере, чтобы не плодить мёртвые.
+          const stale = store.subscriptions.find(
+            (sub) => sub.endpoint === browserSubscription.endpoint,
+          );
+          if (stale) {
+            try {
+              await webPushNotificationsMutations.deactivateWebPushSubscription(
+                stale.id,
+              );
+              stale.isActive = false;
+            } catch (e) {
+              console.warn('Не удалось деактивировать старую подписку:', e);
+            }
+          }
+          await browserSubscription.unsubscribe();
+          thisDeviceEndpoint.value = null;
+        }
+      }
+    } catch (error) {
+      console.warn('Ошибка сброса старой подписки при переподписке:', error);
+      // Не прерываем — пробуем подписаться заново в любом случае.
+    }
+    // Создаём свежую подписку (запросит разрешение при необходимости).
+    return await subscribe();
+  };
+
+  /**
    * Инициализация системы push уведомлений
    */
   const initialize = async () => {
@@ -465,6 +558,7 @@ export function useWebPushNotifications() {
     if (sessionStore.isAuth) {
       await loadUserSubscriptions();
     }
+    await refreshDeviceState();
   };
 
   /**
@@ -477,11 +571,16 @@ export function useWebPushNotifications() {
       // Проверяем поддержку
       updateSupport();
 
-      if (!store.support.isSupported || store.isSubscribed) {
-        console.log('Подписка не поддерживается или уже есть, выходим');
+      // ВАЖНО: проверяем только поддержку, НЕ store.isSubscribed. isSubscribed
+      // = «у аккаунта есть подписка на любом устройстве» — на новом устройстве
+      // он true из-за старого, и тогда новое устройство НИКОГДА не подпишется
+      // (корень бага «пуш приходит только на одно устройство»). subscribe()
+      // идемпотентен (upsert по endpoint), поэтому повторный вызов на уже
+      // подписанном устройстве безопасен.
+      if (!store.support.isSupported) {
+        console.log('Push не поддерживается, выходим');
         return;
       }
-      console.log('store.', store);
 
       // Не запрашиваем разрешение автоматически, только если уже есть
       if (store.support.hasPermission) {
@@ -548,6 +647,8 @@ export function useWebPushNotifications() {
     canSubscribe,
     canUnsubscribe,
     subscriptionStatus,
+    isThisDeviceSubscribed,
+    hasActiveServiceWorker,
 
     // Методы
     initialize,
@@ -557,6 +658,8 @@ export function useWebPushNotifications() {
     forceRequestPermission,
     subscribe,
     unsubscribe,
+    resubscribe,
+    refreshDeviceState,
     autoSubscribeIfSupported,
     loadUserSubscriptions,
   };

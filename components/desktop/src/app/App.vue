@@ -38,17 +38,27 @@ const globalOverlays = getGlobalOverlays();
 // регистрируют сами в своих install.ts (фабрика, как и оверлеи).
 startRealtimeChannel();
 
+// [BOOTRACE] таймстемп первого холодного старта (грепается по слову BOOTRACE).
+const bootraceTs = (): string => {
+  try {
+    return `${Math.round(performance.now())}ms`;
+  } catch {
+    return '?';
+  }
+};
+
 // Диалог разрешения уведомлений
 const { showDialog } = useNotificationPermissionDialog();
 
 onMounted(async () => {
+  console.log(`[BOOTRACE] ${bootraceTs()} App.onMounted старт`);
   const SAFETY_REMOVE_LOADER_MS = 60_000;
   let safetyTimerId: ReturnType<typeof setTimeout> | undefined;
   if (typeof window !== 'undefined') {
     safetyTimerId = setTimeout(() => {
       if (!isLoaded.value) {
         console.warn(
-          'Экран загрузки снят по таймауту: boot или инициализация зависли дольше ожидаемого.',
+          `[BOOTRACE] ${bootraceTs()} SAFETY-TIMEOUT 60s: boot/инициализация зависли, снимаем лоадер принудительно`,
         );
         removeLoader();
         isLoaded.value = true;
@@ -123,6 +133,7 @@ onMounted(async () => {
 
     removeLoader();
     isLoaded.value = true;
+    console.log(`[BOOTRACE] ${bootraceTs()} App.isLoaded=true (лоадер снят, router-view рендерится)`);
     clearSafetyTimer();
 
     // Показываем диалог разрешения уведомлений после загрузки

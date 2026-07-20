@@ -7,7 +7,7 @@ import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
 
 /**
- * Резолвер для управления уведомлениями через Novu
+ * Резолвер для управления уведомлениями и подписками
  */
 @Resolver()
 export class NotificationResolver {

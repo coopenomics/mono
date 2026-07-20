@@ -19,7 +19,10 @@ import type { DocumentType } from 'src/entities/Document/model/types';
 const system = useSystemStore();
 const { info } = system;
 const coopname = computed(() => info.coopname);
-const typeForToggle = ref<DocumentType>('newresolved');
+// «Все входящие» (newsubmitted) → status не ограничивается → совет видит ВСЕ документы кооператива
+// (submitted + resolved), как и пайщик в своём реестре. Переключатель скрыт (showFilter=false),
+// поэтому это и есть итоговая выборка реестра совета.
+const typeForToggle = ref<DocumentType>('newsubmitted');
 
 const { registerAction } = useHeaderActions();
 

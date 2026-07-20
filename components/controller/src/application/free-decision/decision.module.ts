@@ -7,6 +7,7 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
 import { GeneratorInfrastructureModule } from '~/infrastructure/generator/generator.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { FreeDecisionInteractor } from './interactors/free-decision.interactor';
+import { AgendaModule } from '../agenda/agenda.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { FreeDecisionInteractor } from './interactors/free-decision.interactor';
     DocumentDomainModule,
     GeneratorInfrastructureModule,
     forwardRef(() => UserDomainModule),
+    AgendaModule,
   ],
   controllers: [],
   providers: [FreeDecisionResolver, FreeDecisionService, FreeDecisionInteractor],

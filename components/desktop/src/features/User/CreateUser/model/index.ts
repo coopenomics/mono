@@ -24,6 +24,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import { IDocument } from 'src/shared/lib/types/document';
 import { useAccountStore } from 'src/entities/Account/model';
 import { LocalStorage } from 'quasar';
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
 
 export interface ICreateUser {
   email: string;
@@ -328,9 +329,10 @@ export function useCreateUser() {
     if (synthData.type === Zeus.AccountType.individual) {
       synthData.individual_data = userData.individual_data;
     } else if (synthData.type === Zeus.AccountType.organization) {
-      synthData.organization_data = userData.organization_data;
+      // TODO(удалить после 01.09.2026): strip устаревший «КПП банка» из persisted-localStorage
+      synthData.organization_data = stripLegacyBankKpp(userData.organization_data);
     } else if (synthData.type === Zeus.AccountType.entrepreneur) {
-      synthData.entrepreneur_data = userData.entrepreneur_data;
+      synthData.entrepreneur_data = stripLegacyBankKpp(userData.entrepreneur_data);
     }
 
     const referer = LocalStorage.getItem(`${info.coopname}:referer`) as string || undefined;

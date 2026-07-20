@@ -1,5 +1,7 @@
 import type { Mutations, Queries } from '@coopenomics/sdk';
 import { useInstallCooperativeStore } from 'src/entities/Installer/model'
+import { stripLegacyBankKpp } from 'src/shared/lib/utils/stripLegacyBankKpp';
+import { getMinSovietMembersCount } from '../lib';
 import { api } from '../api'
 
 export type IInstallInput = Mutations.System.InstallSystem.IInput['data']
@@ -30,7 +32,15 @@ export const useInstallCooperative = (): {
   }
 
   async function initSystem(data: IInitSystemInput): Promise<IInitSystemOutput> {
-    return await api.initSystem(data);
+    const payload: IInitSystemInput = data.organization_data
+      ? {
+          ...data,
+          // TODO(удалить после 01.09.2026): strip устаревший «КПП банка» из ответа getInstallationStatus
+          organization_data: stripLegacyBankKpp(data.organization_data),
+        }
+      : data;
+
+    return await api.initSystem(payload);
   }
 
   async function getInstallationStatus(installCode: string): Promise<IGetInstallationStatusOutput> {
@@ -41,8 +51,15 @@ export const useInstallCooperative = (): {
     if (!store.vars)
       throw new Error('Переменные не установлены')
 
-    if (!store.soviet || store.soviet.length === 0)
-      throw new Error('Совет не установлен')
+    const minSovietMembers = getMinSovietMembersCount();
+
+    if (!store.soviet || store.soviet.length < minSovietMembers) {
+      throw new Error(
+        minSovietMembers === 1
+          ? 'Совет не установлен'
+          : `Совет должен включать не менее ${minSovietMembers} человек (председатель и члены совета)`,
+      );
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const soviet = store.soviet.map(({ id, type, ...rest }) => rest);

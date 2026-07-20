@@ -82,3 +82,8 @@ export const _apps = {
   production: 'apps',
   testnet: 'apps',
 } as const
+
+export const _expense = {
+  production: 'expense',
+  testnet: 'expense',
+} as const

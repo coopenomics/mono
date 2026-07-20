@@ -3,8 +3,15 @@ import { config } from '~/config';
 import { ProgramShareRegistrationService } from '../../application/services/program-share-registration.service';
 
 /**
- * Периодическая синхронизация долей участников (regshare) по балансу программы Благорост.
+ * Периодическая сверка долей участников (regshare) с балансом программы Благорост.
  * Интервал задаётся в конфигурации расширения Capital (минуты); 0 — отключено.
+ *
+ * Роль — reconciliation-бэкстоп, не основной путь. Горячие сценарии покрыты
+ * событиями: появление проекта — `ProgramShareRegistrationOnProjectDeltaListener`,
+ * изменение баланса — `ProgramShareRegistrationOnUserWalletDeltaListener`. Крон
+ * оставлен, потому что он ещё и ДОобновляет уже зарегистрированные доли при
+ * дрейфе баланса (контракт `upsert_contributor_segment` это допускает) и
+ * подбирает события, потерянные при downtime контроллера.
  */
 @Injectable()
 export class ProgramShareRegistrationSchedulerService implements OnModuleDestroy {

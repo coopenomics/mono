@@ -1,10 +1,11 @@
 import { Notify } from 'quasar';
 import { extractGraphQLErrorMessages } from './errors';
 import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
+import { sanitizeBlockchainError } from 'src/shared/lib/utils/sanitizeBlockchainError';
 
 /**
  * Canon-тосты платформы. Единый визуал и поведение для всех типов
- * уведомлений: бизнес-успех, бизнес-ошибка, входящий push (Novu).
+ * уведомлений: бизнес-успех, бизнес-ошибка, входящее in-app уведомление.
  *
  * Канон (см. shared/MONO Design System.html → .toast):
  *  - Позиция: правый НИЖНИЙ угол (bottom-right).
@@ -67,10 +68,22 @@ export function SuccessAlert(
 export function FailAlert(error: unknown, text?: string): void {
   let message = extractGraphQLErrorMessages(error);
   message = message.replace('assertion failure with message: ', '');
+
+  // Полный технический текст ошибки — в консоль для разработчиков. Пользователю
+  // ниже показываем очищенную версию, но сырой ассерт цепи остаётся доступен
+  // здесь (и в логах контроллера).
+  // eslint-disable-next-line no-console
+  console.error('[FailAlert]', message, error);
+
   // Суммы из ошибок цепи приходят «сырыми» (precision=4: "100.0000 RUB").
   // Приводим к виду «2 знака» через единый форматтер — единая точка для
   // всех тостов ошибок (см. formatAssetsInText).
   message = formatAssetsInText(message);
+  // Снимаем технические детали ассертов контрактов (scope-префикс вида
+  // `walletop TRANSFER:` и служебные имена кошельков `w.wal.share`), чтобы
+  // пользователь видел «Недостаточно средств на кошельке», а не внутреннюю
+  // механику. Единая точка очистки для всех тостов ошибок.
+  message = sanitizeBlockchainError(message);
 
   Notify.create({
     message: text ? `${text}: ${message}` : message,
@@ -87,10 +100,32 @@ export function NotifyAlert(title: string, body?: string, avatar?: string): void
     message: title,
     caption: body,
     avatar,
-    // Без avatar — нейтральная иконка-колокольчик; это in-app push от Novu.
+    // Без avatar — нейтральная иконка-колокольчик; это in-app уведомление.
     icon: avatar ? undefined : 'notifications',
     position: POSITION,
     timeout: TIMEOUT_INFO + 3000,
     actions: [CLOSE_ACTION],
+  });
+}
+
+// Тост обновления приложения. Правый нижний угол (там же, где все тосты),
+// timeout 0 (не исчезает сам): пользователь сам решает «Обновить»/«Позже».
+export function UpdateAlert(onApply: () => void, onDismiss?: () => void): void {
+  Notify.create({
+    message: 'Доступно обновление',
+    caption: 'Вышла новая версия рабочего стола. Без обновления часть функций может работать некорректно.',
+    type: 'info',
+    icon: 'update',
+    position: POSITION,
+    timeout: 0,
+    group: false,
+    multiLine: true,
+    classes: 'q-notification--app-update',
+    actions: [
+      { label: 'Обновить', noDismiss: true, handler: onApply },
+      { label: 'Позже', flat: true, size: 'sm', handler: (): void => { onDismiss?.(); } },
+      // Крестик закрытия — позиционируется в правый верхний угол тоста (CSS .app-update__close)
+      { icon: 'close', flat: true, round: true, size: 'sm', class: 'app-update__close', handler: (): void => { onDismiss?.(); } },
+    ],
   });
 }

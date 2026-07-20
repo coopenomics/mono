@@ -10,6 +10,7 @@ import type {
 } from '~/domain/common/interfaces/pagination.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 
 export interface GatewayInteractorPort {
   getPayments(
@@ -27,6 +28,20 @@ export interface GatewayInteractorPort {
   createSystemOutgoingPayment(
     data: CreateSystemOutgoingPaymentInputDomainInterface
   ): Promise<PaymentDomainEntity>;
+
+  /**
+   * Подготовить (с валидацией) исходящий платеж к созданию БЕЗ записи в БД.
+   * Парный метод к persistWithdraw — даёт вызывающему провести on-chain
+   * транзакцию между валидацией и фиксацией платежа.
+   */
+  prepareWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainInterface>;
+
+  /**
+   * Зафиксировать в БД ранее подготовленный исходящий платеж.
+   * Вызывается только после успешной on-chain транзакции.
+   */
+  persistWithdraw(paymentData: PaymentDomainInterface): Promise<PaymentDomainEntity>;
+
   setPaymentStatus(data: SetPaymentStatusInputDomainInterface): Promise<PaymentDomainEntity>;
 
   /**

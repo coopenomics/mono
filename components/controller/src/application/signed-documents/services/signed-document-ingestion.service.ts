@@ -4,6 +4,7 @@ import { Cooperative, SovietContract } from 'cooptypes';
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
 import {
   SIGNED_DOCUMENT_REPOSITORY,
+  type SignedDocumentPackageRow,
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';

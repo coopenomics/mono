@@ -1,3 +1,5 @@
+#include <array>
+
 /**
  * @brief Миграция данных системы
  * Выполняет миграцию данных системы при обновлении контракта.
@@ -10,14 +12,62 @@
 void soviet::migrate() {
     require_auth(_soviet); // Проверяем авторизацию
 
-    // Миграция program_type для кооператива voskhod, программа id=4 -> blagorost
-    eosio::name coopname = "voskhod"_n;
-    programs_index programs(_soviet, coopname.value);
-    auto program_it = programs.find(4);
-    if (program_it != programs.end() && program_it->program_type != "blagorost"_n) {
-        programs.modify(program_it, _soviet, [&](auto &pr) {
-            pr.program_type = "blagorost"_n;
-        });
+    // Откат program_type для кооператива voskhod, программа id=4: blagorost -> capital.
+    // Предыдущая версия этой миграции переименовывала programs.program_type в
+    // 'blagorost', но coagreements.type для той же программы (program_id=4) всегда
+    // оставался 'capital' и никогда не переименовывался — таблицы разъехались.
+    // 'capital' — каноничное значение (используется coagreements.type, contract-
+    // константой _capital_program и всем controller-кодом); эта миграция приводит
+    // programs.program_type к нему же. Идемпотентно.
+    {
+        eosio::name coopname = "voskhod"_n;
+        programs_index programs(_soviet, coopname.value);
+        auto program_it = programs.find(4);
+        if (program_it != programs.end() && program_it->program_type != "capital"_n) {
+            programs.modify(program_it, _soviet, [&](auto &pr) {
+                pr.program_type = "capital"_n;
+            });
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Разовая очистка ФАНТОМНЫХ участников кооператива fgrtejiwnynn (инцидент
+    // 2026-06-04). Удаляем строки soviet::participants для 6 дублей-аккаунтов,
+    // оставшихся на цепи после 3-кратного прогона install.interactor (см.
+    // ~/gorozhane-dup-install-cleanup.md). Эти участники не голосовали и не
+    // входят в совет (createboard для них не выполнялся).
+    //
+    // Список username синхронизирован с registrator::migrate и ledger2::migrate.
+    // Дедуп-гард: удаляем фантомов ТОЛЬКО если в коопе остаётся хотя бы один
+    // НЕ-фантомный участник (никогда не опустошаем реестр). Идемпотентно.
+    {
+        const eosio::name PHANTOM_COOP = "fgrtejiwnynn"_n;
+        const std::array<eosio::name, 6> PHANTOMS = {
+            "bbsezpgufvmm"_n, "errwcgjwverm"_n, "hcfsluqsfehw"_n,
+            "kgkzdadfpzki"_n, "nzuyijobapsv"_n, "tplwfwbujugq"_n,
+        };
+
+        auto is_phantom = [&](eosio::name u) {
+            for (const auto& p : PHANTOMS) if (p == u) return true;
+            return false;
+        };
+
+        participants_index participants(_soviet, PHANTOM_COOP.value);
+
+        // Гарантируем, что после удаления останется ≥1 реальный участник.
+        uint64_t real_participants = 0;
+        for (auto it = participants.begin(); it != participants.end(); ++it) {
+            if (!is_phantom(it->username)) real_participants++;
+        }
+
+        if (real_participants > 0) {
+            for (const auto& u : PHANTOMS) {
+                auto it = participants.find(u.value);
+                if (it != participants.end()) {
+                    participants.erase(it);
+                }
+            }
+        }
     }
 
 

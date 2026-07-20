@@ -1,7 +1,8 @@
 import { Cooperative, SovietContract } from 'cooptypes';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { useGlobalStore } from 'src/shared/store';
+import { api as authorizeDecisionApi } from 'src/features/Decision/AuthorizeAndExecDecision/api';
+import { api as declineDecisionApi } from 'src/features/Decision/DeclineDecision';
 import { useVoteForDecision } from 'src/features/Decision/VoteForDecision';
 import { useVoteAgainstDecision } from 'src/features/Decision/VoteAgainstDecision';
 import { computed } from 'vue';
@@ -178,49 +179,43 @@ export function useDecisionProcessor() {
     const digitalDocument = new DigitalDocument(document);
     const signedDocument = await digitalDocument.sign(session.username);
 
-    // Подготавливаем данные для транзакций
-    const authorizeData: SovietContract.Actions.Decisions.Authorize.IAuthorize =
-      {
-        coopname: info.coopname,
-        chairman: session.username,
-        decision_id,
-        document: {
-          ...signedDocument,
-          meta: JSON.stringify(signedDocument.meta),
-        },
-      };
-
-    const execData: SovietContract.Actions.Decisions.Exec.IExec = {
-      executer: session.username,
+    // Утверждение + исполнение проводит контроллер ключом кооператива
+    // (мутация authorizeDecision). meta передаём объектом — бэкенд сам
+    // сериализует при сборке chain-action; подпись председателя на документе
+    // сохраняется и проверяется контрактом.
+    await authorizeDecisionApi.authorizeDecision({
       coopname: info.coopname,
-      decision_id: decision_id,
-    };
+      chairman: session.username,
+      decision_id,
+      document: signedDocument,
+    });
 
-    // Выполняем транзакции
-    await useGlobalStore().transact([
-      {
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Decisions.Authorize.actionName,
-        authorization: [
-          {
-            actor: session.username,
-            permission: 'active',
-          },
-        ],
-        data: authorizeData,
-      },
-      {
-        account: SovietContract.contractName.production,
-        name: SovietContract.Actions.Decisions.Exec.actionName,
-        authorization: [
-          {
-            actor: session.username,
-            permission: 'active',
-          },
-        ],
-        data: execData,
-      },
-    ]);
+    return true;
+  }
+
+  /**
+   * Отклоняет решение, против которого проголосовало большинство совета
+   * (отрицательный консенсус). Проводит контроллер ключом кооператива; контракт
+   * проверяет порог «против». Развязано с авто-отменой по сроку (cancelexprd).
+   */
+  async function declineDecision(row: IAgenda) {
+    if (!row.table) {
+      throw new Error('Отсутствует таблица решения');
+    }
+
+    if (!row.table.id) {
+      throw new Error('Отсутствует ID решения');
+    }
+
+    const decision_id = Number(row.table.id);
+    if (isNaN(decision_id)) {
+      throw new Error('Некорректный ID решения');
+    }
+
+    await declineDecisionApi.declineDecision({
+      coopname: info.coopname,
+      decision_id,
+    });
 
     return true;
   }
@@ -305,6 +300,7 @@ export function useDecisionProcessor() {
     loadDecisions,
     generateDecisionDocument,
     authorizeAndExecuteDecision,
+    declineDecision,
     voteForDecision,
     voteAgainstDecision,
     isVotedFor,

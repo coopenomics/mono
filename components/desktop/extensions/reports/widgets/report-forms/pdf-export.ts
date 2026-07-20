@@ -1,5 +1,3 @@
-import html2pdf from 'html2pdf.js'
-
 /**
  * Экспорт DOM-узла `.printable-form` в PDF-файл с разбивкой по `<section class="page">`
  * через CSS `page-break-after: always` (уже стоит в `@media print`).
@@ -13,6 +11,12 @@ import html2pdf from 'html2pdf.js'
  * На 2-4 листа формата A4 итоговый PDF ~300-600 KB — приемлемо.
  */
 export async function exportFormToPdf(el: HTMLElement, fileName: string): Promise<void> {
+  // html2pdf.js на верхнем уровне модуля обращается к `self` → при SSR-бандле
+  // падает `ReferenceError: self is not defined` (Quasar boot error). Грузим
+  // библиотеку лениво: экспорт вызывается только по действию пользователя в
+  // браузере, на сервере модуль не вычисляется.
+  const { default: html2pdf } = await import('html2pdf.js')
+
   // scale: 2 — рендер в 2× разрешении, тексту в растровом PDF нужна
   // высокая плотность чтобы читаться при печати. 3 заметно медленнее,
   // 1.5 уже мыльный.

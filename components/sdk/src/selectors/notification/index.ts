@@ -1,3 +1,5 @@
 export * from './createSubscriptionResponseSelector'
+export * from './inboxNotificationSelector'
+export * from './notificationSelector'
 export * from './subscriptionStatsSelector'
 export * from './webPushSubscriptionSelector'

@@ -12,18 +12,15 @@ export class Factory extends DocFactory<GenerationContractTemplate.Action> {
   }
 
   async generateDocument(data: GenerationContractTemplate.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<GenerationContractTemplate.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = GenerationContractTemplate.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, GenerationContractTemplate.registry_id, data.block_num)
-    }
+    const { template, vars, coop } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(GenerationContractTemplate.Template as ITemplate<GenerationContractTemplate.Model>)
+        : this.getTemplate<GenerationContractTemplate.Model>(DraftContract.contractName.production, GenerationContractTemplate.registry_id, data.block_num),
+      vars: () => this.getVars(data.coopname),
+      coop: () => this.getCooperative(data.coopname),
+    })
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const vars = await this.getVars(data.coopname)
-    const coop = await this.getCooperative(data.coopname)
 
     const combinedData: GenerationContractTemplate.Model = {
       meta,

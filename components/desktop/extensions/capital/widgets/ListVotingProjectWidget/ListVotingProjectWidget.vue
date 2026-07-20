@@ -253,4 +253,17 @@ watch(() => props.coopname, () => {
 </script>
 
 <style lang="scss" scoped>
+
+.card-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
+
+.card-label {
+  font-size: var(--p-fs-body);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-1);
+}
 </style>

@@ -10,11 +10,14 @@
 * @param coopname Имя кооператива
 * @param decision_id Идентификатор решения для исполнения
 * 
-* @note Авторизация требуется от аккаунта: @p executer
+* @note Авторизация требуется от аккаунта: @p coopname
 */
-void soviet::exec(eosio::name executer, eosio::name coopname, uint64_t decision_id) { 
-  require_auth(executer);
-  
+void soviet::exec(eosio::name executer, eosio::name coopname, uint64_t decision_id) {
+  // Исполнение проводится через бэкенд ключом кооператива. Параметр executer остаётся
+  // в payload как аудит-метка (кто инициировал исполнение) и не используется для авторизации
+  // inline-эффектов — те выполняются под собственными правами контракта (_soviet/_gateway/_fund).
+  require_auth(coopname);
+
   decisions_index decisions(_soviet, coopname.value);
   auto decision = decisions.find(decision_id);
   

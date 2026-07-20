@@ -54,11 +54,42 @@ const DEFAULT_ICONS: Record<WalletProgram, string> = {
   generator: 'bolt',
 };
 
-const resolvedTitle = computed(() => props.title ?? DEFAULT_TITLES[props.program]);
-const resolvedIcon = computed(() => props.icon ?? DEFAULT_ICONS[props.program]);
+const resolvedTitle = computed(
+  () => props.title ?? (props.program ? DEFAULT_TITLES[props.program] : ''),
+);
+const resolvedIcon = computed(
+  () => props.icon ?? (props.program ? DEFAULT_ICONS[props.program] : 'savings'),
+);
 
-const progStyle = computed<CSSProperties>(() => ({
-  '--prog-bg': `var(--prog-${props.program}-soft)`,
-  '--prog-fg': `var(--prog-${props.program})`,
-} as CSSProperties));
+const progStyle = computed<CSSProperties>(() => {
+  // Нейтральная карточка (или без программы) — приглушённая иконка без акцента.
+  if (props.neutral || !props.program) {
+    return {
+      '--prog-bg': 'var(--p-canvas-2)',
+      '--prog-fg': 'var(--p-ink-2)',
+    } as CSSProperties;
+  }
+  return {
+    '--prog-bg': `var(--prog-${props.program}-soft)`,
+    '--prog-fg': `var(--prog-${props.program})`,
+  } as CSSProperties;
+});
 </script>
+
+<style scoped>
+/* Заголовок и подпись не обрезаются в одну строку (canon nowrap) и не бегут
+   marquee'й — переносятся максимум на две строки с «…» в конце. Полный текст
+   всегда доступен в title-тултипе. */
+.wallet__title,
+.wallet__sub {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.wallet__title {
+  line-height: var(--p-lh-h3);
+}
+</style>

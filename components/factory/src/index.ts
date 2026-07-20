@@ -96,6 +96,8 @@ export class Generator implements IGenerator {
       [Actions.CoopenomicsAgreement.Template.registry_id]: new Actions.CoopenomicsAgreement.Factory(this.storage), // 50
       [Actions.ConvertToAxonStatement.Template.registry_id]: new Actions.ConvertToAxonStatement.Factory(this.storage), // 51
       [Actions.ParticipantApplication.Template.registry_id]: new Actions.ParticipantApplication.Factory(this.storage), // 100
+      [Actions.ParticipantExitApplication.Template.registry_id]: new Actions.ParticipantExitApplication.Factory(this.storage), // 200
+      [Actions.DecisionOfParticipantExit.Template.registry_id]: new Actions.DecisionOfParticipantExit.Factory(this.storage), // 201
       [Actions.SelectBranchStatement.Template.registry_id]: new Actions.SelectBranchStatement.Factory(this.storage), // 101
 
       // общее собрание
@@ -141,6 +143,10 @@ export class Generator implements IGenerator {
 
       [Actions.ExpenseStatement.Template.registry_id]: new Actions.ExpenseStatement.Factory(this.storage), // 1010
       [Actions.ExpenseDecision.Template.registry_id]: new Actions.ExpenseDecision.Factory(this.storage), // 1011
+
+      // Шасси расходов — программные расходы (служебные записки)
+      [Actions.ExpenseProposalStatement.Template.registry_id]: new Actions.ExpenseProposalStatement.Factory(this.storage), // 2010
+      [Actions.ExpenseProposalDecision.Template.registry_id]: new Actions.ExpenseProposalDecision.Factory(this.storage), // 2011
 
       [Actions.GenerationMoneyInvestStatement.Template.registry_id]: new Actions.GenerationMoneyInvestStatement.Factory(this.storage), // 1020
       [Actions.GenerationMoneyReturnUnusedStatement.Template.registry_id]: new Actions.GenerationMoneyReturnUnusedStatement.Factory(this.storage), // 1025

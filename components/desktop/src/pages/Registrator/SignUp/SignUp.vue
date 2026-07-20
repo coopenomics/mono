@@ -83,6 +83,28 @@ onMounted(() => {
       store.step = steps.WaitingRegistration;
       return;
     }
+    // Незавершённый вступительный платёж. PENDING означает «счёт выставлен», а НЕ
+    // «деньги получены»: строку счёта мы создаём сразу при заходе на шаг оплаты.
+    // Поэтому на экран ожидания/отказа ведём ТОЛЬКО когда деньги уже поступили
+    // (PAID/COMPLETED) либо платёж в терминальном статусе (отказ/отмена/возврат).
+    // Приоритет над статусом: при отказе платежа показываем причину, а не гоним
+    // «оплатить заново».
+    const regPaymentStatus = session.registrationPayment?.status;
+    if (regPaymentStatus && regPaymentStatus !== Zeus.PaymentStatus.PENDING) {
+      store.step = steps.WaitingRegistration;
+      return;
+    }
+    // Сервер — источник истины о шаге: заявление подписано (Joined) либо счёт
+    // выставлен, но не оплачен (PENDING) → возвращаем на шаг оплаты (там QR +
+    // поллинг приёма денег). Так процесс переживает перезагрузку и открытие в
+    // другой вкладке, не завися от localStorage.
+    if (
+      regPaymentStatus === Zeus.PaymentStatus.PENDING ||
+      userStatus === Zeus.UserStatus.Joined
+    ) {
+      store.step = steps.PayInitial;
+      return;
+    }
   }
 });
 

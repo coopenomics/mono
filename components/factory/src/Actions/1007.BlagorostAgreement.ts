@@ -13,44 +13,41 @@ export class Factory extends DocFactory<BlagorostAgreement.Action> {
   }
 
   async generateDocument(data: BlagorostAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<BlagorostAgreement.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = BlagorostAgreement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, BlagorostAgreement.registry_id, data.block_num)
-    }
-
-    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-    const userData = await super.getUser(data.username, data.block_num)
-    const common_user = super.getCommonUser(userData)
-
     // Извлечение данных из Udata репозитория
     const udataService = new Udata(this.storage)
 
-    const blagorostAgreementUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
-      block_num: data.block_num,
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars, userData, blagorostAgreementUdata, contributorContractUdata, contributorContractCreatedAtUdata } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(BlagorostAgreement.Template as ITemplate<BlagorostAgreement.Model>)
+        : this.getTemplate<BlagorostAgreement.Model>(DraftContract.contractName.production, BlagorostAgreement.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      userData: () => super.getUser(data.username, data.block_num),
+      blagorostAgreementUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_AGREEMENT_NUMBER,
+        block_num: data.block_num,
+      }),
+      contributorContractUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
+        block_num: data.block_num,
+      }),
+      contributorContractCreatedAtUdata: () => udataService.getOne({
+        coopname: data.coopname,
+        username: data.username,
+        key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
+        block_num: data.block_num,
+      }),
     })
 
-    const contributorContractUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_NUMBER,
-      block_num: data.block_num,
-    })
+    // meta зависит от template.title — считаем после батча
+    const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
 
-    const contributorContractCreatedAtUdata = await udataService.getOne({
-      coopname: data.coopname,
-      username: data.username,
-      key: Cooperative.Model.UdataKey.BLAGOROST_CONTRIBUTOR_CONTRACT_CREATED_AT,
-      block_num: data.block_num,
-    })
+    const common_user = super.getCommonUser(userData)
 
     // Проверка наличия необходимых параметров
     // blagorost_agreement_number может отсутствовать если это путь Генератора (параметры генерируются на бэкенде)

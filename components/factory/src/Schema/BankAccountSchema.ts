@@ -13,9 +13,8 @@ export const BankAccountSchema: JSONSchemaType<IBankAccount> = {
       properties: {
         bik: { type: 'string' },
         corr: { type: 'string' },
-        kpp: { type: 'string' },
       },
-      required: ['bik', 'corr', 'kpp'],
+      required: ['bik', 'corr'],
       additionalProperties: true,
     },
   },

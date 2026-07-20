@@ -13,18 +13,17 @@ export class Factory extends DocFactory<WalletAgreement.Action> {
   }
 
   async generateDocument(data: WalletAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<WalletAgreement.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(WalletAgreement.Template as ITemplate<WalletAgreement.Model>)
+        : this.getTemplate<WalletAgreement.Model>(DraftContract.contractName.production, WalletAgreement.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = WalletAgreement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, WalletAgreement.registry_id, data.block_num)
-    }
-
+    // meta зависит от template.title — резолвим после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     if (!vars?.wallet_agreement || isEmpty(vars.wallet_agreement.protocol_number) || isEmpty(vars.wallet_agreement.protocol_day_month_year))
       throw new Error('Реквизиты протокола для соглашения о ЦПП не заполнены. Укажите их в настройках кооператива и повторите генерацию.')

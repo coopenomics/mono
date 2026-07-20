@@ -81,12 +81,13 @@ static constexpr eosio::name _wallet_program = "wallet"_n; ///< Главный �
 static constexpr eosio::name _marketplace_program = "marketplace"_n; ///< Кошелёк программы "Маркетплейс"
 
 static constexpr eosio::name _source_program = "generator"_n; ///< Кошелёк для генерации по договору УХД
-static constexpr eosio::name _capital_program = "blagorost"_n; ///< Кошелёк программы "Благорост"
+static constexpr eosio::name _capital_program = "capital"_n; ///< Кошелёк программы "Благорост"
 
 
 static const std::set<eosio::name> soviet_actions = {
     "joincoop"_n, //регистрация пайщика
-    
+    "leavecoop"_n, //выход пайщика из кооператива (возврат паевого взноса)
+
     //MEET
     "creategm"_n,//предложение повестки планового общего собрание
     "completegm"_n, //решение общего собрания пайщиков
@@ -103,7 +104,10 @@ static const std::set<eosio::name> soviet_actions = {
 
     //WALLET
     "createwthd"_n, //создать заявление на возврат паевого взноса
-    
+
+    //EXPENSE
+    "createexp"_n, //служебная записка-смета о расходах (шасси расходов)
+
     //LEDGER
     "ledgerwthd"_n, //заявление на списание со счета через ledger
     
@@ -167,6 +171,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
     static constexpr eosio::name _apps = "apps"_n;
+    static constexpr eosio::name _expense = "expense"_n;
     static constexpr eosio::name _power_account = "eosio.power"_n;
     static constexpr eosio::name _saving_account = "eosio.saving"_n;
     
@@ -195,7 +200,8 @@ static constexpr uint64_t _capital_program_id = 4;
         "ledger"_n,
         "ledger2"_n,
         "capital"_n,
-        "apps"_n
+        "apps"_n,
+        "expense"_n
         // Добавьте остальные стандартные или пользовательские контракты по необходимости
       };
 

@@ -1,3 +1,9 @@
 # Convert text file line endings to lf
 * text eol=lf
 *.js text
+
+# Бинарные шрифты — без EOL-нормализации (перекрывает "* text eol=lf")
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

@@ -8,4 +8,10 @@ export class SetPaymentStatusInputDTO {
 
   @Field(() => PaymentStatusEnum, { description: 'Новый статус платежа' })
   status!: PaymentStatusEnum;
+
+  @Field(() => String, {
+    description: 'Причина изменения статуса. При отклонении платежа показывается пайщику как причина отказа.',
+    nullable: true,
+  })
+  message?: string;
 }

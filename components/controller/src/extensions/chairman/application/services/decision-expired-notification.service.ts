@@ -1,8 +1,7 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import cron from 'node-cron';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { VARS_REPOSITORY, VarsRepository } from '~/domain/common/repositories/vars.repository';
 import {
@@ -13,7 +12,6 @@ import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository } from '~/domain
 import { SovietBlockchainPort, SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
 import { SovietContract } from 'cooptypes';
 import config from '~/config/config';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import type { ExtensionDomainEntity } from '~/domain/extension/entities/extension-domain.entity';
 import { Workflows } from '@coopenomics/notifications';
 
@@ -24,8 +22,8 @@ import { Workflows } from '@coopenomics/notifications';
 export class DecisionExpiredNotificationService implements OnModuleInit, OnModuleDestroy {
   private cronJob: cron.ScheduledTask | null = null;
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     @Inject(VARS_REPOSITORY)
@@ -105,7 +103,7 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
       const subscriberId = userAccount.provider_account?.subscriber_id?.trim();
 
       if (!subscriberId) {
-        this.logger.warn(`subscriber_id пайщика ${username} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id пайщика ${username} не найден`);
         return;
       }
 
@@ -137,17 +135,17 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
         name,
       };
 
-      // Отправляем уведомление пайщику
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.DecisionExpired.id,
+      // Отправляем уведомление пайщику через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname,
+        workflowId: Workflows.DecisionExpired.id,
         to: {
           subscriberId,
           email: userEmail,
+          username,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление об отмене решения ${decisionId} отправлено пайщику ${username}`
       );
@@ -183,9 +181,9 @@ export class DecisionExpiredNotificationService implements OnModuleInit, OnModul
         // Если поле expired_at не существует, добавляем
         if (!decision.expired_at) return true;
 
-        // Если решение уже принято и не требуется отменять принятые решения, пропускаем
-        if (decision.approved && !plugin.config.cancelApprovedDecisions) return false;
-
+        // По истечению срока гасим ВСЕ решения (и принятые, и нет). Отрицательно
+        // принятые решения отдельно снимает председатель действием declinedec —
+        // авто-отмена по сроку и явный отказ по консенсусу теперь развязаны.
         // Конвертируем дату из формата блокчейна в JavaScript Date
         const expiredDate = new Date(decision.expired_at);
 

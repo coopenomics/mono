@@ -65,6 +65,11 @@ export * as CreateFreeDecision from './freeDecision'
 export * as Cancelexprd from './cancelexprd'
 
 /**
+ * Явное отклонение решения советом по отрицательному консенсусу (до истечения срока)
+ */
+export * as Declinedec from './declinedec'
+
+/**
  * Создает вопрос на повестке собрания совета. Вызывается только смарт-контрактами.
  * @internal
  */

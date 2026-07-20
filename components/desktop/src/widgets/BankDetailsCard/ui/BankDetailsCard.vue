@@ -31,16 +31,6 @@ q-form(ref="form")
   )
   q-input(
     dense
-    v-model="data.data.details.kpp"
-    standout="bg-teal text-white"
-    mask="#########"
-    label="КПП (банка)"
-    placeholder="9 цифр"
-    :rules="[val => notEmpty(val), val => val.length === 9 || 'КПП должен содержать 9 цифр']"
-    autocomplete="off"
-  )
-  q-input(
-    dense
     v-model="data.data.account_number"
     standout="bg-teal text-white"
     mask="####################"

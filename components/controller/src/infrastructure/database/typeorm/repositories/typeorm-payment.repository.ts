@@ -31,6 +31,11 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
     return this.mapToDomainEntity(payment);
   }
 
+  async delete(id: string): Promise<boolean> {
+    const result = await this.paymentRepository.delete({ id });
+    return (result.affected ?? 0) > 0;
+  }
+
   async create(data: PaymentDomainInterface): Promise<PaymentDomainInterface> {
     const payment = new PaymentEntity();
     payment.hash = data.hash;
@@ -162,6 +167,15 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
       queryBuilder.andWhere('payment.hash = :hash', { hash: filters.hash });
     }
 
+    // Все платежи, связанные с расходом (служебной запиской): proposal_hash
+    // лежит в json-поле blockchain_data у платежа выдачи аванса/оплаты и у
+    // расчётных платёжек (возврат/доплата). Извлекаем через ->> (json-оператор).
+    if (filters.proposal_hash) {
+      queryBuilder.andWhere("payment.blockchain_data ->> 'proposal_hash' = :proposalHash", {
+        proposalHash: filters.proposal_hash.toLowerCase(),
+      });
+    }
+
     queryBuilder.orderBy('payment.created_at', 'DESC');
 
     const limit = options.limit || 10;
@@ -258,6 +272,21 @@ export class TypeOrmPaymentRepository implements PaymentRepository {
       .andWhere('payment.symbol = :symbol', { symbol })
       .andWhere('payment.status = :status', { status: PaymentStatusEnum.PENDING })
       .andWhere('(payment.expired_at IS NULL OR payment.expired_at > :now)', { now })
+      .orderBy('payment.created_at', 'DESC')
+      .getOne();
+
+    if (!payment) return null;
+    return this.mapToDomainEntity(payment);
+  }
+
+  async findLatestByUsernameAndType(
+    username: string,
+    type: PaymentTypeEnum
+  ): Promise<PaymentDomainInterface | null> {
+    const payment = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .where('payment.username = :username', { username })
+      .andWhere('payment.type = :type', { type })
       .orderBy('payment.created_at', 'DESC')
       .getOne();
 

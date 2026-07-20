@@ -6,10 +6,6 @@ import { HttpApiError } from '~/utils/httpApiError';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import {
-  NOTIFICATION_DOMAIN_SERVICE,
-  NotificationDomainService,
-} from '~/domain/notification/services/notification-domain.service';
 import { EventsService } from '~/infrastructure/events/events.service';
 import type { GetAccountsInputDomainInterface } from '~/domain/account/interfaces/get-accounts-input.interface';
 import type {
@@ -37,8 +33,12 @@ import { EntrepreneurDomainEntity } from '~/domain/branch/entities/entrepreneur-
 import { ACCOUNT_BLOCKCHAIN_PORT, AccountBlockchainPort } from '~/domain/account/interfaces/account-blockchain.port';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import { userStatus } from '~/types/user.types';
+import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
+import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { CandidateStatus } from '~/domain/registration/enum';
 import { sha256 } from '~/utils/sha256';
+import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import type {
   SearchPrivateAccountsInputDomainInterface,
@@ -56,12 +56,12 @@ export class AccountInteractor {
     private readonly searchPrivateAccountsRepository: SearchPrivateAccountsRepository,
     @Inject(ACCOUNT_BLOCKCHAIN_PORT) private readonly accountBlockchainPort: AccountBlockchainPort,
     @Inject(CANDIDATE_REPOSITORY) private readonly candidateRepository: CandidateRepository,
-    @Inject(NOTIFICATION_DOMAIN_SERVICE) private readonly notificationDomainService: NotificationDomainService,
     private readonly eventsService: EventsService,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     private readonly tokenApplicationService: TokenApplicationService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService
+    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
+    @Inject(PAYMENT_REPOSITORY) private readonly paymentRepository: PaymentRepository
   ) {}
 
   private readonly logger = new Logger(AccountInteractor.name);
@@ -167,25 +167,6 @@ export class AccountInteractor {
       throw new Error('Не получены входные данные для обновления');
     }
 
-    // Novu: не блокируем ответ мутации — догоняем подписчика в фоне
-    try {
-      const account = await this.getAccount(user.username);
-      void this.notificationDomainService
-        .createSubscriberFromAccount(account)
-        .then(() => {
-          this.logger.log(`Подписчик NOVU обновлён для ${data.username}`);
-        })
-        .catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          const stack = error instanceof Error ? error.stack : undefined;
-          this.logger.error(`Ошибка обновления подписчика NOVU для ${data.username}: ${message}`, stack);
-        });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Ошибка подготовки синхронизации NOVU для ${data.username}: ${message}`, stack);
-    }
-
     // Получаем финальный аккаунт
     const account = await this.getAccount(user.username);
 
@@ -201,7 +182,40 @@ export class AccountInteractor {
     return result;
   }
 
+  /**
+   * Удаление аккаунта из системы учёта провайдера (off-chain).
+   *
+   * deleteUserByUsername удаляет только строку users в PG — блокчейн не трогает.
+   * Назначение — почистить реестр от незавершённых/отклонённых регистраций
+   * (тестеры, брошенные попытки) и освободить занятый e-mail для перерегистрации.
+   *
+   * Единственный гард — НЕ принят в кооператив. participant_account
+   * (accepted|blocked) появляется только после приёма советом, его наличие ⟺ член
+   * кооператива. Всё остальное (черновик, заявление, оплачен/на рассмотрении
+   * совета, отклонён, возврат) удаляемо — это и есть «незавершённая регистрация».
+   *
+   * Статус для гейта НЕ годится: воронка реально доходит лишь до `registered`
+   * (отказ совета и возврат взноса оставляют статус `registered`, а `failed`/
+   * `refunded` users.status никем не выставляются). Прежний allow-list
+   * `[created, joined, payed, failed, refunded]` исключал именно отклонённые/
+   * оплаченные брошенные регистрации — ровно те, ради которых задумана чистка.
+   *
+   * On-chain аккаунт заводится при оплате взноса (статус registered) и в EOSIO
+   * неудаляем — остаётся осиротевшим, имя в цепи занято навсегда. Для
+   * регистрационной чистки это приемлемо: off-chain учёт провайдера и цепь
+   * намеренно расходятся (см. registration-decline.listener — карточку кандидата
+   * на цепи снимает refundpay, системный аккаунт остаётся).
+   */
   async deleteAccount(username: string): Promise<void> {
+    const account = await this.accountDomainService.getAccount(username);
+
+    if (account.participant_account) {
+      throw new HttpApiError(
+        HttpStatus.BAD_REQUEST,
+        'Пайщик принят в кооператив — удаление невозможно.'
+      );
+    }
+
     await this.userDomainService.deleteUserByUsername(username);
   }
 
@@ -226,11 +240,11 @@ export class AccountInteractor {
     const user = await this.createUser({ ...data, role: 'user' });
     const tokens = await this.tokenApplicationService.generateAuthTokens(user.id);
 
-    // Настраиваем подписчика NOVU
+    // Настраиваем identity получателя
     try {
       await this.accountDomainService.setupNotificationSubscriber(user.username, 'регистрации');
     } catch (error: any) {
-      this.logger.error(`Ошибка настройки подписчика NOVU при регистрации ${data.username}: ${error.message}`, error.stack);
+      this.logger.error(`Ошибка настройки identity получателя при регистрации ${data.username}: ${error.message}`, error.stack);
     }
 
     // Создаем нового кандидата в репозитории
@@ -268,7 +282,58 @@ export class AccountInteractor {
   }
 
   async getAccount(username: string): Promise<AccountDomainEntity> {
-    return await this.accountDomainService.getAccount(username);
+    const account = await this.accountDomainService.getAccount(username);
+
+    // Прокидываем сводку по вступительному платежу, чтобы фронт восстановил шаг
+    // регистрации (ожидание/отклонение платежа) после перезагрузки и в любой вкладке.
+    // Актуально только пока пайщик ещё не принят (нет participant_account).
+    if (!account.participant_account) {
+      const payment = await this.paymentRepository.findLatestByUsernameAndType(
+        username,
+        PaymentTypeEnum.REGISTRATION
+      );
+      // Отказ совета (declinereg) заводит исходящий возврат REGISTRATION_REFUND.
+      // Сообщаем фронту отдельным статусом REFUNDED (входящий рег-платёж этот статус
+      // никогда не принимает) — иначе экран ожидания висит на «ожидаем решение
+      // совета», т.к. сам входящий платёж остаётся COMPLETED. Отказ относится к
+      // ТЕКУЩЕМУ циклу только если возврат свежее последнего вступительного платежа:
+      // после повторной подачи создаётся новый REGISTRATION (свежее старого возврата),
+      // и прошлый отказ больше не всплывает.
+      const refund = await this.paymentRepository.findLatestByUsernameAndType(
+        username,
+        PaymentTypeEnum.REGISTRATION_REFUND
+      );
+      const isCouncilDeclined =
+        !!refund &&
+        (!payment || new Date(refund.created_at).getTime() >= new Date(payment.created_at).getTime());
+
+      if (isCouncilDeclined && refund) {
+        // Два шага возврата для UI: пока касса не подтвердила исходящий платёж
+        // (refund != COMPLETED) — PROCESSING (кнопки повторной подачи нет, аккаунт
+        // на цепи ещё занят карточкой); после подтверждения — REFUNDED (refundpay
+        // снял карточку, повторная подача возможна).
+        const done = refund.status === PaymentStatusEnum.COMPLETED;
+        account.registration_payment = {
+          status: done ? PaymentStatusEnum.REFUNDED : PaymentStatusEnum.PROCESSING,
+          message: done
+            ? 'Совет отказал в приёме. Регистрационный взнос возвращён. Вы можете подать заявку заново.'
+            : 'Совет отказал в приёме. Регистрационный взнос возвращается. Дождитесь его завершения, чтобы подать заявку заново.',
+          hash: refund.hash,
+          quantity: refund.quantity,
+          symbol: refund.symbol,
+        };
+      } else if (payment) {
+        account.registration_payment = {
+          status: payment.status,
+          message: payment.message ?? null,
+          hash: payment.hash,
+          quantity: payment.quantity,
+          symbol: payment.symbol,
+        };
+      }
+    }
+
+    return account;
   }
 
   async getAccounts(
@@ -285,7 +350,11 @@ export class AccountInteractor {
     };
 
     for (const account of provider_accounts.items) {
-      const item = await this.accountDomainService.getAccount(account.username);
+      // this.getAccount (а не accountDomainService.getAccount) — чтобы реестр получил
+      // registration_payment: иначе отказ совета (Registered + возврат взноса) на
+      // списке неотличим от «ожидает совет». Обогащение стоит 2 доп. запроса к
+      // платежам только для непринятых аккаунтов (гард `!participant_account`).
+      const item = await this.getAccount(account.username);
       result.items.push(item);
     }
 
@@ -303,6 +372,29 @@ export class AccountInteractor {
     const candidate = await this.candidateRepository.findByUsername(username);
     if (!candidate) {
       throw new HttpApiError(HttpStatus.NOT_FOUND, `Кандидат с именем ${username} не найден`);
+    }
+
+    // Гард A (замок профиля): на цепь не должны уйти данные, отличные от
+    // подписанных в заявлении. Если в meta кандидата зафиксирован отпечаток
+    // (заявление подписано после внедрения гарда) — сверяем с текущим
+    // профилем. Кандидаты без отпечатка (регистрация шла до внедрения)
+    // пропускаются, чтобы не сломать уже идущие регистрации.
+    let candidateMeta: Record<string, any> = {};
+    try {
+      candidateMeta = candidate.meta ? JSON.parse(candidate.meta) : {};
+    } catch {
+      candidateMeta = {};
+    }
+    const lockedFingerprint = candidateMeta?.registration_profile_fingerprint;
+    if (lockedFingerprint) {
+      const account = await this.accountDomainService.getAccount(username);
+      const currentFingerprint = registrationProfileFingerprint(account?.private_account);
+      if (currentFingerprint && currentFingerprint !== lockedFingerprint) {
+        throw new HttpApiError(
+          HttpStatus.BAD_REQUEST,
+          'Данные пайщика изменены после подписания заявления. Пожалуйста, переподпишите заявление перед регистрацией.'
+        );
+      }
     }
 
     try {
@@ -327,6 +419,109 @@ export class AccountInteractor {
       this.logger.error(`Ошибка при регистрации аккаунта ${username} в блокчейне: ${error.message}`, error.stack);
       throw new HttpApiError(HttpStatus.INTERNAL_SERVER_ERROR, `Ошибка при регистрации в блокчейне: ${error.message}`);
     }
+  }
+
+  /**
+   * Откат регистрации к редактированию данных (recovery drift/decline).
+   *
+   * Применим ТОЛЬКО до создания аккаунта в блокчейне: после reguser username
+   * необратимо занят, и нужна перерегистрация — это отдельная ветка. Здесь же,
+   * пока аккаунта в цепи нет, безопасно вернуть пайщика к началу:
+   *  - снимаем заморозку профиля и e-mail (users.status → created);
+   *  - сбрасываем кандидата (документы и отпечаток заявления), чтобы заявление
+   *    пришлось переподписать под актуальные данные;
+   *  - удаляем непринятую попытку регистрационного платежа, чтобы экран
+   *    ожидания не показывал старый отказ.
+   *
+   * Если средства уже приняты (PAID/COMPLETED) — откат запрещён: нужен возврат
+   * средств (отдельная ветка refund).
+   */
+  async resetRegistration(username: string): Promise<AccountDomainEntity> {
+    const user = await this.userDomainService.getUserByUsername(username);
+    if (!user) {
+      throw new HttpApiError(HttpStatus.NOT_FOUND, `Пользователь ${username} не найден`);
+    }
+
+    // Повторная подача после отказа совета (вариант 1): в отличие от обычного
+    // отката (до приёма платежа), здесь аккаунт уже в блокчейне и взнос был принят —
+    // это нормально. Карточку участника на цепи снимает refundpay при завершении
+    // возврата, поэтому пускаем только когда возврат COMPLETED (иначе повторный
+    // reguser упадёт «повторное получение невозможно»). Отказ относится к текущему
+    // циклу, только если возврат свежее последнего вступительного платежа.
+    const payment = await this.paymentRepository.findLatestByUsernameAndType(
+      username,
+      PaymentTypeEnum.REGISTRATION
+    );
+    const refund = await this.paymentRepository.findLatestByUsernameAndType(
+      username,
+      PaymentTypeEnum.REGISTRATION_REFUND
+    );
+    const isCouncilDeclined =
+      !!refund &&
+      (!payment || new Date(refund.created_at).getTime() >= new Date(payment.created_at).getTime());
+
+    if (isCouncilDeclined && refund) {
+      if (refund.status !== PaymentStatusEnum.COMPLETED) {
+        throw new HttpApiError(
+          HttpStatus.BAD_REQUEST,
+          'Возврат регистрационного взноса ещё выполняется. Подайте заявку заново после его завершения.'
+        );
+      }
+      // Старые платежи не удаляем: getAccount различает циклы по дате — новый
+      // вступительный платёж будет свежее этого возврата, и прошлый отказ исчезнет.
+    } else {
+      // Обычный откат до приёма платежа: аккаунт ещё не в блокчейне, взнос не принят.
+      const blockchainAccount = await this.accountDomainService.getBlockchainAccount(username);
+      if (
+        blockchainAccount ||
+        user.status === userStatus['4_Registered'] ||
+        user.status === userStatus['5_Active']
+      ) {
+        throw new HttpApiError(
+          HttpStatus.BAD_REQUEST,
+          'Регистрация уже отправлена в блокчейн — откат к редактированию невозможен, требуется перерегистрация.'
+        );
+      }
+      if (payment) {
+        if (payment.status === PaymentStatusEnum.PAID || payment.status === PaymentStatusEnum.COMPLETED) {
+          throw new HttpApiError(
+            HttpStatus.BAD_REQUEST,
+            'Вступительный взнос уже принят — для отката требуется возврат средств.'
+          );
+        }
+        if (payment.id) {
+          await this.paymentRepository.delete(payment.id);
+        }
+      }
+    }
+
+    // Кандидат: чистим документы и отпечаток заявления (потребуется переподпись).
+    const candidate = await this.candidateRepository.findByUsername(username);
+    if (candidate) {
+      let candidateMeta: Record<string, any> = {};
+      try {
+        candidateMeta = candidate.meta ? JSON.parse(candidate.meta) : {};
+      } catch {
+        candidateMeta = {};
+      }
+      delete candidateMeta.registration_profile_fingerprint;
+      await this.candidateRepository.update(username, {
+        status: CandidateStatus.PENDING,
+        documents: {},
+        meta: JSON.stringify(candidateMeta),
+      });
+    }
+
+    // Снимаем заморозку: профиль и e-mail снова можно менять.
+    await this.userDomainService.updateUserByUsername(username, {
+      status: userStatus['1_Created'],
+      is_registered: false,
+      has_account: false,
+    });
+
+    this.logger.log(`Регистрация ${username} откатана к редактированию данных`);
+
+    return await this.accountDomainService.getAccount(username);
   }
 
   /**

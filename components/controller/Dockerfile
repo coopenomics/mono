@@ -27,10 +27,18 @@ RUN apt-get update && apt-get install -y \
     libharfbuzz-dev \
     libcairo2 \
     libpango1.0-dev \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m venv /venv \
     && /venv/bin/pip install WeasyPrint==67 \
     && rm -rf /root/.cache/pip
+
+# Шрифт Arial устанавливаем СИСТЕМНО (а не встраиваем base64 в каждый html).
+# Иначе weasyprint парсил бы ~270 КБ TTF на каждый рендер (≈1.3 сек/документ).
+# Системный шрифт fontconfig парсит один раз и кеширует. Файл тот же —
+# глифы/вёрстка идентичны прежним.
+COPY assets/fonts/arial.ttf /usr/share/fonts/truetype/arial/arial.ttf
+RUN fc-cache -f && fc-match Arial
 
 # Установка пути к виртуальному окружению в PATH
 ENV PATH="/venv/bin:$PATH"

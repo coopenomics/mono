@@ -1,9 +1,7 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 
@@ -13,8 +11,8 @@ import config from '~/config/config';
 @Injectable()
 export class WalletNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -49,7 +47,7 @@ export class WalletNotificationService implements OnModuleInit {
       const chairmanEmail = chairman.provider_account?.email;
       const chairmanSubscriberId = chairman.provider_account?.subscriber_id?.trim();
       if (!chairmanSubscriberId) {
-        this.logger.warn(`subscriber_id председателя ${chairman.username} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id председателя ${chairman.username} не найден`);
         return;
       }
       if (!chairmanEmail) {
@@ -72,17 +70,17 @@ export class WalletNotificationService implements OnModuleInit {
         paymentUrl: `${config.frontend_url}`,
       };
 
-      // Отправляем уведомление
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.NewDepositPaymentRequest.id,
+      // Отправляем уведомление через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname,
+        workflowId: Workflows.NewDepositPaymentRequest.id,
         to: {
           subscriberId: chairmanSubscriberId,
           email: chairmanEmail,
+          username: chairman.username,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление отправлено председателю ${chairman.username} о новой заявке на паевой взнос от ${participantUsername}`
       );

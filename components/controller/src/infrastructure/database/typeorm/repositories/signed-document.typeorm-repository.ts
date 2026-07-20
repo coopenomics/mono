@@ -5,6 +5,7 @@ import { SignedDocumentEntity } from '../entities/signed-document.entity';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import type {
+  SignedDocumentAggregateUpdate,
   SignedDocumentListParams,
   SignedDocumentListResult,
   SignedDocumentPackageRow,
@@ -44,6 +45,20 @@ export class SignedDocumentTypeormRepository implements SignedDocumentRepository
     }
 
     await this.repository.save(this.repository.create(this.toColumns(input)));
+  }
+
+  async updateAggregate(coopname: string, docHash: string, fields: SignedDocumentAggregateUpdate): Promise<void> {
+    // Точечный UPDATE только агрегат-производных колонок: статус/версия/source НЕ перетираются
+    // (защита от отката resolved→submitted при пересборке, конкурентной со статус-событием).
+    await this.repository.update(
+      { coopname, doc_hash: docHash },
+      {
+        document_aggregate: fields.document_aggregate,
+        full_title: fields.full_title,
+        content_text: fields.content_text,
+        signers_text: fields.signers_text,
+      }
+    );
   }
 
   async getState(coopname: string, docHash: string): Promise<SignedDocumentState | null> {

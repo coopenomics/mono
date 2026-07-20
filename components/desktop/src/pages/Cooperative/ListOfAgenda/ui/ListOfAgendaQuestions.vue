@@ -10,6 +10,7 @@
     :is-voted-any='isVotedAny',
     :processing-decisions='processingDecisions',
     @authorize='onAuthorizeDecision',
+    @decline='onDeclineDecision',
     @vote-for='onVoteFor',
     @vote-against='onVoteAgainst'
   )
@@ -62,6 +63,7 @@ const {
   loading,
   loadDecisions,
   authorizeAndExecuteDecision,
+  declineDecision,
   voteForDecision,
   voteAgainstDecision,
   isVotedFor,
@@ -96,6 +98,23 @@ const onAuthorizeDecision = async (row) => {
     // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
     actedDecisionIds.value.add(decision_id);
     SuccessAlert('Решение принято и исполнено');
+    await loadDecisions(route.params.coopname as string, true);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    setProcessing(decision_id, false);
+  }
+};
+
+const onDeclineDecision = async (row) => {
+  const decision_id = Number(row.table.id);
+  setProcessing(decision_id, true);
+
+  try {
+    await declineDecision(row);
+    // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
+    actedDecisionIds.value.add(decision_id);
+    SuccessAlert('Решение отклонено');
     await loadDecisions(route.params.coopname as string, true);
   } catch (e) {
     FailAlert(e);

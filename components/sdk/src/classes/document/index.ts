@@ -1,6 +1,10 @@
 import type { IGeneratedDocument, ISignatureInfo, ISignatureInfoInput, ISignedChainDocument, ISignedDocument } from '../../types/document'
 import { PrivateKey, PublicKey, Signature } from '@wharfkit/antelope'
+import canonicalize from 'canonicalize'
 import { Crypto } from '../crypto'
+
+/** Актуальная версия алгоритма подписи для новых документов (детерминированная канонизация meta через JCS RFC 8785). */
+export const CURRENT_DOCUMENT_VERSION = '1.1.0'
 
 /**
  * Класс для управления и подписания документов с использованием WIF-ключа.
@@ -64,15 +68,26 @@ export class Document {
     version: string = '1.0.0',
   ): Promise<{ meta_hash: string, hash: string, signed_hash: string }> {
     if (version === '1.0.0' || !version) {
+      // Legacy: недетерминированная канонизация — JSON.stringify(meta) зависит от порядка ключей.
       const meta_hash = await Crypto.sha256(JSON.stringify(meta))
       const hash = await Crypto.sha256(meta_hash + documentHash)
       const signed_hash = await Crypto.sha256(hash + signed_at)
       return { meta_hash, hash, signed_hash }
     }
 
-    // Здесь можно добавить другие версии расчёта
-    // Например:
-    // if (version === '2') { ... }
+    if (version === '1.1.0') {
+      // Детерминированная канонизация meta через JCS (RFC 8785) — порядок ключей не влияет на meta_hash.
+      // Та же либа `canonicalize`, что в верификаторе документов → meta_hash совпадает байт-в-байт.
+      // Остальная цепочка (hash, signed_hash) и регистры — идентичны 1.0.0; меняется только источник meta_hash.
+      const canonicalMeta = canonicalize(meta)
+      if (canonicalMeta === undefined)
+        throw new Error('JCS: значение meta не сериализуемо (undefined/function/symbol)')
+      const meta_hash = await Crypto.sha256(canonicalMeta)
+      const hash = await Crypto.sha256(meta_hash + documentHash)
+      const signed_hash = await Crypto.sha256(hash + signed_at)
+      return { meta_hash, hash, signed_hash }
+    }
+
     throw new Error(`Неизвестная версия алгоритма: ${version}`)
   }
 
@@ -90,7 +105,7 @@ export class Document {
     signatureId: number = 1,
     existingSignedDocuments?: ISignedDocument[],
   ): Promise<ISignedDocument> {
-    const version = '1.0.0'
+    const version = CURRENT_DOCUMENT_VERSION
 
     if (!this.wif)
       throw new Error(`Ключ не установлен, выполните вызов метода setWif перед подписью документа`)
@@ -380,10 +395,14 @@ export class Document {
   public static async compareDocuments(
     signedDocument: ISignedDocument,
     generatedDocument: IGeneratedDocument,
-    version: string = '1.0.0',
+    version?: string,
   ): Promise<{ isValid: boolean, differences: Record<string, { expected: string, actual: string }> }> {
+    // Версию алгоритма берём из самого подписанного документа (1.0.0 legacy / 1.1.0 JCS),
+    // если явно не передана — иначе старый дефолт 1.0.0 ломал бы сверку 1.1.0-документов.
+    const effectiveVersion = version ?? signedDocument.version ?? '1.0.0'
+
     // Создаем неподписанную версию из сгенерированного документа
-    const unsignedDocument = await Document.createUnsignedDocument(generatedDocument, version)
+    const unsignedDocument = await Document.createUnsignedDocument(generatedDocument, effectiveVersion)
 
     const differences: Record<string, { expected: string, actual: string }> = {}
 

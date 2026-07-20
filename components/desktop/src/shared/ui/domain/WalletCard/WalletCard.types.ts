@@ -1,8 +1,12 @@
 export type WalletProgram = 'blagorost' | 'wallet' | 'generator';
 
 export interface WalletCardProps {
-  /** Программа — задаёт акцент (--prog-blagorost / --prog-wallet / --prog-generator) */
-  program: WalletProgram;
+  /** Программа — задаёт акцент (--prog-blagorost / --prog-wallet / --prog-generator).
+   *  Можно опустить вместе с `neutral` для непрограммной карточки (напр. мин. остаток). */
+  program?: WalletProgram;
+  /** Нейтральная подсветка иконки (--p-canvas-2 / --p-ink-2) вместо акцента программы.
+   *  Для непрограммных сущностей — минимальный неснижаемый остаток и т.п. */
+  neutral?: boolean;
   /** Заголовок карточки. Default по программе: blagorost → «Благорост», wallet → «Кошелёк», generator → «Генератор» */
   title?: string;
   /** Дополнительная подпись под заголовком */

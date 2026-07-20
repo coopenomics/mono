@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/boot",
   "type": "module",
-  "version": "2026.5.30-alpha-2",
+  "version": "2026.7.19-1",
   "private": true,
   "packageManager": "pnpm@9.0.6",
   "description": "CLI-утилита инициализации блокчейна и кооператива",
@@ -27,6 +27,7 @@
     "seed:marketplace-ku": "esno src/scripts/seed-marketplace-ku-details.ts",
     "reboot:clean": "cd components/boot/scripts && bash clean_reboot.sh",
     "reboot:extra": "cd components/boot/scripts && bash extra_reboot.sh",
+    "reboot:blago": "cd components/boot/scripts && bash blago_reboot.sh",
     "create-coop": "esno src/index.ts create-coop",
     "clear": "./scripts/clear.sh",
     "start": "./scripts/restart.sh",

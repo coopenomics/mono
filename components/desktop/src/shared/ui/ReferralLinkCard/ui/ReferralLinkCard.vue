@@ -17,6 +17,12 @@ ColorCard(:transparent="true")
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.card-label {
+  font-size: var(--p-fs-body);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-1);
+}
 </style>
 
 <script setup lang="ts">

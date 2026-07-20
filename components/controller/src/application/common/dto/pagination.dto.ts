@@ -53,3 +53,47 @@ export function createPaginationResult<T>(ItemType: new (...args: any[]) => T, n
   }
   return PaginationResult;
 }
+
+/**
+ * Сборка `PaginationResult<U>` для consumer'ов, читающих через inter-порт
+ * (нет своего Repository.findAndCount, доступен только raw `{items, totalCount}`).
+ *
+ * Зачем: вычисление `totalPages`/`currentPage` из `PaginationInputDTO` — общая
+ * детерминированная логика; дублировать её в каждом consumer'е = canon-долг.
+ */
+export function buildPaginationResult<T, U>(
+  raw: { items: T[]; totalCount: number },
+  options: PaginationInputDTO | undefined,
+  mapItem: (it: T) => U,
+): PaginationResult<U> {
+  const limit = options?.limit;
+  const page = options?.page != null ? Math.max(1, options.page) : 1;
+  const totalPages = limit != null && limit > 0 ? Math.max(1, Math.ceil(raw.totalCount / limit)) : 1;
+  return {
+    items: raw.items.map(mapItem),
+    totalCount: raw.totalCount,
+    totalPages,
+    currentPage: page,
+  };
+}
+
+/**
+ * Канон-конверсия `PaginationInputDTO` → `{limit, offset, sortBy, sortOrder}`
+ * для адаптеров inter-портов / внешних read API, не принимающих page-form.
+ */
+export function paginationInputToOffset(options?: PaginationInputDTO): {
+  limit?: number;
+  offset?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+} {
+  const limit = options?.limit;
+  const page = options?.page != null ? Math.max(1, options.page) : 1;
+  const offset = limit != null ? (page - 1) * limit : undefined;
+  return {
+    limit,
+    offset,
+    sortBy: options?.sortBy,
+    sortOrder: options?.sortOrder,
+  };
+}

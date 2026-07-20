@@ -1,5 +1,14 @@
 import type { IDocumentAggregate, IDocumentPackageAggregate } from 'src/entities/Document/model/types';
+import { Cooperative } from 'cooptypes';
 import { getShortNameFromCertificate } from '../utils/getNameFromCertificate';
+
+/**
+ * Восстанавливает ровно подписанный формат signed_at (SDK подписывает ISO UTC без дробных секунд и без Z).
+ * Чистая строковая операция без reparse через Date — нет риска сдвига часового пояса. Гарантирует, что
+ * .coopsig несёт байт-в-байт ту строку, что вошла в signed_hash, и C4-проверка проходит без нормализации.
+ */
+const canonicalSignedAt = (s: string | null | undefined): string =>
+  (s ?? '').replace(/\.\d+/, '').replace(/[zZ]$/, '');
 
 type ZipEntry = {
   name: string;
@@ -8,6 +17,11 @@ type ZipEntry = {
 };
 
 const encoder = new TextEncoder();
+
+// Флаг bit-11 (Language encoding flag) общего назначения ZIP: имена файлов в UTF-8.
+// Имена пишем UTF-8 (TextEncoder), но без этого флага читатели декодируют их как CP437/latin1
+// → кириллица превращается в мохибейк, и manifest.json (UTF-8) не находит записи в пакете.
+const ZIP_UTF8_FLAG = 0x0800;
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -58,7 +72,7 @@ const buildZipArchive = (files: ZipEntry[]): Uint8Array => {
     const localView = new DataView(local.buffer);
     localView.setUint32(0, 0x04034b50, true); // local header signature
     localView.setUint16(4, 20, true); // version needed to extract
-    localView.setUint16(6, 0, true); // general purpose bit flag
+    localView.setUint16(6, ZIP_UTF8_FLAG, true); // general purpose bit flag (UTF-8 имена)
     localView.setUint16(8, 0, true); // compression method (store)
     localView.setUint16(10, dosTime, true); // last mod file time
     localView.setUint16(12, dosDate, true); // last mod file date
@@ -74,7 +88,7 @@ const buildZipArchive = (files: ZipEntry[]): Uint8Array => {
     centralView.setUint32(0, 0x02014b50, true); // central file header signature
     centralView.setUint16(4, 20, true); // version made by
     centralView.setUint16(6, 20, true); // version needed to extract
-    centralView.setUint16(8, 0, true); // general purpose bit flag
+    centralView.setUint16(8, ZIP_UTF8_FLAG, true); // general purpose bit flag (UTF-8 имена)
     centralView.setUint16(10, 0, true); // compression method
     centralView.setUint16(12, dosTime, true); // last mod file time
     centralView.setUint16(14, dosDate, true); // last mod file date
@@ -355,6 +369,58 @@ const buildArchiveName = (
   return sanitizeName(`${base}${hashSuffix}${signerSuffix}`);
 };
 
+// OID криптопримитивов для самодостаточного .coopsig (см. cooptypes SigFile v2.0).
+const SIG_ALGORITHM_OID_SECP256K1 = '1.3.132.0.10';
+const SIG_HASH_OID_SHA256 = '2.16.840.1.101.3.4.2.1';
+
+/**
+ * Формирует detached-подпись (файл `.coopsig`, формат SigFile v2.0) из агрегата документа.
+ *
+ * canonical-значения берём КАК ЕСТЬ из `aggregate.document`: `doc_hash` приходит из фабрики
+ * в верхнем регистре (SHA-256 байтов PDF), `meta_hash`/`hash` — из SDK в нижнем. Верификатор
+ * сверяет хэш-цепочку именно по этим строкам (C3 конкатенирует их без нормализации регистра).
+ *
+ * Режим канонизации выбирается по версии подписи документа:
+ *   1.0.0 → 'legacy-node-stringify' (SHA-256(JSON.stringify(meta)), недетерминированный),
+ *   1.1.0 → 'jcs-1.0' (RFC 8785, детерминированный) — meta_hash совпадает с верификатором.
+ */
+const buildSigFile = (
+  aggregate: IDocumentAggregate,
+  pdfName: string,
+  signedMeta: Record<string, unknown> | null,
+): Record<string, unknown> => {
+  const doc = aggregate.document;
+  const signatures = doc?.signatures ?? [];
+  return {
+    v: '2.0',
+    canonicalization: Cooperative.Document.canonicalizationForVersion(doc?.version),
+    algorithm: { name: 'ecdsa-secp256k1', oid: SIG_ALGORITHM_OID_SECP256K1 },
+    hash: { name: 'sha256', oid: SIG_HASH_OID_SHA256 },
+    content: { filename: pdfName, mime: 'application/pdf' },
+    canonical: {
+      doc_hash: doc?.doc_hash ?? '',
+      meta_hash: doc?.meta_hash ?? '',
+      hash: doc?.hash ?? '',
+    },
+    meta: signedMeta ?? {},
+    signatures: signatures.map((signature) => ({
+      public_key: signature.public_key,
+      signature: signature.signature,
+      signed_at: canonicalSignedAt(signature.signed_at),
+      signed_hash: signature.signed_hash,
+      signer_certificate: signature.signer_certificate ?? null,
+      issuer_signature: null,
+    })),
+  };
+};
+
+/**
+ * Имя файла подписи рядом с PDF: <doc>.coopsig (тот же базовый стем, что у PDF).
+ * Расширение НЕ `.sig` намеренно — чтобы ОС не предлагала открыть его в КриптоПро (наш формат —
+ * secp256k1 JSON, а не ГОСТ-CMS; совместимости с КриптоПро нет в принципе). Внутри — JSON SigFile v2.0.
+ */
+const sigFileNameFor = (pdfName: string) => `${pdfName.replace(/\.pdf$/i, '')}.coopsig`;
+
 export const prepareDocumentArchive = async (
   aggregate: IDocumentAggregate,
 ): Promise<{ blob: Blob; archiveName: string; pdfName: string }> => {
@@ -365,10 +431,6 @@ export const prepareDocumentArchive = async (
   const pdfBytes = decodeBase64(aggregate.rawDocument.binary);
   const meta = parseJsonObject(aggregate.rawDocument.meta);
   const signedMeta = parseJsonObject(aggregate.document?.meta);
-  const signatures = aggregate.document?.signatures ?? [];
-  const certificates = signatures
-    .map((signature) => signature.signer_certificate)
-    .filter(Boolean);
 
   const uniquenessHash =
     aggregate.document?.hash ||
@@ -398,42 +460,21 @@ export const prepareDocumentArchive = async (
     signerSurnames,
   );
 
-  const signaturePayload = {
-    version: '1.0.0',
-    generated_at: new Date().toISOString(),
-    document: {
-      title: meta?.title ?? null,
-      full_title: aggregate.rawDocument.full_title ?? null,
-      binary_hash: aggregate.rawDocument.hash ?? null,
-      meta,
-    },
-    signed_document: aggregate.document
-      ? {
-          hash: aggregate.document.hash,
-          doc_hash: aggregate.document.doc_hash,
-          meta_hash: aggregate.document.meta_hash,
-          version: aggregate.document.version,
-          meta: signedMeta ?? aggregate.document.meta ?? null,
-        }
-      : null,
-    blockchain: {
-      aggregate_hash: aggregate.hash ?? null,
-    },
-    signatures,
-    certificates,
-    pdf: {
-      filename: pdfName,
-      mime: 'application/pdf',
-      size: pdfBytes.byteLength,
-      sha256: pdfHash,
-    },
-  };
+  // pdfHash сверяем с doc_hash из агрегата — отлавливаем рассинхрон байтов PDF и подписи.
+  if (aggregate.document?.doc_hash && pdfHash.toLowerCase() !== aggregate.document.doc_hash.toLowerCase()) {
+    console.warn(
+      'doc_hash агрегата не совпал с SHA-256 PDF — архив может не пройти проверку целостности',
+      { docHash: aggregate.document.doc_hash, pdfHash },
+    );
+  }
 
-  const manifest = encoder.encode(JSON.stringify(signaturePayload, null, 2));
+  const sigFile = buildSigFile(aggregate, pdfName, signedMeta);
+  const sigBytes = encoder.encode(JSON.stringify(sigFile, null, 2));
+  const sigName = sigFileNameFor(pdfName);
 
   const archiveBytes = buildZipArchive([
     { name: pdfName, data: pdfBytes },
-    { name: 'signature.txt', data: manifest },
+    { name: sigName, data: sigBytes },
   ]);
 
   return {
@@ -447,6 +488,7 @@ export const prepareDocumentPackageArchive = async (
   packageAggregate: IDocumentPackageAggregate,
 ): Promise<{ blob: Blob; archiveName: string }> => {
   const files: ZipEntry[] = [];
+  const manifestEntries: Array<{ name: string; document: string; signature: string }> = [];
   const processedHashes = new Set<string>();
 
   // Определяем имя папки на основе заявления
@@ -505,10 +547,6 @@ export const prepareDocumentPackageArchive = async (
       const pdfBytes = decodeBase64(documentAggregate.rawDocument.binary);
       const meta = parseJsonObject(documentAggregate.rawDocument.meta);
       const signedMeta = parseJsonObject(documentAggregate.document?.meta);
-      const signatures = documentAggregate.document?.signatures ?? [];
-      const certificates = signatures
-        .map((signature) => signature.signer_certificate)
-        .filter(Boolean);
 
       const uniquenessHash =
         documentAggregate.document?.hash ||
@@ -534,46 +572,29 @@ export const prepareDocumentPackageArchive = async (
       );
 
       const uniquePdfName = `${folderName}/${pdfName}`;
+      const sigName = sigFileNameFor(pdfName);
+      const uniqueSigName = `${folderName}/${sigName}`;
 
-      const signaturePayload = {
-        version: '1.0.0',
-        generated_at: new Date().toISOString(),
-        document: {
-          title: meta?.title ?? null,
-          full_title: documentAggregate.rawDocument.full_title ?? null,
-          binary_hash: documentAggregate.rawDocument.hash ?? null,
-          meta,
-        },
-        signed_document: documentAggregate.document
-          ? {
-              hash: documentAggregate.document.hash,
-              doc_hash: documentAggregate.document.doc_hash,
-              meta_hash: documentAggregate.document.meta_hash,
-              version: documentAggregate.document.version,
-              meta: signedMeta ?? documentAggregate.document.meta ?? null,
-            }
-          : null,
-        blockchain: {
-          aggregate_hash: documentAggregate.hash ?? null,
-        },
-        signatures,
-        certificates,
-        pdf: {
-          filename: pdfName,
-          mime: 'application/pdf',
-          size: pdfBytes.byteLength,
-          sha256: pdfHash,
-        },
-      };
+      if (documentAggregate.document?.doc_hash && pdfHash.toLowerCase() !== documentAggregate.document.doc_hash.toLowerCase()) {
+        console.warn('doc_hash агрегата не совпал с SHA-256 PDF в пакете', {
+          docHash: documentAggregate.document.doc_hash,
+          pdfHash,
+        });
+      }
 
-      const manifest = encoder.encode(JSON.stringify(signaturePayload, null, 2));
-      const signatureFileName = `${folderName}/${pdfName.replace('.pdf', '')}_signature.txt`;
+      const sigFile = buildSigFile(documentAggregate, pdfName, signedMeta);
+      const sigBytes = encoder.encode(JSON.stringify(sigFile, null, 2));
 
-      // Добавляем файлы в архив
+      // Добавляем файлы в архив + запись в манифест пакета
       files.push(
         { name: uniquePdfName, data: pdfBytes },
-        { name: signatureFileName, data: manifest }
+        { name: uniqueSigName, data: sigBytes },
       );
+      manifestEntries.push({
+        name: pdfName.replace(/\.pdf$/i, ''),
+        document: uniquePdfName,
+        signature: uniqueSigName,
+      });
 
     } catch (error) {
       console.error('Ошибка при обработке документа пакета:', error, documentAggregate);
@@ -583,6 +604,15 @@ export const prepareDocumentPackageArchive = async (
   if (files.length === 0) {
     throw new Error('Не найдено ни одного документа для архивации');
   }
+
+  // manifest.json — карта пакета для верификатора (тройки name/document/signature).
+  const packageManifest = {
+    v: '1.0',
+    generator: 'coopenomics-desktop',
+    created_at: new Date().toISOString(),
+    documents: manifestEntries,
+  };
+  files.push({ name: 'manifest.json', data: encoder.encode(JSON.stringify(packageManifest, null, 2)) });
 
   // Создаем имя архива на основе имени папки
   const archiveName = folderName;

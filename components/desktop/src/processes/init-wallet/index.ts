@@ -6,7 +6,7 @@ import { useAccountStore } from 'src/entities/Account/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors';
 
-/** Ожидание GraphQL (в т.ч. цепочки к Novu на бэкенде) не должно блокировать запуск приложения. */
+/** Ожидание GraphQL (в т.ч. цепочки уведомлений на бэкенде) не должно блокировать запуск приложения. */
 const WALLET_INIT_TIMEOUT_MS = 25_000;
 
 const WALLET_INIT_TIMEOUT_MESSAGE = 'WALLET_INIT_TIMEOUT';

@@ -189,4 +189,17 @@ onMounted(async () => {
   opacity: 0.7;
   background-color: rgba(0, 0, 0, 0.02);
 }
+
+.card-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
+
+.card-label {
+  font-size: var(--p-fs-body);
+  color: var(--p-ink-2);
+  margin-bottom: var(--p-1);
+}
 </style>

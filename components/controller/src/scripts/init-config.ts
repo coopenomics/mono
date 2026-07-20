@@ -36,7 +36,6 @@ export const initConfig: {
       details: {
         bik: '123456789',
         corr: '12345678901234567890',
-        kpp: '123456789',
       },
     },
   },

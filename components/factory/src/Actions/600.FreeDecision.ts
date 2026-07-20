@@ -21,40 +21,38 @@ export class Factory extends DocFactory<FreeDecision.Action> {
     data: FreeDecision.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<FreeDecision.Model>
+    if (!data.project_id)
+      throw new Error('Идентификатор проекта не установлен')
 
-    if (process.env.SOURCE === 'local') {
-      template = FreeDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, FreeDecision.registry_id, data.block_num)
-    }
-
-    const user = await this.getUser(data.username, data.block_num)
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, user, coop, project, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(FreeDecision.Template as ITemplate<FreeDecision.Model>)
+        : this.getTemplate<FreeDecision.Model>(DraftContract.contractName.production, FreeDecision.registry_id, data.block_num),
+      user: () => this.getUser(data.username, data.block_num),
+      coop: () => this.getCooperative(data.coopname, data.block_num),
+      project: () => this.getProject(data.project_id, data.block_num) as Promise<Cooperative.Document.IProjectData>,
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
     const userData = {
       [user.type]: user.data,
     }
 
-    const coop = await this.getCooperative(data.coopname, data.block_num)
-
+    // meta зависит от template.title — считаем после батча
     // TODO необходимо строго типизировать мета-данные документов друг под друга!
     const meta: IMetaDocument = await this.getMeta({
       title: template.title,
       ...data,
     }) // Генерируем мета-данные
 
+    // decision зависит от coop и meta.created_at — после батча
     const decision: Cooperative.Document.IDecisionData = await this.getDecision(
       coop,
       data.coopname,
       data.decision_id,
       meta.created_at,
     )
-    if (!data.project_id)
-      throw new Error('Идентификатор проекта не установлен')
-
-    const project: Cooperative.Document.IProjectData = await this.getProject(data.project_id, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
 
     const combinedData: FreeDecision.Model = {
       ...userData,

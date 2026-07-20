@@ -1,13 +1,11 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import config from '~/config/config';
 import { SovietContract } from 'cooptypes';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 
 /**
@@ -19,8 +17,8 @@ import { Workflows } from '@coopenomics/notifications';
 @Injectable()
 export class AgendaNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -91,17 +89,17 @@ export class AgendaNotificationService implements OnModuleInit {
           continue;
         }
 
-        const triggerData: WorkflowTriggerDomainInterface = {
-          name: Workflows.NewAgenda.id,
-          to: {
-            subscriberId: memberSubscriberId,
-            email: memberEmail,
-          },
-          payload,
-        };
-
         try {
-          await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+          await this.notificationPort.notify({
+            coopname: action.coopname,
+            workflowId: Workflows.NewAgenda.id,
+            to: {
+              subscriberId: memberSubscriberId,
+              email: memberEmail,
+              username: member.username,
+            },
+            payload,
+          });
           sentCount++;
         } catch (error: any) {
           this.logger.error(`Ошибка отправки уведомления члену совета ${member.username}: ${error.message}`);

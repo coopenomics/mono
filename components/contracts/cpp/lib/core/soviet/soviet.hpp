@@ -19,6 +19,12 @@ using createapprv_interface = void(CREATEAPPRV_SIGNATURE);
 #define DECLINE_CALLBACK_SIGNATURE name coopname, checksum256 hash, std::string reason
 using decline_callback_interface = void(DECLINE_CALLBACK_SIGNATURE);
 
+// Общая ветка отказа решения совета: отправка коллбэка отклонения инициатору
+// (если решение пришло из внешнего процесса) + удаление решения из таблицы.
+// Используется при просрочке (cancelexprd) и при достижении отрицательного
+// консенсуса голосов «против» (voteagainst). Определение — cancelexprd.cpp.
+void decline_and_erase_decision(eosio::name coopname, uint64_t decision_id, const std::string &reason);
+
 #define AUTHORIZE_CALLBACK_SIGNATURE name coopname, checksum256 hash, document2 authorization
 using authorize_callback_interface = void(AUTHORIZE_CALLBACK_SIGNATURE);
 

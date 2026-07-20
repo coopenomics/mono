@@ -4,7 +4,8 @@ export interface BaseInputProps {
   hint?: string;
   error?: string;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'textarea';
+  autogrow?: boolean;
   /** Моноширинный шрифт (для аккаунт-имён, hash, и т.п.) */
   mono?: boolean;
   /** Кнопка очистки значения (например, для фильтров по дате) */

@@ -2,6 +2,7 @@ export * from './formatDateForEos';
 export * from './floorDecimalString';
 export * from './formatToAsset';
 export * from './formatAsset2Digits';
+export * from './sanitizeBlockchainError';
 export * from './addAssets';
 export * from './notEmptyPhoneRule';
 export * from './notEmptyRule';

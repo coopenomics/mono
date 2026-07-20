@@ -472,7 +472,7 @@ BaseExtModule
   - `ChairmanBlockchainAdapter` — взаимодействие с контрактом `soviet`
 - **Резолверы**: `ApprovalResolver`, `ChairmanOnboardingResolver`
 - **Крон**: Проверка решений каждые N минут (`checkInterval`)
-- **Конфигурация**: `checkInterval`, `cancelApprovedDecisions`, `onboarding_*` — флаги прохождения мастера настройки
+- **Конфигурация**: `checkInterval`, `onboarding_*` — флаги прохождения мастера настройки
 
 ### `capital` — Благорост (целевая программа)
 - **Структура**: `domain/`, `infrastructure/`, `application/` — самое крупное расширение

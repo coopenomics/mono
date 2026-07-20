@@ -22,7 +22,10 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   }
 
   async findByRegistrationHash(hash: string): Promise<CandidateDomainInterface | null> {
-    const candidate = await this.candidateRepository.findOneBy({ registration_hash: hash });
+    // registration_hash в БД хранится lowercase (sha256().digest('hex')), а из
+    // цепи checksum256 приходит в UPPERCASE (напр. в declinereg.registration_hash).
+    // Нормализуем входящий хэш, иначе exact-match findOneBy не находит кандидата.
+    const candidate = await this.candidateRepository.findOneBy({ registration_hash: hash.toLowerCase() });
     if (!candidate) return null;
 
     return this.mapToDomainEntity(candidate);

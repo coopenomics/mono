@@ -3,6 +3,7 @@ import type { BlockchainAccountInterface } from '~/types/shared';
 import type { MonoAccountDomainInterface } from '../interfaces/mono-account-domain.interface';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountKind } from '~/application/account/enum/account-kind.enum';
+import type { RegistrationPaymentDomainInterface } from '../interfaces/registration-payment-domain.interface';
 
 export class AccountDomainEntity {
   public readonly username!: string;
@@ -13,6 +14,7 @@ export class AccountDomainEntity {
   public private_account!: PrivateAccountDomainInterface | null;
   // Вид субъекта аккаунта (пайщик / кооперативный участок / кооператив / прочее).
   public account_kind!: AccountKind;
+  public registration_payment?: RegistrationPaymentDomainInterface | null;
 
   constructor(data: AccountDomainEntity) {
     Object.assign(this, data);

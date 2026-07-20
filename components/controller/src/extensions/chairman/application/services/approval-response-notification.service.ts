@@ -1,12 +1,10 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import config from '~/config/config';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
@@ -21,8 +19,8 @@ import { ApprovalStatus } from '../../domain';
 @Injectable()
 export class ApprovalResponseNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     @Inject(APPROVAL_REPOSITORY)
@@ -105,7 +103,7 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       const authorSubscriberId = authorAccount.provider_account?.subscriber_id?.trim();
 
       if (!authorSubscriberId) {
-        this.logger.warn(`subscriber_id автора запроса ${authorUsername} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id автора запроса ${authorUsername} не найден`);
         return;
       }
 
@@ -128,17 +126,17 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
         approvalUrl: `${config.frontend_url}`,
       };
 
-      // Отправляем уведомление
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.ApprovalResponse.id,
+      // Отправляем уведомление через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname: config.coopname,
+        workflowId: Workflows.ApprovalResponse.id,
         to: {
           subscriberId: authorSubscriberId,
           email: authorEmail,
+          username: authorUsername,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление отправлено автору ${authorUsername} об ${
           status === 'approved' ? 'одобрении' : 'отклонении'

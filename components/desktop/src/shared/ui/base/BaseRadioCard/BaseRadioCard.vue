@@ -59,7 +59,7 @@ function onClick(): void {
 }
 .base-radio-card:not(.base-radio-card--selected):hover {
   border-color: var(--p-primary-soft, var(--p-primary));
-  background: var(--p-surface);
+  background: var(--p-canvas-2);
 }
 .base-radio-card:focus-visible {
   outline: 2px solid var(--p-primary);

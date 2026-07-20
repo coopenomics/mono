@@ -191,6 +191,22 @@ export class TokenDomainService {
   }
 
   /**
+   * Генерирует токен подтверждения выхода из кооператива (ссылка в письме).
+   * Срок жизни — как у верификации email (это тоже подтверждение по почте).
+   */
+  async generateConfirmExitToken(userId: string): Promise<string> {
+    const expires = moment().add(config.jwt.verifyEmailExpirationMinutes, 'minutes');
+    const confirmExitToken = this.generateToken({
+      userId,
+      expires: expires.toDate(),
+      type: tokenTypes.CONFIRM_EXIT,
+    });
+
+    await this.saveToken(confirmExitToken, userId, expires.toDate(), tokenTypes.CONFIRM_EXIT);
+    return confirmExitToken;
+  }
+
+  /**
    * Удаляет токены по критериям
    */
   async deleteTokens(criteria: Partial<TokenDomainInterface>): Promise<number> {

@@ -1,15 +1,18 @@
 import { beforeAll, describe, it, vi } from 'vitest'
 import { Cooperative } from 'cooptypes'
 import { Generator } from '../src'
+import type { Numbers } from '../src'
 import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
+
+let capitalProgramDocDataHash = ''
 
 beforeAll(async () => {
   await generator.connect(mongoUri)
 
   // Подменяем метод getApprovedDecision для фабрики акта взноса результатов (1042)
   // Это позволит тесту найти "принятое решение" без обращения к реальному API
-  const factory1042 = (generator as any).factories['1042']
+  const factory1042 = generator.factories[1042 as Numbers]
   if (factory1042) {
     vi.spyOn(factory1042, 'getApprovedDecision').mockImplementation(async () => {
       return {
@@ -62,6 +65,34 @@ beforeAll(async () => {
   for (const data of udatas) {
     await generator.save('udata', { ...commonUdata, ...data })
   }
+
+    const capitalProgramPrivateData = {
+    generator_program_purpose:
+      "развитию информационной экосистемы взаимодействия физических и юридических лиц, на основе международных кооперативных принципов и законодательства Российской Федерации в отношении потребительских обществ (кооперативов) – под названием “Кооперативная Экономика”, с целью самоорганизации и интеграции в социально-экономическую среду Российской Федерации., на основе международных кооперативных принципов и законодательства Российской Федерации",
+    eoap_definition:
+      "информационная экосистема, интегрируемая в социально-экономическую среду Российской Федерации, состоящая из комплекса программных продуктов  на базе технологии распределенного реестра, обеспечивающих широкое экономическое и социальное взаимодействие физических и юридических лиц, включая нерезидентов различных юрисдикций и организационно-правовых форм, на основе международных кооперативных принципов и законодательства Российской Федерации в отношении потребительских кооперативов (обществ) под названием “Кооперативная Экономика”",
+    generator_task_goal:
+      "центра привлечения и интеграции передовых инновационных цифровых разработок, а также экономических и социальных методов и решений",
+    idea_unit_cost:
+      "50",
+    idea_unit_cost_words:
+      "пятьдесят",
+    blagorost_goal_expansion:
+      "развитии информационной экосистемы взаимодействия физических и юридических лиц, на основе международных кооперативных принципов и законодательства Российской Федерации в отношении потребительских обществ (кооперативов) – под названием “Кооперативная Экономика”, с целью самоорганизации и интеграции в социально-экономическую среду Российской Федерации",
+    blagorost_goal_reason:
+      "вследствие увеличения количества Участников информационной кооперативной экосистемы - ЕОАП - для расширения и повышения социальной эффективности их экономического взаимодействия в некоммерческом формате",
+    blagorost_task_expansion:
+      "расширение участников ЕОАП - информационной кооперативной экосистемы  как центра экономического взаимодействия в некоммерческом формате",
+    blagorost_task_development:
+      "развитие ЕОАП  как центра привлечения и интеграции инновационных цифровых разработок, а также экономических и социальных методов и решений",
+    return_source_description:
+      "аппаратно-программная сеть узлов распределенного реестра в формате «СМЭВ+SWIFT», построенная на принципах самоорганизации и самофинансирования деятельности технологической инфраструктуры ЕОАП, обеспечивающей консенсус ее распределенных узлов по формированию базового продукта ЕОАП  - полного цикла документооборота по синхронному взаимодействию пайщиков и кооперативов - участников экосистемы ЕАОП -  через использование цифровых контрактов, с одновременным выполнением функций нотариата и учета финансовых и юридических событий (подробнее на  Сайте)",
+    return_additional_source:
+      "взносы пользователей  ЕОАП, его отдельных программных продуктов и приложений, переданных Обществу или создаваемых в рамках Общества, которые интегрируются в ЕОАП"
+  }
+
+  const { hash } = await generator.saveDocData(capitalProgramPrivateData, 994)
+  capitalProgramDocDataHash = hash
 })
 
 describe('тест генератора документов с registry_id >= 1000', async () => {
@@ -72,6 +103,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -81,6 +113,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -90,6 +123,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -110,6 +144,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
   it('генерируем шаблон оферты Благорост', async () => {
@@ -118,6 +153,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -128,6 +164,7 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+      doc_data_hash: capitalProgramDocDataHash,
     })
   })
 
@@ -234,6 +271,91 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+    })
+  })
+
+  // Шасси расходов (волна 6, MVP-SINGLE) — C28-30
+  it('генерируем СЗ-смету о расходах 2010 (шасси, массив items)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2010,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        {
+          number: '1',
+          description: 'Аренда серверов Yandex Cloud (тариф S, июнь)',
+          amount: '12000.00 RUB',
+          recipient_type: 'ORG',
+          mechanics: 'DIRECT',
+          recipient_name: 'ООО «Яндекс.Облако»',
+          requisites: 'ИНН 7704414297, р/с 40702810000000000000, БИК 044525000',
+        },
+        {
+          number: '2',
+          description: 'Канцелярия для офиса',
+          amount: '3000.00 RUB',
+          recipient_type: 'SELF',
+          mechanics: 'ADVANCE',
+        },
+      ],
+    })
+  })
+
+  it('генерируем протокол-1 утверждения СЗ 2011 (шасси, approve)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2011,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0xabc123def4560000000000000000000000000000000000000000000000000000',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
+        { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
+      ],
+      decision: {
+        kind: 'approve',
+        protocol_number: '15',
+        protocol_date: '03.06.2026',
+      },
+    })
+  })
+
+  it('генерируем протокол-1 ОТКАЗА по СЗ 2011 (шасси, decline + reason)', async () => {
+    await testDocumentGeneration({
+      registry_id: 2011,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0xfedcba9876540000000000000000000000000000000000000000000000000000',
+      proposal: {
+        description: 'Закупка хостинга и бухгалтерских услуг на июнь 2026',
+        total_amount: '15000.00 RUB',
+        items_count: 2,
+        source_wallet: 'w.cap.bla',
+      },
+      items: [
+        { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
+        { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
+      ],
+      decision: {
+        kind: 'decline',
+        reason: 'Просьба разделить позиции на отдельные СЗ — Yandex Cloud и канцелярия имеют разный контур контроля.',
+        protocol_number: '16',
+        protocol_date: '03.06.2026',
+      },
     })
   })
 

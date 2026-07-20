@@ -40,7 +40,7 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createInAppStep(
       'approval-request-notification',
       'Новый запрос на одобрение действия',
-      'Запрос: {{payload.requestTitle}}<br>Автор: {{payload.authorName}}'
+      'Запрос: {{payload.requestTitle}}\nАвтор: {{payload.authorName}}'
     ),
     createPushStep(
       'approval-request-push',

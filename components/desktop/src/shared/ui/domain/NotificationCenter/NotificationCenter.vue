@@ -9,41 +9,47 @@
       @click="emit('markAllRead')"
     ) Прочитать все
 
-  .notification-center__loading(v-if='loading')
-    q-spinner(color='primary', size='24px')
-    span.notification-center__loading-label Загружаем…
+  .notification-center__body
+    template(v-if='loading')
+      ul.notification-center__skel
+        li.notification-center__skel-item(v-for='i in 4', :key='i')
+          span.skel.skel--circle.notification-center__skel-bullet
+          .notification-center__skel-lines
+            span.skel.skel--text
+            span.skel.skel--text
+            span.skel.skel--text
 
-  template(v-else-if='!notifications.length')
-    .notification-center__empty
-      EmptyState(title='Нет уведомлений', body='Здесь появятся системные и финансовые события')
+    template(v-else-if='!notifications.length')
+      .notification-center__empty
+        EmptyState(title='Нет уведомлений', body='Здесь появятся системные и финансовые события')
 
-  template(v-else)
-    ul.notification-center__list
-      li.notification-center__group(v-for='group in groupedNotifications', :key='group.category')
-        .notification-center__group-title {{ categoryLabels[group.category] }}
-        ul.notification-center__items
-          li.notification-center__item(
-            v-for='n in group.items',
-            :key='n.id',
-            :class='{ "is-unread": !n.read }',
-            tabindex='0',
-            role='button',
-            @click="emit('open', n.id)",
-            @keydown.enter.prevent="emit('open', n.id)",
-            @keydown.space.prevent="emit('open', n.id)"
-          )
-            BaseBadge.notification-center__item-bullet(
-              v-if='!n.read',
-              variant='accent',
-              :dot='true'
+    template(v-else)
+      ul.notification-center__list
+        li.notification-center__group(v-for='group in groupedNotifications', :key='group.category')
+          .notification-center__group-title {{ categoryLabels[group.category] }}
+          ul.notification-center__items
+            li.notification-center__item(
+              v-for='n in group.items',
+              :key='n.id',
+              :class='{ "is-unread": !n.read }',
+              tabindex='0',
+              role='button',
+              @click="emit('open', n.id)",
+              @keydown.enter.prevent="emit('open', n.id)",
+              @keydown.space.prevent="emit('open', n.id)"
             )
-            span.notification-center__item-bullet-spacer(v-else)
-            .notification-center__item-body
-              .notification-center__item-title {{ n.title }}
-              .notification-center__item-desc(v-if='n.description') {{ n.description }}
-              time.notification-center__item-date(:datetime='toIso(n.date)') {{ formatRelative(n.date) }}
+              BaseBadge.notification-center__item-bullet(
+                v-if='!n.read',
+                variant='accent',
+                :dot='true'
+              )
+              span.notification-center__item-bullet-spacer(v-else)
+              .notification-center__item-body
+                .notification-center__item-title {{ n.title }}
+                .notification-center__item-desc(v-if='n.description') {{ n.description }}
+                time.notification-center__item-date(:datetime='toIso(n.date)') {{ formatRelative(n.date) }}
 
-  footer.notification-center__footer(v-if='!loading && notifications.length')
+  footer.notification-center__footer(v-if='!loading && notifications.length && showViewAll')
     a.notification-center__view-all(
       :href='viewAllHref ?? "/notifications"',
       @click.prevent="emit('viewAll')"
@@ -63,6 +69,7 @@ import type {
 
 const props = withDefaults(defineProps<NotificationCenterProps>(), {
   loading: false,
+  showViewAll: true,
 });
 
 const emit = defineEmits<{
@@ -141,13 +148,21 @@ function plural(n: number, one: string, few: string, many: string): string {
   display: flex;
   flex-direction: column;
   width: 360px;
-  max-width: 100vw;
-  max-height: 480px;
+  max-width: 100%;
   background: var(--p-surface);
   color: var(--p-ink);
+  border: 1px solid var(--p-line-1);
   border-radius: var(--p-r-md, 12px);
-  box-shadow: var(--p-elev-2);
+  box-shadow: var(--p-shadow-pop);
   overflow: hidden;
+}
+
+/* На мобиле панель занимает всю ширину раскрытого меню (см. .notification-center-menu
+   в виджете) — не узкий обрубок 360px. */
+@media (max-width: 600px) {
+  .notification-center {
+    width: 100%;
+  }
 }
 
 .notification-center__header {
@@ -198,27 +213,54 @@ function plural(n: number, one: string, few: string, many: string): string {
   text-decoration: underline;
 }
 
-.notification-center__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--p-2, 8px);
-  padding: var(--p-6, 24px);
-  color: var(--p-ink-2);
-  font-size: var(--p-fs-body-sm, 13px);
+/* Фиксированная высота тела (~4 уведомления) — панель не «прыгает» при
+   смене скелетон → меньше элементов → пусто. Скролл внутри, не наружу. */
+.notification-center__body {
+  height: 340px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .notification-center__empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--p-6, 24px) var(--p-4, 16px);
 }
+
+/* ---- Skeleton (канон .skel, как в таблицах/карточках) ---- */
+.notification-center__skel {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notification-center__skel-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+}
+.notification-center__skel-bullet {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  flex: 0 0 auto;
+}
+.notification-center__skel-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1, 4px);
+  flex: 1 1 auto;
+}
+.notification-center__skel-lines .skel--text:nth-child(1) { width: 55%; }
+.notification-center__skel-lines .skel--text:nth-child(2) { width: 90%; }
+.notification-center__skel-lines .skel--text:nth-child(3) { width: 30%; }
 
 .notification-center__list {
   list-style: none;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
-  flex: 1 1 auto;
 }
 
 .notification-center__group + .notification-center__group {
@@ -255,6 +297,24 @@ function plural(n: number, one: string, few: string, many: string): string {
 }
 .notification-center__item:focus-visible {
   box-shadow: inset 0 0 0 2px var(--p-primary);
+}
+
+/* Разделитель между уведомлениями — видимая линия в обеих темах (--p-line
+   0.06 на тёмной почти невидим, оттого «всё сливалось»; --p-line-1 заметнее). */
+.notification-center__items .notification-center__item + .notification-center__item {
+  border-top: 1px solid var(--p-line-1);
+}
+
+/* Непрочитанные выделяем подложкой + левым акцент-баром: на тёмной теме одна
+   разница в цвете текста + точка тонули в фоне панели. primary-soft/-line дают
+   видимый тон в обеих темах, не ухудшая светлую. */
+.notification-center__item.is-unread {
+  background: var(--p-primary-soft);
+  box-shadow: inset 3px 0 0 var(--p-primary);
+}
+.notification-center__item.is-unread:hover,
+.notification-center__item.is-unread:focus-visible {
+  background: var(--p-primary-line);
 }
 
 .notification-center__item-bullet {
@@ -294,6 +354,9 @@ function plural(n: number, one: string, few: string, many: string): string {
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
+  /* In-app тела несут перенос строки как \n (не HTML <br> — тело рендерится
+     как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор). */
+  white-space: pre-line;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

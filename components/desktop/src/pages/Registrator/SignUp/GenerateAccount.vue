@@ -71,6 +71,17 @@ if (
 const email = computed(() => store.state.email);
 const userData = computed(() => store.state.userData);
 
+// Шаги q-stepper не размонтируются, поэтому локальный i_save «залипал» отмеченным
+// при возврате к шагу и при повторной подаче после отказа совета. Сбрасываем
+// подтверждение сохранения ключа при каждом входе в шаг — пайщик подтверждает заново.
+watch(
+  () => store.state.step,
+  (value) => {
+    if (value === store.steps.GenerateAccount) i_save.value = false;
+  },
+  { immediate: true },
+);
+
 // Автоматическое выделение приватного ключа при его генерации
 watch(
   () => account.value.private_key,

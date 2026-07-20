@@ -24,6 +24,9 @@ import { TypeOrmMeetProcessedRepository } from './repositories/typeorm-meet-proc
 import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
+import { PaymentFileEntity } from './entities/payment-file.entity';
+import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
+import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
 import { WebPushSubscriptionEntity } from './entities/web-push-subscription.entity';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
 import { TypeOrmWebPushSubscriptionRepository } from './repositories/typeorm-web-push-subscription.repository';
@@ -90,6 +93,9 @@ import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-in
 import { SignedDocumentEntity } from './entities/signed-document.entity';
 import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
+import { NotificationOutboxTypeormEntity } from './entities/notification-outbox.typeorm-entity';
+import { NotificationDeliveryTypeormEntity } from './entities/notification-delivery.typeorm-entity';
+import { NotificationInboxTypeormEntity } from './entities/notification-inbox.typeorm-entity';
 
 @Global()
 @Module({
@@ -118,6 +124,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
+      PaymentFileEntity,
       WebPushSubscriptionEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
@@ -138,6 +145,9 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
       SignedDocumentEntity,
+      NotificationOutboxTypeormEntity,
+      NotificationDeliveryTypeormEntity,
+      NotificationInboxTypeormEntity,
     ]),
   ],
   providers: [
@@ -168,6 +178,10 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     {
       provide: PAYMENT_REPOSITORY,
       useClass: TypeOrmPaymentRepository,
+    },
+    {
+      provide: PAYMENT_FILE_REPOSITORY,
+      useClass: TypeormPaymentFileRepository,
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
@@ -270,6 +284,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     MIGRATION_REPOSITORY,
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
+    PAYMENT_FILE_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,
     AGREEMENT_REPOSITORY,

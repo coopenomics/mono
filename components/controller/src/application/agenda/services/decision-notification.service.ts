@@ -1,13 +1,11 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import config from '~/config/config';
 import { SovietContract } from 'cooptypes';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 
 /**
@@ -19,8 +17,8 @@ import { Workflows } from '@coopenomics/notifications';
 @Injectable()
 export class DecisionNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -60,7 +58,7 @@ export class DecisionNotificationService implements OnModuleInit {
       const userEmail = user.provider_account?.email;
       const subscriberId = user.provider_account?.subscriber_id?.trim();
       if (!subscriberId) {
-        this.logger.warn(`subscriber_id пользователя ${username} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id пользователя ${username} не найден`);
         return;
       }
       if (!userEmail) {
@@ -80,17 +78,17 @@ export class DecisionNotificationService implements OnModuleInit {
         decisionUrl: `${config.frontend_url}`,
       };
 
-      // Отправляем уведомление
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.DecisionApproved.id,
+      // Отправляем уведомление через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname: action.coopname,
+        workflowId: Workflows.DecisionApproved.id,
         to: {
           subscriberId,
           email: userEmail,
+          username,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(`Уведомление отправлено пользователю ${username} о принятии решения ${decisionId}`);
     } catch (error: any) {
       this.logger.error(`Ошибка при обработке нового решения совета: ${error.message}`, error.stack);

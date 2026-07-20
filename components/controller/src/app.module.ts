@@ -1,6 +1,7 @@
 // app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 // Infrastructure modules
@@ -11,7 +12,6 @@ import config from '~/config/config';
 import { BlockchainModule } from './infrastructure/blockchain/blockchain.module';
 import { GeneratorInfrastructureModule } from './infrastructure/generator/generator.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
-import { NovuModule } from './infrastructure/novu/novu.module';
 import { EventsInfrastructureModule } from './infrastructure/events/events.module';
 import { FreeDecisionInfrastructureModule } from './infrastructure/free-decision/free-decision-infrastructure.module';
 import { DecisionTrackingInfrastructureModule } from './infrastructure/decision-tracking/decision-tracking-infrastructure.module';
@@ -34,7 +34,6 @@ import { DesktopDomainModule } from './domain/desktop/desktop-domain.module';
 import { MeetDomainModule } from './domain/meet/meet-domain.module';
 import { GatewayDomainModule } from './domain/gateway/gateway-domain.module';
 import { VaultDomainModule } from './domain/vault/vault-domain.module';
-import { NotificationDomainModule } from './domain/notification/notification-domain.module';
 import { LedgerDomainModule } from './domain/ledger/ledger-domain.module';
 import { ProcessRegistryDomainModule } from './domain/process-registry/process-registry-domain.module';
 import { ParserDomainModule } from './domain/parser/parser-domain.module';
@@ -56,6 +55,7 @@ import { QueueModule } from './application/queue/queue-app.module';
 import { DocumentModule } from './application/document/document.module';
 import { RedisAppModule } from './application/redis/redis-app.module';
 import { DecisionModule } from './application/free-decision/decision.module';
+import { DecisionAuthorizeModule } from './application/decision/decision.module';
 import { AgreementModule } from './application/agreement/agreement.module';
 import { ParticipantModule } from './application/participant/participant.module';
 import { AgendaModule } from './application/agenda/agenda.module';
@@ -65,6 +65,7 @@ import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
 import { NotificationModule } from './application/notification/notification.module';
+import { NotificationCenterModule } from './application/notification-center/notification-center.module';
 import { LedgerModule } from './application/ledger/ledger.module';
 import { Ledger2Module } from './application/ledger2/ledger2.module';
 import { ProcessRegistryModule } from './application/process-registry/process-registry.module';
@@ -74,6 +75,7 @@ import { UserModule } from './application/user/user.module';
 import { TokenApplicationModule } from './application/token/token-application.module';
 import { SettingsApplicationModule } from './application/settings/settings.module';
 import { RegistrationModule } from './application/registration/registration.module';
+import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
@@ -92,6 +94,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
         limit: 50,
       },
     ]),
+    ScheduleModule.forRoot(), // @Interval/@Cron — нужен outbox-worker'у Центра уведомлений
     // Infrastructure modules
     MongooseModule.forRoot(config.mongoose.url),
     DatabaseModule,
@@ -99,7 +102,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     BlockchainModule,
     GeneratorInfrastructureModule,
     RedisModule,
-    NovuModule,
     EventsInfrastructureModule,
     FreeDecisionInfrastructureModule,
     DecisionTrackingInfrastructureModule,
@@ -130,7 +132,6 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     MeetDomainModule,
     GatewayDomainModule,
     VaultDomainModule,
-    NotificationDomainModule,
     LedgerDomainModule,
     ProcessRegistryDomainModule,
     ParserDomainModule,
@@ -141,6 +142,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     AccountModule,
     AgreementModule,
     AgendaModule,
+    DecisionAuthorizeModule,
     AppStoreModule,
     AuthModule,
     ExtensionGrantsModule,
@@ -158,6 +160,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     GatewayModule,
     WalletModule,
     NotificationModule,
+    NotificationCenterModule,
     LedgerModule,
     Ledger2Module,
     ProcessRegistryModule,
@@ -167,6 +170,7 @@ import { MarketplaceCardsModule } from './extensions/marketplace-cards/marketpla
     TokenApplicationModule,
     SettingsApplicationModule,
     RegistrationModule,
+    MembershipExitModule,
     OnboardingApplicationModule,
     SearchModule,
     SignedDocumentsModule,

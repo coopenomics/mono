@@ -1,12 +1,10 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import type { IDelta } from '~/types/common';
 import config from '~/config/config';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
@@ -20,8 +18,8 @@ import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
 @Injectable()
 export class ApprovalNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowAdapter: NovuWorkflowAdapter,
+    @Inject(NOTIFICATION_PORT)
+    private readonly notificationPort: NotificationPort,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     private readonly logger: WinstonLoggerService
@@ -65,7 +63,7 @@ export class ApprovalNotificationService implements OnModuleInit {
       const chairmanEmail = chairman.provider_account?.email;
       const chairmanSubscriberId = chairman.provider_account?.subscriber_id?.trim();
       if (!chairmanSubscriberId) {
-        this.logger.warn(`subscriber_id председателя ${chairman.username} не найден — пропуск Novu`);
+        this.logger.warn(`subscriber_id председателя ${chairman.username} не найден`);
         return;
       }
       if (!chairmanEmail) {
@@ -95,17 +93,17 @@ export class ApprovalNotificationService implements OnModuleInit {
         approvalUrl: `${config.frontend_url}/${approvalData.coopname}/chairman/approvals`,
       };
 
-      // Отправляем уведомление
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.ApprovalRequest.id,
+      // Отправляем уведомление через Центр уведомлений
+      await this.notificationPort.notify({
+        coopname: approvalData.coopname,
+        workflowId: Workflows.ApprovalRequest.id,
         to: {
           subscriberId: chairmanSubscriberId,
           email: chairmanEmail,
+          username: chairman.username,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
       this.logger.log(
         `Уведомление отправлено председателю ${chairman.username} о новом одобрении ${approvalData.approval_hash}`
       );

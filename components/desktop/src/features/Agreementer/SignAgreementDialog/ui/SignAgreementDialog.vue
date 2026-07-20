@@ -8,24 +8,24 @@ BaseDialog(
   :close-on-escape='false'
 )
   div.row.justify-center
-    q-card(flat).col-md-8.col-col-xs-12.q-pa-lg
+    q-card(flat).col-md-8.col-xs-12.q-pa-lg
       Loader(v-if="isLoading" :text='`Формируем документ...`')
-      Form(
-        :handler-submit="sign"
-        :is-submitting="isSubmitting"
-        :showSubmit="!isLoading"
-        :showCancel="false"
-        :button-submit-txt="'Подписать'"
-        @cancel="clear"
-      )
-        slot
+      slot
+  template(#footer)
+    .sign-agreement__actions
+      BaseButton(
+        v-if='!isLoading',
+        variant='primary',
+        :loading='isSubmitting',
+        @click='sign'
+      ) Подписать
 </template>
 
 <script lang="ts" setup>
 import { useAgreementStore } from 'src/entities/Agreement';
 import { computed, ref } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
-import { Form } from 'src/shared/ui/Form';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { SovietContract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSignAgreement } from '../model';
@@ -81,8 +81,15 @@ const sign = async () => {
 
 }
 
-const clear = () => {
-  console.log(2)
-}
-
 </script>
+
+<style scoped>
+/* Кнопка живёт в слоте footer BaseDialog — он вне скроллящегося body,
+   поэтому «Подписать» всегда прижата к низу и доступна без прокрутки
+   длинного документа. */
+.sign-agreement__actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+</style>

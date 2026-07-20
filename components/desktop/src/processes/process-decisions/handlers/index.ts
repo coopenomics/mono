@@ -6,6 +6,7 @@ import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecis
 import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
+import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 
 /**
  * Регистрация обработчиков базовых решений
@@ -141,6 +142,18 @@ export function registerBaseDecisionHandlers() {
 
       return await new DigitalDocument().generate(protocolAction, {
         lang: 'ru',
+      });
+    },
+  });
+
+  // Обработчик для DecisionOfParticipantExit (решение о выходе пайщика)
+  decisionFactory.registerHandler('leavecoop', {
+    generateHandler: async ({ decision_id, username }) => {
+      const { generateMembershipExitDecision } =
+        useGenerateMembershipExitDecision();
+      return await generateMembershipExitDecision({
+        username,
+        decision_id,
       });
     },
   });

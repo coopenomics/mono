@@ -139,7 +139,7 @@ export class SberpollPlugin extends PollingProvider {
       bankAccount.bank_name
     }|BIC=${bankAccount.details.bik}|CorrespAcc=${bankAccount.details.corr}|Sum=${parseInt(
       amount_plus_fee
-    )}00|Purpose=${description}. Без НДС.|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
+    )}00|Purpose=${description}|PayeeINN=${cooperative?.details.inn}|KPP=${cooperative?.details.kpp}`;
 
     const result: PaymentDetailsDomainInterface = {
       data: invoice,

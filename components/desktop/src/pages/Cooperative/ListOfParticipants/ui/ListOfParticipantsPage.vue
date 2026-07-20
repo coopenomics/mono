@@ -97,9 +97,19 @@ const update = (
   overflow: hidden;
 }
 
-@media (max-width: 768px) {
+/* Мобайл (<768px ⇒ q-table grid-режим): пайщики рендерятся карточками, у
+   каждой своя рамка. Внешняя обрамлённая поверхность страницы тут лишняя —
+   даёт «подложку»/двойное обрамление, поэтому убираем её, карточки лежат
+   прямо на холсте. На десктопе рамка остаётся (там таблица). */
+@media (max-width: 767px) {
   .participants-page {
     padding: var(--p-4, 16px);
+  }
+  .participants-page__card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
   }
 }
 </style>

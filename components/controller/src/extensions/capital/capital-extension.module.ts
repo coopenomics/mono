@@ -40,6 +40,7 @@ export const defaultConfig = {
   onboarding_generator_offer_template_done: false,
   onboarding_blagorost_provision_done: false,
   onboarding_blagorost_offer_template_done: false,
+  capital_program_doc_data_hash: '',
   /** Ветка для выборки коммитов (FR3 / PRD); URL репозитория — на проекте/компоненте (PRD §6.2.1). */
   github_sync_branch: 'dev',
   /** Интервал polling GitHub API в минутах (FR2); 0 — периодический опрос отключён. */
@@ -253,6 +254,10 @@ export const Schema = z.object({
     .boolean()
     .default(defaultConfig.onboarding_blagorost_offer_template_done)
     .describe(describeField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
+  capital_program_doc_data_hash: z
+    .string()
+    .default(defaultConfig.capital_program_doc_data_hash)
+    .describe(describeField({ label: 'PrivateData документов ЦПП', visible: false })),
 
 });
 
@@ -311,6 +316,7 @@ import { GitHubSyncSchedulerService } from './infrastructure/services/github-syn
 import { ProgramShareRegistrationSchedulerService } from './infrastructure/services/program-share-registration-scheduler.service';
 import { ProgramShareRegistrationService } from './application/services/program-share-registration.service';
 import { ProgramShareRegistrationOnUserWalletDeltaListener } from './application/listeners/program-share-registration-on-user-wallet-delta.listener';
+import { ProgramShareRegistrationOnProjectDeltaListener } from './application/listeners/program-share-registration-on-project-delta.listener';
 import { CapitalDevelopmentRepositoryGitSyncService } from './application/services/capital-development-repository-git-sync.service';
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
@@ -374,6 +380,7 @@ import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
 import { DistributionManagementService } from './application/services/distribution-management.service';
 import { ExpensesManagementService } from './application/services/expenses-management.service';
+import { ProgramExpensesManagementService } from './application/services/program-expenses-management.service';
 import { ContributorAccountSyncService } from './application/services/contributor-account-sync.service';
 import { CommitSyncService } from './application/syncers/commit-sync.service';
 import { CommitDeltaMapper } from './infrastructure/blockchain/mappers/commit-delta.mapper';
@@ -426,6 +433,7 @@ import { VotingResolver } from './application/resolvers/voting.resolver';
 import { ResultSubmissionResolver } from './application/resolvers/result-submission.resolver';
 import { DistributionManagementResolver } from './application/resolvers/distribution-management.resolver';
 import { ExpensesManagementResolver } from './application/resolvers/expenses-management.resolver';
+import { ProgramExpensesResolver } from './application/resolvers/program-expenses.resolver';
 import { SegmentsResolver } from './application/resolvers/segments.resolver';
 import { LogResolver } from './application/resolvers/log.resolver';
 import { MutationLogMapperService } from './application/services/mutation-log-mapper.service';
@@ -574,8 +582,10 @@ export class CapitalPlugin extends BaseExtModule {
       } else {
         this.logger.log('Конфигурация контракта CAPITAL уже актуальна');
       }
-    } catch (error: any) {
-      this.logger.error(`Не удалось синхронизировать конфигурацию с контрактом CAPITAL: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Не удалось синхронизировать конфигурацию с контрактом CAPITAL: ${message}`, stack);
       // Не бросаем ошибку, чтобы не блокировать запуск модуля
     }
 
@@ -583,10 +593,12 @@ export class CapitalPlugin extends BaseExtModule {
     try {
       await this.syncInteractor.initializeSync();
       this.logger.log('Синхронизация благороста с блокчейном инициализирована');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
-        `Не удалось инициализировать синхронизацию благороста с блокчейном: ${error.message}`,
-        error.stack
+        `Не удалось инициализировать синхронизацию благороста с блокчейном: ${message}`,
+        stack
       );
       // Не бросаем ошибку, чтобы не блокировать запуск модуля
     }
@@ -642,7 +654,25 @@ export class CapitalPlugin extends BaseExtModule {
     // Если L1 ещё не завершён — реестр остаётся пустым, SignUp не предлагает
     // программы capital (раздел 4.1 req 44 проекта 13).
     try {
-      const registered = registerCapitalInAgreementRegistry(this.agreementRegistrationPort, extensionConfig as IConfig);
+      // Резолвер читает конфиг заново на каждую генерацию: совет может
+      // пересохранить параметры ЦПП (новый hash) без перезапуска расширения,
+      // а спека в реестре регистрируется один раз на initialize.
+      const resolveCapitalProgramDocDataHash = async (): Promise<string | undefined> => {
+        const ext = await this.extensionRepository.findByName(this.name);
+        const hash = ext?.config?.capital_program_doc_data_hash?.trim();
+        if (!hash) {
+          throw new Error(
+            'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
+          );
+        }
+        return hash;
+      };
+
+      const registered = registerCapitalInAgreementRegistry(
+        this.agreementRegistrationPort,
+        extensionConfig as IConfig,
+        resolveCapitalProgramDocDataHash
+      );
       if (registered) {
         this.logger.log('[CAPITAL.REGISTRY] зарегистрировано 2 оферты + 2 программы capital');
       } else {
@@ -710,6 +740,7 @@ IssueIdGenerationService,
     ResultSubmissionService,
     DistributionManagementService,
     ExpensesManagementService,
+    ProgramExpensesManagementService,
     ContributorAccountSyncService,
     SegmentsService,
     SegmentMapper,
@@ -769,6 +800,7 @@ IssueIdGenerationService,
     ResultSubmissionResolver,
     DistributionManagementResolver,
     ExpensesManagementResolver,
+    ProgramExpensesResolver,
     SegmentsResolver,
     TimeTrackerResolver,
     LogResolver,
@@ -871,6 +903,7 @@ IssueIdGenerationService,
     ProgramShareRegistrationService,
     ProgramShareRegistrationSchedulerService,
     ProgramShareRegistrationOnUserWalletDeltaListener,
+    ProgramShareRegistrationOnProjectDeltaListener,
     GitCommitMarkersSyncService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,

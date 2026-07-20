@@ -73,27 +73,25 @@ if (!shouldRegisterSW) {
 
   // Переменная для отслеживания обновлений
   let refreshing = false;
-  let updateAvailable = false;
   let registrationInstance: any;
 
-  // Функция для ручного применения обновления (доступна глобально через window).
-  // Перезагрузка произойдёт автоматически через глобальный controllerchange-слушатель.
+  // Применение обновления (доступно глобально через window). Вызывается из тоста
+  // version-watch. НЕ зависит от того, выстрелил ли lifecycle-callback `updated`:
+  // - если есть готовый waiting-SW → активируем его (SKIP_WAITING), перезагрузка
+  //   произойдёт через глобальный controllerchange-слушатель;
+  // - если waiting нет (SW ещё не подготовил бандл или его нет вовсе) → просто
+  //   перезагружаем; свежий index/бандлы придут из SSR/сети (useFilenameHashes).
   const applyUpdate = function () {
-    if (!updateAvailable || !registrationInstance) {
-      if (isVerbose)
-        console.log('Обновление не доступно или регистрация не найдена');
-      return;
-    }
+    if (refreshing) return;
+    refreshing = true;
+    hasPendingUpdate = true; // разрешаем reload по controllerchange
 
-    if (!refreshing) {
-      refreshing = true;
-      updateAvailable = false;
+    if (isVerbose) console.log('Применяем обновление...');
 
-      if (isVerbose) console.log('Применяем обновление Service Worker...');
-
-      if (registrationInstance.waiting) {
-        registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
-      }
+    if (registrationInstance && registrationInstance.waiting) {
+      registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      window.location.reload();
     }
   };
 
@@ -107,8 +105,24 @@ if (!shouldRegisterSW) {
     }
   };
 
-  // Регистрируем Service Worker (указываем явный путь для SSR режима)
-  register(process.env.SERVICE_WORKER_FILE || '/service-worker.js', {
+  // Диагностический таймстемп первого старта (грепается по слову BOOTRACE).
+  const bootraceTs = (): string => {
+    try {
+      return `${Math.round(performance.now())}ms`;
+    } catch {
+      return '?';
+    }
+  };
+
+  // [FIX-2] Регистрацию SW откладываем до window 'load'. Раньше register()
+  // вызывался на этапе eval модуля — и фоновой precache всего build-manifest
+  // (до 5 МБ/файл) стартовал ОДНОВРЕМЕННО с первой отрисовкой и догрузкой ленивых
+  // чанков маршрутов, конкурируя за сеть. На холодном заходе в проде это и
+  // приводило к провалу import() чанка → пустой router-view. После 'load'
+  // критический путь уже отрисован, precache идёт «вторым эшелоном».
+  const doRegister = () => {
+    console.log(`[BOOTRACE] ${bootraceTs()} SW: старт регистрации (после window load)`);
+    register(process.env.SERVICE_WORKER_FILE || '/service-worker.js', {
     // The registrationOptions object will be passed as the second argument
     // to ServiceWorkerContainer.register()
     // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register#Parameter
@@ -177,8 +191,13 @@ if (!shouldRegisterSW) {
           registration,
         );
 
-      updateAvailable = true;
+      // Готовый waiting-SW — позволяет applyUpdate() активировать его без reload «вслепую».
       hasPendingUpdate = true;
+
+      // НЕ показываем тост отсюда: lifecycle service worker'а ненадёжен (iOS
+      // standalone PWA не пробрасывает событие, первая установка шлёт `cached`,
+      // событие нет если бинарь SW не изменился). Триггер тоста перенесён в
+      // version-watch (src/entities/AppVersion) по self-report ноды /version.
 
       // Показываем уведомление пользователю
       if ('Notification' in window) {
@@ -235,6 +254,15 @@ if (!shouldRegisterSW) {
         console.log('Приложение будет работать без Service Worker');
     },
   });
+  };
+
+  // window.load уже мог пройти к моменту eval (SSR-гидратация быстрая) —
+  // тогда регистрируем сразу, иначе ждём событие load.
+  if (document.readyState === 'complete') {
+    doRegister();
+  } else {
+    window.addEventListener('load', () => doRegister(), { once: true });
+  }
 
   // Присваиваем функции глобальному объекту window
   window.applyUpdate = applyUpdate;

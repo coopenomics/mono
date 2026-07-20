@@ -1,21 +1,19 @@
 <template lang="pug">
 .wallet-programs(v-if='cardEntries.length > 0 || minimumBalance')
   //- Минимальный неснижаемый остаток — отдельная сущность пайщика
-  //- (паевой взнос). Та же canon-разметка .wallet, чтобы встать
-  //- в общую сетку, но с нейтральной подсветкой иконки. Первым,
+  //- (паевой взнос). Тот же WalletCard (нейтральный вариант), чтобы получить
+  //- общую сетку И бегущую строку при переполнении заголовка/подписи. Первым,
   //- т.к. это базовая защита средств пайщика — раньше кошельков.
-  .wallet.wallet--minimum(v-if='minimumBalance')
-    span.wallet__icon
-      q-icon(name='savings')
-    .wallet__main
-      .wallet__title(title='Минимальный неснижаемый остаток') Минимальный неснижаемый остаток
-      .wallet__sub(title='Возвращается при выходе из кооператива') Возвращается при выходе из кооператива
-    .wallet__amount
-      .wallet__metric
-        .wallet__metric-val
-          | {{ minimumBalance.amount }}
-          span.ccy &nbsp;{{ minimumBalance.symbol }}
-        .wallet__metric-label Зарезервировано
+  WalletCard(
+    v-if='minimumBalance',
+    neutral,
+    icon='savings',
+    title='Минимальный неснижаемый остаток',
+    subtitle='Возвращается при выходе из кооператива',
+    :balance='minimumBalance.amount',
+    :symbol='minimumBalance.symbol',
+    balance-label='Зарезервировано'
+  )
 
   WalletCard(
     v-for='entry in cardEntries',
@@ -133,10 +131,5 @@ const minimumBalance = computed<MinimumBalance | undefined>(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3, 12px);
-}
-
-.wallet--minimum {
-  --prog-bg: var(--p-canvas-2);
-  --prog-fg: var(--p-ink-2);
 }
 </style>

@@ -280,4 +280,14 @@ void (header as { value: BaseHeader })
   color: #444;
   .warn { color: #a00; font-weight: bold; font-style: normal; }
 }
+
+.section-title {
+  font-size: var(--p-fs-h2);
+  font-weight: 600;
+  color: var(--p-ink);
+
+  @media (max-width: 768px) {
+    font-size: var(--p-fs-h3);
+  }
+}
 </style>

@@ -2,7 +2,7 @@ import type { JSONSchemaType } from 'ajv'
 import moment from 'moment-timezone'
 import type { Cooperative, Interfaces, MeetContract } from 'cooptypes'
 import { DraftContract, SovietContract } from 'cooptypes'
-import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, IPaymentData, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
+import type { IBankAccount, ICombinedData, IGeneratedDocument, IMetaDocument, IMetaDocumentPartial, ITemplate, ITranslations, externalDataTypes } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
 import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
@@ -16,7 +16,7 @@ import { Entrepreneur } from '../Models/Entrepreneur'
 import { getFetch } from '../Utils/getFetch'
 import { getEnvVar } from '../config'
 import { getCurrentBlock } from '../Utils/getCurrentBlock'
-import type { IEntrepreneurData, IIndividualData, IOrganizationData } from '..'
+import type { IOrganizationData } from '..'
 import { formatDateTime } from '../Utils'
 
 const packageVersion = packageJson.version
@@ -32,6 +32,36 @@ export abstract class DocFactory<T extends IGenerate> {
   constructor(storage: MongoDBConnector) {
     this.storage = storage
     this.docData = new DocDataService(storage)
+  }
+
+  /**
+   * Параллельно резолвит ВЗАИМНО НЕЗАВИСИМЫЕ источники данных документа.
+   *
+   * Локальные чтения (mongo: getUser/getCooperative/getProject/getVars) дёшевы,
+   * но сетевые (getTemplate → explorer get-tables ×2, getMeta → getCurrentBlock
+   * → get_info) шли строго последовательно и складывались в заметную задержку
+   * сборки. Здесь они стартуют разом через Promise.all.
+   *
+   * ВАЖНО: сюда передавать ТОЛЬКО задачи без взаимных зависимостей. Зависимые
+   * вызывать ПОСЛЕ, на полученных результатах:
+   *   - getFullName(user.data) / getCommonUser(user) — зависят от user;
+   *   - getDecision(coop, …, meta.created_at) — зависит от coop и meta;
+   *   - getMeetQuestions(coopname, meet.id) / getGeneralMeetingDecision(meet) — от meet;
+   *   - getProgram(request.program_id) — от request;
+   *   - getMeta({ title: project.title }) — если title выводится из project/coop.
+   *
+   * Ключи объекта-результата соответствуют ключам переданных задач.
+   */
+  protected async resolveParallel<T extends Record<string, () => Promise<any>>>(
+    tasks: T,
+  ): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+    const entries = Object.entries(tasks)
+    const values = await Promise.all(entries.map(([, fn]) => fn()))
+    const result = {} as { [K in keyof T]: Awaited<ReturnType<T[K]>> }
+    entries.forEach(([key], index) => {
+      result[key as keyof T] = values[index]
+    })
+    return result
   }
 
   async validate(combinedData: ICombinedData, schema: any) {

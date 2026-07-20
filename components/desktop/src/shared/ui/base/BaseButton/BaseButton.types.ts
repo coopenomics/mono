@@ -1,4 +1,4 @@
-export type BaseButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type BaseButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'negative';
 export type BaseButtonSize = 'sm' | 'md' | 'lg';
 
 export interface BaseButtonProps {

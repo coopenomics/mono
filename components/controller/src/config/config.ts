@@ -25,8 +25,6 @@ const SCHEMA_GEN_ENV_DEFAULTS: Record<string, string> = {
   REDIS_PASSWORD: '',
   BLOCKCHAIN_RPC: 'http://127.0.0.1:8888',
   CHAIN_ID: 'cf057bbfb72640471fd910bcb67639c22df9f238706fab5919ce743a1f9efa38',
-  NOVU_APP_ID: 'schema-gen',
-  NOVU_API_KEY: 'schema-gen',
   VAPID_PUBLIC_KEY: 'BM_schema_gen_placeholder_public_key____________________________',
   VAPID_PRIVATE_KEY: 'schema_gen_placeholder_private_key',
   MATRIX_ADMIN_USERNAME: 'schema-gen',
@@ -78,6 +76,10 @@ const envVarsSchema = z.object({
   SMTP_USERNAME: z.string().default(''), // Пустая строка для необязательного значения
   SMTP_PASSWORD: z.string().default(''), // Пустая строка для необязательного значения
   EMAIL_FROM: z.string().default(''), // Пустая строка для необязательного значения
+  // HTTP→SMTP релей (@coopenomics/email-relay). Если URL задан — письма уходят
+  // POST'ом на релей вместо прямого SMTP (хостинг кооператива может резать порты).
+  EMAIL_RELAY_URL: z.string().default(''),
+  EMAIL_RELAY_TOKEN: z.string().default(''),
   COOPNAME: z.string().min(1, { message: 'Не должно быть пустым' }).default('voskhod'), // Задаём дефолтное значение, пустая строка невалидна
   TIMEZONE: z.string().min(1, { message: 'Не должно быть пустым' }).default('Europe/Moscow'), // Пустая строка невалидна
   GRAPHQL_SERVICE: z
@@ -124,12 +126,6 @@ const envVarsSchema = z.object({
     .default('1000')
     .transform((val) => parseInt(val, 10)),
 
-  // Параметры NOVU
-  NOVU_APP_ID: z.string().min(1, { message: 'Не должно быть пустым' }),
-  NOVU_BACKEND_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/api'),
-  NOVU_SOCKET_URL: z.string().min(1, { message: 'Не должно быть пустым' }).default('https://novu.coopenomics.world/ws'),
-  NOVU_API_KEY: z.string().min(1, { message: 'Не должно быть пустым' }),
-  NOVU_WEBHOOK_SECRET: z.string().min(1, { message: 'Не должно быть пустым' }).default('default-webhook-secret'),
 
   // Параметры VAPID для web push
   VAPID_PUBLIC_KEY: z.string().min(1, { message: 'VAPID_PUBLIC_KEY не должен быть пустым' }),
@@ -217,6 +213,10 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
+  MIN_SOVIET_MEMBERS_COUNT: z
+    .string()
+    .optional()
+    .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -282,8 +282,17 @@ export default {
       },
     },
     from: envVars.data.EMAIL_FROM,
+    relay: {
+      url: envVars.data.EMAIL_RELAY_URL,
+      token: envVars.data.EMAIL_RELAY_TOKEN,
+    },
   },
   coopname: envVars.data.COOPNAME,
+  min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
+    ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
+    : envVars.data.NODE_ENV === 'production'
+      ? 3
+      : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
   union: {
@@ -303,13 +312,6 @@ export default {
     host: envVars.data.REDIS_HOST,
     port: envVars.data.REDIS_PORT,
     password: envVars.data.REDIS_PASSWORD,
-  },
-  novu: {
-    app_id: envVars.data.NOVU_APP_ID,
-    backend_url: envVars.data.NOVU_BACKEND_URL,
-    socket_url: envVars.data.NOVU_SOCKET_URL,
-    api_key: envVars.data.NOVU_API_KEY,
-    webhook_secret: envVars.data.NOVU_WEBHOOK_SECRET,
   },
   vapid: {
     public_key: envVars.data.VAPID_PUBLIC_KEY,

@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/notifications",
-  "version": "2026.5.30-alpha-2",
-  "description": "Библиотека типобезопасных workflow-уведомлений для Novu",
+  "version": "2026.7.19-1",
+  "description": "Каталог типобезопасных типов уведомлений и шаблонов Центра уведомлений",
   "type": "module",
   "private": false,
   "main": "dist/index.cjs",
@@ -22,14 +22,9 @@
     "build": "unbuild",
     "dev": "unbuild --watch",
     "clean": "rm -rf dist",
-    "sync": "node ./dist/sync/sync-runner.cjs",
-    "sync:dev": "node ./dist/sync/sync-runner.cjs --dev",
-    "sync:watch": "node ./dist/sync/sync-runner.cjs --dev",
     "test": "vitest run"
   },
   "dependencies": {
-    "axios": "^1.7.7",
-    "dotenv": "^17.1.0",
     "transliteration": "^2.3.5",
     "zod": "^3.22.4",
     "zod-to-json-schema": "^3.22.5"
@@ -42,9 +37,6 @@
     "typescript": "^5.0.0",
     "unbuild": "^2.0.0",
     "vitest": "^4.0.18"
-  },
-  "bin": {
-    "novu-sync": "./dist/sync/sync-runner.cjs"
   },
   "exports": {
     ".": {

@@ -1,240 +1,205 @@
 <template lang="pug">
-#notification-inbox.notification-container
+.notification-bell
+  button.icon-btn(type='button', aria-label='Уведомления')
+    q-icon(name='notifications')
+    BaseBadge.notification-bell__count(
+      v-if='store.unreadCount',
+      variant='accent'
+    ) {{ badgeLabel }}
+    q-menu(
+      class='notification-center-menu',
+      anchor='bottom right',
+      self='top right',
+      :offset='[0, 8]',
+      @show='onOpen'
+    )
+      .notification-bell__menu
+        NotificationPanel(
+          :notifications='store.items',
+          :loading='store.loading',
+          :show-view-all='false',
+          @open='onOpenNotification',
+          @mark-all-read='onMarkAllRead'
+        )
+        //- Управление push-подпиской ЭТОГО устройства. Колокольчик —
+        //- единственное место, куда это логично встаёт (отдельной страницы
+        //- управления устройствами пока нет). Strip показываем ТОЛЬКО когда
+        //- SW реально активен (hasServiceWorker) — иначе кнопка кликалась бы
+        //- вхолостую («Service Worker не активен»). В dev/без-PWA не рисуем
+        //- ничего (не путать с «браузер не поддерживает»).
+        .push-strip(v-if='session.isAuth && pushSupport.isSupported && hasServiceWorker')
+          .push-strip__status
+            q-icon.push-strip__icon(
+              :name='pushStatusIcon',
+              :class='pushStatusClass',
+              size='18px'
+            )
+            span.push-strip__text {{ pushStatusText }}
+          BaseButton.push-strip__action(
+            v-if='pushSupport.permission !== "denied"',
+            :variant='isThisDeviceSubscribed ? "ghost" : "primary"',
+            size='sm',
+            :loading='isProcessing',
+            @click='onPushAction'
+          ) {{ isThisDeviceSubscribed ? 'Переподписать' : 'Включить на устройстве' }}
+        .push-strip(v-else-if='session.isAuth && !pushSupport.isSupported')
+          .push-strip__status
+            q-icon.push-strip__icon(name='notifications_off', size='18px')
+            span.push-strip__text Браузер не поддерживает push-уведомления
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { NotificationCenter as NotificationPanel } from 'src/shared/ui/domain/NotificationCenter';
+import { useWebPushNotifications } from 'src/features/WebPushNotifications';
 import { useSessionStore } from 'src/entities/Session';
-import { useQuasar } from 'quasar';
-import { env } from 'src/shared/config';
-import { NotifyAlert } from 'src/shared/api';
-import { computed, onMounted, onBeforeUnmount, watch, ref } from 'vue';
+import { useNotificationInboxStore } from './model';
 
+const store = useNotificationInboxStore();
 const session = useSessionStore();
-const $q = useQuasar();
-const isDark = computed(() => $q.dark.isActive);
+const push = useWebPushNotifications();
 
-// Определяем роль пользователя
-// const userRole = computed((): string => {
-//   if (session.isChairman) {
-//     return 'chairman';
-//   }
-//   if (session.isMember) {
-//     return 'member';
-//   }
-//   return 'user';
-// });
+// Локальные алиасы: вложенные под push.* ref'ы в шаблоне не авто-разворачиваются.
+const pushSupport = computed(() => push.support.value);
+const hasServiceWorker = computed(() => push.hasActiveServiceWorker.value);
+const isThisDeviceSubscribed = computed(() => push.isThisDeviceSubscribed.value);
+const isProcessing = computed(() => push.isProcessing.value);
 
-// // Создаем статические табы с правильными фильтрами
-// function createNotificationTabs() {
-//   return [
-//     {
-//       label: 'Пайщик',
-//       filter: {
-//         // Вкладка "Пользователь" показывает все уведомления
-//         tags: ['user', 'member', 'chairman'],
-//       },
-//     },
-//     {
-//       label: 'Член совета',
-//       filter: {
-//         // Вкладка "Член совета" показывает только member воркфлоу
-//         tags: ['member'],
-//       },
-//     },
-//     {
-//       label: 'Председатель',
-//       filter: {
-//         // Вкладка "Председатель" показывает только chairman воркфлоу
-//         tags: ['chairman'],
-//       },
-//     },
-//   ];
-// }
+const badgeLabel = computed(() => (store.unreadCount > 99 ? '99+' : String(store.unreadCount)));
 
-let novuUI: any = null;
-let novu: any = null;
-const unsubscribeFunctions = ref<Array<() => void>>([]);
+const pushStatusText = computed(() => {
+  if (pushSupport.value.permission === 'denied') {
+    return 'Уведомления заблокированы в браузере';
+  }
+  return isThisDeviceSubscribed.value
+    ? 'Push включён на этом устройстве'
+    : 'Push не включён на этом устройстве';
+});
 
-/** Novu не участвует в критическом пути загрузки: монтируем после idle / с небольшой отсрочкой. */
-function scheduleMountNovu() {
-  if (typeof window === 'undefined') return;
-  const run = () => {
-    void mountNovu();
-  };
-  const ric = window.requestIdleCallback;
-  if (typeof ric === 'function') {
-    ric(run, { timeout: 10_000 });
+const pushStatusIcon = computed(() => {
+  if (pushSupport.value.permission === 'denied') return 'notifications_off';
+  return isThisDeviceSubscribed.value ? 'notifications_active' : 'notifications_none';
+});
+
+const pushStatusClass = computed(() => ({
+  'push-strip__icon--ok': isThisDeviceSubscribed.value && pushSupport.value.permission !== 'denied',
+  'push-strip__icon--warn': pushSupport.value.permission === 'denied',
+}));
+
+function onOpen(): void {
+  void store.loadInbox(true);
+  // Освежаем состояние подписки этого устройства при каждом открытии.
+  void push.loadUserSubscriptions().then(() => push.refreshDeviceState());
+}
+
+function onOpenNotification(id: string): void {
+  void store.markRead(id);
+}
+
+function onMarkAllRead(): void {
+  void store.markAllRead();
+}
+
+async function onPushAction(): Promise<void> {
+  if (isThisDeviceSubscribed.value) {
+    await push.resubscribe();
   } else {
-    window.setTimeout(run, 1);
+    await push.subscribe();
   }
-}
-
-async function mountNovu() {
-  try {
-    // Отписываемся от предыдущих подписок при перемонтировании
-    unsubscribeFromNotifications();
-
-    // Динамический импорт только на клиенте
-    const { NovuUI } = await import('@novu/js/ui');
-    const { Novu } = await import('@novu/js');
-    const { dark } = await import('@novu/js/themes');
-
-    // Получаем данные подписчика из providerAccount
-    const providerAccount = session.providerAccount;
-
-    if (!providerAccount?.subscriber_id || !providerAccount?.subscriber_hash) {
-      console.error(
-        'Не удалось получить данные подписчика NOVU из providerAccount. Повторите попытку.',
-      );
-      return;
-    }
-
-    const { subscriber_id, subscriber_hash } = providerAccount;
-
-    // Создаем базовый экземпляр Novu для работы с API и событиями
-    novu = new Novu({
-      applicationIdentifier: env.NOVU_APP_ID,
-      subscriber: subscriber_id,
-      subscriberHash: subscriber_hash,
-      apiUrl: env.NOVU_BACKEND_URL,
-      socketUrl: env.NOVU_SOCKET_URL,
-    });
-
-    // Создаем статические табы с правильными фильтрами
-    // const tabs = createNotificationTabs();
-
-    // console.log(
-    //   'Текущая роль пользователя:',
-    //   userRole.value,
-    //   'Созданные табы:',
-    //   tabs.map((tab) => tab.label),
-    // );
-
-    const el = document.getElementById('notification-inbox');
-    if (el) el.innerHTML = '';
-
-    // Создаем экземпляр NovuUI и передаем в него экземпляр Novu
-    novuUI = new NovuUI({
-      novu: novu, // Передаем готовый экземпляр Novu
-      options: {
-        applicationIdentifier: env.NOVU_APP_ID,
-        subscriber: subscriber_id,
-        subscriberHash: subscriber_hash,
-        apiUrl: env.NOVU_BACKEND_URL,
-        socketUrl: env.NOVU_SOCKET_URL,
-      },
-      // tabs: tabs, // Добавляем tabs для фильтрации по ролям
-      appearance: {
-        baseTheme: isDark.value ? dark : undefined,
-      },
-      localization: {
-        'inbox.filters.dropdownOptions.unread': 'Только непрочитанные',
-        'inbox.filters.dropdownOptions.default': 'Все сообщения',
-        'inbox.filters.dropdownOptions.archived': 'Архив',
-        'inbox.filters.labels.unread': 'Непрочитанные',
-        'inbox.filters.labels.default': 'Входящие',
-        'inbox.filters.labels.archived': 'Архив',
-        'notifications.emptyNotice': 'Здесь пока тихо. Загляните позже.',
-        'notifications.actions.readAll': 'Прочитать все',
-        'notifications.actions.archiveAll': 'Архивировать все',
-        'notifications.actions.archiveRead': 'Архивировать прочитанные',
-        'notifications.newNotifications': ({
-          notificationCount,
-        }: {
-          notificationCount: number;
-        }) => `Новых уведомлений: ${notificationCount}`,
-        'notification.actions.read.tooltip': 'Отметить как прочитанное',
-        'notification.actions.unread.tooltip': 'Отметить как непрочитанное',
-        'notification.actions.archive.tooltip': 'В архив',
-        'notification.actions.unarchive.tooltip': 'Из архива',
-        'preferences.title': 'Настройки',
-        'preferences.emptyNotice': 'Пока нет настроек уведомлений.',
-        'preferences.global': 'Общие настройки',
-        'preferences.workflow.disabled.notice':
-          'Обратитесь к администратору для управления подпиской на это важное уведомление.',
-        'preferences.workflow.disabled.tooltip':
-          'Для изменения обратитесь к администратору',
-        locale: 'ru-RU',
-        dynamic: {
-          'comment-on-post': 'Комментарии к записи',
-          'new-agenda-item': 'Новый вопрос на повестке',
-        },
-      },
-    });
-
-    novuUI.mountComponent({
-      name: 'Inbox',
-      props: {},
-      element: el as HTMLDivElement,
-    });
-
-    // Подписываемся на события уведомлений через базовый экземпляр Novu
-    subscribeToNotifications();
-  } catch (error) {
-    console.error('Ошибка при монтировании NOVU:', error);
-  }
-}
-
-function subscribeToNotifications() {
-  if (!novu) return;
-
-  // Подписываемся на получение новых уведомлений
-  const unsubscribeNotificationReceived = novu.on(
-    'notifications.notification_received',
-    (event: any) => {
-      console.log('🔔 Получено новое уведомление от NOVU:', event);
-      console.log('📄 Тело уведомления:', event.result);
-
-      const notification = event.result;
-
-      // Показываем всплывающее уведомление
-      NotifyAlert(
-        notification.subject || 'Новое уведомление',
-        notification.body || '',
-        notification.avatar,
-      );
-    },
-  );
-
-  // Сохраняем все функции отписки
-  unsubscribeFunctions.value = [unsubscribeNotificationReceived];
-}
-
-function unsubscribeFromNotifications() {
-  // Отписываемся от всех событий
-  unsubscribeFunctions.value.forEach((unsubscribe) => {
-    if (typeof unsubscribe === 'function') {
-      unsubscribe();
-    }
-  });
-  unsubscribeFunctions.value = [];
+  await push.refreshDeviceState();
 }
 
 onMounted(() => {
-  if (process.env.CLIENT) {
-    scheduleMountNovu();
-  }
+  if (process.env.CLIENT) store.startPolling();
 });
 
 onBeforeUnmount(() => {
-  unsubscribeFromNotifications();
-});
-
-watch(isDark, () => {
-  scheduleMountNovu();
+  store.stopPolling();
 });
 </script>
 
 <style scoped>
-.notification-container {
-  display: flex;
+.notification-bell {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  height: 100%;
-  padding: 0 10px;
 }
 
-:deep(.notification-bell-component) {
-  height: 24px;
-  width: 24px;
+/* Бейдж вытолкнут за верхне-правый угол кнопки (translate), чтобы не
+   «наезжал» на глиф колокола (.icon-btn 32px, глиф 16px по центру). */
+.notification-bell__count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(45%, -45%);
+  pointer-events: none;
+}
+
+.notification-bell__menu {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Полоса управления push-подпиской под списком уведомлений. */
+.push-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: var(--p-2, 8px);
+  padding: var(--p-3, 12px) var(--p-4, 16px);
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface);
+}
+
+.push-strip__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Кнопка не сжимается и не переносит подпись (на узких экранах «Включить на
+   устройстве» ломалось на 2 строки и распирало полосу). */
+.push-strip__action {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.push-strip__icon {
+  flex: 0 0 auto;
+  color: var(--p-ink-3);
+}
+.push-strip__icon--ok {
+  color: var(--p-pos, var(--p-primary));
+}
+.push-strip__icon--warn {
+  color: var(--p-warn, var(--p-neg));
+}
+
+.push-strip__text {
+  font-size: var(--p-fs-caption, 12px);
+  line-height: var(--p-lh-body-sm, 1.4);
+  color: var(--p-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+
+<!-- q-menu рендерится порталом в body → стиль не может быть scoped. На мобиле
+     панель раскрываем во всю ширину вьюпорта (минус мелкий зазор), а не прижатым
+     справа обрубком 360px, у которого резало правый край. -->
+<style>
+@media (max-width: 600px) {
+  .notification-center-menu.q-menu {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
 }
 </style>

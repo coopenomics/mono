@@ -23,6 +23,11 @@ enum class AccountType : uint8_t {
   ACTIVE_PASSIVE = 2,
 };
 
+// Пересмотр 2026-06-06: добавлен счёт 76 «Расчёты с пайщиками» (А-П) —
+// суспенс для регистрационного взноса между приёмом денег кассой
+// (Dr 51 / Cr 76) и решением совета. На одобрении переносится на 80/86
+// (Dr 76 / Cr 80, Dr 76 / Cr 86), на отказе возвращается (Dr 76 / Cr 51).
+
 /**
  * @brief План счетов ledger2 (MVP) со смещением *1000.
  *
@@ -32,13 +37,14 @@ enum class AccountType : uint8_t {
  * состояния «принятый коммит» (паевой взнос имуществом в переходе РИД
  * в программу Благорост): commit → Dr 08 / Cr 80, accept → Dr 04 / Cr 08.
  *
- * Состав (8 счетов):
+ * Состав (9 счетов):
  *
  * - 04  — Нематериальные активы (РИД, принятые в паевой фонд)
  * - 08  — Вложения во внеоборотные активы (промежуточное состояние)
  * - 10  — Материалы (склад имущества на кооперативных участках; per-КУ субсчета)
  * - 51  — Расчётный счёт
  * - 58  — Финансовые вложения (выданные пайщикам беспроцентные займы)
+ * - 76  — Расчёты с пайщиками (суспенс регистрационного взноса до решения совета)
  * - 80  — Паевой фонд (складочный капитал)
  * - 86  — Целевое финансирование (без субсчетов)
  * - 91  — Прочие доходы и расходы (транзит при выдаче имущества пайщику
@@ -60,6 +66,9 @@ struct ledger2_accounts {
   static constexpr uint64_t MATERIALS                 = 10 * 1000;   ///< 10 — Материалы (А; склад имущества на КУ, per-КУ субсчета)
   static constexpr uint64_t BANK_ACCOUNT              = 51 * 1000;   ///< 51 — Расчётный счёт (А)
   static constexpr uint64_t FINANCIAL_INVESTMENTS     = 58 * 1000;   ///< 58 — Финансовые вложения (А)
+
+  // Активно-пассивные
+  static constexpr uint64_t PARTICIPANT_SETTLEMENTS   = 76 * 1000;   ///< 76 — Расчёты с пайщиками (А-П): суспенс регистрационного взноса до решения совета
 
   // Пассивы
   static constexpr uint64_t SHARE_FUND                = 80 * 1000;   ///< 80 — Паевой фонд (П)
@@ -83,17 +92,18 @@ struct Ledger2AccountMeta {
 };
 
 /**
- * @brief Хардкод-справочник плана счетов (MVP, 8 записей).
+ * @brief Хардкод-справочник плана счетов (MVP, 9 записей).
  *
  * `constexpr std::array` + `string_view` — чтобы не было dynamic init
  * при загрузке контракта и тип был полностью заморожен на этапе сборки.
  */
-inline constexpr std::array<Ledger2AccountMeta, 8> LEDGER2_ACCOUNT_MAP = {{
+inline constexpr std::array<Ledger2AccountMeta, 9> LEDGER2_ACCOUNT_MAP = {{
   { ledger2_accounts::INTANGIBLE_ASSETS,       "Нематериальные активы",                 AccountType::ACTIVE },
   { ledger2_accounts::NON_CURRENT_INVESTMENTS, "Вложения во внеоборотные активы",       AccountType::ACTIVE },
   { ledger2_accounts::MATERIALS,               "Материалы",                             AccountType::ACTIVE },
   { ledger2_accounts::BANK_ACCOUNT,            "Расчётный счёт",                        AccountType::ACTIVE },
   { ledger2_accounts::FINANCIAL_INVESTMENTS,   "Финансовые вложения",                   AccountType::ACTIVE },
+  { ledger2_accounts::PARTICIPANT_SETTLEMENTS, "Расчёты с пайщиками",                   AccountType::ACTIVE_PASSIVE },
   { ledger2_accounts::SHARE_FUND,              "Паевой фонд (складочный капитал)",      AccountType::PASSIVE },
   { ledger2_accounts::TARGET_RECEIPTS,         "Целевое финансирование",                AccountType::PASSIVE },
   { ledger2_accounts::OTHER_INCOME_EXPENSES,   "Прочие доходы и расходы",               AccountType::ACTIVE_PASSIVE },

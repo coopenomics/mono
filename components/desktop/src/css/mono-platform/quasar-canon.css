@@ -378,8 +378,33 @@ body.body--dark {
   color: inherit;
   opacity: 0.7;
   font-size: 18px;
-  margin-right: 4px;
-  margin-top: 1px;
+  /* Центрируем иконку по вертикали (важно для multiLine-тостов, где caption
+     в 2 строки) и даём боковой отступ — иначе прижата к краю/тексту и
+     читается «вытянутой». Канон для всех тостов. */
+  align-self: center;
+  margin-left: 2px;
+  margin-right: 10px;
+}
+/* Тост обновления приложения — персистентный (timeout 0), поэтому крестик
+   закрытия выносим в правый верхний угол. Offset-родитель — встроенный
+   .q-notification__wrapper (Quasar вешает на него .relative-position), к нему
+   и прижимаем крестик. Резервируем правый отступ у текста, чтобы caption не
+   залезал под крестик. Прочие тосты авто-исчезают — им угловой крестик не
+   нужен (закрываются сами / экшеном). */
+.q-notification--app-update .q-notification__message {
+  padding-right: 24px;
+}
+.q-notification--app-update .app-update__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-height: auto;
+  min-width: auto;
+  padding: 2px;
+  opacity: 0.55;
+}
+.q-notification--app-update .app-update__close:hover {
+  opacity: 1;
 }
 .q-notification__avatar {
   margin-right: 4px;

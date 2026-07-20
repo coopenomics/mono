@@ -73,13 +73,12 @@ export class CapitalOnboardingEventsService {
 
       const wasAlreadyDone = !!(plugin.config as any)[flagKey];
 
-      // Атомарный merge одного флага: два решения совета по разным шагам,
-      // утверждённые почти одновременно, иначе теряли бы друг друга. merged —
-      // свежий слитый config (под локом), поэтому isL1Complete видит все флаги.
-      const merged = await this.extensionRepository.patchConfig('capital', {
+      // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
+      // config целиком: два решения совета по разным шагам, утверждённые почти
+      // одновременно, иначе теряли бы флаг друг друга (lost update на общем jsonb-блобе).
+      const updated = await this.extensionRepository.patchConfig('capital', {
         [flagKey]: true,
-      });
-      const updatedConfig = merged.config;
+      } as Partial<IConfig>);
 
       this.logger.info(`Флаг ${flagKey} установлен в true`);
 
@@ -89,7 +88,7 @@ export class CapitalOnboardingEventsService {
       // restartApp('capital'), чтобы initialize(config) увидел свежий config
       // и зарегистрировал оферты/программы в платформенном реестре.
       // Совет ничего не нажимает (раздел 7.1 плана C28-10, вариант (в)).
-      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+      if (!wasAlreadyDone && this.isL1Complete(updated.config as IConfig)) {
         this.logger.info(
           '[ONBOARDING_COMPLETED] capital L1 завершён последним шагом, эмиттим событие для auto-restart'
         );

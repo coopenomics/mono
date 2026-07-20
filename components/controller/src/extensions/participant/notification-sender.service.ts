@@ -9,9 +9,7 @@ import {
 } from '~/domain/extension/repositories/log-extension-domain.repository';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { NovuWorkflowAdapter } from '~/infrastructure/novu/novu-workflow.adapter';
-import { NOVU_WORKFLOW_PORT } from '~/domain/notification/interfaces/novu-workflow.port';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
+import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { Workflows } from '@coopenomics/notifications';
 
 @Injectable()
@@ -20,7 +18,7 @@ export class NotificationSenderService {
     private readonly logger: WinstonLoggerService,
     @Inject(LOG_EXTENSION_REPOSITORY) private readonly logExtensionRepository: LogExtensionDomainRepository<ILog>,
     @Inject(ACCOUNT_DATA_PORT) private readonly accountPort: AccountDataPort,
-    @Inject(NOVU_WORKFLOW_PORT) private readonly novuWorkflowAdapter: NovuWorkflowAdapter
+    @Inject(NOTIFICATION_PORT) private readonly notificationPort: NotificationPort
   ) {
     this.logger.setContext(NotificationSenderService.name);
   }
@@ -119,16 +117,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetInitial.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetInitial.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
@@ -171,16 +168,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetReminderStart.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetReminderStart.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
@@ -218,16 +214,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetStarted.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetStarted.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
@@ -272,16 +267,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetReminderEnd.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetReminderEnd.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
@@ -323,16 +317,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetRestart.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetRestart.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
@@ -395,16 +388,15 @@ export class NotificationSenderService {
     for (let i = 0; i < users.length; i++) {
       const user = users[i];
 
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MeetEnded.id,
+      await this.notificationPort.notify({
+        coopname: meet.coopname,
+        workflowId: Workflows.MeetEnded.id,
         to: {
           subscriberId: user.subscriberId,
           email: user.email,
         },
         payload,
-      };
-
-      await this.novuWorkflowAdapter.triggerWorkflow(triggerData);
+      });
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {

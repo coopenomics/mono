@@ -23,7 +23,14 @@ void registrator::confirmpay(name coopname, checksum256 registration_hash){
   candidates.modify(candidate, _registrator, [&](auto &c){
     c.status = "payed"_n;
   });
-  
+
+  // Деньги получены кассой, но взнос ещё не признан — ставим на расчёты с
+  // пайщиком (Dr 51 / Cr 76, ISSUE w.reg.pend) до решения совета. Сумма —
+  // вступительный + минимальный паевой. Признание/возврат — в confirmreg/declinereg.
+  eosio::asset registration_quantity = candidate -> initial + candidate -> minimum;
+  std::string memo = "Приём регистрационного взноса в ожидание решения совета от username=" + candidate -> username.to_string();
+  Ledger2::apply(_registrator, coopname, operations::registrator::RECEIVE_PAYMENT, registration_quantity, candidate -> username, registration_hash, memo);
+
   action(permission_level{ _registrator, "active"_n}, _soviet, "createagenda"_n,
     std::make_tuple(
       coopname, 

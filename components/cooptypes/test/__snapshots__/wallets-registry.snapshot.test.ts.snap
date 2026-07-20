@@ -32,6 +32,16 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "required_program_id": 0,
     "wallet_name": "w.cap.preimp",
   },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.exp.adv",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.reg.pend",
+  },
 ]
 `;
 
@@ -63,6 +73,16 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "name": "w.cap.preimp",
   },
   {
+    "human_name": "Подотчётные средства пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.exp.adv",
+  },
+  {
+    "human_name": "Регистрационный взнос в ожидании решения совета",
+    "kind": "USER_SHARED",
+    "name": "w.reg.pend",
+  },
+  {
     "human_name": "ЦПП «Генератор» — единый кошелёк программы",
     "kind": "COOPERATIVE",
     "name": "w.cap.gen",
@@ -76,6 +96,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)",
     "kind": "COOPERATIVE",
     "name": "w.wal.wthdrw",
+  },
+  {
+    "human_name": "Резерв паевого под заявку на возврат",
+    "kind": "COOPERATIVE",
+    "name": "w.wal.wpend",
   },
   {
     "human_name": "Членские взносы за инфраструктуру кооп. платформы",
@@ -106,6 +131,11 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Выплаты поставщикам",
     "kind": "COOPERATIVE",
     "name": "w.mkt.payout",
+  },
+  {
+    "human_name": "Пул программных расходов ЦПП «Благорост»",
+    "kind": "COOPERATIVE",
+    "name": "w.cap.pgexp",
   },
 ]
 `;

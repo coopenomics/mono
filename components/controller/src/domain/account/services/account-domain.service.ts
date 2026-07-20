@@ -14,17 +14,13 @@ import { INDIVIDUAL_REPOSITORY, IndividualRepository } from '~/domain/common/rep
 import type { IndividualDomainInterface } from '~/domain/common/interfaces/individual-domain.interface';
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 import type { EntrepreneurDomainInterface } from '~/domain/common/interfaces/entrepreneur-domain.interface';
-import { generateSubscriberHash } from '~/utils/novu.utils';
+import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { randomUUID } from 'crypto';
 import type { Cooperative } from 'cooptypes';
-import {
-  NOTIFICATION_DOMAIN_SERVICE,
-  NotificationDomainService,
-} from '~/domain/notification/services/notification-domain.service';
 import { userStatus } from '~/types';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -42,7 +38,6 @@ export class AccountDomainService {
     @Inject(ORGANIZATION_REPOSITORY) private readonly organizationRepository: OrganizationRepository,
     @Inject(INDIVIDUAL_REPOSITORY) private readonly individualRepository: IndividualRepository,
     @Inject(ENTREPRENEUR_REPOSITORY) private readonly entrepreneurRepository: EntrepreneurRepository,
-    @Inject(NOTIFICATION_DOMAIN_SERVICE) private readonly notificationDomainService: NotificationDomainService,
     @Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService
@@ -124,44 +119,26 @@ export class AccountDomainService {
   }
 
   /**
-   * Настраивает подписчика уведомлений для пользователя
-   * Генерирует subscriber_id и subscriber_hash, обновляет пользователя и создает подписчика NOVU
+   * Настраивает identity получателя уведомлений: генерирует immutable `subscriber_id`
+   * (адресация Центра уведомлений) и `subscriber_hash`, сохраняет в профиль пользователя.
    * @param username Имя пользователя
    * @param context Контекст для логирования (например, "регистрации", "обновления")
    */
   async setupNotificationSubscriber(username: string, context = 'пользователя'): Promise<void> {
-    this.logger.log(`Настройка подписчика уведомлений для ${context} ${username}`);
+    this.logger.log(`Настройка identity получателя уведомлений для ${context} ${username}`);
 
     try {
-      // Генерируем subscriber_id и subscriber_hash для NOVU
       const subscriberId = await this.userDomainService.generateSubscriberId(config.coopname);
       const subscriberHash = generateSubscriberHash(subscriberId);
 
-      // Обновляем пользователя с subscriber данными
       await this.userRepository.updateByUsername(username, {
         subscriber_id: subscriberId,
         subscriber_hash: subscriberHash,
       });
-
-      const account = await this.getAccount(username);
-      // HTTP к Novu не должен задерживать ответ API: синхронизация подписчика — в фоне
-      void this.notificationDomainService
-        .createSubscriberFromAccount(account)
-        .then(() => {
-          this.logger.log(`Подписчик NOVU успешно создан для ${context} ${username}`);
-        })
-        .catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          const stack = error instanceof Error ? error.stack : undefined;
-          this.logger.error(
-            `Ошибка создания подписчика NOVU для ${context} ${username}: ${message}`,
-            stack,
-          );
-        });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
-      this.logger.error(`Ошибка настройки подписчика NOVU для ${context} ${username}: ${message}`, stack);
+      this.logger.error(`Ошибка настройки identity получателя для ${context} ${username}: ${message}`, stack);
       throw error;
     }
   }

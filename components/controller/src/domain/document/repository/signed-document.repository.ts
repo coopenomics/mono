@@ -79,6 +79,21 @@ export interface SignedDocumentListResult {
   total: number;
 }
 
+/**
+ * Частичное обновление записи при ПЕРЕСБОРКЕ агрегата (доприход decision/act/link).
+ * Затрагивает ТОЛЬКО агрегат-производные колонки. Поля жизненного цикла (status, block_num,
+ * source_action_data, document_created_at) сюда НЕ входят: ими владеют статус-события
+ * (newsubmitted/newresolved/newdeclined). Иначе пересборка, читающая старый row.status, откатила бы
+ * параллельно проставленный resolved обратно в submitted (гонка freedecision: newresolved+newdecision
+ * по одному package приходят одновременно).
+ */
+export interface SignedDocumentAggregateUpdate {
+  document_aggregate: DocumentPackageAggregateDomainInterface | null;
+  full_title: string;
+  content_text: string;
+  signers_text: string;
+}
+
 /** Состояние записи для guard'ов ingestion (не понижать статус / не откатывать версию подписи). */
 export interface SignedDocumentState {
   status: SignedDocumentStatus;
@@ -102,6 +117,11 @@ export interface SignedDocumentPackageRow {
 export interface SignedDocumentRepository {
   /** Вставить или обновить запись по (coopname, doc_hash). */
   upsert(input: SignedDocumentUpsertInput): Promise<void>;
+
+  /** Частично обновить ТОЛЬКО агрегат-производные колонки записи (по coopname, doc_hash).
+   *  Используется пересборкой при доприходе decision/act/link — status/block_num/source НЕ трогаются
+   *  (см. SignedDocumentAggregateUpdate: защита от отката resolved→submitted в гонке). */
+  updateAggregate(coopname: string, docHash: string, fields: SignedDocumentAggregateUpdate): Promise<void>;
 
   /** Статус + номер блока крайней версии документа по его doc_hash (для guard'ов ingestion);
    *  null, если записи нет. */

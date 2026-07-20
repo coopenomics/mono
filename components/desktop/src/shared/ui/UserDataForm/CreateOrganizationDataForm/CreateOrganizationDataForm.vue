@@ -197,16 +197,6 @@
   )
 
   q-input(
-    v-model='data.bank_account.details.kpp',
-    outlined dense color='primary',
-    mask='#########',
-    label='КПП банка (9 цифр)',
-    :rules='[(val) => notEmpty(val), (val) => val.length === 9 || "КПП должен содержать 9 цифр"]',
-    autocomplete='off'
-    :readonly="readonly"
-  )
-
-  q-input(
     v-model='data.bank_account.account_number',
     outlined dense color='primary',
     mask='####################',
@@ -277,7 +267,6 @@ const data = ref<ICreateOrganizationData>(props.data || {
     details: {
       corr: '',
       bik: '',
-      kpp: '',
     },
     account_number: '',
     currency: 'RUB',

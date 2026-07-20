@@ -6,6 +6,5 @@ export interface BankAccountDomainInterface {
   details: {
     bik: string;
     corr: string;
-    kpp: string;
   };
 }

@@ -5,7 +5,6 @@ import { WalletInteractor } from './interactors/wallet.interactor';
 import { WalletNotificationService } from './services/wallet-notification.service';
 import { ProgramWalletSyncService } from './services/program-wallet-sync.service';
 import { ProgramWalletInitService } from './services/program-wallet-init.service';
-import { NovuModule } from '~/infrastructure/novu/novu.module';
 import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
@@ -19,7 +18,6 @@ import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
  */
 @Module({
   imports: [
-    NovuModule,
     GatewayDomainModule,
     GatewayInfrastructureModule,
     UserInfrastructureModule,

@@ -1,5 +1,7 @@
 import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { WalletPage } from 'src/pages/User/WalletPage';
+import { MembershipExitPage } from 'src/pages/User/MembershipExitPage';
+import { MembershipExitConfirmPage } from 'src/pages/User/MembershipExitConfirmPage';
 import { ConnectionAgreementPage, InstallationCompletedPage } from 'src/pages/Union/ConnectionAgreement';
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { ContactsPage } from 'src/pages/Contacts';
@@ -44,6 +46,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             children: [],
           },
           {
+            // Подтверждение авторизуется токеном из ссылки (мутация публичная),
+            // поэтому страница доступна БЕЗ входа — иначе навигационный гард
+            // редиректит на login-redirect. requiresAuth:false = исключение из auth-гейта.
+            meta: {
+              title: 'Подтверждение выхода',
+              icon: 'logout',
+              roles: [],
+              requiresAuth: false,
+              hidden: true,
+            },
+            path: 'membership-exit/confirm',
+            name: 'membership-exit-confirm',
+            component: markRaw(MembershipExitConfirmPage),
+            children: [],
+          },
+          {
             meta: {
               title: 'Удостоверение',
               icon: 'fa-solid fa-user',
@@ -58,7 +76,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           {
             meta: {
               title: 'Подключение',
-              icon: 'fas fa-link',
+              icon: 'link',
               roles: ['user'],
               conditions: 'isCoop === true && coopname === "voskhod"',
               requiresAuth: true,
@@ -85,7 +103,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           {
             meta: {
               title: 'Реквизиты',
-              icon: 'fas fa-link',
+              icon: 'account_balance',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
             },
@@ -160,6 +178,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'fa-solid fa-info',
               roles: [],
             },
+          },
+          {
+            // Предпоследний пункт: выход из кооператива (не путать с «Выйти из
+            // кабинета» в RailUserCard). Иконка group_remove — не logout.
+            meta: {
+              title: 'Выход из кооператива',
+              icon: 'group_remove',
+              roles: [],
+              requiresAuth: true,
+            },
+            path: 'membership-exit',
+            name: 'membership-exit',
+            component: markRaw(MembershipExitPage),
+            children: [],
           },
           {
             meta: {

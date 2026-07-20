@@ -5,6 +5,7 @@ export enum MonoAccountStatusDomainInterface {
   'Registered' = 'registered',
   'Active' = 'active',
   'Failed' = 'failed',
+  'Refunding' = 'refunding',
   'Refunded' = 'refunded',
   'Blocked' = 'blocked',
 }

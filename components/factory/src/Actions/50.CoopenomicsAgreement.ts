@@ -12,19 +12,18 @@ export class Factory extends DocFactory<CoopenomicsAgreement.Action> {
   }
 
   async generateDocument(data: CoopenomicsAgreement.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<CoopenomicsAgreement.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, coop, vars, partner } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(CoopenomicsAgreement.Template as ITemplate<CoopenomicsAgreement.Model>)
+        : this.getTemplate<CoopenomicsAgreement.Model>(DraftContract.contractName.production, CoopenomicsAgreement.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      partner: () => super.getOrganization(data.username, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = CoopenomicsAgreement.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, CoopenomicsAgreement.registry_id, data.block_num)
-    }
+    // meta зависит от template.title — резолвим после батча
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-    const partner = await super.getOrganization(data.username, data.block_num)
 
     const combinedData: CoopenomicsAgreement.Model = {
       meta,

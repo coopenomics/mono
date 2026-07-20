@@ -1,9 +1,6 @@
 import path from 'node:path'
 import type { RegistratorContract, SovietContract } from 'cooptypes'
-import { Generator, type IGenerate, type IGeneratedDocument, Registry } from '../../src'
-import { saveBufferToDisk } from '../../src/Utils/saveBufferToDisk'
-import { loadBufferFromDisk } from '../../src/Utils/loadBufferFromDisk'
-import { calculateSha256 } from '../../src/Utils/calculateSHA'
+import { Generator, Registry } from '../../src'
 import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, IVars, PaymentData } from '../../src/Models'
 import { MongoDBConnector } from '../../src/Services/Databazor'
 // eslint-disable-next-line ts/no-require-imports
@@ -387,7 +384,6 @@ export async function preLoading() {
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '773643001',
       },
     },
     deleted: false,
@@ -428,7 +424,6 @@ export async function preLoading() {
       details: {
         bik: '098765432',
         corr: '30101810400000000225',
-        kpp: '098765432',
       },
     },
     deleted: false,
@@ -476,7 +471,6 @@ export async function preLoading() {
       details: {
         bik: '044525225',
         corr: '30101810400000000225',
-        kpp: '773643001',
       },
     },
     deleted: false,
@@ -524,7 +518,6 @@ export async function preLoading() {
       details: {
         bik: '098765432',
         corr: '30101810400000000225',
-        kpp: '098765432',
       },
     },
     deleted: false,

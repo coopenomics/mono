@@ -18,6 +18,6 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
   ],
   controllers: [],
   providers: [AgendaInteractor, AgendaResolver, AgendaService],
-  exports: [],
+  exports: [AgendaService],
 })
 export class AgendaModule {}

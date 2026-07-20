@@ -94,6 +94,19 @@ const submit = async (): Promise<void> => {
         attempts++;
       }
 
+      // Свежая загрузка столов и грантов под уже авторизованного пользователя.
+      // Вход в той же вкладке (без перезагрузки) НЕ переинициализирует приложение,
+      // поэтому currentDesktop остаётся АНОНИМНЫМ — целевой стол (напр.
+      // chairman/connect) резолвится, но рендерится пустым до ручного F5.
+      // loadDesktop() подтягивает DesktopWorkspace.grants актуального пользователя.
+      // По образцу SignUp.vue / init-app / EnableButton. Best-effort: сбой загрузки
+      // стола не должен ронять уже успешный вход.
+      try {
+        await desktops.loadDesktop();
+      } catch (e) {
+        console.warn('[BOOTRACE] не удалось перезагрузить стол после входа:', e);
+      }
+
       if (!navigateToSavedUrl()) {
         desktops.selectDefaultWorkspace(true);
         desktops.goToDefaultPage(router);

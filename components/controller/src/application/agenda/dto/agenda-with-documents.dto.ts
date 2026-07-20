@@ -26,9 +26,16 @@ export class AgendaWithDocumentsDTO implements AgendaWithDocumentsDomainInterfac
     data: AgendaWithDocumentsDomainInterface,
     usernameCertificate?: UserCertificateDomainInterface | null,
     votesForCertificates?: UserCertificateDomainInterface[],
-    votesAgainstCertificates?: UserCertificateDomainInterface[]
+    votesAgainstCertificates?: UserCertificateDomainInterface[],
+    councilMembersCount = 0
   ) {
-    this.table = new BlockchainDecisionDTO(data.table, usernameCertificate, votesForCertificates, votesAgainstCertificates);
+    this.table = new BlockchainDecisionDTO(
+      data.table,
+      usernameCertificate,
+      votesForCertificates,
+      votesAgainstCertificates,
+      councilMembersCount
+    );
     this.action = new BlockchainActionDTO(data.action);
     this.documents = new DocumentPackageAggregateDTO(data.documents);
   }

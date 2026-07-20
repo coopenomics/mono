@@ -21,25 +21,24 @@ export class Factory extends DocFactory<ReturnByMoneyDecision.Action> {
     data: ReturnByMoneyDecision.Action,
     options?: IGenerationOptions,
   ): Promise<IGeneratedDocument> {
-    let template: ITemplate<ReturnByMoneyDecision.Model>
+    // Независимые источники тянем параллельно (см. resolveParallel в DocFactory)
+    const { template, user, coop, vars } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(ReturnByMoneyDecision.Template as ITemplate<ReturnByMoneyDecision.Model>)
+        : this.getTemplate<ReturnByMoneyDecision.Model>(DraftContract.contractName.production, ReturnByMoneyDecision.registry_id, data.block_num),
+      user: () => super.getUser(data.username, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+    })
 
-    if (process.env.SOURCE === 'local') {
-      template = ReturnByMoneyDecision.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, ReturnByMoneyDecision.registry_id, data.block_num)
-    }
-
-    const user = await super.getUser(data.username, data.block_num)
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-
+    // meta зависит от template.title — считаем после батча
     // TODO необходимо строго типизировать мета-данные документов друг под друга!
     const meta: IMetaDocument = await super.getMeta({
       title: template.title,
       ...data,
     }) // Генерируем мета-данные
 
+    // decision зависит от coop и meta.created_at — после батча
     const decision = await super.getDecision(
       coop,
       data.coopname,

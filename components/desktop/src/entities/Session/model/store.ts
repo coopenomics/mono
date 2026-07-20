@@ -35,6 +35,9 @@ interface ISessionStore {
   blockchainAccount: ComputedRef<IAccount['blockchain_account'] | undefined>;
   participantAccount: ComputedRef<IAccount['participant_account'] | undefined>;
   providerAccount: ComputedRef<IAccount['provider_account'] | undefined>;
+  // Сводка по вступительному платежу — источник истины для восстановления шага
+  // регистрации (ожидание/отклонение платежа) после перезагрузки и в любой вкладке.
+  registrationPayment: ComputedRef<IAccount['registration_payment'] | undefined>;
 }
 
 export const useSessionStore = defineStore('session', (): ISessionStore => {
@@ -125,6 +128,9 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const providerAccount = computed(
     () => currentUserAccount.value?.provider_account,
   );
+  const registrationPayment = computed(
+    () => currentUserAccount.value?.registration_payment,
+  );
 
   const username = computed(() => globalStore.username);
 
@@ -160,5 +166,6 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
     blockchainAccount,
     participantAccount,
     providerAccount,
+    registrationPayment,
   };
 });

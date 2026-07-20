@@ -29,10 +29,11 @@
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,
-        signout-label='Выйти',
+        signout-label='Выйти из кабинета',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
+      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`') v{{ updateWatch.currentVersion }}
 
   //- Невидимые носители canon-диалогов: рендерятся в q-portal,
   //- открываются глобальными ref'ами через useDepositDialog().open() /
@@ -62,8 +63,10 @@ import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
 import type { RailItem } from 'src/shared/ui/layout/AppDrawer';
 import { RailUserCard } from 'src/shared/ui/domain/RailUserCard';
 import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
+import { useUpdateWatch } from 'src/entities/AppVersion/model';
 
 const router = useRouter();
+const updateWatch = useUpdateWatch();
 const desktop = useDesktopStore();
 const session = useSessionStore();
 const systemStore = useSystemStore();
@@ -294,5 +297,18 @@ async function onLogout(): Promise<void> {
    (диалоги портятся в body независимо от родителя); сами кнопки прячем. */
 .left-drawer-menu__hidden-dialogs {
   display: none;
+}
+/* Кнопка «Выйти из кабинета» из RailUserCard — урезаем нижний padding, чтобы версия
+   шла сразу под ней без лишнего вертикального зазора. */
+:deep(.rail__signout) {
+  padding-bottom: var(--p-1, 4px);
+}
+/* Версия приложения — приглушённая подпись под карточкой пользователя. */
+.left-drawer-menu__version {
+  text-align: center;
+  padding: 0 var(--p-2, 8px) var(--p-1, 4px);
+  font-size: 10px;
+  color: var(--p-ink-3);
+  user-select: none;
 }
 </style>

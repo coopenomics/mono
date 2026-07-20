@@ -527,4 +527,11 @@ const columns: QTableProps['columns'] = [
     overflow: auto;
   }
 }
+
+.card-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--p-ink);
+  margin-bottom: var(--p-2);
+}
 </style>

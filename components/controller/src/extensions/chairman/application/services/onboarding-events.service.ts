@@ -74,8 +74,6 @@ export class ChairmanOnboardingEventsService {
         return;
       }
 
-      const cfg = { ...plugin.config };
-
       // Определяем ключ флага для обновления на основе metadata
       const flagKey = this.mapStepToFlag(step);
 
@@ -84,15 +82,15 @@ export class ChairmanOnboardingEventsService {
         return;
       }
 
-      const wasAlreadyDone = !!(cfg as any)[flagKey];
+      const wasAlreadyDone = !!(plugin.config as any)[flagKey];
 
-      // Атомарный merge одного флага: два решения совета по разным шагам,
-      // утверждённые почти одновременно, иначе теряли бы друг друга. merged —
-      // свежий слитый config (под локом), поэтому isL1Complete видит все флаги.
-      const merged = await this.extensionRepository.patchConfig('chairman', {
+      // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
+      // config целиком: несколько DecisionTrackedEvent (согласия/подписи), обработанные
+      // конкурентно, иначе теряют флаг друг друга (lost update на общем jsonb-блобе) —
+      // тот же класс бага, что чинили в capital-онбординге.
+      const updated = await this.extensionRepository.patchConfig('chairman', {
         [flagKey]: true,
-      });
-      const updatedConfig = merged.config;
+      } as Partial<IConfig>);
 
       this.logger.info(`Онбординг обновлён: ${flagKey} = true (решение ${result.decision_id})`);
 
@@ -100,7 +98,7 @@ export class ChairmanOnboardingEventsService {
       // завершённым, эмиттим ONBOARDING_COMPLETED_EVENT.
       // У chairman нет L2-оферт в реестре сейчас, но событие важно как
       // сигнал «L1 кооператива закрыт» — раздел 7.1 C28-10.
-      if (!wasAlreadyDone && this.isL1Complete(updatedConfig as IConfig)) {
+      if (!wasAlreadyDone && this.isL1Complete(updated.config as IConfig)) {
         this.logger.info(
           '[ONBOARDING_COMPLETED] chairman L1 завершён последним шагом, эмиттим событие'
         );

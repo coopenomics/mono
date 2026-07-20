@@ -314,7 +314,7 @@ export class UserDomainService {
   }
 
   /**
-   * Генерирует уникальный subscriber_id для NOVU с проверкой на дублирование
+   * Генерирует уникальный subscriber_id с проверкой на дублирование
    * @param coopname Название кооператива
    * @param maxRetries Максимальное количество попыток (по умолчанию 5)
    * @returns Уникальный subscriber_id

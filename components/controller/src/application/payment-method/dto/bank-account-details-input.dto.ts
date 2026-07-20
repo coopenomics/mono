@@ -11,9 +11,4 @@ export class BankAccountDetailsInputDTO {
   @IsNotEmpty({ message: 'Корр. счет обязателен' })
   @IsString()
   corr!: string;
-
-  @Field(() => String, { description: 'КПП банка' })
-  @IsNotEmpty({ message: 'КПП обязателен' })
-  @IsString()
-  kpp!: string;
 }

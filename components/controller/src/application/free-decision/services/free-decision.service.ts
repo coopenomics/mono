@@ -8,10 +8,25 @@ import type { FreeDecisionGenerateDocumentInputDTO } from '../../document/docume
 import { FreeDecisionInteractor } from '~/application/free-decision/interactors/free-decision.interactor';
 import type { ProjectFreeDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-free-decision-document.dto';
 import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { AgendaService } from '~/application/agenda/services/agenda.service';
+import type { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
+
+// Повестка собирается join'ом таблицы decisions из блокчейна (доступна сразу)
+// с проиндексированными парсером действием newsubmitted и документом-заявлением.
+// Решение появляется на чейне мгновенно, но индексация парсером action'а занимает
+// ~2 c — поэтому опрашиваем повестку короткими тиками, пока вопрос не соберётся,
+// и возвращаем его фронту немедленно (без ожидания общего поллинга страницы).
+const PUBLISH_FETCH_DELAY_MS = 400;
+const PUBLISH_FETCH_ATTEMPTS = 13; // ~5 c суммарно — запас над типичными ~2 c
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 @Injectable()
 export class FreeDecisionService {
-  constructor(private readonly freeDecisionInteractor: FreeDecisionInteractor) {}
+  constructor(
+    private readonly freeDecisionInteractor: FreeDecisionInteractor,
+    private readonly agendaService: AgendaService
+  ) {}
 
   public async generateProjectOfFreeDecision(
     data: ProjectFreeDecisionGenerateDocumentInputDTO,
@@ -31,9 +46,26 @@ export class FreeDecisionService {
     return document as unknown as GeneratedDocumentDTO;
   }
 
-  public async publishProjectOfFreeDecision(data: PublishProjectFreeDecisionInputDTO): Promise<boolean> {
-    const selected = await this.freeDecisionInteractor.publishProjectOfFreeDecision(data);
-    return selected;
+  public async publishProjectOfFreeDecision(
+    data: PublishProjectFreeDecisionInputDTO
+  ): Promise<AgendaWithDocumentsDTO | null> {
+    await this.freeDecisionInteractor.publishProjectOfFreeDecision(data);
+
+    // decision.hash в блокчейне == «общий хэш» подписанного заявления (hash =
+    // doc_hash + meta_hash), НЕ doc_hash (хэш только содержимого) — их легко
+    // перепутать, и матч по doc_hash молча никогда не сработает.
+    const hash = data.document.hash;
+
+    let item: AgendaWithDocumentsDTO | null = null;
+    for (let attempt = 0; attempt < PUBLISH_FETCH_ATTEMPTS; attempt++) {
+      item = await this.agendaService.getAgendaItemByHash(hash);
+      if (item) break;
+      await sleep(PUBLISH_FETCH_DELAY_MS);
+    }
+
+    // null допустим: если парсер не успел проиндексировать — фронт покажет вопрос
+    // на ближайшем тике поллинга (деградация, не ошибка).
+    return item;
   }
 
   public async createProjectOfFreeDecision(data: CreateProjectFreeDecisionInputDTO): Promise<CreatedProjectFreeDecisionDTO> {

@@ -19,7 +19,6 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ConfigModule } from '@nestjs/config';
 import { z } from 'zod';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
-import { NovuModule } from '~/infrastructure/novu/novu.module';
 import { INTER_COOP_CALENDAR_EVENT_NOTIFICATION } from '@coopenomics/inter';
 import { ChatcoopCalendarEventNotificationService } from './application/services/chatcoop-calendar-event-notification.service';
 import { ExtensionDomainRepository } from '~/domain/extension/repositories/extension-domain.repository';
@@ -516,7 +515,6 @@ export class ChatCoopPlugin extends BaseExtModule {
     ChatCoopDatabaseModule,
     ConfigModule,
     AccountInfrastructureModule,
-    NovuModule,
   ],
   controllers: [
     LiveKitWebhookController,

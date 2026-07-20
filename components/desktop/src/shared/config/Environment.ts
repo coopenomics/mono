@@ -15,9 +15,6 @@ export interface EnvVars {
   SERVER?: boolean;
   VUE_ROUTER_MODE: string;
   VUE_ROUTER_BASE: string;
-  NOVU_APP_ID: string;
-  NOVU_BACKEND_URL: string;
-  NOVU_SOCKET_URL: string;
   VAPID_PUBLIC_KEY: string;
   SENTRY_DSN: string;
   OPENREPLAY_PROJECT_KEY: string;
@@ -119,9 +116,6 @@ function getEnv(): EnvVars {
       TIMEZONE: 'Europe/Moscow',
       VUE_ROUTER_MODE: '',
       VUE_ROUTER_BASE: '',
-      NOVU_APP_ID: '',
-      NOVU_BACKEND_URL: '',
-      NOVU_SOCKET_URL: '',
       VAPID_PUBLIC_KEY: '',
       SENTRY_DSN: '',
       OPENREPLAY_PROJECT_KEY: '',
@@ -167,9 +161,6 @@ function getEnv(): EnvVars {
     SERVER: process.env.SERVER as unknown as boolean,
     VUE_ROUTER_MODE: process.env.VUE_ROUTER_MODE as string,
     VUE_ROUTER_BASE: process.env.VUE_ROUTER_BASE as string,
-    NOVU_APP_ID: process.env.NOVU_APP_ID as string,
-    NOVU_BACKEND_URL: process.env.NOVU_BACKEND_URL as string,
-    NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL as string,
     VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY as string,
     SENTRY_DSN: process.env.SENTRY_DSN as string,
     OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,

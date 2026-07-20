@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/sdk",
   "type": "module",
-  "version": "2026.5.30-alpha-2",
+  "version": "2026.7.19-1",
   "private": false,
   "packageManager": "pnpm@9.9.0",
   "description": "TypeScript SDK для работы с API кооператива",
@@ -48,6 +48,7 @@
     "@wharfkit/contract": "^1.1.5",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
+    "canonicalize": "^2.0.0",
     "cooptypes": "workspace:*",
     "graphql": "^16.9.0",
     "graphql-request": "^7.1.2",

@@ -1,5 +1,4 @@
-import { type Cooperative, DraftContract } from 'cooptypes'
-import moment from 'moment-timezone'
+import { DraftContract } from 'cooptypes'
 import { AnnualGeneralMeetingVotingBallot } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
@@ -13,25 +12,19 @@ export class Factory extends DocFactory<AnnualGeneralMeetingVotingBallot.Action>
   }
 
   async generateDocument(data: AnnualGeneralMeetingVotingBallot.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AnnualGeneralMeetingVotingBallot.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = AnnualGeneralMeetingVotingBallot.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AnnualGeneralMeetingVotingBallot.registry_id, data.block_num)
-    }
+    const { template, coop, vars, userData, meet } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AnnualGeneralMeetingVotingBallot.Template as ITemplate<AnnualGeneralMeetingVotingBallot.Model>)
+        : this.getTemplate<AnnualGeneralMeetingVotingBallot.Model>(DraftContract.contractName.production, AnnualGeneralMeetingVotingBallot.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      userData: () => super.getUser(data.username, data.block_num),
+      // Собрание по хэшу — аргументы из data, не зависит от прочих
+      meet: () => super.getMeet(data.coopname, data.meet_hash, data.block_num),
+    })
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-
-    // Извлекаем данные пользователя и преобразуем в общий формат
-    const userData = await super.getUser(data.username, data.block_num)
     const user = super.getCommonUser(userData)
-
-    // Извлекаем данные собрания из блокчейна по хэшу
-    const meet = await super.getMeet(data.coopname, data.meet_hash, data.block_num)
 
     // Данные уже приходят отформатированными из метода getMeet,
     // дополнительная обработка времени не требуется

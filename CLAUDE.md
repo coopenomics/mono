@@ -38,6 +38,8 @@ ln -s /home/admin/mono-ai-4/components/controller/.env $WT/components/controller
 
 **Базовая ветка mono-ai-1 — `dev`.** Прямые коммиты в `dev` для мелких фиксов разрешены и не требуют feature-ветки/PR (отменено 2026-05-22 пользователем). Для крупных задач — feature-ветка (`feat/...` или `fix/...`) от dev и PR в dev; merge делает пользователь на GitHub. Push в `main` / `mvp` — по-прежнему только через PR.
 
+**Релиз/деплой — FF-промоушн `dev → testnet → main`** (см. `scripts/RELEASE.md`). Версию бампает `lerna` ОДИН раз на dev (`scripts/cut-release.sh`), тот же коммит едет вверх по fast-forward (`scripts/promote.sh testnet|main`). `testnet`/`main` не несут своих коммитов — только FF-указатели, поэтому merge-конфликтов нет. **В `testnet`/`main` прямых коммитов и повторных бампов версии быть не должно** — это ломает FF. Деплой триггерит push в testnet/main с изменением `lerna.json`; окружение определяет ветка (main → prod). Старые `publish-alpha.sh`/`publish-prod.sh` (merge `-X theirs` + per-branch бамп + back-merge) удалены — они и плодили 20-package.json конфликты.
+
 **Не stash'ить `-u` при unstaged WIP пользователя.** Это создаёт окно для потери при drop/конфликте. Если нужно временно убрать unstaged — `git stash push -- <конкретные-paths>` либо коммит-в-feature, и только свои файлы. Кейс 2026-05-18: после `git stash -u`+`drop` при конфликте потерял WIP пользователя (infra.ts/config.ts/quasar.config.cjs и др.).
 
 ### Story-by-story для проекта «Стол заказов» (mono-ai-4 на marketplace2)

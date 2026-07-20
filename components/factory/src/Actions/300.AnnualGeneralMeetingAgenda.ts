@@ -1,5 +1,4 @@
 import { DraftContract } from 'cooptypes'
-import moment from 'moment-timezone'
 import { AnnualGeneralMeetingAgenda } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
@@ -13,21 +12,16 @@ export class Factory extends DocFactory<AnnualGeneralMeetingAgenda.Action> {
   }
 
   async generateDocument(data: AnnualGeneralMeetingAgenda.Action, options?: IGenerationOptions): Promise<IGeneratedDocument> {
-    let template: ITemplate<AnnualGeneralMeetingAgenda.Model>
-
-    if (process.env.SOURCE === 'local') {
-      template = AnnualGeneralMeetingAgenda.Template
-    }
-    else {
-      template = await this.getTemplate(DraftContract.contractName.production, AnnualGeneralMeetingAgenda.registry_id, data.block_num)
-    }
+    const { template, coop, vars, userData } = await this.resolveParallel({
+      template: () => process.env.SOURCE === 'local'
+        ? Promise.resolve(AnnualGeneralMeetingAgenda.Template as ITemplate<AnnualGeneralMeetingAgenda.Model>)
+        : this.getTemplate<AnnualGeneralMeetingAgenda.Model>(DraftContract.contractName.production, AnnualGeneralMeetingAgenda.registry_id, data.block_num),
+      coop: () => super.getCooperative(data.coopname, data.block_num),
+      vars: () => super.getVars(data.coopname, data.block_num),
+      userData: () => super.getUser(data.username, data.block_num),
+    })
 
     const meta: IMetaDocument = await super.getMeta({ title: template.title, ...data })
-    const coop = await super.getCooperative(data.coopname, data.block_num)
-    const vars = await super.getVars(data.coopname, data.block_num)
-
-    // Извлекаем данные пользователя и преобразуем в общий формат
-    const userData = await super.getUser(data.username, data.block_num)
     const user = super.getCommonUser(userData)
 
     // Используем данные напрямую из Action, так как собрание еще не создано в блокчейне

@@ -64,9 +64,16 @@ export const OPERATION_CODE_TO_PROCESS_TYPE: Readonly<Record<string, string>> = 
  */
 export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Object.freeze({
   // registrator::candidates2.registration_hash — заявка пайщика на вступление.
-  // Одним process_hash связаны: reguser/confirmreg/declinereg/declinepay +
-  // два inline ledger2::apply (o.reg.payent + o.reg.putmin) с тем же hash.
+  // Одним process_hash (= registration_hash) связаны: reguser/confirmpay/confirmreg +
+  // inline ledger2::apply приёма и признания взноса (o.reg.inpay на confirmpay,
+  // o.reg.setmin + o.reg.setent на confirmreg).
   'p.reg.accept': [{ code: 'registrator', table: 'candidates2', field: 'registration_hash' }],
+
+  // p.reg.refund — возврат регистрационного взноса при отказе совета.
+  // Отдельный процесс (приём прерывается, начинается возврат): одна операция
+  // o.reg.refund на declinereg, process_hash = тот же registration_hash, что
+  // жил в candidates2 (запись кандидата удаляется, но дельта остаётся в истории).
+  'p.reg.refund': [{ code: 'registrator', table: 'candidates2', field: 'registration_hash' }],
 
   // p.cap.debt — выдача/возврат беспроцентного займа пайщика.
   // Один process_hash (= debt_hash), две операции: o.cap.lend (при выдаче)
@@ -139,6 +146,19 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
 
   // p.brn.spend — оплата расхода КУ из общего кошелька: process_hash = spends.hash.
   'p.brn.spend': [{ code: 'branch', table: 'spends', field: 'hash' }],
+
+  // p.cap.pgexp — пополнение пула программных расходов (o.cap.pgtop, ISSUE
+  // w.cap.pgexp). Одноактовый, process_hash синтетический (sha256 в контракте) —
+  // entity-таблицы нет, данные из blockchain_actions.
+  'p.cap.pgexp': [],
+
+  // p.exp.expns — расход по СЗ (шасси expense): o.exp.blgadv/blgdir (оплата) +
+  // опц. o.exp.over + o.exp.advrpt (отчёт) + опц. o.exp.advret (возврат).
+  // Анкер процесса — proposal_hash в `expense::proposals`.
+  'p.exp.expns': [{ code: 'expense', table: 'proposals', field: 'proposal_hash' }],
+
+  // marketplace::requests.hash — поле так и называется `hash`.
+  'p.mkt.reqst': [{ code: 'marketplace', table: 'requests', field: 'hash' }],
 
   // p.sov.axncnv — одноактовый процесс: данные из blockchain_actions +
   // документ statement (DocumentFieldDetector).
