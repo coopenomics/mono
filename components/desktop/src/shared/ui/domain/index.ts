@@ -14,6 +14,7 @@ export * from './ExpenseProposalDocuments';
 export * from './ExpenseProposalList';
 export * from './FileUploader';
 export * from './FilterBar';
+export * from './IdentityCell';
 export * from './IdentityPanel';
 export * from './NotificationCenter';
 export * from './OtpInput';

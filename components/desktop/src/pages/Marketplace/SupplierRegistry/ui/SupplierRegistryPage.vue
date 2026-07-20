@@ -5,6 +5,9 @@ import { useSessionStore } from 'src/entities/Session/model';
 import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState } from 'src/shared/ui/base';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
+import { IdentityCell } from 'src/shared/ui/domain';
+import { getName } from 'src/shared/lib/utils/account';
+import { api as accountApi } from 'src/entities/Account/api';
 import {
   addSupplier,
   approveSupplier,
@@ -32,6 +35,34 @@ const items = ref<MarketplaceSupplierView[]>([]);
 const loading = ref(false);
 const acting = ref<string | null>(null);
 
+// Резолв ФИО/наименования организации по username (реестр несёт только
+// member_account) — канон из NotificationJournalWidget. Кэш на компонент.
+const supplierNames = ref<Record<string, string>>({});
+
+function supplierName(username: string): string {
+  return supplierNames.value[username] ?? '';
+}
+
+async function resolveSupplierNames(): Promise<void> {
+  const usernames = [...new Set(items.value.map((i) => i.member_account).filter(Boolean))];
+  const missing = usernames.filter((u) => !(u in supplierNames.value));
+  if (!missing.length) return;
+  await Promise.all(
+    missing.map(async (username) => {
+      let name = '';
+      try {
+        const account = await accountApi.getAccount(username);
+        name = account
+          ? (getName(account) ?? '').replace(/undefined/g, '').replace(/\s+/g, ' ').trim()
+          : '';
+      } catch {
+        name = '';
+      }
+      supplierNames.value = { ...supplierNames.value, [username]: name };
+    }),
+  );
+}
+
 const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Поставщик' },
   { label: 'Модель' },
@@ -53,6 +84,7 @@ async function load(): Promise<void> {
   loading.value = true;
   try {
     items.value = await fetchSuppliers();
+    void resolveSupplierNames();
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -149,7 +181,11 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
             th.col-action Действия
         tbody
           tr.data-row(v-for="row in items", :key="row.id")
-            td.cell-name {{ row.member_account }}
+            td
+              IdentityCell(
+                :account-name="row.member_account",
+                :full-name="supplierName(row.member_account)"
+              )
             td {{ SUPPLIER_MODEL_LABEL[row.model] || row.model }}
             td {{ contractLabel(row) }}
             td

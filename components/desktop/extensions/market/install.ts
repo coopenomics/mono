@@ -73,7 +73,13 @@ import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
  * на резолверах бэкенда; здесь — UI-видимость + навигационный гард.
  *
  * Соответствие столов правам (как воспроизведена прежняя видимость по ролям):
- *   - market / market-supplier → `Offer:read`        (любой онбординутый пайщик)
+ *   - market                   → `Order:create`      (orderer-эксклюзивный грант,
+ *       НЕ выдаётся admin/board — иначе председатель видел бы рабочие страницы
+ *       заказчика до подписи своей персональной оферты, см. ниже)
+ *   - market-supplier          → `Offer:create:own`  (offerer-эксклюзивный грант;
+ *       НЕ `Offer:read` — это право есть и у orderer, и у admin (каталог/модерация),
+ *       поэтому им нельзя гейтить рабочие страницы поставщика — председатель без
+ *       одобренного допуска видел бы «Мои предложения» и т.д., см. ниже)
  *   - market-pvz               → `Warehouse:read:own-KU` (оператор КУ + админ)
  *   - market-admin             → `Order:read:all`     (совет + председатель),
  *       кроме `Whitelist:manage` (только председатель) и `Extension:configure`
@@ -317,7 +323,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               // Онбординг поставщика: backend выдаёт `Onboarding:offerer`
               // пайщику без одобренного допуска в реестре — тогда виден только
               // этот экран (выбор модели + реквизиты договора + заявка). После
-              // одобрения offerer-роль даёт `Offer:read` и открывает стол.
+              // одобрения offerer-роль даёт `Offer:create:own` и открывает стол.
               // Зеркало L3-гейта заказчика (marketplace-onboarding-member-cpp).
               path: 'onboarding',
               name: 'marketplace-onboarding-supplier',
@@ -342,7 +348,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Мои предложения',
                 icon: 'fa-solid fa-clipboard-list',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -358,7 +364,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Создать предложение',
                 icon: 'fa-solid fa-plus-circle',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
@@ -374,7 +380,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Редактирование предложения',
                 icon: 'fa-solid fa-pen',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
@@ -390,7 +396,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Входящие заказы',
                 icon: 'fa-solid fa-inbox',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -406,7 +412,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Подготовка отгрузки',
                 icon: 'fa-solid fa-truck-ramp-box',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -424,7 +430,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Отгрузить партию',
                 icon: 'fa-solid fa-qrcode',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -440,7 +446,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Подпись приёмки',
                 icon: 'fa-solid fa-file-signature',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -456,7 +462,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Выплаты',
                 icon: 'fa-solid fa-money-bill-transfer',
-                requires: 'Offer:read',
+                requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
