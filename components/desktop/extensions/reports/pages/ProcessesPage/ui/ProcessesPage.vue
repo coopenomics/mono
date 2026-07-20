@@ -2,7 +2,7 @@
 div.page-shell
   q-card.q-mt-md(flat)
     q-card-section
-      .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username')
+      .row.q-gutter-sm.items-center.q-mb-sm(v-if='filters.processType || filters.username || filters.processHash')
         q-chip(
           v-if='filters.processType'
           removable
@@ -19,6 +19,15 @@ div.page-shell
           icon='fa-solid fa-user'
           @remove='clearUsernameFilter'
         ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
+        q-chip(
+          v-if='filters.processHash'
+          removable
+          color='primary'
+          text-color='white'
+          icon='fa-solid fa-fingerprint'
+          class='font-monospace'
+          @remove='clearProcessHashFilter'
+        ) Процесс {{ filters.processHash.slice(0, 8) }}
       .row.q-gutter-sm.items-end
         q-select.col-md-4.col-12(
           v-model='filters.processType'
@@ -88,14 +97,6 @@ div.page-shell
           q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
-          q-td(auto-width)
-            q-btn(
-              flat
-              dense
-              icon='fa-solid fa-list-ul'
-              :to='operationsRoute(props.row.processHash)'
-            )
-              q-tooltip Открыть в реестре операций
 
         q-tr.q-virtual-scroll--with-prev(
           no-hover
@@ -110,56 +111,98 @@ div.page-shell
               )
                 .text-h6.text-weight-medium {{ processTypeLabel(props.row.processType) }}
                 .row.items-center.q-gutter-sm.q-mb-xs
-                  .text-caption.text-grey-7 Тип процесса:
-                  EntityIdBadge(:rawId='props.row.processType' copy-on-click)
-                .row.items-center.q-gutter-sm.q-mb-xs
                   .text-caption.text-grey-7 ID процесса:
                   EntityIdBadge(:rawId='props.row.processHash' copy-on-click)
 
               template(v-if='!detailLoaded.has(props.row.processHash)')
                 q-spinner(size='sm')
               template(v-else)
-                .row.q-col-gutter-md
-                  .col-12.col-md-6
-                    q-card(flat bordered)
-                      q-card-section.q-pb-none
-                        .text-subtitle2 События процесса
-                      q-card-section.q-pt-sm
-                        .text-body2(v-if='!processDetails.get(props.row.processHash)?.actions?.length') Нет событий
-                        q-list(v-else dense)
-                          q-item(
-                            v-for='a in (processDetails.get(props.row.processHash)?.actions ?? [])'
-                            :key='a.global_sequence'
-                          )
-                            q-item-section
-                              q-item-label.font-monospace {{ a.account }}::{{ a.name }}
-                              q-item-label(caption) {{ formatDate(String(a.created_at ?? '')) }} · seq {{ a.global_sequence }}
-                  .col-12.col-md-6
-                    q-card(flat bordered)
-                      q-card-section.q-pb-none
-                        .text-subtitle2 Документы
-                      q-card-section.q-pt-sm
-                        .text-body2(v-if='!processDetails.get(props.row.processHash)?.documents?.length') Документы не приложены
-                        q-list(v-else dense)
-                          q-item(
-                            v-for='d in (processDetails.get(props.row.processHash)?.documents ?? [])'
-                            :key='d.source.code + "::" + d.source.table + "::" + d.source.primary_key + "-" + d.hash'
-                          )
-                            q-item-section
-                              q-item-label {{ d.source.code }} · {{ d.source.table }} (key {{ d.source.primary_key }})
-                              q-item-label(caption).font-monospace {{ d.hash }}
-
-              .q-mt-md(v-if='hasProcessInfo(props.row.processType)')
-                q-card(flat bordered)
+                //- Документы процесса (наименование / дата / подписанты),
+                //- открытие и скачивание — на странице самого документа.
+                q-card.q-mb-md(flat bordered)
                   q-card-section.q-pb-none
-                    .text-subtitle2 Содержание процесса
+                    .text-subtitle2 Документы
                   q-card-section.q-pt-sm
-                    component(
-                      :is='processInfoComponent(props.row.processType)'
-                      :process-hash='props.row.processHash'
-                      :process-type='props.row.processType'
-                      :coopname='info.coopname'
-                    )
+                    .text-body2.text-grey-7(v-if='!processDocs(props.row.processHash).length') Документы не приложены
+                    .column.q-gutter-xs(v-else)
+                      DocumentRow(
+                        v-for='d in processDocs(props.row.processHash)'
+                        :key='docHash(d)'
+                        :document='toDocRow(d)'
+                        @open='openDoc(d)'
+                      )
+
+                .row.q-col-gutter-md
+                  //- Операции процесса (apply + корректировки)
+                  .col-12.col-md-6
+                    q-card(flat bordered)
+                      q-card-section.q-pb-none
+                        .text-subtitle2 Операции
+                      q-card-section.q-pt-sm
+                        .text-body2.text-grey-7(v-if='!processOps(props.row.processHash).length') Операций нет
+                        q-table(
+                          v-else
+                          flat dense
+                          :rows='processOps(props.row.processHash)'
+                          :columns='opColumns'
+                          row-key='globalSequence'
+                          hide-pagination
+                          :pagination='{ rowsPerPage: 0 }'
+                        )
+                          template(#body-cell-date='cp')
+                            q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
+                          template(#body-cell-op='cp')
+                            q-td(:props='cp')
+                              EntityIdBadge(
+                                :rawId='cp.row.globalSequence'
+                                @click='goToOperation(cp.row.globalSequence)'
+                              )
+                                q-tooltip Открыть в реестре операций
+                          template(#body-cell-label='cp')
+                            q-td(:props='cp')
+                              q-chip(
+                                dense square
+                                :color='processChipBg(props.row.processType)'
+                                :text-color='processChipText(props.row.processType)'
+                              ) {{ opLabel(cp.row) }}
+                          template(#body-cell-amount='cp')
+                            q-td.text-right.font-monospace(:props='cp') {{ formatAmount(cp.row.quantity) }}
+
+                  //- Проводки процесса (Дт → Кт парами)
+                  .col-12.col-md-6
+                    q-card(flat bordered)
+                      q-card-section.q-pb-none
+                        .text-subtitle2 Проводки
+                      q-card-section.q-pt-sm
+                        .text-body2.text-grey-7(v-if='!processPostings(props.row.processHash).length') Проводок нет
+                        q-table(
+                          v-else
+                          flat dense
+                          :rows='processPostings(props.row.processHash)'
+                          :columns='pstColumns'
+                          row-key='key'
+                          hide-pagination
+                          :pagination='{ rowsPerPage: 0 }'
+                        )
+                          template(#body-cell-date='cp')
+                            q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
+                          template(#body-cell-posting='cp')
+                            q-td(:props='cp')
+                              EntityIdBadge(
+                                v-if='cp.row.debitGlobalSequence'
+                                :rawId='cp.row.debitGlobalSequence'
+                                @click='goToPosting(cp.row.debitGlobalSequence)'
+                              )
+                                q-tooltip Открыть в реестре проводок
+                              span.text-grey-6(v-else) —
+                          template(#body-cell-debit='cp')
+                            q-td.text-center(:props='cp')
+                              AccountIdCell(:account-code='accCode(cp.row.debitAccountId)')
+                          template(#body-cell-credit='cp')
+                            q-td.text-center(:props='cp')
+                              AccountIdCell(:account-code='accCode(cp.row.creditAccountId)')
+                          template(#body-cell-amount='cp')
+                            q-td.text-right.font-monospace(:props='cp') {{ formatAmount(cp.row.quantity) }}
 
       template(#item='props')
         .col-12
@@ -176,6 +219,14 @@ div.page-shell
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
                 )
+
+  //- Просмотр документа процесса во всплывающем окне (без перехода в реестр
+  //- документов совета — у бухгалтера может не быть к нему доступа).
+  DocumentViewerDialog(
+    v-model='viewerOpen'
+    :document-aggregate='viewerDoc'
+    :title='viewerTitle'
+  )
 </template>
 
 <script setup lang="ts">
@@ -191,17 +242,34 @@ import {
   useProcessStore,
   type IProcessSummary,
   type IProcessView,
+  type IProcessDocument,
 } from 'src/entities/Process'
+import {
+  useLedger2Store,
+  type ILedger2Operation,
+  type ILedger2Posting,
+} from 'src/entities/Ledger2'
 import { useAccountStore } from 'src/entities/Account'
+import type { IDocumentAggregate } from 'src/entities/Document/model'
+import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
+import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'
+import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
+import { formatAsset2Digits } from 'src/shared/lib/utils'
+import { AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
-import { processInfoFactory } from 'src/shared/lib/process-info-factory'
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
 const processStore = useProcessStore()
+const ledger2Store = useLedger2Store()
 const accountStore = useAccountStore()
+
+// Просмотр документа во всплывающем окне (агрегат уже загружен в getProcess).
+const viewerOpen = ref(false)
+const viewerDoc = ref<IDocumentAggregate | null>(null)
+const viewerTitle = ref('')
 
 const loading = ref(false)
 const items = ref<IProcessSummary[]>([])
@@ -209,15 +277,20 @@ const expanded = ref(new Map<string, boolean>())
 const fioCache = ref(new Map<string, string>())
 const detailLoaded = ref(new Set<string>())
 const processDetails = ref(new Map<string, IProcessView>())
+const procOpsMap = ref(new Map<string, ILedger2Operation[]>())
+const procPostingsMap = ref(new Map<string, ILedger2Posting[]>())
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
 const filters = reactive<{
   processType: string | null
   username: string | null
+  /** process_hash — точечная адресация одного процесса (deep-link из операций/проводок). */
+  processHash: string | null
 }>({
   processType: null,
   username: null,
+  processHash: null,
 })
 
 const usernameInput = ref('')
@@ -232,6 +305,15 @@ const processTypeOptions = computed(() =>
 function processTypeLabel(type: string | null | undefined): string {
   if (!type) return '—'
   return Ledger2.getProcessHumanName(type) ?? type
+}
+
+// Человекочитаемое название операции (apply). Корректировки walmove/revert
+// не несут operation_code — берём название по action через тот же реестр.
+function opLabel(row: ILedger2Operation): string {
+  if (row.operationCode) return Ledger2.getOperationHumanName(row.operationCode) ?? row.operationCode
+  if (row.action === 'walmove') return Ledger2.getOperationHumanName('o.adj.walmove') ?? 'Перевод между кошельками'
+  if (row.action === 'revert') return Ledger2.getOperationHumanName('o.adj.rev') ?? 'Откат операции'
+  return '—'
 }
 
 interface ProcessColorEntry {
@@ -267,13 +349,6 @@ function processChipText(type: string | null | undefined): string {
   return processColorEntry(type).chipText
 }
 
-function hasProcessInfo(type: string | null | undefined): boolean {
-  return !!type && processInfoFactory.hasHandler(type)
-}
-function processInfoComponent(type: string | null | undefined) {
-  return type ? processInfoFactory.getInfoComponent(type) : undefined
-}
-
 function shortHash(hash: string | null | undefined): string {
   if (!hash) return '—'
   return hash.slice(0, 8)
@@ -296,7 +371,19 @@ function formatDate(d: string | Date | null | undefined): string {
   })
 }
 
-const hasAnyFilter = computed(() => !!filters.processType || !!filters.username)
+function formatAmount(qty: string | null | undefined): string {
+  if (!qty) return '—'
+  return formatAsset2Digits(qty)
+}
+
+// id счёта хранится ×1000 — к UI-коду приводим целочисленным делением (51000 → 51).
+function accCode(id: number | null | undefined): number | null {
+  return id != null ? Math.round(id / 1000) : null
+}
+
+const hasAnyFilter = computed(
+  () => !!filters.processType || !!filters.username || !!filters.processHash,
+)
 
 const columns = [
   { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
@@ -305,8 +392,93 @@ const columns = [
   { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
   { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
   { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
-  { name: 'actions', align: 'right' as const, label: '', field: 'actions', sortable: false },
 ]
+
+const opColumns = [
+  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
+  { name: 'op', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
+  { name: 'label', align: 'left' as const, label: 'Операция', field: 'operationCode' },
+  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+]
+
+const pstColumns = [
+  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
+  { name: 'posting', align: 'left' as const, label: '№ проводки', field: 'debitGlobalSequence' },
+  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debitAccountId' },
+  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'creditAccountId' },
+  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+]
+
+// =====================================================================
+// Документы процесса
+// =====================================================================
+
+function processDocs(hash: string): IProcessDocument[] {
+  return processDetails.value.get(hash)?.documents ?? []
+}
+
+// document.hash — хеш ПОДПИСАННОГО документа (колонка hash в реестре), по нему
+// открывается страница документа. rawDocument.hash = doc_hash — не подходит.
+function docHash(d: IProcessDocument): string {
+  const doc = d.document as any
+  return doc?.hash || d.hash || ''
+}
+
+function toDocRow(d: IProcessDocument): DocumentRowDoc {
+  const doc = d.document as any
+  const raw = d.raw as any
+  const signers: string[] = Array.isArray(doc?.signatures)
+    ? doc.signatures
+        .map((s: any) => getShortNameFromCertificate(s?.signer_certificate))
+        .filter((x: string): x is string => !!x)
+    : []
+  return {
+    type: 'pdf',
+    title: doc?.meta?.title || raw?.full_title || 'Документ',
+    date: doc?.meta?.created_at || undefined,
+    author: signers.length ? signers.join(', ') : undefined,
+  }
+}
+
+// Документ уже загружен целиком в getProcess (document + raw). Открываем его
+// во всплывающем окне через BaseDocument — без догрузки и переадресации.
+// IDocumentAggregate ждёт поле rawDocument, в процессном документе оно `raw`.
+function openDoc(d: IProcessDocument) {
+  const doc = d.document as any
+  viewerDoc.value = { document: d.document, rawDocument: d.raw } as unknown as IDocumentAggregate
+  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || 'Документ'
+  viewerOpen.value = true
+}
+
+// =====================================================================
+// Операции / проводки процесса
+// =====================================================================
+
+function processOps(hash: string): ILedger2Operation[] {
+  return procOpsMap.value.get(hash) ?? []
+}
+function processPostings(hash: string): ILedger2Posting[] {
+  return procPostingsMap.value.get(hash) ?? []
+}
+
+function goToOperation(seq: string) {
+  router.push({
+    name: 'reports-operations',
+    params: { coopname: info.coopname },
+    query: { operation_id: seq },
+  })
+}
+function goToPosting(id: string) {
+  router.push({
+    name: 'reports-postings',
+    params: { coopname: info.coopname },
+    query: { posting_id: id },
+  })
+}
+
+// =====================================================================
+// Фильтры
+// =====================================================================
 
 async function applyUsernameFilter() {
   const v = (usernameInput.value ?? '').trim()
@@ -335,23 +507,25 @@ async function clearUsernameFilter() {
   reload()
 }
 
-async function resetFilters() {
-  filters.processType = null
-  filters.username = null
-  usernameInput.value = ''
+async function clearProcessHashFilter() {
+  filters.processHash = null
   const q = { ...route.query }
-  delete q.process_type
-  delete q.username
+  delete q.process_hash
   await router.replace({ query: q })
   reload()
 }
 
-function operationsRoute(processHash: string) {
-  return {
-    name: 'reports-operations',
-    params: { coopname: info.coopname },
-    query: { process_hash: processHash },
-  }
+async function resetFilters() {
+  filters.processType = null
+  filters.username = null
+  filters.processHash = null
+  usernameInput.value = ''
+  const q = { ...route.query }
+  delete q.process_type
+  delete q.username
+  delete q.process_hash
+  await router.replace({ query: q })
+  reload()
 }
 
 let lastRequestId = 0
@@ -370,6 +544,7 @@ async function load() {
         coopname: info.coopname,
         ...(filters.processType ? { processType: filters.processType } : {}),
         ...(filters.username ? { username: filters.username } : {}),
+        ...(filters.processHash ? { processHash: filters.processHash } : {}),
       },
       pagination: {
         page: pagination.value.page,
@@ -381,7 +556,15 @@ async function load() {
     if (resp) {
       items.value = resp.items ?? []
       pagination.value.rowsNumber = resp.totalCount ?? 0
-      enrichFio(items.value)
+      enrichFio(items.value.map((r) => r.username))
+      // Deep-link по process_hash — единственный процесс на странице,
+      // разворачиваем его автоматически (как реестр операций по operation_id).
+      if (filters.processHash && items.value.length === 1) {
+        const only = items.value[0]
+        if (only && !expanded.value.get(only.processHash)) {
+          toggleExpand(only.processHash)
+        }
+      }
     }
   } catch (e) {
     if (myId === lastRequestId) FailAlert(e)
@@ -403,23 +586,43 @@ async function toggleExpand(processHash: string) {
   const wasOpen = expanded.value.get(processHash)
   expanded.value.set(processHash, !wasOpen)
   if (!wasOpen && !detailLoaded.value.has(processHash)) {
-    try {
-      const view = await processStore.loadProcess({
-        coopname: info.coopname,
-        hash: processHash,
-      })
-      if (view) processDetails.value.set(processHash, view)
-    } catch (e) {
-      FailAlert(e)
-    } finally {
-      detailLoaded.value.add(processHash)
-    }
+    await loadProcessDetail(processHash)
   }
 }
 
-async function enrichFio(rows: IProcessSummary[]) {
+async function loadProcessDetail(processHash: string) {
+  try {
+    // Документы + операции + проводки одного процесса грузим параллельно.
+    const [view, history, postings] = await Promise.all([
+      processStore.loadProcess({ coopname: info.coopname, hash: processHash }),
+      ledger2Store.loadHistory({
+        coopname: info.coopname,
+        processHash,
+        actionNames: ['apply', 'walmove', 'revert'],
+        limit: 100,
+        sortOrder: 'ASC',
+      }),
+      ledger2Store.loadPostings({
+        coopname: info.coopname,
+        processHash,
+        limit: 100,
+        sortOrder: 'ASC',
+      }),
+    ])
+    if (view) processDetails.value.set(processHash, view)
+    procOpsMap.value.set(processHash, history?.items ?? [])
+    procPostingsMap.value.set(processHash, postings?.items ?? [])
+    enrichFio((history?.items ?? []).map((o) => o.username))
+  } catch (e) {
+    FailAlert(e)
+  } finally {
+    detailLoaded.value.add(processHash)
+  }
+}
+
+async function enrichFio(rawUsernames: (string | null | undefined)[]) {
   const usernames = [
-    ...new Set(rows.map((r) => r.username).filter((u): u is string => !!u && !fioCache.value.has(u))),
+    ...new Set(rawUsernames.filter((u): u is string => !!u && !fioCache.value.has(u))),
   ]
   if (!usernames.length) return
   await Promise.allSettled(
@@ -440,7 +643,7 @@ async function enrichFio(rows: IProcessSummary[]) {
         }
         if (fio) fioCache.value.set(username, fio)
       } catch {
-        // молча
+        // молча — username остаётся как fallback
       }
     }),
   )
@@ -454,6 +657,9 @@ onMounted(async () => {
     if (route.query.username) {
       filters.username = String(route.query.username)
       usernameInput.value = filters.username
+    }
+    if (route.query.process_hash) {
+      filters.processHash = String(route.query.process_hash).toLowerCase()
     }
     await load()
   } catch (e) {
