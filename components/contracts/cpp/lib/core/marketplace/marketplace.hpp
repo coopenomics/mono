@@ -12,6 +12,7 @@
 #include "../../domain/table_ledger2_userwallets.hpp"
 #include "../../domain/table_marketplace_fee_config.hpp"
 #include "../ledger2/ledger2.hpp"
+#include "../branch/branch.hpp"
 #include "memo.hpp"
 #include "../../domain/table_marketplace_orders.hpp"
 #include "../../domain/table_marketplace_return_requests.hpp"
@@ -201,6 +202,74 @@ inline void refund_membership_fee_if_any(eosio::name coopname, const order& o) {
                  operations::marketplace::MEMBERSHIP_FEE_REFUND,
                  fee, o.orderer, o.hash,
                  Marketplace::Memo::get_membership_fee_refund_memo(o.id));
+}
+
+/// Полный возврат резерва заказа и членского взноса на членский «Стола
+/// заказов» (бесплатная отмена: до акцепта поставщиком либо заказ из остатка
+/// кооператива — поставщика и его риска нет).
+inline void refund_order_full(eosio::name coopname, const order& o) {
+  Ledger2::apply(_marketplace, coopname,
+                 operations::marketplace::UNLOCK_ORDER,
+                 o.total_cost, o.orderer, o.hash,
+                 Marketplace::Memo::get_cancel_order_memo(o.id));
+  refund_membership_fee_if_any(coopname, o);
+}
+
+/// Доля удержания при отказе пайщика от получения после акцепта поставщиком.
+/// Hard-code (определяется Положением целевой потребительской программы).
+inline constexpr uint64_t REFUSAL_PENALTY_PERCENT = 50;
+
+/// Удерживаемая часть суммы (округление вниз — остаток в пользу пайщика).
+inline eosio::asset refusal_penalty_share(const eosio::asset& base) {
+  return calc_membership_fee(base, REFUSAL_PENALTY_PERCENT);
+}
+
+/// Отказ пайщика от получения позиции после акцепта поставщиком: удержание 50%.
+/// Тело заказа и членский взнос делятся пополам — удержанная половина уходит
+/// в общий кошелёк КУ выдачи (тело — транзитом через пул взносов o.mkt.penalty,
+/// затем единым Branch::accrue вместе с удержанной половиной взноса), вторая
+/// половина возвращается пайщику на членский «Стола заказов». Имущество
+/// остаётся на складе КУ (без движения по счёту 10) — кооператив несёт риск
+/// уже оплаченной поставки, под который и держится удержание.
+inline void retain_refusal_penalty(eosio::name coopname, const order& o) {
+  // ── Тело заказа 50/50 ──
+  const eosio::asset penalty_body = refusal_penalty_share(o.total_cost);
+  const eosio::asset refund_body  = o.total_cost - penalty_body;
+
+  if (refund_body.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::UNLOCK_ORDER,
+                   refund_body, o.orderer, o.hash,
+                   Marketplace::Memo::get_cancel_order_memo(o.id));
+  }
+  if (penalty_body.amount > 0) {
+    // Транзит: удержанная половина тела → пул членских взносов, откуда уйдёт в КУ.
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::REFUSAL_PENALTY,
+                   penalty_body, o.orderer, o.hash,
+                   Marketplace::Memo::get_refusal_penalty_transit_memo(o.id));
+  }
+
+  // ── Членский взнос 50/50 ──
+  const eosio::asset fee         = get_order_membership_fee(o);
+  const eosio::asset penalty_fee = refusal_penalty_share(fee);
+  const eosio::asset refund_fee  = fee - penalty_fee;
+  if (refund_fee.amount > 0) {
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                   refund_fee, o.orderer, o.hash,
+                   Marketplace::Memo::get_membership_fee_refund_memo(o.id));
+  }
+
+  // ── Удержанное (тело + взнос) — в общий кошелёк КУ выдачи ──
+  // Обе удержанные половины сейчас в пуле членских взносов: тело — транзитом
+  // выше, взнос — ещё с createorder; единым accrue зачисляются в w.brn.common.
+  const eosio::asset to_common = penalty_body + penalty_fee;
+  if (to_common.amount > 0) {
+    Branch::accrue(_marketplace, coopname, o.delivery_braname,
+                   to_common, o.hash,
+                   Marketplace::Memo::get_refusal_penalty_distribute_memo(o.id));
+  }
 }
 
 } // namespace Marketplace

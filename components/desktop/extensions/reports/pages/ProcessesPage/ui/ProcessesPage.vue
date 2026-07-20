@@ -94,7 +94,18 @@ div.page-shell
               @click='copyText(props.row.processHash)'
             )
               q-tooltip Клик — копировать полный хэш
-          q-td {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
+          q-td
+            span {{ subjectName(props.row.username) }}
+            q-chip.q-ml-xs(
+              v-if='isBranch(props.row.username)'
+              dense
+              square
+              size='sm'
+              color='orange-1'
+              text-color='orange-9'
+              label='КУ'
+            )
+              q-tooltip Кооперативный участок
           q-td {{ formatDate(props.row.firstSeenAt) }}
           q-td {{ formatDate(props.row.lastSeenAt) }}
 
@@ -106,103 +117,15 @@ div.page-shell
         )
           q-td(colspan='100%')
             .q-pa-md
-              .op-header.q-mb-md(
-                :style='{ borderLeftColor: processAccentColor(props.row.processType) }'
+              //- Детализация процесса (документы + операции + проводки) —
+              //- общий виджет; № операции/проводки ведут в реестры бухгалтера.
+              ProcessDetailCard(
+                :coopname='info.coopname'
+                :process-hash='props.row.processHash'
+                :process-type='props.row.processType'
+                operation-route-name='reports-operations'
+                posting-route-name='reports-postings'
               )
-                .text-h6.text-weight-medium {{ processTypeLabel(props.row.processType) }}
-                .row.items-center.q-gutter-sm.q-mb-xs
-                  .text-caption.text-grey-7 ID процесса:
-                  EntityIdBadge(:rawId='props.row.processHash' copy-on-click)
-
-              template(v-if='!detailLoaded.has(props.row.processHash)')
-                q-spinner(size='sm')
-              template(v-else)
-                //- Документы процесса (наименование / дата / подписанты),
-                //- открытие и скачивание — на странице самого документа.
-                q-card.q-mb-md(flat bordered)
-                  q-card-section.q-pb-none
-                    .text-subtitle2 Документы
-                  q-card-section.q-pt-sm
-                    .text-body2.text-grey-7(v-if='!processDocs(props.row.processHash).length') Документы не приложены
-                    .column.q-gutter-xs(v-else)
-                      DocumentRow(
-                        v-for='d in processDocs(props.row.processHash)'
-                        :key='docHash(d)'
-                        :document='toDocRow(d)'
-                        @open='openDoc(d)'
-                      )
-
-                .row.q-col-gutter-md
-                  //- Операции процесса (apply + корректировки)
-                  .col-12.col-md-6
-                    q-card(flat bordered)
-                      q-card-section.q-pb-none
-                        .text-subtitle2 Операции
-                      q-card-section.q-pt-sm
-                        .text-body2.text-grey-7(v-if='!processOps(props.row.processHash).length') Операций нет
-                        q-table(
-                          v-else
-                          flat dense
-                          :rows='processOps(props.row.processHash)'
-                          :columns='opColumns'
-                          row-key='globalSequence'
-                          hide-pagination
-                          :pagination='{ rowsPerPage: 0 }'
-                        )
-                          template(#body-cell-date='cp')
-                            q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                          template(#body-cell-op='cp')
-                            q-td(:props='cp')
-                              EntityIdBadge(
-                                :rawId='cp.row.globalSequence'
-                                @click='goToOperation(cp.row.globalSequence)'
-                              )
-                                q-tooltip Открыть в реестре операций
-                          template(#body-cell-label='cp')
-                            q-td(:props='cp')
-                              q-chip(
-                                dense square
-                                :color='processChipBg(props.row.processType)'
-                                :text-color='processChipText(props.row.processType)'
-                              ) {{ opLabel(cp.row) }}
-                          template(#body-cell-amount='cp')
-                            q-td.text-right.font-monospace(:props='cp') {{ formatAmount(cp.row.quantity) }}
-
-                  //- Проводки процесса (Дт → Кт парами)
-                  .col-12.col-md-6
-                    q-card(flat bordered)
-                      q-card-section.q-pb-none
-                        .text-subtitle2 Проводки
-                      q-card-section.q-pt-sm
-                        .text-body2.text-grey-7(v-if='!processPostings(props.row.processHash).length') Проводок нет
-                        q-table(
-                          v-else
-                          flat dense
-                          :rows='processPostings(props.row.processHash)'
-                          :columns='pstColumns'
-                          row-key='key'
-                          hide-pagination
-                          :pagination='{ rowsPerPage: 0 }'
-                        )
-                          template(#body-cell-date='cp')
-                            q-td(:props='cp') {{ formatDate(cp.row.createdAt) }}
-                          template(#body-cell-posting='cp')
-                            q-td(:props='cp')
-                              EntityIdBadge(
-                                v-if='cp.row.debitGlobalSequence'
-                                :rawId='cp.row.debitGlobalSequence'
-                                @click='goToPosting(cp.row.debitGlobalSequence)'
-                              )
-                                q-tooltip Открыть в реестре проводок
-                              span.text-grey-6(v-else) —
-                          template(#body-cell-debit='cp')
-                            q-td.text-center(:props='cp')
-                              AccountIdCell(:account-code='accCode(cp.row.debitAccountId)')
-                          template(#body-cell-credit='cp')
-                            q-td.text-center(:props='cp')
-                              AccountIdCell(:account-code='accCode(cp.row.creditAccountId)')
-                          template(#body-cell-amount='cp')
-                            q-td.text-right.font-monospace(:props='cp') {{ formatAmount(cp.row.quantity) }}
 
       template(#item='props')
         .col-12
@@ -212,21 +135,13 @@ div.page-shell
                 .text-caption.text-grey-6 {{ formatDate(props.row.lastSeenAt) }}
                 .text-body2.text-weight-medium {{ processTypeLabel(props.row.processType) }}
               .col-12.text-caption.text-grey-7
-                | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '—' }}
+                | {{ isBranch(props.row.username) ? 'Участок' : 'Пайщик' }}: {{ subjectName(props.row.username) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
                 .text-caption.text-grey-7 ID процесса
                 EntityIdBadge(
                   :rawId='shortHash(props.row.processHash)'
                   @click='copyText(props.row.processHash)'
                 )
-
-  //- Просмотр документа процесса во всплывающем окне (без перехода в реестр
-  //- документов совета — у бухгалтера может не быть к нему доступа).
-  DocumentViewerDialog(
-    v-model='viewerOpen'
-    :document-aggregate='viewerDoc'
-    :title='viewerTitle'
-  )
 </template>
 
 <script setup lang="ts">
@@ -238,47 +153,37 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
+import { useProcessStore, type IProcessSummary } from 'src/entities/Process'
+import { useFioCache } from 'src/shared/lib/account/useFioCache'
+import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import {
-  useProcessStore,
-  type IProcessSummary,
-  type IProcessView,
-  type IProcessDocument,
-} from 'src/entities/Process'
-import {
-  useLedger2Store,
-  type ILedger2Operation,
-  type ILedger2Posting,
-} from 'src/entities/Ledger2'
-import { useAccountStore } from 'src/entities/Account'
-import type { IDocumentAggregate } from 'src/entities/Document/model'
-import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
-import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'
-import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
-import { formatAsset2Digits } from 'src/shared/lib/utils'
-import { AccountIdCell } from '../../../shared/ui'
+  processChipBg,
+  processChipText,
+  processTypeLabel,
+} from 'src/shared/lib/ledger2'
 import { Ledger2 } from 'cooptypes'
+import { Zeus } from '@coopenomics/sdk'
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
 const processStore = useProcessStore()
-const ledger2Store = useLedger2Store()
-const accountStore = useAccountStore()
+const { fioCache, kindCache, enrichFio } = useFioCache()
 
-// Просмотр документа во всплывающем окне (агрегат уже загружен в getProcess).
-const viewerOpen = ref(false)
-const viewerDoc = ref<IDocumentAggregate | null>(null)
-const viewerTitle = ref('')
+// Человекочитаемое имя субъекта процесса (пайщик/КУ/кооператив) — резолв с бэка.
+function subjectName(username: string | null | undefined): string {
+  const u = username ?? ''
+  return fioCache.value.get(u) || u || '—'
+}
+// Субъект — кооперативный участок (показываем метку, чтобы не путать с пайщиком).
+function isBranch(username: string | null | undefined): boolean {
+  return kindCache.value.get(username ?? '') === Zeus.AccountKind.branch
+}
 
 const loading = ref(false)
 const items = ref<IProcessSummary[]>([])
 const expanded = ref(new Map<string, boolean>())
-const fioCache = ref(new Map<string, string>())
-const detailLoaded = ref(new Set<string>())
-const processDetails = ref(new Map<string, IProcessView>())
-const procOpsMap = ref(new Map<string, ILedger2Operation[]>())
-const procPostingsMap = ref(new Map<string, ILedger2Posting[]>())
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
@@ -302,53 +207,6 @@ const processTypeOptions = computed(() =>
   })),
 )
 
-function processTypeLabel(type: string | null | undefined): string {
-  if (!type) return '—'
-  return Ledger2.getProcessHumanName(type) ?? type
-}
-
-// Человекочитаемое название операции (apply). Корректировки walmove/revert
-// не несут operation_code — берём название по action через тот же реестр.
-function opLabel(row: ILedger2Operation): string {
-  if (row.operationCode) return Ledger2.getOperationHumanName(row.operationCode) ?? row.operationCode
-  if (row.action === 'walmove') return Ledger2.getOperationHumanName('o.adj.walmove') ?? 'Перевод между кошельками'
-  if (row.action === 'revert') return Ledger2.getOperationHumanName('o.adj.rev') ?? 'Откат операции'
-  return '—'
-}
-
-interface ProcessColorEntry {
-  accent: string
-  chipBg: string
-  chipText: string
-}
-const PROCESS_COLORS: Record<string, ProcessColorEntry> = {
-  reg: { accent: '#1976d2', chipBg: 'blue-1',        chipText: 'blue-9' },
-  wal: { accent: '#00796b', chipBg: 'teal-1',        chipText: 'teal-9' },
-  cap: { accent: '#5e35b1', chipBg: 'deep-purple-1', chipText: 'deep-purple-9' },
-  mkt: { accent: '#ef6c00', chipBg: 'orange-1',      chipText: 'orange-9' },
-  sov: { accent: '#5d4037', chipBg: 'brown-1',       chipText: 'brown-9' },
-  mig: { accent: '#616161', chipBg: 'grey-3',        chipText: 'grey-9' },
-  adj: { accent: '#ef6c00', chipBg: 'amber-2',       chipText: 'amber-10' },
-}
-const PROCESS_COLOR_DEFAULT: ProcessColorEntry = {
-  accent: '#9e9e9e', chipBg: 'grey-3', chipText: 'grey-9',
-}
-function processColorEntry(type: string | null | undefined): ProcessColorEntry {
-  if (!type) return PROCESS_COLOR_DEFAULT
-  const parts = type.split('.')
-  const contract = parts.length >= 3 ? parts[1] : parts[0]
-  return PROCESS_COLORS[contract ?? ''] ?? PROCESS_COLOR_DEFAULT
-}
-function processAccentColor(type: string | null | undefined): string {
-  return processColorEntry(type).accent
-}
-function processChipBg(type: string | null | undefined): string {
-  return processColorEntry(type).chipBg
-}
-function processChipText(type: string | null | undefined): string {
-  return processColorEntry(type).chipText
-}
-
 function shortHash(hash: string | null | undefined): string {
   if (!hash) return '—'
   return hash.slice(0, 8)
@@ -371,16 +229,6 @@ function formatDate(d: string | Date | null | undefined): string {
   })
 }
 
-function formatAmount(qty: string | null | undefined): string {
-  if (!qty) return '—'
-  return formatAsset2Digits(qty)
-}
-
-// id счёта хранится ×1000 — к UI-коду приводим целочисленным делением (51000 → 51).
-function accCode(id: number | null | undefined): number | null {
-  return id != null ? Math.round(id / 1000) : null
-}
-
 const hasAnyFilter = computed(
   () => !!filters.processType || !!filters.username || !!filters.processHash,
 )
@@ -393,88 +241,6 @@ const columns = [
   { name: 'firstSeenAt', align: 'left' as const, label: 'Создан', field: 'firstSeenAt' },
   { name: 'lastSeenAt', align: 'left' as const, label: 'Последнее событие', field: 'lastSeenAt' },
 ]
-
-const opColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'op', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
-  { name: 'label', align: 'left' as const, label: 'Операция', field: 'operationCode' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
-]
-
-const pstColumns = [
-  { name: 'date', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'posting', align: 'left' as const, label: '№ проводки', field: 'debitGlobalSequence' },
-  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debitAccountId' },
-  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'creditAccountId' },
-  { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'quantity' },
-]
-
-// =====================================================================
-// Документы процесса
-// =====================================================================
-
-function processDocs(hash: string): IProcessDocument[] {
-  return processDetails.value.get(hash)?.documents ?? []
-}
-
-// document.hash — хеш ПОДПИСАННОГО документа (колонка hash в реестре), по нему
-// открывается страница документа. rawDocument.hash = doc_hash — не подходит.
-function docHash(d: IProcessDocument): string {
-  const doc = d.document as any
-  return doc?.hash || d.hash || ''
-}
-
-function toDocRow(d: IProcessDocument): DocumentRowDoc {
-  const doc = d.document as any
-  const raw = d.raw as any
-  const signers: string[] = Array.isArray(doc?.signatures)
-    ? doc.signatures
-        .map((s: any) => getShortNameFromCertificate(s?.signer_certificate))
-        .filter((x: string): x is string => !!x)
-    : []
-  return {
-    type: 'pdf',
-    title: doc?.meta?.title || raw?.full_title || 'Документ',
-    date: doc?.meta?.created_at || undefined,
-    author: signers.length ? signers.join(', ') : undefined,
-  }
-}
-
-// Документ уже загружен целиком в getProcess (document + raw). Открываем его
-// во всплывающем окне через BaseDocument — без догрузки и переадресации.
-// IDocumentAggregate ждёт поле rawDocument, в процессном документе оно `raw`.
-function openDoc(d: IProcessDocument) {
-  const doc = d.document as any
-  viewerDoc.value = { document: d.document, rawDocument: d.raw } as unknown as IDocumentAggregate
-  viewerTitle.value = doc?.meta?.title || (d.raw as any)?.full_title || 'Документ'
-  viewerOpen.value = true
-}
-
-// =====================================================================
-// Операции / проводки процесса
-// =====================================================================
-
-function processOps(hash: string): ILedger2Operation[] {
-  return procOpsMap.value.get(hash) ?? []
-}
-function processPostings(hash: string): ILedger2Posting[] {
-  return procPostingsMap.value.get(hash) ?? []
-}
-
-function goToOperation(seq: string) {
-  router.push({
-    name: 'reports-operations',
-    params: { coopname: info.coopname },
-    query: { operation_id: seq },
-  })
-}
-function goToPosting(id: string) {
-  router.push({
-    name: 'reports-postings',
-    params: { coopname: info.coopname },
-    query: { posting_id: id },
-  })
-}
 
 // =====================================================================
 // Фильтры
@@ -582,71 +348,10 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   load()
 }
 
-async function toggleExpand(processHash: string) {
-  const wasOpen = expanded.value.get(processHash)
-  expanded.value.set(processHash, !wasOpen)
-  if (!wasOpen && !detailLoaded.value.has(processHash)) {
-    await loadProcessDetail(processHash)
-  }
-}
-
-async function loadProcessDetail(processHash: string) {
-  try {
-    // Документы + операции + проводки одного процесса грузим параллельно.
-    const [view, history, postings] = await Promise.all([
-      processStore.loadProcess({ coopname: info.coopname, hash: processHash }),
-      ledger2Store.loadHistory({
-        coopname: info.coopname,
-        processHash,
-        actionNames: ['apply', 'walmove', 'revert'],
-        limit: 100,
-        sortOrder: 'ASC',
-      }),
-      ledger2Store.loadPostings({
-        coopname: info.coopname,
-        processHash,
-        limit: 100,
-        sortOrder: 'ASC',
-      }),
-    ])
-    if (view) processDetails.value.set(processHash, view)
-    procOpsMap.value.set(processHash, history?.items ?? [])
-    procPostingsMap.value.set(processHash, postings?.items ?? [])
-    enrichFio((history?.items ?? []).map((o) => o.username))
-  } catch (e) {
-    FailAlert(e)
-  } finally {
-    detailLoaded.value.add(processHash)
-  }
-}
-
-async function enrichFio(rawUsernames: (string | null | undefined)[]) {
-  const usernames = [
-    ...new Set(rawUsernames.filter((u): u is string => !!u && !fioCache.value.has(u))),
-  ]
-  if (!usernames.length) return
-  await Promise.allSettled(
-    usernames.map(async (username) => {
-      try {
-        const acc = await accountStore.getAccount(username)
-        const pd = acc?.private_account
-        if (!pd) return
-        let fio = ''
-        if (pd.type === 'individual' && pd.individual_data) {
-          const d = pd.individual_data
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        } else if (pd.type === 'organization' && pd.organization_data) {
-          fio = (pd.organization_data as any).short_name ?? username
-        } else if (pd.type === 'entrepreneur' && pd.entrepreneur_data) {
-          const d = pd.entrepreneur_data as any
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        }
-        if (fio) fioCache.value.set(username, fio)
-      } catch {
-        // молча — username остаётся как fallback
-      }
-    }),
-  )
+// Детализация процесса грузится внутри ProcessDetailCard при разворачивании
+// строки (виджет монтируется по v-if) — странице достаточно переключить флаг.
+function toggleExpand(processHash: string) {
+  expanded.value.set(processHash, !expanded.value.get(processHash))
 }
 
 onMounted(async () => {
@@ -673,8 +378,10 @@ onMounted(async () => {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   letter-spacing: 0.03em;
 }
-.op-header {
-  border-left: 4px solid #9e9e9e;
-  padding: 4px 0 4px 12px;
+/* Реестр — обзорный список: гасим подсветку строки при наведении (canon-правило
+   .q-table tbody tr:hover) и в основной таблице, и во вложенных таблицах
+   детализации (операции/проводки) — мигание при наведении мешает. */
+.page-shell :deep(.q-table tbody tr:hover) {
+  background: transparent;
 }
 </style>

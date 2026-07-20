@@ -1,4 +1,5 @@
 import { markRaw } from 'vue'
+import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet'
 import { MarketplaceCatalogPage } from 'src/pages/Marketplace/MarketplaceCatalog'
 import { MarketplaceOfferDetailPage } from 'src/pages/Marketplace/MarketplaceOfferDetail'
 import { CartPage } from 'src/pages/Marketplace/Cart'
@@ -20,7 +21,10 @@ import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSuppl
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
+import { PvzWriteoffsPage } from 'src/pages/Marketplace/PvzWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
+import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
+import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
@@ -29,7 +33,6 @@ import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoo
 import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
-import { BoardAgendaWriteoffPage } from 'src/pages/Marketplace/BoardAgendaWriteoff'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
 import { BoardPayoutsReadonlyPage } from 'src/pages/Marketplace/BoardPayoutsReadonly'
 import { OnboardingMemberPickCppPage } from 'src/pages/Marketplace/OnboardingMemberPickCpp'
@@ -516,6 +519,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // Эпик 8: operator-стол подтверждения списания со склада. Совет
+              // одобрил проект списания — председатель КУ подтверждает
+              // фактическое выбытие имущества, подписав Служебную записку 1111.
+              path: 'writeoffs',
+              name: 'marketplace-pvz-writeoffs',
+              component: markRaw(PvzWriteoffsPage),
+              meta: {
+                title: 'Списание со склада',
+                icon: 'fa-solid fa-trash-can-arrow-up',
+                requires: 'Writeoff:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
               // Эпик 6 / Story 6.6: operator-стол выдачи имущества пайщику на ПВЗ.
               path: 'issuance',
               name: 'marketplace-issuance',
@@ -605,7 +623,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       extension_name: 'market',
       title: 'Стол администратора',
       icon: 'fa-solid fa-shield-halved',
-      defaultRoute: 'marketplace-moderation',
+      // Реестр всех заказов кооператива — центральный обзорный экран стола;
+      // открывается первым.
+      defaultRoute: 'marketplace-admin-orders',
       routes: [
         {
           meta: {
@@ -615,6 +635,43 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           path: '/:coopname/market-admin',
           name: 'market-admin',
           children: [
+            {
+              // Единый реестр всех заказов кооператива с текущими статусами
+              // (`Order:read:all` есть у board_readonly и admin). Раскрытие заказа
+              // показывает его состояние (таймлайн) и детализацию процесса
+              // p.mkt.supply — документы + операции + проводки по order_hash —
+              // через общий виджет ProcessDetailCard, без ссылок на стол
+              // бухгалтера (у администратора/совета может не быть к нему доступа).
+              path: 'orders',
+              name: 'marketplace-admin-orders',
+              component: markRaw(AdminOrdersPage),
+              meta: {
+                title: 'Реестр заказов',
+                icon: 'receipt_long',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Реестр всех предложений кооператива любого статуса
+              // (опубликованные/снятые/отклонённые/на модерации), всех
+              // поставщиков (`Offer:read:all` — у admin и board_readonly).
+              // Отдельно от «Модерации» (там только ждущие решения); на эти
+              // карточки ведёт переход «Открыть предложение» из реестра заказов.
+              path: 'offers',
+              name: 'marketplace-admin-offers',
+              component: markRaw(AdminOffersPage),
+              meta: {
+                title: 'Реестр предложений',
+                icon: 'storefront',
+                requires: 'Offer:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
             {
               // Эпик 3 / Story 3.6: admin-стол модерации offer'ов. Виден совету
               // и председателю (`Order:read:all` есть у board_readonly и admin).
@@ -713,20 +770,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // Эпик 8 / Story 8.x: read-only лента writeoff-проектов для совета.
-              path: 'board-writeoff',
-              name: 'marketplace-board-writeoff',
-              component: markRaw(BoardAgendaWriteoffPage),
-              meta: {
-                title: 'Повестка совета — списания',
-                icon: 'fa-solid fa-gavel',
-                requires: 'Order:read:all',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
               // Эпик 9 / Story 9.2: admin-стол сводного склада кооператива.
               path: 'warehouse-summary',
               name: 'marketplace-warehouse-summary',
@@ -796,3 +839,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     },
   ]
 }
+
+/**
+ * Кошельки, которые «Стол заказов» приносит на стол пайщика (путь B).
+ * Членский кошелёк программы (`w.mkt.member`) — туда зачисляются возвратные
+ * членские средства стола заказов. Главный членский ЦК (`w.wal.member`) и
+ * резерв под заказ (`w.mkt.order`) здесь НЕ показываем.
+ */
+export const walletCards: DesktopWalletCard[] = [
+  {
+    wallet_name: 'w.mkt.member',
+    label: 'Членский кошелёк',
+    description: 'Стол заказов',
+    accent: 'wallet',
+    icon: 'card_membership',
+  },
+]

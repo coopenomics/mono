@@ -184,6 +184,7 @@ export class Generator implements IGenerator {
       [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
       [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
       [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
+      [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
     }
     await this.storage.connect()
   }

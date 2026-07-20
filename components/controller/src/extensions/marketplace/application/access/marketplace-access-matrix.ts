@@ -93,9 +93,15 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // доверенные видят экономику своих КУ и распоряжаются персональными
     // средствами (перевод в «Стол заказов», материальная помощь).
     Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
+    // Эпик 8: председатель КУ подтверждает фактическое списание со склада
+    // своего участка по решению совета (подпись Служебной записки 1111 →
+    // confirmwroff) и видит список таких ожидающих подтверждения групп.
+    Writeoff: ['read:own-KU', 'confirm:own-KU'],
   },
   admin: {
-    Offer: ['moderate', 'read'],
+    // read:all — реестр всех предложений кооператива любого статуса (наряду с
+    // модерацией PENDING); read:all есть и у совета (board_readonly).
+    Offer: ['moderate', 'read', 'read:all'],
     Order: ['read:all'],
     KU: ['manage'],
     Whitelist: ['manage'],

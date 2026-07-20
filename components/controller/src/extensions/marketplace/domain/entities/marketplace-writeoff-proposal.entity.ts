@@ -75,6 +75,9 @@ export class MarketplaceWriteoffProposalDomainEntity {
   public get is_authorized(): boolean {
     return this.status === MarketplaceWriteoffProposalStatuses.AUTHORIZED;
   }
+  public get is_pending_confirmation(): boolean {
+    return this.status === MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION;
+  }
   public get is_executing(): boolean {
     return this.status === MarketplaceWriteoffProposalStatuses.EXECUTING;
   }
@@ -92,5 +95,9 @@ export class MarketplaceWriteoffProposalDomainEntity {
   }
   public get items_pending_count(): number {
     return this.items.filter((it) => !it.executed).length;
+  }
+  /** Кооперативные участки, чьи позиции ещё не списаны (ждут подтверждения). */
+  public get pending_branames(): string[] {
+    return [...new Set(this.items.filter((it) => !it.executed).map((it) => it.braname))];
   }
 }

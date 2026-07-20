@@ -123,6 +123,10 @@ function buildMocks() {
     resolvePayoutMethod: jest.fn().mockResolvedValue(null),
   } as any;
 
+  const supplierActionService = {
+    declineOrdersAtReception: jest.fn().mockResolvedValue([]),
+  } as any;
+
   const logger = {
     setContext: jest.fn(),
     debug: jest.fn(),
@@ -143,6 +147,7 @@ function buildMocks() {
     inventoryRepo,
     coreGateway,
     supplierSettings,
+    supplierActionService,
     documentDomainService,
     logger,
   };
@@ -161,6 +166,7 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
     mocks.supplierSettings,
+    mocks.supplierActionService,
     mocks.documentDomainService,
     new EventEmitter2(),
     mocks.logger
@@ -373,6 +379,172 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
 
       expect(mocks.chainPort.signChair).not.toHaveBeenCalled();
       expect(mocks.receptionRepo.applySignatures).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('отказ в приёмке (некондиция): разнос принято/отклонено', () => {
+    it('signAsSupplier: позиция с факт=0 уходит в declineOrdersAtReception, signsupp только по принятой, статус → PENDING_CHAIRMAN', async () => {
+      const reception = buildReception({
+        fact_quantity_per_order: [
+          { order_id: 'order-1', fact_quantity: 2 }, // принято
+          { order_id: 'order-2', fact_quantity: 0 }, // снято оператором (некондиция)
+        ],
+      });
+      const accepted = buildOrder({ id: 'order-1', order_hash: '0xorder1hash' });
+      const rejected = buildOrder({ id: 'order-2', order_hash: '0xorder2hash' });
+
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.orderRepo.findByCycleId.mockResolvedValue([accepted, rejected]);
+      (mocks.chainPort.signSupp as jest.Mock).mockResolvedValue({
+        response: { transaction_id: 'tx-supplier-ok' },
+      });
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      await service.signAsSupplier({
+        coopname: 'voskhod',
+        supplier_account: 'supplier1',
+        apl_reception_id: 'apl-1',
+        signed_documents: buildSignedDocs(['order-1']),
+      });
+
+      // signsupp — только по принятой позиции (одна).
+      expect(mocks.chainPort.signSupp).toHaveBeenCalledTimes(1);
+      // Снятая позиция ушла в отказ приёмки (полный возврат заказчику).
+      expect(mocks.supplierActionService.declineOrdersAtReception).toHaveBeenCalledTimes(1);
+      const declineArg = mocks.supplierActionService.declineOrdersAtReception.mock.calls[0][0];
+      expect(declineArg.orders.map((o: any) => o.id)).toEqual(['order-2']);
+      // Акт уходит председателю на закрывающую подпись.
+      const patch = mocks.receptionRepo.applySignatures.mock.calls[0][1] as any;
+      expect(patch.status).toBe(MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN);
+    });
+
+    it('signAsSupplier: вся партия некондиция (все факт=0) → нет signsupp, отказ всех, приёмка CANCELLED + shipment CANCELLED', async () => {
+      const reception = buildReception({
+        fact_quantity_per_order: [
+          { order_id: 'order-1', fact_quantity: 0 },
+          { order_id: 'order-2', fact_quantity: 0 },
+        ],
+      });
+      const o1 = buildOrder({ id: 'order-1', order_hash: '0xorder1hash' });
+      const o2 = buildOrder({ id: 'order-2', order_hash: '0xorder2hash' });
+
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.orderRepo.findByCycleId.mockResolvedValue([o1, o2]);
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      const result = await service.signAsSupplier({
+        coopname: 'voskhod',
+        supplier_account: 'supplier1',
+        apl_reception_id: 'apl-1',
+        signed_documents: [],
+      });
+
+      expect(mocks.chainPort.signSupp).not.toHaveBeenCalled();
+      const declineArg = mocks.supplierActionService.declineOrdersAtReception.mock.calls[0][0];
+      expect(declineArg.orders.map((o: any) => o.id).sort()).toEqual(['order-1', 'order-2']);
+      const patch = mocks.receptionRepo.applySignatures.mock.calls[0][1] as any;
+      expect(patch.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+      expect(mocks.shipmentRepo.applyStatusTransition).toHaveBeenCalledWith('ship-1', 'CANCELLED');
+      expect(result.apl_reception.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+    });
+
+    it('signAsChairman: отклонённую в приёмке позицию (факт=0) НЕ подписывает и НЕ продвигает в ACCEPTED_TO_COOP', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
+        supplier_signed_at: new Date('2026-05-19T01:00:00Z'),
+        supplier_signsupp_tx_hash: 'tx-supplier-ok',
+        fact_quantity_per_order: [
+          { order_id: 'order-1', fact_quantity: 2 }, // принято
+          { order_id: 'order-2', fact_quantity: 0 }, // отклонено в приёмке
+        ],
+      });
+      const accepted = buildOrder({ id: 'order-1', order_hash: '0xorder1hash' });
+      // Отклонённая позиция в PG уже терминальна.
+      const rejected = buildOrder({
+        id: 'order-2',
+        order_hash: '0xorder2hash',
+        status: 'CANCELLED_BY_SUPPLIER',
+      });
+
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.orderRepo.findByCycleId.mockResolvedValue([accepted, rejected]);
+      (mocks.chainPort.signChair as jest.Mock).mockResolvedValue({
+        response: { transaction_id: 'tx-chair-ok' },
+      });
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      await service.signAsChairman({
+        coopname: 'voskhod',
+        chairman_account: 'chair1',
+        apl_reception_id: 'apl-1',
+        signed_documents: buildSignedDocs(['order-1']),
+      });
+
+      // signchair — только по принятой позиции.
+      expect(mocks.chainPort.signChair).toHaveBeenCalledTimes(1);
+      // В ACCEPTED_TO_COOP продвигается только принятая, отклонённая — нет.
+      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledTimes(1);
+      expect(mocks.orderRepo.applyStatusTransition).toHaveBeenCalledWith(
+        'order-1',
+        'ACCEPTED_TO_COOP',
+        expect.any(String)
+      );
+      expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalledWith(
+        'order-2',
+        'ACCEPTED_TO_COOP',
+        expect.any(String)
+      );
+    });
+  });
+
+  describe('cancelReception: откат черновика приёмки (поставщик не согласен)', () => {
+    it('на PENDING_SUPPLIER_SIGN → приёмка CANCELLED + партия назад в SUPPLY_PREPARED', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN,
+      });
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      const result = await service.cancelReception({
+        coopname: 'voskhod',
+        operator_account: 'operator1',
+        apl_reception_id: 'apl-1',
+      });
+
+      const patch = mocks.receptionRepo.applySignatures.mock.calls[0][1] as any;
+      expect(patch.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+      expect(mocks.shipmentRepo.applyStatusTransition).toHaveBeenCalledWith('ship-1', 'SUPPLY_PREPARED');
+      expect(result.apl_reception.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+    });
+
+    it('после подписи поставщика (PENDING_CHAIRMAN) → ConflictException, ничего не меняется', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
+      });
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+
+      await expect(
+        service.cancelReception({
+          coopname: 'voskhod',
+          operator_account: 'operator1',
+          apl_reception_id: 'apl-1',
+        })
+      ).rejects.toThrow(ConflictException);
+
+      expect(mocks.receptionRepo.applySignatures).not.toHaveBeenCalled();
+      expect(mocks.shipmentRepo.applyStatusTransition).not.toHaveBeenCalled();
     });
   });
 });

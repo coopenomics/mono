@@ -78,11 +78,20 @@ export interface MarketplaceStockOrderCreateInput {
   /** Предвычисленный order_hash из заявления о конвертации (см. order-create). */
   order_hash?: string;
   /**
-   * Подписанное заказчиком заявление о конвертации паевого взноса в
-   * членский (registry 1110) — обязательный параметр
-   * `marketplace::stockorder`; контракт публикует его в реестр документов.
+   * Подписанное заказчиком заявление о конвертации паевого взноса в членский
+   * (registry 1110). Заказ из остатка фондируется из членских средств; если
+   * членских не хватает, перед заказом выполняется отдельное действие `convert`
+   * на сумму `convert_amount` с этим заявлением. Опционально: при замене
+   * непоставленного высвобожденные средства уже в членском — конвертация не
+   * нужна, заявление не передаётся.
    */
-  convert_statement: MarketContract.Actions.StockOrder.IStockOrder['convert_statement'];
+  convert_statement?: MarketContract.Actions.Convert.IConvert['convert_statement'] | null;
+  /**
+   * Сумма конвертации (asset «X.XXXX RUB», тело + членский взнос строки) —
+   * обязательна вместе с `convert_statement`; столько паевого переводится в
+   * членский кошелёк перед заказом из остатка.
+   */
+  convert_amount?: string | null;
 }
 
 export interface MarketplaceStockOrderCreateResult {
@@ -274,8 +283,32 @@ export class MarketplaceStockService {
   }
 
   /**
+   * Конвертация паевого взноса в членский кошелёк «Стола заказов» (chain
+   * `convert`). Пополняет членские средства под заказы из остатка — одним
+   * действием на весь дефицит принятия. Заявление о конвертации публикуется в
+   * реестр документов контрактом.
+   */
+  async convertToMember(input: {
+    coopname: string;
+    orderer: string;
+    amount: string;
+    convert_statement: MarketContract.Actions.Convert.IConvert['convert_statement'];
+  }): Promise<void> {
+    try {
+      await this.chainPort.convert({
+        coopname: input.coopname,
+        orderer: input.orderer,
+        amount: input.amount,
+        convert_statement: input.convert_statement,
+      });
+    } catch (error: any) {
+      rethrowChainError(error);
+    }
+  }
+
+  /**
    * Заказ из остатка кооператива: chain `stockorder` (Order сразу acceptcoop,
-   * паевые средства блокируются на акцепте) + резерв конкретных позиций.
+   * средства блокируются из членского кошелька на акцепте) + резерв позиций.
    */
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput
@@ -307,6 +340,24 @@ export class MarketplaceStockService {
     const unit_price_asset = `${priceFloat.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
     const warranty_period_secs = offer.warranty_days * 86_400;
 
+    // Заказ из остатка фондируется из членского кошелька. Если передано
+    // Заявление о конвертации — сперва пополняем членский с паевого на сумму
+    // строки (тело + взнос) отдельным действием `convert`; иначе средства уже
+    // в членском (замена непоставленного — высвобождены отменой), конвертации нет.
+    if (input.convert_statement) {
+      if (!input.convert_amount) {
+        throw new BadRequestException(
+          'Не указана сумма конвертации для заказа из остатка с паевого.'
+        );
+      }
+      await this.chainPort.convert({
+        coopname: input.coopname,
+        orderer: input.orderer_account,
+        amount: input.convert_amount,
+        convert_statement: input.convert_statement,
+      });
+    }
+
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
     await this.offerCounters.onOrderBlocked(offer.id, input.quantity);
 
@@ -322,7 +373,6 @@ export class MarketplaceStockService {
         unit_price: unit_price_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
-        convert_statement: input.convert_statement,
       });
       txHash = normalizeChainTxHash(
         tx,

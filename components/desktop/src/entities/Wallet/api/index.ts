@@ -11,6 +11,7 @@ import {
   IDepositData,
   IWithdrawData,
   IProgramWalletData,
+  IUserWalletData,
   ICoopProgramSummary,
   ExtendedProgramWalletData,
   IGetPaymentMethods,
@@ -131,6 +132,21 @@ async function loadUserProgramWalletsData(
 }
 
 
+/**
+ * Сырые кошельки пайщика «как есть» (`getUserWallets`) — каждый кошелёк
+ * отдельной строкой по своему `wallet_name`, без сворачивания паевого и
+ * членского. Источник реестра кошельков на столе пайщика (карточки
+ * устанавливаются расширениями по `wallet_name`).
+ */
+async function loadUserWalletsData(
+  params: ILoadUserProgramWallets
+): Promise<IUserWalletData[]> {
+  const response = await client.Query(Queries.Wallet.GetUserWallets.query, {
+    variables: { coopname: params.coopname, username: params.username },
+  });
+  return (response[Queries.Wallet.GetUserWallets.name] ?? []) as IUserWalletData[];
+}
+
 async function loadMethods(params: IGetPaymentMethods): Promise<IPaymentMethodData[]> {
   const result = await client.Query(Queries.PaymentMethods.GetPaymentMethods.query, {
     variables: {
@@ -182,6 +198,7 @@ export const api = {
   loadUserDepositsData,
   loadUserWithdrawsData,
   loadUserProgramWalletsData,
+  loadUserWalletsData,
   loadMethods,
   loadUserAgreements
 };

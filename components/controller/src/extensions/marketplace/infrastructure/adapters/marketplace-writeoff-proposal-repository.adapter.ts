@@ -92,11 +92,44 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
         status: In([
           MarketplaceWriteoffProposalStatuses.ON_AGENDA,
           MarketplaceWriteoffProposalStatuses.AUTHORIZED,
+          MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
           MarketplaceWriteoffProposalStatuses.EXECUTING,
         ]),
       },
     });
     return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async findActiveLockedInventoryIds(coopname: string): Promise<string[]> {
+    // Позиции, уже занятые в незавершённых проектах (черновик, в совете,
+    // одобрено, ожидает подтверждения, в исполнении) — нельзя предлагать их
+    // в кандидаты повторно, иначе один и тот же товар попадёт в два списания.
+    // EXECUTED/REJECTED не блокируют (товар либо списан, либо освобождён).
+    const rows = await this.repo.find({
+      where: {
+        coopname,
+        status: In([
+          MarketplaceWriteoffProposalStatuses.DRAFT,
+          MarketplaceWriteoffProposalStatuses.ON_AGENDA,
+          MarketplaceWriteoffProposalStatuses.AUTHORIZED,
+          MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
+          MarketplaceWriteoffProposalStatuses.EXECUTING,
+        ]),
+      },
+      select: { items: true } as never,
+    });
+    const ids = new Set<string>();
+    for (const row of rows) {
+      for (const item of row.items ?? []) {
+        for (const id of item.inventory_ids ?? []) ids.add(id);
+        // Обратная совместимость: проекты, созданные до агрегации партий,
+        // хранят одиночный inventory_id — учитываем и его, иначе их партии
+        // ошибочно «разблокируются» и всплывут в кандидатах.
+        const legacyId = (item as { inventory_id?: string | null }).inventory_id;
+        if (legacyId) ids.add(legacyId);
+      }
+    }
+    return [...ids];
   }
 
   async list(
@@ -173,7 +206,9 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     if (row.status !== MarketplaceWriteoffProposalStatuses.ON_AGENDA) {
       throw new Error('Авторизовать можно только проект, отправленный в совет (ON_AGENDA)');
     }
-    row.status = MarketplaceWriteoffProposalStatuses.AUTHORIZED;
+    // Совет одобрил → ждём подтверждения складов председателями КУ. На цепи
+    // wroffprops.status = authorized; в PG — PENDING_CONFIRMATION.
+    row.status = MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION;
     row.protocol_doc = patch.protocol_doc;
     row.authorized_at = patch.authorized_at;
     row.decided_by_account = patch.decided_by_account;

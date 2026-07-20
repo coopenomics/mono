@@ -171,7 +171,19 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     const currentRank = MARKETPLACE_ORDER_FORWARD_RANK[this.status];
     const isBackendAhead =
       incomingRank !== undefined && currentRank !== undefined && incomingRank < currentRank;
-    if (!isBackendAhead) {
+    // Terminal-resurrection guard. Заказ в терминальной отмене/возврате
+    // (CANCELLED_*/RETURNED) стёрт из chain-RAM (decline/cancel/return = erase
+    // строки, не смена статуса). Парсер на erase шлёт дельту с present=false, в
+    // value которой — ПОСЛЕДНЕЕ «живое» состояние стёртой строки (как правило
+    // ещё 'active'). Mapper выдаёт только живые on-chain статусы ('cancelled' —
+    // KNOWN_UNMAPPED → null), поэтому ЛЮБОЙ приходящий статус поверх
+    // терминального = воскрешение стёртой строки. Без guard'а отклонённый заказ
+    // «возвращался» в ACTIVE (backend уже выставил CANCELLED_BY_SUPPLIER, но
+    // erase-дельта перетирала его — у терминала forward-rank=undefined), снова
+    // всплывал в списке «Ждут акцепта», а повторный decline/accept падал
+    // «заказ не найден по хэшу» (on-chain строки уже нет). Точный терминальный
+    // под-статус выставляет backend в момент submit — он и есть источник истины.
+    if (!isBackendAhead && !this.is_terminal) {
       this.status = blockchainData.status;
     }
     this.updated_at = new Date();

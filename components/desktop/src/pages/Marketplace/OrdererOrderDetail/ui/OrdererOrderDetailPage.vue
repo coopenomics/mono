@@ -17,7 +17,6 @@ import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { cancelOrder, fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
-import OrdererFinalizeIssuanceDialog from '../../MyOrders/ui/OrdererFinalizeIssuanceDialog.vue';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -41,13 +40,11 @@ const order = ref<MarketplaceOrderView | null>(null);
 const offerImages = ref<string[]>([]);
 const loading = ref(false);
 
-const finalizeDialogOpen = ref(false);
 const receiveDialogOpen = ref(false);
 
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
 const unitShort = computed(() => marketplaceUnitShort(order.value?.unit_of_measure));
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
-const receivable = computed(() => order.value?.status === 'READY_TO_RECEIVE');
 
 const pvzName = computed(() => order.value?.delivery_point_name || order.value?.delivery_braname || '');
 const pvzAddress = computed(() => order.value?.delivery_point_address || '');
@@ -147,10 +144,6 @@ function confirmCancel(): void {
   });
 }
 
-function onFinalized(): void {
-  void load();
-}
-
 onMounted(() => {
   void load();
 });
@@ -248,18 +241,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
           .t-h3 Хронология
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
-      .order-detail__actions(v-if="receivable || cancellable")
-        BaseButton(v-if="receivable", variant="primary", @click="finalizeDialogOpen = true")
-          template(#icon-left)
-            q-icon(name="draw", size="16px")
-          | Подписать и получить
-        BaseButton(v-if="cancellable", variant="danger", @click="confirmCancel") Отменить заказ
-
-    OrdererFinalizeIssuanceDialog(
-      v-model="finalizeDialogOpen",
-      :orders="order ? [order] : []",
-      @finalized="onFinalized"
-    )
+      .order-detail__actions(v-if="cancellable")
+        BaseButton(variant="danger", @click="confirmCancel") Отменить заказ
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>

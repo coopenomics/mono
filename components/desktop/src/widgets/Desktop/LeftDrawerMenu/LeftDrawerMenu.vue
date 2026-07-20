@@ -25,6 +25,7 @@
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
+        balance-label='Главный паевой кошелёк',
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,
@@ -195,8 +196,11 @@ const coopMeta = computed<string | undefined>(() =>
 
 // --- Footer: RailUserCard (canon .rail__usercard) --------------------------
 
-const mainWallet = computed(() =>
-  walletStore.program_wallets.find((w) => w.program_type === Zeus.ProgramType.MAIN),
+// Мини-кошелёк показывает ТОЛЬКО паевой (`w.wal.share`) — сырой кошелёк без
+// сворачивания с членской частью ЦК. Членские средства сюда не примешиваются
+// (для них — карточка «Членский кошелёк» на странице кошелька).
+const shareWallet = computed(() =>
+  walletStore.user_wallets.find((w) => w.wallet_name === 'w.wal.share'),
 );
 const walletReady = computed<boolean>(() => walletStore.program_wallets.length > 0);
 
@@ -207,13 +211,13 @@ function splitAsset(asset?: string | null): { amount: string; symbol: string } {
   return { amount: parts[0] || '0,00', symbol: parts[1] || '' };
 }
 
-const walletAvail = computed(() => splitAsset(mainWallet.value?.available));
+const walletAvail = computed(() => splitAsset(shareWallet.value?.available));
 const walletBalance = computed<string>(() => walletAvail.value.amount);
 const walletSymbol = computed<string>(
   () => walletAvail.value.symbol || info.symbols?.root_govern_symbol || 'RUB',
 );
 const walletLocked = computed<string | undefined>(() => {
-  const split = splitAsset(mainWallet.value?.blocked);
+  const split = splitAsset(shareWallet.value?.blocked);
   if (split.amount === '0,00' || split.amount === '0.00') return undefined;
   return split.amount;
 });

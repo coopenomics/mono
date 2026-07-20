@@ -38,6 +38,7 @@ import { workflow as marketplaceWriteoffExecutedWorkflow } from './marketplace-w
 import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-writeoff-rejected';
 import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
 import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
+import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -78,6 +79,7 @@ export * as MarketplaceWriteoffExecuted from './marketplace-writeoff-executed';
 export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
 export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
 export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
+export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -119,6 +121,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceWriteoffRejectedWorkflow,
   marketplaceNewOrderForSupplierWorkflow,
   marketplaceReturnAcceptedSupplierWorkflow,
+  marketplaceOrderDeclinedBySupplierWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

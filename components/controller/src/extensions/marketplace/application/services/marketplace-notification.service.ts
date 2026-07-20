@@ -15,6 +15,7 @@ import {
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
+  MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
   MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT,
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
@@ -25,6 +26,7 @@ import {
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
   type MarketplaceNewOrderForSupplierEvent,
+  type MarketplaceOrderDeclinedBySupplierEvent,
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
   type MarketplaceReturnClaimSubmittedEvent,
@@ -473,6 +475,55 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Order ${event.order_id}: ошибка отправки уведомления поставщику о новом заказе (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT)
+  async handleOrderDeclinedBySupplier(event: MarketplaceOrderDeclinedBySupplierEvent): Promise<void> {
+    try {
+      const ordererAccount = await this.accountPort.getAccount(event.orderer_account);
+      const subscriberId = ordererAccount.provider_account?.subscriber_id?.trim();
+      const email = ordererAccount.provider_account?.email;
+      if (!subscriberId || !email) {
+        this.logger.warn(
+          `Order ${event.order_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push об отказе поставщика пропущен.`
+        );
+        return;
+      }
+
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      // КУ резолвится в человеческое имя участка (account_kind=branch); при сбое
+      // деградируем к braname, чтобы текст не остался пустым.
+      let kuName = event.delivery_braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.delivery_braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const reasonExcerpt =
+        event.reason.length > 240 ? event.reason.slice(0, 240) + '…' : event.reason;
+      const payload: Workflows.MarketplaceOrderDeclinedBySupplier.IPayload = {
+        ordererName,
+        productName: event.product_name,
+        kuName,
+        reasonExcerpt,
+        coopname: event.coopname,
+        order_id: event.order_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
+      };
+      const triggerData: WorkflowTriggerDomainInterface = {
+        name: Workflows.MarketplaceOrderDeclinedBySupplier.id,
+        to: { subscriberId, email },
+        payload,
+      };
+      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      this.logger.log(
+        `Order ${event.order_id}: push заказчику ${event.orderer_account} об отказе поставщика отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Order ${event.order_id}: ошибка отправки push заказчику об отказе поставщика (${err.message}) — flow не блокируется.`
       );
     }
   }

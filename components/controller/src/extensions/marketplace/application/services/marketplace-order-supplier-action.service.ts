@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -8,6 +9,10 @@ import {
   MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY,
   type MarketplaceConsolidatedRequestDomainRepository,
 } from '../../domain/repositories/marketplace-consolidated-request.repository';
+import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
 import {
   MARKETPLACE_OFFER_COUNTERS_SERVICE,
   MarketplaceOfferCountersService,
@@ -19,6 +24,10 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { normalizeChainTxHash, rethrowChainError } from '../shared/chain-tx.util';
+import {
+  MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
+  type MarketplaceOrderDeclinedBySupplierEvent,
+} from '../events/marketplace-notification.events';
 
 export interface MarketplaceSupplierAcceptBatchInput {
   coopname: string;
@@ -53,10 +62,13 @@ export class MarketplaceOrderSupplierActionService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY)
     private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOrderSupplierActionService.name);
@@ -203,7 +215,83 @@ export class MarketplaceOrderSupplierActionService {
     if (declined.length === 0) {
       throw new BadRequestException('Не указано ни одного заказа для отказа.');
     }
+
+    // Уведомляем каждого заказчика отклонённого заказа (у каждого свой) с
+    // причиной отказа — заблокированные средства ему возвращены. Эмит ПОСЛЕ
+    // записи статусов в PG (INV-12); название товара тянем одним батчем по
+    // offer_id, чтобы текст уведомления был человекочитаемым.
+    await this.emitDeclinedNotifications(declined, reason);
+
     return { cycle_id: null, orders: declined, tx_hashes: txHashes };
+  }
+
+  /**
+   * Отказ в приёмке (некондиция): поставщик привёз позиции, которые оператор
+   * снял с приёмки (факт = 0). Переиспользует тот же on-chain путь, что и
+   * pre-cycle отказ — `declineorder` (полный возврат резерва и членского взноса
+   * заказчику без штрафа + erase), но заказы здесь уже акцептованы и в партии:
+   * статус ACCEPTED / SUPPLY_PREPARED, не ACTIVE, и `cycle_id != null`. Поэтому
+   * это отдельный публичный вход, минующий guard `ACTIVE && cycle_id == null`
+   * массового pre-cycle отказа; контракт `declineorder` сам допускает эти
+   * статусы (имущество ещё не оприходовано — клоубэка нет).
+   *
+   * Best-effort per-order: накладная подпись поставщика по принятым позициям
+   * уже зафиксирована вызывающим, откатить её нельзя — поэтому сбой отказа по
+   * отдельной позиции логируется (заказчику возврат не выполнен, требуется
+   * ручной разбор), но не валит всю операцию. Ownership заказов гарантирован
+   * вызывающим (приёмка принадлежит этому поставщику).
+   */
+  async declineOrdersAtReception(input: {
+    coopname: string;
+    offerer_account: string;
+    orders: MarketplaceOrderDomainEntity[];
+    reason: string;
+  }): Promise<MarketplaceOrderDomainEntity[]> {
+    const reason = (input.reason ?? '').trim() || 'Отказ в приёмке: некондиция';
+    const declined: MarketplaceOrderDomainEntity[] = [];
+    for (const order of input.orders) {
+      if (order.supplier_account !== input.offerer_account) continue;
+      try {
+        const res = await this.runDeclineChain(order, input.offerer_account, reason);
+        declined.push(res.order);
+      } catch (err: any) {
+        this.logger.error(
+          `MarketplaceOrderSupplierActionService.declineOrdersAtReception: отказ позиции ${order.id} (hash=${order.order_hash}) упал: ${err.message}; заказчику ${order.orderer_account} возврат не выполнен — требуется ручной разбор.`,
+          err.stack
+        );
+      }
+    }
+    if (declined.length > 0) {
+      await this.emitDeclinedNotifications(declined, reason);
+    }
+    return declined;
+  }
+
+  private async emitDeclinedNotifications(
+    declined: MarketplaceOrderDomainEntity[],
+    reason: string
+  ): Promise<void> {
+    try {
+      const offerIds = Array.from(new Set(declined.map((o) => o.offer_id)));
+      const offers = await this.offerRepo.findByIds(offerIds);
+      const productNameByOfferId = new Map(offers.map((of) => [of.id, of.product_name]));
+      for (const order of declined) {
+        const event: MarketplaceOrderDeclinedBySupplierEvent = {
+          coopname: order.coopname,
+          order_id: order.id,
+          orderer_account: order.orderer_account,
+          delivery_braname: order.delivery_braname,
+          product_name: productNameByOfferId.get(order.offer_id) ?? 'Товар по предложению',
+          reason,
+        };
+        this.eventBus.emit(MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT, event);
+      }
+    } catch (err: any) {
+      // Уведомление не критично для доменного результата — не валим отказ.
+      this.logger.warn(
+        `MarketplaceOrderSupplierActionService.emitDeclinedNotifications: не удалось разослать уведомления об отказе (${err.message}) — flow не блокируется.`
+      );
+    }
   }
 
   private dedupeOrderIds(order_ids: string[]): string[] {

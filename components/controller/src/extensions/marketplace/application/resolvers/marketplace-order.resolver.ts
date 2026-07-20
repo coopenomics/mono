@@ -176,6 +176,28 @@ export class MarketplaceOrderResolver {
     return this.runListQuery(filter, options, { withParticipantNames: true });
   }
 
+  @Query(() => MarketplaceOrderPaginationResultDTO, {
+    name: 'marketplaceListAllOrders',
+    description: 'Реестр всех заказов кооператива с их текущими статусами (стол администратора).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Order', 'read:all')
+  async marketplaceListAllOrders(
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<MarketplaceOrderPaginationResultDTO> {
+    const filter: MarketplaceOrderListFilter = {
+      coopname: config.coopname,
+      orderer_account: input?.orderer_account,
+      supplier_account: input?.supplier_account,
+      offer_id: input?.offer_id,
+      status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
+    };
+    // Стол администратора видит обе стороны сделки: и ФИО заказчика, и
+    // наименование поставщика — поэтому обогащаем именами участников.
+    return this.runListQuery(filter, options, { withParticipantNames: true });
+  }
+
   @Query(() => MarketplaceOrderDTO, {
     name: 'marketplaceGetOrder',
     description: 'Получить один заказ по его идентификатору (доступ зависит от роли).',

@@ -51,6 +51,7 @@ export class Factory extends DocFactory<MarketplaceWriteoffStatement.Action> {
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
+        unit: it.unit,
         amount: it.amount,
         reason: it.reason,
       }))

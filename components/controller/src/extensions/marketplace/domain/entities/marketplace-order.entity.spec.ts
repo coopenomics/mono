@@ -213,6 +213,38 @@ describe('MarketplaceOrderDomainEntity', () => {
       expect(order.on_chain_present).toBe(false);
     });
 
+    // Regression: отклонённый заказ стирается из chain-RAM (decline = erase).
+    // Парсер на erase шлёт present=false с последним «живым» value строки
+    // ('active'). Без terminal-guard'а это перетирало backend-статус
+    // CANCELLED_BY_SUPPLIER обратно в ACTIVE — заказ «воскресал» в списке
+    // «Ждут акцепта», а повторный decline падал «не найден по хэшу».
+    it('НЕ воскрешает терминальный CANCELLED_BY_SUPPLIER erase-дельтой с active', () => {
+      const order = new MarketplaceOrderDomainEntity(
+        buildProps({ status: 'CANCELLED_BY_SUPPLIER' })
+      );
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '20', status: 'ACTIVE' },
+        2_500_000,
+        false
+      );
+
+      expect(order.status).toBe('CANCELLED_BY_SUPPLIER'); // не воскрешён
+      expect(order.on_chain_present).toBe(false); // строка стёрта on-chain
+    });
+
+    it('НЕ воскрешает терминальный RETURNED erase-дельтой с received', () => {
+      const order = new MarketplaceOrderDomainEntity(buildProps({ status: 'RETURNED' }));
+
+      order.updateFromBlockchain(
+        { order_hash: 'a'.repeat(64), on_chain_id: '21', status: 'RECEIVED' },
+        2_600_000,
+        false
+      );
+
+      expect(order.status).toBe('RETURNED');
+    });
+
     it('применяет тот же ранг (ACCEPTED_PENDING_SUPPLIER ↔ ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL)', () => {
       const order = new MarketplaceOrderDomainEntity(
         buildProps({ status: 'ACCEPTED_PENDING_SUPPLIER' })

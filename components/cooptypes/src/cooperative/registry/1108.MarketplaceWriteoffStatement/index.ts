@@ -23,6 +23,8 @@ export interface WriteoffItemAction {
   asset_title: string
   /** Количество единиц к списанию. */
   quantity: string
+  /** Единица измерения (шт. / кг / л / упак.) — снапшот с оффера товара. */
+  unit: string
   /** Стоимость списания (4 знака после запятой, валюта `_root_govern_symbol`). */
   amount: string
   /** Причина списания (просрочка / порча / малооценность). */
@@ -47,6 +49,7 @@ export interface WriteoffItemModel {
   braname: string
   asset_title: string
   quantity: string
+  unit: string
   amount: string
   reason: string
 }
@@ -70,80 +73,107 @@ export interface Model {
 export const title = 'Заявление о списании скоропорта'
 export const description = 'Заявление председателя в совет кооператива о признании списания со складов кооперативных участков скоропортящегося, повреждённого или малооценного имущества по ЦПП «Стол заказов»'
 
+// Вёрстка 1-в-1 с эталоном фабричного документа 1106 (Заявление о возврате),
+// который КОРРЕКТНО отображается и в повестке совета (рендерер BaseDocument), и
+// в предпросмотре. Ключевое: BaseDocument прогоняет html через sanitizeHtml —
+// он ВЫРЕЗАЕТ <style> документа и принудительно ставит в Shadow DOM
+// `.digital-document { white-space: pre-wrap }`. Поэтому вёрстка НЕ должна
+// полагаться на <style> с классами (он исчезнет): выравнивание задаём ИНЛАЙН
+// (`style="text-align: ..."` — инлайн переживает sanitize), вертикальный ритм —
+// ПУСТЫМИ СТРОКАМИ под pre-wrap (а не margin'ами), плотные абзацы — инлайн
+// `margin: 0px`. Центр-заголовок — <h1 class="header"> (shadowStyles центрирует
+// `.digital-document .header`). Многоколоночная таблица позиций использует
+// <td style="font-weight:bold"> для шапки (а не <th>: рендерер навязывает
+// th{width:30%}, и пять <th> уехали бы за край). Свой <style> ниже нужен для
+// нешадоу-рендеров (предпросмотр) и совпадает с 1106.
 export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-h3 { margin: 0px; padding-top: 15px; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
-.subheader { padding-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
-th {  font-weight: bold; }
+h1 {
+  margin: 0px;
+  text-align: center;
+}
+.digital-document {
+  padding: 20px;
+  white-space: pre-wrap;
+}
+.subheader {
+  padding-bottom: 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border: 1px solid currentColor;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 </style>
 
 <div class="digital-document">
   <div style="text-align: right">
-    <p style="margin: 0">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p style="margin: 0">{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
+    <p style="margin: 0px !important">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
+    <p style="margin: 0px !important">{% trans 'from_chairman' %} {{ chairman.full_name_or_short_name }}</p>
   </div>
 
   <div style="text-align: center">
-    <h1>{% trans 'statement_title' %}</h1>
+    <h1 class="header">{% trans 'statement_title' %}</h1>
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
 
-  <p>{% trans 'preamble', program.name, cycle_started_at %}</p>
+  <p style="text-align: right; margin: 0px">{% trans 'place', coop.city %}</p>
+
+  <p>{% trans 'preamble', cycle_started_at %}</p>
 
   <table>
-    <thead>
-      <tr>
-        <th>№</th>
-        <th>{% trans 'col_branch' %}</th>
-        <th>{% trans 'col_asset' %}</th>
-        <th>{% trans 'col_quantity' %}</th>
-        <th>{% trans 'col_amount' %}</th>
-        <th>{% trans 'col_reason' %}</th>
-      </tr>
-    </thead>
     <tbody>
+      <tr>
+        <td style="font-weight: bold">№</td>
+        <td style="font-weight: bold">{% trans 'col_asset' %}</td>
+        <td style="font-weight: bold">{% trans 'col_quantity' %}</td>
+        <td style="font-weight: bold">{% trans 'col_unit' %}</td>
+        <td style="font-weight: bold">{% trans 'col_amount' %}</td>
+        <td style="font-weight: bold">{% trans 'col_reason' %}</td>
+      </tr>
       {% for it in items %}
       <tr>
         <td>{{ forloop.counter }}</td>
-        <td>{{ it.braname }}</td>
         <td>{{ it.asset_title }}</td>
         <td>{{ it.quantity }}</td>
+        <td>{{ it.unit }}</td>
         <td>{{ it.amount }}</td>
         <td>{{ it.reason }}</td>
       </tr>
       {% endfor %}
-      <tr style="font-weight: bold">
-        <td colspan="4">{% trans 'total' %}</td>
-        <td>{{ total_amount }}</td>
+      <tr>
+        <td colspan="4" style="font-weight: bold">{% trans 'total' %}</td>
+        <td style="font-weight: bold">{{ total_amount }}</td>
         <td></td>
       </tr>
     </tbody>
   </table>
 
-  <p>{% trans 'ledger_note' %}</p>
   <p>{% trans 'signature' %}</p>
-  <p>{{ chairman.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
+  <p style="margin: 0px">{{ chairman.full_name_or_short_name }}</p>
+  <p style="margin: 0px">{{ meta.created_at }}</p>
 </div>
 `
 
 export const translations = {
   ru: {
     v_soviet: 'В Совет',
-    from_chairman: 'от Председателя',
+    from_chairman: 'от Председателя Совета',
     statement_title: 'ЗАЯВЛЕНИЕ',
     statement_subheader: 'о списании имущества со складов кооперативных участков по Целевой Потребительской Программе «{0}»',
-    preamble: 'Прошу совет принять решение о списании с балансов кооперативных участков следующих позиций имущества, признанных по итогам цикла «{0}» от {1} непригодными к выдаче пайщикам:',
-    col_branch: 'КУ',
+    place: 'г. {0}',
+    preamble: 'Прошу совет принять решение о списании с балансов кооперативных участков следующих позиций имущества, признанных от {0} непригодными к выдаче пайщикам:',
     col_asset: 'Наименование/Артикул',
     col_quantity: 'Количество',
+    col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
     col_reason: 'Причина',
     total: 'ИТОГО',
-    ledger_note: 'Списание оформляется через транзит счёта 91 «Прочие доходы и расходы» атомарной парой ledger2-операций o.mkt.wroff (Дт 91 / Кт 10) и o.mkt.wroff2 (Дт 86 / Кт 91), движений по кошелькам пайщиков не происходит.',
     signature: 'Подписано электронной подписью.',
   },
 }
@@ -161,22 +191,24 @@ export const exampleData = {
   chairman: { full_name_or_short_name: 'Муравьев Алексей Николаевич' },
   program: { name: 'СТОЛ ЗАКАЗОВ' },
   proposal_hash: '0000abcd...',
-  cycle_started_at: '2026-06-01',
+  cycle_started_at: '01.06.2026',
   items: [
     {
-      braname: 'KU-MOSKVA-1',
+      braname: 'ku-moskva-1',
       asset_title: 'Сахар-песок «Сладкий», 1 кг',
       quantity: '12',
-      amount: '1020.0000',
+      unit: 'шт.',
+      amount: '1 020,00 RUB',
       reason: 'Истёк срок годности',
     },
     {
-      braname: 'KU-MOSKVA-2',
+      braname: 'ku-moskva-2',
       asset_title: 'Молоко «Доброе», 1 л',
       quantity: '5',
-      amount: '485.0000',
+      unit: 'шт.',
+      amount: '485,00 RUB',
       reason: 'Повреждена упаковка',
     },
   ],
-  total_amount: '1505.0000',
+  total_amount: '1 505,00 RUB',
 }

@@ -45,6 +45,12 @@ const backTarget = computed<{ label: string; name: string }>(() => {
   if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
   if (route.query.from === 'consolidated')
     return { label: 'К коллективному заказу', name: 'marketplace-consolidated' };
+  // Стол администратора: карточку открывают из разных реестров — подпись и
+  // fallback-маршрут «назад» зависят от того, откуда пришли (query `from`).
+  if (route.query.from === 'orders')
+    return { label: 'К реестру заказов', name: 'marketplace-admin-orders' };
+  if (route.query.from === 'offers')
+    return { label: 'К реестру предложений', name: 'marketplace-admin-offers' };
   if (readonly.value) return { label: 'К модерации', name: 'marketplace-moderation' };
   return { label: 'К каталогу', name: 'marketplace-catalog' };
 });
@@ -244,9 +250,9 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
           span.offer-detail__point-name {{ p.name }}
           span.offer-detail__point-vol {{ p.volume }}
 
-    section.offer-detail__section(v-if="offer.warranty_days > 0")
+    section.offer-detail__section
       .offer-detail__section-head Гарантия
-      .offer-detail__desc {{ offer.warranty_days }} дн.
+      .offer-detail__desc {{ offer.warranty_days > 0 ? `${offer.warranty_days} дн.` : 'Без гарантии' }}
 
   AddToCartDialog(
     v-if="!readonly",

@@ -3,6 +3,8 @@ import { ref, watch } from 'vue';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { DigitalDocument } from 'src/shared/lib/document';
+import { BaseButton, BaseDialog } from 'src/shared/ui/base';
+import { Loader } from 'src/shared/ui/Loader';
 import {
   getWriteoffStatementSignablePayload,
   submitWriteoffDraft,
@@ -32,6 +34,9 @@ const previewDoc = ref<MarketplaceWriteoffStatementDocumentView | null>(null);
 const loading = ref(false);
 const submitting = ref(false);
 
+// immediate: диалог может смонтироваться уже открытым (modelValue=true задаётся
+// одновременно с появлением draft) — без immediate watch не сработал бы и
+// документ не загрузился бы (пустой экран без кнопок).
 watch(
   () => props.modelValue,
   async (open) => {
@@ -49,6 +54,7 @@ watch(
       loading.value = false;
     }
   },
+  { immediate: true },
 );
 
 async function signAndSubmit(): Promise<void> {
@@ -73,35 +79,80 @@ async function signAndSubmit(): Promise<void> {
 </script>
 
 <template lang="pug">
-q-dialog(
-  :model-value="modelValue"
+BaseDialog(
+  :model-value="modelValue",
+  title="Подписание Заявления о списании скоропорта",
+  maximized,
+  :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
-  full-width persistent
 )
-  q-card
-    q-card-section.row.items-center
-      .text-h6 Подписание Заявления о списании скоропорта
-      q-space
-      q-btn(flat round icon="close" @click="emit('update:modelValue', false)")
+  Loader(v-if="loading", text="Формируем Заявление…")
 
-    q-card-section(v-if="loading")
-      q-spinner-tabs(indeterminate)
-      .text-grey.q-ml-md Формируем Заявление…
+  template(v-else-if="previewDoc")
+    .t-muted.submit-council__intro
+      | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
+    //- Документ — листом фиксированной ширины (как остальные документы), на
+    //- мобильном во всю ширину; высоту не режем — прокручивается весь диалог.
+    //- Рендерим html КАК ЕСТЬ (как все канон-документы — 1106 и пр.): шаблон
+    //- самодостаточен (свой <style> + инлайн-выравнивание + pre-wrap-ритм),
+    //- поэтому и здесь, и в повестке совета (BaseDocument) выглядит одинаково.
+    //- НИКАКОГО класса `.statement` — он тянет глобальный h1{line-height:4.5rem}
+    //- из DocumentHtmlReader; и никакого нормализатора, который ломает pre-wrap.
+    .submit-council__sheet
+      //- eslint-disable-next-line vue/no-v-html
+      .submit-council__doc(v-html="previewDoc.html")
 
-    q-card-section(v-else-if="previewDoc")
-      .text-body2.text-grey.q-mb-md
-        | Подписав это Заявление, вы инициируете повестку совета о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания через стандартный sov.decision flow.
-      q-card(flat bordered).q-pa-md(style="max-height: 50vh; overflow: auto")
-        div(v-html="previewDoc.html")
-
-    q-card-section.row.items-center.q-gutter-sm(v-if="previewDoc")
-      q-space
-      q-btn(flat no-caps label="Отмена" @click="emit('update:modelValue', false)")
-      q-btn(
-        unelevated no-caps color="primary"
-        icon="fa-solid fa-signature"
-        label="Подписать и отправить в совет"
-        :loading="submitting"
-        @click="signAndSubmit"
-      )
+  template(#footer, v-if="previewDoc")
+    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
+    BaseButton(variant="primary", :loading="submitting", @click="signAndSubmit")
+      template(#icon-left)
+        q-icon(name="draw", size="18px")
+      | Подписать и отправить в совет
 </template>
+
+<style lang="scss" scoped>
+.submit-council {
+  display: flex;
+  align-items: center;
+  gap: var(--p-3, 12px);
+
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-3, 12px);
+    min-height: 60vh;
+  }
+
+  &__intro {
+    margin-bottom: var(--p-4, 16px);
+  }
+
+  // Лист документа: ограничен по ширине и центрирован (как страница А4),
+  // на узких экранах занимает всю ширину. Высоту не ограничиваем — длинный
+  // документ прокручивается вместе с телом диалога, без «обрубка».
+  &__sheet {
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    background: var(--p-surface);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-7, 40px);
+  }
+}
+
+@media (max-width: 700px) {
+  .submit-council__sheet {
+    padding: var(--p-4, 16px);
+  }
+}
+
+/* Документ рендерится со СВОИМИ стилями (внутри html есть <style>), как и в
+   повестке совета. Здесь только наследуем канон-цвет текста — остальное
+   (выравнивание, отступы, таблица) задаёт сам шаблон документа. */
+.submit-council__doc {
+  color: var(--p-ink);
+}
+</style>

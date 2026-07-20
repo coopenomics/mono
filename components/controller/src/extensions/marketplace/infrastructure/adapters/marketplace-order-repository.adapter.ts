@@ -486,22 +486,6 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
-  async listReadyToReceiveByOrderer(
-    coopname: string,
-    orderer_account: string
-  ): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop AND o.orderer_account = :u AND o.status = :st', {
-        coop: coopname,
-        u: orderer_account,
-        st: 'READY_TO_RECEIVE',
-      })
-      .orderBy('o.accepted_at', 'ASC')
-      .getMany();
-    return rows.map((r) => this.mapper.toDomain(r));
-  }
-
   // ── private ──
 
   private async persistDomain(

@@ -84,6 +84,10 @@ import {
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
   MarketplaceSupplierSettingsService,
 } from './marketplace-supplier-settings.service';
+import {
+  MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
+  MarketplaceOrderSupplierActionService,
+} from './marketplace-order-supplier-action.service';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
@@ -217,6 +221,8 @@ export class MarketplaceAplReceptionService {
     private readonly coreGateway: GatewayInteractorPort,
     @Inject(MARKETPLACE_SUPPLIER_SETTINGS_SERVICE)
     private readonly supplierSettings: MarketplaceSupplierSettingsService,
+    @Inject(MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE)
+    private readonly supplierActionService: MarketplaceOrderSupplierActionService,
     private readonly documentDomainService: DocumentDomainService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
@@ -239,8 +245,12 @@ export class MarketplaceAplReceptionService {
   ): Promise<DocumentDomainEntity[]> {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const groupOrders = await this.loadGroupOrders(reception);
+    // Поставщик подписывает акт только по принятым позициям (факт > 0). Снятые
+    // оператором позиции (факт = 0, некондиция) в акт не попадают — они уходят
+    // отказом в приёмке (declineorder) на шаге подписи поставщика.
+    const { accepted } = this.splitGroupByFact(reception, groupOrders);
     const docs: DocumentDomainEntity[] = [];
-    for (const order of groupOrders) {
+    for (const order of accepted) {
       docs.push(
         await this.generateReceptionDocument({
           reception,
@@ -603,12 +613,42 @@ export class MarketplaceAplReceptionService {
       );
     }
 
+    // Разнос позиций: оператор на стойке снял некондицию (факт = 0). Поставщик
+    // подтверждает приёмку целиком — подписывает акт по принятым позициям и тем
+    // же действием отменяет поставку снятых (отказ в приёмке без штрафа, полный
+    // возврат заказчику). Симметрия с отказом пайщика на выдаче.
+    const groupOrders = await this.loadGroupOrders(reception);
+    const { accepted, rejected } = this.splitGroupByFact(reception, groupOrders);
+
+    // Вся партия некондиция: подписывать нечего. Отклоняем все позиции (полный
+    // возврат заказчикам, поставщику без штрафа) и закрываем приёмку как
+    // отменённую — имущество поставщик увозит, принимать нечего.
+    if (accepted.length === 0) {
+      await this.supplierActionService.declineOrdersAtReception({
+        coopname: reception.coopname,
+        offerer_account: input.supplier_account,
+        orders: rejected,
+        reason: 'Отказ в приёмке: вся партия снята оператором (некондиция)',
+      });
+      const cancelled = await this.receptionRepo.applySignatures(reception.id, {
+        status: MarketplaceAplReceptionStatuses.CANCELLED,
+      });
+      await this.shipmentRepo.applyStatusTransition(
+        reception.shipment_id,
+        MarketplaceShipmentStatuses.CANCELLED
+      );
+      this.logger.log(
+        `АПП ${reception.id}: вся партия отклонена в приёмке (${rejected.length} поз.) — приёмка отменена, заказчикам полный возврат.`
+      );
+      this.emitReceptionStatusChanged(cancelled);
+      return { apl_reception: cancelled };
+    }
+
     let txHash: string;
     try {
-      const groupOrders = await this.loadGroupOrders(reception);
       txHash = await this.submitOnChainSignSupp(
         reception,
-        groupOrders,
+        accepted,
         input.signed_documents,
         input.supplier_account
       );
@@ -621,6 +661,18 @@ export class MarketplaceAplReceptionService {
       );
     }
 
+    // Снятые позиции — отказ в приёмке (полный возврат заказчику, без штрафа).
+    // Best-effort: подпись по принятым уже на цепи, сбой отказа отдельной
+    // позиции логируется внутри сервиса и не валит фиксацию подписи.
+    if (rejected.length > 0) {
+      await this.supplierActionService.declineOrdersAtReception({
+        coopname: reception.coopname,
+        offerer_account: input.supplier_account,
+        orders: rejected,
+        reason: 'Отказ в приёмке: позиция снята оператором (некондиция)',
+      });
+    }
+
     const updated = await this.receptionRepo.applySignatures(reception.id, {
       supplier_signed_at: new Date(),
       supplier_signsupp_tx_hash: txHash,
@@ -631,7 +683,9 @@ export class MarketplaceAplReceptionService {
       status: MarketplaceAplReceptionStatuses.PENDING_CHAIRMAN_RECEPTION_SIGN,
     });
 
-    this.logger.log(`АПП ${reception.id}: подпись поставщика принята (tx=${txHash}).`);
+    this.logger.log(
+      `АПП ${reception.id}: подпись поставщика принята (tx=${txHash}); принято ${accepted.length} поз., отклонено в приёмке ${rejected.length} поз.`
+    );
 
     this.emitReceptionStatusChanged(updated);
 
@@ -648,12 +702,18 @@ export class MarketplaceAplReceptionService {
       );
     }
 
+    // Председатель закрывает приёмку только по принятым позициям (факт > 0).
+    // Снятые при подписи поставщика позиции уже отклонены (declineorder, заказ
+    // терминальный) — их нет в акте, в signchair, в переходе ACCEPTED_TO_COOP,
+    // на складе и в выплатах.
+    const groupOrders = await this.loadGroupOrders(reception);
+    const { accepted: acceptedOrders } = this.splitGroupByFact(reception, groupOrders);
+
     let txHash: string;
     try {
-      const groupOrders = await this.loadGroupOrders(reception);
       txHash = await this.submitOnChainSignChair(
         reception,
-        groupOrders,
+        acceptedOrders,
         input.signed_documents,
         input.chairman_account
       );
@@ -674,10 +734,10 @@ export class MarketplaceAplReceptionService {
       status: MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP,
     });
 
-    // Order'ы группы → ACCEPTED_TO_COOP (FR19a выдача разблокируется только
-    // после этого момента).
-    const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
-    for (const o of orders.filter((x) => x.delivery_braname === reception.braname)) {
+    // Принятые Order'ы → ACCEPTED_TO_COOP (FR19a выдача разблокируется только
+    // после этого момента). Отклонённые в приёмке сюда не попадают — они уже
+    // терминальные (CANCELLED_BY_SUPPLIER).
+    for (const o of acceptedOrders) {
       await this.orderRepo.applyStatusTransition(
         o.id,
         'ACCEPTED_TO_COOP',
@@ -693,13 +753,13 @@ export class MarketplaceAplReceptionService {
     // Имущество, принятое по акту, появляется на складе КУ сразу — независимо
     // от маркировки (штрих-код опционален). Полку и штрих-код оператор назначит
     // позже на столе раскладки/маркировки.
-    await this.materializeInventory(updated, orders);
+    await this.materializeInventory(updated, acceptedOrders);
 
     // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
     // через gateway. Кассир увидит каждую выплату в общем реестре
     // платежей кооператива и подтвердит/отклонит её там.
-    const orderHashByOrderId = new Map(orders.map((o) => [o.id, o.order_hash] as const));
-    await this.initiatePayouts(updated, orders, orderHashByOrderId);
+    const orderHashByOrderId = new Map(acceptedOrders.map((o) => [o.id, o.order_hash] as const));
+    await this.initiatePayouts(updated, acceptedOrders, orderHashByOrderId);
 
     // Story 598-20: push кассиру о новой партии выплат — одно
     // суммарное уведомление на АПП с агрегатом по поставщику.
@@ -713,12 +773,51 @@ export class MarketplaceAplReceptionService {
     this.eventBus.emit(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT, event);
 
     this.logger.log(
-      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${orders.filter((x) => x.delivery_braname === reception.braname).length} заказам инициированы через gateway.`
+      `АПП ${reception.id}: закрывающая подпись председателя ${input.chairman_account} принята (tx=${txHash}); выплаты по ${acceptedOrders.length} заказам инициированы через gateway.`
     );
 
     this.emitReceptionStatusChanged(updated);
 
     return { apl_reception: updated };
+  }
+
+  /**
+   * Откат черновика приёмки: поставщик не согласен со снятыми оператором
+   * позициями целиком (повезёт замену в другой раз) — оператор отменяет акт и
+   * пересобирает его заново. Допустимо ТОЛЬКО до подписи поставщика
+   * (PENDING_SUPPLIER_SIGN): on-chain ещё ничего не произошло (заказы в ACCEPTED,
+   * signsupp не отправлялся), поэтому откат — чисто PG: приёмка → CANCELLED,
+   * партия возвращается в SUPPLY_PREPARED (готова к новой приёмке), заказы не
+   * трогаем. После подписи поставщика откат невозможен — signsupp/declineorder
+   * уже на цепи.
+   */
+  async cancelReception(input: {
+    coopname: string;
+    operator_account: string;
+    apl_reception_id: string;
+  }): Promise<MarketplaceAplReceptionResult> {
+    const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+    if (reception.status !== MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN) {
+      throw new ConflictException(
+        `Отменить приёмку можно только до подписи поставщика. Текущий статус: «${reception.status}».`
+      );
+    }
+
+    const cancelled = await this.receptionRepo.applySignatures(reception.id, {
+      status: MarketplaceAplReceptionStatuses.CANCELLED,
+    });
+    // Партия снова доступна к приёмке — оператор пересоберёт акт (findByShipmentId
+    // исключает CANCELLED, поэтому повторный create() по этой партии пройдёт).
+    await this.shipmentRepo.applyStatusTransition(
+      reception.shipment_id,
+      MarketplaceShipmentStatuses.SUPPLY_PREPARED
+    );
+
+    this.logger.log(
+      `АПП ${reception.id}: приёмка отменена оператором ${input.operator_account} (поставщик не согласен) — партия ${reception.shipment_id} снова готова к приёмке.`
+    );
+    this.emitReceptionStatusChanged(cancelled);
+    return { apl_reception: cancelled };
   }
 
   /**
@@ -925,6 +1024,36 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceOrderDomainEntity[]> {
     const orders = await this.orderRepo.findByCycleId(reception.coopname, reception.cycle_id);
     return orders.filter((o) => o.delivery_braname === reception.braname);
+  }
+
+  /**
+   * Разнос заказов группы на принятые (факт > 0 — идут в акт, на баланс
+   * кооператива и в выплату поставщику) и отклонённые в приёмке (факт = 0 —
+   * оператор снял позицию: некондиция). Потолок факта = акцепт (см.
+   * buildFactQuantity); отсутствие записи факта трактуется как полный приём.
+   * Заказы с уже терминальным статусом (например, ранее отклонённые в этой же
+   * приёмке при повторном вызове) в принятые не попадают.
+   */
+  private splitGroupByFact(
+    reception: MarketplaceAplReceptionDomainEntity,
+    groupOrders: MarketplaceOrderDomainEntity[]
+  ): { accepted: MarketplaceOrderDomainEntity[]; rejected: MarketplaceOrderDomainEntity[] } {
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity])
+    );
+    const accepted: MarketplaceOrderDomainEntity[] = [];
+    const rejected: MarketplaceOrderDomainEntity[] = [];
+    for (const o of groupOrders) {
+      const fact = factByOrderId.get(o.id) ?? o.quantity;
+      if (
+        o.status === MarketplaceOrderStatuses.CANCELLED_BY_SUPPLIER ||
+        o.status === MarketplaceOrderStatuses.CANCELLED_BY_ORDERER
+      ) {
+        continue;
+      }
+      (fact > 0 ? accepted : rejected).push(o);
+    }
+    return { accepted, rejected };
   }
 
   /**

@@ -104,9 +104,15 @@ public:
    * @brief Заказ из обезличенного остатка склада кооператива (requirement 76).
    * Продавец — сам кооператив (`offerer == coopname`), имущество уже на
    * счёте 10 после ранее закрытых приёмок, поэтому Order создаётся сразу в
-   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Один шаг
-   * ledger2: o.mkt.lock (TRANSFER w.wal.share → w.mkt.order). Этапы поставки
+   * `acceptcoop` и идёт только через выдачу signiss1/signiss2. Этапы поставки
    * и выплата поставщику для такого заказа не существуют.
+   *
+   * Заказ из остатка ВСЕГДА фондируется из членского кошелька «Стола заказов»
+   * пайщика начисто (без паевого): o.mkt.lockm (тело, w.mkt.member → w.mkt.order)
+   * + o.mkt.lockmf (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский
+   * кошелёк заранее отдельным действием `convert` (Заявление о конвертации). При
+   * замене непоставленного на свободный остаток высвобожденные отменой средства
+   * уже лежат в w.mkt.member — заказ создаётся без конвертации и доплаты.
    * @ingroup public_marketplace_actions
    */
   [[eosio::action]] void stockorder(eosio::name coopname,
@@ -117,8 +123,23 @@ public:
                                      uint64_t quantity,
                                      eosio::asset unit_price,
                                      uint32_t warranty_period_secs,
-                                     checksum256 batch_hash,
-                                     document2 convert_statement);
+                                     checksum256 batch_hash);
+
+  /**
+   * @brief Конвертация паевого взноса пайщика в членский кошелёк «Стола
+   * заказов» (requirement 76, заказ из остатка из членских средств).
+   * Один шаг ledger2: o.mkt.conv (TRANSFER w.wal.share → w.mkt.member,
+   * Дт 80 / Кт 86). `convert_statement` — подписанное заказчиком Заявление о
+   * конвертации (шаблон 1110), публикуется в реестр документов отдельным
+   * пакетом (package = hash заявления). Выполняется перед `stockorder`, когда
+   * членских средств пайщика не хватает на заказ из остатка (на полную сумму
+   * или только на дельту превышения над высвобождённым при замене).
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void convert(eosio::name coopname,
+                                 eosio::name orderer,
+                                 eosio::asset amount,
+                                 document2 convert_statement);
 
   /**
    * @brief Заказчик отменяет заказ до акцепта (Story 4.4). Триггерит o.mkt.unlock.
@@ -421,6 +442,41 @@ public:
                                     eosio::name signer,
                                     checksum256 proposal_hash,
                                     uint64_t item_index);
+
+  /**
+   * @brief Председатель кооперативного участка подтверждает фактическое
+   * списание со склада своего КУ по авторизованному советом проекту
+   * (ручной шаг стола ПВЗ).
+   *
+   * Совет лишь принимает решение о допустимости списания (proposed →
+   * authorized); фактическое выбытие имущества со склада инициирует
+   * председатель КУ, подписывая Служебную записку о списании (registry
+   * 1111). Один вызов закрывает все неисполненные позиции одного КУ
+   * (`braname`) за одну транзакцию: per-КУ гранулярность разбивает большой
+   * проект так, чтобы протокол поместился в лимит транзакции, и привязывает
+   * выбытие к подписи ответственного за склад.
+   *
+   * Эффект:
+   *  - Ledger2::apply(o.mkt.wroff) по каждой неисполненной позиции с этим
+   *    `braname` (Дт 86 / Кт 10), как в `execwroff`.
+   *  - Служебная записка `memo` публикуется в реестр документов
+   *    (`make_complete_document`, package = proposal_hash).
+   *  - Позиции КУ помечаются executed; когда исполнены все позиции проекта,
+   *    запись proposal стирается из RAM (терминал жизненного цикла).
+   *
+   * Guards:
+   *  - proposal.status == AUTHORIZED (совет уже одобрил);
+   *  - `signer` уполномочен для КУ `braname`
+   *    (`branches[braname].is_user_authorized`) — председатель КУ или его
+   *    доверенное лицо;
+   *  - у проекта есть хотя бы одна неисполненная позиция этого КУ.
+   * @ingroup public_marketplace_actions
+   */
+  [[eosio::action]] void confirmwroff(eosio::name coopname,
+                                       eosio::name signer,
+                                       checksum256 proposal_hash,
+                                       eosio::name braname,
+                                       document2 memo);
 
   // ── service ──────────────────────────────────────────────────────────
 

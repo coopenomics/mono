@@ -5,6 +5,7 @@ import {
   IDepositData,
   IWithdrawData,
   ExtendedProgramWalletData,
+  IUserWalletData,
   IPaymentMethodData,
   IUserAgreement,
 } from './types';
@@ -27,6 +28,13 @@ const WALLET_AGREEMENT_TYPE = 'wallet';
 interface IWalletStore {
   /*  доменный интерфейс кошелька пользователя */
   program_wallets: Ref<ExtendedProgramWalletData[]>;
+  /**
+   * Сырые кошельки пайщика «как есть» (по `wallet_name`, без сворачивания
+   * паевого и членского) — источник реестра карточек кошельков на столе
+   * пайщика. В отличие от `program_wallets` (срез по программе), даёт каждый
+   * кошелёк отдельной строкой.
+   */
+  user_wallets: Ref<IUserWalletData[]>;
   deposits: Ref<IDepositData[]>;
   withdraws: Ref<IWithdrawData[]>;
   methods: Ref<IPaymentMethodData[]>;
@@ -59,6 +67,7 @@ const DEFAULT_OPTIMISTIC_TTL_MS = 8000;
 export const useWalletStore = defineStore(namespace, (): IWalletStore => {
   const deposits = ref<IDepositData[]>([]);
   const withdraws = ref<IWithdrawData[]>([]);
+  const user_wallets = ref<IUserWalletData[]>([]);
   const _program_wallets_base = ref<ExtendedProgramWalletData[]>([]);
   const methods = ref<IPaymentMethodData[]>([]);
   const agreements = ref<IUserAgreement[]>([]);
@@ -122,6 +131,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
         api.loadUserProgramWalletsData(params),
         api.loadMethods(params),
         api.loadUserAgreements(params.coopname, params.username),
+        api.loadUserWalletsData(params),
       ]);
 
       deposits.value = data[0] ?? [];
@@ -129,6 +139,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
       _program_wallets_base.value = data[2] ?? [];
       methods.value = data[3] ?? [];
       agreements.value = data[4] ?? [];
+      user_wallets.value = data[5] ?? [];
       // Серверная правда выигрывает — все наложенные оптимистичные патчи
       // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
       // как «откат через TTL» через несколько секунд).
@@ -140,6 +151,7 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
 
   return {
     program_wallets: program_wallets as unknown as Ref<ExtendedProgramWalletData[]>,
+    user_wallets,
     deposits,
     withdraws,
     methods,

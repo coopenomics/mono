@@ -1,4 +1,4 @@
-import type { Mutations, Zeus } from '@coopenomics/sdk';
+import type { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { SovietContract, GatewayContract, Cooperative } from 'cooptypes';
 
 /**
@@ -15,6 +15,14 @@ export type ICreateInitialPayment =
 
 export type IProgramWalletData =
   SovietContract.Tables.ProgramWallets.IProgramWallet;
+
+/**
+ * Сырой кошелёк пайщика «как есть» (`getUserWallets`) — одна строка
+ * `ledger2::userwallets` по своему `wallet_name`, без сворачивания
+ * паевого и членского. Источник реестра кошельков на столе пайщика.
+ */
+export type IUserWalletData =
+  Queries.Wallet.GetUserWallets.IOutput['getUserWallets'][number];
 
 /**
  * Минимальная сводка программы кооператива, нужная UI: id + читаемое title

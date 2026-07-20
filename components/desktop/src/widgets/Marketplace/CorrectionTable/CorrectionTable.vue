@@ -13,6 +13,19 @@
       :pagination="{ rowsPerPage: 0 }"
       :rows-per-page-options="[0]"
     >
+      <template #body-cell-include="props">
+        <q-td :props="props" class="text-center">
+          <q-checkbox
+            :model-value="props.row.included !== false"
+            :disable="props.row.noStock"
+            dense
+            @update:model-value="(v) => emit('toggle', { sku: props.row.sku, included: !!v })"
+          >
+            <q-tooltip v-if="props.row.noStock">Нет на складе — выдать нечего</q-tooltip>
+          </q-checkbox>
+        </q-td>
+      </template>
+
       <template #body-cell-delta="props">
         <q-td :props="props" :class="deltaClass(props.row)">
           <strong>{{ props.row.delta > 0 ? '+' : '' }}{{ props.row.delta }}</strong>
@@ -62,9 +75,18 @@
         class="mp-card mp-correction-table__card"
       >
         <div class="mp-correction-table__card-head">
-          <div>
-            <div class="mp-correction-table__card-title">{{ r.title }}</div>
-            <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}<template v-if="r.shelf"> · Полка {{ r.shelf }}</template></div>
+          <div class="row items-start no-wrap" style="gap: 8px">
+            <q-checkbox
+              v-if="selectable"
+              :model-value="r.included !== false"
+              :disable="r.noStock"
+              dense
+              @update:model-value="(v) => emit('toggle', { sku: r.sku, included: !!v })"
+            />
+            <div>
+              <div class="mp-correction-table__card-title">{{ r.title }}</div>
+              <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}<template v-if="r.shelf"> · Полка {{ r.shelf }}</template></div>
+            </div>
           </div>
           <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(r)}`">
             {{ statusLabel(r) }}
@@ -120,6 +142,7 @@
         Итого позиций: {{ enrichedRows.length }}
       </div>
       <div class="mp-correction-table__summary-chips">
+        <span v-if="noStockCount" class="mp-status-chip mp-status-chip--error">Нет на складе · {{ noStockCount }}</span>
         <span v-if="overStockCount" class="mp-status-chip mp-status-chip--error">Больше принятого · {{ overStockCount }}</span>
         <span class="mp-status-chip mp-status-chip--success">Совпадает · {{ matchCount }}</span>
         <span class="mp-status-chip mp-status-chip--warning">Недостача · {{ shortCount }}</span>
@@ -140,6 +163,12 @@ export interface CorrectionRow {
   expected: number   // план (заказ), количество
   fact: number       // факт (поступление/выдача), количество
   /**
+   * Выдавать ли позицию в этой операции (режим `selectable`). Снятая галочка =
+   * имущество остаётся на складе, в текущую выдачу не попадает. Управляет
+   * частичной выдачей: пайщик забирает не всё, что причитается.
+   */
+  included?: boolean
+  /**
    * Принято на склад и не выдано — потолок факта при выдаче. Если задано,
    * fact > available подсвечивается ошибкой «Больше принятого»: выдать со
    * склада больше, чем физически есть, нельзя.
@@ -153,10 +182,14 @@ export interface CorrectionRow {
 
 const props = defineProps({
   rows: { type: Array as PropType<CorrectionRow[]>, required: true },
+  // Режим частичной выдачи: первая колонка — чекбокс «Выдать». Снятые позиции
+  // в операцию не попадают (остаются на складе).
+  selectable: { type: Boolean, default: false },
 })
 
 const emit = defineEmits<{
   (e: 'change', payload: { sku: string; fact: number; factPrice?: number }): void
+  (e: 'toggle', payload: { sku: string; included: boolean }): void
 }>()
 
 const $q = useQuasar()
@@ -174,6 +207,10 @@ const enrichedRows = computed(() =>
     ...r,
     delta: r.fact - r.expected,
     overStock: r.available !== undefined && r.fact > r.available,
+    // Принято 0 на склад — позицию физически нечего выдавать. Отдельный
+    // статус (а не общая «Недостача»): именно такие строки блокируют открытие
+    // выдачи, и оператор должен видеть это явно.
+    noStock: r.available !== undefined && r.available <= 0,
   }))
 )
 
@@ -183,6 +220,9 @@ const columns = computed<QTableProps['columns']>(() => {
     { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
     { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
   ]
+  if (props.selectable) {
+    base.unshift({ name: 'include', label: 'Выдать', field: 'included', align: 'center' })
+  }
   if (hasShelf.value) {
     base.splice(2, 0, { name: 'shelf', label: 'Полка', field: 'shelf', align: 'left' })
   }
@@ -207,9 +247,10 @@ function onPriceChange(row: CorrectionRow): void {
 
 type StatusKind = 'success' | 'warning' | 'info' | 'error'
 
-type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean }
+type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean; noStock: boolean }
 
 function statusLabel(r: EnrichedRow): string {
+  if (r.noStock) return 'Нет на складе'
   if (r.overStock) return 'Больше принятого'
   if (r.delta === 0) return 'Совпадает'
   if (r.delta < 0)  return 'Недостача'
@@ -217,6 +258,7 @@ function statusLabel(r: EnrichedRow): string {
 }
 
 function statusKind(r: EnrichedRow): StatusKind {
+  if (r.noStock) return 'error'
   if (r.overStock) return 'error'
   if (r.delta === 0) return 'success'
   if (r.delta < 0)  return 'warning'
@@ -224,15 +266,17 @@ function statusKind(r: EnrichedRow): StatusKind {
 }
 
 function deltaClass(r: EnrichedRow): string {
-  if (r.overStock) return 'text-negative'
+  if (r.noStock || r.overStock) return 'text-negative'
   if (r.delta === 0) return 'text-positive'
   if (r.delta < 0)  return 'text-warning'
   return 'text-info'
 }
 
-const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta === 0).length)
-const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta < 0).length)
-const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && r.delta > 0).length)
+// noStock-строки выносим в отдельный счётчик (не смешиваем с «Недостача»).
+const noStockCount = computed(() => enrichedRows.value.filter((r) => r.noStock).length)
+const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta === 0).length)
+const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta < 0).length)
+const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta > 0).length)
 const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overStock).length)
 </script>
 

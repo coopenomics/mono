@@ -53,6 +53,26 @@ export interface MarketplaceInventoryListFilter {
   published?: boolean;
 }
 
+/**
+ * Кандидат на списание: позиция на складе, доступная председателю для
+ * ручного сбора корзины проекта списания (admin-стол). Возвращаем ВСЕ позиции
+ * на складе — и просроченный скоропорт, и ещё годное имущество: председатель
+ * вправе списать вручную и то, что испорчено/не возвращено, а не только то,
+ * у чего формально истёк `expiry_date`. `is_expired` отмечает позиции с
+ * истёкшим сроком (auto-кандидаты крона) для подсветки в интерфейсе.
+ * `arrival_price` — закупочная цена за единицу из акта приёмки;
+ * сумма списания = arrival_price × quantity.
+ */
+export interface MarketplaceWriteoffCandidate {
+  inventory_id: string;
+  braname: string;
+  asset_title: string;
+  quantity: number;
+  arrival_price: string | null;
+  expiry_date: Date | null;
+  is_expired: boolean;
+}
+
 export interface MarketplaceInventoryDomainRepository {
   create(input: MarketplaceInventoryCreateInput): Promise<MarketplaceInventoryDomainEntity>;
 
@@ -85,6 +105,19 @@ export interface MarketplaceInventoryDomainRepository {
   ): Promise<Map<string, string[]>>;
 
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
+
+  /**
+   * Позиции на складе (RECEIVED/LABELED) для ручного сбора корзины списания на
+   * admin-столе. Возвращает ВСЁ имущество на складе, а не только просроченное:
+   * председатель может списать вручную и годное (порча, невозврат). `cutoff`
+   * используется лишь для вычисления флага `is_expired` (expiry_date <= cutoff),
+   * не как фильтр. Авто-крон отбирает кандидатов отдельным запросом с
+   * grace-периодом и сюда не обращается.
+   */
+  findWriteoffCandidates(
+    coopname: string,
+    cutoff: Date
+  ): Promise<MarketplaceWriteoffCandidate[]>;
 
   applyStatusTransition(
     id: string,

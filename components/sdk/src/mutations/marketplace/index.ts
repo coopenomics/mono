@@ -29,14 +29,14 @@ export * as ClearInventoryLabel from './clearInventoryLabel'
 export * as CreateAplReception from './createAplReception'
 /** Эпик 14 (14.2): express-приёмка самовывоза по факту присутствия поставщика */
 export * as CreateExpressReception from './createExpressReception'
+/** Эпик 5: отмена акта приёмки оператором до подписи поставщика (пересборка) */
+export * as CancelAplReception from './cancelAplReception'
 /** Эпик 5: первая подпись поставщика на акте приёмки */
 export * as SignAplReceptionAsSupplier from './signAplReceptionAsSupplier'
 /** Эпик 5: закрывающая подпись председателя КУ */
 export * as SignAplReceptionAsChairman from './signAplReceptionAsChairman'
 /** Эпик 6: председатель КУ открывает выдачу первой подписью акта */
-export * as OpenIssuance from './openIssuance'
 /** Эпик 6: заказчик закрывает выдачу финальной подписью с указанием фактического количества */
-export * as FinalizeIssuance from './finalizeIssuance'
 /** Эпик 7: заказчик подаёт заявление на гарантийный возврат имущества */
 export * as CreateReturnClaim from './createReturnClaim'
 /** Эпик 7: председатель КУ удалённо приглашает заказчика на очный осмотр */
@@ -55,6 +55,8 @@ export * as UpdateWriteoffDraft from './updateWriteoffDraft'
 export * as CancelWriteoffDraft from './cancelWriteoffDraft'
 /** Эпик 8: председатель отправляет черновик с подписанным Заявлением 1106 в совет */
 export * as SubmitWriteoffDraft from './submitWriteoffDraft'
+/** Эпик 8: председатель КУ подтверждает списание подписанной Служебной запиской 1111 */
+export * as ConfirmWriteoff from './confirmWriteoff'
 /** Эпик 1 / Story 1.9: принятие ЦПП Marketplace кооперативом (L1 onboarding, chairman-only) */
 export * as MarketplaceAcceptCpp from './marketplaceAcceptCpp'
 /** Эпик 1 фоллоуап: L3-подпись оферты ЦПП «Стол заказов» пайщиком прямо со стола */
@@ -97,12 +99,12 @@ export * as CheckoutCart from './checkoutCart'
 export * as PublishStock from './publishStock'
 /** Склад кооператива: снятие свободного остатка с витрины */
 export * as UnpublishStock from './unpublishStock'
-/** Докладка у стойки: оператор предлагает пайщику имущество со склада */
+/** Докладка у стойки: оператор формирует докладку со склада (с подписью передачи) */
 export * as CreateStockProposal from './createStockProposal'
 /** Докладка: оператор отзывает неотвеченное предложение */
 export * as CancelStockProposal from './cancelStockProposal'
-/** Докладка: пайщик принимает предложение (создаются заказы со склада) */
-export * as AcceptStockProposal from './acceptStockProposal'
+/** Докладка: пайщик одной подписью утверждает докладку как акт (заказ+выдача со склада) */
+export * as FinalizeStockIssuance from './finalizeStockIssuance'
 /** Докладка: пайщик отказывается от предложения */
 export * as DeclineStockProposal from './declineStockProposal'
 /** Склад кооператива: отмена заказа со склада до открытия выдачи */

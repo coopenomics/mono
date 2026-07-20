@@ -65,6 +65,12 @@ export interface IStockOrder {
   unit_price: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
+}
+
+export interface IConvert {
+  coopname: IName
+  orderer: IName
+  amount: IAsset
   convert_statement: IDocument2
 }
 
@@ -221,6 +227,22 @@ export interface IExecWroff {
   signer: IName
   proposal_hash: IChecksum256
   item_index: IUint64
+}
+
+/**
+ * Председатель кооперативного участка подтверждает фактическое списание со
+ * склада своего КУ по авторизованному советом проекту. Один вызов закрывает
+ * все неисполненные позиции одного КУ (`braname`); `memo` — подписанная
+ * Служебная записка о списании (registry 1111). Авторизация — `coopname`;
+ * `signer` должен быть авторизован для `braname` через
+ * Branch::is_user_authorized.
+ */
+export interface IConfirmWroff {
+  coopname: IName
+  signer: IName
+  proposal_hash: IChecksum256
+  braname: IName
+  memo: IDocument2
 }
 
 /**

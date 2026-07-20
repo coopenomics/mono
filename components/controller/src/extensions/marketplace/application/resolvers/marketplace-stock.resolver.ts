@@ -27,22 +27,26 @@ import {
 } from '../dto/marketplace-inventory.dto';
 import { MarketplaceOfferDTO, toMarketplaceOfferDTO } from '../dto/marketplace-offer.dto';
 import {
-  MarketplaceAcceptStockProposalInputDTO,
   MarketplaceCancelStockOrderInputDTO,
   MarketplaceCreateStockProposalInputDTO,
+  MarketplaceFinalizeStockIssuanceInputDTO,
   MarketplaceListStockProposalsInputDTO,
   MarketplacePublishStockInputDTO,
   MarketplaceResolveStockProposalInputDTO,
+  MarketplaceStockAcceptPayloadDTO,
+  MarketplaceStockIssuanceOperatorLineDTO,
+  MarketplaceStockIssuancePrepareInputDTO,
   MarketplaceStockProposalAcceptResultDTO,
   MarketplaceStockProposalDTO,
   MarketplaceUnpublishStockInputDTO,
   MarketplaceUnpublishStockResultDTO,
   toMarketplaceStockProposalDTO,
 } from '../dto/marketplace-stock.dto';
-import { MarketplaceCheckoutSignableLineDTO } from '../dto/marketplace-checkout.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
+import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -121,10 +125,41 @@ export class MarketplaceStockResolver {
 
   // ── Докладка у стойки (двухфазная) ───────────────────────────────────
 
+  @Query(() => [MarketplaceStockIssuanceOperatorLineDTO], {
+    name: 'marketplaceStockIssuancePayloads',
+    description:
+      'Акты приёма-передачи к подписи оператором КУ для докладки со склада: по строке корзины — order_hash будущего заказа и документ для подписи передающей стороны.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  async marketplaceStockIssuancePayloads(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceStockIssuancePrepareInputDTO
+  ): Promise<MarketplaceStockIssuanceOperatorLineDTO[]> {
+    await this.assertBranameAllowed(member, data.braname, 'StockProposal', 'create');
+    const lines = await this.proposalService.getOperatorIssuancePayloads({
+      coopname: config.coopname,
+      braname: data.braname,
+      member_account: data.member_account,
+      operator_account: member.username,
+      items: data.items,
+    });
+    return lines.map((l) => {
+      const dto = new MarketplaceStockIssuanceOperatorLineDTO();
+      dto.offer_id = l.offer_id;
+      dto.quantity = l.quantity;
+      dto.order_hash = l.order_hash;
+      dto.unit_price = l.unit_price;
+      dto.product_name = l.product_name;
+      dto.signiss1_document = new GeneratedDocumentDTO(l.signiss1_document);
+      return dto;
+    });
+  }
+
   @Mutation(() => MarketplaceStockProposalDTO, {
     name: 'marketplaceCreateStockProposal',
     description:
-      'Оператор у стойки предлагает пайщику имущество со склада кооператива — пайщику немедленно приходит запрос на решение.',
+      'Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
@@ -138,7 +173,18 @@ export class MarketplaceStockResolver {
       operator_account: member.username,
       braname: data.braname,
       member_account: data.member_account,
-      items: data.items,
+      items: (data.items ?? []).map((i) => ({
+        offer_id: i.offer_id,
+        quantity: i.quantity,
+        order_hash: i.order_hash,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+      })),
+      order_items: (data.order_items ?? []).map((i) => ({
+        order_id: i.order_id,
+        actual_quantity: i.actual_quantity,
+        actual_unit_price: i.actual_unit_price,
+        signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
+      })),
     });
     return toMarketplaceStockProposalDTO(proposal);
   }
@@ -161,56 +207,65 @@ export class MarketplaceStockResolver {
     return toMarketplaceStockProposalDTO(proposal);
   }
 
-  @Query(() => [MarketplaceCheckoutSignableLineDTO], {
+  @Query(() => MarketplaceStockAcceptPayloadDTO, {
     name: 'marketplaceStockProposalSignablePayloads',
     description:
-      'Заявления о конвертации паевого взноса к подписи по строкам предложения со склада. ' +
-      'Подписанные заявления возвращаются строками lines в marketplaceAcceptStockProposal.',
+      'Нагрузка к принятию предложения со склада: строки-заказы и ОДНО Заявление о конвертации ' +
+      'на всю сумму доплаты. Если членских средств хватает (замена из высвобожденных) — заявления нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
   async marketplaceStockProposalSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
-  ): Promise<MarketplaceCheckoutSignableLineDTO[]> {
-    const lines = await this.proposalService.getAcceptSignablePayloads(
+  ): Promise<MarketplaceStockAcceptPayloadDTO> {
+    const payload = await this.proposalService.getAcceptSignablePayloads(
       config.coopname,
       data.proposal_id,
       member.username
     );
-    return lines.map((l) => {
-      const document = new GeneratedDocumentDTO();
-      document.full_title = l.document.full_title;
-      document.html = l.document.html;
-      document.hash = l.document.hash;
-      document.meta = l.document.meta;
-      document.binary = l.document.binary;
-      return new MarketplaceCheckoutSignableLineDTO({
+
+    let convert_document: GeneratedDocumentDTO | null = null;
+    if (payload.convert) {
+      convert_document = new GeneratedDocumentDTO();
+      convert_document.full_title = payload.convert.document.full_title;
+      convert_document.html = payload.convert.document.html;
+      convert_document.hash = payload.convert.document.hash;
+      convert_document.meta = payload.convert.document.meta;
+      convert_document.binary = payload.convert.document.binary;
+    }
+
+    return {
+      order_lines: payload.order_lines.map((l) => ({
         offer_id: l.offer_id,
         order_hash: l.order_hash,
-        amount: l.amount,
-        document,
-      });
-    });
+        signiss1_aggregate: new DocumentAggregateDTO(l.signiss1_aggregate),
+      })),
+      member_amount: payload.member_amount,
+      convert_amount: payload.convert?.amount ?? null,
+      convert_hash: payload.convert?.convert_hash ?? null,
+      convert_document,
+    };
   }
 
   @Mutation(() => MarketplaceStockProposalAcceptResultDTO, {
-    name: 'marketplaceAcceptStockProposal',
+    name: 'marketplaceFinalizeStockIssuance',
     description:
-      'Пайщик принимает предложение со склада: по каждой строке создаётся заказ, средства резервируются, акт уходит на подпись. ' +
-      'Каждая строка сопровождается подписанным заявлением о конвертации паевого взноса (lines).',
+      'Пайщик одной подписью утверждает докладку как акт: при дефиците членских средств — конвертация с паевого по подписанному Заявлению, ' +
+      'затем по каждой строке создаётся заказ из остатка и проводится выдача (подпись передачи оператора + подпись получения пайщика). ' +
+      'Имущество выдаётся сразу. Заявление (signed_convert) не передаётся, когда членских средств хватает.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('StockProposal', 'resolve:own')
-  async marketplaceAcceptStockProposal(
+  async marketplaceFinalizeStockIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceAcceptStockProposalInputDTO
+    @Args('data') data: MarketplaceFinalizeStockIssuanceInputDTO
   ): Promise<MarketplaceStockProposalAcceptResultDTO> {
-    const result = await this.proposalService.acceptProposal(
+    const result = await this.proposalService.finalizeStockIssuance(
       config.coopname,
       data.proposal_id,
       member.username,
-      data.lines ?? null
+      { order_lines: data.order_lines, signed_convert: data.signed_convert ?? null }
     );
     const dto = new MarketplaceStockProposalAcceptResultDTO();
     dto.proposal = toMarketplaceStockProposalDTO(result.proposal);

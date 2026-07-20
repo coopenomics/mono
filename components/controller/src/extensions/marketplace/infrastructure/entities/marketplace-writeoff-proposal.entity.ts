@@ -34,10 +34,6 @@ import type {
   unique: true,
   where: "status = 'DRAFT'",
 })
-@Index('UQ_marketplace_writeoff_proposal_active', ['coopname'], {
-  unique: true,
-  where: "status IN ('ON_AGENDA','AUTHORIZED','EXECUTING')",
-})
 export class MarketplaceWriteoffProposalEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -48,7 +44,11 @@ export class MarketplaceWriteoffProposalEntity {
   @Column({ type: 'varchar', length: 16 })
   public trigger!: MarketplaceWriteoffProposalTrigger;
 
-  @Column({ type: 'varchar', length: 16 })
+  // length 32: самый длинный статус — PENDING_CONFIRMATION (20 символов). При
+  // varchar(16) UPDATE статуса в markAuthorized падал «value too long for type
+  // character varying(16)», проект навсегда застревал в ON_AGENDA (решение
+  // совета не отлавливалось). synchronize:true расширит колонку при старте.
+  @Column({ type: 'varchar', length: 32 })
   public status!: MarketplaceWriteoffProposalStatus;
 
   @Column({ type: 'timestamptz' })

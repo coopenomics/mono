@@ -1,16 +1,14 @@
-import { marketplaceOrderSelector } from '../../selectors/marketplace/orderSelector'
+import { marketplaceWriteoffCandidateSelector } from '../../selectors/marketplace/writeoffSelector'
 import { type GraphQLTypes, type InputType, Selector } from '../../zeus/index'
 
-export const name = 'marketplaceListMyReadyToReceive'
+export const name = 'marketplaceListWriteoffCandidates'
 
 export const query = Selector('Query')({
-  [name]: marketplaceOrderSelector,
+  [name]: marketplaceWriteoffCandidateSelector,
 })
 
 export interface IInput {
-  /**
-   * @private
-   */
+  /** @private */
   [key: string]: unknown
 }
 

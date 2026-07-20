@@ -101,8 +101,3 @@ export const marketplaceOrderPaginationResultSelector = Selector('MarketplaceOrd
   totalPages: true,
   currentPage: true,
 })
-
-export const marketplaceIssuanceResultSelector = Selector('MarketplaceIssuanceResult')({
-  order: rawOrderSelector,
-  tx_hash: true,
-})

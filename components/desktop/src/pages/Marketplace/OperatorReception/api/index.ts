@@ -33,6 +33,7 @@ export type ListSupplierPickupOrdersInput =
   Queries.Marketplace.ListSupplierPickupOrders.IInput['data'];
 export type CreateAplReceptionInput = Mutations.Marketplace.CreateAplReception.IInput['data'];
 export type CreateExpressReceptionInput = Mutations.Marketplace.CreateExpressReception.IInput['data'];
+export type CancelAplReceptionInput = Mutations.Marketplace.CancelAplReception.IInput['data'];
 
 export async function fetchChairmanSignablePayloads(
   data: AplReceptionChairmanSignablePayloadsInput,
@@ -61,6 +62,16 @@ export async function createAplReception(
 ): Promise<Mutations.Marketplace.CreateAplReception.IOutput['marketplaceCreateAplReception']> {
   const { [Mutations.Marketplace.CreateAplReception.name]: result } = await client.Mutation(
     Mutations.Marketplace.CreateAplReception.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
+export async function cancelAplReception(
+  data: CancelAplReceptionInput,
+): Promise<Mutations.Marketplace.CancelAplReception.IOutput['marketplaceCancelAplReception']> {
+  const { [Mutations.Marketplace.CancelAplReception.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CancelAplReception.mutation,
     { variables: { data } },
   );
   return result;

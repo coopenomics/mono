@@ -143,6 +143,7 @@ import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 // Эпик 8 — списание скоропорта через решение совета
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
+import { MarketplaceWriteoffSyncService } from './services/marketplace-writeoff-sync.service';
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
@@ -414,6 +415,7 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Эпик 8 — списание скоропорта
     MarketplaceWriteoffService,
     MarketplaceWriteoffCronService,
+    MarketplaceWriteoffSyncService,
     MarketplaceWriteoffResolver,
     // Конечный жизненный цикл заказов: закрытие выданных после гарантии
     MarketplaceOrderCloseCronService,

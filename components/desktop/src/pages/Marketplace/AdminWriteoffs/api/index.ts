@@ -24,6 +24,17 @@ export type ISubmitWriteoffDraftInput =
 export type IWriteoffStatementSignablePayloadInput =
   Queries.Marketplace.WriteoffStatementSignablePayload.IInput['data'];
 
+export type MarketplaceWriteoffCandidateView =
+  Queries.Marketplace.ListWriteoffCandidates.IOutput['marketplaceListWriteoffCandidates'][number];
+
+export async function listWriteoffCandidates(): Promise<MarketplaceWriteoffCandidateView[]> {
+  const { [Queries.Marketplace.ListWriteoffCandidates.name]: result } = await client.Query(
+    Queries.Marketplace.ListWriteoffCandidates.query,
+    {},
+  );
+  return result;
+}
+
 export async function getOpenWriteoffDraft(): Promise<MarketplaceWriteoffProposalView | null> {
   const { [Queries.Marketplace.OpenWriteoffDraft.name]: result } = await client.Query(
     Queries.Marketplace.OpenWriteoffDraft.query,

@@ -245,7 +245,10 @@ export class MarketplaceCheckoutService {
             quantity: line.quantity,
             checkout_id: checkoutId,
             order_hash: signedLine.order_hash,
+            // Заказ из остатка из членских: паевой конвертируется на сумму строки
+            // отдельным действием перед заказом (см. createStockOrder).
             convert_statement,
+            convert_amount: expectedAmount,
           });
           createdDTOs.push(toMarketplaceOrderDTO(res.order));
           succeededOfferIds.push(line.offer_id);

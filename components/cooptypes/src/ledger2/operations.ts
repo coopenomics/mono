@@ -180,6 +180,15 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Снятие резерва при отмене заказа' },
 
+  // Удержание 50% при отказе пайщика от получения после акцепта поставщиком:
+  // удержанная половина тела заказа транзитом через пул членских взносов уходит
+  // в общий кошелёк КУ (тем же o.brn.common). Прямой перевод на w.brn.common
+  // невозможен — walletop держит один username на обе стороны.
+  { code: 'o.mkt.penal',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'REFUSAL_PENALTY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком' },
+
   { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
     debit: 10, credit: 86,
@@ -215,7 +224,7 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Уценка имущества при выдаче со склада кооператива' },
 
   // Членский взнос по заказу (requirement b6 «Экономика КУ»): блокировка по
-  // единой ставке кооператива на createorder/stockorder, дособор на signiss2.
+  // единой ставке кооператива на createorder с паевого, дособор на signiss2.
   { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
     name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.fee',
     debit: 80, credit: 86,
@@ -227,6 +236,14 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.member',
     debit: null, credit: null,
     human_name: 'Возврат членского взноса по заказу' },
+
+  // Членский взнос под заказ из остатка — из уже внесённых членских средств
+  // пайщика (stockorder фондируется из членского начисто). Парный по взносу к
+  // o.mkt.lockm; инверсия o.mkt.refund. Паевой пополняет членский заранее (o.mkt.conv).
+  { code: 'o.mkt.lockmf',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FEE_FROM_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Членский взнос «Стола заказов» из внесённых средств' },
 
   // branch — экономика кооперативного участка (requirement b6)
   { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',

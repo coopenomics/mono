@@ -26,6 +26,7 @@ import {
   type MarketplaceShipmentView,
 } from '../../OperatorIncomingShipments/api';
 import {
+  cancelAplReception,
   createAplReception,
   createExpressReception,
   listAplReceptionsByBraname,
@@ -464,7 +465,16 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
     pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
-    takeAddon.value = true;
+    // Чекбокс «Принять добор» по умолчанию ВЫКЛЮЧЕН, когда есть привезённая
+    // партия — добор не должен «залетать» автоматически, оператор включает его
+    // осознанно. Если партии нет (поставщик приехал без партии) — чекбокс не
+    // показываем вовсе (без контекста партии «добор» путает), а имущество
+    // принимаем: добор включён по умолчанию, иначе принимать было бы нечего.
+    const hasDeclaredBatch = orders.some(
+      (o) =>
+        o.status === 'SUPPLY_PREPARED' && pendingShipments.value.some((s) => s.id === o.shipment_id),
+    );
+    takeAddon.value = !hasDeclaredBatch;
     pickupDialogOpen.value = true;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить имущество поставщика');
@@ -623,6 +633,25 @@ async function onChairmanSigned(): Promise<void> {
   await load();
 }
 
+// Откат приёмки: поставщик не согласен со снятыми оператором позициями целиком
+// (повезёт замену в другой раз). До его подписи приёмка — черновик: отменяем
+// все акты группы, партия возвращается к приёмке, оператор пересоберёт.
+const cancellingKey = ref<string | null>(null);
+async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
+  cancellingKey.value = group.key;
+  try {
+    for (const r of group.receptions) {
+      await cancelAplReception({ apl_reception_id: r.id });
+    }
+    SuccessAlert('Приёмка отменена — партия снова доступна к приёмке, можно пересобрать.');
+  } catch (e) {
+    FailAlert(e, 'Не удалось отменить приёмку');
+  } finally {
+    cancellingKey.value = null;
+    await load();
+  }
+}
+
 watch(braname, () => void load());
 
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
@@ -737,6 +766,18 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               q-icon(name='draw', size='18px')
             | Подписать председателем
 
+        //- Поставщик ещё не подписал — оператор может отменить акт и пересобрать
+        //- (поставщик не согласен со снятыми позициями, повезёт замену позже).
+        .reception__card-foot(v-else-if='g.status === "PENDING_SUPPLIER_SIGN"')
+          BaseButton(
+            variant='ghost',
+            :loading='cancellingKey === g.key',
+            @click='cancelReceptionGroup(g)'
+          )
+            template(#icon-left)
+              q-icon(name='undo', size='18px')
+            | Отменить и пересобрать
+
       //- Ожидаемые поставки — примутся по скану QR поставщика (кнопка в шапке).
       BaseCard.reception__card(v-for='d in expectedDeliveries', :key='`exp-${d.offerer}`')
         template(#head)
@@ -782,8 +823,10 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
       .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
       .reception__pickup-hint
         | По каждой единице скорректируйте фактическое количество (не выше
-        | заказанного) и цену. Снимите галку с задекларированной единицы, чтобы
-        | не принимать её; партия без выбранных единиц не создаётся и ждёт.
+        | заказанного) и цену.
+        template(v-if='declaredGroups.length')
+          |  Снимите галку с задекларированной единицы, чтобы не принимать её;
+          | партия без выбранных единиц не создаётся и ждёт.
 
       template(v-if='declaredGroups.length')
         .reception__pickup-section Задекларировано в партии (по ТТН)
@@ -825,10 +868,17 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               )
 
       template(v-if='addonGroups.length')
-        .reception__pickup-divider
-        .reception__pickup-section-row
-          .reception__pickup-section Добор по акцепту (вне партии)
-          q-checkbox(v-model='takeAddon', dense, label='Принять добор')
+        //- Обёртку «Добор по акцепту» + чекбокс показываем ТОЛЬКО при наличии
+        //- партии: без партии standalone-«Принять добор» путает оператора. С
+        //- партией чекбокс по умолчанию выключен — добор не включается сам.
+        template(v-if='declaredGroups.length')
+          .reception__pickup-divider
+          .reception__pickup-section-row
+            .reception__pickup-section Добор по акцепту (вне партии)
+            q-checkbox(v-model='takeAddon', dense, label='Принять добор')
+        //- Без партии — это просто имущество поставщика; принимаем без обёртки
+        //- «добор» (добор включён скрыто, см. openPickupForSupplier).
+        .reception__pickup-section(v-else) Имущество поставщика
         .reception__group(v-for='g in addonGroups', :key='g.key')
           .reception__group-head
             span.reception__group-title {{ g.productName }}

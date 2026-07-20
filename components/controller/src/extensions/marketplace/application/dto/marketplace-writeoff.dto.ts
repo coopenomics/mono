@@ -1,4 +1,5 @@
 import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import GraphQLJSON from 'graphql-type-json';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
@@ -10,6 +11,7 @@ export enum MarketplaceWriteoffProposalStatusEnum {
   DRAFT = 'DRAFT',
   ON_AGENDA = 'ON_AGENDA',
   AUTHORIZED = 'AUTHORIZED',
+  PENDING_CONFIRMATION = 'PENDING_CONFIRMATION',
   EXECUTING = 'EXECUTING',
   EXECUTED = 'EXECUTED',
   REJECTED = 'REJECTED',
@@ -33,6 +35,11 @@ registerEnumType(MarketplaceWriteoffProposalTriggerEnum, {
 export class MarketplaceWriteoffProposalItemDTO {
   @Field({ description: 'Кооперативный участок (склад) — источник позиции к списанию.' })
   braname!: string;
+  @Field(() => String, {
+    nullable: true,
+    description: 'Человеко-читаемое наименование кооперативного участка (для показа в интерфейсе).',
+  })
+  branch_name?: string | null;
   @Field({ description: 'Наименование позиции или артикул из карточки имущества.' })
   asset_title!: string;
   @Field({ description: 'Количество единиц к списанию.' })
@@ -41,11 +48,10 @@ export class MarketplaceWriteoffProposalItemDTO {
   amount!: string;
   @Field({ description: 'Причина списания (срок годности, повреждение и т.п.).' })
   reason!: string;
-  @Field(() => String, {
-    nullable: true,
-    description: 'Идентификатор инвентарной позиции, если известна.',
+  @Field(() => [String], {
+    description: 'Идентификаторы партий на складе, слитых в эту строку списания.',
   })
-  inventory_id?: string | null;
+  inventory_ids!: string[];
   @Field({ description: 'Признак того, что позиция уже исполнена через execwroff.' })
   executed!: boolean;
 }
@@ -132,8 +138,11 @@ export class MarketplaceWriteoffItemInputDTO {
   amount!: string;
   @Field()
   reason!: string;
-  @Field({ nullable: true })
-  inventory_id?: string;
+  @Field(() => [String], {
+    nullable: true,
+    description: 'Идентификаторы партий на складе, которые покрывает эта строка списания.',
+  })
+  inventory_ids?: string[];
 }
 
 @InputType('MarketplaceCreateWriteoffDraftInput')
@@ -172,6 +181,85 @@ export class MarketplaceSubmitWriteoffDraftInputDTO {
 export class MarketplaceListWriteoffProposalsInputDTO {
   @Field(() => [MarketplaceWriteoffProposalStatusEnum], { nullable: true })
   statuses?: MarketplaceWriteoffProposalStatusEnum[];
+}
+
+@ObjectType('MarketplaceWriteoffCandidate')
+export class MarketplaceWriteoffCandidateDTO {
+  @Field({ description: 'Стабильный ключ строки (склад + наименование + состояние).' })
+  key!: string;
+  @Field(() => [String], {
+    description: 'Идентификаторы всех партий на складе, слитых в эту строку-кандидат.',
+  })
+  inventory_ids!: string[];
+  @Field({ description: 'Кооперативный участок (склад), где лежит позиция.' })
+  braname!: string;
+  @Field({ description: 'Человеко-читаемое наименование кооперативного участка.' })
+  branch_name!: string;
+  @Field({ description: 'Наименование позиции (из карточки имущества).' })
+  asset_title!: string;
+  @Field({ description: 'Суммарное количество единиц по всем партиям строки.' })
+  quantity!: string;
+  @Field({ description: 'Суммарная сумма к списанию (закупочная цена × количество, 4 знака).' })
+  amount!: string;
+  @Field({ description: 'Причина-кандидат (по умолчанию — истёк срок годности).' })
+  reason!: string;
+  @Field(() => String, { nullable: true, description: 'Ближайший срок годности среди партий (ISO).' })
+  expiry_date?: string | null;
+  @Field({
+    description:
+      'Срок годности истёк (просрочено) — первоочередной кандидат к списанию. false — имущество ещё годно, списывается вручную (порча, невозврат).',
+  })
+  is_expired!: boolean;
+  @Field(() => Int, { description: 'Сколько партий слито в эту строку (для подсказки в интерфейсе).' })
+  lots_count!: number;
+}
+
+@ObjectType('MarketplaceWriteoffConfirmationGroup')
+export class MarketplaceWriteoffConfirmationGroupDTO {
+  @Field({ description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+  @Field({ description: 'Канонический хеш проекта (process_hash on-chain).' })
+  proposal_hash!: string;
+  @Field({ description: 'Кооперативный участок (склад), по которому подтверждается списание.' })
+  braname!: string;
+  @Field({ description: 'Человеко-читаемое наименование кооперативного участка.' })
+  branch_name!: string;
+  @Field({ description: 'Начало расчётного цикла списания (ISO).' })
+  cycle_started_at!: string;
+  @Field(() => String, { nullable: true, description: 'Когда совет авторизовал проект (ISO).' })
+  authorized_at?: string | null;
+  @Field(() => GraphQLJSON, { nullable: true, description: 'Протокол совета о списании (документ для просмотра).' })
+  protocol_doc?: unknown;
+  @Field(() => [MarketplaceWriteoffProposalItemDTO], { description: 'Неподтверждённые позиции этого участка.' })
+  items!: MarketplaceWriteoffProposalItemDTO[];
+  @Field({ description: 'Σ сумм позиций участка (4 знака).' })
+  total_amount!: string;
+}
+
+@InputType('MarketplaceWriteoffServiceMemoSignablePayloadInput')
+export class MarketplaceWriteoffServiceMemoSignablePayloadInputDTO {
+  @Field({ description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+  @Field({ description: 'Кооперативный участок, по которому подтверждается списание.' })
+  braname!: string;
+}
+
+@InputType('MarketplaceWriteoffProtocolDocumentInput')
+export class MarketplaceWriteoffProtocolDocumentInputDTO {
+  @Field({ description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+}
+
+@InputType('MarketplaceConfirmWriteoffInput')
+export class MarketplaceConfirmWriteoffInputDTO {
+  @Field({ description: 'Идентификатор проекта списания.' })
+  proposal_id!: string;
+  @Field({ description: 'Кооперативный участок, по которому подтверждается списание.' })
+  braname!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, {
+    description: 'Подписанная председателем КУ Служебная записка о списании (registry_id=1111).',
+  })
+  signed_memo!: SignedDigitalDocumentInputDTO;
 }
 
 export const MarketplaceWriteoffProposalStatusMap = MarketplaceWriteoffProposalStatuses;

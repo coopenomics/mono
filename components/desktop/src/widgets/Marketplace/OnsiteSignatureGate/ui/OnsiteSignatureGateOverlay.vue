@@ -7,7 +7,7 @@ import { type ReceptionGroup } from 'src/shared/lib/marketplace';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
-import { useOnsiteSignatureGate, type OrdererPickupTask } from '../model/useOnsiteSignatureGate';
+import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
 
 /**
  * Глобальный оверлей подписи на месте — монтируется один раз в App.vue рядом с
@@ -24,12 +24,11 @@ const {
   isVisible,
   signingKey,
   supplierTasks,
-  ordererTasks,
   proposalTasks,
+  proposalSums,
   refresh,
   signSupplier,
-  signOrderer,
-  acceptProposal,
+  signProposal,
   declineProposal,
 } = useOnsiteSignatureGate();
 
@@ -56,21 +55,11 @@ function kuAddr(braname: string): string {
   return kuStore.details.find((d) => d.coreBraname === braname)?.addressFull ?? '';
 }
 
-function ordererPointLabel(task: OrdererPickupTask): string {
-  return [task.pointName, task.pointAddress].filter(Boolean).join(' · ') || task.key;
-}
-function factQty(o: OrdererPickupTask['orders'][number]): number {
-  return o.issuance_fact?.actual_quantity ?? o.quantity ?? 0;
-}
-function factCost(o: OrdererPickupTask['orders'][number]): string {
-  return o.issuance_fact?.fact_cost ?? o.total_cost ?? '0';
-}
 function proposalLineCost(i: { quantity: number; unit_price: string }): string {
   return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
-const ordererBusy = (t: OrdererPickupTask) => signingKey.value === t.key;
 const proposalBusy = (id: string) => signingKey.value === id;
 const anySigning = computed(() => signingKey.value !== null);
 
@@ -139,55 +128,16 @@ BaseDialog(
             q-icon(name='draw', size='18px')
           | Подписать поставку
 
-    //- Заказчик: финальная (закрывающая) подпись получения, сводно по пункту.
-    BaseCard.onsite-gate__card(v-for='t in ordererTasks', :key='t.key')
+    //- Бандл выдачи: оператор уже подписал акт передачи (по заказам и/или
+    //- докладке со склада) — пайщику остаётся одна подпись получения; до неё на
+    //- цепи ничего нет, поэтому «Отменить» = отказ от бандла (оператор повторит).
+    BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
       template(#head)
         .onsite-gate__head
           q-icon(name='inventory_2', size='28px')
           .onsite-gate__ident
             span.onsite-gate__name Получение в пункте выдачи
-            span.onsite-gate__addr
-              q-icon(name='place', size='14px')
-              | {{ ordererPointLabel(t) }}
-            span.onsite-gate__sub Подтвердите получение имущества — финальная подпись заказчика
-
-      table.onsite-gate__table
-        thead
-          tr
-            th Позиция
-            th.num К получению
-            th.num Сумма
-        tbody
-          tr(v-for='o in t.orders', :key='o.id')
-            td {{ o.product_name || 'Товар по предложению' }}
-            td.num {{ factQty(o) }} {{ marketplaceUnitShort(o.unit_of_measure) }}
-            td.num {{ formatAsset2Digits(factCost(o)) }} ₽
-        tfoot
-          tr
-            td Итого к получению
-            td.num
-            td.num {{ formatAsset2Digits(t.totalCost) }} ₽
-
-      .onsite-gate__foot
-        BaseButton(
-          variant='primary',
-          :loading='ordererBusy(t)',
-          :disabled='anySigning && !ordererBusy(t)',
-          @click='signOrderer(t)'
-        )
-          template(#icon-left)
-            q-icon(name='draw', size='18px')
-          | Подписать и получить
-
-    //- Докладка: оператор предложил имущество со склада кооператива — пайщик
-    //- решает на месте. На принятии средства резервируются и акт придёт сюда же.
-    BaseCard.onsite-gate__card(v-for='p in proposalTasks', :key='p.id')
-      template(#head)
-        .onsite-gate__head
-          q-icon(name='add_shopping_cart', size='28px')
-          .onsite-gate__ident
-            span.onsite-gate__name Предложение со склада кооператива
-            span.onsite-gate__sub Оператор пункта выдачи предлагает добавить к получению
+            span.onsite-gate__sub Подтвердите получение имущества — ваша подпись акта
 
       table.onsite-gate__table
         thead
@@ -201,8 +151,16 @@ BaseDialog(
             td.num {{ i.quantity }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
-          tr
-            td Итого (паевой взнос)
+          tr(v-if='proposalSums[p.id]')
+            td Спишется с членского «Стола заказов»
+            td.num
+            td.num {{ formatAsset2Digits(proposalSums[p.id].member_amount) }} ₽
+          tr(v-if='proposalSums[p.id]?.convert_amount')
+            td Конвертация с паевого (по заявлению)
+            td.num
+            td.num {{ formatAsset2Digits(proposalSums[p.id].convert_amount) }} ₽
+          tr(v-if='!proposalSums[p.id]')
+            td Итого
             td.num
             td.num {{ formatAsset2Digits(p.total_cost) }} ₽
 
@@ -211,16 +169,16 @@ BaseDialog(
           variant='ghost',
           :disabled='anySigning',
           @click='declineProposal(p)'
-        ) Отказаться
+        ) Отменить
         BaseButton(
           variant='primary',
           :loading='proposalBusy(p.id)',
           :disabled='anySigning && !proposalBusy(p.id)',
-          @click='acceptProposal(p)'
+          @click='signProposal(p)'
         )
           template(#icon-left)
-            q-icon(name='check', size='18px')
-          | Принять предложение
+            q-icon(name='draw', size='18px')
+          | Подписать и получить
 </template>
 
 <style scoped lang="scss">

@@ -90,14 +90,15 @@ export async function signReceptionGroupAsSupplier(
     receptions.map(async (r) => {
       try {
         const payloads = await fetchSupplierSignablePayloads(r.id);
-        if (payloads.length === 0) {
-          throw new Error('Backend не вернул ни одного акта для подписи.');
-        }
         const signed_documents: SignedDocumentInput[] = [];
         for (const payload of payloads) {
           const signed = await signer.signDocument(payload, r.offerer_account, 1);
           signed_documents.push(signed);
         }
+        // Пустой список payload = все позиции акта сняты оператором при приёмке
+        // (некондиция): подписывать нечего. Mutation с пустыми документами уводит
+        // акт в отмену (полный возврат заказчикам, поставщику без штрафа) — это
+        // легитимный путь, не ошибка.
         await signAsSupplier(r.id, signed_documents);
         done += 1;
         onProgress?.(done);

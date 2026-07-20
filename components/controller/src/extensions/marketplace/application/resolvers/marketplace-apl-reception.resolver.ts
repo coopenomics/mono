@@ -176,6 +176,50 @@ export class MarketplaceAplReceptionResolver {
     return dto;
   }
 
+  @Mutation(() => MarketplaceAplReceptionResultDTO, {
+    name: 'marketplaceCancelAplReception',
+    description:
+      'Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Receiving', 'create')
+  async marketplaceCancelAplReception(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceAplReceptionByIdInputDTO
+  ): Promise<MarketplaceAplReceptionResultDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    // Ownership: отменить приёмку может только оператор своего КУ (как и
+    // открытие/закрытие приёмки) — иначе можно было бы отменить чужой акт по
+    // подставленному apl_reception_id.
+    if (!canAccess(roles, 'Receiving', 'read:all')) {
+      const reception = await this.receptionRepo.findById(data.apl_reception_id);
+      if (!reception || reception.coopname !== coopname) {
+        throw new NotFoundException('Акт приёмки не найден.');
+      }
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        reception.braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Отмена приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const result = await this.service.cancelReception({
+      coopname,
+      operator_account: member.username,
+      apl_reception_id: data.apl_reception_id,
+    });
+    const dto = new MarketplaceAplReceptionResultDTO();
+    dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
+    return dto;
+  }
+
   @Query(() => [GeneratedDocumentDTO], {
     name: 'marketplaceAplReceptionSupplierSignablePayloads',
     description:

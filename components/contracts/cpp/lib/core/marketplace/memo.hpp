@@ -39,6 +39,10 @@ namespace Marketplace::Memo {
     return "Резерв средств под заказ имущества № " + std::to_string(order_id) + " со склада кооператива";
   }
 
+  inline std::string get_convert_to_member_memo() {
+    return "Конвертация паевого взноса в членский кошелёк Стола заказов по заявлению пайщика";
+  }
+
   inline std::string get_membership_fee_lock_memo(uint64_t order_id) {
     return "Членский взнос по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
   }
@@ -61,6 +65,14 @@ namespace Marketplace::Memo {
 
   inline std::string get_cancel_order_memo(uint64_t order_id) {
     return "Возврат резерва по отменённому заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
+  }
+
+  inline std::string get_refusal_penalty_transit_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в Столе заказов";
+  }
+
+  inline std::string get_refusal_penalty_distribute_memo(uint64_t order_id) {
+    return "Удержание при отказе от получения по заказу имущества № " + std::to_string(order_id) + " в общий кошелёк кооперативного участка";
   }
 
   inline std::string get_decline_order_memo(uint64_t order_id) {

@@ -28,13 +28,26 @@ export interface MarketplaceCanonicalBlockchainPort {
    * requirement 76: заказ из обезличенного остатка склада кооператива.
    * Продавец — сам кооператив (offerer == coopname на цепи); Order рождается
    * сразу в `acceptcoop` (имущество уже на счёте 10 после первичной приёмки)
-   * и идёт только через выдачу signiss1/signiss2. Один шаг ledger2:
-   * o.mkt.lock (TRANSFER w.wal.share → w.mkt.order) — средства пайщика
-   * блокируются в момент акцепта предложения/заказа.
+   * и идёт только через выдачу signiss1/signiss2. Фондируется из членских
+   * средств пайщика: o.mkt.lockm (тело, w.mkt.member → w.mkt.order) + o.mkt.lockmf
+   * (взнос, w.mkt.member → w.mkt.fee). Паевой пополняет членский кошелёк заранее
+   * отдельным действием `convert`.
    *
    * Авторизация — кооператив (`require_auth(coopname)`).
    */
   stockOrder(data: MarketContract.Actions.StockOrder.IStockOrder): Promise<TransactResult>;
+
+  /**
+   * requirement 76: конвертация паевого взноса пайщика в членский кошелёк
+   * «Стола заказов» (o.mkt.conv: TRANSFER w.wal.share → w.mkt.member). Пополняет
+   * членские средства под заказ из остатка (`stockOrder` фондируется только из
+   * членских). Подписанное Заявление о конвертации публикуется в реестр
+   * документов. Выполняется перед `stockOrder`, когда членских средств не
+   * хватает (на всю сумму либо на дельту превышения над высвобождённым).
+   *
+   * Авторизация — кооператив (`require_auth(coopname)`).
+   */
+  convert(data: MarketContract.Actions.Convert.IConvert): Promise<TransactResult>;
 
   /**
    * requirement 76 (вопрос 4): списание уценки по заказу из остатка после
@@ -267,6 +280,16 @@ export interface MarketplaceCanonicalBlockchainPort {
    * `items[item_index].braname`.
    */
   execWroff(data: MarketContract.Actions.ExecWroff.IExecWroff): Promise<TransactResult>;
+
+  /**
+   * Председатель кооперативного участка подтверждает фактическое списание
+   * со склада своего КУ (ручной шаг стола ПВЗ). Закрывает все неисполненные
+   * позиции участка `braname` за вызов, проводит `o.mkt.wroff` и якорит
+   * подписанную Служебную записку о списании (registry 1111) в реестр
+   * документов. Авторизация — кооператив (`require_auth(coopname)`); C++
+   * проверяет, что `signer` уполномочен для `braname`.
+   */
+  confirmWroff(data: MarketContract.Actions.ConfirmWroff.IConfirmWroff): Promise<TransactResult>;
 
   // ── Экономика КУ (requirement b6): членский взнос и распределение ────
 

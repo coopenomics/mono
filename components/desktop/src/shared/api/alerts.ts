@@ -57,6 +57,9 @@ export function SuccessAlert(
     icon: 'check_circle',
     position: POSITION,
     timeout: TIMEOUT_INFO,
+    // Одна строка: иконка + заголовок + CTA + крестик в ряд, без прыгающей
+    // второй строки с разъезжающимися кнопками (multiLine авто-расхождение).
+    multiLine: false,
     actions: ctaAction ? [ctaAction, CLOSE_ACTION] : [CLOSE_ACTION],
   });
 }

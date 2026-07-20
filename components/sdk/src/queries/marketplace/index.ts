@@ -4,6 +4,8 @@ export * as WhoAmI from './whoAmI'
 export * as ListKUDetails from './listKUDetails'
 /** Заказы пайщика-заказчика (стол заказчика) */
 export * as ListMyOrders from './listMyOrders'
+/** Реестр всех заказов кооператива со статусами (стол администратора, Order:read:all) */
+export * as ListAllOrders from './listAllOrders'
 /** Один заказ по идентификатору */
 export * as GetOrder from './getOrder'
 /** Базовый справочник категорий товаров */
@@ -45,11 +47,9 @@ export * as AplReceptionChairmanSignablePayloads from './aplReceptionChairmanSig
 /** Эпик 6: лента выдач текущего КУ для operator-стола */
 export * as ListIssuancesByBraname from './listIssuancesByBraname'
 /** Эпик 6: заказы пайщика, готовые к получению на ПВЗ */
-export * as ListMyReadyToReceive from './listMyReadyToReceive'
 /** Эпик 6: превью акта выдачи для подписи председателем КУ (первая подпись) */
 export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayload'
 /** Эпик 6: превью акта выдачи для финальной подписи заказчика */
-export * as IssueActOrdererSignablePayload from './issueActOrdererSignablePayload'
 /** Эпик 7: все заявления текущего пайщика на гарантийный возврат */
 export * as ListMyReturnClaims from './listMyReturnClaims'
 /** Эпик 7: заявления на возврат текущего КУ для operator-стола */
@@ -64,12 +64,22 @@ export * as ListWriteoffProposals from './listWriteoffProposals'
 export * as GetWriteoffProposal from './getWriteoffProposal'
 /** Эпик 8: превью Заявления 1106 для подписания председателем */
 export * as WriteoffStatementSignablePayload from './writeoffStatementSignablePayload'
+/** Эпик 8: кандидаты на списание (просроченный скоропорт на складах) — admin-стол */
+export * as ListWriteoffCandidates from './listWriteoffCandidates'
+/** Эпик 8: группы списаний, ожидающих подтверждения складом (стол ПВЗ, по КУ) */
+export * as WriteoffPendingConfirmations from './writeoffPendingConfirmations'
+/** Эпик 8: превью Служебной записки 1111 для подписания председателем КУ */
+export * as WriteoffServiceMemoSignablePayload from './writeoffServiceMemoSignablePayload'
+/** Эпик 8: отрендеренный Протокол совета 1107 о списании — для просмотра на столе ПВЗ */
+export * as WriteoffProtocolDocument from './writeoffProtocolDocument'
 /** Эпик 1 / Story 1.9: статус принятия ЦПП Marketplace кооперативом (L1 onboarding) */
 export * as MarketplaceCppStatus from './marketplaceCppStatus'
 /** Эпик 4 / Story 4.5: заказы, по которым текущий пайщик — поставщик (стол поставщика) */
 export * as ListSupplierOrders from './listSupplierOrders'
 /** Эпик 3 / Story 3.4: собственные Offer'ы поставщика (стол поставщика, все статусы) */
 export * as ListMyOffers from './listMyOffers'
+/** Реестр всех предложений кооператива любого статуса (стол администратора, Offer:read:all) */
+export * as ListAllOffers from './listAllOffers'
 /** Доступные категории и типы товаров для кооператива (admin-настройка whitelist'а) */
 export * as GetAvailableCategories from './getAvailableCategories'
 /** Эпик 16: полный список категорий кооператива — общие baseline + собственные */
@@ -86,6 +96,8 @@ export * as GetCart from './getCart'
 export * as ListStock from './listStock'
 /** Докладка: предложения со склада кооператива (стойка оператора / входящие пайщика) */
 export * as ListStockProposals from './listStockProposals'
+/** Докладка: акты приёма-передачи к подписи оператором при формировании докладки */
+export * as StockIssuancePayloads from './stockIssuancePayloads'
 
 // requirement b6 «Экономика КУ»
 export * as GetEconomyConfig from './getEconomyConfig'

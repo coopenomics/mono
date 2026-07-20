@@ -28,7 +28,7 @@ export function toMarketplaceWriteoffProposalDTO(
     d.quantity = it.quantity;
     d.amount = it.amount;
     d.reason = it.reason;
-    d.inventory_id = it.inventory_id;
+    d.inventory_ids = it.inventory_ids ?? [];
     d.executed = it.executed;
     return d;
   });

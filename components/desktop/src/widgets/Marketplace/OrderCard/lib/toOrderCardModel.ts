@@ -66,9 +66,6 @@ export function toOrderCardModel(o: OrderCardSource): Order {
     // Отмена заказчиком разрешена только до акцепта поставщика (Story 4.4 —
     // C++ guard status==ACTIVE).
     cancellable: o.status === 'ACTIVE',
-    // Готов к получению заказчиком: оператор открыл выдачу (signiss1), заказ
-    // ждёт финальной подписи пайщика (signiss2).
-    receivable: o.status === 'READY_TO_RECEIVE',
     createdAt: o.created_at,
     // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.

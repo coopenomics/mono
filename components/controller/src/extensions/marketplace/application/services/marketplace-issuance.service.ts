@@ -18,7 +18,6 @@ import {
 } from './marketplace-asset.config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
@@ -160,39 +159,6 @@ export class MarketplaceIssuanceService {
       actual_quantity: fact_quantity,
       actual_unit_price: fact_unit_price,
     });
-  }
-
-  /**
-   * Документ для финальной подписи заказчика (вторая подпись АПП выдачи).
-   * Канон двухподписного акта (как закрытие АПП приёмки председателем):
-   * backend отдаёт DocumentAggregate — исходный документ из стора по doc_hash
-   * (`rawDocument`, для ознакомления) + документ, уже подписанный председателем
-   * (`document`, с его подписью). Заказчик накладывает свою подпись поверх:
-   * `signDocument(rawDocument, orderer, 2, [document])`. Фронтенд цепь не читает.
-   */
-  async getFinalizeIssuanceSignablePayload(
-    coopname: string,
-    order_id: string
-  ): Promise<DocumentDomainAggregate> {
-    const order = await this.loadOrder(coopname, order_id);
-    if (order.status !== 'READY_TO_RECEIVE') {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}», финальная подпись выдачи недопустима.`
-      );
-    }
-    const signed = order.issue_act_signiss1_document;
-    if (!signed) {
-      throw new ConflictException(
-        `Заказ ${order.id}: нет документа, подписанного председателем при открытии выдачи — финальная подпись недоступна до открытия выдачи.`
-      );
-    }
-    const aggregate = await this.documentDomainService.buildDocumentAggregate(signed);
-    if (!aggregate) {
-      throw new ConflictException(
-        `Заказ ${order.id}: исходный документ акта выдачи по doc_hash ${signed.doc_hash} не найден в сторе. Требуется заново открыть выдачу (тело документа не сохранено).`
-      );
-    }
-    return aggregate;
   }
 
   async openIssuance(input: MarketplaceOpenIssuanceInput): Promise<MarketplaceIssuanceResult> {
@@ -535,30 +501,95 @@ export class MarketplaceIssuanceService {
     actual_unit_price?: string;
   }): Promise<DocumentDomainEntity> {
     const unit_price = input.actual_unit_price ?? input.order.price_per_unit;
-    const total_amount = (
-      input.actual_quantity * Number.parseFloat(unit_price)
-    ).toFixed(4);
     // Артикул/наименование/единица — из оферты заказа: акт выдачи несёт ИМЕННО
     // заказ заказчика (его СКУ, кол-во и стоимость), а не заглушку фабрики.
     const offer = await this.offerRepo.findById(input.order.offer_id);
-    const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
-      registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
+    return this.buildIssueActDocument({
       coopname: input.order.coopname,
-      username: input.order.orderer_account,
+      orderer_account: input.order.orderer_account,
       order_id: input.order.id,
       order_hash: input.order.order_hash,
-      reception_id: input.order.id,
-      act_id: computeActNumber(input.order.order_hash),
-      transmitter: input.transmitter,
-      braname: input.order.delivery_braname,
-      accept_braname: input.order.delivery_braname,
-      fact_quantity: input.actual_quantity,
-      total_amount,
+      delivery_braname: input.order.delivery_braname,
       supplier_account: input.order.supplier_account,
-      sku: input.order.offer_id,
+      offer_id: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
       unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
-      unit_cost: unit_price,
+      transmitter: input.transmitter,
+      actual_quantity: input.actual_quantity,
+      unit_price,
+    });
+  }
+
+  /**
+   * АПП-выдачи (registry 1105) для строки докладки со склада — заказа ещё нет,
+   * поэтому поля берутся из оффера остатка и детерминированного order_hash.
+   * Оператор КУ подписывает этот документ первой подписью (signiss1) при
+   * формировании бандла; пайщик контрподписывает его (signiss2) одной кнопкой.
+   * supplier_account = coopname (продавец — кооператив, маркер stock-заказа).
+   */
+  async generateStockIssueActDocument(input: {
+    coopname: string;
+    orderer_account: string;
+    order_hash: string;
+    braname: string;
+    transmitter: string;
+    offer_id: string;
+    product_title: string;
+    unit_of_measurement: string;
+    quantity: number;
+    unit_price: string;
+  }): Promise<DocumentDomainEntity> {
+    return this.buildIssueActDocument({
+      coopname: input.coopname,
+      orderer_account: input.orderer_account,
+      // Заказа ещё нет — человеко-номер акта берём из order_hash; на цепи
+      // документ привязывается к заказу по order_hash (package=order_hash).
+      order_id: computeActNumber(input.order_hash),
+      order_hash: input.order_hash,
+      delivery_braname: input.braname,
+      supplier_account: input.coopname,
+      offer_id: input.offer_id,
+      product_title: input.product_title,
+      unit_of_measurement: input.unit_of_measurement,
+      transmitter: input.transmitter,
+      actual_quantity: input.quantity,
+      unit_price: input.unit_price,
+    });
+  }
+
+  private async buildIssueActDocument(p: {
+    coopname: string;
+    orderer_account: string;
+    order_id: string;
+    order_hash: string;
+    delivery_braname: string;
+    supplier_account: string;
+    offer_id: string;
+    product_title: string;
+    unit_of_measurement: string;
+    transmitter: string;
+    actual_quantity: number;
+    unit_price: string;
+  }): Promise<DocumentDomainEntity> {
+    const total_amount = (p.actual_quantity * Number.parseFloat(p.unit_price)).toFixed(4);
+    const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
+      registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
+      coopname: p.coopname,
+      username: p.orderer_account,
+      order_id: p.order_id,
+      order_hash: p.order_hash,
+      reception_id: p.order_id,
+      act_id: computeActNumber(p.order_hash),
+      transmitter: p.transmitter,
+      braname: p.delivery_braname,
+      accept_braname: p.delivery_braname,
+      fact_quantity: p.actual_quantity,
+      total_amount,
+      supplier_account: p.supplier_account,
+      sku: p.offer_id,
+      product_title: p.product_title,
+      unit_of_measurement: p.unit_of_measurement,
+      unit_cost: p.unit_price,
       currency: this.assetConfig.symbol,
       // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
       // мог получить исходник по doc_hash через buildDocumentAggregate и

@@ -13,6 +13,7 @@ import type {
   MarketplaceInventoryDomainRepository,
   MarketplaceInventoryLabelPatch,
   MarketplaceInventoryListFilter,
+  MarketplaceWriteoffCandidate,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceInventoryMapper } from '../mappers/marketplace-inventory.mapper';
@@ -134,6 +135,36 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     }
     const rows = await this.repo.find({ where, order: { received_at: 'DESC', created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
+  }
+
+  async findWriteoffCandidates(
+    coopname: string,
+    cutoff: Date
+  ): Promise<MarketplaceWriteoffCandidate[]> {
+    // Все позиции на складе — председатель собирает корзину вручную и может
+    // списать как просроченное, так и ещё годное (порча/невозврат). Просрочку
+    // подсвечиваем флагом is_expired, не отсекаем фильтром.
+    const rows = await this.repo.find({
+      where: {
+        coopname,
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+      },
+      order: { expiry_date: 'ASC', created_at: 'ASC' },
+      take: 500,
+    });
+    const cutoffMs = cutoff.getTime();
+    return rows
+      .map((r) => ({
+        inventory_id: r.id,
+        braname: r.braname,
+        asset_title: r.product_name_snapshot,
+        quantity: r.quantity_per_label,
+        arrival_price: r.arrival_price,
+        expiry_date: r.expiry_date,
+        is_expired: r.expiry_date !== null && r.expiry_date.getTime() <= cutoffMs,
+      }))
+      // Просроченное — наверх (первоочередные кандидаты), затем остальное.
+      .sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
   }
 
   async applyStatusTransition(

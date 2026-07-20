@@ -42,6 +42,11 @@ function buildMocks() {
     create: jest.fn().mockResolvedValue({ id: 'cycle-1' } as any),
   } as unknown as jest.Mocked<MarketplaceConsolidatedRequestDomainRepository>;
 
+  // Имя товара для уведомления заказчику об отказе тянется батчем по offer_id.
+  const offerRepo = {
+    findByIds: jest.fn().mockResolvedValue([{ id: 'offer-1', product_name: 'Молоко' }] as any),
+  } as any;
+
   const offerCounters: jest.Mocked<MarketplaceOfferCountersService> = {
     onOrderUnblocked: jest.fn().mockResolvedValue({} as any),
   } as unknown as jest.Mocked<MarketplaceOfferCountersService>;
@@ -51,6 +56,9 @@ function buildMocks() {
     declineOrder: jest.fn().mockResolvedValue({ transaction: { id: 'tx-dec-1' } } as any),
   } as unknown as jest.Mocked<MarketplaceCanonicalBlockchainPort>;
 
+  // Шина событий: отказ эмитит уведомление заказчику (best-effort, не критично).
+  const eventBus = { emit: jest.fn() } as any;
+
   const logger = {
     setContext: jest.fn(),
     debug: jest.fn(),
@@ -59,7 +67,7 @@ function buildMocks() {
     warn: jest.fn(),
   } as any;
 
-  return { orderRepo, cycleRepo, offerCounters, chainPort, logger };
+  return { orderRepo, cycleRepo, offerRepo, offerCounters, chainPort, eventBus, logger };
 }
 
 describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => {
@@ -71,8 +79,10 @@ describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => 
     service = new MarketplaceOrderSupplierActionService(
       mocks.orderRepo,
       mocks.cycleRepo,
+      mocks.offerRepo,
       mocks.offerCounters,
       mocks.chainPort,
+      mocks.eventBus,
       mocks.logger
     );
   });

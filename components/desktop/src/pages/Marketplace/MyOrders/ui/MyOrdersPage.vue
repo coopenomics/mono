@@ -13,16 +13,16 @@ import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
-import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
 
 /**
  * Story 4.6: orderer-стол «Мои заказы».
  *
  * Единый список всех заказов пайщика во всех статусах. Канон —
  * `widgets/Marketplace/OrderCard`. Управление заказом живёт прямо в карточке:
- * «Отменить» (до акцепта) и «Подписать и получить» (когда оператор открыл
- * выдачу, статус READY_TO_RECEIVE) — отдельной страницы «Готово к получению»
- * больше нет. Клик по карточке открывает детальную страницу заказа.
+ * «Отменить» (до приёма поставщиком). Получение оформляется у стойки ПВЗ —
+ * оператор формирует акт-бандл, пайщик подписывает его в гейте «подпись на
+ * месте» (единый путь выдачи), поэтому подписи получения в этой карточке нет.
+ * Клик по карточке открывает детальную страницу заказа.
  *
  * Код получения (account-bound QR) — кнопка «Получить заказ» в шапке: открывает
  * диалог с тем же QR, что и на отдельной странице меню (OrdererReceiveCode).
@@ -49,10 +49,10 @@ const activeKey = ref('all');
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
-// Финальная подпись получения — диалог прямо из карточки заказа, СВОДНЫЙ по
-// всем готовым позициям пункта выдачи (пайщик подтверждает получение разом).
-const finalizeDialogOpen = ref(false);
-const selectedOrders = ref<MarketplaceOrderView[]>([]);
+// Получение оформляется у стойки ПВЗ: оператор формирует акт-бандл, пайщик
+// подписывает его в глобальном гейте «подпись на месте» (единый путь выдачи,
+// см. OnsiteSignatureGate). Поэтому в «Моих заказах» отдельной подписи
+// получения больше нет — здесь только просмотр и отмена до приёмки.
 
 // Код получения (account-bound QR) — диалогом из шапки, в одном месте.
 const receiveDialogOpen = ref(false);
@@ -77,7 +77,6 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
     label: 'В работе',
     statuses: ['ACCEPTED', 'SUPPLY_PREPARED', 'ACCEPTED_TO_COOP'],
   },
-  { key: 'ready', label: 'Готовы к выдаче', statuses: ['READY_TO_RECEIVE'] },
   { key: 'received', label: 'Получены', statuses: ['RECEIVED'] },
   {
     key: 'closed',
@@ -174,69 +173,32 @@ function groupByCheckout(list: MarketplaceOrderView[]): OrderGroup[] {
  * сверху — самое действенное под рукой.
  */
 type RenderRow =
-  | {
-      type: 'pickup';
-      key: string;
-      pointName: string;
-      orders: MarketplaceOrderView[];
-      count: number;
-      totalCost: number;
-      recent: number;
-    }
   | { type: 'group'; key: string; group: OrderGroup }
   | { type: 'singles'; key: string; orders: MarketplaceOrderView[] };
 
 const renderRows = computed<RenderRow[]>(() => {
-  // 1. Партии пункта выдачи: готовые к выдаче позиции, сгруппированные по КУ.
-  const readyByPoint = new Map<string, MarketplaceOrderView[]>();
-  for (const o of items.value) {
-    if (o.status !== 'READY_TO_RECEIVE') continue;
-    const key = o.delivery_braname || `pt:${o.id}`;
-    const arr = readyByPoint.get(key) ?? [];
-    arr.push(o);
-    readyByPoint.set(key, arr);
-  }
-  const pickupRows: Array<Extract<RenderRow, { type: 'pickup' }>> = [];
-  const aggregatedIds = new Set<string>();
-  for (const [braname, orders] of readyByPoint) {
-    // Партию-агрегат заводим только при >=2 готовых на пункте — иначе одиночная
-    // готовая позиция рисуется обычной карточкой со своей кнопкой.
-    if (orders.length < 2) continue;
-    orders.forEach((o) => aggregatedIds.add(o.id));
-    const first = orders[0];
-    pickupRows.push({
-      type: 'pickup',
-      key: `pickup:${braname}`,
-      pointName: first?.delivery_point_name || first?.delivery_braname || 'Пункт выдачи',
-      orders,
-      count: orders.length,
-      totalCost: orders.reduce((s, o) => s + Number(o.total_cost), 0),
-      recent: Math.max(...orders.map((o) => new Date(o.updated_at).getTime())),
-    });
-  }
-  pickupRows.sort((a, b) => b.recent - a.recent);
-
-  // 2. Остальное — прежняя группировка по корзине (минус то, что ушло в партии).
-  const rest = items.value.filter((o) => !aggregatedIds.has(o.id));
-  const restRows: RenderRow[] = [];
+  // Группировка по корзине (checkout_id): многопозиционный заказ-агрегат — блоком
+  // с шапкой, одиночные сливаются в общий grid. Получение оформляется у стойки
+  // ПВЗ через гейт подписи на месте, отдельной «партии к выдаче» здесь нет.
+  const rows: RenderRow[] = [];
   let bucket: MarketplaceOrderView[] = [];
   const flush = () => {
     if (bucket.length) {
-      restRows.push({ type: 'singles', key: `singles:${bucket[0].id}`, orders: bucket });
+      rows.push({ type: 'singles', key: `singles:${bucket[0].id}`, orders: bucket });
       bucket = [];
     }
   };
-  for (const g of groupByCheckout(rest)) {
+  for (const g of groupByCheckout(items.value)) {
     if (g.isAggregate) {
       flush();
-      restRows.push({ type: 'group', key: g.key, group: g });
+      rows.push({ type: 'group', key: g.key, group: g });
     } else {
       bucket.push(...g.orders);
     }
   }
   flush();
 
-  return [...pickupRows, ...restRows];
+  return rows;
 });
 
 // Карта ПВЗ «куда ехать» — диалог по клику на геопозицию в карточке заказа.
@@ -303,29 +265,6 @@ function confirmCancel(order: MarketplaceOrderView): void {
   });
 }
 
-function startFinalize(order: MarketplaceOrderView): void {
-  // Сводим все готовые к выдаче позиции этого же пункта — пайщик подтверждает
-  // получение разом, одной подписью по каждой (циклом), не по одной кнопке на
-  // позицию.
-  const siblings = items.value.filter(
-    (o) => o.status === 'READY_TO_RECEIVE' && o.delivery_braname === order.delivery_braname,
-  );
-  selectedOrders.value = siblings.length ? siblings : [order];
-  finalizeDialogOpen.value = true;
-}
-
-// Партия пункта выдачи: получение всего готового на одном КУ одной подписью.
-// Список уже собран renderRows — передаём его в сводный диалог как есть.
-function startFinalizePickup(orders: MarketplaceOrderView[]): void {
-  if (!orders.length) return;
-  selectedOrders.value = orders;
-  finalizeDialogOpen.value = true;
-}
-
-function onFinalized(): void {
-  void load(currentPage.value, false);
-}
-
 function openDetail(order: OrderCardModel): void {
   void router.push({
     name: 'marketplace-order-detail',
@@ -341,7 +280,6 @@ function onCardAction(payload: { key: string; order: OrderCardModel }): void {
   const found = items.value.find((o) => o.id === payload.order.id);
   if (!found) return;
   if (payload.key === 'cancel') confirmCancel(found);
-  else if (payload.key === 'receive') startFinalize(found);
 }
 
 onMounted(() => {
@@ -375,8 +313,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
     | Все ваши заказы и их движение до выдачи на пункте. Заказ можно отменить
-    | до приёма поставщиком, а после открытия выдачи — подписать и получить
-    | прямо в карточке. Откройте карточку, чтобы увидеть подробности.
+    | до приёма поставщиком. Получение оформляется на пункте выдачи: оператор
+    | сформирует акт, а вы подпишете его на месте. Откройте карточку, чтобы
+    | увидеть подробности.
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
@@ -396,30 +335,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
   //- общий grid (2+ колонки), см. renderRows.
   .orders__list(v-if="items.length")
     template(v-for="row in renderRows", :key="row.key")
-      //- Партия пункта выдачи: всё готовое на одном КУ — одна кнопка получения,
-      //- внутренние карточки readonly (своих кнопок нет).
-      .orders__group(v-if="row.type === 'pickup'")
-        .orders__pickup-head
-          q-icon(name="storefront", size="18px", color="primary")
-          .orders__group-title Получить на пункте: {{ row.pointName }}
-          .orders__pickup-actions
-            span.orders__pickup-meta {{ row.count }} поз. · {{ money(row.totalCost) }} {{ symbol }}
-            BaseButton(variant="primary", size="sm", @click="startFinalizePickup(row.orders)")
-              template(#icon-left)
-                q-icon(name="draw", size="16px")
-              | Подписать и получить всё
-        .orders__grid
-          OrderCard(
-            v-for="o in row.orders",
-            :key="o.id",
-            :order="toCardModel(o)",
-            role="orderer",
-            readonly,
-            openable,
-            @open="openDetail",
-            @map="openMap"
-          )
-      .orders__group(v-else-if="row.type === 'group'")
+      .orders__group(v-if="row.type === 'group'")
         .orders__group-head
           q-icon(name="receipt_long", size="18px", color="primary")
           .orders__group-title Заказ от {{ formatDate(row.group.createdAt) }} · {{ row.group.deliveryName }}
@@ -449,12 +365,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
 
   .row.justify-center.q-my-md(v-if="hasMore")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
-
-  OrdererFinalizeIssuanceDialog(
-    v-model="finalizeDialogOpen",
-    :orders="selectedOrders",
-    @finalized="onFinalized"
-  )
 
   HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 
@@ -511,29 +421,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
     gap: var(--p-2, 8px);
     padding-bottom: var(--p-2, 8px);
     border-bottom: 1px solid var(--p-line);
-  }
-
-  // Шапка партии пункта выдачи: пункт слева, сводка+кнопка получения справа.
-  &__pickup-head {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px) var(--p-3, 12px);
-    padding-bottom: var(--p-2, 8px);
-    border-bottom: 1px solid var(--p-line);
-  }
-
-  &__pickup-actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: var(--p-3, 12px);
-  }
-
-  &__pickup-meta {
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm);
-    white-space: nowrap;
   }
 
   &__group-title {

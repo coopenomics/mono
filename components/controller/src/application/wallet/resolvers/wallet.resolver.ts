@@ -16,6 +16,7 @@ import { CreateDepositPaymentInputDTO } from '../../gateway/dto/create-deposit-p
 import { GatewayPaymentDTO } from '../../gateway/dto/gateway-payment.dto';
 import { ProgramWalletDTO } from '../dto/program-wallet.dto';
 import { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
+import { UserWalletDTO } from '../dto/user-wallet.dto';
 import { createPaginationResult, PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 // Пагинированные результаты для программных кошельков
@@ -124,5 +125,21 @@ export class WalletResolver {
   @AuthRoles(['chairman', 'member'])
   async getProgramWallet(@Args('filter') filter: ProgramWalletFilterInputDTO): Promise<ProgramWalletDTO | null> {
     return await this.walletService.getProgramWallet(filter);
+  }
+
+  /**
+   * Query: Кошельки пайщика без сворачивания (каждый кошелёк отдельной строкой)
+   */
+  @Query(() => [UserWalletDTO], {
+    name: 'getUserWallets',
+    description: 'Кошельки пайщика — каждый кошелёк отдельной строкой, без объединения паевого и членского',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async getUserWallets(
+    @Args('username') username: string,
+    @Args('coopname', { nullable: true }) coopname?: string
+  ): Promise<UserWalletDTO[]> {
+    return await this.walletService.getUserWallets(username, coopname);
   }
 }

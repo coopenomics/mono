@@ -204,13 +204,4 @@ export interface MarketplaceOrderDomainRepository
     coopname: string,
     delivery_braname: string
   ): Promise<MarketplaceOrderDomainEntity[]>;
-
-  /**
-   * Story 6.3: ленты «к получению» для orderer-стола. Возвращает Order'ы
-   * заказчика в статусе READY_TO_RECEIVE.
-   */
-  listReadyToReceiveByOrderer(
-    coopname: string,
-    orderer_account: string
-  ): Promise<MarketplaceOrderDomainEntity[]>;
 }

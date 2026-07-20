@@ -15,6 +15,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
@@ -24,6 +25,16 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -53,7 +64,7 @@ export interface MarketplaceWriteoffItemInput {
   quantity: string;
   amount: string;
   reason: string;
-  inventory_id?: string | null;
+  inventory_ids?: string[];
 }
 
 export interface MarketplaceCreateWriteoffDraftInput {
@@ -82,6 +93,55 @@ export interface MarketplaceListWriteoffProposalsInput {
   pagination?: PaginationInputDTO;
 }
 
+export interface MarketplaceConfirmWriteoffInput {
+  id: string;
+  braname: string;
+  chairman_account: string;
+  signed_memo: SignedDigitalDocumentInputDTO;
+}
+
+export interface MarketplaceWriteoffCandidateView {
+  /** Стабильный ключ строки = КУ|наименование|состояние (для row-key и выбора). */
+  key: string;
+  /** Все партии (штрих-коды), слитые в этот агрегат. */
+  inventory_ids: string[];
+  braname: string;
+  branch_name: string;
+  asset_title: string;
+  /** Суммарное количество по всем партиям агрегата. */
+  quantity: string;
+  /** Суммарная стоимость по всем партиям агрегата. */
+  amount: string;
+  reason: string;
+  /** Ближайший (самый срочный) срок годности среди партий агрегата. */
+  expiry_date: string | null;
+  is_expired: boolean;
+  /** Сколько партий слито в строку — для подсказки «N партий» в интерфейсе. */
+  lots_count: number;
+}
+
+export interface MarketplaceWriteoffConfirmationGroup {
+  proposal_id: string;
+  proposal_hash: string;
+  braname: string;
+  branch_name: string;
+  cycle_started_at: string;
+  authorized_at: string | null;
+  protocol_doc: unknown;
+  items: MarketplaceWriteoffProposalItem[];
+  total_amount: string;
+}
+
+export interface MarketplaceWriteoffServiceMemoData {
+  proposal: MarketplaceWriteoffProposalDomainEntity;
+  braname: string;
+  branch_name: string;
+  cycle_started_at: string;
+  proposal_hash: string;
+  items: { asset_title: string; quantity: string; unit: string; amount: string; reason: string }[];
+  total_amount: string;
+}
+
 @Injectable()
 export class MarketplaceWriteoffService {
   constructor(
@@ -89,11 +149,16 @@ export class MarketplaceWriteoffService {
     private readonly repo: MarketplaceWriteoffProposalDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
+    private readonly orderDisplay: MarketplaceOrderDisplayService,
     private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
@@ -127,6 +192,247 @@ export class MarketplaceWriteoffService {
     return this.repo.findOpenDraft(coopname);
   }
 
+  /**
+   * Резолвит человеко-читаемые имена кооперативных участков по их braname —
+   * для показа в интерфейсе вместо служебного идентификатора. Кэш на один
+   * вызов: позиций по одному складу обычно много.
+   */
+  async resolveBranchNames(branames: string[]): Promise<Record<string, string>> {
+    const map: Record<string, string> = {};
+    for (const bn of new Set(branames)) {
+      const branch = await this.orderDisplay.resolveBranchDisplay(bn);
+      map[bn] = branch.name || bn;
+    }
+    return map;
+  }
+
+  /**
+   * Человекочитаемая единица измерения (шт./кг/л/упак.) для каждой позиции
+   * проекта — по её партиям. Единица живёт на оффере (снапшот товара); партии
+   * одного наименования агрегированы в одну позицию, поэтому берём единицу по
+   * первой партии: inventory → оффер (через published_offer_id либо заказ,
+   * который сослался на оффер). Фолбэк «ед.» — если товар/оффер уже удалён.
+   */
+  async resolveUnitLabels(items: { inventory_ids: string[] }[]): Promise<string[]> {
+    return Promise.all(items.map((it) => this.resolveUnitLabel(it.inventory_ids)));
+  }
+
+  private async resolveUnitLabel(inventoryIds: string[]): Promise<string> {
+    const FALLBACK = 'ед.';
+    const invId = inventoryIds[0];
+    if (!invId) return FALLBACK;
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv) return FALLBACK;
+    let offerId = inv.published_offer_id;
+    if (!offerId && inv.order_id) {
+      const order = await this.orderRepo.findById(inv.order_id);
+      offerId = order?.offer_id ?? null;
+    }
+    if (!offerId) return FALLBACK;
+    const offer = await this.offerRepo.findById(offerId);
+    if (!offer) return FALLBACK;
+    return MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] ?? FALLBACK;
+  }
+
+  /**
+   * Кандидаты на списание для admin-стола: все позиции на складах кооператива.
+   * Председатель выделяет нужные и создаёт из них черновик — вручную можно
+   * списать как просроченный скоропорт (флаг is_expired), так и ещё годное
+   * имущество (порча, невозврат). Сумма = arrival_price × quantity.
+   */
+  async listCandidates(coopname: string): Promise<MarketplaceWriteoffCandidateView[]> {
+    const candidates = await this.inventoryRepo.findWriteoffCandidates(coopname, new Date());
+    // Партии, уже занятые в незавершённых проектах списания, исключаем —
+    // иначе один и тот же товар попадёт в два проекта (двойное списание).
+    const lockedIds = new Set(await this.repo.findActiveLockedInventoryIds(coopname));
+    // Имя КУ показываем человеку, не служебный braname — резолвим с кэшем,
+    // позиций по одному складу обычно много.
+    const branchNameCache = new Map<string, string>();
+
+    // Несколько партий одного наименования на одном КУ в одном состоянии
+    // визуально неразличимы (та же дата «годен до», тот же КУ) — пайщик видит
+    // «прыгающее количество». Сливаем их в одну строку-агрегат: суммарное
+    // кол-во + сумма, под капотом — список всех партий. Ключ группировки
+    // включает состояние (просрочено / без гарантии / годно), потому что у них
+    // разный визуальный статус и разная причина по умолчанию.
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        inventory_ids: string[];
+        braname: string;
+        asset_title: string;
+        quantity: number;
+        amount: number;
+        reason: string;
+        expiry_ms: number | null;
+        is_expired: boolean;
+        state: string;
+      }
+    >();
+
+    for (const c of candidates) {
+      if (lockedIds.has(c.inventory_id)) continue;
+      // Состояние партии: просрочена / без срока (без гарантии) / ещё годна.
+      const state = c.is_expired ? 'expired' : c.expiry_date === null ? 'nowarranty' : 'valid';
+      const key = `${c.braname}|${c.asset_title}|${state}`;
+      const unit = c.arrival_price !== null ? Number(c.arrival_price) : 0;
+      const amount = Number.isFinite(unit) ? unit * c.quantity : 0;
+      const expiryMs = c.expiry_date ? c.expiry_date.getTime() : null;
+
+      const existing = groups.get(key);
+      if (existing) {
+        existing.inventory_ids.push(c.inventory_id);
+        existing.quantity += c.quantity;
+        existing.amount += amount;
+        // Ближайший (самый срочный) срок годности — представитель агрегата.
+        if (expiryMs !== null && (existing.expiry_ms === null || expiryMs < existing.expiry_ms)) {
+          existing.expiry_ms = expiryMs;
+        }
+      } else {
+        groups.set(key, {
+          key,
+          inventory_ids: [c.inventory_id],
+          braname: c.braname,
+          asset_title: c.asset_title,
+          quantity: c.quantity,
+          amount,
+          // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
+          // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
+          // вручную (порча/использование) → «Списание вручную». Председатель
+          // может уточнить причину в поле перед отправкой.
+          reason: state === 'valid' ? 'Списание вручную' : 'Истёк срок годности',
+          expiry_ms: expiryMs,
+          is_expired: c.is_expired,
+          state,
+        });
+      }
+    }
+
+    const result: MarketplaceWriteoffCandidateView[] = [];
+    for (const g of groups.values()) {
+      let branchName = branchNameCache.get(g.braname);
+      if (branchName === undefined) {
+        const branch = await this.orderDisplay.resolveBranchDisplay(g.braname);
+        branchName = branch.name || g.braname;
+        branchNameCache.set(g.braname, branchName);
+      }
+      result.push({
+        key: g.key,
+        inventory_ids: g.inventory_ids,
+        braname: g.braname,
+        branch_name: branchName,
+        asset_title: g.asset_title,
+        quantity: String(g.quantity),
+        amount: this.formatAssetNumber(g.amount),
+        reason: g.reason,
+        expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
+        is_expired: g.is_expired,
+        lots_count: g.inventory_ids.length,
+      });
+    }
+    // Просроченное — наверх (первоочередные кандидаты), затем остальное.
+    result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
+    return result;
+  }
+
+  /**
+   * Группы для стола ПВЗ: по каждому проекту в PENDING_CONFIRMATION — отдельная
+   * строка на каждый кооперативный участок с неподтверждёнными позициями.
+   * `branames=null` (admin/совет read:all) — все участки; иначе только КУ
+   * оператора.
+   */
+  async listPendingConfirmations(
+    coopname: string,
+    branames: string[] | null
+  ): Promise<MarketplaceWriteoffConfirmationGroup[]> {
+    const { items } = await this.repo.list({
+      coopname,
+      statuses: ['PENDING_CONFIRMATION'],
+    });
+    const groups: MarketplaceWriteoffConfirmationGroup[] = [];
+    const branchNameCache = new Map<string, string>();
+    for (const p of items) {
+      const pendingBranames = [
+        ...new Set(p.items.filter((it) => !it.executed).map((it) => it.braname)),
+      ];
+      for (const bn of pendingBranames) {
+        if (branames && !branames.includes(bn)) continue;
+        let name = branchNameCache.get(bn);
+        if (name === undefined) {
+          const branch = await this.orderDisplay.resolveBranchDisplay(bn);
+          name = branch.name || bn;
+          branchNameCache.set(bn, name);
+        }
+        const groupItems = p.items.filter((it) => it.braname === bn && !it.executed);
+        groups.push({
+          proposal_id: p.id,
+          proposal_hash: p.proposal_hash,
+          braname: bn,
+          branch_name: name,
+          cycle_started_at: p.cycle_started_at.toISOString(),
+          authorized_at: p.authorized_at ? p.authorized_at.toISOString() : null,
+          protocol_doc: p.protocol_doc,
+          items: groupItems,
+          total_amount: this.formatAssetNumber(this.sumItems(groupItems)),
+        });
+      }
+    }
+    return groups;
+  }
+
+  /**
+   * Данные для рендера Служебной записки о списании (1111) по одному КУ
+   * проекта, ожидающего подтверждения. Резолвер собирает из них документ для
+   * подписания председателем КУ.
+   */
+  async getServiceMemoData(id: string, braname: string): Promise<MarketplaceWriteoffServiceMemoData> {
+    const proposal = await this.getProposal(id);
+    if (!proposal.is_pending_confirmation) {
+      throw new BadRequestException(
+        'Подтвердить списание можно только по проекту, ожидающему подтверждения складов'
+      );
+    }
+    const items = proposal.items.filter((it) => it.braname === braname && !it.executed);
+    if (items.length === 0) {
+      throw new BadRequestException(
+        `В проекте нет неподтверждённых позиций кооперативного участка ${braname}`
+      );
+    }
+    const branch = await this.orderDisplay.resolveBranchDisplay(braname);
+    const total = this.sumItems(items);
+    const units = await this.resolveUnitLabels(items);
+    return {
+      proposal,
+      braname,
+      branch_name: branch.name || braname,
+      cycle_started_at: proposal.cycle_started_at.toISOString(),
+      proposal_hash: proposal.proposal_hash,
+      items: items.map((it, i) => ({
+        asset_title: it.asset_title,
+        quantity: it.quantity,
+        unit: units[i],
+        amount: it.amount,
+        reason: it.reason,
+      })),
+      total_amount: this.formatAssetNumber(total),
+    };
+  }
+
+  /**
+   * Агрегат Протокола совета о списании для просмотра на столе ПВЗ. Протокол
+   * уже подписан советом и опубликован в реестр документов — собираем агрегат
+   * из подписанного документа (тело по doc_hash + подписи), НЕ регенерируем.
+   * `protocol_doc` = signed-документ из callback'а onmktwoauth. Канон —
+   * issuance/return-claim. null, если протокола ещё нет (проект не одобрен).
+   */
+  async getProtocolDocumentAggregate(id: string): Promise<DocumentDomainAggregate | null> {
+    const proposal = await this.getProposal(id);
+    const signed = proposal.protocol_doc as ISignedDocumentDomainInterface | null;
+    if (!signed) return null;
+    return this.documentDomainService.buildDocumentAggregate(signed);
+  }
+
   // ── DRAFT pipeline ─────────────────────────────────────────────────
 
   async createDraft(
@@ -138,12 +444,10 @@ export class MarketplaceWriteoffService {
         `У кооператива уже есть открытый черновик списания (id=${existingDraft.id}). Удалите его перед созданием нового.`
       );
     }
-    const existingActive = await this.repo.findOpenInCouncil(input.coopname);
-    if (existingActive) {
-      throw new ConflictException(
-        `Проект списания id=${existingActive.id} уже отправлен в совет (статус=${existingActive.status}). Дождитесь решения совета.`
-      );
-    }
+    // Несколько проектов списания одновременно — допустимо: разные партии
+    // скоропорта подаются в совет независимо. Защита от двойного списания
+    // одной позиции — на уровне кандидатов (findActiveLockedInventoryIds),
+    // не запретом второго проекта.
 
     const normalizedItems = this.validateAndNormalizeItems(input.items);
     const total = this.sumItems(normalizedItems);
@@ -333,6 +637,10 @@ export class MarketplaceWriteoffService {
       );
       return;
     }
+    // Совет одобрил → проект переходит в PENDING_CONFIRMATION (markAuthorized
+    // пишет этот статус). Фактическое списание НЕ запускается автоматически:
+    // его инициирует председатель каждого КУ подписью Служебной записки 1111
+    // на столе ПВЗ (см. confirmWriteoff → confirmwroff). Per-КУ гранулярность.
     const updated = await this.repo.markAuthorized(proposal.id, {
       protocol_doc: input.protocol_doc,
       authorized_at: new Date(),
@@ -351,18 +659,6 @@ export class MarketplaceWriteoffService {
       items_count: updated.items.length,
       total_amount: updated.total_amount,
     });
-
-    // Сразу запускаем исполнение. Signer должен быть пользователем
-    // (chairman), уполномоченным по КУ каждой позиции; coopname как fallback
-    // запрещён — это аккаунт кооператива, не пайщик, и контракт execwroff
-    // не сможет проверить is_user_authorized.
-    const signer = input.authorized_by ?? proposal.proposed_by_account;
-    if (!signer) {
-      throw new ConflictException(
-        `Проект списания ${proposal.id}: после авторизации нет ни authorized_by, ни proposed_by — исполнение не запущено.`
-      );
-    }
-    await this.executeAuthorizedProposal(updated.id, signer);
   }
 
   async onCouncilDeclined(input: {
@@ -454,12 +750,12 @@ export class MarketplaceWriteoffService {
           execwroff_tx_hash: execTxHash,
         },
       });
-      if (item.inventory_id) {
-        // Inventory transition обязателен — иначе позиция остаётся
-        // RETURNED_TO_WAREHOUSE в БД и может повторно попасть в следующий
-        // cron-цикл. Если update упадёт — re-throw, чтобы видна была проблема
-        // и proposal остался в EXECUTING для retry.
-        await this.inventoryRepo.applyStatusTransition(item.inventory_id, 'WRITTEN_OFF');
+      // Inventory transition обязателен для каждой партии агрегата — иначе
+      // позиция остаётся RETURNED_TO_WAREHOUSE в БД и может повторно попасть в
+      // следующий cron-цикл. Если update упадёт — re-throw, чтобы видна была
+      // проблема и proposal остался в EXECUTING для retry.
+      for (const invId of item.inventory_ids ?? []) {
+        await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
 
@@ -476,6 +772,105 @@ export class MarketplaceWriteoffService {
       items_count: finalized.items.length,
       total_amount: finalized.total_amount,
     });
+  }
+
+  // ── Подтверждение списания председателем КУ (стол ПВЗ) ──────────────
+
+  /**
+   * Председатель кооперативного участка подтверждает фактическое списание со
+   * склада своего КУ, подписывая Служебную записку 1111. Закрывает все
+   * неисполненные позиции этого КУ за один on-chain `confirmwroff`. Когда
+   * подтверждены все КУ проекта — проект EXECUTED.
+   */
+  async confirmWriteoff(
+    input: MarketplaceConfirmWriteoffInput
+  ): Promise<MarketplaceWriteoffProposalDomainEntity> {
+    const proposal = await this.repo.findById(input.id);
+    if (!proposal) throw new NotFoundException('Проект списания не найден');
+    if (!proposal.is_pending_confirmation) {
+      throw new BadRequestException(
+        `Подтвердить списание можно только по проекту, ожидающему подтверждения складов (текущий: ${proposal.status})`
+      );
+    }
+    const pendingIndexes = proposal.items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => it.braname === input.braname && !it.executed)
+      .map(({ idx }) => idx);
+    if (pendingIndexes.length === 0) {
+      throw new BadRequestException(
+        `В проекте нет неподтверждённых позиций кооперативного участка ${input.braname}`
+      );
+    }
+
+    this.verifyDocumentSignature(input.signed_memo);
+    const memoMeta = input.signed_memo.meta as {
+      registry_id?: number;
+      proposal_hash?: string;
+    } | undefined;
+    if (
+      !memoMeta ||
+      memoMeta.registry_id !== Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id
+    ) {
+      throw new BadRequestException(
+        `Служебная записка должна быть зарегистрирована с registry_id=${Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id}`
+      );
+    }
+    if (memoMeta.proposal_hash && memoMeta.proposal_hash !== proposal.proposal_hash) {
+      throw new BadRequestException(
+        'Служебная записка подписана для другого проекта списания'
+      );
+    }
+
+    // on-chain confirmwroff: закрывает все неисполненные позиции КУ за вызов,
+    // проводит o.mkt.wroff и якорит записку в реестр документов.
+    const confirmTx = await this.chainPort.confirmWroff({
+      coopname: proposal.coopname,
+      signer: input.chairman_account,
+      proposal_hash: proposal.proposal_hash,
+      braname: input.braname as MarketContract.Actions.ConfirmWroff.IConfirmWroff['braname'],
+      memo: new SignedDigitalDocumentInputDTO(input.signed_memo).toDocument() as MarketContract.Actions.ConfirmWroff.IConfirmWroff['memo'],
+    });
+    const confirmTxHash = this.extractTxHash(confirmTx);
+    if (!confirmTxHash) {
+      throw new ConflictException(
+        'Подтверждение списания: цепь не вернула tx_hash (confirmwroff). Повторите.'
+      );
+    }
+
+    let working = proposal;
+    for (const idx of pendingIndexes) {
+      working = await this.repo.markItemExecuted(input.id, idx, {
+        at: new Date().toISOString(),
+        actor: input.chairman_account,
+        action: 'confirmed_by_branch',
+        payload: {
+          item_index: idx,
+          braname: input.braname,
+          confirmwroff_tx_hash: confirmTxHash,
+        },
+      });
+      for (const invId of proposal.items[idx].inventory_ids ?? []) {
+        await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
+      }
+    }
+
+    // Все КУ подтверждены → проект исполнен.
+    if (working.items.every((it) => it.executed)) {
+      working = await this.repo.markFullyExecuted(input.id, {
+        at: new Date().toISOString(),
+        actor: input.chairman_account,
+        action: 'execution_completed',
+      });
+      this.eventBus.emit(MARKETPLACE_WRITEOFF_EXECUTED_EVENT, {
+        coopname: working.coopname,
+        proposal_id: working.id,
+        proposal_hash: working.proposal_hash,
+        items_count: working.items.length,
+        total_amount: working.total_amount,
+      });
+    }
+
+    return working;
   }
 
   // ── Утилиты ────────────────────────────────────────────────────────
@@ -523,7 +918,7 @@ export class MarketplaceWriteoffService {
         quantity: it.quantity,
         amount: this.formatAssetNumber(amount),
         reason: it.reason ?? '',
-        inventory_id: it.inventory_id ?? null,
+        inventory_ids: it.inventory_ids ?? [],
         executed: false,
       };
     });
@@ -535,6 +930,19 @@ export class MarketplaceWriteoffService {
 
   formatAsset(value: number): string {
     return `${this.formatAssetNumber(value)} ${this.assetSymbol}`;
+  }
+
+  /**
+   * Сумма для тела документа: 2 знака, разделители разрядов, запятая —
+   * «1 020,00 RUB» (не машинные 4 знака). Для печатных Заявлений/Записок.
+   */
+  formatAssetHuman(value: number): string {
+    const num = Number.isFinite(value) ? value : 0;
+    const formatted = num.toLocaleString('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${formatted} ${this.assetSymbol}`;
   }
 
   formatAssetNumber(value: number): string {
