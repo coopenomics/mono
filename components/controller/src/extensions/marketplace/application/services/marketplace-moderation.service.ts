@@ -24,6 +24,10 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import {
+  MARKETPLACE_OFFER_APPROVED_EVENT,
+  MARKETPLACE_OFFER_REJECTED_EVENT,
+} from '../events/marketplace-notification.events';
 
 export const MARKETPLACE_MODERATION_SERVICE = Symbol('MARKETPLACE_MODERATION_SERVICE');
 
@@ -42,8 +46,8 @@ export const MARKETPLACE_MODERATION_SERVICE = Symbol('MARKETPLACE_MODERATION_SER
 @Injectable()
 export class MarketplaceModerationService {
   public static readonly MAX_REJECT_REASON_LEN = 1000;
-  public static readonly EVENT_APPROVED = 'marketplace.offer.approved';
-  public static readonly EVENT_REJECTED = 'marketplace.offer.rejected';
+  public static readonly EVENT_APPROVED = MARKETPLACE_OFFER_APPROVED_EVENT;
+  public static readonly EVENT_REJECTED = MARKETPLACE_OFFER_REJECTED_EVENT;
 
   constructor(
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
@@ -80,6 +84,7 @@ export class MarketplaceModerationService {
       offer_id: offer.id,
       supplier_account: offer.supplier_account,
       approved_by: admin_account,
+      category_id: offer.category_id,
     });
     return updated;
   }

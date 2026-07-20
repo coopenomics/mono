@@ -38,7 +38,14 @@ import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import config from '~/config/config';
+import {
+  MARKETPLACE_OFFER_APPROVED_EVENT,
+  MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
+  type MarketplaceOfferApprovedEvent,
+  type MarketplaceOfferModerationRequestedEvent,
+} from '../events/marketplace-notification.events';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
@@ -113,7 +120,8 @@ export class MarketplaceOfferService {
     private readonly categoryRepo: MarketplaceCategoryDomainRepository,
     @Inject(AVAILABLE_CATEGORY_DOMAIN_SERVICE)
     private readonly availableCategoryService: AvailableCategoryDomainService,
-    private readonly imagesService: MarketplaceOfferImagesService
+    private readonly imagesService: MarketplaceOfferImagesService,
+    private readonly eventBus: EventEmitter2
   ) {}
 
   async create(input: OfferCreateRequest): Promise<MarketplaceOfferDomainEntity> {
@@ -153,7 +161,11 @@ export class MarketplaceOfferService {
     };
 
     try {
-      return await this.repo.create(dbInput);
+      const created = await this.repo.create(dbInput);
+      // Новое предложение рождается в PENDING_MODERATION — заявка должна
+      // появиться на столе модерации сразу.
+      this.emitModerationRequested(created.id, created.supplier_account);
+      return created;
     } catch (e) {
       // Запись Offer'а не удалась — не оставляем загруженные файлы сиротами.
       await this.cleanupImages(images);
@@ -272,7 +284,13 @@ export class MarketplaceOfferService {
     }
 
     try {
-      return await this.repo.applyUpdate(offer.id, normalizedPatch);
+      const updated = await this.repo.applyUpdate(offer.id, normalizedPatch);
+      // Значимая правка вернула предложение на модерацию — очередь
+      // председателя должна показать повторную заявку сразу.
+      if (normalizedPatch.status === MarketplaceOfferStatuses.PENDING_MODERATION) {
+        this.emitModerationRequested(updated.id, updated.supplier_account);
+      }
+      return updated;
     } catch (e) {
       if (newlyUploaded.length) await this.cleanupImages(newlyUploaded);
       throw e;
@@ -321,11 +339,37 @@ export class MarketplaceOfferService {
       );
     }
     const wasApproved = offer.approved_at != null;
-    return this.repo.applyUpdate(offer.id, {
+    const updated = await this.repo.applyUpdate(offer.id, {
       status: wasApproved
         ? MarketplaceOfferStatuses.ACTIVE
         : MarketplaceOfferStatuses.PENDING_MODERATION,
     });
+    // republish ранее одобренного оффера возвращает его в каталог МИНУЯ
+    // модерацию — даём тот же сигнал «появилось в каталоге», что и approve,
+    // чтобы живая витрина показала вернувшееся предложение. На повторную
+    // модерацию (нет approved_at) сигнал даст уже модератор при approve.
+    if (wasApproved) {
+      const event: MarketplaceOfferApprovedEvent = {
+        offer_id: updated.id,
+        supplier_account: updated.supplier_account,
+        approved_by: updated.approved_by ?? supplier_account,
+        category_id: updated.category_id,
+      };
+      this.eventBus.emit(MARKETPLACE_OFFER_APPROVED_EVENT, event);
+    } else {
+      this.emitModerationRequested(updated.id, updated.supplier_account);
+    }
+    return updated;
+  }
+
+  /**
+   * Realtime-сигнал «предложение ждёт модерации» — стол председателя
+   * перечитывает очередь сразу, без поллинга. Эмитится ПОСЛЕ commit'а в PG
+   * (INV-12); маршрутизация по каналу модерации — в realtime-мосте.
+   */
+  private emitModerationRequested(offer_id: string, supplier_account: string): void {
+    const event: MarketplaceOfferModerationRequestedEvent = { offer_id, supplier_account };
+    this.eventBus.emit(MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT, event);
   }
 
   async listMine(

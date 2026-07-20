@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseButton, EmptyState, TableSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { listMyPayments, type MarketplaceOutgoingPaymentRequestView } from '../api';
 
 /**
@@ -55,6 +57,21 @@ async function load(): Promise<void> {
   }
 }
 
+// Realtime: кассир подтвердил/отклонил перевод — строка истории меняет статус
+// сразу. Новая PENDING-выплата рождается закрывающей подписью председателя,
+// её приносит сигнал статуса акта приёмки (он тоже адресован поставщику).
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplacePaymentStatusChangedEvent: () => reloadLive(),
+    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() },
+);
+
 onMounted(() => {
   void load();
 });
@@ -66,16 +83,6 @@ q-page.offerer-payments
     | Выплаты по вашим актам приёмки. Совет авторизует выплату, после чего
     | она уходит в банк — статус обновляется здесь по мере обработки.
 
-  .offerer-payments__toolbar
-    BaseButton(
-      variant='ghost',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   TableSkeleton(
     v-if='loading && !items.length',
@@ -118,10 +125,6 @@ q-page.offerer-payments
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__toolbar {
-    display: flex;
-    justify-content: flex-end;
-  }
 }
 
 .table-scroll {

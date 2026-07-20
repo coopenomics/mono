@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
@@ -9,6 +10,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import {
   listInventory,
   assignInventoryShelf,
@@ -129,6 +131,25 @@ function applyUpdated(updated: MarketplaceInventoryItemView[]): void {
 }
 
 watch(braname, () => void load())
+
+// Realtime вместо кнопки «Обновить»: склад пополняется закрывающей подписью
+// председателя (акт → ACCEPTED_TO_COOP), пустеет подписью выдачи заказчиком
+// (заказ → RECEIVED). Оба сигнала приходят в служебный канал персонала КУ.
+const reloadLive = debounce(() => {
+  if (loading.value) return
+  void load()
+}, 400)
+useMarketplaceRealtime(
+  {
+    MarketplaceAplReceptionStatusChangedEvent: (event) => {
+      if (event.braname === braname.value.trim()) reloadLive()
+    },
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    // Исполненное списание тоже опустошает полки склада.
+    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() },
+)
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
@@ -252,18 +273,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       | полке, заказчик и состояние. Полку можно поправить, а штрих-код выпустить
       | прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
-    //- Обновление — в шапке страницы (канон: действия — в топбаре), не болтается в ряду.
-    Teleport(to="#header-actions-host", defer)
-      BaseButton(
-        variant='ghost',
-        size='sm',
-        icon-only,
-        aria-label='Обновить склад',
-        :loading='loading',
-        @click='load'
-      )
-        template(#icon-left)
-          q-icon(name='refresh', size='20px')
 
     //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
     //- поле «скачет» относительно чипов). Ниже — чипы-фильтры состояния.

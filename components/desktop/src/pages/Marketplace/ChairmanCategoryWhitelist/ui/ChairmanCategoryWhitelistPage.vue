@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { Dialog, Notify } from 'quasar';
+import { Dialog, Notify, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   clearAvailableCategories,
   createCustomCategory,
@@ -142,6 +143,15 @@ function onRemove(cat: MarketplaceCoopCategoryView): void {
   });
 }
 
+// Фоновое обновление вместо кнопки: список меняет сам админ (страница
+// обновляется его же действиями); правки второго администратора доезжают
+// страховочным resync'ом канала (60с) и catch-up'ом на возврат вкладки.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime({}, { onResync: () => reloadLive() });
+
 onMounted(load);
 </script>
 
@@ -153,22 +163,12 @@ q-page.categories(role='region', aria-label='Категории кооперат
     | собственную категорию кооператива. Базовые категории нельзя удалить, только
     | выключить.
 
-  //- Действия страницы — в шапке (канон): добавить свою категорию + обновить.
+  //- Действие страницы — в шапке (канон): добавить свою категорию.
   Teleport(to='#header-actions-host', defer)
     BaseButton(variant='primary', size='sm', @click='onAdd')
       template(#icon-left)
         q-icon(name='add', size='18px')
       | Добавить категорию
-    BaseButton(
-      variant='ghost',
-      size='sm',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   .categories__summary(v-if='!loading || categories.length')
     span(v-if='isOpenCatalog') Открыт весь каталог — доступны все категории ({{ categories.length }})

@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -109,6 +111,22 @@ function humanStatus(status: MarketplaceReturnClaimView['status']): string {
 }
 
 watch(braname, () => void load());
+
+// Realtime: пайщик подаёт заявление / второй председатель решает с другого
+// устройства — лента возвратов КУ обновляется сразу, человек у стойки не ждёт.
+// Сигналы приходят в служебный канал персонала КУ; чужие участки фильтруем.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceReturnClaimStatusChangedEvent: (event) => {
+      if (event.braname === braname.value.trim()) reloadLive();
+    },
+  },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);

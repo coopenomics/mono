@@ -239,7 +239,12 @@ export class MarketplaceIssuanceResolver {
       coopname,
       data.delivery_braname
     );
-    const display = await this.displayService.enrich(orders, { withParticipantNames: true });
+    // withWarehouseQuantity: оператор обязан видеть, сколько по заказу реально
+    // принято на склад — выдача ограничена этим количеством, не заказанным.
+    const display = await this.displayService.enrich(orders, {
+      withParticipantNames: true,
+      withWarehouseQuantity: true,
+    });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 
@@ -257,7 +262,10 @@ export class MarketplaceIssuanceResolver {
       config.coopname,
       member.username
     );
-    const display = await this.displayService.enrich(orders, { withParticipantNames: true });
+    const display = await this.displayService.enrich(orders, {
+      withParticipantNames: true,
+      withWarehouseQuantity: true,
+    });
     return orders.map((order) => toMarketplaceOrderDTO(order, display.get(order.id)));
   }
 }

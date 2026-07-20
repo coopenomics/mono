@@ -153,6 +153,15 @@ export class MarketplaceOrderDTO {
   @Field(() => Int, {
     nullable: true,
     description:
+      'Сколько по заказу фактически принято на склад пункта выдачи и ещё не ' +
+      'выдано — доступно к выдаче. Может быть меньше заказанного при ' +
+      'недопоставке. Заполняется в лентах выдачи.',
+  })
+  public readonly warehouse_quantity!: number | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
       'Сколько уже накоплено по этому предложению на данном пункте выдачи всеми ' +
       'заказчиками на этапе сбора партии (для прогресса коллективного заказа). ' +
       'Заполняется только пока заказ копится; после приёма поставщиком — пусто.',
@@ -362,6 +371,7 @@ export interface MarketplaceOrderDisplayFields {
   supplier_name?: string | null;
   group_accumulated_quantity?: number | null;
   group_min_volume?: number | null;
+  warehouse_quantity?: number | null;
 }
 
 export function toMarketplaceOrderDTO(
@@ -386,6 +396,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lat: display?.delivery_point_lat ?? null,
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
+    warehouse_quantity: display?.warehouse_quantity ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
     group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,

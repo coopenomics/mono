@@ -10,45 +10,9 @@ export const HEADERS = {}
 import { createClient, type Sink } from 'graphql-ws'; // keep
 
 export const apiSubscription = (options: chainOptions) => {
-  // keep: keepAlive + детекция мёртвого соединения (canonical graphql-ws recipe).
-  // Без этого «зомби-сокет» — TCP тихо рвётся промежуточным таймаутом при
-  // простое, graphql-ws этого не замечает (ни close, ни reconnect), и publish
-  // с сервера теряется до OS-таймаута (минуты). Клиент пингует сервер каждые
-  // 12с; если pong не пришёл за 5с — принудительно закрываем сокет, что
-  // запускает авто-reconnect graphql-ws (retry). Держит канал тёплым и живым.
-  let activeSocket: any = null;
-  let pongTimer: ReturnType<typeof setTimeout> | undefined;
   const client = createClient({
     url: String(options[0]),
     connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
-    keepAlive: 12_000,
-    retryAttempts: Infinity,
-    shouldRetry: () => true,
-    on: {
-      connected: (socket) => {
-        activeSocket = socket;
-        try { console.info('%c[ws keepAlive] ✅ соединение установлено, ping каждые 12с', 'color:#0f766e'); } catch {}
-      },
-      ping: (received) => {
-        // received=false → пинг отправлен нами; ждём pong не дольше 5с.
-        if (!received) {
-          try { console.debug('[ws keepAlive] ping → сервер'); } catch {}
-          pongTimer = setTimeout(() => {
-            if (activeSocket && activeSocket.readyState === 1) {
-              try { console.warn('[ws keepAlive] ⚠ pong не пришёл за 5с — закрываю мёртвый сокет, reconnect'); } catch {}
-              activeSocket.close(4408, 'Keep-alive timeout');
-            }
-          }, 5_000);
-        }
-      },
-      pong: (received) => {
-        if (received && pongTimer) {
-          clearTimeout(pongTimer);
-          pongTimer = undefined;
-          try { console.debug('[ws keepAlive] ← pong ✓ (сокет живой)'); } catch {}
-        }
-      },
-    },
   });
 
   const ws = new Proxy(
@@ -63,17 +27,13 @@ export const apiSubscription = (options: chainOptions) => {
     },
   );
 
-  return (query: string, variables?: Record<string, unknown>) => {
+  return (query: string) => {
     let onMessage: ((event: any) => void) | undefined;
     let onError: Sink['error'] | undefined;
     let onClose: Sink['complete'] | undefined;
 
-    // keep: ОБЯЗАТЕЛЬНО прокидываем variables в subscribe. Zeus строит запрос с
-    // объявлением переменных ($input: Type!), а не инлайнит значения; без передачи
-    // variables сервер падает на коэрции «переменная не предоставлена» ещё до
-    // резолвера — подписка молча не работает (был баг: гейт жил только на POLL).
     client.subscribe(
-      { query, variables },
+      { query },
       {
         next({ data }) {
           onMessage && onMessage(data);
@@ -405,9 +365,6 @@ export const SubscriptionThunder =
         operationOptions: ops,
         scalars: options?.scalars,
       }),
-      // keep: передаём значения переменных в транспорт подписки — без этого
-      // ws-subscribe уходит с $input без значения и падает на коэрции (см. apiSubscription).
-      ops?.variables,
     ) as SubscriptionToGraphQL<Z, GraphQLTypes[R], CombinedSCLR>;
     if (returnedFunction?.on && options?.scalars) {
       const wrapped = returnedFunction.on;
@@ -6292,6 +6249,17 @@ export type ValueTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок приёмки. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор акта приёмки. */
+	reception_id?:boolean | `@${string}`,
+	/** Новый статус акта приёмки. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceAplReceptionStatusChangedEvent']?: Omit<ValueTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
+}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -6793,8 +6761,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceDictionaryValue']?: Omit<ValueTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 }>;
-	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
-		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"]
+	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceAplReceptionStatusChangedEvent"]?: ValueTypes["MarketplaceAplReceptionStatusChangedEvent"],
+		["...on MarketplaceOfferModerationEvent"]?: ValueTypes["MarketplaceOfferModerationEvent"],
+		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
+		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
+		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
+		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
+		["...on MarketplacePaymentStatusChangedEvent"]?: ValueTypes["MarketplacePaymentStatusChangedEvent"],
+		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"],
+		["...on MarketplaceReturnClaimStatusChangedEvent"]?: ValueTypes["MarketplaceReturnClaimStatusChangedEvent"],
+		["...on MarketplaceWriteoffStatusChangedEvent"]?: ValueTypes["MarketplaceWriteoffStatusChangedEvent"]
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -7222,6 +7198,15 @@ export type ValueTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null | Variable<any, string>
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Новый статус предложения. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferModerationEvent']?: Omit<ValueTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -7234,8 +7219,28 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferPaginationResult']?: Omit<ValueTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 }>;
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: AliasType<{
+	/** Категория предложения. */
+	category_id?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferPublishedEvent']?: Omit<ValueTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
+}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Доступное к заказу количество единиц. */
+	quantity_available?:boolean | `@${string}`,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
+}>;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -7341,6 +7346,8 @@ export type ValueTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
+	warehouse_quantity?:boolean | `@${string}`,
 	/** Срок гарантии в секундах с момента получения. */
 	warranty_period_secs?:boolean | `@${string}`,
 	/** Дата окончания гарантии. */
@@ -7400,8 +7407,19 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderReadyToReceiveEvent']?: Omit<ValueTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
 }>;
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: AliasType<{
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+	/** Предыдущий статус заказа. */
+	previous_status?:boolean | `@${string}`,
+	/** Новый статус заказа. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOrderStatusChangedEvent']?: Omit<ValueTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
+}>;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
@@ -7434,6 +7452,15 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: AliasType<{
+	/** Идентификатор платёжной заявки. */
+	payment_request_id?:boolean | `@${string}`,
+	/** Новый статус выплаты. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplacePaymentStatusChangedEvent']?: Omit<ValueTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
+}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -7800,6 +7827,17 @@ export type ValueTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор заявления на возврат. */
+	claim_id?:boolean | `@${string}`,
+	/** Новый статус заявления. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReturnClaimStatusChangedEvent']?: Omit<ValueTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
+}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
@@ -8130,6 +8168,15 @@ export type ValueTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string | Variable<any, string>
 };
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Новый статус проекта списания. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceWriteoffStatusChangedEvent']?: Omit<ValueTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
+}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -16616,6 +16663,16 @@ export type ResolverInputTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок приёмки. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор акта приёмки. */
+	reception_id?:boolean | `@${string}`,
+	/** Новый статус акта приёмки. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -17093,8 +17150,16 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEvent"]: AliasType<{
+	MarketplaceAplReceptionStatusChangedEvent?:ResolverInputTypes["MarketplaceAplReceptionStatusChangedEvent"],
+	MarketplaceOfferModerationEvent?:ResolverInputTypes["MarketplaceOfferModerationEvent"],
+	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
+	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
 	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
+	MarketplaceOrderStatusChangedEvent?:ResolverInputTypes["MarketplaceOrderStatusChangedEvent"],
+	MarketplacePaymentStatusChangedEvent?:ResolverInputTypes["MarketplacePaymentStatusChangedEvent"],
 	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
+	MarketplaceReturnClaimStatusChangedEvent?:ResolverInputTypes["MarketplaceReturnClaimStatusChangedEvent"],
+	MarketplaceWriteoffStatusChangedEvent?:ResolverInputTypes["MarketplaceWriteoffStatusChangedEvent"],
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceEventsInput"]: {
@@ -17512,6 +17577,14 @@ export type ResolverInputTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Новый статус предложения. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -17523,8 +17596,26 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: AliasType<{
+	/** Категория предложения. */
+	category_id?:boolean | `@${string}`,
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: AliasType<{
+	/** Идентификатор предложения. */
+	offer_id?:boolean | `@${string}`,
+	/** Доступное к заказу количество единиц. */
+	quantity_available?:boolean | `@${string}`,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOnboardingState"]: AliasType<{
 	agreement_id?:boolean | `@${string}`,
 	completed_at?:boolean | `@${string}`,
@@ -17629,6 +17720,8 @@ export type ResolverInputTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at?:boolean | `@${string}`,
+	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
+	warehouse_quantity?:boolean | `@${string}`,
 	/** Срок гарантии в секундах с момента получения. */
 	warranty_period_secs?:boolean | `@${string}`,
 	/** Дата окончания гарантии. */
@@ -17683,8 +17776,18 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: AliasType<{
+	/** Идентификатор заказа. */
+	order_id?:boolean | `@${string}`,
+	/** Предыдущий статус заказа. */
+	previous_status?:boolean | `@${string}`,
+	/** Новый статус заказа. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceOutgoingPaymentRequest"]: AliasType<{
 	/** Сумма платежа (numeric с 4 знаками). */
 	amount?:boolean | `@${string}`,
@@ -17716,6 +17819,14 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: AliasType<{
+	/** Идентификатор платёжной заявки. */
+	payment_request_id?:boolean | `@${string}`,
+	/** Новый статус выплаты. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceProductType"]: AliasType<{
 	/** ID категории */
 	descriptionCategoryId?:boolean | `@${string}`,
@@ -18069,6 +18180,16 @@ export type ResolverInputTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname?:boolean | `@${string}`,
+	/** Идентификатор заявления на возврат. */
+	claim_id?:boolean | `@${string}`,
+	/** Новый статус заявления. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -18389,6 +18510,14 @@ export type ResolverInputTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
 };
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
+	/** Идентификатор проекта списания. */
+	proposal_id?:boolean | `@${string}`,
+	/** Новый статус проекта списания. */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -26614,6 +26743,15 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: {
+		/** Кооперативный участок приёмки. */
+	braname: string,
+	/** Идентификатор акта приёмки. */
+	reception_id: string,
+	/** Новый статус акта приёмки. */
+	status: ModelTypes["MarketplaceAplReceptionStatus"]
+};
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string
@@ -27060,7 +27198,7 @@ export type ModelTypes = {
 	/** Значение */
 	value: string
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"];
+	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceOfferModerationEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplacePaymentStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"] | ModelTypes["MarketplaceReturnClaimStatusChangedEvent"] | ModelTypes["MarketplaceWriteoffStatusChangedEvent"];
 	["MarketplaceEventsInput"]: {
 	/** Кооперативное имя. */
 	coopname: string
@@ -27463,6 +27601,13 @@ export type ModelTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: {
+		/** Идентификатор предложения. */
+	offer_id: string,
+	/** Новый статус предложения. */
+	status: ModelTypes["MarketplaceOfferStatus"]
+};
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -27473,7 +27618,23 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: {
+		/** Категория предложения. */
+	category_id: number,
+	/** Идентификатор предложения. */
+	offer_id: string
+};
 	["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: {
+		/** Идентификатор предложения. */
+	offer_id: string,
+	/** Доступное к заказу количество единиц. */
+	quantity_available: number,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag: boolean
+};
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
 	completed_at?: string | undefined | null,
@@ -27577,6 +27738,8 @@ export type ModelTypes = {
 	unit_of_measure?: string | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: ModelTypes["DateTime"],
+	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
+	warehouse_quantity?: number | undefined | null,
 	/** Срок гарантии в секундах с момента получения. */
 	warranty_period_secs: number,
 	/** Дата окончания гарантии. */
@@ -27626,6 +27789,15 @@ export type ModelTypes = {
 	order_id: string
 };
 	["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: {
+		/** Идентификатор заказа. */
+	order_id: string,
+	/** Предыдущий статус заказа. */
+	previous_status: ModelTypes["MarketplaceOrderStatus"],
+	/** Новый статус заказа. */
+	status: ModelTypes["MarketplaceOrderStatus"]
+};
 	["MarketplaceOutgoingPaymentRequest"]: {
 		/** Сумма платежа (numeric с 4 знаками). */
 	amount: string,
@@ -27655,6 +27827,13 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: {
+		/** Идентификатор платёжной заявки. */
+	payment_request_id: string,
+	/** Новый статус выплаты. */
+	status: ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]
+};
 	["MarketplaceProductType"]: {
 		/** ID категории */
 	descriptionCategoryId: number,
@@ -27992,6 +28171,15 @@ export type ModelTypes = {
 	reason_text?: string | undefined | null
 };
 	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: {
+		/** Кооперативный участок, рассматривающий возврат. */
+	braname: string,
+	/** Идентификатор заявления на возврат. */
+	claim_id: string,
+	/** Новый статус заявления. */
+	status: ModelTypes["MarketplaceReturnClaimStatus"]
+};
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -28297,6 +28485,13 @@ export type ModelTypes = {
 	["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
+};
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: {
+		/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Новый статус проекта списания. */
+	status: ModelTypes["MarketplaceWriteoffProposalStatus"]
 };
 	["MatrixAccountStatusResponseDTO"]: {
 		hasAccount: boolean,
@@ -31736,7 +31931,7 @@ export type ModelTypes = {
 	votes: Array<ModelTypes["VoteDistributionInput"]>
 };
 	["Subscription"]: {
-		/** Персональный поток событий пайщика в Столе заказов. */
+		/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: ModelTypes["MarketplaceEvent"]
 };
 	["SubscriptionStatsDto"]: {
@@ -37449,6 +37644,17 @@ export type GraphQLTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]: MarketplaceAplReceptionStatus;
+	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
+["MarketplaceAplReceptionStatusChangedEvent"]: {
+	__typename: "MarketplaceAplReceptionStatusChangedEvent",
+	/** Кооперативный участок приёмки. */
+	braname: string,
+	/** Идентификатор акта приёмки. */
+	reception_id: string,
+	/** Новый статус акта приёмки. */
+	status: GraphQLTypes["MarketplaceAplReceptionStatus"],
+	['...on MarketplaceAplReceptionStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
+};
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]: MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -37951,9 +38157,17 @@ export type GraphQLTypes = {
 	['...on MarketplaceDictionaryValue']: Omit<GraphQLTypes["MarketplaceDictionaryValue"], "...on MarketplaceDictionaryValue">
 };
 	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceOrderReadyToReceiveEvent" | "MarketplaceReceptionPendingSignEvent"
-        	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
+        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceOfferModerationEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplacePaymentStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent" | "MarketplaceReturnClaimStatusChangedEvent" | "MarketplaceWriteoffStatusChangedEvent"
+        	['...on MarketplaceAplReceptionStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"];
+	['...on MarketplaceOfferModerationEvent']: '__union' & GraphQLTypes["MarketplaceOfferModerationEvent"];
+	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
+	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
+	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
+	['...on MarketplaceOrderStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceOrderStatusChangedEvent"];
+	['...on MarketplacePaymentStatusChangedEvent']: '__union' & GraphQLTypes["MarketplacePaymentStatusChangedEvent"];
 	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
+	['...on MarketplaceReturnClaimStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"];
+	['...on MarketplaceWriteoffStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"];
 };
 	["MarketplaceEventsInput"]: {
 		/** Кооперативное имя. */
@@ -38380,6 +38594,15 @@ export type GraphQLTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
+	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
+["MarketplaceOfferModerationEvent"]: {
+	__typename: "MarketplaceOfferModerationEvent",
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Новый статус предложения. */
+	status: GraphQLTypes["MarketplaceOfferStatus"],
+	['...on MarketplaceOfferModerationEvent']: Omit<GraphQLTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
+};
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
 	/** Текущая страница */
@@ -38392,8 +38615,28 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOfferPaginationResult']: Omit<GraphQLTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 };
+	/** В каталоге появилось новое предложение. */
+["MarketplaceOfferPublishedEvent"]: {
+	__typename: "MarketplaceOfferPublishedEvent",
+	/** Категория предложения. */
+	category_id: number,
+	/** Идентификатор предложения. */
+	offer_id: string,
+	['...on MarketplaceOfferPublishedEvent']: Omit<GraphQLTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
+};
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]: MarketplaceOfferStatus;
+	/** У предложения в каталоге изменилось доступное количество. */
+["MarketplaceOfferStockChangedEvent"]: {
+	__typename: "MarketplaceOfferStockChangedEvent",
+	/** Идентификатор предложения. */
+	offer_id: string,
+	/** Доступное к заказу количество единиц. */
+	quantity_available: number,
+	/** Предложение без ограничения по количеству. */
+	unlimited_flag: boolean,
+	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
+};
 	["MarketplaceOnboardingState"]: {
 	__typename: "MarketplaceOnboardingState",
 	agreement_id?: number | undefined | null,
@@ -38500,6 +38743,8 @@ export type GraphQLTypes = {
 	unit_of_measure?: string | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: GraphQLTypes["DateTime"],
+	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
+	warehouse_quantity?: number | undefined | null,
 	/** Срок гарантии в секундах с момента получения. */
 	warranty_period_secs: number,
 	/** Дата окончания гарантии. */
@@ -38558,8 +38803,19 @@ export type GraphQLTypes = {
 	order_id: string,
 	['...on MarketplaceOrderReadyToReceiveEvent']: Omit<GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
 };
-	/** Этап жизненного цикла заказа. */
+	/** Статус заказа в Столе заказов. */
 ["MarketplaceOrderStatus"]: MarketplaceOrderStatus;
+	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
+["MarketplaceOrderStatusChangedEvent"]: {
+	__typename: "MarketplaceOrderStatusChangedEvent",
+	/** Идентификатор заказа. */
+	order_id: string,
+	/** Предыдущий статус заказа. */
+	previous_status: GraphQLTypes["MarketplaceOrderStatus"],
+	/** Новый статус заказа. */
+	status: GraphQLTypes["MarketplaceOrderStatus"],
+	['...on MarketplaceOrderStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
+};
 	["MarketplaceOutgoingPaymentRequest"]: {
 	__typename: "MarketplaceOutgoingPaymentRequest",
 	/** Сумма платежа (numeric с 4 знаками). */
@@ -38592,6 +38848,15 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
+	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
+["MarketplacePaymentStatusChangedEvent"]: {
+	__typename: "MarketplacePaymentStatusChangedEvent",
+	/** Идентификатор платёжной заявки. */
+	payment_request_id: string,
+	/** Новый статус выплаты. */
+	status: GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"],
+	['...on MarketplacePaymentStatusChangedEvent']: Omit<GraphQLTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
+};
 	["MarketplaceProductType"]: {
 	__typename: "MarketplaceProductType",
 	/** ID категории */
@@ -38958,6 +39223,17 @@ export type GraphQLTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика. */
 ["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
+	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
+["MarketplaceReturnClaimStatusChangedEvent"]: {
+	__typename: "MarketplaceReturnClaimStatusChangedEvent",
+	/** Кооперативный участок, рассматривающий возврат. */
+	braname: string,
+	/** Идентификатор заявления на возврат. */
+	claim_id: string,
+	/** Новый статус заявления. */
+	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
+	['...on MarketplaceReturnClaimStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
+};
 	["MarketplaceReturnStatementSignedInput"]: {
 		/** Хэш содержимого документа */
 	doc_hash: string,
@@ -39287,6 +39563,15 @@ export type GraphQLTypes = {
 ["MarketplaceWriteoffProposalTrigger"]: MarketplaceWriteoffProposalTrigger;
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 		draft_id: string
+};
+	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
+["MarketplaceWriteoffStatusChangedEvent"]: {
+	__typename: "MarketplaceWriteoffStatusChangedEvent",
+	/** Идентификатор проекта списания. */
+	proposal_id: string,
+	/** Новый статус проекта списания. */
+	status: GraphQLTypes["MarketplaceWriteoffProposalStatus"],
+	['...on MarketplaceWriteoffStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
 };
 	["MatrixAccountStatusResponseDTO"]: {
 	__typename: "MatrixAccountStatusResponseDTO",
@@ -42948,7 +43233,7 @@ export type GraphQLTypes = {
 };
 	["Subscription"]: {
 	__typename: "Subscription",
-	/** Персональный поток событий пайщика в Столе заказов. */
+	/** Поток событий пайщика в Столе заказов: личные и каталог. */
 	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
 	['...on Subscription']: Omit<GraphQLTypes["Subscription"], "...on Subscription">
 };
@@ -43859,7 +44144,7 @@ export enum MarketplaceOrderIssuanceFactDiffState {
 	LESS = "LESS",
 	MORE = "MORE"
 }
-/** Этап жизненного цикла заказа. */
+/** Статус заказа в Столе заказов. */
 export enum MarketplaceOrderStatus {
 	ACCEPTED = "ACCEPTED",
 	ACCEPTED_PENDING_SUPPLIER = "ACCEPTED_PENDING_SUPPLIER",

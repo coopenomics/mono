@@ -8,7 +8,8 @@ import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { groupAplReceptions, usePollingRefresh, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { debounce } from 'quasar';
+import { groupAplReceptions, useMarketplaceRealtime, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   listAplReceptionsAsSupplier,
   type MarketplaceAplReceptionView,
@@ -114,10 +115,21 @@ onMounted(() => {
   void load();
 });
 
-// Тихий poll: оператор сформировал акт на стойке → акт переходит в
-// PENDING_SUPPLIER_SIGN, и запрос на первую подпись поставщика должен
-// появиться сам, без ручной перезагрузки (техдолг #38 — на websocket).
-usePollingRefresh(() => load(), { intervalMs: 10_000, isBusy: loading });
+// Realtime вместо поллинга: очный акт на стойке приходит личным сигналом
+// «приёмка ждёт подписи», закрывающая подпись председателя двигает статусы
+// заказов поставщика — оба повода тихо перечитать список. Страховка от
+// пропущенного сигнала — 60-сек resync канала и catch-up на возврат вкладки.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceReceptionPendingSignEvent: () => reloadLive(),
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() }
+);
 
 // Спиннер первичной загрузки — пока список ещё пуст.
 const showLoader = computed(() => loading.value && !items.value.length);
@@ -130,16 +142,6 @@ q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
     | подтверждаете факт приёмки — затем она уходит на закрывающую подпись
     | председателя КУ.
 
-  .offerer-apl__toolbar
-    BaseButton(
-      variant='ghost',
-      icon-only,
-      aria-label='Обновить',
-      :loading='loading',
-      @click='load'
-    )
-      template(#icon-left)
-        q-icon(name='refresh', size='20px')
 
   //- Канон загрузки: скелетон, а не спиннер.
   CardListSkeleton(v-if='showLoader', :count='3')
@@ -200,11 +202,6 @@ q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__toolbar {
-    display: flex;
-    justify-content: flex-end;
-  }
 
   &__grid {
     display: grid;

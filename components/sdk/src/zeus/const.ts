@@ -3980,6 +3980,11 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
 	},
+	MarketplaceAplReceptionStatusChangedEvent:{
+		braname:"String",
+		reception_id:"String",
+		status:"MarketplaceAplReceptionStatus"
+	},
 	MarketplaceAttribute:{
 		attributeComplexId:"Int",
 		attributeId:"Int",
@@ -4176,8 +4181,16 @@ export const ReturnTypes: Record<string,any> = {
 		value:"String"
 	},
 	MarketplaceEvent:{
+		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
+		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
+		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
+		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
 		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
-		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent"
+		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
+		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
+		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
+		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent",
+		"...on MarketplaceWriteoffStatusChangedEvent":"MarketplaceWriteoffStatusChangedEvent"
 	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
@@ -4293,11 +4306,24 @@ export const ReturnTypes: Record<string,any> = {
 		sort_order:"Int",
 		url:"String"
 	},
+	MarketplaceOfferModerationEvent:{
+		offer_id:"String",
+		status:"MarketplaceOfferStatus"
+	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
 		items:"MarketplaceOffer",
 		totalCount:"Int",
 		totalPages:"Int"
+	},
+	MarketplaceOfferPublishedEvent:{
+		category_id:"Int",
+		offer_id:"String"
+	},
+	MarketplaceOfferStockChangedEvent:{
+		offer_id:"String",
+		quantity_available:"Int",
+		unlimited_flag:"Boolean"
 	},
 	MarketplaceOnboardingState:{
 		agreement_id:"Int",
@@ -4348,6 +4374,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",
+		warehouse_quantity:"Int",
 		warranty_period_secs:"Int",
 		warranty_until:"DateTime"
 	},
@@ -4374,6 +4401,11 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"String"
 	},
+	MarketplaceOrderStatusChangedEvent:{
+		order_id:"String",
+		previous_status:"MarketplaceOrderStatus",
+		status:"MarketplaceOrderStatus"
+	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
 		apl_reception_id:"ID",
@@ -4391,6 +4423,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceOutgoingPaymentRequestStatus",
 		symbol:"String",
 		updated_at:"DateTime"
+	},
+	MarketplacePaymentStatusChangedEvent:{
+		payment_request_id:"String",
+		status:"MarketplaceOutgoingPaymentRequestStatus"
 	},
 	MarketplaceProductType:{
 		descriptionCategoryId:"Int",
@@ -4549,6 +4585,11 @@ export const ReturnTypes: Record<string,any> = {
 		claim:"MarketplaceReturnClaim",
 		tx_hash:"String"
 	},
+	MarketplaceReturnClaimStatusChangedEvent:{
+		braname:"String",
+		claim_id:"String",
+		status:"MarketplaceReturnClaimStatus"
+	},
 	MarketplaceShipment:{
 		braname:"String",
 		coopname:"String",
@@ -4641,6 +4682,10 @@ export const ReturnTypes: Record<string,any> = {
 		inventory_id:"String",
 		quantity:"String",
 		reason:"String"
+	},
+	MarketplaceWriteoffStatusChangedEvent:{
+		proposal_id:"String",
+		status:"MarketplaceWriteoffProposalStatus"
 	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",

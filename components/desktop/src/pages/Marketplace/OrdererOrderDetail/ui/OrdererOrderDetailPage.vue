@@ -1,15 +1,14 @@
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog } from 'quasar';
+import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -27,9 +26,11 @@ import OrdererFinalizeIssuanceDialog from '../../MyOrders/ui/OrdererFinalizeIssu
  * выдачи. Управление (отмена до акцепта, «Подписать и получить» на этапе
  * выдачи) — здесь же, дублируя действия карточки. Источник заказа —
  * `marketplaceGetOrder`; обложка догружается из оферты по `offer_id`.
+ *
+ * Live-обновления — realtime: статус ИМЕННО ЭТОГО заказа сменился →
+ * персональный ws-сигнал, карточка тихо перечитывается (чужие заказы
+ * отфильтровываются по order_id из payload). Страховка — resync канала.
  */
-
-const POLL_INTERVAL_MS = 15_000;
 
 const route = useRoute();
 const router = useRouter();
@@ -150,18 +151,24 @@ function onFinalized(): void {
   void load();
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-
 onMounted(() => {
   void load();
-  pollTimer = setInterval(() => {
-    if (!loading.value) void load();
-  }, POLL_INTERVAL_MS);
 });
 
-onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer);
-});
+// Открыта одна карточка — реагируем только на сигнал по её order_id, чужие
+// переходы заказов пайщика страницу не дёргают.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceOrderStatusChangedEvent: (event) => {
+      if (event.order_id === orderId.value) reloadLive();
+    },
+  },
+  { onResync: () => reloadLive() }
+);
 </script>
 
 <template lang="pug">
@@ -171,7 +178,6 @@ q-page.order-detail(role="region", aria-label="Заказ")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
       | Получить заказ
-    RefreshButton(:loading="loading", @refresh="load")
 
   .order-detail__col
     BaseButton.order-detail__back(variant="ghost", size="sm", @click="goBack")

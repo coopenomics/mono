@@ -4,15 +4,16 @@ import WebSocket from 'isomorphic-ws'
 
 import * as Classes from './classes'
 import * as Mutations from './mutations'
-import { type GraphQLResponse, Thunder, Subscription as ZeusSubscription } from './zeus/index'
+import { wsSubscription } from './utils/wsSubscription'
+import { type GraphQLResponse, Thunder } from './zeus/index'
 
 import { ZeusScalars } from './zeus/index'
 
 export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
-export * as Subscriptions from './subscriptions'
 export * as Selectors from './selectors'
+export * as Subscriptions from './subscriptions'
 
 export * as Types from './types'
 
@@ -184,10 +185,12 @@ export class Client {
    * Подписка на GraphQL-события.
    */
   public get Subscription() {
-    // Прокидываем заголовки (в т.ч. Authorization) — Zeus кладёт их в
+    // Прокидываем заголовки (в т.ч. Authorization) — транспорт кладёт их в
     // connectionParams ws-соединения, по которым сервер аутентифицирует
     // подписку в onConnect. Без этого канал был бы анонимным и отклонялся.
-    return ZeusSubscription(this.options.api_url.replace(/^http/, 'ws'), {
+    // Не сгенерированный Zeus-Subscription: тот теряет variables (см.
+    // utils/wsSubscription.ts), а правки генерята стирает регенерация.
+    return wsSubscription(this.options.api_url.replace(/^http/, 'ws'), {
       headers: this.currentHeaders,
     })
   }

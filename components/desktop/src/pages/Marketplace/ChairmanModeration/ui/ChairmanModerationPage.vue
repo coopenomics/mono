@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -119,6 +121,20 @@ async function onLoadMore(): Promise<void> {
   currentPage.value += 1;
   await loadPage(true);
 }
+
+// Realtime: поставщик подал/исправил предложение или второй модератор уже
+// решил по нему — очередь обновляется сразу. Сигналы приходят в канал
+// модерации (подключается только председателю). Сброс на первую страницу:
+// очередь FIFO, новая заявка появляется в её хвосте, решённая — уходит.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  currentPage.value = 1;
+  void loadPage(false);
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOfferModerationEvent: () => reloadLive() },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(async () => {
   await Promise.all([loadPage(false), loadCategories()]);

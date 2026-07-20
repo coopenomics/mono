@@ -2,18 +2,35 @@ import { Subscriptions } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useSystemStore } from 'src/entities/System/model';
 import type { RealtimeSubscription } from 'src/shared/lib/realtime';
+import {
+  dispatchMarketplaceEvent,
+  resyncMarketplaceConsumers,
+  type MarketplaceRealtimeEvent,
+} from 'src/shared/lib/marketplace';
 import { useOnsiteSignatureGate } from './useOnsiteSignatureGate';
 
 /**
- * Подписка расширения «Стол заказов» на персональный realtime-канал пайщика.
+ * Подписка расширения «Стол заказов» на realtime-канал marketplace.
  * Регистрируется в install.ts через реестр ядра (registerRealtimeSubscription) —
  * App про неё не знает.
  *
- * Модель «сигнал, а не данные»: на ЛЮБОЕ событие канала просто дочитываем
- * авторитетное состояние гейта (refresh) — он сам решит, что показать. Так
- * пропуск отдельных полей события не важен, а приватные данные по проводу не
- * ходят.
+ * Единственный ws на расширение, события разнотипны. Маршрутизация по
+ * `__typename`:
+ *  - личные события гейта (заказ готов / приёмка ждёт подписи) → дочитка гейта;
+ *  - остальные (каталог: остаток/публикация) → диспетчер, откуда их разбирают
+ *    подписанные страницы (`useMarketplaceRealtime`).
+ * Принцип «сигнал, а не данные» сохраняется: payload несёт только идентификаторы.
  */
+const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
+  'MarketplaceOrderReadyToReceiveEvent',
+  'MarketplaceReceptionPendingSignEvent',
+  // Статусные сигналы закрывают гейт кросс-девайсно: подписал на телефоне —
+  // оверлей на десктопе уходит сразу, а не по 60-сек страховке. Дочитка
+  // дешёвая, события по своему аккаунту редкие.
+  'MarketplaceOrderStatusChangedEvent',
+  'MarketplaceAplReceptionStatusChangedEvent',
+]);
+
 export function createMarketplaceEventsSubscription(): RealtimeSubscription {
   return {
     id: 'marketplace:events',
@@ -21,29 +38,28 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       const coopname = useSystemStore().info.coopname;
       const gate = useOnsiteSignatureGate();
 
-      console.info('%c[OnsiteGate] ПОДПИСКА: открываю ws-канал marketplace…', 'color:#0f766e');
       const stream = client.Subscription('subscription')(
         Subscriptions.Marketplace.Events.subscription,
         { variables: { input: { coopname } } },
       );
 
-      // Сигнал пришёл → дочитываем состояние (catch-up из БД).
-      stream.on(() => {
-        console.info(
-          '%c[OnsiteGate] ✅ ПОДПИСКА СРАБОТАЛА: пришёл ws-сигнал → дочитываю состояние',
-          'color:#16a34a;font-weight:bold',
-        );
-        void gate.refresh('ПОДПИСКА (ws-сигнал)');
+      // Сигнал пришёл → раздаём по типу: гейт дочитывает своё состояние,
+      // каталожные события уходят подписанным страницам через диспетчер.
+      stream.on((payload) => {
+        const event = (payload as Subscriptions.Marketplace.Events.IOutput | undefined)
+          ?.marketplaceEvents;
+        if (!event) return;
+        if (GATE_EVENT_TYPES.has(event.__typename)) {
+          void gate.refresh('ПОДПИСКА (ws-сигнал)');
+        }
+        dispatchMarketplaceEvent(event);
       });
 
       // graphql-ws сам реконнектит; на каждый (ре)коннект — catch-up, чтобы
-      // подхватить то, что прилетело, пока сокет был оборван. Тип Zeus
-      // объявляет open() без аргумента, но реализация принимает listener
-      // ('opened'-событие ws) — приводим к фактической сигнатуре.
-      const onReopen = stream.open as unknown as (listener: () => void) => void;
-      onReopen(() => {
-        console.info('%c[OnsiteGate] 🔌 ПОДПИСКА: ws (ре)коннект → catch-up', 'color:#0f766e');
+      // подхватить то, что прилетело, пока сокет был оборван.
+      stream.open(() => {
         void gate.refresh('ПОДПИСКА (ws-реконнект)');
+        resyncMarketplaceConsumers('ws-реконнект');
       });
 
       // Транзиентная ошибка ws — реконнект отрабатывает сам, гасить не нужно,
@@ -55,6 +71,7 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       return { close: () => stream.ws.close() };
     },
     resync(reason?: string) {
+      resyncMarketplaceConsumers(reason);
       return useOnsiteSignatureGate().refresh(reason ?? 'POLL (resync)');
     },
   };

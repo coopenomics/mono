@@ -1,14 +1,14 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { Dialog } from 'quasar';
+import { computed, onMounted, ref } from 'vue';
+import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   acceptOrdersBatch,
   declineOrdersBatch,
@@ -33,11 +33,13 @@ import type {
  *  - «сформированная» — уже принятые заказы, сгруппированные по cycle_id.
  *    Дальше — на странице «Подготовка отгрузки».
  *
- * Polling 15s до Subscriptions Story 9.x. Вёрстка по канону MONO Platform v2.
+ * Live-обновления — realtime: заказ сменил статус (новый заказ накопителя
+ * принят, отменён заказчиком и т.п.) → персональный ws-сигнал поставщику, и
+ * партии тихо перечитываются. Поллинга нет; страховка — 60-сек resync канала и
+ * catch-up на возврат вкладки. Вёрстка по канону MONO Platform v2.
  */
 
 const PAGE_SIZE = 200;
-const POLL_INTERVAL_MS = 15_000;
 const SKELETON_COUNT = 4;
 
 const router = useRouter();
@@ -50,7 +52,6 @@ const loading = ref(false);
 const activeKey = ref('pending-accept');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 const showSkeleton = computed(() => loading.value && items.value.length === 0);
@@ -282,17 +283,18 @@ onMounted(async () => {
   }
 
   await load(1, false);
-  pollTimer = setInterval(() => {
-    void load(1, false);
-  }, POLL_INTERVAL_MS);
 });
 
-onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-});
+// Заказ сменил статус → персональный ws-сигнал, партии тихо перечитываются.
+// Debounce схлопывает пачку переходов (приёмка партии целиком) в одну загрузку.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load(1, false);
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() }
+);
 </script>
 
 <template lang="pug">
@@ -305,8 +307,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | «Подготовка отгрузки».
 
     PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
-      template(#actions)
-        RefreshButton(:loading='loading', @refresh='load(1, false)')
 
     //- Скелетон вместо спиннера на первичной загрузке.
     .incoming-orders__skel-list(v-if='showSkeleton')

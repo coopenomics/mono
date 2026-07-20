@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -14,6 +15,7 @@ import {
   HandoffTokenKind,
   handoffStageRoute,
   HANDOFF_QUERY,
+  useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
 import {
   listIssuancesByBraname,
@@ -56,31 +58,67 @@ const ISSUANCE_STATUSES = ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE'];
 interface IssuanceLine {
   key: string;
   name: string;
+  /** К выдаче по факту: склад (до открытия) либо акт (после открытия). */
   quantity: number;
+  /** Заказано пайщиком; больше quantity — недопоставка, показываем рядом. */
+  orderedQuantity: number;
   unit: MarketplaceOrderIssuanceView['unit_of_measure'];
   total: string;
   status: string;
+}
+
+/**
+ * Количество и стоимость строки — ПО ФАКТУ, не по заказу (инцидент 2026-06-09:
+ * заказ 10, принято 5, карточка показывала 10 и подпись уходила на 10):
+ *  - «к выдаче» (ACCEPTED_TO_COOP) — потолок по принятому на склад, стоимость
+ *    по цене заказа;
+ *  - «ждут получения» (READY_TO_RECEIVE) — из акта выдачи (issuance_fact).
+ */
+function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number; total: number } {
+  const ordered = Number.parseFloat(String(o.quantity ?? '0')) || 0;
+  const orderedTotal = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
+  if (o.status === 'READY_TO_RECEIVE') {
+    const qty = o.issuance_fact?.actual_quantity ?? ordered;
+    const total = Number.parseFloat(String(o.issuance_fact?.fact_cost ?? orderedTotal)) || 0;
+    return { qty, ordered, total };
+  }
+  const qty = Math.min(ordered, o.warehouse_quantity ?? ordered);
+  const unitPrice = ordered ? orderedTotal / ordered : 0;
+  return { qty, ordered, total: qty * unitPrice };
 }
 
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
   const map = new Map<string, IssuanceLine>();
   for (const o of orders) {
     const name = o.product_name || 'Товар по предложению';
-    const qty = Number.parseFloat(String(o.quantity ?? '0')) || 0;
-    const total = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
-    const unitPrice = qty ? total / qty : total;
+    const { qty, ordered, total } = factOf(o);
+    const unitPrice = ordered
+      ? (Number.parseFloat(String(o.total_cost ?? '0')) || 0) / ordered
+      : total;
     // Цена за единицу в ключе — разная цена не сливается в одну строку.
     const key = `${name}__${o.unit_of_measure ?? ''}__${o.status}__${unitPrice.toFixed(4)}`;
     const ex = map.get(key);
     if (ex) {
       ex.quantity += qty;
+      ex.orderedQuantity += ordered;
       ex.total = (Number.parseFloat(ex.total) + total).toFixed(4);
     } else {
-      map.set(key, { key, name, quantity: qty, unit: o.unit_of_measure, total: total.toFixed(4), status: o.status });
+      map.set(key, {
+        key,
+        name,
+        quantity: qty,
+        orderedQuantity: ordered,
+        unit: o.unit_of_measure,
+        total: total.toFixed(4),
+        status: o.status,
+      });
     }
   }
   // Гасим float-шум суммирования количеств (0.1+0.2 и т.п.).
-  for (const l of map.values()) l.quantity = Math.round(l.quantity * 1000) / 1000;
+  for (const l of map.values()) {
+    l.quantity = Math.round(l.quantity * 1000) / 1000;
+    l.orderedQuantity = Math.round(l.orderedQuantity * 1000) / 1000;
+  }
   return [...map.values()];
 }
 
@@ -107,14 +145,18 @@ const groups = computed<IssuanceGroup[]>(() => {
   for (const [account, orders] of map) {
     const named = orders.find((o) => o.orderer_name);
     const toIssue = orders.filter((o) => o.status === 'ACCEPTED_TO_COOP');
+    const toIssueLines = mergeLines(toIssue);
+    const awaitingLines = mergeLines(orders.filter((o) => o.status === 'READY_TO_RECEIVE'));
     out.push({
       account,
       name: named?.orderer_name || account,
       toIssue,
-      toIssueLines: mergeLines(toIssue),
-      awaitingLines: mergeLines(orders.filter((o) => o.status === 'READY_TO_RECEIVE')),
-      total: orders
-        .reduce((a, o) => a + Number.parseFloat(String(o.total_cost ?? '0')), 0)
+      toIssueLines,
+      awaitingLines,
+      // Итог — по факту строк (склад/акт), не по заказанному: при недопоставке
+      // карточка не должна обещать сумму, которой нет на складе.
+      total: [...toIssueLines, ...awaitingLines]
+        .reduce((a, l) => a + Number.parseFloat(l.total), 0)
         .toFixed(4),
       count: orders.length,
     });
@@ -221,6 +263,18 @@ watch(braname, () => void load());
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
 watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
 
+// Realtime: заказчик подтвердил получение в своём кабинете (READY_TO_RECEIVE →
+// RECEIVED) — карточка уходит со стола сама; оператор у стойки видит подпись
+// сразу и отпускает заказчика. Сигнал — служебный канал персонала КУ.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() }
+);
+
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
@@ -273,7 +327,11 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
           .issuance__line(v-for='line in g.toIssueLines', :key='line.key')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
-              .issuance__line-meta {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+              .issuance__line-meta
+                | {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+                span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
+                  |  · заказано {{ line.orderedQuantity }} {{ marketplaceUnitShort(line.unit) }}
+            BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
 
         //- Ждут получения — выдача открыта, ждём подпись заказчика.
         .issuance__section(v-if='g.awaitingLines.length')
@@ -281,7 +339,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
           .issuance__line(v-for='line in g.awaitingLines', :key='line.key')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
-              .issuance__line-meta {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+              .issuance__line-meta
+                | {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+                span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
+                  |  · заказано {{ line.orderedQuantity }} {{ marketplaceUnitShort(line.unit) }}
             BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
@@ -315,7 +376,10 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
       .issuance__resolve-item(v-for='line in pickupLines', :key='line.key')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
-          .issuance__resolve-item-meta {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+          .issuance__resolve-item-meta
+            | {{ line.quantity }} {{ marketplaceUnitShort(line.unit) }} · {{ formatAsset2Digits(line.total) }} ₽
+            span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
+              |  · заказано {{ line.orderedQuantity }} {{ marketplaceUnitShort(line.unit) }}
         BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
       //- Открываем выдачу разом по всем готовым позициям пайщика — одна операция.
@@ -428,6 +492,11 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     font-size: var(--p-fs-meta, 12px);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
+  }
+
+  // Недопоставка: заказанное количество рядом с фактом, приглушённо-предупреждающе.
+  &__line-shortage {
+    color: var(--p-warn);
   }
 
   &__resolve {

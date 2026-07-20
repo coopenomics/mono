@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -32,14 +33,16 @@ import type {
  *
  * Источник данных — `Queries.Marketplace.ListMyOrders` (видит только заказы
  * пайщика). Коллективные суммы (`group_accumulated_quantity` — накоплено всеми,
- * `group_min_volume` — целевой минимум КУ) приходят с бэкенда. Polling 15s.
+ * `group_min_volume` — целевой минимум КУ) приходят с бэкенда. Live-обновления —
+ * realtime: заказ в партии сменил статус → персональный ws-сигнал, партии тихо
+ * перечитываются. Поллинга нет; страховка — 60-сек resync канала и catch-up на
+ * возврат вкладки.
  */
 
 const route = useRoute();
 const router = useRouter();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 
-const POLL_INTERVAL_MS = 15_000;
 const PAGE_SIZE = 200;
 
 // Клик по карточке партии → карточка предложения (как из корзины). `from=
@@ -54,7 +57,6 @@ function openOffer(offerId: string): void {
 
 const items = ref<MarketplaceOrderView[]>([]);
 const loading = ref(false);
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 // Этап партии = минимальный по рангу среди не-отменённых.
 const STAGE_RANK: Record<MarketplaceOrderStatusView, number> = {
@@ -191,27 +193,24 @@ async function load(): Promise<void> {
   }
 }
 
-onMounted(async () => {
-  await load();
-  pollTimer = setInterval(() => {
-    void load();
-  }, POLL_INTERVAL_MS);
+onMounted(() => {
+  void load();
 });
 
-onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-});
+// Заказ в партии сменил статус → персональный ws-сигнал, партии тихо
+// перечитываются. Debounce схлопывает пачку переходов в одну загрузку.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() }
+);
 </script>
 
 <template lang="pug">
 q-page.collective(role="region", aria-label="Коллективный заказ")
-  //- Действие страницы — в шапку, где стоят общие действия (канон Teleport).
-  Teleport(to="#header-actions-host", defer)
-    RefreshButton(:loading="loading", @refresh="load")
-
   .collective__col
     PageHint(storage-key="mp:collective:banner-dismissed")
       | Отслеживание коллективных заказов, в которых вы участвуете. Заказы

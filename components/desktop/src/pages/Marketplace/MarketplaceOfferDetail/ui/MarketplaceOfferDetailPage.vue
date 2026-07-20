@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -8,6 +9,7 @@ import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
@@ -132,6 +134,21 @@ function goBack(): void {
     void router.push({ name: backTarget.value.name, params: { coopname: coopname.value } });
   }
 }
+
+// Realtime: остаток этого предложения меняют другие заказчики — строка
+// «В наличии: N» и доступность кнопки «В корзину» обновляются сразу.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceOfferStockChangedEvent: (event) => {
+      if (event.offer_id === offerId.value) reloadLive();
+    },
+  },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(async () => {
   await load();

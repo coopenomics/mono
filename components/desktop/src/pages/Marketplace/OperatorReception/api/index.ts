@@ -1,6 +1,9 @@
-import { Mutations, Queries } from '@coopenomics/sdk';
+import { Classes, Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import type { MarketplaceAplReceptionView } from '../../OffererPendingAplReceptions/api';
+import type {
+  MarketplaceAplReceptionView,
+  SignedDocumentInput,
+} from '../../OffererPendingAplReceptions/api';
 
 export type { MarketplaceAplReceptionView, SignedDocumentInput } from '../../OffererPendingAplReceptions/api';
 
@@ -71,6 +74,53 @@ export async function signAsChairman(
     { variables: { data } },
   );
   return result;
+}
+
+export interface SignReceptionsChairmanResult {
+  done: number;
+  errors: { receptionId: string; error: unknown }[];
+}
+
+/**
+ * Закрывающая подпись председателя по группе приёмок (зеркало
+ * signReceptionGroupAsSupplier). По каждой приёмке — отдельная мутация
+ * (блокчейн не проведёт всю поставку одной tx), идут параллельно; ошибка по
+ * одной не теряет уже подписанные — копится по-актно, остальные продолжаются.
+ * Внутри приёмки подпись поверх подписи поставщика тем же ключом активной
+ * сессии, документ не перегенерируется.
+ */
+export async function signReceptionGroupAsChairman(
+  receptions: Pick<MarketplaceAplReceptionView, 'id'>[],
+  wif: string,
+  username: string,
+  onProgress?: (done: number) => void,
+): Promise<SignReceptionsChairmanResult> {
+  const signer = new Classes.Document(wif);
+  let done = 0;
+  const errors: { receptionId: string; error: unknown }[] = [];
+  await Promise.all(
+    receptions.map(async (r) => {
+      try {
+        const aggregates = await fetchChairmanSignablePayloads({ apl_reception_id: r.id });
+        if (aggregates.length === 0) {
+          throw new Error('Backend не вернул ни одного акта для закрывающей подписи.');
+        }
+        const signed_documents: SignedDocumentInput[] = [];
+        for (const aggregate of aggregates) {
+          const signed = await signer.signDocument(aggregate.rawDocument, username, 2, [
+            aggregate.document,
+          ]);
+          signed_documents.push(signed);
+        }
+        await signAsChairman({ apl_reception_id: r.id, signed_documents });
+        done += 1;
+        onProgress?.(done);
+      } catch (error) {
+        errors.push({ receptionId: r.id, error });
+      }
+    }),
+  );
+  return { done, errors };
 }
 
 /** Story 14.2: поставщики с принятыми заказами, ожидающими самовывоза на КУ. */

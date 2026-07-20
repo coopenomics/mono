@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -130,6 +132,17 @@ function onDraftSubmitted(): void {
   draft.value = null;
   void load();
 }
+
+// Realtime: DRAFT строит cron, дальнейшие статусы двигает совет — лента
+// проектов обновляется сигналом канала совета, без ручного обновления.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceWriteoffStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(() => {
   void load();

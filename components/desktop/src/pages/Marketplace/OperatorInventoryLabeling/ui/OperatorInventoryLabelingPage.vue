@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
@@ -8,7 +9,7 @@ import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton'
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import {
   assignInventoryShelf,
   bindInventoryBarcode,
@@ -352,6 +353,25 @@ async function applySplit(): Promise<void> {
 
 watch(braname, () => void load())
 
+// Realtime вместо кнопки «Обновить»: склад пополняется закрывающей подписью
+// председателя (акт → ACCEPTED_TO_COOP), пустеет подписью выдачи заказчиком
+// (заказ → RECEIVED). Оба сигнала приходят в служебный канал персонала КУ.
+const reloadLive = debounce(() => {
+  if (loading.value) return
+  void load()
+}, 400)
+useMarketplaceRealtime(
+  {
+    MarketplaceAplReceptionStatusChangedEvent: (event) => {
+      if (event.braname === braname.value.trim()) reloadLive()
+    },
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    // Исполненное списание тоже опустошает полки склада.
+    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() },
+)
+
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)
   void load()
@@ -376,7 +396,6 @@ q-page.place(role='region', aria-label='Склад участка')
         template(#icon-left)
           q-icon(name='print', size='16px')
         | Печать этикеток
-      RefreshButton(:loading='loading', @refresh='load')
 
     PageHint.no-print(storage-key='mp:operator-labeling:banner-dismissed')
       | Разложите принятое имущество по полкам — чтобы при выдаче заказчику сразу

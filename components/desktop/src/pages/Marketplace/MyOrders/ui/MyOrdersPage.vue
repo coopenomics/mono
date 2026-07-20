@@ -1,17 +1,16 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog } from 'quasar';
+import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind, usePollingRefresh } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
@@ -28,11 +27,13 @@ import OrdererFinalizeIssuanceDialog from './OrdererFinalizeIssuanceDialog.vue';
  * Код получения (account-bound QR) — кнопка «Получить заказ» в шапке: открывает
  * диалог с тем же QR, что и на отдельной странице меню (OrdererReceiveCode).
  *
- * Live-обновления — polling каждые 10s.
+ * Live-обновления — realtime: заказ переходит статус (председатель открыл
+ * выдачу, поставщик принял и т.п.) → персональный ws-сигнал, список тихо
+ * перечитывается. Поллинга нет; страховка от пропущенного сигнала — 60-сек
+ * resync канала и catch-up на возврат вкладки (оба зовут onResync).
  */
 
 const PAGE_SIZE = 24;
-const POLL_INTERVAL_MS = 10_000;
 
 const route = useRoute();
 const router = useRouter();
@@ -347,13 +348,18 @@ onMounted(() => {
   void load(1, false);
 });
 
-// Тихий poll: председатель открыл выдачу со своего стола → заказ переходит в
-// READY_TO_RECEIVE, и финальная подпись «Подписать и получить» должна
-// появиться сама, без ручной перезагрузки (техдолг #38 — на websocket).
-usePollingRefresh(() => load(currentPage.value, false), {
-  intervalMs: POLL_INTERVAL_MS,
-  isBusy: loading,
-});
+// Заказ сменил статус (председатель открыл выдачу → READY_TO_RECEIVE, поставщик
+// принял и т.п.) → персональный ws-сигнал, и список тихо перечитывается, чтобы
+// действия в карточке («Подписать и получить») появлялись сами. Debounce
+// схлопывает пачку переходов одного оформления в одну перезагрузку.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load(currentPage.value, false);
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() }
+);
 </script>
 
 <template lang="pug">
@@ -366,7 +372,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
       | Получить заказ
-    RefreshButton(:loading="loading", @refresh="() => load(1, false)")
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
     | Все ваши заказы и их движение до выдачи на пункте. Заказ можно отменить

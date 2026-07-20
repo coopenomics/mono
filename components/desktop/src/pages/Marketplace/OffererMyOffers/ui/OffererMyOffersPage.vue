@@ -1,6 +1,8 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -37,13 +39,14 @@ import type { MarketplaceOfferStatusView, MarketplaceOfferView } from '../types'
  * счётчики дублировали вкладки. Фильтр deep-linkable через query `?status=` —
  * на «На модерации» и т.п. можно перейти прямой ссылкой.
  *
- * Polling 30s — Offer'ы меняют статус через модерацию председателя.
- * Подписанные URL картинок стабилизированы на бэкенде (окно getReadUrl),
+ * Обновление — realtime: одобрение (новый оффер в каталоге) и изменение остатка
+ * прилетают мгновенно через подписку marketplace; редкие события без сигнала
+ * (отклонение модератором) подхватывает 60-сек catch-up канала. Ручного polling
+ * нет. Подписанные URL картинок стабилизированы на бэкенде (окно getReadUrl),
  * поэтому при перезагрузке списка изображения не перекачиваются.
  */
 
 const PAGE_SIZE = 50;
-const POLL_INTERVAL_MS = 30_000;
 
 // Кол-во скелетон-карточек на время первичной загрузки.
 const SKELETON_COUNT = 8;
@@ -70,7 +73,6 @@ const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
@@ -213,17 +215,25 @@ onMounted(async () => {
   if (fromUrl) statusFilter.value = fromUrl.value;
 
   await load(1, false);
-  pollTimer = setInterval(() => {
-    void load(1, false);
-  }, POLL_INTERVAL_MS);
 });
 
-onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-});
+// Живое обновление вместо polling: одобрение/остаток прилетают сигналом,
+// редкое отклонение модератором подхватывает 60-сек catch-up канала. Тихая
+// перезагрузка списка (debounce коалесит всплески).
+const reloadLive = debounce(() => {
+  void load(1, false);
+}, 400);
+
+useMarketplaceRealtime(
+  {
+    MarketplaceOfferPublishedEvent: () => reloadLive(),
+    MarketplaceOfferStockChangedEvent: () => reloadLive(),
+    // Вердикт модерации (одобрено/отклонено) приходит в персональный канал
+    // поставщика — статус-бейдж карточки обновляется сразу, без поллинга.
+    MarketplaceOfferModerationEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() }
+);
 </script>
 
 <template lang="pug">
@@ -251,17 +261,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
           @click="setFilter(opt)"
         )
           span {{ opt.label }}
-      .tabbar__actions
-        BaseButton(
-          variant="ghost",
-          size="sm",
-          icon-only,
-          aria-label="Обновить",
-          :loading="loading",
-          @click="load(1, false)"
-        )
-          template(#icon-left)
-            q-icon(name="refresh", size="20px")
 
     //- Скелетон вместо спиннера: каркас карточек проявляется сразу, без
     //- дёргания. Только на первичной загрузке — polling обновляет молча.
@@ -316,9 +315,6 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
   &__tabs {
     :deep(.tabbar__tabs) {
       padding: 0;
-    }
-    :deep(.tabbar__actions) {
-      padding-right: 0;
     }
   }
 

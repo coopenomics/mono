@@ -1,14 +1,16 @@
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import {
   listWriteoffProposals,
   type MarketplaceWriteoffProposalsPageView,
 } from '../../AdminWriteoffs/api';
-import { BaseBadge, BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
@@ -22,12 +24,12 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
  * Backend: Queries.Marketplace.ListWriteoffProposals.
  * Reuse helper listWriteoffProposals из AdminWriteoffs/api.
  *
- * Polling 30s — статусы меняются по решению совета (core sov-flow).
+ * Live-обновления — realtime: переход проекта списания (в повестку,
+ * авторизован, исполнен, отклонён) приходит сигналом в канал совета.
  */
 
 type WriteoffStatus = 'ON_AGENDA' | 'AUTHORIZED' | 'EXECUTING' | 'EXECUTED' | 'REJECTED';
 
-const POLL_INTERVAL_MS = 30_000;
 const BOARD_STATUSES: WriteoffStatus[] = [
   'ON_AGENDA',
   'AUTHORIZED',
@@ -75,7 +77,6 @@ const STATUS_TABS: { value: WriteoffStatus; label: string }[] = [
 const page = ref<MarketplaceWriteoffProposalsPageView | null>(null);
 const loading = ref(false);
 const statusFilter = ref<WriteoffStatus | null>(null);
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const items = computed(() => page.value?.items ?? []);
 const total = computed(() => page.value?.totalCount ?? 0);
@@ -107,18 +108,19 @@ function changeFilter(value: WriteoffStatus | null): void {
   void load();
 }
 
+// Realtime вместо поллинга: статусы двигают cron и совет — сигнал приходит
+// в канал совета, лента перечитывается сразу.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceWriteoffStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() },
+);
+
 onMounted(async () => {
   await load();
-  pollTimer = setInterval(() => {
-    void load();
-  }, POLL_INTERVAL_MS);
-});
-
-onUnmounted(() => {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
 });
 </script>
 
@@ -147,10 +149,6 @@ q-page.board-writeoff(role="region", aria-label="Повестка совета �
         @click="changeFilter(opt.value)",
         @keydown.enter="changeFilter(opt.value)"
       ) {{ opt.label }}
-    q-space
-    BaseButton(variant="ghost", iconOnly, ariaLabel="Обновить", :loading="loading", @click="load")
-      template(#icon-left)
-        q-icon(name="refresh", size="18px")
 
   //- Канон загрузки: скелетон, а не спиннер поверх.
   CardListSkeleton(v-if="loading && items.length === 0", :count="3")

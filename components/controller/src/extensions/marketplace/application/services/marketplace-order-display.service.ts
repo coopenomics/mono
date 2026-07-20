@@ -21,6 +21,10 @@ import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
+import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
@@ -55,6 +59,8 @@ export class MarketplaceOrderDisplayService {
     private readonly orgRepo: OrganizationRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     private readonly userCertificate: UserCertificateInteractor
   ) {}
 
@@ -66,7 +72,16 @@ export class MarketplaceOrderDisplayService {
    */
   async enrich(
     orders: MarketplaceOrderDomainEntity[],
-    opts?: { withParticipantNames?: boolean; withGroupProgress?: boolean }
+    opts?: {
+      withParticipantNames?: boolean;
+      withGroupProgress?: boolean;
+      /**
+       * Подмешать принятое на склад и не выданное количество по заказу
+       * (`warehouse_quantity`) — для лент выдачи, где оператор и заказчик
+       * должны видеть «сколько реально есть», а не только заказанное.
+       */
+      withWarehouseQuantity?: boolean;
+    }
   ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const result = new Map<string, MarketplaceOrderDisplayFields>();
     if (orders.length === 0) return result;
@@ -84,19 +99,26 @@ export class MarketplaceOrderDisplayService {
     const cycleIds = opts?.withGroupProgress
       ? ([...new Set(orders.map((o) => o.cycle_id).filter((c): c is string => !!c))])
       : [];
-    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums] = await Promise.all([
-      this.offerRepo.findByIds(offerIds),
-      this.resolveBranches(branames),
-      this.resolveAccountNames(accounts),
-      // «Сколько накоплено» по парам (offer × КУ) и по партиям считаем только
-      // когда лента должна показать прогресс сбора (стол заказчика).
-      opts?.withGroupProgress
-        ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
-        : Promise.resolve([]),
-      cycleIds.length
-        ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
-        : Promise.resolve([]),
-    ]);
+    const [offers, branchByBraname, nameByAccount, groupSums, cycleSums, warehouseByOrderId] =
+      await Promise.all([
+        this.offerRepo.findByIds(offerIds),
+        this.resolveBranches(branames),
+        this.resolveAccountNames(accounts),
+        // «Сколько накоплено» по парам (offer × КУ) и по партиям считаем только
+        // когда лента должна показать прогресс сбора (стол заказчика).
+        opts?.withGroupProgress
+          ? this.orderRepo.sumActiveByOfferBranch(config.coopname, offerIds)
+          : Promise.resolve([]),
+        cycleIds.length
+          ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
+          : Promise.resolve([]),
+        opts?.withWarehouseQuantity
+          ? this.inventoryRepo.sumOnWarehouseByOrders(
+              config.coopname,
+              orders.map((o) => o.id)
+            )
+          : Promise.resolve(new Map<string, number>()),
+      ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
     // Ключ (offer_id::braname) → накоплено всеми на этапе сбора.
     const accumulatedByKey = new Map<string, number>();
@@ -140,6 +162,11 @@ export class MarketplaceOrderDisplayService {
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
         group_accumulated_quantity: accumulated,
         group_min_volume: minVolume,
+        // 0 (а не null) для заказа без позиций на складе: лента выдачи должна
+        // явно показать «принято 0», null зарезервирован за «не запрашивали».
+        warehouse_quantity: opts?.withWarehouseQuantity
+          ? (warehouseByOrderId.get(order.id) ?? 0)
+          : null,
       });
     }
     return result;

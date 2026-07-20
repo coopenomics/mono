@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -17,7 +18,7 @@ import {
   groupAplReceptions,
   handoffStageRoute,
   HANDOFF_QUERY,
-  usePollingRefresh,
+  useMarketplaceRealtime,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -627,15 +628,26 @@ watch(braname, () => void load());
 // Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
 watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
 
-// Тихое авто-обновление: статус акта меняет поставщик со своего устройства
-// (подписал приёмку → акт переходит в PENDING_CHAIRMAN_RECEPTION_SIGN, и на
-// столе должна сама появиться кнопка закрывающей подписи председателя). Без
-// этого экран оператора остаётся старым до ручной перезагрузки. Не дёргаем,
-// пока идёт загрузка/приём — чтобы poll не накладывался на действие.
-usePollingRefresh(() => load(), {
-  intervalMs: 10_000,
-  isBusy: computed(() => loading.value || acceptingPickup.value),
-});
+// Realtime вместо поллинга: статус акта меняет поставщик со своего устройства
+// (подписал приёмку → PENDING_CHAIRMAN_RECEPTION_SIGN, у оператора сама
+// появляется кнопка закрывающей подписи — он не отпускает поставщика, пока не
+// увидит её). Сигналы приходят в служебный канал персонала КУ: смена статуса
+// акта (фильтруем по своему КУ) и переходы заказов (партия сформирована /
+// выдача подписана). Не дёргаем, пока идёт загрузка/приём — чтобы обновление
+// не накладывалось на действие; страховка — 60-сек resync канала.
+const reloadLive = debounce(() => {
+  if (loading.value || acceptingPickup.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  {
+    MarketplaceAplReceptionStatusChangedEvent: (event) => {
+      if (event.braname === braname.value.trim()) reloadLive();
+    },
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+  },
+  { onResync: () => reloadLive() }
+);
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);

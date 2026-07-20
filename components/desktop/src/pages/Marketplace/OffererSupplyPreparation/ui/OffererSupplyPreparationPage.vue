@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
@@ -8,9 +9,8 @@ import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { RefreshButton } from 'src/widgets/Marketplace/RefreshButton';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import { listShipments, type MarketplaceShipmentView } from '../api';
@@ -198,6 +198,18 @@ function onCreated(): void {
   void load();
 }
 
+// Realtime: пока поставщик собирает партию, заказчик может отменить ACCEPTED-
+// заказ, а оператор — открыть приёмку уже отгруженной партии. Персональный
+// канал поставщика несёт переходы его заказов — список не устаревает.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() },
+);
+
 onMounted(() => {
   void load();
 });
@@ -216,7 +228,6 @@ q-page.offerer-supply
       template(#icon-left)
         q-icon(name='qr_code_2', size='16px')
       | Мой код для ПВЗ
-    RefreshButton(:loading='loading', @refresh='load')
 
   PageHint(storage-key='mp:offerer-supply:banner-dismissed')
     | Нажмите «Сформировать партию» в шапке: выберите способ доставки (самовывоз

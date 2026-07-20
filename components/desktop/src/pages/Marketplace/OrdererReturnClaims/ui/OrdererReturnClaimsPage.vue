@@ -1,9 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, BaseSelect, BaseBadge, CardListSkeleton, type BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
+import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
@@ -153,6 +155,18 @@ function statusVariant(status: MarketplaceReturnClaimView['status']): BaseBadgeV
       return 'neutral';
   }
 }
+
+// Realtime: председатель решает по заявлению (в т.ч. пока пайщик стоит у
+// стойки на очном осмотре) — вердикт появляется в списке сразу. Персональный
+// канал несёт только свои заявления, фильтр не нужен.
+const reloadLive = debounce(() => {
+  if (loading.value) return;
+  void load();
+}, 400);
+useMarketplaceRealtime(
+  { MarketplaceReturnClaimStatusChangedEvent: () => reloadLive() },
+  { onResync: () => reloadLive() },
+);
 
 onMounted(async () => {
   // Сначала заявки, потом заказы: orderOptions исключает заказы с открытой

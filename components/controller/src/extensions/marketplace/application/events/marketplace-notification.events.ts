@@ -34,6 +34,38 @@ export const MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT =
 export const MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT =
   'marketplace.order.orderer.readyToReceive';
 
+/**
+ * Остаток предложения изменился (заказ заблокировал/освободил/списал единицы).
+ * Сигнал широковещательному каналу каталога, чтобы у всех пайщиков карточка
+ * обновила доступное количество без перехода по страницам.
+ */
+export const MARKETPLACE_OFFER_COUNTERS_CHANGED_EVENT = 'marketplace.offer.counters.changed';
+
+/**
+ * Предложение прошло модерацию и стало активным — попадает в каталог. Сигнал
+ * широковещательному каналу каталога, чтобы витрина показала новое предложение.
+ */
+export const MARKETPLACE_OFFER_APPROVED_EVENT = 'marketplace.offer.approved';
+
+/**
+ * Статус заказа сменился (принял поставщик, подготовил партию, принял КУ,
+ * выдан, отменён, возвращён). Адресный сигнал персональным каналам обеих
+ * сторон заказа — заказчику и поставщику, — чтобы их столы заказов мгновенно
+ * перечитали состояние без поллинга. Эмитится из единой точки синхронизации с
+ * цепью (chain-as-source-of-truth) ПОСЛЕ commit'а в PG (INV-12).
+ */
+export const MARKETPLACE_ORDER_STATUS_CHANGED_EVENT = 'marketplace.order.status.changed';
+
+/**
+ * Статус акта приёмки (АПП) сменился: акт создан и ждёт подписи поставщика,
+ * поставщик подписал, председатель закрыл, акт отменён. Подпись поставщика
+ * НЕ двигает статусы заказов — поэтому отдельное событие: оператор у стойки
+ * ждёт именно эту подпись и не может отпустить поставщика без неё. Адресаты:
+ * служебный канал персонала КУ + персональный канал поставщика.
+ */
+export const MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT =
+  'marketplace.aplReception.status.changed';
+
 export interface MarketplaceAplSupplierSignRequestEvent {
   coopname: string;
   apl_reception_id: string;
@@ -83,6 +115,77 @@ export interface MarketplaceOrderReadyToReceiveEvent {
   orderer_account: string;
   /** Кооперативный участок, где имущество готово к выдаче. */
   braname: string;
+}
+
+export interface MarketplaceOfferCountersChangedEvent {
+  offer_id: string;
+  supplier_account: string;
+  op: 'block' | 'unblock' | 'consume' | 'rollback';
+  qty: number;
+  quantity_available: number;
+  quantity_blocked: number;
+  quantity_consumed: number;
+  unlimited_flag: boolean;
+}
+
+export interface MarketplaceOfferApprovedEvent {
+  offer_id: string;
+  supplier_account: string;
+  approved_by: string;
+  /** Категория предложения — каталог решает, нужно ли обновлять текущую вкладку. */
+  category_id: number;
+}
+
+/**
+ * Предложение поступило на модерацию (создано, значимо изменено или
+ * возвращено на публикацию без прошлого одобрения). Сигнал служебному каналу
+ * модерации, чтобы стол председателя показал новую заявку без поллинга.
+ */
+export const MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT =
+  'marketplace.offer.moderationRequested';
+
+export interface MarketplaceOfferModerationRequestedEvent {
+  offer_id: string;
+  supplier_account: string;
+}
+
+/**
+ * Предложение отклонено модератором. Имя события исторически закреплено в
+ * `MarketplaceModerationService.EVENT_REJECTED` — константа вынесена сюда,
+ * чтобы realtime-мост подписался: поставщик и стол модерации видят отказ
+ * сразу, без поллинга.
+ */
+export const MARKETPLACE_OFFER_REJECTED_EVENT = 'marketplace.offer.rejected';
+
+export interface MarketplaceOfferRejectedEvent {
+  offer_id: string;
+  supplier_account: string;
+  rejected_by: string;
+  reason: string;
+}
+
+export interface MarketplaceOrderStatusChangedEvent {
+  coopname: string;
+  order_id: string;
+  /** Новый статус заказа (значение из `MarketplaceOrderStatuses`). */
+  status: string;
+  /** Предыдущий статус — клиенту хватает для решения, нужно ли реагировать. */
+  previous_status: string;
+  /** Аккаунт заказчика — адресат персонального сигнала. */
+  orderer_account: string;
+  /** Аккаунт поставщика — второй адресат персонального сигнала. */
+  supplier_account: string;
+}
+
+export interface MarketplaceAplReceptionStatusChangedEvent {
+  coopname: string;
+  apl_reception_id: string;
+  /** Новый статус акта (значение из `MarketplaceAplReceptionStatuses`). */
+  status: string;
+  /** КУ приёмки — стол оператора фильтрует чужие участки. */
+  braname: string;
+  /** Аккаунт поставщика — адресат персонального сигнала. */
+  supplier_account: string;
 }
 
 /**

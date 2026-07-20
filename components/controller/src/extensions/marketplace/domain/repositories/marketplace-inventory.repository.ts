@@ -54,6 +54,15 @@ export interface MarketplaceInventoryDomainRepository {
 
   countByOrder(coopname: string, order_id: string): Promise<number>;
 
+  /**
+   * Сумма фактически принятого и ещё не выданного количества
+   * (Σ quantity_per_label по статусам RECEIVED/LABELED) по каждому заказу.
+   * Источник истины «сколько можно выдать»: выдача не может превышать
+   * физический остаток склада по заказу. Заказы без позиций на складе в
+   * карте отсутствуют (трактовать как 0).
+   */
+  sumOnWarehouseByOrders(coopname: string, order_ids: string[]): Promise<Map<string, number>>;
+
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
 
   applyStatusTransition(
