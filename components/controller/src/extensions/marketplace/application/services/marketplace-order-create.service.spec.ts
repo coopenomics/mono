@@ -94,6 +94,7 @@ describe('MarketplaceOrderCreateService', () => {
       mocks.counters,
       mocks.chainPort,
       { symbol: 'RUB', decimals: 4 },
+      { emit: jest.fn() } as any,
       mocks.logger
     );
   });

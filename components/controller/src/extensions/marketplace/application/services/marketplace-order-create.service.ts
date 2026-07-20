@@ -1,8 +1,13 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { computeOrderHash } from '../shared/order-hash.util';
+import {
+  MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
+  type MarketplaceNewOrderForSupplierEvent,
+} from '../events/marketplace-notification.events';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -124,6 +129,7 @@ export class MarketplaceOrderCreateService {
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
+    private readonly eventBus: EventEmitter2,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceOrderCreateService.name);
@@ -235,6 +241,23 @@ export class MarketplaceOrderCreateService {
     this.logger.log(
       `MarketplaceOrderCreateService: Order ${order.id} (hash=${order_hash}) создан для ${input.orderer_account}; offer=${offer.id}, qty=${input.quantity}, total=${locked_amount}; tx=${txHash}`
     );
+
+    // Карта уведомлений (пробел A): уведомляем поставщика о новом заказе ПОСЛЕ
+    // записи в PG (INV-12). Stock-заказ (offerer == сам кооператив) исключаем —
+    // некого уведомлять о собственном остатке. Ошибка шины не валит основной
+    // flow: emit синхронный, listener сам ловит ошибки Novu в warn.
+    if (offer.supplier_account !== input.coopname) {
+      const newOrderEvent: MarketplaceNewOrderForSupplierEvent = {
+        coopname: input.coopname,
+        order_id: order.id,
+        order_hash,
+        supplier_account: offer.supplier_account,
+        orderer_account: input.orderer_account,
+        quantity: input.quantity,
+        total_cost: locked_amount,
+      };
+      this.eventBus.emit(MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT, newOrderEvent);
+    }
 
     // Эпик 15: заказ остаётся ACTIVE и копится в группе (offer × КУ). Партия
     // формируется в момент batch-accept поставщиком из выбранных заказов —

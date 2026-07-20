@@ -36,6 +36,8 @@ import { workflow as marketplaceWriteoffProposedWorkflow } from './marketplace-w
 import { workflow as marketplaceWriteoffAuthorizedWorkflow } from './marketplace-writeoff-authorized';
 import { workflow as marketplaceWriteoffExecutedWorkflow } from './marketplace-writeoff-executed';
 import { workflow as marketplaceWriteoffRejectedWorkflow } from './marketplace-writeoff-rejected';
+import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplace-new-order-for-supplier';
+import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -74,6 +76,8 @@ export * as MarketplaceWriteoffProposed from './marketplace-writeoff-proposed';
 export * as MarketplaceWriteoffAuthorized from './marketplace-writeoff-authorized';
 export * as MarketplaceWriteoffExecuted from './marketplace-writeoff-executed';
 export * as MarketplaceWriteoffRejected from './marketplace-writeoff-rejected';
+export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-supplier';
+export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -113,6 +117,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceWriteoffAuthorizedWorkflow,
   marketplaceWriteoffExecutedWorkflow,
   marketplaceWriteoffRejectedWorkflow,
+  marketplaceNewOrderForSupplierWorkflow,
+  marketplaceReturnAcceptedSupplierWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа
