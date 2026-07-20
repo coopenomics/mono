@@ -6,6 +6,7 @@ import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecis
 import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
+import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 
 /**
@@ -33,6 +34,30 @@ export function registerBaseDecisionHandlers() {
         username,
         decision_id,
         project_id: parsedDocumentMeta.project_id,
+      });
+    },
+  });
+
+  // Обработчик для BranchEstablishmentDecision (решение об учреждении кооперативного участка)
+  decisionFactory.registerHandler('branchdec', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения branchdec');
+      }
+
+      // в мете заявления (петиции 324) — реквизиты учреждаемого участка
+      const parsedDocumentMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.BranchEstablishmentPetition.Action;
+
+      const { generateEstablishmentDecision } = useGenerateEstablishmentDecision();
+      return await generateEstablishmentDecision({
+        username,
+        decision_id,
+        branch_name: parsedDocumentMeta.branch_name ?? '',
+        address: parsedDocumentMeta.address ?? '',
+        // username избранного председателя участка из меты петиции (324); ФИО резолвит фабрика
+        chairman: parsedDocumentMeta.chairman ?? '',
       });
     },
   });

@@ -1,6 +1,7 @@
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
 import { type ModelTypes, Selector, type ValueTypes } from '../../zeus/index'
 import { rawBankAccountSelector } from '../common/bankAccountSelector'
+import { rawIndividualCertificateSelector } from '../common/individualCertificateSelector'
 import { rawIndividualSelector } from '../common/individualSelector'
 import { rawPaymentMethodSelector } from '../paymentMethods/paymentMethodSelector'
 import { rawBankPaymentMethodSelector } from '../paymentMethods/rawBankPaymentMethodSelector'
@@ -30,8 +31,16 @@ const rawBranchSelector = {
   short_name: true,
   trusted: rawIndividualSelector, // Передаём "сырой" объект
   trustee: rawIndividualSelector, // Передаём "сырой" объект
+  // публичные сертификаты (ФИО) — доступны любому пайщику
+  trustee_certificate: rawIndividualCertificateSelector,
+  trusted_certificates: rawIndividualCertificateSelector,
   bank_account: rawBankPaymentMethodSelector,
   type: true,
+  participants_count: true,
+  is_private: true,
+  is_available: true,
+  // белый список (ФИО) — доступен председателю/совету для управления приватным участком
+  whitelist_certificates: rawIndividualCertificateSelector,
 }
 
 // Проверка валидности

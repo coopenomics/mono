@@ -7,6 +7,9 @@ import type { CreateBranchGraphQLInput } from '../dto/create-branch-input.dto';
 import type { DeleteBranchGraphQLInput } from '../dto/delete-branch-input.dto';
 import type { AddTrustedAccountGraphQLInput } from '../dto/add-trusted-account-input.dto';
 import type { DeleteTrustedAccountGraphQLInput } from '../dto/delete-trusted-account-input.dto';
+import type { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-input.dto';
+import type { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
+import type { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import type { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
 import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import type { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
@@ -16,8 +19,8 @@ import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-
 export class BranchService {
   constructor(private readonly branchInteractor: BranchInteractor) {}
 
-  public async getBranches(data: GetBranchesGraphQLInput): Promise<BranchDTO[]> {
-    const branches = await this.branchInteractor.getBranches(data);
+  public async getBranches(data: GetBranchesGraphQLInput, currentUsername?: string): Promise<BranchDTO[]> {
+    const branches = await this.branchInteractor.getBranches(data, currentUsername);
 
     const result: BranchDTO[] = [];
 
@@ -53,6 +56,21 @@ export class BranchService {
 
   public async deleteTrustedAccount(data: DeleteTrustedAccountGraphQLInput): Promise<BranchDTO> {
     const branch = await this.branchInteractor.deleteTrustedAccount(data);
+    return new BranchDTO(branch);
+  }
+
+  public async setBranchPrivate(data: SetBranchPrivateGraphQLInput): Promise<BranchDTO> {
+    const branch = await this.branchInteractor.setBranchPrivate(data);
+    return new BranchDTO(branch);
+  }
+
+  public async addBranchWhitelist(data: AddBranchWhitelistGraphQLInput): Promise<BranchDTO> {
+    const branch = await this.branchInteractor.addBranchWhitelist(data);
+    return new BranchDTO(branch);
+  }
+
+  public async deleteBranchWhitelist(data: DeleteBranchWhitelistGraphQLInput): Promise<BranchDTO> {
+    const branch = await this.branchInteractor.deleteBranchWhitelist(data);
     return new BranchDTO(branch);
   }
 

@@ -286,6 +286,16 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
         `Action saved to database: ${action.account}::${action.name} with sequence ${action.global_sequence}`
       );
     } catch (error: any) {
+      // Дубликат по unique(global_sequence) = действие уже сохранено и событие
+      // по нему уже публиковалось при первичной обработке (повторная доставка:
+      // ресинк парсера, XCLAIM re-delivery). Считаем успехом — иначе сообщение
+      // никогда не ACK'ается и вечно крутится в pending.
+      if (error?.driverError?.code === '23505' || error?.code === '23505') {
+        this.logger.debug(
+          `Действие уже сохранено (duplicate global_sequence ${action.global_sequence}), пропускаем: ${action.account}::${action.name}`
+        );
+        return;
+      }
       this.logger.error(`Не удалось сохранить действие ${action.account}::${action.name}: ${error.message}`, error.stack);
       throw error; // Перебрасываем ошибку чтобы сообщение не было подтверждено
     }

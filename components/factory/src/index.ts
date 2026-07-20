@@ -107,6 +107,18 @@ export class Generator implements IGenerator {
       [Actions.AnnualGeneralMeetingVotingBallot.Template.registry_id]: new Actions.AnnualGeneralMeetingVotingBallot.Factory(this.storage), // 303
       [Actions.AnnualGeneralMeetingDecision.Template.registry_id]: new Actions.AnnualGeneralMeetingDecision.Factory(this.storage), // 304
 
+      // самоорганизация кооперативных участков
+      [Actions.BranchMeetingProposal.Template.registry_id]: new Actions.BranchMeetingProposal.Factory(this.storage), // 320
+      [Actions.BranchMeetingBallot.Template.registry_id]: new Actions.BranchMeetingBallot.Factory(this.storage), // 322
+      [Actions.BranchMeetingDecision.Template.registry_id]: new Actions.BranchMeetingDecision.Factory(this.storage), // 323
+      [Actions.BranchEstablishmentPetition.Template.registry_id]: new Actions.BranchEstablishmentPetition.Factory(this.storage), // 324
+      [Actions.BranchEstablishmentSovietDecision.Template.registry_id]: new Actions.BranchEstablishmentSovietDecision.Factory(this.storage), // 325
+      [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
+      [Actions.BranchTrustedLiabilityAgreement.Template.registry_id]: new Actions.BranchTrustedLiabilityAgreement.Factory(this.storage), // 327
+      [Actions.BranchTrusteeLiabilityAgreement.Template.registry_id]: new Actions.BranchTrusteeLiabilityAgreement.Factory(this.storage), // 328
+      [Actions.BranchTrusteePowerOfAttorney.Template.registry_id]: new Actions.BranchTrusteePowerOfAttorney.Factory(this.storage), // 329
+      [Actions.BranchTrustedPowerOfAttorney.Template.registry_id]: new Actions.BranchTrustedPowerOfAttorney.Factory(this.storage), // 330
+
       [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
       [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599
       [Actions.FreeDecision.Template.registry_id]: new Actions.FreeDecision.Factory(this.storage), // 600

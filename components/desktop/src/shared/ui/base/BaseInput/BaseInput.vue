@@ -14,6 +14,7 @@
     :placeholder="placeholder"
     :type="type"
     :autogrow="autogrow"
+    :mask="mask"
     :prefix="prefix"
     :suffix="suffix"
     :readonly="readonly"

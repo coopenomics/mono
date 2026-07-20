@@ -22,7 +22,8 @@ export function useSelectBranchProcess() {
   const branchStore = useBranchStore()
   const { isVisible, selectBranch } = useSelectBranch()
 
-  const branches = computed(() => branchStore.publicBranches)
+  // приватные участки, недоступные текущему пайщику (не в белом списке), к выбору не показываем
+  const branches = computed(() => branchStore.publicBranches.filter((branch) => branch.is_available))
   const branchesLoading = ref(false)
 
   const loadBranches = async () => {

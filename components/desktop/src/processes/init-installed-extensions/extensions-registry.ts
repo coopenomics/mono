@@ -8,6 +8,7 @@ import expensesInstall from '../../../extensions/expenses/install';
 import participantInstall from '../../../extensions/participant/install';
 import powerupInstall from '../../../extensions/powerup/install';
 import sovietInstall from '../../../extensions/soviet/install';
+import kuInstall from '../../../extensions/ku/install';
 import reportsInstall from '../../../extensions/reports/install';
 import marketInstall from '../../../extensions/market/install';
 
@@ -23,6 +24,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   participant: participantInstall,
   powerup: powerupInstall,
   soviet: sovietInstall,
+  trustee: kuInstall,
   reports: reportsInstall,
   market: marketInstall,
 };

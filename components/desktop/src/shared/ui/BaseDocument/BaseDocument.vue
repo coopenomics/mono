@@ -12,7 +12,10 @@ q-card.dynamic-padding(
     span.base-document__loader-label Формируем документ{{ doc?.meta?.title ? ` «${doc.meta.title}»` : '' }}…
   div(v-if='!loading')
     ShadowHtml(:html='safeHtml', :styles='shadowStyles')
-    .row.q-mt-lg.q-pa-sm.justify-center
+    //- Блок контрольной суммы/подписей/скачивания показываем только у документов
+    //- с каноническим doc_hash (подписанные/зарегистрированные). Неподписанное
+    //- превью строится с пустым doc_hash — там сверять и скачивать нечего, блок прячем.
+    .row.q-mt-lg.q-pa-sm.justify-center(v-if='hasDocHash')
       .col-md-8.col-xs-12
         //- Кнопка «Сверить» (локальная пересборка + сверка хеша) временно скрыта
         //- через :hide-verify. Чтобы вернуть — убрать :hide-verify (обработчик @verify
@@ -20,6 +23,7 @@ q-card.dynamic-padding(
         DocumentSignatures(
           :doc-hash='documentAggregate?.document?.doc_hash ?? ""',
           :regenerated-hash='regeneratedHash',
+          :hash-loading='hashComputing',
           :signatures='canonSignatures',
           :verifying='onRegenerate',
           :hide-verify='true',
@@ -28,7 +32,7 @@ q-card.dynamic-padding(
         )
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import DOMPurify from 'dompurify';
 import { DigitalDocument, prepareDocumentArchive } from 'src/shared/lib/document';
@@ -48,11 +52,19 @@ const props = defineProps({
 
 const doc = computed(() => props.documentAggregate.rawDocument);
 
+// Неподписанное превью строится с пустым doc_hash (канонического хэша ещё нет):
+// сверять не с чем, поэтому блок контрольной суммы скрываем и локальный пересчёт
+// не запускаем. Для реальных подписанных документов doc_hash присутствует → сверка работает.
+const hasDocHash = computed(() => !!props.documentAggregate?.document?.doc_hash);
+
 const loading = ref(false);
 const { isMobile } = useWindowSize();
-const regeneratedHash = ref();
+const regeneratedHash = ref<string | undefined>();
+const hashComputing = ref(false);
 const onRegenerate = ref(false);
 const regenerated = ref();
+
+let hashRequestId = 0;
 
 const regenerate = async () => {
   try {
@@ -176,9 +188,18 @@ const shadowStyles = computed(
 );
 
 const hashBuffer = async () => {
+  const binary = doc.value?.binary;
+  if (!binary) {
+    regeneratedHash.value = undefined;
+    hashComputing.value = hasDocHash.value;
+    return;
+  }
+
+  const requestId = ++hashRequestId;
+  hashComputing.value = true;
+
   try {
-    // Декодирование из base64
-    const binaryString = atob(doc.value?.binary ?? '');
+    const binaryString = atob(binary);
     const len = binaryString.length;
     const data = new Uint8Array(len);
 
@@ -186,15 +207,30 @@ const hashBuffer = async () => {
       data[i] = binaryString.charCodeAt(i);
     }
 
-    // Вычисление хэша из декодированных бинарных данных
-    regeneratedHash.value = (
-      await useGlobalStore().hashMessage(data)
-    ).toUpperCase();
-    console.log('Хэш успешно вычислен:', regeneratedHash.value);
+    const hash = (await useGlobalStore().hashMessage(data)).toUpperCase();
+    if (requestId !== hashRequestId) return;
+
+    regeneratedHash.value = hash;
   } catch (error) {
+    if (requestId !== hashRequestId) return;
+    regeneratedHash.value = undefined;
     console.error('Ошибка при вычислении хэша:', error);
+  } finally {
+    if (requestId === hashRequestId) {
+      hashComputing.value = false;
+    }
   }
 };
+
+watch(
+  () => (hasDocHash.value ? doc.value?.binary : undefined),
+  (binary, prevBinary) => {
+    if (binary === prevBinary) return;
+    regeneratedHash.value = undefined;
+    if (hasDocHash.value) void hashBuffer();
+  },
+  { immediate: true },
+);
 
 // Получение ФИО/названия подписанта по сертификату
 const getSignerName = (signer_certificate: any) => {
@@ -224,10 +260,7 @@ const verifySignatures = () => {
   // }
 };
 
-onMounted(() => {
-  hashBuffer();
-  verifySignatures();
-});
+verifySignatures();
 
 async function download() {
   try {

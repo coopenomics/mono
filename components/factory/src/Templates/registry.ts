@@ -65,6 +65,16 @@ import * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingS
 import * as AnnualGeneralMeetingNotification from './302.AnnualGeneralMeetingNotification'
 import * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVotingBallot'
 import * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
+import * as BranchMeetingProposal from './320.BranchMeetingProposal'
+import * as BranchMeetingBallot from './322.BranchMeetingBallot'
+import * as BranchMeetingDecision from './323.BranchMeetingDecision'
+import * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
+import * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
+import * as BranchTrustedStatement from './326.BranchTrustedStatement'
+import * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
+import * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
+import * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
+import * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'
 
 import * as BlagorostProgramTemplate from './998.BlagorostProgramTemplate'
 import * as BlagorostOfferTemplate from './999.BlagorostOfferTemplate'
@@ -102,6 +112,16 @@ export const Registry = {
   302: AnnualGeneralMeetingNotification,
   303: AnnualGeneralMeetingVotingBallot,
   304: AnnualGeneralMeetingDecision,
+  320: BranchMeetingProposal,
+  322: BranchMeetingBallot,
+  323: BranchMeetingDecision,
+  324: BranchEstablishmentPetition,
+  325: BranchEstablishmentSovietDecision,
+  326: BranchTrustedStatement,
+  327: BranchTrustedLiabilityAgreement,
+  328: BranchTrusteeLiabilityAgreement,
+  329: BranchTrusteePowerOfAttorney,
+  330: BranchTrustedPowerOfAttorney,
   501: DecisionOfParticipantApplication,
   599: ProjectFreeDecision,
   600: FreeDecision,

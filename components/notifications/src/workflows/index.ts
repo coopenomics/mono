@@ -42,6 +42,10 @@ import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplac
 import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
+import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
+import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
+import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
+import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 
 // Импортируем все воркфлоу
@@ -133,6 +137,10 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceReturnAcceptedSupplierWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceNewSupplierRequestWorkflow,
+  branchVotingStartedWorkflow,
+  branchMeetingReminderWorkflow,
+  branchTrustedRequestedWorkflow,
+  branchTrustedResolvedWorkflow,
   expenseAdvanceReportReminderWorkflow,
 ];
 
@@ -141,3 +149,7 @@ export const workflowsById = allWorkflows.reduce((acc, workflow) => {
   acc[workflow.workflowId] = workflow;
   return acc;
 }, {} as Record<string, WorkflowDefinition>);
+export * as BranchVotingStarted from './branch-voting-started';
+export * as BranchMeetingReminder from './branch-meeting-reminder';
+export * as BranchTrustedRequested from './branch-trusted-requested';
+export * as BranchTrustedResolved from './branch-trusted-resolved';

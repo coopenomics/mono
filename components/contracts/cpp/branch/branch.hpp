@@ -66,6 +66,43 @@ public:
   [[eosio::action]] void addtrusted(eosio::name coopname, eosio::name braname, eosio::name trusted);
   [[eosio::action]] void deltrusted(eosio::name coopname, eosio::name braname, eosio::name trusted);
 
+  // Приватность кооперативного участка и управление белым списком (председатель совета).
+  // Приватный участок нельзя выбрать (selectbranch), если аккаунт не в белом списке участка.
+  [[eosio::action]] void setprivate(eosio::name coopname, eosio::name braname, bool is_private);
+  [[eosio::action]] void addwhite(eosio::name coopname, eosio::name braname, eosio::name account);
+  [[eosio::action]] void delwhite(eosio::name coopname, eosio::name braname, eosio::name account);
+
+  // Универсальный механизм «собрание → решение» (L1)
+  [[eosio::action]] void createdec(eosio::name coopname, eosio::checksum256 hash, eosio::name type, eosio::name initiator, document2 proposal, eosio::name braname, std::vector<decision_point> agenda);
+  [[eosio::action]] void joindec(eosio::name coopname, eosio::checksum256 hash, eosio::name username);
+  [[eosio::action]] void startdec(eosio::name coopname, eosio::checksum256 hash, eosio::name chairman, std::string address, std::vector<decision_point> agenda);
+  [[eosio::action]] void votedec(eosio::name coopname, eosio::checksum256 hash, eosio::name username, document2 ballot, std::vector<decision_vote_point> votes);
+  [[eosio::action]] void closedec(eosio::name coopname, eosio::checksum256 hash, document2 protocol);
+
+  // Расширение автоматизируемого решения (L2): создание кооперативного участка через совет.
+  // Председатель участка подписывает пакетом заявление, договор о полной материальной
+  // ответственности (liability) и доверенность председателю участка (authority).
+  [[eosio::action]] void exec(eosio::name coopname, eosio::checksum256 hash, document2 petition, document2 liability, document2 authority);
+  [[eosio::action]] void confirmdec(eosio::name coopname, eosio::checksum256 hash, document2 authorization);
+  [[eosio::action]] void declinedec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+  [[eosio::action]] void canceldec(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+
+  // Договор о полной материальной ответственности председателя КУ: встречная подпись председателя совета
+  // (callback'и одобрения совета; отклонение заблокировано — решение об учреждении участка уже принято)
+  [[eosio::action]] void apprliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
+  [[eosio::action]] void declliab(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
+
+  // Доверенность председателя КУ: встречная подпись председателя совета
+  // (отдельное одобрение совета рядом с договором матответственности; отклонение заблокировано)
+  [[eosio::action]] void apprauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, document2 approved_document);
+  [[eosio::action]] void declauth(eosio::name coopname, eosio::name username, eosio::checksum256 approval_hash, std::string reason);
+
+  // Доверенные лица по заявлению: договор о полной материальной ответственности (application)
+  // и доверенность доверенному лицу (authority) — оба со встречной подписью председателя участка
+  [[eosio::action]] void reqtrusted(eosio::name coopname, eosio::name braname, eosio::name username, eosio::checksum256 hash, document2 application, document2 authority);
+  [[eosio::action]] void apprtrusted(eosio::name coopname, eosio::checksum256 hash, document2 countersigned, document2 countersigned_authority);
+  [[eosio::action]] void decltrusted(eosio::name coopname, eosio::checksum256 hash, std::string reason);
+
   // ── Экономика кооперативного участка (requirement b6) ────────────────
 
   /**

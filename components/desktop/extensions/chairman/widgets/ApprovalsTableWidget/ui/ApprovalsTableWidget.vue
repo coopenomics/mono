@@ -41,7 +41,7 @@ div
               :approved-document='props.row.document'
             )
             DeclineApprovalButton(
-              v-if='props.row.status === "PENDING"'
+              v-if='props.row.status === "PENDING" && is_approval_declinable(props.row.callback_contract, props.row.callback_action_approve)'
               :approval-hash='props.row.approval_hash'
               :coopname='props.row.coopname'
             )
@@ -65,7 +65,7 @@ import { onMounted, watch } from 'vue';
 import type { IApproval } from 'app/extensions/chairman/entities/Approval/model/types';
 import { ConfirmApprovalButton } from 'app/extensions/chairman/features/Approval/ConfirmApproval';
 import { DeclineApprovalButton } from 'app/extensions/chairman/features/Approval/DeclineApproval';
-import { get_approval_action_label } from 'app/extensions/chairman/shared';
+import { get_approval_action_label, is_approval_declinable } from 'app/extensions/chairman/shared';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { Zeus } from '@coopenomics/sdk';

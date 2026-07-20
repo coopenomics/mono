@@ -4,8 +4,10 @@ export interface BaseInputProps {
   hint?: string;
   error?: string;
   placeholder?: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'textarea';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'textarea';
   autogrow?: boolean;
+  /** Маска ввода Quasar: `#` — цифра (например `####` — серия паспорта, `###-###` — код подразделения) */
+  mask?: string;
   /** Моноширинный шрифт (для аккаунт-имён, hash, и т.п.) */
   mono?: boolean;
   /** Кнопка очистки значения (например, для фильтров по дате) */

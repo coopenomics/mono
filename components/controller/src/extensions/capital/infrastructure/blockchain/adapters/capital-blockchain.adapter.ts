@@ -873,7 +873,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   ): Promise<CapitalContract.Tables.Segments.ISegment | null> {
     // Создаем составной ключ для поиска по индексу by_project_user (позиция 3)
     const compositeKey = this.domainToBlockchainUtils.combineChecksumAndUsername(projectHash, username);
-    const keyUInt128 = UInt128.from(compositeKey);
+    const keyUInt128 = UInt128.from(compositeKey.toString());
 
     // Получаем сегмент из таблицы segments контракта capital
     const segment = await this.blockchainService.getSingleRow<CapitalContract.Tables.Segments.ISegment>(
