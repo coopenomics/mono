@@ -211,6 +211,27 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     };
   }
 
+  async exitCoop(data: import('~/domain/account/interfaces/account-blockchain.port').ExitCoopDomainInterface): Promise<void> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new BadGatewayException('Не найден приватный ключ для совершения операции');
+
+    await this.blockchainService.initialize(data.coopname, wif);
+
+    const exitData: RegistratorContract.Actions.ExitCoop.IExitCoop = {
+      coopname: data.coopname,
+      username: data.username,
+      exit_hash: data.exit_hash,
+      statement: Classes.Document.finalize(data.statement),
+    };
+
+    await this.blockchainService.transact({
+      account: RegistratorContract.contractName.production,
+      name: RegistratorContract.Actions.ExitCoop.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data: exitData,
+    });
+  }
+
   async addParticipantAccount(data: RegistratorContract.Actions.AddUser.IAddUser): Promise<void> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
@@ -228,6 +249,34 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
   getBlockchainAccount(username: string): Promise<BlockchainAccountInterface | null> {
     return this.blockchainService.getAccount(username);
+  }
+
+  getExit(
+    coopname: string,
+    username: string
+  ): Promise<RegistratorContract.Tables.Exits.IExit | null> {
+    return this.blockchainService.getSingleRow(
+      RegistratorContract.contractName.production,
+      coopname,
+      RegistratorContract.Tables.Exits.tableName,
+      Name.from(username)
+    );
+  }
+
+  async getExitByHash(
+    coopname: string,
+    exit_hash: string
+  ): Promise<RegistratorContract.Tables.Exits.IExit | null> {
+    // Таблица exits в scope=coopname мала (одна запись на выходящего пайщика,
+    // удаляется при завершении), поэтому проще выбрать все строки и найти по
+    // exit_hash, чем ходить во вторичный индекс byhash.
+    const rows = await this.blockchainService.getAllRows<RegistratorContract.Tables.Exits.IExit>(
+      RegistratorContract.contractName.production,
+      coopname,
+      RegistratorContract.Tables.Exits.tableName
+    );
+    const target = exit_hash.toLowerCase();
+    return rows.find((r) => String(r.exit_hash).toLowerCase() === target) ?? null;
   }
 
   getParticipantAccount(

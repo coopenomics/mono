@@ -1,6 +1,7 @@
 export {
   INTER_CHATCOOP_CALENDAR,
   INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
+  INTER_EXPENSE_CHASSIS,
   INTER_FILE_STORAGE,
   INTER_MATRIX_ROOM_MESSAGING,
   INTER_PROJECT_CAPITAL_CLEARANCE,
@@ -59,3 +60,14 @@ export type {
 } from './coop-calendar-event-notification.port';
 
 export type { InterProjectCapitalClearancePort } from './project-capital-clearance.port';
+
+export type {
+  InterExpenseCallbackHandler,
+  InterExpenseChassisPort,
+  InterExpenseItem,
+  InterExpensePagination,
+  InterExpensePaginatedResult,
+  InterExpenseProposalRead,
+  InterExpenseProposalStatus,
+  InterExpenseRequisiteItemInput,
+} from './expense-chassis.port';

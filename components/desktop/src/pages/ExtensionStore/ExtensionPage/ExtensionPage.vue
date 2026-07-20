@@ -33,6 +33,7 @@
         )
         ExtensionInstall(
           v-if='isInstall',
+          :extension-name='extension.name',
           :schema='extension.schema',
           v-model:config='data',
           :form-ref='myFormRef'

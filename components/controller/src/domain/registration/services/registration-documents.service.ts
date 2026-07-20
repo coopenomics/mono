@@ -132,11 +132,17 @@ export class RegistrationDocumentsService {
   ): Promise<IGeneratedRegistrationDocument> {
     this.logger.debug(`Генерация документа: ${config.id} (registry_id=${config.registry_id})`);
 
+    // Если шаблон оферты требует PrivateData, расширение-владелец предоставило
+    // резолвер hash'а в спеке регистрации — ядро не знает ни источника значения,
+    // ни того, какие registry_id этого требуют.
+    const doc_data_hash = config.resolve_doc_data_hash ? await config.resolve_doc_data_hash() : undefined;
+
     const document = await this.documentInteractor.generateDocument({
       data: {
         coopname,
         username,
         registry_id: config.registry_id,
+        ...(doc_data_hash ? { doc_data_hash } : {}),
       },
       options: {
         skip_save: false, // Сохраняем документ в базу для последующей сверки

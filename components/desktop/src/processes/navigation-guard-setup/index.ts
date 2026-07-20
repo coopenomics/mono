@@ -26,7 +26,15 @@ export function setupNavigationGuard(router: Router) {
   router.beforeEach(async (to, from, next) => {
     // если требуется установка
     const allowedRoutesDuringInstall = ['install', 'invite'];
-    if ((systemStore.info.system_status === Zeus.SystemStatus.install || systemStore.info.system_status === Zeus.SystemStatus.initialized) && !allowedRoutesDuringInstall.includes(to.name as string)) {
+    const isIncompleteInstallMaintenance =
+      systemStore.info.system_status === Zeus.SystemStatus.maintenance &&
+      !systemStore.info.vars?.name;
+    const requiresInstallFlow =
+      systemStore.info.system_status === Zeus.SystemStatus.install ||
+      systemStore.info.system_status === Zeus.SystemStatus.initialized ||
+      isIncompleteInstallMaintenance;
+
+    if (requiresInstallFlow && !allowedRoutesDuringInstall.includes(to.name as string)) {
       next({ name: 'install', params: { coopname: systemStore.info.coopname }, query: to.query });
       return;
     }

@@ -50,6 +50,10 @@ namespace Names {
     // Коллбэки для расходов
     constexpr eosio::name AUTHORIZE_EXPENSE = "capauthexpns"_n;
     constexpr eosio::name DECLINE_EXPENSE = "capdeclexpns"_n;
+
+    // Программные расходы обслуживаются шасси expense; capital видит только
+    // инициирование (createpgexp) и этот callback завершения flow.
+    constexpr eosio::name ON_PROGRAM_EXPENSE_DONE = "onpgexpdone"_n;
     
     // Коллбэки для долгов
     constexpr eosio::name AUTHORIZE_DEBT = "debtauthcnfr"_n;
@@ -80,10 +84,13 @@ namespace Names {
     // Внешние действия в других контрактах
     constexpr eosio::name CREATE_OUTPAY = "createoutpay"_n;
     constexpr eosio::name OPEN_PROGRAM_WALLET = "openprogwall"_n;
-    
+
     // Действия для отправки в soviet
     constexpr eosio::name CREATE_APPROVAL = "createapprv"_n;
     constexpr eosio::name CREATE_AGENDA = "createagenda"_n;
+
+    // Шасси expense
+    constexpr eosio::name CREATE_EXPENSE_PROPOSAL = "createexp"_n;
   }
   
   namespace SovietActions {
@@ -120,6 +127,7 @@ namespace Names {
     constexpr eosio::name CREATE_INVESTMENT = "createinvest"_n; // акцепт инвестиции
     constexpr eosio::name CREATE_PROGRAM_INVESTMENT = "createpinv"_n; // акцепт программной инвестиции
     constexpr eosio::name CREATE_EXPENSE = "createexpnse"_n; // акцепт расхода
+    constexpr eosio::name CREATE_PROGRAM_EXPENSE = "createpgexp"_n; // акцепт программного расхода
     constexpr eosio::name CREATE_WITHDRAW_1 = "createwthd1"_n; // акцепт возврата из задания
     constexpr eosio::name CREATE_WITHDRAW_2 = "createwthd2"_n; // акцепт возврата из проекта
     constexpr eosio::name CREATE_WITHDRAW_3 = "createwthd3"_n; // акцепт возврата из программы

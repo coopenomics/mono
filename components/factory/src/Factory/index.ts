@@ -7,6 +7,7 @@ import type { MongoDBConnector } from '../Services/Databazor'
 import { type ExternalEntrepreneurData, type ExternalIndividualData, type ExternalOrganizationData, type IVars, Individual, type InternalProjectData, Organization, PaymentMethod, Project, Vars } from '../Models'
 import type { IGenerate, IGenerationOptions } from '../Interfaces/Documents'
 import { PDFService } from '../Services/Generator'
+import { DocDataService } from '../Services/DocData'
 import packageJson from '../../package.json'
 import { Validator } from '../Services/Validator'
 import type { CooperativeData } from '../Models/Cooperative'
@@ -26,9 +27,11 @@ export abstract class DocFactory<T extends IGenerate> {
   abstract generateDocument(data: T, options?: IGenerationOptions): Promise<IGeneratedDocument>
 
   public storage: MongoDBConnector
+  public docData: DocDataService
 
   constructor(storage: MongoDBConnector) {
     this.storage = storage
+    this.docData = new DocDataService(storage)
   }
 
   /**
@@ -63,6 +66,37 @@ export abstract class DocFactory<T extends IGenerate> {
 
   async validate(combinedData: ICombinedData, schema: any) {
     return new Validator(schema, combinedData).validate()
+  }
+
+  /**
+   * Сохранить приватный payload документа и получить его hash.
+   * Hash безопасно публикуется on-chain как `doc_data_hash`; сам payload
+   * остаётся off-chain в коллекции `doc_private_data`.
+   * См. раздел «Document Generation Pattern: doc_data» в архитектуре.
+   */
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return this.docData.save(payload, registry_id)
+  }
+
+  /**
+   * Прочитать приватный payload по `doc_data_hash`.
+   * Возвращает null если запись удалена (документ остаётся верифицируемым
+   * по хэшу подписи, но не регенерируется — graceful degradation).
+   */
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return this.docData.get<P>(hash)
+  }
+
+  /**
+   * Помощник для конкретных фабрик: подгружает приватный payload по
+   * `data.doc_data_hash` и возвращает его (или null, если хэш не задан /
+   * запись удалена). Фабрика кладёт результат в `combinedData.doc_data` —
+   * шаблон документа обращается к полям как `{{ doc_data.<field> }}`.
+   */
+  async loadDocData<P = Record<string, unknown>>(data: { doc_data_hash?: string }): Promise<P | null> {
+    if (!data.doc_data_hash)
+      return null
+    return this.getDocData<P>(data.doc_data_hash)
   }
 
   async getOrganization(username: string, block_num?: number): Promise<IOrganizationData> {

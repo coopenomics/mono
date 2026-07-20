@@ -77,6 +77,18 @@ export class StateOutputDTO extends BaseOutputDTO {
   global_available_invest_pool!: string;
 
   @Field(() => String, {
+    nullable: true,
+    description: 'Пул программных расходов — средства, переведённые под целевые расходы программы',
+  })
+  program_expense_pool?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Зарезервировано в пуле программных расходов под активные расходы (служебные записки в работе)',
+  })
+  program_expense_reserved?: string;
+
+  @Field(() => String, {
     description: 'Общая сумма членских взносов по программе',
   })
   program_membership_funded!: string;

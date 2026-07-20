@@ -54,11 +54,17 @@ namespace processes {
     inline constexpr eosio::name PROPERTY  = "p.cap.prop"_n;     ///< Приём имущественного паевого взноса (одноактовый).
     inline constexpr eosio::name PREIMP    = "p.cap.preimp"_n;   ///< Первичный учёт РИД-взноса до перехода на электронный учёт (одноактовый, anchor = preimp register hash).
     inline constexpr eosio::name WTHCAP    = "p.cap.wthcap"_n;   ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (одноактовый).
+    inline constexpr eosio::name PGEXP     = "p.cap.pgexp"_n;    ///< Пул программных расходов: пополнение из инвестиций программы (o.cap.pgtop, одноактовый).
   }
 
   // marketplace
   namespace marketplace {
     inline constexpr eosio::name REQUEST   = "p.mkt.reqst"_n;    ///< Цикл запроса маркетплейса (o.mkt.supply + o.mkt.recv).
+  }
+
+  // expense — шасси расходов (СЗ → авторизация → платёж → отчёт → закрытие)
+  namespace expense {
+    inline constexpr eosio::name PROPOSAL  = "p.exp.expns"_n;    ///< Цикл расхода по СЗ: o.exp.blgadv|blgdir (платёж) + опц. o.exp.over (перерасход) + o.exp.advrpt (отчёт ADVANCE) + опц. o.exp.advret (возврат). Анкер процесса — proposal_hash.
   }
 
   // soviet

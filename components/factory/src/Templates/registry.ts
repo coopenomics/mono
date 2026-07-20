@@ -6,6 +6,8 @@ import * as CoopenomicsAgreement from './50.CoopenomicsAgreement'
 import * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 import * as ParticipantApplication from './100.ParticipantApplication'
 import * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+import * as ParticipantExitApplication from './200.ParticipantExitApplication'
+import * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 import * as SelectBranchStatement from './101.SelectBranchStatement'
 import * as ProjectFreeDecision from './599.ProjectFreeDecision'
 import * as FreeDecision from './600.FreeDecision'
@@ -28,6 +30,9 @@ import * as InitProjectDecision from './1006.InitProjectDecision'
 
 import * as ExpenseStatement from './1010.ExpenseStatement'
 import * as ExpenseDecision from './1011.ExpenseDecision'
+
+import * as ExpenseProposalStatement from './2010.ExpenseProposalStatement'
+import * as ExpenseProposalDecision from './2011.ExpenseProposalDecision'
 
 import * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 import * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'
@@ -78,6 +83,8 @@ export const Registry = {
   51: ConvertToAxonStatement,
   100: ParticipantApplication,
   101: SelectBranchStatement,
+  200: ParticipantExitApplication,
+  201: DecisionOfParticipantExit,
   300: AnnualGeneralMeetingAgenda,
   301: AnnualGeneralMeetingSovietDecision,
   302: AnnualGeneralMeetingNotification,
@@ -127,4 +134,6 @@ export const Registry = {
   1072: CapitalizationPropertyInvestAct,
   1080: GenerationConvertStatement,
   1090: CapitalizationToMainWalletConvertStatement,
+  2010: ExpenseProposalStatement,
+  2011: ExpenseProposalDecision,
 }

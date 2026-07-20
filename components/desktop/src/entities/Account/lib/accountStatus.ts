@@ -28,6 +28,14 @@ export function getAccountStatusBadge(account: IAccount): AccountStatusBadge {
     return { label: 'Активный пайщик', variant: 'pos' };
   }
 
+  // 1b. Вышел из кооператива: запись пайщика удалена (delpartcpnt), а аккаунт в
+  //     registrator переведён в blocked (finalize_member_exit). participant_account
+  //     уже нет — ловим терминал по user_account.status, иначе воронка ниже
+  //     показала бы «Активный пайщик» (provider-статус остаётся Active).
+  if (String(account.user_account?.status) === 'blocked') {
+    return { label: 'Вышел из кооператива', variant: 'neutral' };
+  }
+
   const status = account.provider_account?.status;
 
   // 2. Отклонён советом после оплаты: PROCESSING — возврат ещё идёт, REFUNDED —

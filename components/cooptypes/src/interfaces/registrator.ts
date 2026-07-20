@@ -53,6 +53,17 @@ export interface IChangekey {
   public_key: IPublicKey
 }
 
+export interface ICompletexit {
+  coopname: IName
+  exit_hash: IChecksum256
+}
+
+export interface IConfirmexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  authorization: IDocument2
+}
+
 export interface IConfirmpay {
   coopname: IName
   registration_hash: IChecksum256
@@ -122,6 +133,12 @@ export interface IDeclinereg {
   reason: string
 }
 
+export interface IDeclinexit {
+  coopname: IName
+  exit_hash: IChecksum256
+  reason: string
+}
+
 export interface IDelcoop {
   registrator: IName
   coopname: IName
@@ -149,6 +166,24 @@ export interface IDocument2 {
 
 export interface IEnabranches {
   coopname: IName
+}
+
+export interface IExit {
+  username: IName
+  coopname: IName
+  status: IName
+  created_at: ITimePointSec
+  statement: IDocument2
+  approved_statement: IDocument2
+  exit_hash: IChecksum256
+  quantity: IAsset
+}
+
+export interface IExitcoop {
+  coopname: IName
+  username: IName
+  exit_hash: IChecksum256
+  statement: IDocument2
 }
 
 export interface IInit {

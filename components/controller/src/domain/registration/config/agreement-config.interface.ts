@@ -60,6 +60,14 @@ export interface IAgreementConfigItem {
    * Порядок отображения на фронтенде (сортировка)
    */
   order: number;
+
+  /**
+   * Резолвер hash'а приватных данных документа (doc_data_hash), если шаблон
+   * оферты на фабрике требует PrivateData. Заполняется только для
+   * extension-оферт из AgreementRegistrationSpec; платформенные соглашения
+   * его не имеют. В GraphQL DTO не попадает (поля мапятся декораторами).
+   */
+  resolve_doc_data_hash?: () => Promise<string | undefined>;
 }
 
 /**

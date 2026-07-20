@@ -18,6 +18,11 @@ type ZipEntry = {
 
 const encoder = new TextEncoder();
 
+// Флаг bit-11 (Language encoding flag) общего назначения ZIP: имена файлов в UTF-8.
+// Имена пишем UTF-8 (TextEncoder), но без этого флага читатели декодируют их как CP437/latin1
+// → кириллица превращается в мохибейк, и manifest.json (UTF-8) не находит записи в пакете.
+const ZIP_UTF8_FLAG = 0x0800;
+
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -67,7 +72,7 @@ const buildZipArchive = (files: ZipEntry[]): Uint8Array => {
     const localView = new DataView(local.buffer);
     localView.setUint32(0, 0x04034b50, true); // local header signature
     localView.setUint16(4, 20, true); // version needed to extract
-    localView.setUint16(6, 0, true); // general purpose bit flag
+    localView.setUint16(6, ZIP_UTF8_FLAG, true); // general purpose bit flag (UTF-8 имена)
     localView.setUint16(8, 0, true); // compression method (store)
     localView.setUint16(10, dosTime, true); // last mod file time
     localView.setUint16(12, dosDate, true); // last mod file date
@@ -83,7 +88,7 @@ const buildZipArchive = (files: ZipEntry[]): Uint8Array => {
     centralView.setUint32(0, 0x02014b50, true); // central file header signature
     centralView.setUint16(4, 20, true); // version made by
     centralView.setUint16(6, 20, true); // version needed to extract
-    centralView.setUint16(8, 0, true); // general purpose bit flag
+    centralView.setUint16(8, ZIP_UTF8_FLAG, true); // general purpose bit flag (UTF-8 имена)
     centralView.setUint16(10, 0, true); // compression method
     centralView.setUint16(12, dosTime, true); // last mod file time
     centralView.setUint16(14, dosDate, true); // last mod file date

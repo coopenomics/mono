@@ -54,6 +54,7 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   readonly: false,
   disabled: false,
   required: false,
+  autogrow: false,
 });
 
 const emit = defineEmits<{

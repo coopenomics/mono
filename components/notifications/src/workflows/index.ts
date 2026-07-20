@@ -20,10 +20,12 @@ import { workflow as newDepositPaymentRequestWorkflow } from './new-deposit-paym
 import { workflow as resetKeyWorkflow } from './reset-key';
 import { workflow as inviteWorkflow } from './invite';
 import { workflow as emailVerificationWorkflow } from './email-verification';
+import { workflow as membershipExitConfirmationWorkflow } from './membership-exit-confirmation';
 import { workflow as serverProvisionedWorkflow } from './server-provisioned';
 import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
+import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -46,10 +48,12 @@ export * as NewDepositPaymentRequest from './new-deposit-payment-request';
 export * as ResetKey from './reset-key';
 export * as Invite from './invite';
 export * as EmailVerification from './email-verification';
+export * as MembershipExitConfirmation from './membership-exit-confirmation';
 export * as ServerProvisioned from './server-provisioned';
 export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
+export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -73,10 +77,12 @@ export const allWorkflows: WorkflowDefinition[] = [
   resetKeyWorkflow,
   inviteWorkflow,
   emailVerificationWorkflow,
+  membershipExitConfirmationWorkflow,
   serverProvisionedWorkflow,
   decisionExpiredWorkflow,
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
+  expenseAdvanceReportReminderWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

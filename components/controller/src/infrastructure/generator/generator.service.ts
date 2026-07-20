@@ -63,6 +63,14 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
     return await this.generator.search(query);
   }
 
+  async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return await this.generator.saveDocData(payload, registry_id);
+  }
+
+  async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return await this.generator.getDocData<P>(hash);
+  }
+
   async generateDocument(body: GenerateDocumentDomainInterfaceWithOptions): Promise<DocumentDomainEntity> {
     try {
       const generated = await this.generate(body.data, body.options);

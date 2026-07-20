@@ -47,6 +47,20 @@ src/
 
 `PDFService` в `Services/Generator/` записывает HTML во временный файл, вызывает `weasyprint` через `child_process.exec`, читает результат. Требует установленного WeasyPrint в системе.
 
+### Приватные данные документа: `doc_data`
+
+Зарезервированный механизм для документов, содержащих персональные данные, которые не должны попадать в блокчейн.
+
+- `Services/DocData/index.ts` — `DocDataService` с `save(payload, registry_id) → { hash }` (sha256, идемпотентный upsert) и `get(hash) → payload | null`.
+- Коллекция Mongo `doc_private_data` со схемой `{ hash, registry_id, payload, _created_at }`; уникальный индекс по `hash`.
+- В Action документа — зарезервированное поле `doc_data_hash: string` (см. `Cooperative.Document.IDocDataRef` в cooptypes).
+- `DocFactory.loadDocData(data)` — хелпер для конкретной фабрики: подгружает payload, фабрика кладёт в `combinedData.doc_data`.
+- Шаблон обращается как `{{ doc_data.<field> }}` — `doc_data` это зарезервированная переменная шаблона наравне с `meta`, `coop`, `vars`, `user`, `request`, `program`, `decision`, `branch`.
+- Generator-фасад: `generator.saveDocData(payload, registry_id)` / `generator.getDocData(hash)`.
+- Graceful degradation: если payload удалён из коллекции, документ остаётся верифицируемым по хэшу подписи (on-chain), но не регенерируется.
+
+Применяется в новых документах с персональными данными (1103.MarketplaceTransportNote — данные экспедитора). Старые документы не переводим.
+
 ### Mock-система
 
 - `src/Utils/testMocks.ts` — экспортирует `testMocks` (массив моков из `mocks/tables/` и `mocks/actions/`)

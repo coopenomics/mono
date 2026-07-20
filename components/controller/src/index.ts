@@ -62,15 +62,33 @@ async function bootstrap() {
   // Проверяем, был ли запущен режим миграций
   const args = process.argv.slice(2);
   if (args.includes('--migrate')) {
-    await migrateData();
-    process.exit(0);
+    try {
+      await migrateData();
+      process.exit(0);
+    } catch (error) {
+      // migrateData() уже логирует причину; здесь важен только ненулевой
+      // exit code. В production Sentry.init() ставит свой глобальный
+      // process.on('unhandledRejection', ...) с дефолтным mode: 'warn' —
+      // он перехватывает необработанный reject этого await и НЕ роняет
+      // процесс (в отличие от штатного поведения Node без Sentry). Без
+      // явного process.exit(1) здесь deploy-скрипт получал ложноположительный
+      // exit code 0 при реально упавшей миграции (кейс V2.3.2 на testnet
+      // 2026-07-19 — TS-ошибка компиляции миграции проглатывалась именно так).
+      logger.error('Процесс миграции завершился с ошибкой, выходим с кодом 1', error);
+      process.exit(1);
+    }
   }
 
   // Проверяем, был ли запущен режим только миграций (для обратной совместимости)
   if (args.includes('--migrations-only')) {
-    await migrateData();
-    logger.info('Режим только миграций - миграции выполнены, сервер не будет запущен');
-    process.exit(0);
+    try {
+      await migrateData();
+      logger.info('Режим только миграций - миграции выполнены, сервер не будет запущен');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Процесс миграции завершился с ошибкой, выходим с кодом 1', error);
+      process.exit(1);
+    }
   }
 
   // Подключение к MongoDB

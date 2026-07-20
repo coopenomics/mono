@@ -12,6 +12,12 @@
 #include "src/user/declinerfnd.cpp"
 #include "src/user/reguser.cpp"
 
+#include "src/exit/exit_helpers.hpp"
+#include "src/exit/exitcoop.cpp"
+#include "src/exit/confirmexit.cpp"
+#include "src/exit/completexit.cpp"
+#include "src/exit/declinexit.cpp"
+
 #include "src/account/createbranch.cpp"
 #include "src/account/newaccount.cpp"
 #include "src/account/updateaccnt.cpp"

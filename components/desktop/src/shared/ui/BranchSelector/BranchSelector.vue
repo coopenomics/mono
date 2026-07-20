@@ -9,7 +9,6 @@ div
     emit-value
     standout="bg-teal text-white"
     map-options
-    @update:model-value="$emit('update:selectedBranch', $event)"
   )
 
     template(v-slot:option="scope")
@@ -27,22 +26,13 @@ div
 
   <script lang="ts" setup>
   import { type IPublicBranch } from 'src/entities/Branch/model';
-  import { ref, watch } from 'vue'
 
-  const props = defineProps({
+  defineProps({
     branches: {
       type: Object as () => IPublicBranch[],
       required: true,
     },
-    modelValue: {
-      type: String,
-      required: false,
-    },
   })
 
-  const selectedBranch = ref(props.modelValue)
-
-  watch(() => props.modelValue, (newVal) => {
-    selectedBranch.value = newVal
-  })
+  const selectedBranch = defineModel<string>('selectedBranch', { default: '' })
   </script>

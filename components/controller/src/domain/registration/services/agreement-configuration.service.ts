@@ -50,6 +50,7 @@ export class AgreementConfigurationService {
       link_to_statement: true,
       applicable_account_types: spec.applicable_account_types,
       order: spec.order,
+      resolve_doc_data_hash: spec.resolve_doc_data_hash,
     };
   }
 

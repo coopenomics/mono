@@ -48,7 +48,7 @@ button.rail__signout(
   @click="emit('signout')"
 )
   q-icon(name='logout')
-  | {{ signoutLabel ?? 'Выйти' }}
+  | {{ signoutLabel ?? 'Выйти из кабинета' }}
 </template>
 
 <script setup lang="ts">

@@ -1,6 +1,6 @@
 {
   "name": "@coopenomics/desktop",
-  "version": "2026.6.9-18",
+  "version": "2026.7.19-1",
   "description": "Рабочий стол кооператива — Vue 3 + Quasar Framework",
   "productName": "Desktop App",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
@@ -95,7 +95,6 @@
     "@types/serviceworker": "^0.0.141",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",
-    "@vue/devtools": "^8.1.1",
     "@vue/language-plugin-pug": "~3.2.6",
     "autoprefixer": "^10.4.2",
     "concurrently": "^8.2.2",

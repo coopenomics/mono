@@ -4,6 +4,7 @@
 
   RequireAgreements
   SelectBranchOverlay
+  ExitOverlay
   NotificationPermissionDialog
 </template>
 
@@ -12,6 +13,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { FailAlert } from 'src/shared/api/alerts';
 import { RequireAgreements } from 'src/widgets/RequireAgreements';
 import { SelectBranchOverlay } from 'src/features/Branch/SelectBranch';
+import { ExitOverlay } from 'src/features/Membership/ExitFromCoop';
 import {
   NotificationPermissionDialog,
   useNotificationPermissionDialog,

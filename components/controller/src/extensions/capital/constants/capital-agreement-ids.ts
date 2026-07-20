@@ -23,9 +23,13 @@ export const GENERATOR_OFFER_AGREEMENT_ID = 'generator_offer';
 export const BLAGOROST_OFFER_AGREEMENT_ID = 'blagorost_offer';
 
 export const GENERATOR_AGREEMENT_TYPE = 'generator';
-// On-chain имя оферты Благорост в `soviet::coagreements` — 'capital' (program_id=4).
-// Контроллер обязан слать sndagreement/signagree с этим значением, иначе
-// `get_coagreement_or_fail` падает с «Соглашение указанного типа не найдено».
+// On-chain имя оферты Благорост в `soviet::coagreements` (_capital_program в
+// lib/consts.hpp контракта) — 'capital' (program_id=4). Подтверждено прямым
+// запросом к продовой цепочке voskhod (185.70.105.87). Значение здесь ОБЯЗАНО
+// совпадать буквально с контрактной константой — иначе account.adapter.ts не
+// находит coagreement по type, программный signagree подменяется на
+// sndagreement, и `get_coagreement_or_fail` падает с «Соглашение указанного
+// типа не найдено».
 export const BLAGOROST_AGREEMENT_TYPE = 'capital';
 
 export const GENERATION_PROGRAM_KEY = 'GENERATION';

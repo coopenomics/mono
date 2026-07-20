@@ -28,4 +28,10 @@ export class PaymentFiltersInputDTO implements PaymentFiltersDomainInterface {
 
   @Field(() => String, { nullable: true, description: 'Хэш платежа' })
   hash?: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Хэш расхода (служебной записки): вернёт все платежи, связанные с этим расходом',
+  })
+  proposal_hash?: string;
 }

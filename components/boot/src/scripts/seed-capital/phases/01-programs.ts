@@ -1,6 +1,6 @@
 /**
  * Фаза 01 — программы УХД (id=3, type='generator') и Благорост
- * (id=4, type='blagorost') + capital::setconfig.
+ * (id=4, type='capital') + capital::setconfig.
  *
  * Идемпотентно: программы создаются только если их ещё нет в `programs`-таблице,
  * setconfig — только если `state` пуст.
@@ -88,7 +88,7 @@ export async function phase01(): Promise<void> {
       fixed_membership_contribution: '0.0000 RUB',
       membership_percent_fee: '0',
       meta: '',
-      type: 'blagorost',
+      type: 'capital',
     }
     await blockchain.api.transact({
       actions: [{

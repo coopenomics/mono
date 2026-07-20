@@ -57,4 +57,40 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
 
     return existingEntity.toDomainEntity();
   }
+
+  async patchConfig(name: string, patch: Partial<TConfig>): Promise<ExtensionDomainEntity<TConfig>> {
+    // TypeORM оборачивает .query() для UPDATE/DELETE в кортеж [rows, affectedCount]
+    // (в отличие от INSERT, где возвращается голый rows-массив) — распаковываем явно,
+    // иначе row оказывается всем кортежем и все поля читаются как undefined.
+    const [rows] = (await this.ormRepo.query(
+      `UPDATE extensions
+          SET config = COALESCE(config, '{}'::jsonb) || $2::jsonb,
+              updated_at = NOW()
+        WHERE name = $1
+        RETURNING name, enabled, config, schema_version, created_at, updated_at`,
+      [name, JSON.stringify(patch)]
+    )) as [
+      Array<{
+        name: string;
+        enabled: boolean;
+        config: TConfig;
+        schema_version: number;
+        created_at: Date;
+        updated_at: Date;
+      }>,
+      number,
+    ];
+
+    const row = rows[0];
+    if (!row) throw new Error('Расширение не найдено в установленных');
+
+    return new ExtensionDomainEntity<TConfig>(
+      row.name,
+      row.enabled,
+      row.config,
+      row.created_at,
+      row.updated_at,
+      row.schema_version
+    );
+  }
 }

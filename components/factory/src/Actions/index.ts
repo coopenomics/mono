@@ -1,5 +1,3 @@
-import type { AssetContributionStatement, ReturnByAssetStatement } from '../Templates'
-
 export * as WalletAgreement from './1.WalletAgreement'
 export * as RegulationElectronicSignature from './2.RegulationElectronicSignature'
 export * as PrivacyPolicy from './3.PrivacyPolicy'
@@ -9,6 +7,8 @@ export * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 export * as SelectBranchStatement from './101.SelectBranchStatement'
 export * as ParticipantApplication from './100.ParticipantApplication'
 export * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+export * as ParticipantExitApplication from './200.ParticipantExitApplication'
+export * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 export * as ProjectFreeDecision from './599.ProjectFreeDecision'
 export * as FreeDecision from './600.FreeDecision'
 export * as AssetContributionStatement from './700.AssetContributionStatement'
@@ -33,6 +33,10 @@ export * as InitProjectDecision from './1006.InitProjectDecision'
 
 export * as ExpenseStatement from './1010.ExpenseStatement'
 export * as ExpenseDecision from './1011.ExpenseDecision'
+
+// Шасси расходов (волна 6, MVP-SINGLE) — C28-30
+export * as ExpenseProposalStatement from './2010.ExpenseProposalStatement'
+export * as ExpenseProposalDecision from './2011.ExpenseProposalDecision'
 
 export * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 export * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'

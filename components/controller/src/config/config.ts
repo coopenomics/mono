@@ -189,6 +189,10 @@ const envVarsSchema = z.object({
     .string()
     .optional()
     .describe('База публичного URL контроллера для read-URL; пусто — берётся BACKEND_URL'),
+  MIN_SOVIET_MEMBERS_COUNT: z
+    .string()
+    .optional()
+    .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
 const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
@@ -260,6 +264,11 @@ export default {
     },
   },
   coopname: envVars.data.COOPNAME,
+  min_soviet_members_count: envVars.data.MIN_SOVIET_MEMBERS_COUNT
+    ? parseInt(envVars.data.MIN_SOVIET_MEMBERS_COUNT, 10)
+    : envVars.data.NODE_ENV === 'production'
+      ? 3
+      : 1,
   graphql_service: envVars.data.GRAPHQL_SERVICE,
   provider_base_url: envVars.data.PROVIDER_BASE_URL,
   union: {

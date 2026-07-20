@@ -10,6 +10,7 @@ import { DocumentPackageAggregator } from '../aggregators/document-package.aggre
 import { getActions } from '~/utils/getFetch';
 import { toDotNotation } from '~/utils/toDotNotation';
 import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { GenerateDocumentWithPrivateDataDomainInterface } from '../interfaces/generate-document-with-private-data.interface';
 
 @Injectable()
 export class DocumentDomainService {
@@ -22,7 +23,32 @@ export class DocumentDomainService {
   ) {}
 
   public async generateDocument(data: GenerateDocumentDomainInterfaceWithOptions): Promise<DocumentDomainEntity> {
+    const documentData: GenerateDocumentWithPrivateDataDomainInterface = data.data;
+
+    if (documentData.doc_data) {
+      const { doc_data, ...publicDocumentData } = documentData;
+      const { hash } = documentData.doc_data_hash
+        ? { hash: documentData.doc_data_hash }
+        : await this.saveDocData(doc_data, documentData.registry_id);
+
+      return await this.generatorInfrastructureService.generateDocument({
+        ...data,
+        data: {
+          ...publicDocumentData,
+          doc_data_hash: hash,
+        },
+      });
+    }
+
     return await this.generatorInfrastructureService.generateDocument(data);
+  }
+
+  public async saveDocData<P extends Record<string, unknown>>(payload: P, registry_id: number): Promise<{ hash: string }> {
+    return await this.generatorInfrastructureService.saveDocData(payload, registry_id);
+  }
+
+  public async getDocData<P = Record<string, unknown>>(hash: string): Promise<P | null> {
+    return await this.generatorInfrastructureService.getDocData<P>(hash);
   }
 
   public async getDocumentByHash(hash: string): Promise<DocumentDomainEntity | null> {
