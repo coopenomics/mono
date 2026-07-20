@@ -3,9 +3,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { NOVU_WORKFLOW_PORT, type NovuWorkflowPort } from '~/domain/notification/interfaces/novu-workflow.port';
+import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
-import type { WorkflowTriggerDomainInterface } from '~/domain/notification/interfaces/workflow-trigger-domain.interface';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -40,14 +39,14 @@ import {
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
  *
- * Слушает event-bus EventEmitter2 (per-contract канал marketplace) и
- * шлёт Novu workflow трём ролям:
+ * Слушает event-bus EventEmitter2 (per-contract канал marketplace) и шлёт
+ * уведомление через Центр уведомлений трём ролям:
  *  - поставщику при создании АПП варианта Б (требуется первая подпись);
  *  - кассиру (в MVP — председателю; extension-роль cashier появится позже)
  *    при формировании запроса исходящего платежа;
  *  - поставщику при подтверждении выплаты кассиром.
  *
- * Provider не блокирующий: ошибки Novu / отсутствие subscriber_id
+ * Provider не блокирующий: ошибки отправки / отсутствие subscriber_id
  * логируются как warn, основной flow marketplace-сервиса не падает
  * (INV-12: emit идёт ПОСЛЕ save в PG, поэтому проблема доставки не
  * влияет на доменную целостность).
@@ -55,8 +54,7 @@ import {
 @Injectable()
 export class MarketplaceNotificationService implements OnModuleInit {
   constructor(
-    @Inject(NOVU_WORKFLOW_PORT)
-    private readonly novuWorkflowPort: NovuWorkflowPort,
+    private readonly notificationSenderService: NotificationSenderService,
     @Inject(ACCOUNT_DATA_PORT)
     private readonly accountPort: AccountDataPort,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
@@ -73,16 +71,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT)
   async handleAplSupplierSignRequest(event: MarketplaceAplSupplierSignRequestEvent): Promise<void> {
     try {
-      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
-      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
-      const email = supplierAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `АПП ${event.apl_reception_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push пропущен.`
-        );
-        return;
-      }
-
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceAplSupplierSignRequest.IPayload = {
         supplierName,
@@ -93,12 +81,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PendingAplReceptions/${event.apl_reception_id}`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceAplSupplierSignRequest.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.supplier_account,
+        Workflows.MarketplaceAplSupplierSignRequest.id,
+        payload
+      );
       this.logger.log(
         `АПП ${event.apl_reception_id}: push поставщику ${event.supplier_account} отправлен.`
       );
@@ -125,14 +112,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
         return;
       }
       const cashier = chairmen.items[0];
-      const subscriberId = cashier.provider_account?.subscriber_id?.trim();
-      const email = cashier.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Payment ${event.payment_request_id}: subscriber_id/email кассира ${cashier.username} не найден — push пропущен.`
-        );
-        return;
-      }
 
       const cashierName = await this.accountPort.getDisplayName(cashier.username);
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
@@ -145,12 +124,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/cashier/Payments`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceCashierNewPayment.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        cashier.username,
+        Workflows.MarketplaceCashierNewPayment.id,
+        payload
+      );
       this.logger.log(
         `Payment ${event.payment_request_id}: push кассиру ${cashier.username} отправлен.`
       );
@@ -178,14 +156,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
         return;
       }
       const chairman = chairmen.items[0];
-      const subscriberId = chairman.provider_account?.subscriber_id?.trim();
-      const email = chairman.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Заявка поставщика ${event.member_account}: subscriber_id/email председателя ${chairman.username} не найден — push пропущен.`
-        );
-        return;
-      }
 
       const chairmanName = await this.accountPort.getDisplayName(chairman.username);
       const supplierName = await this.accountPort.getDisplayName(event.member_account);
@@ -196,12 +166,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-admin/suppliers`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceNewSupplierRequest.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        chairman.username,
+        Workflows.MarketplaceNewSupplierRequest.id,
+        payload
+      );
       this.logger.log(
         `Заявка поставщика ${event.member_account}: push председателю ${chairman.username} отправлен.`
       );
@@ -215,16 +184,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT)
   async handleSupplierPaymentConfirmed(event: MarketplaceSupplierPaymentConfirmedEvent): Promise<void> {
     try {
-      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
-      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
-      const email = supplierAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Payment ${event.payment_request_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push пропущен.`
-        );
-        return;
-      }
-
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentConfirmed.IPayload = {
         supplierName,
@@ -235,12 +194,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PaymentHistory`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceSupplierPaymentConfirmed.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.supplier_account,
+        Workflows.MarketplaceSupplierPaymentConfirmed.id,
+        payload
+      );
       this.logger.log(
         `Payment ${event.payment_request_id}: push поставщику ${event.supplier_account} о выплате отправлен.`
       );
@@ -254,16 +212,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT)
   async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
     try {
-      const ordererAccount = await this.accountPort.getAccount(event.orderer_account);
-      const subscriberId = ordererAccount.provider_account?.subscriber_id?.trim();
-      const email = ordererAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Order ${event.order_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
-        );
-        return;
-      }
-
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
@@ -272,12 +220,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceOrderReady.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.orderer_account,
+        Workflows.MarketplaceOrderReady.id,
+        payload
+      );
       this.logger.log(
         `Order ${event.order_id}: push заказчику ${event.orderer_account} о готовности к получению отправлен.`
       );
@@ -292,9 +239,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleReturnClaimSubmitted(event: MarketplaceReturnClaimSubmittedEvent): Promise<void> {
     try {
       // Адресуем всем операторам КУ доставки (trustee + trusted) — они
-      // равны в правах по столу ПВЗ, новый return-claim видят все. Veerom
-      // (несколько Novu-триггеров) сохраняет инвариант «никто не пропустил»
-      // без ввода понятия «главный получатель уведомления».
+      // равны в правах по столу ПВЗ, новый return-claim видят все. Веер
+      // уведомлений сохраняет инвариант «никто не пропустил» без ввода
+      // понятия «главный получатель уведомления».
       const operators = await this.kuChairmanService.listOperatorsOfBranch(
         event.coopname,
         event.delivery_braname
@@ -310,15 +257,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
         event.reason_text.length > 240 ? event.reason_text.slice(0, 240) + '…' : event.reason_text;
       for (const operatorAccount of operators) {
         try {
-          const operator = await this.accountPort.getAccount(operatorAccount);
-          const subscriberId = operator.provider_account?.subscriber_id?.trim();
-          const email = operator.provider_account?.email;
-          if (!subscriberId || !email) {
-            this.logger.warn(
-              `Заявление на возврат ${event.claim_id}: subscriber_id/email оператора ${operatorAccount} не найден — push пропущен.`
-            );
-            continue;
-          }
           const chairmanName = await this.accountPort.getDisplayName(operatorAccount);
           const payload: Workflows.MarketplaceReturnClaimSubmitted.IPayload = {
             chairmanName,
@@ -330,12 +268,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
             reasonExcerpt,
             deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/returns/${event.claim_id}`,
           };
-          const triggerData: WorkflowTriggerDomainInterface = {
-            name: Workflows.MarketplaceReturnClaimSubmitted.id,
-            to: { subscriberId, email },
-            payload,
-          };
-          await this.novuWorkflowPort.triggerWorkflow(triggerData);
+          await this.notificationSenderService.sendNotificationToUser(
+            operatorAccount,
+            Workflows.MarketplaceReturnClaimSubmitted.id,
+            payload
+          );
           this.logger.log(
             `Заявление на возврат ${event.claim_id}: push оператору ${operatorAccount} отправлен.`
           );
@@ -362,15 +299,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
       return;
     }
     try {
-      const orderer = await this.accountPort.getAccount(event.orderer_account);
-      const subscriberId = orderer.provider_account?.subscriber_id?.trim();
-      const email = orderer.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Заявление на возврат ${event.claim_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
-        );
-        return;
-      }
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${event.braname}`;
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
@@ -383,12 +311,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         comment: event.comment,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceReturnClaimDecided.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.orderer_account,
+        Workflows.MarketplaceReturnClaimDecided.id,
+        payload
+      );
       this.logger.log(
         `Заявление на возврат ${event.claim_id}: push заказчику ${event.orderer_account} (одобрен очный визит) отправлен.`
       );
@@ -402,15 +329,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_RETURN_CLAIM_FINALIZED_EVENT)
   async handleReturnClaimFinalized(event: MarketplaceReturnClaimFinalizedEvent): Promise<void> {
     try {
-      const orderer = await this.accountPort.getAccount(event.orderer_account);
-      const subscriberId = orderer.provider_account?.subscriber_id?.trim();
-      const email = orderer.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Заявление на возврат ${event.claim_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push пропущен.`
-        );
-        return;
-      }
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       let outcomeHuman: string;
       let returnedAmount: string | undefined;
@@ -437,12 +355,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         returnedAmount,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceReturnClaimFinalized.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.orderer_account,
+        Workflows.MarketplaceReturnClaimFinalized.id,
+        payload
+      );
       this.logger.log(
         `Заявление на возврат ${event.claim_id}: финальный push заказчику ${event.orderer_account} отправлен (${event.decision}).`
       );
@@ -456,16 +373,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT)
   async handleSupplierPaymentDeclined(event: MarketplaceSupplierPaymentDeclinedEvent): Promise<void> {
     try {
-      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
-      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
-      const email = supplierAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Payment ${event.payment_request_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push пропущен.`
-        );
-        return;
-      }
-
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentDeclined.IPayload = {
         supplierName,
@@ -476,12 +383,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PaymentHistory`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceSupplierPaymentDeclined.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.supplier_account,
+        Workflows.MarketplaceSupplierPaymentDeclined.id,
+        payload
+      );
       this.logger.log(
         `Payment ${event.payment_request_id}: push поставщику ${event.supplier_account} об отказе выплаты отправлен.`
       );
@@ -495,16 +401,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT)
   async handleNewOrderForSupplier(event: MarketplaceNewOrderForSupplierEvent): Promise<void> {
     try {
-      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
-      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
-      const email = supplierAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Order ${event.order_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push о новом заказе пропущен.`
-        );
-        return;
-      }
-
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       const payload: Workflows.MarketplaceNewOrderForSupplier.IPayload = {
@@ -516,12 +412,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceNewOrderForSupplier.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.supplier_account,
+        Workflows.MarketplaceNewOrderForSupplier.id,
+        payload
+      );
       this.logger.log(
         `Order ${event.order_id}: уведомление поставщику ${event.supplier_account} о новом заказе отправлено.`
       );
@@ -535,16 +430,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
   @OnEvent(MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT)
   async handleOrderDeclinedBySupplier(event: MarketplaceOrderDeclinedBySupplierEvent): Promise<void> {
     try {
-      const ordererAccount = await this.accountPort.getAccount(event.orderer_account);
-      const subscriberId = ordererAccount.provider_account?.subscriber_id?.trim();
-      const email = ordererAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Order ${event.order_id}: subscriber_id/email заказчика ${event.orderer_account} не найден — push об отказе поставщика пропущен.`
-        );
-        return;
-      }
-
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
       // КУ резолвится в человеческое имя участка (account_kind=branch); при сбое
       // деградируем к braname, чтобы текст не остался пустым.
@@ -565,12 +450,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceOrderDeclinedBySupplier.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.orderer_account,
+        Workflows.MarketplaceOrderDeclinedBySupplier.id,
+        payload
+      );
       this.logger.log(
         `Order ${event.order_id}: push заказчику ${event.orderer_account} об отказе поставщика отправлен.`
       );
@@ -586,16 +470,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
     event: MarketplaceReturnAcceptedForSupplierEvent
   ): Promise<void> {
     try {
-      const supplierAccount = await this.accountPort.getAccount(event.supplier_account);
-      const subscriberId = supplierAccount.provider_account?.subscriber_id?.trim();
-      const email = supplierAccount.provider_account?.email;
-      if (!subscriberId || !email) {
-        this.logger.warn(
-          `Заявление на возврат ${event.claim_id}: subscriber_id/email поставщика ${event.supplier_account} не найден — push о приёме возврата пропущен.`
-        );
-        return;
-      }
-
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const reasonExcerpt =
         event.inspection_result.length > 240
@@ -610,12 +484,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
       };
-      const triggerData: WorkflowTriggerDomainInterface = {
-        name: Workflows.MarketplaceReturnAcceptedSupplier.id,
-        to: { subscriberId, email },
-        payload,
-      };
-      await this.novuWorkflowPort.triggerWorkflow(triggerData);
+      await this.notificationSenderService.sendNotificationToUser(
+        event.supplier_account,
+        Workflows.MarketplaceReturnAcceptedSupplier.id,
+        payload
+      );
       this.logger.log(
         `Заявление на возврат ${event.claim_id}: уведомление поставщику ${event.supplier_account} о приёме возврата в кооператив отправлено.`
       );

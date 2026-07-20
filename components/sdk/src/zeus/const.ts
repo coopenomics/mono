@@ -103,6 +103,9 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
+	AuthorizeDecisionInput:{
+		document:"SignedDigitalDocumentInput"
+	},
 	BankAccountDetailsInput:{
 
 	},
@@ -123,6 +126,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalContributorFilter:{
 		status:"ContributorStatus"
+	},
+	CapitalCreateProgramExpenseInput:{
+		items:"ExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
 	CapitalCycleFilter:{
 		status:"CycleStatus"
@@ -159,6 +166,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CapitalTimeStatsInput:{
+
+	},
+	CapitalTopupProgramExpenseInput:{
 
 	},
 	CategoryTypeInput:{
@@ -270,6 +280,11 @@ export const AllTypesProps: Record<string,any> = {
 		due_date:"DateTime",
 		priority:"ExpensePlanPriority"
 	},
+	CreateExpenseProposalInput:{
+		callback:"ExpenseCallbackInput",
+		items:"ExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	CreateIndividualDataInput:{
 		passport:"PassportInput"
 	},
@@ -288,6 +303,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateMatrixAccountInputDTO:{
 
+	},
+	CreateMembershipExitInput:{
+		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
 	CreateOrganizationDataInput:{
 		bank_account:"BankAccountInput",
@@ -360,6 +378,12 @@ export const AllTypesProps: Record<string,any> = {
 	DeclineApproveInput:{
 
 	},
+	DeclineDecisionInput:{
+
+	},
+	DeleteAccountInput:{
+
+	},
 	DeleteBranchInput:{
 
 	},
@@ -398,10 +422,58 @@ export const AllTypesProps: Record<string,any> = {
 	EntrepreneurDetailsInput:{
 
 	},
+	ExpenseCallbackInput:{
+
+	},
+	ExpenseFileKind: "enum" as const,
 	ExpenseFilter:{
 
 	},
+	ExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
+	ExpenseItemStatus: "enum" as const,
+	ExpenseMechanics: "enum" as const,
 	ExpensePlanPriority: "enum" as const,
+	ExpenseProposalDecisionBodyInput:{
+
+	},
+	ExpenseProposalDecisionGenerateDocumentInput:{
+		items:"ExpenseProposalDecisionItemInput",
+		proposal:"ExpenseProposalDecisionHeaderInput",
+		resolution:"ExpenseProposalDecisionBodyInput"
+	},
+	ExpenseProposalDecisionHeaderInput:{
+
+	},
+	ExpenseProposalDecisionItemInput:{
+
+	},
+	ExpenseProposalHeaderInput:{
+
+	},
+	ExpenseProposalItemInput:{
+
+	},
+	ExpenseProposalSignedItemInput:{
+
+	},
+	ExpenseProposalStatementGenerateDocumentInput:{
+		items:"ExpenseProposalItemInput",
+		proposal:"ExpenseProposalHeaderInput"
+	},
+	ExpenseProposalStatementSignedDocumentInput:{
+		meta:"ExpenseProposalStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ExpenseProposalStatementSignedMetaDocumentInput:{
+		items:"ExpenseProposalSignedItemInput",
+		proposal:"ExpenseProposalHeaderInput"
+	},
+	ExpenseProposalStatus: "enum" as const,
+	ExpenseRecipientType: "enum" as const,
+	ExpenseReportOutcome: "enum" as const,
 	ExpenseStatus: "enum" as const,
 	ExtendedMeetStatus: "enum" as const,
 	ExtensionInput:{
@@ -994,6 +1066,20 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceWriteoffStatementSignablePayloadInput:{
 
 	},
+	MembershipExitApplicationGenerateDocumentInput:{
+
+	},
+	MembershipExitApplicationSignedDocumentInput:{
+		meta:"MembershipExitApplicationSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MembershipExitApplicationSignedMetaDocumentInput:{
+
+	},
+	MembershipExitDecisionGenerateDocumentInput:{
+
+	},
+	MembershipExitStatus: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
 	},
@@ -1008,6 +1094,12 @@ export const AllTypesProps: Record<string,any> = {
 			data:"AddTrustedAccountInput"
 		},
 		archiveProductCard:{
+
+		},
+		authorizeDecision:{
+			data:"AuthorizeDecisionInput"
+		},
+		cancelMembershipExit:{
 
 		},
 		capitalAddAuthor:{
@@ -1051,6 +1143,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
+		},
+		capitalCreateProgramExpense:{
+			data:"CapitalCreateProgramExpenseInput"
 		},
 		capitalCreateProgramInvest:{
 			data:"CreateProgramInvestInput"
@@ -1245,6 +1340,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalSubmitVote:{
 			data:"SubmitVoteInput"
 		},
+		capitalTopupProgramExpensePool:{
+			data:"CapitalTopupProgramExpenseInput"
+		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
 		},
@@ -1296,6 +1394,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
+		confirmMembershipExit:{
+
+		},
 		createAnnualGeneralMeet:{
 			data:"CreateAnnualGeneralMeetInput"
 		},
@@ -1311,8 +1412,14 @@ export const AllTypesProps: Record<string,any> = {
 		createExpensePlan:{
 			data:"CreateExpensePlanInput"
 		},
+		createExpenseProposal:{
+			data:"CreateExpenseProposalInput"
+		},
 		createInitialPayment:{
 			data:"CreateInitialPaymentInput"
+		},
+		createMembershipExit:{
+			data:"CreateMembershipExitInput"
 		},
 		createProductCard:{
 			data:"CreateProductCardInput"
@@ -1331,6 +1438,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		declineAgreement:{
 			data:"DeclineAgreementInput"
+		},
+		declineDecision:{
+			data:"DeclineDecisionInput"
+		},
+		deleteAccount:{
+			data:"DeleteAccountInput"
 		},
 		deleteBranch:{
 			data:"DeleteBranchInput"
@@ -1379,8 +1492,24 @@ export const AllTypesProps: Record<string,any> = {
 		generateDocument:{
 			input:"GenerateAnyDocumentInput"
 		},
+		generateExpenseProposalDecisionDocument:{
+			data:"ExpenseProposalDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateExpenseProposalStatementDocument:{
+			data:"ExpenseProposalStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		generateFreeDecision:{
 			data:"FreeDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitApplication:{
+			data:"MembershipExitApplicationGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitDecision:{
+			data:"MembershipExitDecisionGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateParticipantApplication:{
@@ -1447,6 +1576,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		logout:{
 			data:"LogoutInput"
+		},
+		markAllNotificationsRead:{
+
+		},
+		markNotificationRead:{
+
 		},
 		markReportPeriod:{
 			data:"MarkReportPeriodInput"
@@ -1655,6 +1790,12 @@ export const AllTypesProps: Record<string,any> = {
 		notifyOnAnnualGeneralMeet:{
 			data:"NotifyOnAnnualGeneralMeetInput"
 		},
+		overspendExpenseItem:{
+			data:"OverspendExpenseItemInput"
+		},
+		payExpenseItem:{
+			data:"PayExpenseItemInput"
+		},
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
@@ -1673,11 +1814,23 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		reportExpenseItem:{
+			data:"ReportExpenseItemInput"
+		},
+		resendNotification:{
+
+		},
 		resetKey:{
 			data:"ResetKeyInput"
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
+		},
+		returnExpenseItem:{
+			data:"ReturnExpenseItemInput"
+		},
+		saveCapitalProgramDocDataHash:{
+			data:"SaveCapitalProgramDocDataInput"
 		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
@@ -1706,6 +1859,9 @@ export const AllTypesProps: Record<string,any> = {
 		startResetKey:{
 			data:"StartResetKeyInput"
 		},
+		submitExpenseReport:{
+			data:"SubmitExpenseReportInput"
+		},
 		triggerNotificationWorkflow:{
 			data:"TriggerNotificationWorkflowInput"
 		},
@@ -1730,6 +1886,12 @@ export const AllTypesProps: Record<string,any> = {
 		updateSystem:{
 			data:"Update"
 		},
+		uploadExpenseFile:{
+			data:"UploadExpenseFileInput"
+		},
+		uploadPaymentProof:{
+			data:"UploadPaymentProofInput"
+		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
 		},
@@ -1741,8 +1903,15 @@ export const AllTypesProps: Record<string,any> = {
 		}
 	},
 	NonProjectRoomKind: "enum" as const,
+	NotificationChannel: "enum" as const,
+	NotificationDeliveryStatus: "enum" as const,
+	NotificationOutboxStatus: "enum" as const,
 	NotificationWorkflowRecipientInput:{
 
+	},
+	NotificationsFilterInput:{
+		channel:"NotificationChannel",
+		status:"NotificationOutboxStatus"
 	},
 	NotifyOnAnnualGeneralMeetInput:{
 		notification:"AnnualGeneralMeetingNotificationSignedDocumentInput"
@@ -1754,6 +1923,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	OrganizationType: "enum" as const,
+	OverspendExpenseItemInput:{
+
+	},
 	PaginationInput:{
 
 	},
@@ -1773,7 +1945,11 @@ export const AllTypesProps: Record<string,any> = {
 	PassportInput:{
 
 	},
+	PayExpenseItemInput:{
+
+	},
 	PaymentDirection: "enum" as const,
+	PaymentFileKind: "enum" as const,
 	PaymentFiltersInput:{
 		direction:"PaymentDirection",
 		status:"PaymentStatus",
@@ -1913,6 +2089,12 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalIssueFilter",
 			options:"PaginationInput"
 		},
+		capitalProgramExpense:{
+
+		},
+		capitalProgramExpenses:{
+			options:"PaginationInput"
+		},
 		capitalProject:{
 			data:"GetProjectInput"
 		},
@@ -2003,6 +2185,27 @@ export const AllTypesProps: Record<string,any> = {
 		cooperativePrograms:{
 
 		},
+		expenseFile:{
+
+		},
+		expenseFilesByItem:{
+
+		},
+		expenseFilesByProposal:{
+
+		},
+		expenseProposal:{
+
+		},
+		expenseProposalsByCooperative:{
+			options:"PaginationInput"
+		},
+		expenseProposalsByMember:{
+			options:"PaginationInput"
+		},
+		expenseRequisitesByProposal:{
+
+		},
 		getAccount:{
 			data:"GetAccountInput"
 		},
@@ -2045,6 +2248,9 @@ export const AllTypesProps: Record<string,any> = {
 		getExtensions:{
 			data:"GetExtensionsInput"
 		},
+		getInboxNotifications:{
+			pagination:"PaginationInput"
+		},
 		getInstallationStatus:{
 			data:"GetInstallationStatusInput"
 		},
@@ -2071,6 +2277,13 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getMeets:{
 			data:"GetMeetsInput"
+		},
+		getNotification:{
+
+		},
+		getNotifications:{
+			filter:"NotificationsFilterInput",
+			pagination:"PaginationInput"
 		},
 		getPaymentMethods:{
 			data:"GetPaymentMethodsInput"
@@ -2116,6 +2329,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getReportPreview:{
 			input:"ReportPreviewInput"
+		},
+		getUnreadNotificationsCount:{
+
 		},
 		getUserWallets:{
 
@@ -2317,8 +2533,20 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:{
 			data:"MarketplaceWriteoffStatementSignablePayloadInput"
 		},
+		membershipExit:{
+
+		},
+		membershipExitReturnPreview:{
+
+		},
 		onecoopGetDocuments:{
 			data:"GetOneCoopDocumentsInput"
+		},
+		paymentFile:{
+
+		},
+		paymentProofs:{
+
 		},
 		process:{
 
@@ -2378,6 +2606,9 @@ export const AllTypesProps: Record<string,any> = {
 	ReplaceAvailableItemsInput:{
 		categoryTypes:"CategoryTypeInput"
 	},
+	ReportExpenseItemInput:{
+
+	},
 	ReportHistoryFilterInput:{
 		reportType:"ReportType"
 	},
@@ -2435,7 +2666,13 @@ export const AllTypesProps: Record<string,any> = {
 	ReturnByMoneySignedMetaDocumentInput:{
 
 	},
+	ReturnExpenseItemInput:{
+
+	},
 	RoomMessageKind: "enum" as const,
+	SaveCapitalProgramDocDataInput:{
+
+	},
 	SaveReportDraftInput:{
 		reportType:"ReportType"
 	},
@@ -2544,6 +2781,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	StoryStatus: "enum" as const,
+	SubmitExpenseReportInput:{
+
+	},
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
 	},
@@ -2610,6 +2850,12 @@ export const AllTypesProps: Record<string,any> = {
 		content_format:"CapitalStoryContentFormat",
 		status:"StoryStatus"
 	},
+	UploadExpenseFileInput:{
+		kind:"ExpenseFileKind"
+	},
+	UploadPaymentProofInput:{
+
+	},
 	UserStatus: "enum" as const,
 	ValidateAttributeValuesInput:{
 
@@ -2673,6 +2919,7 @@ export const ReturnTypes: Record<string,any> = {
 		participant_account:"ParticipantAccount",
 		private_account:"PrivateAccount",
 		provider_account:"MonoAccount",
+		registration_payment:"RegistrationPayment",
 		user_account:"UserAccount",
 		username:"String"
 	},
@@ -2896,6 +3143,7 @@ export const ReturnTypes: Record<string,any> = {
 		callback_contract:"String",
 		confirm_callback:"String",
 		coopname:"String",
+		council_members_count:"Float",
 		created_at:"String",
 		decline_callback:"String",
 		expired_at:"String",
@@ -3284,6 +3532,7 @@ export const ReturnTypes: Record<string,any> = {
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
 		blagorost_provision_done:"Boolean",
+		capital_program_doc_data_hash:"String",
 		generation_contract_template_done:"Boolean",
 		generator_offer_template_done:"Boolean",
 		generator_program_template_done:"Boolean",
@@ -3294,6 +3543,36 @@ export const ReturnTypes: Record<string,any> = {
 		onboarding_generator_offer_template_hash:"String",
 		onboarding_generator_program_template_hash:"String",
 		onboarding_init_at:"String"
+	},
+	CapitalProgramExpense:{
+		callback:"CapitalProgramExpenseCallback",
+		coopname:"String",
+		created_at:"String",
+		creator:"String",
+		creator_name:"String",
+		expense_hash:"String",
+		items:"CapitalProgramExpenseItem",
+		source_wallet:"String",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"String"
+	},
+	CapitalProgramExpenseCallback:{
+		action:"String",
+		contract:"String",
+		data:"String"
+	},
+	CapitalProgramExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_name:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
 	},
 	CapitalProject:{
 		_created_at:"DateTime",
@@ -3550,6 +3829,8 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		global_available_invest_pool:"String",
 		present:"Boolean",
+		program_expense_pool:"String",
+		program_expense_reserved:"String",
 		program_membership_available:"String",
 		program_membership_cumulative_reward_per_share:"Float",
 		program_membership_distributed:"String",
@@ -3877,6 +4158,31 @@ export const ReturnTypes: Record<string,any> = {
 		inn:"String",
 		ogrn:"String"
 	},
+	ExpenseFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		item_hash:"String",
+		kind:"ExpenseFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		proposal_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
+	},
+	ExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
+	},
 	ExpensePlan:{
 		amount:"String",
 		braname:"String",
@@ -3887,6 +4193,43 @@ export const ReturnTypes: Record<string,any> = {
 		pay_to:"String",
 		priority:"ExpensePlanPriority",
 		title:"String"
+	},
+	ExpenseProposal:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		blockchain_status:"Int",
+		coopname:"String",
+		created_at:"String",
+		decision_doc:"DocumentAggregate",
+		id:"Int",
+		items:"ExpenseItem",
+		present:"Boolean",
+		proposal_hash:"String",
+		source_wallet:"String",
+		statement_doc:"DocumentAggregate",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"String",
+		username:"String"
+	},
+	ExpenseReportResult:{
+		outcome:"ExpenseReportOutcome",
+		settlement_amount:"String",
+		settlement_payment_hash:"String",
+		transaction:"Transaction"
+	},
+	ExpenseRequisite:{
+		coopname:"String",
+		data:"JSON",
+		item_hash:"String",
+		method_type:"String",
+		payment_purpose:"String",
+		proposal_hash:"String",
+		recipient:"String",
+		requisites:"String"
 	},
 	ExtendedBlockchainAction:{
 		account:"String",
@@ -4039,6 +4382,23 @@ export const ReturnTypes: Record<string,any> = {
 		period:"Int",
 		reportType:"ReportType",
 		year:"Int"
+	},
+	InboxNotification:{
+		actorSubscriberId:"String",
+		body:"String",
+		createdAt:"DateTime",
+		id:"String",
+		isRead:"Boolean",
+		payload:"JSON",
+		readAt:"DateTime",
+		title:"String",
+		workflowId:"String"
+	},
+	InboxNotificationPaginationResult:{
+		currentPage:"Int",
+		items:"InboxNotification",
+		totalCount:"Int",
+		totalPages:"Int"
 	},
 	Individual:{
 		birthdate:"String",
@@ -5096,6 +5456,22 @@ export const ReturnTypes: Record<string,any> = {
 		votes_against:"Int",
 		votes_for:"Int"
 	},
+	MembershipExit:{
+		created_at:"String",
+		exit_hash:"String",
+		payment_status:"PaymentStatus",
+		quantity:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitResult:{
+		exit_hash:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitReturnPreview:{
+		minimum_contribution:"String",
+		share_contribution:"String",
+		total:"String"
+	},
 	MissingRequisiteField:{
 		key:"String",
 		label:"String",
@@ -5123,6 +5499,8 @@ export const ReturnTypes: Record<string,any> = {
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		archiveProductCard:"Boolean",
+		authorizeDecision:"Transaction",
+		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalApproveCommit:"CapitalCommit",
 		capitalCalculateVotes:"CapitalSegment",
@@ -5137,6 +5515,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
 		capitalCreateProcessTemplate:"ProcessTemplate",
+		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
 		capitalCreateProgramProperty:"Transaction",
 		capitalCreateProject:"Transaction",
@@ -5194,6 +5573,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalStartVoting:"Transaction",
 		capitalStopProject:"CapitalProject",
 		capitalSubmitVote:"Transaction",
+		capitalTopupProgramExpensePool:"Transaction",
 		capitalUpdateIssue:"CapitalIssue",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
@@ -5212,18 +5592,23 @@ export const ReturnTypes: Record<string,any> = {
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
+		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
 		createCategory:"Category",
 		createDepositPayment:"GatewayPayment",
 		createExpensePlan:"ExpensePlan",
+		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
+		createMembershipExit:"MembershipExitResult",
 		createProductCard:"ProductCard",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
 		createWithdraw:"CreateWithdrawResponse",
 		deactivateWebPushSubscriptionById:"Boolean",
 		declineAgreement:"Transaction",
+		declineDecision:"Transaction",
+		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
 		deleteCategory:"Boolean",
 		deleteExpensePlan:"Boolean",
@@ -5238,7 +5623,11 @@ export const ReturnTypes: Record<string,any> = {
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
 		generateConvertToAxonStatement:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
+		generateExpenseProposalDecisionDocument:"GeneratedDocument",
+		generateExpenseProposalStatementDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
+		generateMembershipExitApplication:"GeneratedDocument",
+		generateMembershipExitDecision:"GeneratedDocument",
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
@@ -5257,6 +5646,8 @@ export const ReturnTypes: Record<string,any> = {
 		installSystem:"SystemInfo",
 		login:"RegisteredAccount",
 		logout:"Boolean",
+		markAllNotificationsRead:"UnreadNotificationsCount",
+		markNotificationRead:"InboxNotification",
 		markReportPeriod:"Boolean",
 		marketplaceAcceptCpp:"MarketplaceCppStatus",
 		marketplaceAcceptOrdersBatch:"MarketplaceSupplierBatchActionResult",
@@ -5328,14 +5719,21 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceUpdateWriteoffDraft:"MarketplaceWriteoffProposal",
 		marketplaceWithdrawOffer:"MarketplaceOffer",
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
+		overspendExpenseItem:"Transaction",
+		payExpenseItem:"Transaction",
 		processConvertToAxonStatement:"Boolean",
 		publishProductCard:"Boolean",
-		publishProjectOfFreeDecision:"Boolean",
+		publishProjectOfFreeDecision:"AgendaWithDocuments",
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		reportExpenseItem:"ExpenseReportResult",
+		resendNotification:"Notification",
 		resetKey:"Boolean",
+		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		returnExpenseItem:"Transaction",
+		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
@@ -5345,6 +5743,7 @@ export const ReturnTypes: Record<string,any> = {
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
+		submitExpenseReport:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
 		updateAccount:"Account",
@@ -5353,9 +5752,52 @@ export const ReturnTypes: Record<string,any> = {
 		updateReportRequisites:"ReportRequisitesView",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
+		uploadExpenseFile:"ExpenseFile",
+		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
+	},
+	Notification:{
+		attempts:"Int",
+		channel:"NotificationChannel",
+		coopname:"String",
+		createdAt:"DateTime",
+		id:"String",
+		lastError:"String",
+		recipientSubscriberId:"String",
+		recipientUsername:"String",
+		status:"NotificationOutboxStatus",
+		updatedAt:"DateTime",
+		workflowId:"String"
+	},
+	NotificationAttempt:{
+		attemptNumber:"Int",
+		createdAt:"DateTime",
+		error:"String",
+		id:"String",
+		providerResponse:"String",
+		status:"NotificationDeliveryStatus"
+	},
+	NotificationDetail:{
+		attempts:"Int",
+		channel:"NotificationChannel",
+		coopname:"String",
+		createdAt:"DateTime",
+		deliveries:"NotificationAttempt",
+		id:"String",
+		lastError:"String",
+		recipientSubscriberId:"String",
+		recipientUsername:"String",
+		status:"NotificationOutboxStatus",
+		updatedAt:"DateTime",
+		workflowId:"String"
+	},
+	NotificationPaginationResult:{
+		currentPage:"Int",
+		items:"Notification",
+		totalCount:"Int",
+		totalPages:"Int"
 	},
 	OneCoopDocumentOutput:{
 		action:"String",
@@ -5485,6 +5927,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalProgramExpensesPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalProgramExpense",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalProjectsPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalProject",
@@ -5545,6 +5993,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedExpenseProposalsPaginationResult:{
+		currentPage:"Int",
+		items:"ExpenseProposal",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedGatewayPaymentsPaginationResult:{
 		currentPage:"Int",
 		items:"GatewayPayment",
@@ -5586,6 +6040,20 @@ export const ReturnTypes: Record<string,any> = {
 		fee_amount:"String",
 		fee_percent:"Float",
 		tolerance_percent:"Float"
+	},
+	PaymentFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		kind:"PaymentFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		payment_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
 	},
 	PaymentMethod:{
 		created_at:"DateTime",
@@ -5831,6 +6299,8 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInvests:"PaginatedCapitalInvestsPaginationResult",
 		capitalIssue:"CapitalIssue",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalProgramExpense:"CapitalProgramExpense",
+		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
 		capitalProjectWithRelations:"CapitalProject",
 		capitalProjects:"PaginatedCapitalProjectsPaginationResult",
@@ -5863,6 +6333,13 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		expenseFile:"ExpenseFile",
+		expenseFilesByItem:"ExpenseFile",
+		expenseFilesByProposal:"ExpenseFile",
+		expenseProposal:"ExpenseProposal",
+		expenseProposalsByCooperative:"PaginatedExpenseProposalsPaginationResult",
+		expenseProposalsByMember:"PaginatedExpenseProposalsPaginationResult",
+		expenseRequisitesByProposal:"ExpenseRequisite",
 		getAccount:"Account",
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
@@ -5882,6 +6359,7 @@ export const ReturnTypes: Record<string,any> = {
 		getExtensionLogs:"ExtensionLogsPaginationResult",
 		getExtensionOnboardingState:"ExtensionOnboardingState",
 		getExtensions:"Extension",
+		getInboxNotifications:"InboxNotificationPaginationResult",
 		getInstallationStatus:"InstallationStatus",
 		getLedger:"LedgerState",
 		getLedger2Accounts:"Ledger2Account",
@@ -5892,6 +6370,8 @@ export const ReturnTypes: Record<string,any> = {
 		getMeet:"MeetAggregate",
 		getMeets:"MeetAggregate",
 		getMyProductCards:"ProductCard",
+		getNotification:"NotificationDetail",
+		getNotifications:"NotificationPaginationResult",
 		getPaymentMethods:"PaymentMethodPaginationResult",
 		getPayments:"PaginatedGatewayPaymentsPaginationResult",
 		getProductCard:"ProductCard",
@@ -5909,6 +6389,7 @@ export const ReturnTypes: Record<string,any> = {
 		getReportPreview:"ReportPreview",
 		getReportRequisites:"ReportRequisitesView",
 		getSystemInfo:"SystemInfo",
+		getUnreadNotificationsCount:"UnreadNotificationsCount",
 		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
@@ -6002,7 +6483,11 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffProtocolDocument:"DocumentAggregate",
 		marketplaceWriteoffServiceMemoSignablePayload:"GeneratedDocument",
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
+		membershipExit:"MembershipExit",
+		membershipExitReturnPreview:"MembershipExitReturnPreview",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
+		paymentFile:"PaymentFile",
+		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
@@ -6049,6 +6534,13 @@ export const ReturnTypes: Record<string,any> = {
 	RegistrationConfig:{
 		programs:"RegistrationProgram",
 		requires_selection:"Boolean"
+	},
+	RegistrationPayment:{
+		hash:"String",
+		message:"String",
+		quantity:"Float",
+		status:"PaymentStatus",
+		symbol:"String"
 	},
 	RegistrationProgram:{
 		applicable_account_types:"AccountType",
@@ -6280,6 +6772,9 @@ export const ReturnTypes: Record<string,any> = {
 		speakerName:"String",
 		startOffset:"Float",
 		text:"String"
+	},
+	UnreadNotificationsCount:{
+		count:"Int"
 	},
 	UserAccount:{
 		meta:"String",
