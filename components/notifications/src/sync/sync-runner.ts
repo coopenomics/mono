@@ -3,7 +3,6 @@
 import { NovuSyncService } from './novu-sync.service';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
-import { watch } from 'chokidar';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
@@ -69,6 +68,8 @@ async function main() {
     
     if (watchPaths.length > 0) {
       console.log('👀 Отслеживаем изменения в:', watchPaths.join(', '));
+
+      const { watch } = await import('chokidar');
       
       let syncTimeout: NodeJS.Timeout | null = null;
       

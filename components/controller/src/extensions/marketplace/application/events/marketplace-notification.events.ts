@@ -419,3 +419,20 @@ export interface MarketplaceWriteoffRejectedPayload {
   proposal_hash: string;
   reason: string;
 }
+
+/**
+ * Пайщик подал заявку на допуск поставщика (членская модель). Председатель
+ * получает multi-channel уведомление — заявку нужно рассмотреть и одобрить либо
+ * отклонить в реестре поставщиков. Эмитится ПОСЛЕ записи заявки в PG (INV-12);
+ * адресат (председатель) и человекочитаемые имена резолвятся в listener'е.
+ */
+export const MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT =
+  'marketplace.supplier.chairman.requestSubmitted';
+
+export interface MarketplaceNewSupplierRequestEvent {
+  coopname: string;
+  /** Пайщик-заявитель — для человекочитаемого текста уведомления. */
+  member_account: string;
+  /** Номер договора из заявки. */
+  contract_number: string;
+}

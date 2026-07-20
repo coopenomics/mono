@@ -9,7 +9,7 @@ import type { CoreRole } from './core-roles.mapper';
  */
 export type MarketplaceRole =
   | 'orderer'        // Любой пайщик: оформляет заказ
-  | 'offerer'        // Поставщик из whitelist (Эпик 3): публикует предложения
+  | 'offerer'        // Одобренный поставщик из реестра: публикует предложения
   | 'operator'       // Председатель КУ (Эпик 2): операции по своему КУ
   | 'board_readonly' // Member: read-only к admin-данным
   | 'board'          // Chairman: полные права в повестке совета
@@ -18,8 +18,8 @@ export type MarketplaceRole =
 /**
  * Контекст для расширенных marketplace-ролей.
  *
- * `isOfferer` (whitelist поставщиков) — Эпик 3,
- * `MarketplaceWhitelistService.isOfferer`.
+ * `isOfferer` (реестр поставщиков) — допущенный поставщик либо сам кооператив,
+ * `MarketplaceSupplierRegistryService.isOfferer`.
  *
  * `isKuChairman` — Эпик 2 (ПВЗ): пайщик имеет операционные полномочия
  * на хотя бы одном КУ кооператива. Источник — `MarketplaceKuChairmanService.isKuChairman`,

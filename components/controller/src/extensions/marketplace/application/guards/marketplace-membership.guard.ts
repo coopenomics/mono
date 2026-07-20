@@ -12,9 +12,9 @@ import {
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
 import {
-  MARKETPLACE_WHITELIST_SERVICE,
-  type MarketplaceWhitelistService,
-} from '../services/marketplace-whitelist.service';
+  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+  type MarketplaceSupplierRegistryService,
+} from '../services/marketplace-supplier-registry.service';
 
 /**
  * Guard расширения marketplace (Стол заказов, Story 1.3).
@@ -35,8 +35,8 @@ import {
 @Injectable()
 export class MarketplaceMembershipGuard implements CanActivate {
   constructor(
-    @Inject(MARKETPLACE_WHITELIST_SERVICE)
-    private readonly whitelistService: MarketplaceWhitelistService,
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
@@ -61,11 +61,11 @@ export class MarketplaceMembershipGuard implements CanActivate {
     }
 
     const coreRoles = mapUserRoleToCoreRoles(user.role);
-    // Story 3.1 / Эпик 2: оба источника берутся из dedicated-сервисов с
-    // TTL-кешем (MarketplaceWhitelistService / MarketplaceKuChairmanService),
+    // Оба источника берутся из dedicated-сервисов с TTL-кешем
+    // (MarketplaceSupplierRegistryService / MarketplaceKuChairmanService),
     // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.
     const [isOfferer, isKuChairman] = await Promise.all([
-      this.whitelistService.isOfferer(config.coopname, user.username),
+      this.supplierRegistry.isOfferer(config.coopname, user.username),
       this.kuChairmanService.isKuChairman(config.coopname, user.username),
     ]);
     const marketplaceRoles = mapCoreRolesToMarketplaceRoles(coreRoles, {

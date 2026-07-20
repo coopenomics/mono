@@ -3,7 +3,7 @@ import { computed, onMounted, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { type ReceptionGroup } from 'src/shared/lib/marketplace';
+import { type ReceptionGroup, computeStockProposalCharges } from 'src/shared/lib/marketplace';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
@@ -57,6 +57,10 @@ function kuAddr(braname: string): string {
 
 function proposalLineCost(i: { quantity: number; unit_price: string }): string {
   return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
+}
+
+function proposalCharges(p: { id: string; total_cost: string }) {
+  return computeStockProposalCharges(p.total_cost, proposalSums.value[p.id]);
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
@@ -151,18 +155,14 @@ BaseDialog(
             td.num {{ i.quantity }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
-          tr(v-if='proposalSums[p.id]')
-            td Спишется с членского «Стола заказов»
+          tr(v-if='proposalCharges(p).member > 0')
+            td Спишется с кошелька членских взносов «Стола заказов»
             td.num
-            td.num {{ formatAsset2Digits(proposalSums[p.id].member_amount) }} ₽
-          tr(v-if='proposalSums[p.id]?.convert_amount')
-            td Конвертация с паевого (по заявлению)
+            td.num {{ formatAsset2Digits(proposalCharges(p).member.toFixed(4)) }} ₽
+          tr
+            td Спишется с главного паевого кошелька
             td.num
-            td.num {{ formatAsset2Digits(proposalSums[p.id].convert_amount) }} ₽
-          tr(v-if='!proposalSums[p.id]')
-            td Итого
-            td.num
-            td.num {{ formatAsset2Digits(p.total_cost) }} ₽
+            td.num {{ formatAsset2Digits(proposalCharges(p).share.toFixed(4)) }} ₽
 
       .onsite-gate__foot.onsite-gate__foot--split
         BaseButton(

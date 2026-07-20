@@ -11,9 +11,9 @@ import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
 import { mapCoreRolesToMarketplaceRoles } from '../membership/marketplace-roles.mapper';
 import { expandGrantsForRoles } from '../access/marketplace-grants';
 import {
-  MARKETPLACE_WHITELIST_SERVICE,
-  type MarketplaceWhitelistService,
-} from '../services/marketplace-whitelist.service';
+  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+  type MarketplaceSupplierRegistryService,
+} from '../services/marketplace-supplier-registry.service';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -58,8 +58,8 @@ export class MarketplaceDesktopGrantsProvider
 
   constructor(
     private readonly grantsRegistry: ExtensionGrantsRegistry,
-    @Inject(MARKETPLACE_WHITELIST_SERVICE)
-    private readonly whitelistService: MarketplaceWhitelistService,
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly onboardingService: MarketplaceOnboardingService,
@@ -82,7 +82,7 @@ export class MarketplaceDesktopGrantsProvider
     }
 
     const [isOfferer, isKuChairman] = await Promise.all([
-      this.whitelistService.isOfferer(ctx.coopname, ctx.username),
+      this.supplierRegistry.isOfferer(ctx.coopname, ctx.username),
       this.kuChairmanService.isKuChairman(ctx.coopname, ctx.username),
     ]);
     const roles = mapCoreRolesToMarketplaceRoles(coreRoles, {
@@ -90,23 +90,32 @@ export class MarketplaceDesktopGrantsProvider
       isKuChairman,
     });
 
-    // L3-гейт заказчика: orderer-права материализуются только после подписи
-    // персональной оферты ЦПП. Прочие роли считаем как есть.
-    if (!roles.includes('orderer')) {
-      return expandGrantsForRoles(roles);
-    }
-
+    // Базовый набор грантов — все роли, кроме orderer (его материализуем ниже
+    // с учётом L3-гейта заказчика).
     const otherRoles = roles.filter((r) => r !== 'orderer');
     const grants = new Set(expandGrantsForRoles(otherRoles));
 
-    const { requires_gate } = await this.onboardingService.getOnboardingState(
-      ctx.username,
-    );
-    if (requires_gate) {
-      grants.add('Onboarding:orderer');
-    } else {
-      for (const g of expandGrantsForRoles(['orderer'])) grants.add(g);
+    // L3-гейт заказчика: orderer-права материализуются только после подписи
+    // персональной оферты ЦПП. До подписи — маркер видимости страницы онбординга.
+    if (roles.includes('orderer')) {
+      const { requires_gate } = await this.onboardingService.getOnboardingState(
+        ctx.username,
+      );
+      if (requires_gate) {
+        grants.add('Onboarding:orderer');
+      } else {
+        for (const g of expandGrantsForRoles(['orderer'])) grants.add(g);
+      }
     }
+
+    // Гейт поставщика: активный пайщик без одобренного допуска (offerer-роль
+    // отсутствует ⇒ не одобрен в реестре и не сам кооператив) видит на столе
+    // поставщика только страницу онбординга. После одобрения offerer-роль
+    // даёт полный стол, маркер не нужен. Зеркало L3-гейта заказчика.
+    if (!roles.includes('offerer')) {
+      grants.add('Onboarding:offerer');
+    }
+
     return [...grants];
   }
 }

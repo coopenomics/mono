@@ -12,7 +12,7 @@
 
       SetUserData
 
-      SelectProgram
+      SelectProgram(v-if='registratorStore.requiresProgramSelection')
 
       GenerateAccount
 
@@ -58,7 +58,8 @@ import { updateOpenReplayUser } from 'src/shared/config';
 
 const session = useSessionStore();
 const router = useRouter();
-const { state, clearUserData, steps } = useRegistratorStore();
+const registratorStore = useRegistratorStore();
+const { state, clearUserData, steps } = registratorStore;
 const store = state;
 const agreementer = useAgreementStore();
 const desktops = useDesktopStore();

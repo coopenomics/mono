@@ -24,6 +24,11 @@ export {
   type IssuanceDiffLine,
 } from './membership-fee';
 export {
+  parseAssetAmount,
+  computeStockProposalCharges,
+  type StockProposalChargeSums,
+} from './stock-proposal-charges';
+export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,
   dispatchMarketplaceEvent,

@@ -95,7 +95,7 @@ function onCardClick(): void {
       :color="barColor",
       track-color="grey-3"
     )
-    .t-muted.supply-party__progress-hint
+    .t-muted.supply-party__progress-hint(v-if="$slots.hint")
       slot(name="hint")
 
   //- Разбивка по участникам — только когда есть смысловые строки. На столе
