@@ -15,6 +15,9 @@ export const AllTypesProps: Record<string,any> = {
 	AddAvailableCategoryTypesInput:{
 		categoryTypes:"CategoryTypeInput"
 	},
+	AddBranchWhitelistInput:{
+
+	},
 	AddParticipantInput:{
 		entrepreneur_data:"CreateEntrepreneurDataInput",
 		individual_data:"CreateIndividualDataInput",
@@ -103,6 +106,10 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
+	ApproveKuTrustedInput:{
+		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -112,11 +119,102 @@ export const AllTypesProps: Record<string,any> = {
 	BankAccountInput:{
 		details:"BankAccountDetailsInput"
 	},
+	BranchEstablishmentDecisionGenerateDocumentInput:{
+
+	},
+	BranchEstablishmentPetitionGenerateDocumentInput:{
+
+	},
+	BranchEstablishmentPetitionSignedDocumentInput:{
+		meta:"BranchEstablishmentPetitionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchEstablishmentPetitionSignedMetaDocumentInput:{
+
+	},
+	BranchMeetingBallotGenerateDocumentInput:{
+		answers:"KuBallotAnswerInput",
+		questions:"KuBallotQuestionInput"
+	},
+	BranchMeetingBallotSignedDocumentInput:{
+		meta:"BranchMeetingBallotSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingBallotSignedMetaDocumentInput:{
+		answers:"KuBallotAnswerInput",
+		questions:"KuBallotQuestionInput"
+	},
+	BranchMeetingDecisionGenerateDocumentInput:{
+		questions:"KuProtocolQuestionInput"
+	},
+	BranchMeetingDecisionSignedDocumentInput:{
+		meta:"BranchMeetingDecisionSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingDecisionSignedMetaDocumentInput:{
+		questions:"KuProtocolQuestionInput"
+	},
+	BranchMeetingProposalGenerateDocumentInput:{
+		questions:"KuAgendaQuestionInput"
+	},
+	BranchMeetingProposalSignedDocumentInput:{
+		meta:"BranchMeetingProposalSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchMeetingProposalSignedMetaDocumentInput:{
+		questions:"KuAgendaQuestionInput"
+	},
+	BranchTrustedLiabilityAgreementGenerateDocumentInput:{
+
+	},
+	BranchTrustedLiabilityAgreementSignedDocumentInput:{
+		meta:"BranchTrustedLiabilityAgreementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrustedLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
+	BranchTrustedPowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrustedPowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrustedPowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrustedPowerOfAttorneySignedMetaDocumentInput:{
+
+	},
+	BranchTrustedStatementGenerateDocumentInput:{
+
+	},
+	BranchTrusteeLiabilityAgreementGenerateDocumentInput:{
+
+	},
+	BranchTrusteeLiabilityAgreementSignedDocumentInput:{
+		meta:"BranchTrusteeLiabilityAgreementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrusteeLiabilityAgreementSignedMetaDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneyGenerateDocumentInput:{
+
+	},
+	BranchTrusteePowerOfAttorneySignedDocumentInput:{
+		meta:"BranchTrusteePowerOfAttorneySignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	BranchTrusteePowerOfAttorneySignedMetaDocumentInput:{
+
+	},
 	BuhotchSignerType: "enum" as const,
 	CalculateVotesInput:{
 
 	},
 	CalendarEntryStatus: "enum" as const,
+	CancelKuDecisionInput:{
+
+	},
 	CandidateFilterInput:{
 
 	},
@@ -183,6 +281,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CheckMatrixUsernameInput:{
 
+	},
+	CloseKuDecisionInput:{
+		protocol:"BranchMeetingDecisionSignedDocumentInput"
 	},
 	CloseProjectInput:{
 
@@ -301,6 +402,11 @@ export const AllTypesProps: Record<string,any> = {
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
+	CreateKuDecisionInput:{
+		agenda:"KuAgendaPointInput",
+		proposal:"BranchMeetingProposalSignedDocumentInput",
+		type:"KuDecisionType"
+	},
 	CreateMatrixAccountInputDTO:{
 
 	},
@@ -381,10 +487,16 @@ export const AllTypesProps: Record<string,any> = {
 	DeclineDecisionInput:{
 
 	},
+	DeclineKuTrustedInput:{
+
+	},
 	DeleteAccountInput:{
 
 	},
 	DeleteBranchInput:{
+
+	},
+	DeleteBranchWhitelistInput:{
 
 	},
 	DeleteCapitalIssueByHashInput:{
@@ -421,6 +533,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EntrepreneurDetailsInput:{
 
+	},
+	ExecKuDecisionInput:{
+		authority:"BranchTrusteePowerOfAttorneySignedDocumentInput",
+		liability:"BranchTrusteeLiabilityAgreementSignedDocumentInput",
+		petition:"BranchEstablishmentPetitionSignedDocumentInput"
 	},
 	ExpenseCallbackInput:{
 
@@ -688,6 +805,36 @@ export const AllTypesProps: Record<string,any> = {
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
 	JSONObject: `scalar.JSONObject` as const,
+	JoinKuDecisionInput:{
+
+	},
+	KuAgendaPointInput:{
+
+	},
+	KuAgendaQuestionInput:{
+
+	},
+	KuBallotAnswerInput:{
+
+	},
+	KuBallotQuestionInput:{
+
+	},
+	KuDecisionFilterInput:{
+		status:"KuDecisionStatus",
+		type:"KuDecisionType"
+	},
+	KuDecisionStatus: "enum" as const,
+	KuDecisionType: "enum" as const,
+	KuProtocolQuestionInput:{
+
+	},
+	KuTrustRequestFilterInput:{
+
+	},
+	KuVoteItemInput:{
+
+	},
 	ListExpensePlansInput:{
 
 	},
@@ -1084,6 +1231,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	Mutation:{
+		addBranchWhitelist:{
+			data:"AddBranchWhitelistInput"
+		},
 		addParticipant:{
 			data:"AddParticipantInput"
 		},
@@ -1448,6 +1598,9 @@ export const AllTypesProps: Record<string,any> = {
 		deleteBranch:{
 			data:"DeleteBranchInput"
 		},
+		deleteBranchWhitelist:{
+			data:"DeleteBranchWhitelistInput"
+		},
 		deleteCategory:{
 
 		},
@@ -1570,6 +1723,76 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		installSystem:{
 			data:"Install"
+		},
+		kuApproveTrusted:{
+			data:"ApproveKuTrustedInput"
+		},
+		kuCancelDecision:{
+			data:"CancelKuDecisionInput"
+		},
+		kuCloseDecision:{
+			data:"CloseKuDecisionInput"
+		},
+		kuCreateDecision:{
+			data:"CreateKuDecisionInput"
+		},
+		kuDeclineTrusted:{
+			data:"DeclineKuTrustedInput"
+		},
+		kuExecDecision:{
+			data:"ExecKuDecisionInput"
+		},
+		kuGenerateEstablishmentDecision:{
+			data:"BranchEstablishmentDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateEstablishmentPetition:{
+			data:"BranchEstablishmentPetitionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingBallot:{
+			data:"BranchMeetingBallotGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingDecision:{
+			data:"BranchMeetingDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateMeetingProposal:{
+			data:"BranchMeetingProposalGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedLiabilityAgreement:{
+			data:"BranchTrustedLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedPowerOfAttorney:{
+			data:"BranchTrustedPowerOfAttorneyGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrustedStatement:{
+			data:"BranchTrustedStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrusteeLiabilityAgreement:{
+			data:"BranchTrusteeLiabilityAgreementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuGenerateTrusteePowerOfAttorney:{
+			data:"BranchTrusteePowerOfAttorneyGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		kuJoinDecision:{
+			data:"JoinKuDecisionInput"
+		},
+		kuRequestTrusted:{
+			data:"RequestKuTrustedInput"
+		},
+		kuStartDecision:{
+			data:"StartKuDecisionInput"
+		},
+		kuVoteOnDecision:{
+			data:"VoteOnKuDecisionInput"
 		},
 		login:{
 			data:"LoginInput"
@@ -1832,6 +2055,9 @@ export const AllTypesProps: Record<string,any> = {
 		saveCapitalProgramDocDataHash:{
 			data:"SaveCapitalProgramDocDataInput"
 		},
+		saveMyPassport:{
+			passport:"PassportInput"
+		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
 		},
@@ -1840,6 +2066,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		sendAgreement:{
 			data:"SendAgreementInput"
+		},
+		setBranchPrivate:{
+			data:"SetBranchPrivateInput"
 		},
 		setPaymentStatus:{
 			data:"SetPaymentStatusInput"
@@ -2339,6 +2568,17 @@ export const AllTypesProps: Record<string,any> = {
 		getUserWebPushSubscriptions:{
 			data:"GetUserSubscriptionsInput"
 		},
+		kuDecision:{
+
+		},
+		kuDecisions:{
+			filter:"KuDecisionFilterInput",
+			options:"PaginationInput"
+		},
+		kuTrustRequests:{
+			filter:"KuTrustRequestFilterInput",
+			options:"PaginationInput"
+		},
 		listExpensePlans:{
 			data:"ListExpensePlansInput"
 		},
@@ -2628,6 +2868,10 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	RequestImageType: "enum" as const,
 	RequestImageTypeInput: "enum" as const,
+	RequestKuTrustedInput:{
+		application:"BranchTrustedLiabilityAgreementSignedDocumentInput",
+		authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
+	},
 	RequestStatus: "enum" as const,
 	RequestType: "enum" as const,
 	RequestTypeInput: "enum" as const,
@@ -2714,6 +2958,9 @@ export const AllTypesProps: Record<string,any> = {
 	SendAgreementInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	SetBranchPrivateInput:{
+
+	},
 	SetCapitalProjectDevelopmentRepositoryUrlInput:{
 
 	},
@@ -2764,6 +3011,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	StartInstallInput:{
 
+	},
+	StartKuDecisionInput:{
+		agenda:"KuAgendaPointInput"
 	},
 	StartProcessInput:{
 
@@ -2883,6 +3133,10 @@ export const AllTypesProps: Record<string,any> = {
 	VoteOnAnnualGeneralMeetInput:{
 		ballot:"AnnualGeneralMeetingVotingBallotSignedDocumentInput",
 		votes:"VoteItemInput"
+	},
+	VoteOnKuDecisionInput:{
+		ballot:"BranchMeetingBallotSignedDocumentInput",
+		votes:"KuVoteItemInput"
 	},
 	WalmoveInput:{
 
@@ -3196,12 +3450,18 @@ export const ReturnTypes: Record<string,any> = {
 		fact_address:"String",
 		full_address:"String",
 		full_name:"String",
+		is_available:"Boolean",
+		is_private:"Boolean",
+		participants_count:"Int",
 		phone:"String",
 		represented_by:"RepresentedBy",
 		short_name:"String",
 		trusted:"Individual",
+		trusted_certificates:"IndividualCertificate",
 		trustee:"Individual",
-		type:"String"
+		trustee_certificate:"IndividualCertificate",
+		type:"String",
+		whitelist_certificates:"IndividualCertificate"
 	},
 	BuhotchBalanceEdits:{
 		assetsTotal:"BalanceRowEdits",
@@ -4429,6 +4689,70 @@ export const ReturnTypes: Record<string,any> = {
 		key:"String",
 		weight:"Int"
 	},
+	KuDecision:{
+		address:"String",
+		authorization:"JSON",
+		authorization_document:"DocumentAggregate",
+		block_num:"Int",
+		braname:"String",
+		branch_email:"String",
+		branch_name:"String",
+		branch_phone:"String",
+		chairman:"String",
+		close_at:"String",
+		coopname:"String",
+		created_at:"String",
+		hash:"String",
+		id:"Int",
+		initiator:"String",
+		meet_at:"String",
+		meet_place:"String",
+		open_at:"String",
+		participants:"String",
+		participants_info:"KuMeetingParticipant",
+		petition:"JSON",
+		present:"Boolean",
+		proposal:"JSON",
+		protocol:"JSON",
+		protocol_document:"DocumentAggregate",
+		questions:"KuDecisionQuestion",
+		signed_ballots:"Int",
+		status:"KuDecisionStatus",
+		type:"KuDecisionType"
+	},
+	KuDecisionQuestion:{
+		context:"String",
+		counter_votes_abstained:"Int",
+		counter_votes_against:"Int",
+		counter_votes_for:"Int",
+		decision:"String",
+		decision_id:"Int",
+		id:"Int",
+		number:"Int",
+		title:"String",
+		voters_abstained:"String",
+		voters_against:"String",
+		voters_for:"String"
+	},
+	KuMeetingParticipant:{
+		account_type:"AccountType",
+		display_name:"String",
+		username:"String"
+	},
+	KuTrustRequest:{
+		application:"JSON",
+		authority:"JSON",
+		authority_document:"DocumentAggregate",
+		block_num:"Int",
+		braname:"String",
+		coopname:"String",
+		display_name:"String",
+		document:"DocumentAggregate",
+		hash:"String",
+		id:"Int",
+		present:"Boolean",
+		username:"String"
+	},
 	Ledger2Account:{
 		accountType:"Int",
 		balance:"String",
@@ -5495,6 +5819,7 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	Mutation:{
+		addBranchWhitelist:"Branch",
 		addParticipant:"Account",
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
@@ -5610,6 +5935,7 @@ export const ReturnTypes: Record<string,any> = {
 		declineDecision:"Transaction",
 		deleteAccount:"Boolean",
 		deleteBranch:"Boolean",
+		deleteBranchWhitelist:"Branch",
 		deleteCategory:"Boolean",
 		deleteExpensePlan:"Boolean",
 		deletePaymentMethod:"Boolean",
@@ -5644,6 +5970,26 @@ export const ReturnTypes: Record<string,any> = {
 		initSystem:"SystemInfo",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
+		kuApproveTrusted:"Transaction",
+		kuCancelDecision:"Transaction",
+		kuCloseDecision:"Transaction",
+		kuCreateDecision:"Transaction",
+		kuDeclineTrusted:"Transaction",
+		kuExecDecision:"Transaction",
+		kuGenerateEstablishmentDecision:"GeneratedDocument",
+		kuGenerateEstablishmentPetition:"GeneratedDocument",
+		kuGenerateMeetingBallot:"GeneratedDocument",
+		kuGenerateMeetingDecision:"GeneratedDocument",
+		kuGenerateMeetingProposal:"GeneratedDocument",
+		kuGenerateTrustedLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrustedPowerOfAttorney:"GeneratedDocument",
+		kuGenerateTrustedStatement:"GeneratedDocument",
+		kuGenerateTrusteeLiabilityAgreement:"GeneratedDocument",
+		kuGenerateTrusteePowerOfAttorney:"GeneratedDocument",
+		kuJoinDecision:"Transaction",
+		kuRequestTrusted:"Transaction",
+		kuStartDecision:"Transaction",
+		kuVoteOnDecision:"Transaction",
 		login:"RegisteredAccount",
 		logout:"Boolean",
 		markAllNotificationsRead:"UnreadNotificationsCount",
@@ -5734,9 +6080,11 @@ export const ReturnTypes: Record<string,any> = {
 		restartAnnualGeneralMeet:"MeetAggregate",
 		returnExpenseItem:"Transaction",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
+		saveMyPassport:"Account",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
+		setBranchPrivate:"Branch",
 		setPaymentStatus:"GatewayPayment",
 		setWif:"Boolean",
 		signByPresiderOnAnnualGeneralMeet:"MeetAggregate",
@@ -6002,6 +6350,18 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedGatewayPaymentsPaginationResult:{
 		currentPage:"Int",
 		items:"GatewayPayment",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedKuDecisionsPaginationResult:{
+		currentPage:"Int",
+		items:"KuDecision",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedKuTrustRequestsPaginationResult:{
+		currentPage:"Int",
+		items:"KuTrustRequest",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -6393,6 +6753,9 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWallets:"UserWallet",
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
+		kuDecision:"KuDecision",
+		kuDecisions:"PaginatedKuDecisionsPaginationResult",
+		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",
 		listExpensePlans:"ExpensePlan",
 		listReportDrafts:"ReportDraft",
 		marketplaceAidStatementSignablePayload:"GeneratedDocument",
@@ -6671,6 +7034,7 @@ export const ReturnTypes: Record<string,any> = {
 		authorized_default_workspace:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		is_registration_open:"Boolean",
 		non_authorized_default_route:"String",
 		non_authorized_default_workspace:"String",
 		provider_name:"String",
