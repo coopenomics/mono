@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { BaseCard, BaseButton, BaseInput, BaseChip } from 'src/shared/ui/base';
+import { BaseCard, BaseButton, BaseInput, BaseChip, BaseBanner } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { loadExtensionRoutes } from 'src/processes/init-installed-extensions';
 import {
@@ -29,6 +29,8 @@ const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
 const coopname = computed(() => system.info?.coopname ?? '');
+const contacts = computed(() => system.info?.contacts);
+const contactPhoneHref = computed(() => (contacts.value?.phone || '').replace(/\s+/g, ''));
 
 const state = ref<MarketplaceSupplierStateView | null>(null);
 const loading = ref(false);
@@ -143,7 +145,7 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
             q-icon(name="storefront", size="22px")
           .supplier-onboarding__head-text
             .text-subtitle1.text-weight-medium Стать поставщиком
-            .text-body2.text-grey-7 Выберите модель работы с кооперативом и предоставьте договор.
+            .text-body2.text-grey-7 Выберите модель работы с кооперативом и заключите договор.
 
         .supplier-onboarding__rejected(v-if="isRejected")
           q-icon(name="info", size="16px")
@@ -172,10 +174,27 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
               q-icon(name="workspace_premium", size="20px")
               .text-weight-medium Паевая модель
               BaseChip.supplier-onboarding__soon(variant="neutral", size="sm") Скоро
-            .text-body2.text-grey-7 Поставщик вносит паевой взнос имуществом по договору участия хозяйственной деятельности кооператива.
+            .text-body2.text-grey-7 Поставщик вносит паевой взнос имуществом по договору кооператива.
 
         //- Реквизиты договора по членской модели.
         .supplier-onboarding__form(v-if="model === 'MEMBERSHIP'")
+          BaseBanner.q-mb-sm(variant="info")
+            p.q-mb-xs Заключите договор с кооперативом и введите его параметры ниже.
+            .q-mb-none(v-if="contacts?.email || contacts?.phone")
+              p.q-mb-xs По вопросу заключения договора обратитесь по контактам:
+              .supplier-onboarding__contacts
+                a.supplier-onboarding__contact-link(
+                  v-if="contacts?.email",
+                  :href="`mailto:${contacts.email}`"
+                )
+                  q-icon(name="mail", size="14px")
+                  span {{ contacts.email }}
+                a.supplier-onboarding__contact-link(
+                  v-if="contacts?.phone",
+                  :href="`tel:${contactPhoneHref}`"
+                )
+                  q-icon(name="call", size="14px")
+                  span {{ contacts.phone }}
           BaseInput(
             v-model="contractNumber",
             label="Номер договора",
@@ -188,10 +207,6 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
             label="Дата заключения договора",
             :disabled="submitting"
           )
-          .supplier-onboarding__support
-            q-icon(name="help_outline", size="16px")
-            span
-              | По вопросам заключения договора с кооперативом обратитесь в поддержку.
 
       .supplier-onboarding__bar
         .supplier-onboarding__bar-note.text-body2.text-grey-7
@@ -358,18 +373,22 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
     gap: var(--p-3, 12px);
   }
 
-  &__support {
+  &__contacts {
     display: flex;
-    align-items: flex-start;
-    gap: var(--p-1, 4px);
-    color: var(--p-ink-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    line-height: 1.4;
+    flex-wrap: wrap;
+    gap: var(--p-4, 16px);
+  }
 
-    .q-icon {
-      flex-shrink: 0;
-      margin-top: 2px;
-      color: var(--p-info, var(--p-primary));
+  &__contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    color: var(--p-primary);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--p-primary-hover, var(--p-primary));
+      text-decoration: underline;
     }
   }
 
