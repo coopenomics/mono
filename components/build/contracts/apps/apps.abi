@@ -1,0 +1,763 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "cleanup",
+            "base": "",
+            "fields": [
+                {
+                    "name": "package_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "client",
+            "base": "",
+            "fields": [
+                {
+                    "name": "client_coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "registered_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "coop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "chain_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "subnet_label",
+                    "type": "name"
+                },
+                {
+                    "name": "signing_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "active",
+                    "type": "bool"
+                },
+                {
+                    "name": "registered_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "key_rotated_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "counts",
+            "base": "counts_base",
+            "fields": []
+        },
+        {
+            "name": "counts_base",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "name"
+                },
+                {
+                    "name": "secondary_key",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "delclient",
+            "base": "",
+            "fields": [
+                {
+                    "name": "catalog_operator",
+                    "type": "name"
+                },
+                {
+                    "name": "client_coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "expsub",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "subscriber",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "extendsub",
+            "base": "",
+            "fields": [
+                {
+                    "name": "catalog_operator",
+                    "type": "name"
+                },
+                {
+                    "name": "subscriber",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "period_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "charge_intent_id",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "globals_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "min_payment_period_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "free_trial_period_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "lead_time_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "retry_max",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "package",
+            "base": "",
+            "fields": [
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "package_name",
+                    "type": "string"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "compatible_subnets",
+                    "type": "name[]"
+                },
+                {
+                    "name": "last_active_version",
+                    "type": "string"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "pricing",
+            "base": "",
+            "fields": [
+                {
+                    "name": "plan",
+                    "type": "name"
+                },
+                {
+                    "name": "hourly_rate",
+                    "type": "asset"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "reactivate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "version",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "regclient",
+            "base": "",
+            "fields": [
+                {
+                    "name": "catalog_operator",
+                    "type": "name"
+                },
+                {
+                    "name": "client_coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "regcoop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "chain_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "subnet_label",
+                    "type": "name"
+                },
+                {
+                    "name": "signing_key",
+                    "type": "public_key"
+                }
+            ]
+        },
+        {
+            "name": "regpackage",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "package_name",
+                    "type": "string"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "compatible_subnets",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "regsub",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "subscriber",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "chain_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "plan",
+                    "type": "name"
+                },
+                {
+                    "name": "start_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "end_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "release",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "scope",
+                    "type": "scope_t"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "published_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "superseded_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "moderated_by",
+                    "type": "name"
+                },
+                {
+                    "name": "tarball_sha256",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "scope_t",
+            "base": "",
+            "fields": [
+                {
+                    "name": "kind",
+                    "type": "name"
+                },
+                {
+                    "name": "targets",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "setattempt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "catalog_operator",
+                    "type": "name"
+                },
+                {
+                    "name": "subscriber",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "attempt",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "setcoop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "chain_id",
+                    "type": "checksum256?"
+                },
+                {
+                    "name": "subnet_label",
+                    "type": "name?"
+                },
+                {
+                    "name": "signing_key",
+                    "type": "public_key?"
+                },
+                {
+                    "name": "active",
+                    "type": "bool?"
+                }
+            ]
+        },
+        {
+            "name": "setglobals",
+            "base": "",
+            "fields": [
+                {
+                    "name": "min_payment_period_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "free_trial_period_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "lead_time_seconds",
+                    "type": "uint32"
+                },
+                {
+                    "name": "retry_max",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "setpricing",
+            "base": "",
+            "fields": [
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "plan",
+                    "type": "name"
+                },
+                {
+                    "name": "hourly_rate",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "setrelease",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "scope",
+                    "type": "scope_t"
+                },
+                {
+                    "name": "tarball_sha256",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "moderated_by",
+                    "type": "name"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "sub",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "chain_id",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "plan",
+                    "type": "name"
+                },
+                {
+                    "name": "active",
+                    "type": "bool"
+                },
+                {
+                    "name": "start_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "end_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "attempt",
+                    "type": "uint8"
+                },
+                {
+                    "name": "last_charge_intent_id",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "transferpkg",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "new_owner",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "package_id",
+                    "type": "name"
+                },
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "cleanup",
+            "type": "cleanup",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delclient",
+            "type": "delclient",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "expsub",
+            "type": "expsub",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "extendsub",
+            "type": "extendsub",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reactivate",
+            "type": "reactivate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regclient",
+            "type": "regclient",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regcoop",
+            "type": "regcoop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regpackage",
+            "type": "regpackage",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regsub",
+            "type": "regsub",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setattempt",
+            "type": "setattempt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setcoop",
+            "type": "setcoop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setglobals",
+            "type": "setglobals",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpricing",
+            "type": "setpricing",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setrelease",
+            "type": "setrelease",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transferpkg",
+            "type": "transferpkg",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdraw",
+            "type": "withdraw",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "clients",
+            "type": "client",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "coops",
+            "type": "coop",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "counts",
+            "type": "counts",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "globals",
+            "type": "globals_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "packages",
+            "type": "package",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pricings",
+            "type": "pricing",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "releases",
+            "type": "release",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "subs",
+            "type": "sub",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

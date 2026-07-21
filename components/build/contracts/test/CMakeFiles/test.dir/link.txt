@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/test.dir/test.cpp.obj -o test.wasm 

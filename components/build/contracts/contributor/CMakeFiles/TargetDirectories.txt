@@ -1,0 +1,3 @@
+/project/build/contracts/contributor/CMakeFiles/contributor.dir
+/project/build/contracts/contributor/CMakeFiles/edit_cache.dir
+/project/build/contracts/contributor/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,3 @@
+/project/build/contracts/apps/CMakeFiles/apps.dir
+/project/build/contracts/apps/CMakeFiles/edit_cache.dir
+/project/build/contracts/apps/CMakeFiles/rebuild_cache.dir

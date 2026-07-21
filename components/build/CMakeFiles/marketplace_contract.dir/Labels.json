@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/marketplace_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/marketplace_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/marketplace_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"marketplace_contract"
+		],
+		"name" : "marketplace_contract"
+	}
+}

@@ -1,0 +1,14 @@
+# Target labels
+ marketplace_contract
+# Source files and their labels
+/project/build/CMakeFiles/marketplace_contract
+/project/build/CMakeFiles/marketplace_contract.rule
+/project/build/CMakeFiles/marketplace_contract-complete.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-build.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-configure.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-download.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-install.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-mkdir.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-patch.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-test.rule
+/project/build/marketplace_contract-prefix/src/marketplace_contract-stamp/marketplace_contract-update.rule

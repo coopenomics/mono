@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/expense_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/expense_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/expense_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"expense_contract"
+		],
+		"name" : "expense_contract"
+	}
+}

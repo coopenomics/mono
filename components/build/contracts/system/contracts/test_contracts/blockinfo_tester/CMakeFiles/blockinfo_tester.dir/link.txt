@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/blockinfo_tester.dir/src/blockinfo_tester.cpp.obj -o blockinfo_tester.wasm 

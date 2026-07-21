@@ -1,0 +1,3 @@
+/project/build/contracts/soviet/CMakeFiles/soviet.dir
+/project/build/contracts/soviet/CMakeFiles/edit_cache.dir
+/project/build/contracts/soviet/CMakeFiles/rebuild_cache.dir

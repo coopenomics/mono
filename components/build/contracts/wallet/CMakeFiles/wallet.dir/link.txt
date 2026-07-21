@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/wallet.dir/wallet.cpp.obj -o wallet.wasm 

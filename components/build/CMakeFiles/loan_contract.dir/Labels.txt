@@ -1,0 +1,14 @@
+# Target labels
+ loan_contract
+# Source files and their labels
+/project/build/CMakeFiles/loan_contract
+/project/build/CMakeFiles/loan_contract.rule
+/project/build/CMakeFiles/loan_contract-complete.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-build.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-configure.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-download.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-install.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-mkdir.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-patch.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-test.rule
+/project/build/loan_contract-prefix/src/loan_contract-stamp/loan_contract-update.rule

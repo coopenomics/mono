@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/ledger_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/ledger_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/ledger_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"ledger_contract"
+		],
+		"name" : "ledger_contract"
+	}
+}

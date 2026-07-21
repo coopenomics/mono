@@ -1,0 +1,634 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "authmeet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "createmeet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "initiator",
+                    "type": "name"
+                },
+                {
+                    "name": "presider",
+                    "type": "name"
+                },
+                {
+                    "name": "secretary",
+                    "type": "name"
+                },
+                {
+                    "name": "agenda",
+                    "type": "meet_point[]"
+                },
+                {
+                    "name": "proposal",
+                    "type": "document2"
+                },
+                {
+                    "name": "open_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "close_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "declmeet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "delmeet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "meet_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "gmnotify",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "notification",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "meet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "level",
+                    "type": "name"
+                },
+                {
+                    "name": "initiator",
+                    "type": "name"
+                },
+                {
+                    "name": "presider",
+                    "type": "name"
+                },
+                {
+                    "name": "secretary",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "open_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "close_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "notified_users",
+                    "type": "name[]"
+                },
+                {
+                    "name": "quorum_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "signed_ballots",
+                    "type": "uint64"
+                },
+                {
+                    "name": "current_quorum_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "cycle",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quorum_passed",
+                    "type": "bool"
+                },
+                {
+                    "name": "proposal",
+                    "type": "document2"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                },
+                {
+                    "name": "decision1",
+                    "type": "document2"
+                },
+                {
+                    "name": "decision2",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "meet_point",
+            "base": "",
+            "fields": [
+                {
+                    "name": "context",
+                    "type": "string"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "decision",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "newgdecision",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "presider",
+                    "type": "name"
+                },
+                {
+                    "name": "secretary",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "results",
+                    "type": "question_result[]"
+                },
+                {
+                    "name": "signed_ballots",
+                    "type": "uint64"
+                },
+                {
+                    "name": "quorum_percent",
+                    "type": "float64"
+                },
+                {
+                    "name": "quorum_passed",
+                    "type": "bool"
+                },
+                {
+                    "name": "decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "question",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "number",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "meet_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "context",
+                    "type": "string"
+                },
+                {
+                    "name": "decision",
+                    "type": "string"
+                },
+                {
+                    "name": "counter_votes_for",
+                    "type": "uint64"
+                },
+                {
+                    "name": "counter_votes_against",
+                    "type": "uint64"
+                },
+                {
+                    "name": "counter_votes_abstained",
+                    "type": "uint64"
+                },
+                {
+                    "name": "voters_for",
+                    "type": "name[]"
+                },
+                {
+                    "name": "voters_against",
+                    "type": "name[]"
+                },
+                {
+                    "name": "voters_abstained",
+                    "type": "name[]"
+                }
+            ]
+        },
+        {
+            "name": "question_result",
+            "base": "",
+            "fields": [
+                {
+                    "name": "question_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "number",
+                    "type": "uint64"
+                },
+                {
+                    "name": "title",
+                    "type": "string"
+                },
+                {
+                    "name": "decision",
+                    "type": "string"
+                },
+                {
+                    "name": "context",
+                    "type": "string"
+                },
+                {
+                    "name": "votes_for",
+                    "type": "uint64"
+                },
+                {
+                    "name": "votes_against",
+                    "type": "uint64"
+                },
+                {
+                    "name": "votes_abstained",
+                    "type": "uint64"
+                },
+                {
+                    "name": "accepted",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "restartmeet",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "new_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "newproposal",
+                    "type": "document2"
+                },
+                {
+                    "name": "new_open_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "new_close_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "signbypresid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "presider_decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "signbysecr",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "secretary_decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "vote",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "ballot",
+                    "type": "document2"
+                },
+                {
+                    "name": "votes",
+                    "type": "vote_point[]"
+                }
+            ]
+        },
+        {
+            "name": "vote_point",
+            "base": "",
+            "fields": [
+                {
+                    "name": "question_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "vote",
+                    "type": "name"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "authmeet",
+            "type": "authmeet",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createmeet",
+            "type": "createmeet",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declmeet",
+            "type": "declmeet",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delmeet",
+            "type": "delmeet",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "gmnotify",
+            "type": "gmnotify",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newgdecision",
+            "type": "newgdecision",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "restartmeet",
+            "type": "restartmeet",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signbypresid",
+            "type": "signbypresid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "signbysecr",
+            "type": "signbysecr",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "vote",
+            "type": "vote",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "meets",
+            "type": "meet",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "questions",
+            "type": "question",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/soviet.dir/soviet.cpp.obj -o soviet.wasm 

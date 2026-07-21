@@ -1,0 +1,3 @@
+/project/build/contracts/gateway/CMakeFiles/gateway.dir
+/project/build/contracts/gateway/CMakeFiles/edit_cache.dir
+/project/build/contracts/gateway/CMakeFiles/rebuild_cache.dir

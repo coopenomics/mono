@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/gateway_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/gateway_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/gateway_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/gateway_contract-prefix/src/gateway_contract-stamp/gateway_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"gateway_contract"
+		],
+		"name" : "gateway_contract"
+	}
+}

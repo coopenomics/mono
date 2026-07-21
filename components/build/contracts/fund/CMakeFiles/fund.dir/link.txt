@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/fund.dir/fund.cpp.obj -o fund.wasm 
