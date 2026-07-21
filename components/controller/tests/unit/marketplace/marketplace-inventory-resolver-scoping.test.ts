@@ -24,10 +24,18 @@ const makeResolver = (ownBranames: string[]) => {
   const kuChairmanService = {
     listBranamesForMember: jest.fn().mockResolvedValue(ownBranames),
   } as any;
+  // Обогащение результата ФИО заказчиков и реквизитами КУ (см. resolver:
+  // marketplaceListInventory зовёт их сразу после inventoryRepo.list) —
+  // тесты скоупинга их содержимое не проверяют, только факт вызова list().
+  const orderDisplay = {
+    resolveAccountNames: jest.fn().mockResolvedValue(new Map()),
+    enrichByOrderIds: jest.fn().mockResolvedValue(new Map()),
+  } as any;
   const resolver = new MarketplaceInventoryResolver(
     labelService,
     inventoryRepo,
-    kuChairmanService
+    kuChairmanService,
+    orderDisplay
   );
   return { resolver, inventoryRepo, kuChairmanService };
 };
