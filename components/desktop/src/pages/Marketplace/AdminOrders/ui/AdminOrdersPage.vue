@@ -90,8 +90,11 @@ function shortId(id: string | null | undefined): string {
 function unitLabel(o: AdminOrderView): string {
   return marketplaceUnitShort(o.unit_of_measure);
 }
-function formatTotal(v: string | null | undefined): string {
-  return v ? formatAsset2Digits(String(v)) : '—';
+// requirement b6: реестр показывает сумму, которую реально заплатил пайщик
+// (себестоимость + членский взнос, зафиксированный в заказе контрактом) —
+// не голую себестоимость товара.
+function formatTotalWithFee(o: AdminOrderView): string {
+  return formatAsset2Digits(o.total_cost_with_fee);
 }
 function formatDate(d: unknown): string {
   if (d === null || d === undefined) return '—';
@@ -255,7 +258,7 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
           q-td {{ ordererTitle(props.row) }}
           q-td {{ supplierTitle(props.row) }}
           q-td.text-right {{ props.row.quantity }} {{ unitLabel(props.row) }}
-          q-td.text-right.font-monospace {{ formatTotal(props.row.total_cost) }}
+          q-td.text-right.font-monospace {{ formatTotalWithFee(props.row) }}
           q-td {{ formatDate(props.row.created_at) }}
 
         q-tr.q-virtual-scroll--with-prev(

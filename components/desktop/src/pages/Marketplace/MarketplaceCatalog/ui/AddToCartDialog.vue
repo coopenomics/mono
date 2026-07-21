@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
+import { applyMembershipFee } from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
 import type { MarketplaceOfferView } from '../types';
 
@@ -29,10 +30,16 @@ const cartStore = useMarketplaceCartStore();
 const router = useRouter();
 const route = useRoute();
 
-const props = defineProps<{
-  modelValue: boolean;
-  offer: CartOffer | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean;
+    offer: CartOffer | null;
+    // Единая ставка членского взноса кооператива, проценты (requirement b6).
+    // Цена и итог показываются заказчику с учётом взноса — как в каталоге.
+    feePercent?: number;
+  }>(),
+  { feePercent: 0 },
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
@@ -64,10 +71,14 @@ const maxQuantity = computed(() => {
   return props.offer.quantity_available;
 });
 
-const totalSum = computed(() => {
+const priceWithFee = computed(() => {
   if (!props.offer) return 0;
+  return applyMembershipFee(Number(props.offer.price_per_unit), props.feePercent);
+});
+
+const totalSum = computed(() => {
   const q = Number(quantity.value) || 0;
-  return q * Number(props.offer.price_per_unit);
+  return q * priceWithFee.value;
 });
 
 // Сколько этой позиции уже в корзине — подсказка, чтобы заказчик не дублировал.
@@ -148,7 +159,9 @@ BaseDialog(
       .add-to-cart__note(v-if="alreadyInCart > 0")
         | Уже в корзине: {{ alreadyInCart }} {{ unitLabel }} — добавление суммируется.
       .add-to-cart__price(v-if="offer")
-        | Цена: {{ Number(offer.price_per_unit).toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
+        | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
+        template(v-if="feePercent > 0")
+          |  (с членским взносом {{ feePercent }}%)
       .add-to-cart__total(v-if="offer")
         | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
   template(#footer)

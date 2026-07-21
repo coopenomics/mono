@@ -61,11 +61,13 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   autogrow: false,
 });
 
+// Quasar QInput форвардит нативные blur/focus как обычный Event, не строго
+// FocusEvent — типизация здесь под то, что реально приходит из q-input.
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   clear: [];
-  blur: [event: FocusEvent];
-  focus: [event: FocusEvent];
+  blur: [event: Event];
+  focus: [event: Event];
 }>();
 
 const autoId = useId();

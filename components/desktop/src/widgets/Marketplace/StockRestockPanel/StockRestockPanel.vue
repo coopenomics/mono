@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { Queries } from '@coopenomics/sdk';
+import { Classes, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { useGlobalStore } from 'src/shared/store';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -9,9 +10,12 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   createStockProposal,
   cancelStockProposal,
+  getStockIssuancePayloads,
   listStockProposals,
   type MarketplaceStockProposalView,
 } from 'src/pages/Marketplace/OperatorIssuance/api';
+
+const globalStore = useGlobalStore();
 
 /**
  * Докладка у стойки выдачи (requirement 76): оператор накидывает пайщику
@@ -78,7 +82,7 @@ async function loadProposals(): Promise<void> {
   try {
     proposals.value = await listStockProposals({
       braname: props.braname,
-      statuses: ['PROPOSED'],
+      statuses: [Zeus.MarketplaceStockProposalStatus.PROPOSED],
     });
   } catch {
     proposals.value = [];
@@ -92,12 +96,36 @@ function bump(offer: CoopStockOffer, delta: number): void {
 }
 
 async function sendProposal(): Promise<void> {
+  const wifKey = globalStore.wif?.toString();
+  if (!wifKey) {
+    FailAlert(new Error('Приватный ключ не найден. Войдите в кооператив.'));
+    return;
+  }
   sending.value = true;
   try {
-    await createStockProposal({
+    // Двухфазно (канон — см. IssueActOpenDialog.vue): сначала бэк готовит по
+    // каждой строке order_hash + акт приёма-передачи (signiss1_document),
+    // затем оператор подписывает его локально своим ключом (первая подпись
+    // АПП-выдачи) — и только с готовой подписью бандл уходит на создание
+    // предложения. До подписи пайщика в блокчейне ничего не происходит.
+    const docSigner = new Classes.Document(wifKey);
+    const payloads = await getStockIssuancePayloads({
       braname: props.braname,
       member_account: props.memberAccount,
       items: composedLines.value.map((l) => ({ offer_id: l.offer.id, quantity: l.quantity })),
+    });
+    const items = await Promise.all(
+      payloads.map(async (p) => ({
+        offer_id: p.offer_id,
+        quantity: p.quantity,
+        order_hash: p.order_hash,
+        signiss1_act: await docSigner.signDocument(p.signiss1_document, globalStore.username, 1),
+      })),
+    );
+    await createStockProposal({
+      braname: props.braname,
+      member_account: props.memberAccount,
+      items,
     });
     SuccessAlert('Предложение отправлено — у пайщика всплыло окно решения.');
     quantities.value = {};

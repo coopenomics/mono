@@ -15,7 +15,7 @@ div
           :value='program.key',
           :title='program.title',
           :description='program.description',
-          :meta='program.requirements',
+          :meta='program.requirements ?? undefined',
           @update:model-value='selectProgram(program.key)'
         )
 

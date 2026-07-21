@@ -24,6 +24,7 @@
       <div class="order-card__fact">
         <div class="order-card__fact-label">Сумма</div>
         <div class="order-card__fact-value order-card__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
+        <div v-if="order.feeNote" class="order-card__fee-note">{{ order.feeNote }}</div>
       </div>
       <div class="order-card__fact">
         <div class="order-card__fact-label">Кол-во</div>
@@ -87,6 +88,13 @@ export interface Order {
   units: number
   unitLabel?: string
   totalCost: number
+  /**
+   * Пояснение под суммой (requirement b6) — например «С учётом взноса
+   * пайщика: 1 300 ₽» на столе поставщика, где `totalCost` — его
+   * себестоимость без взноса. Заказчику не показывается — там `totalCost`
+   * уже включает взнос.
+   */
+  feeNote?: string
   /** Card-status — управляет набором действий per-role (ACTIONS_PER_ROLE). */
   status: OrderStatus
   /** Человекочитаемая подпись доменного статуса для бейджа (из orderStatusDisplay). */
@@ -308,6 +316,12 @@ function formatPrice(v: number) {
       letter-spacing: var(--p-ls-h2, -0.01em);
       font-feature-settings: 'tnum' 1;
     }
+  }
+
+  &__fee-note {
+    font-size: var(--p-fs-body-sm, 12px);
+    color: var(--p-ink-3);
+    margin-top: 2px;
   }
 
   // ПВЗ — отдельный блок с иконкой: наименование КУ (основное) + адрес.

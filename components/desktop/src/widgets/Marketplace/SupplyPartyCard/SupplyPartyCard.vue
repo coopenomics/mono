@@ -48,6 +48,12 @@ const props = defineProps<{
   /** Значение итога, напр. «1 200 ₽ · 5 кг». */
   totalValue: string;
   /**
+   * Пояснение под итогом (requirement b6) — например «С учётом взноса
+   * пайщиков: 1 300 ₽» на столе поставщика, где `totalValue` — его
+   * себестоимость без взноса. У заказчика не передаётся.
+   */
+  totalFeeNote?: string;
+  /**
    * Карточка кликабельна (курсор-указатель + role=button + emit `card-click`).
    * У заказчика на «Коллективном заказе» клик ведёт в карточку предложения; у
    * поставщика по умолчанию выключено (карточка — только сводка).
@@ -115,6 +121,7 @@ function onCardClick(): void {
     .supply-party__total
       span.t-muted {{ totalLabel }}
       span.supply-party__total-val {{ totalValue }}
+      span.supply-party__total-fee-note(v-if="totalFeeNote") {{ totalFeeNote }}
     q-space
     slot(name="actions")
 </template>
@@ -228,6 +235,11 @@ function onCardClick(): void {
     font-size: var(--p-fs-body);
     color: var(--p-ink-1);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__total-fee-note {
+    font-size: var(--p-fs-body-sm, 12px);
+    color: var(--p-ink-3);
   }
 }
 </style>

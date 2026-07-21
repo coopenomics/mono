@@ -11,7 +11,7 @@ import {
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
-import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 
 /**
  * Эпик 16 / Story 16.1 + 16.2: страница корзины заказчика и оформление.
@@ -35,12 +35,12 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const symbol = computed(() => system.governSymbol);
 
-function unitShort(u: string): string {
-  return marketplaceUnitShort(u as Parameters<typeof marketplaceUnitShort>[0]);
+function unitShort(u: string | null | undefined): string {
+  return marketplaceUnitShort((u ?? '') as Parameters<typeof marketplaceUnitShort>[0]);
 }
 
-function money(value: string | number): string {
-  return Number(value).toLocaleString('ru-RU');
+function money(value: string | number | null | undefined): string {
+  return Number(value ?? 0).toLocaleString('ru-RU');
 }
 
 // Низкоуровневый коммит количества (целое ≥ 1). Кламп делает changeQty.
@@ -156,8 +156,8 @@ useMarketplaceRealtime(
 // requirement b6: членский взнос входит в общую стоимость заказа — сводка
 // показывает его отдельной строкой и итог с учётом взноса.
 const feePercent = ref(0);
-const feeAmount = computed(() => (cartStore.totalCost * feePercent.value) / 100);
-const totalWithFee = computed(() => cartStore.totalCost + feeAmount.value);
+const totalWithFee = computed(() => applyMembershipFee(Number(cartStore.totalCost), feePercent.value));
+const feeAmount = computed(() => totalWithFee.value - Number(cartStore.totalCost));
 
 onMounted(async () => {
   try {

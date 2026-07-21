@@ -26,6 +26,7 @@ export default ssrMiddleware(({ app }) => {
       VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY as string,
       SENTRY_DSN: process.env.SENTRY_DSN as string,
       OPENREPLAY_PROJECT_KEY: process.env.OPENREPLAY_PROJECT_KEY as string,
+      YANDEX_MAPS_API_KEY: process.env.YANDEX_MAPS_API_KEY as string,
     };
 
     // Создаем скрипт, который добавит переменные в window.__ENV__

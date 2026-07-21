@@ -88,6 +88,7 @@ interface CollectiveParty {
   orders: MarketplaceOrderView[];
   /** Свой вклад (сумма собственных заказов в этой партии). */
   ownUnits: number;
+  /** С учётом членского взноса (requirement b6) — то, что заказчик реально платит. */
   ownCost: number;
   /** Накоплено всеми пайщиками (с бэкенда): пул сбора или объём партии. */
   groupAccumulated: number | null;
@@ -127,7 +128,7 @@ const parties = computed<CollectiveParty[]>(() => {
     }
     p.orders.push(o);
     p.ownUnits += o.quantity;
-    p.ownCost += parseFloat(o.total_cost) || 0;
+    p.ownCost += Number(o.total_cost_with_fee);
     const candidate = STAGE_RANK[o.status];
     const current = STAGE_RANK[p.stageStatus];
     if (candidate < 90 && (current >= 90 || candidate < current)) {
