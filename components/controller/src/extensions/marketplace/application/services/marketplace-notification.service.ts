@@ -81,7 +81,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         expeditorName: event.expeditor_name,
         coopname: event.coopname,
         apl_reception_id: event.apl_reception_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PendingAplReceptions/${event.apl_reception_id}`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/apl-receptions`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,
@@ -191,9 +191,6 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         contractNumber: event.contract_number,
         coopname: event.coopname,
-        // Реальный путь стола поставщика (market-supplier/my-offers) — не
-        // легаси-алиас /offerer/..., которым по инерции пользуются соседние
-        // уведомления этого файла и который давно разошёлся с install.ts.
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/my-offers`,
       };
       await this.notificationSenderService.sendNotificationToUser(
@@ -222,7 +219,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PaymentHistory`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/payments`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,
@@ -411,7 +408,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/PaymentHistory`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/payments`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,
@@ -440,7 +437,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         totalCost: event.total_cost,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,
@@ -512,7 +509,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/offerer/IncomingOrders`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,
