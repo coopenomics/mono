@@ -14,7 +14,7 @@ import { GeocodeStatus, KuDetailsStatus } from 'src/entities/MarketplaceKUDetail
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
-import { PageHint } from 'src/shared/ui/domain'
+import { IdentityCell, PageHint } from 'src/shared/ui/domain'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
@@ -79,6 +79,10 @@ const GEOCODE_LABEL: Record<GeocodeStatus, { label: string; variant: BaseBadgeVa
 function statusOf(row: IssuancePointRow): { label: string; variant: BaseBadgeVariant } {
   if (!row.details) return { label: 'Не подключён', variant: 'neutral' }
   return STATUS_LABEL[row.details.status]
+}
+
+function branchName(row: IssuancePointRow): string {
+  return row.branch.short_name || row.branch.full_name || ''
 }
 
 function addressOf(row: IssuancePointRow): string {
@@ -213,8 +217,10 @@ q-page.admin-pvz
         tbody
           tr(v-for='row in rows', :key='row.branch.braname')
             td.col-ku
-              .admin-pvz__ku-name {{ row.branch.short_name || row.branch.full_name || row.branch.braname }}
-              .admin-pvz__ku-acc {{ row.branch.braname }}
+              IdentityCell(
+                :account-name='row.branch.braname',
+                :full-name='branchName(row)'
+              )
             td.col-city {{ row.branch.city || '—' }}
             td.admin-pvz__address {{ addressOf(row) }}
             td.col-status
@@ -332,16 +338,6 @@ q-page.admin-pvz
   &__counter {
     color: var(--p-ink-3);
     font-size: 0.875rem;
-  }
-
-  &__ku-name {
-    font-weight: 600;
-  }
-
-  &__ku-acc {
-    font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    color: var(--p-ink-3);
   }
 
   &__address {

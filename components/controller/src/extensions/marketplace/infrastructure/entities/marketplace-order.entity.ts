@@ -183,6 +183,15 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'boolean', default: false })
   public on_chain_present!: boolean;
 
+  /**
+   * Членский взнос, включённый в стоимость заказа (requirement b6). Контракт
+   * сам считает и пишет его в `order` row при `createorder` — это on-chain
+   * mirror, не backend-вычисление (см. domain MarketplaceOrderBlockchainData).
+   * Null до первой sync-дельты и у заказов, созданных до появления поля.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
+  public membership_fee!: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 

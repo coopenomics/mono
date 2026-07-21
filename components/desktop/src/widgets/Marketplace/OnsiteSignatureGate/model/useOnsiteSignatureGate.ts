@@ -7,7 +7,7 @@ import {
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
 } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
-import { Classes } from '@coopenomics/sdk';
+import { Classes, Zeus } from '@coopenomics/sdk';
 import {
   listStockProposals,
   finalizeStockIssuance,
@@ -96,7 +96,7 @@ async function refresh(source = 'ручной'): Promise<void> {
   try {
     const [receptions, proposals] = await Promise.all([
       listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
-      listStockProposals({ statuses: ['PROPOSED'] }).catch(
+      listStockProposals({ statuses: [Zeus.MarketplaceStockProposalStatus.PROPOSED] }).catch(
         () => [] as MarketplaceStockProposalView[],
       ),
     ]);
@@ -203,15 +203,21 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
     //    строке — документ НЕ перегенерируется, берётся агрегат rawDocument +
     //    document с подписью оператора (канон 2-подписи).
     const order_lines: IStockFinalizeOrderLine[] = await Promise.all(
-      payload.order_lines.map(async (line) => ({
-        order_hash: line.order_hash,
-        signed_signiss2_act: (await signer.signDocument(
-          line.signiss1_aggregate.rawDocument,
-          global.username,
-          2,
-          [line.signiss1_aggregate.document],
-        )) as IStockFinalizeOrderLine['signed_signiss2_act'],
-      })),
+      payload.order_lines.map(async (line) => {
+        const rawDocument = line.signiss1_aggregate.rawDocument;
+        if (!rawDocument) {
+          throw new Error(`Не найден исходный документ АПП-выдачи для заказа ${line.order_hash}`);
+        }
+        return {
+          order_hash: line.order_hash,
+          signed_signiss2_act: (await signer.signDocument(
+            rawDocument,
+            global.username,
+            2,
+            [line.signiss1_aggregate.document],
+          )) as IStockFinalizeOrderLine['signed_signiss2_act'],
+        };
+      }),
     );
 
     const { order_ids } = await finalizeStockIssuance(task.id, order_lines, signed_convert);

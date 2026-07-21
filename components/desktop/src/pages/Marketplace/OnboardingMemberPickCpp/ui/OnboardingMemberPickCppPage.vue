@@ -230,8 +230,8 @@ q-page.mp-role-orderer.mp-member-cpp(role="region", aria-label="Подключе
         .mp-member-cpp__head-icon
           q-icon(name="location_on", size="22px")
         .mp-member-cpp__head-text
-          .text-subtitle1.text-weight-medium Выберите пункт выдачи
-          .text-body2.text-grey-7 Где будете забирать заказы. Каталог отфильтруется под выбранный участок.
+          .text-subtitle1.text-weight-medium Выберите пункт выдачи заказов
+          .text-body2.text-grey-7 Выбирайте участок, где вам удобно забирать заказы, — сменить его можно в любой момент.
         BaseChip.mp-member-cpp__picked(v-if="selectedName", variant="pos", size="sm")
           q-icon(name="check", size="14px")
           | {{ selectedName }}

@@ -115,7 +115,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { FailAlert } from 'src/shared/api'
+import { copyToClipboard } from 'quasar'
+import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow'
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog'

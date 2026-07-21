@@ -20,6 +20,7 @@ export {
 export { useActsPreview } from './useActsPreview';
 export {
   getMembershipFeePercent,
+  applyMembershipFee,
   computeIssuanceDiff,
   type IssuanceDiffLine,
 } from './membership-fee';

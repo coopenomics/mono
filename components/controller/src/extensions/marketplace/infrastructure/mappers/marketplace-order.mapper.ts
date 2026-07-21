@@ -22,6 +22,7 @@ export class MarketplaceOrderMapper {
       quantity: row.quantity,
       price_per_unit: row.price_per_unit,
       total_cost: row.total_cost,
+      membership_fee: row.membership_fee ?? null,
       cycle_id: row.cycle_id,
       checkout_id: row.checkout_id ?? null,
       shipment_id: row.shipment_id ?? null,

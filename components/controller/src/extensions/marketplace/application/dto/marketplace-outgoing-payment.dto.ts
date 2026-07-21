@@ -1,4 +1,4 @@
-import { Field, ID, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 import type { MarketplaceOutgoingPaymentRequestDomainEntity } from '../../domain/entities/marketplace-outgoing-payment-request.entity';
 
@@ -50,7 +50,7 @@ export class MarketplaceListOutgoingPaymentsFilterInputDTO {
 
 @ObjectType('MarketplaceOutgoingPaymentRequest')
 export class MarketplaceOutgoingPaymentRequestDTO {
-  @Field(() => ID)
+  @Field(() => String)
   id!: string;
 
   @Field(() => String)
@@ -61,10 +61,10 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   })
   order_hash!: string;
 
-  @Field(() => ID, { description: 'Идентификатор заказа в каталоге поставок.' })
+  @Field(() => String, { description: 'Идентификатор заказа в каталоге поставок.' })
   order_id!: string;
 
-  @Field(() => ID, { description: 'Акт приёмки, по которому возникло обязательство.' })
+  @Field(() => String, { description: 'Акт приёмки, по которому возникло обязательство.' })
   apl_reception_id!: string;
 
   @Field(() => String, { description: 'Аккаунт поставщика — получатель выплаты.' })
@@ -103,7 +103,7 @@ export class MarketplaceOutgoingPaymentRequestDTO {
   })
   payout_tx_hash!: string | null;
 
-  @Field(() => ID, {
+  @Field(() => String, {
     nullable: true,
     description:
       'Идентификатор связанного платежа в общем реестре кооператива — кассир видит ' +

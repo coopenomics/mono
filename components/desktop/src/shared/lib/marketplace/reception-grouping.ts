@@ -29,7 +29,7 @@ export interface GroupableReception {
   fact_quantity_per_order: ReadonlyArray<{
     product_name?: string | null;
     fact_quantity: number | string;
-    unit_of_measure: string;
+    unit_of_measure?: string | null;
     fact_unit_price?: string | null;
   }>;
 }
@@ -115,7 +115,7 @@ export function groupAplReceptions<T extends GroupableReception>(
           lineMap.set(lk, {
             key: lk,
             productName: f.product_name || 'Товар по предложению',
-            unit: f.unit_of_measure,
+            unit: f.unit_of_measure ?? '',
             quantity: qty,
             amount: qty * price,
           });

@@ -1,4 +1,4 @@
-import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
@@ -29,7 +29,7 @@ registerEnumType(MarketplaceAplReceptionStatusEnum, {
 
 @ObjectType('MarketplaceAplReceptionFactEntry')
 export class MarketplaceAplReceptionFactEntryDTO {
-  @Field(() => ID)
+  @Field(() => String)
   order_id!: string;
 
   @Field(() => Int, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
@@ -56,7 +56,7 @@ export class MarketplaceAplReceptionFactEntryDTO {
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
 export class MarketplaceAplReceptionFactEntryInputDTO {
-  @Field(() => ID)
+  @Field(() => String)
   @IsString()
   @IsNotEmpty()
   order_id!: string;
@@ -77,16 +77,16 @@ export class MarketplaceAplReceptionFactEntryInputDTO {
 
 @ObjectType('MarketplaceAplReception')
 export class MarketplaceAplReceptionDTO {
-  @Field(() => ID)
+  @Field(() => String)
   id!: string;
 
   @Field(() => String)
   coopname!: string;
 
-  @Field(() => ID, { description: 'Партия поставки, по которой формируется приёмка.' })
+  @Field(() => String, { description: 'Партия поставки, по которой формируется приёмка.' })
   shipment_id!: string;
 
-  @Field(() => ID, { description: 'Консолидированная заявка.' })
+  @Field(() => String, { description: 'Консолидированная заявка.' })
   cycle_id!: string;
 
   @Field(() => String, { description: 'КУ-получатель партии.' })
@@ -154,7 +154,7 @@ export class MarketplaceAplReceptionDTO {
 
 @InputType('MarketplaceCreateAplReceptionInput')
 export class MarketplaceCreateAplReceptionInputDTO {
-  @Field(() => ID, { description: 'Партия поставки в статусе SUPPLY_PREPARED.' })
+  @Field(() => String, { description: 'Партия поставки в статусе SUPPLY_PREPARED.' })
   @IsString()
   @IsNotEmpty()
   shipment_id!: string;
@@ -173,7 +173,7 @@ export class MarketplaceCreateAplReceptionInputDTO {
 
 @InputType('MarketplaceSignAplReceptionInput')
 export class MarketplaceSignAplReceptionInputDTO {
-  @Field(() => ID, { description: 'Идентификатор акта приёмки.' })
+  @Field(() => String, { description: 'Идентификатор акта приёмки.' })
   @IsString()
   @IsNotEmpty()
   apl_reception_id!: string;
@@ -191,7 +191,7 @@ export class MarketplaceSignAplReceptionInputDTO {
 
 @InputType('MarketplaceAplReceptionByIdInput')
 export class MarketplaceAplReceptionByIdInputDTO {
-  @Field(() => ID, { description: 'Идентификатор акта приёмки.' })
+  @Field(() => String, { description: 'Идентификатор акта приёмки.' })
   @IsString()
   @IsNotEmpty()
   apl_reception_id!: string;

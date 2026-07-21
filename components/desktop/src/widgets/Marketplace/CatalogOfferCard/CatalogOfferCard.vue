@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery'
+import { applyMembershipFee } from 'src/shared/lib/marketplace'
 
 export type CatalogOfferStatus = 'draft' | 'published' | 'paused' | 'sold-out' | 'completed' | 'moderation' | 'withdrawn'
 
@@ -165,7 +166,7 @@ const unitCostWithFee = computed<number | string>(() => {
   if (!hasFee.value) return base
   const n = typeof base === 'number' ? base : Number(base)
   if (Number.isNaN(n)) return base
-  return n * (1 + props.feePercent / 100)
+  return applyMembershipFee(n, props.feePercent)
 })
 
 const feeLabel = computed(() => {

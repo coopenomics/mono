@@ -119,6 +119,7 @@ function getEnv(): EnvVars {
       VAPID_PUBLIC_KEY: '',
       SENTRY_DSN: '',
       OPENREPLAY_PROJECT_KEY: '',
+      YANDEX_MAPS_API_KEY: '',
     };
   }
 

@@ -1,4 +1,4 @@
-import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -61,7 +61,7 @@ registerEnumType(MarketplaceInventoryStatusEnum, {
 
 @ObjectType('MarketplaceInventoryItem')
 export class MarketplaceInventoryItemDTO {
-  @Field(() => ID)
+  @Field(() => String)
   id!: string;
 
   @Field(() => String, { description: 'Кооператив, на складе которого лежит имущество.' })
@@ -76,10 +76,10 @@ export class MarketplaceInventoryItemDTO {
   @Field(() => MarketplaceBarcodeFormatEnum, { nullable: true })
   barcode_format!: MarketplaceBarcodeFormatEnum | null;
 
-  @Field(() => ID, { description: 'Заказ, к которому относится позиция.' })
+  @Field(() => String, { description: 'Заказ, к которому относится позиция.' })
   order_id!: string;
 
-  @Field(() => ID, { description: 'Партия поставки, в составе которой имущество получено.' })
+  @Field(() => String, { description: 'Партия поставки, в составе которой имущество получено.' })
   shipment_id!: string;
 
   @Field(() => String, { description: 'КУ-получатель имущества.' })
@@ -159,13 +159,13 @@ export class MarketplaceInventoryItemDTO {
   })
   arrival_price!: string | null;
 
-  @Field(() => ID, {
+  @Field(() => String, {
     nullable: true,
     description: 'Предложение кооператива, которым остаток опубликован в каталоге. Пусто — не опубликован.',
   })
   published_offer_id!: string | null;
 
-  @Field(() => ID, {
+  @Field(() => String, {
     nullable: true,
     description: 'Заказ со склада кооператива, под который позиция зарезервирована. Пусто — свободна.',
   })
@@ -180,7 +180,7 @@ export class MarketplaceInventoryItemDTO {
 
 @InputType('MarketplaceGenerateInventoryLabelInput')
 export class MarketplaceGenerateInventoryLabelInputDTO {
-  @Field(() => ID, { description: 'Позиция склада, на которую наклеивается штрих-код.' })
+  @Field(() => String, { description: 'Позиция склада, на которую наклеивается штрих-код.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -196,7 +196,7 @@ export class MarketplaceGenerateInventoryLabelInputDTO {
 
 @InputType('MarketplaceBindInventoryBarcodeInput')
 export class MarketplaceBindInventoryBarcodeInputDTO {
-  @Field(() => ID, { description: 'Позиция склада, к которой привязывается отсканированный штрих-код.' })
+  @Field(() => String, { description: 'Позиция склада, к которой привязывается отсканированный штрих-код.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -220,7 +220,7 @@ export class MarketplaceBindInventoryBarcodeInputDTO {
 
 @InputType('MarketplaceAssignInventoryShelfInput')
 export class MarketplaceAssignInventoryShelfInputDTO {
-  @Field(() => ID, { description: 'Позиция склада, для которой назначается полка.' })
+  @Field(() => String, { description: 'Позиция склада, для которой назначается полка.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -236,7 +236,7 @@ export class MarketplaceAssignInventoryShelfInputDTO {
 
 @InputType('MarketplaceClearInventoryLabelInput')
 export class MarketplaceClearInventoryLabelInputDTO {
-  @Field(() => ID, { description: 'Позиция склада, с которой снимается штрих-код (для переклейки).' })
+  @Field(() => String, { description: 'Позиция склада, с которой снимается штрих-код (для переклейки).' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -260,7 +260,7 @@ export class MarketplaceInventorySplitEntryInputDTO {
 
 @InputType('MarketplaceSplitInventoryInput')
 export class MarketplaceSplitInventoryInputDTO {
-  @Field(() => ID, { description: 'Позиция склада, которую раскладывают по нескольким полкам.' })
+  @Field(() => String, { description: 'Позиция склада, которую раскладывают по нескольким полкам.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -284,12 +284,12 @@ export class MarketplaceInventoryMutationResultDTO {
 
 @InputType('MarketplaceListInventoryInput')
 export class MarketplaceListInventoryInputDTO {
-  @Field(() => ID, { nullable: true, description: 'Фильтр по заказу.' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по заказу.' })
   @IsOptional()
   @IsString()
   order_id?: string;
 
-  @Field(() => ID, { nullable: true, description: 'Фильтр по партии поставки.' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по партии поставки.' })
   @IsOptional()
   @IsString()
   shipment_id?: string;

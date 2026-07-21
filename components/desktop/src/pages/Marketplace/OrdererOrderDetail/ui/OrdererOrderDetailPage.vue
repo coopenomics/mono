@@ -46,6 +46,14 @@ const status = computed(() => (order.value ? orderStatusDisplay(order.value.stat
 const unitShort = computed(() => marketplaceUnitShort(order.value?.unit_of_measure));
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
 
+// requirement b6: заказчику показываем цену С членским взносом (как в
+// каталоге) — order.total_cost_with_fee уже посчитан бэком (total_cost +
+// membership_fee, зафиксированный контрактом по ставке на момент заказа).
+const totalWithFee = computed(() => (order.value ? Number(order.value.total_cost_with_fee) : 0));
+const unitPriceWithFee = computed(() =>
+  order.value && order.value.quantity > 0 ? totalWithFee.value / order.value.quantity : 0,
+);
+
 const pvzName = computed(() => order.value?.delivery_point_name || order.value?.delivery_braname || '');
 const pvzAddress = computed(() => order.value?.delivery_point_address || '');
 
@@ -129,7 +137,7 @@ function confirmCancel(): void {
   if (!o) return;
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity} ед., ${o.total_cost} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity} ед., ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,
@@ -199,13 +207,13 @@ q-page.order-detail(role="region", aria-label="Заказ")
             .order-detail__facts
               .order-detail__fact
                 .order-detail__fact-label Сумма заказа
-                .order-detail__fact-value--money {{ formatPrice(order.total_cost) }}
+                .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label Количество
                 .order-detail__fact-value {{ order.quantity }} {{ unitShort }}
               .order-detail__fact
                 .order-detail__fact-label Цена за единицу
-                .order-detail__fact-value {{ formatPrice(order.price_per_unit) }}
+                .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
 
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)
