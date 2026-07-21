@@ -708,7 +708,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               component: markRaw(AdminOffersPage),
               meta: {
                 title: 'Реестр предложений',
-                icon: 'storefront',
+                icon: 'sell',
                 requires: 'Offer:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,

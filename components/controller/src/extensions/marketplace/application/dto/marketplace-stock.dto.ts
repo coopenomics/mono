@@ -1,4 +1,4 @@
-import { Field, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
@@ -31,7 +31,7 @@ registerEnumType(MarketplaceStockProposalStatusEnum, {
 
 @InputType('MarketplacePublishStockInput')
 export class MarketplacePublishStockInputDTO {
-  @Field(() => [ID], { description: 'Позиции свободного остатка склада для публикации в каталог.' })
+  @Field(() => [String], { description: 'Позиции свободного остатка склада для публикации в каталог.' })
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
@@ -49,7 +49,7 @@ export class MarketplacePublishStockInputDTO {
 
 @InputType('MarketplaceUnpublishStockInput')
 export class MarketplaceUnpublishStockInputDTO {
-  @Field(() => [ID], { description: 'Опубликованные позиции остатка, снимаемые с витрины.' })
+  @Field(() => [String], { description: 'Опубликованные позиции остатка, снимаемые с витрины.' })
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
@@ -64,7 +64,7 @@ export class MarketplaceUnpublishStockResultDTO {
 
 @InputType('MarketplaceStockProposalItemInput')
 export class MarketplaceStockProposalItemInputDTO {
-  @Field(() => ID, { description: 'Предложение кооператива из опубликованного остатка.' })
+  @Field(() => String, { description: 'Предложение кооператива из опубликованного остатка.' })
   @IsString()
   @IsNotEmpty()
   offer_id!: string;
@@ -99,7 +99,7 @@ export class MarketplaceStockIssuancePrepareInputDTO {
 
 @ObjectType('MarketplaceStockIssuanceOperatorLine')
 export class MarketplaceStockIssuanceOperatorLineDTO {
-  @Field(() => ID, { description: 'Предложение кооператива из остатка.' })
+  @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
   @Field(() => Int, { description: 'Количество единиц.' })
@@ -122,7 +122,7 @@ export class MarketplaceStockIssuanceOperatorLineDTO {
 
 @InputType('MarketplaceCreateStockProposalLineInput')
 export class MarketplaceCreateStockProposalLineInputDTO {
-  @Field(() => ID, { description: 'Предложение кооператива из остатка.' })
+  @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   @IsString()
   @IsNotEmpty()
   offer_id!: string;
@@ -147,7 +147,7 @@ export class MarketplaceCreateStockProposalLineInputDTO {
 
 @InputType('MarketplaceCreateOrderProposalLineInput')
 export class MarketplaceCreateOrderProposalLineInputDTO {
-  @Field(() => ID, { description: 'Существующий заказ пайщика к выдаче этим бандлом.' })
+  @Field(() => String, { description: 'Существующий заказ пайщика к выдаче этим бандлом.' })
   @IsString()
   @IsNotEmpty()
   order_id!: string;
@@ -205,7 +205,7 @@ export class MarketplaceCreateStockProposalInputDTO {
 
 @InputType('MarketplaceResolveStockProposalInput')
 export class MarketplaceResolveStockProposalInputDTO {
-  @Field(() => ID, { description: 'Предложение со склада кооператива.' })
+  @Field(() => String, { description: 'Предложение со склада кооператива.' })
   @IsString()
   @IsNotEmpty()
   proposal_id!: string;
@@ -296,7 +296,7 @@ export class MarketplaceFinalizeStockIssuanceInputDTO extends MarketplaceResolve
 
 @InputType('MarketplaceCancelStockOrderInput')
 export class MarketplaceCancelStockOrderInputDTO {
-  @Field(() => ID, { description: 'Заказ со склада кооператива, отменяемый до открытия выдачи.' })
+  @Field(() => String, { description: 'Заказ со склада кооператива, отменяемый до открытия выдачи.' })
   @IsString()
   @IsNotEmpty()
   order_id!: string;
@@ -325,7 +325,7 @@ export class MarketplaceListStockProposalsInputDTO {
 
 @ObjectType('MarketplaceStockProposalItem')
 export class MarketplaceStockProposalItemDTO {
-  @Field(() => ID, { description: 'Предложение кооператива из остатка.' })
+  @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
   @Field(() => Int, { description: 'Предложенное количество единиц.' })
@@ -340,7 +340,7 @@ export class MarketplaceStockProposalItemDTO {
 
 @ObjectType('MarketplaceStockProposal')
 export class MarketplaceStockProposalDTO {
-  @Field(() => ID)
+  @Field(() => String)
   id!: string;
 
   @Field(() => String, { description: 'Кооперативный участок, со склада которого предложено имущество.' })
@@ -361,7 +361,7 @@ export class MarketplaceStockProposalDTO {
   @Field(() => String, { description: 'Итоговая сумма предложения.' })
   total_cost!: string;
 
-  @Field(() => [ID], { description: 'Заказы, созданные при принятии предложения.' })
+  @Field(() => [String], { description: 'Заказы, созданные при принятии предложения.' })
   created_order_ids!: string[];
 
   @Field(() => Date, { nullable: true, description: 'Момент решения по предложению.' })
@@ -376,7 +376,7 @@ export class MarketplaceStockProposalAcceptResultDTO {
   @Field(() => MarketplaceStockProposalDTO)
   proposal!: MarketplaceStockProposalDTO;
 
-  @Field(() => [ID], { description: 'Созданные заказы со склада кооператива.' })
+  @Field(() => [String], { description: 'Созданные заказы со склада кооператива.' })
   order_ids!: string[];
 }
 

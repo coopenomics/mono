@@ -104,6 +104,14 @@ export interface MarketplaceOrderProps {
   quantity: number;
   price_per_unit: string;
   total_cost: string;
+  /**
+   * Членский взнос, включённый в стоимость заказа (requirement b6). On-chain
+   * mirror — контракт сам считает его при `createorder` по ставке на момент
+   * заказа; backend не пересчитывает. Null до первой sync-дельты (см.
+   * `MarketplaceOrderDomainEntity.updateFromBlockchain`) и у заказов,
+   * созданных до появления поля на контракте (`binary_extension`).
+   */
+  membership_fee: string | null;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   checkout_id: string | null;

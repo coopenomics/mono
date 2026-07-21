@@ -87,6 +87,17 @@ function buildMocks() {
     applyStatusTransition: jest.fn(),
   } as unknown as jest.Mocked<MarketplaceInventoryDomainRepository>;
 
+  // Обогащение позиций списания названием товара/заказа и адресом КУ
+  // (см. MarketplaceOrderDisplayService.resolveBranchDisplay) — по умолчанию
+  // «нет данных», тесты бизнес-логики списания эти поля не проверяют.
+  const orderRepo = { findById: jest.fn().mockResolvedValue(null) } as any;
+  const offerRepo = { findById: jest.fn().mockResolvedValue(null) } as any;
+  const orderDisplay = {
+    resolveBranchDisplay: jest
+      .fn()
+      .mockResolvedValue({ name: null, address: null, lat: null, lng: null }),
+  } as any;
+
   const chainPort: jest.Mocked<MarketplaceCanonicalBlockchainPort> = {
     propWroff: jest.fn().mockResolvedValue({ transaction: { id: 'tx-prop' } } as any),
     execWroff: jest.fn().mockResolvedValue({ transaction: { id: 'tx-exec' } } as any),
@@ -105,16 +116,30 @@ function buildMocks() {
     error: jest.fn(),
   } as any;
 
-  return { repo, inventoryRepo, chainPort, assetConfig, documentDomainService, eventBus, logger };
+  return {
+    repo,
+    inventoryRepo,
+    orderRepo,
+    offerRepo,
+    chainPort,
+    assetConfig,
+    documentDomainService,
+    orderDisplay,
+    eventBus,
+    logger,
+  };
 }
 
 function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceWriteoffService {
   return new MarketplaceWriteoffService(
     mocks.repo,
     mocks.inventoryRepo,
+    mocks.orderRepo,
+    mocks.offerRepo,
     mocks.chainPort,
     mocks.assetConfig,
     mocks.documentDomainService,
+    mocks.orderDisplay,
     mocks.eventBus,
     mocks.logger
   );

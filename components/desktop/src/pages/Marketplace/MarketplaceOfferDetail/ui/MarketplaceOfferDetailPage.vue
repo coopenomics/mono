@@ -9,7 +9,7 @@ import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
@@ -105,9 +105,16 @@ const stockLabel = computed(() => {
     : `В наличии: ${offer.value.quantity_available} ${unitShort.value}`;
 });
 
+// requirement b6: единая ставка членского взноса входит в цену, которую видит
+// заказчик — как в карточке каталога (CatalogOfferCard). Раздельная
+// себестоимость без взноса остаётся только на столе поставщика.
+const feePercent = ref(0);
+const priceWithFee = computed(() =>
+  offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
+);
 const priceLabel = computed(() =>
   offer.value
-    ? `${Number(offer.value.price_per_unit).toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
+    ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
     : '',
 );
 
@@ -157,6 +164,11 @@ useMarketplaceRealtime(
 );
 
 onMounted(async () => {
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Без ставки показываем цену без строки взноса.
+  }
   await load();
   // В режиме заказа нужен текущий КУ (для кнопки «В корзину» и диалога).
   if (!readonly.value) {
@@ -209,6 +221,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         span {{ offer.supplier_name }}
 
       .offer-detail__price {{ priceLabel }}
+      .offer-detail__fee-note(v-if="feePercent > 0") Цена с членским взносом {{ feePercent }}%
 
       BaseButton(
         v-if="!readonly",
@@ -257,7 +270,8 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
   AddToCartDialog(
     v-if="!readonly",
     v-model="cartDialogOpen",
-    :offer="offer"
+    :offer="offer",
+    :fee-percent="feePercent"
   )
 </template>
 
@@ -331,6 +345,12 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
     font-size: var(--p-fs-h3);
     font-weight: 600;
     color: var(--p-primary-strong);
+  }
+
+  &__fee-note {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-3);
+    margin-top: calc(var(--p-1, 4px) * -1);
   }
 
   &__sections {

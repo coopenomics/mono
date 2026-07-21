@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session/model';
 import { BaseBadge, BaseButton, BaseInput, BaseDialog, EmptyState } from 'src/shared/ui/base';
@@ -124,7 +125,7 @@ async function onAdd(): Promise<void> {
   try {
     await addSupplier({
       member_account: addMember.value.trim(),
-      model: 'MEMBERSHIP',
+      model: Zeus.MarketplaceSupplierModel.MEMBERSHIP,
       contract_number: addNumber.value.trim(),
       contract_date: addDate.value,
     });

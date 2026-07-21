@@ -170,7 +170,7 @@ const planSaving = ref(false)
 function planDueLabel(plan: ExpensePlanView): string {
   if (plan.priority === Zeus.ExpensePlanPriority.URGENT) return 'Срочный'
   if (plan.priority === Zeus.ExpensePlanPriority.OPTIONAL) return 'Необязательный'
-  return plan.due_date ? new Date(plan.due_date).toLocaleDateString('ru-RU') : '—'
+  return plan.due_date ? new Date(String(plan.due_date)).toLocaleDateString('ru-RU') : '—'
 }
 
 async function onAddPlan(): Promise<void> {

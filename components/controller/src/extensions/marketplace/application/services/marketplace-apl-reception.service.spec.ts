@@ -123,6 +123,13 @@ function buildMocks() {
     resolvePayoutMethod: jest.fn().mockResolvedValue(null),
   } as any;
 
+  // Реквизиты договора поставщика для назначения платежа в initiatePayouts
+  // (см. MarketplaceSupplierRegistryService.findByMember). По умолчанию —
+  // «нет записи»: buildPayoutPurpose падает на fallback-текст без реквизитов.
+  const supplierRegistry = {
+    findByMember: jest.fn().mockResolvedValue(null),
+  } as any;
+
   const supplierActionService = {
     declineOrdersAtReception: jest.fn().mockResolvedValue([]),
   } as any;
@@ -147,6 +154,7 @@ function buildMocks() {
     inventoryRepo,
     coreGateway,
     supplierSettings,
+    supplierRegistry,
     supplierActionService,
     documentDomainService,
     logger,
@@ -166,6 +174,7 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
     mocks.supplierSettings,
+    mocks.supplierRegistry,
     mocks.supplierActionService,
     mocks.documentDomainService,
     new EventEmitter2(),

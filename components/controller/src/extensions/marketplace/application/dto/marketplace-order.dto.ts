@@ -188,8 +188,23 @@ export class MarketplaceOrderDTO {
   @Field(() => String, { description: 'Цена за единицу товара на момент заказа.' })
   public readonly price_per_unit!: string;
 
-  @Field(() => String, { description: 'Общая сумма заказа.' })
+  @Field(() => String, { description: 'Общая сумма заказа (стоимость имущества без членского взноса).' })
   public readonly total_cost!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Членский взнос, включённый в стоимость заказа, по ставке на момент оформления. ' +
+      'Заказчик платит total_cost + membership_fee; пусто — заказ ещё не подтверждён блокчейном.',
+  })
+  public readonly membership_fee!: string | null;
+
+  @Field(() => String, {
+    description:
+      'Полная сумма к оплате заказчиком: total_cost + membership_fee. Готовое значение — ' +
+      'клиенту не нужно складывать поля самому.',
+  })
+  public readonly total_cost_with_fee!: string;
 
   @Field(() => String, { nullable: true, description: 'Идентификатор партии-накопителя, если заказ присоединён.' })
   public readonly cycle_id!: string | null;
@@ -370,6 +385,17 @@ export interface MarketplaceOrderDisplayFields {
   warehouse_shelves?: string[] | null;
 }
 
+/**
+ * `total_cost`/`membership_fee` — numeric(_, 4) колонки (scale колонки, не
+ * MARKETPLACE_ASSET_CONFIG.decimals — блокчейн-символ здесь ни при чём,
+ * складываются уже персистентные PG-значения). Фиксированные 4 знака держат
+ * результат чистым от плавающей точки на типичных суммах; конечное округление
+ * до валюты — на клиенте при отображении (formatAsset2Digits и т.п.).
+ */
+function sumOrderAmounts(total_cost: string, membership_fee: string | null): string {
+  return (Number.parseFloat(total_cost) + Number.parseFloat(membership_fee ?? '0')).toFixed(4);
+}
+
 export function toMarketplaceOrderDTO(
   o: MarketplaceOrderDomainEntity,
   display?: MarketplaceOrderDisplayFields
@@ -398,6 +424,8 @@ export function toMarketplaceOrderDTO(
     group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,
     total_cost: o.total_cost,
+    membership_fee: o.membership_fee,
+    total_cost_with_fee: sumOrderAmounts(o.total_cost, o.membership_fee),
     cycle_id: o.cycle_id,
     checkout_id: o.checkout_id,
     shipment_id: o.shipment_id,

@@ -143,13 +143,13 @@ function groupByCheckout(list: MarketplaceOrderView[]): OrderGroup[] {
   }
   const result: OrderGroup[] = Array.from(map.entries()).map(([key, orders]) => {
     const first = orders[0];
-    const recent = Math.max(...orders.map((o) => new Date(o.updated_at).getTime()));
+    const recent = Math.max(...orders.map((o) => new Date(String(o.updated_at)).getTime()));
     return {
       key,
       isAggregate: orders.length > 1,
       orders,
       count: orders.length,
-      totalCost: orders.reduce((s, o) => s + Number(o.total_cost), 0),
+      totalCost: orders.reduce((s, o) => s + Number(o.total_cost_with_fee), 0),
       deliveryName: first?.delivery_point_name || first?.delivery_braname || '',
       createdAt: first?.created_at ?? '',
       recent,
@@ -250,7 +250,7 @@ async function onLoadMore(): Promise<void> {
 function confirmCancel(order: MarketplaceOrderView): void {
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${order.id.slice(0, 8)} (${order.quantity} ед., ${order.total_cost} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${order.id.slice(0, 8)} (${order.quantity} ед., ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,

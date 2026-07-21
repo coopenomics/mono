@@ -1,12 +1,13 @@
 /**
  * Unit-тесты MarketplaceMembershipGuard.
  *
- * Story 1.3 (auth/active/server-secret) + Story 3.1 (isOfferer source — whitelist).
+ * Story 1.3 (auth/active/server-secret) + isOfferer source — реестр поставщиков
+ * (MarketplaceSupplierRegistryService, заменил whitelist в PR #152).
  *
  * Покрывают AC:
- *   (a) пайщик с user.role='user', status=active, whitelist пуст → guard
- *       пропускает, marketplace_roles=['orderer','offerer'] (open vitrine);
- *   (b) пайщик с user.role='user', whitelist непустой и пайщика там нет →
+ *   (a) пайщик с user.role='user', status=active, isOfferer=true → guard
+ *       пропускает, marketplace_roles=['orderer','offerer'];
+ *   (b) пайщик с user.role='user', isOfferer=false →
  *       marketplace_roles=['orderer'] (без offerer);
  *   (c) member и chairman дают расширенный core_roles + marketplace_roles;
  *   (d) status != active → ForbiddenException (HTTP 403);
@@ -17,7 +18,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 
 import { MarketplaceMembershipGuard } from '~/extensions/marketplace/application/guards/marketplace-membership.guard';
 import type { MarketplaceKuChairmanService } from '~/extensions/marketplace/application/services/marketplace-ku-chairman.service';
-import type { MarketplaceWhitelistService } from '~/extensions/marketplace/application/services/marketplace-whitelist.service';
+import type { MarketplaceSupplierRegistryService } from '~/extensions/marketplace/application/services/marketplace-supplier-registry.service';
 
 jest.mock('~/config/config', () => ({
   __esModule: true,
@@ -42,10 +43,10 @@ function makeCtx(req: any) {
   };
 }
 
-function makeWhitelistService(isOffererResult: boolean): MarketplaceWhitelistService {
+function makeSupplierRegistryService(isOffererResult: boolean): MarketplaceSupplierRegistryService {
   return {
     isOfferer: jest.fn().mockResolvedValue(isOffererResult),
-  } as unknown as MarketplaceWhitelistService;
+  } as unknown as MarketplaceSupplierRegistryService;
 }
 
 function makeKuChairmanService(isKuChairmanResult: boolean): MarketplaceKuChairmanService {
@@ -55,8 +56,8 @@ function makeKuChairmanService(isKuChairmanResult: boolean): MarketplaceKuChairm
 }
 
 describe('MarketplaceMembershipGuard', () => {
-  it('user.role=user, status=active, whitelist пуст → ctx [User] + marketplace_roles [orderer, offerer]', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmanService(false));
+  it('user.role=user, status=active, isOfferer=true → ctx [User] + marketplace_roles [orderer, offerer]', async () => {
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(true), makeKuChairmanService(false));
     const req = { user: { username: 'alice', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
 
@@ -69,8 +70,8 @@ describe('MarketplaceMembershipGuard', () => {
     expect(req).toHaveProperty('currentMember');
   });
 
-  it('user.role=user, whitelist непустой и пайщика там нет → marketplace_roles [orderer] (без offerer)', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmanService(false));
+  it('user.role=user, isOfferer=false → marketplace_roles [orderer] (без offerer)', async () => {
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(false));
     const req = { user: { username: 'alice', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
 
@@ -79,7 +80,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('user.role=member, status=active → core_roles [User, Member] + marketplace_roles [orderer, offerer, board_readonly]', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmanService(false));
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(true), makeKuChairmanService(false));
     const req = { user: { username: 'bob', role: 'member', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
@@ -92,7 +93,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('user.role=chairman, status=active → marketplace_roles полный набор', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(true), makeKuChairmanService(false));
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(true), makeKuChairmanService(false));
     const req = { user: { username: 'chair', role: 'chairman', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
@@ -107,7 +108,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('status != active → 403 Forbidden «Доступ только для пайщиков кооператива»', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmanService(false));
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(false));
     const req = { user: { username: 'alice', role: 'user', status: '4_Registered' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(ForbiddenException);
@@ -117,14 +118,14 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('нет user (нет JWT) → 401 Unauthorized', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmanService(false));
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(false));
     const req = { headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(UnauthorizedException);
   });
 
-  it('server-secret bypass → true, currentMember не выставляется, whitelist/branches не дёргаются', async () => {
-    const ws = makeWhitelistService(true);
+  it('server-secret bypass → true, currentMember не выставляется, supplierRegistry/kuChairman не дёргаются', async () => {
+    const ws = makeSupplierRegistryService(true);
     const ku = makeKuChairmanService(false);
     const guard = new MarketplaceMembershipGuard(ws, ku);
     const req = { headers: { 'server-secret': 'test-secret' } };
@@ -136,7 +137,7 @@ describe('MarketplaceMembershipGuard', () => {
   });
 
   it('isKuChairman=true → marketplace_roles содержит operator', async () => {
-    const guard = new MarketplaceMembershipGuard(makeWhitelistService(false), makeKuChairmanService(true));
+    const guard = new MarketplaceMembershipGuard(makeSupplierRegistryService(false), makeKuChairmanService(true));
     const req = { user: { username: 'chairkrg', role: 'user', status: 'active' }, headers: {} };
     const ctx = makeCtx(req);
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);

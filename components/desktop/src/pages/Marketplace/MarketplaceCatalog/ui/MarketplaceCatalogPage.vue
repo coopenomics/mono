@@ -410,7 +410,8 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
   AddToCartDialog(
     v-model="cartDialogOpen",
-    :offer="cartDialogOffer"
+    :offer="cartDialogOffer",
+    :fee-percent="feePercent"
   )
 </template>
 

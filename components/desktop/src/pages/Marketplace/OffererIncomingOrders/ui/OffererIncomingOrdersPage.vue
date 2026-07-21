@@ -122,6 +122,8 @@ interface SupplierParty {
   orders: MarketplaceOrderView[];
   totalUnits: number;
   totalCost: number;
+  /** Сумма членских взносов пайщиков по заказам партии (requirement b6) — справочно, не деньги поставщика. */
+  totalFee: number;
   /** Целевой минимальный объём поставки на этот КУ (для накопителя). */
   minVolume: number | null;
   stageStatus: MarketplaceOrderStatusView;
@@ -150,6 +152,7 @@ const parties = computed<SupplierParty[]>(() => {
         orders: [],
         totalUnits: 0,
         totalCost: 0,
+        totalFee: 0,
         minVolume: collecting
           ? (minVolumeMap.value.get(`${o.offer_id}::${o.delivery_braname}`) ?? null)
           : null,
@@ -160,6 +163,7 @@ const parties = computed<SupplierParty[]>(() => {
     p.orders.push(o);
     p.totalUnits += o.quantity;
     p.totalCost += parseFloat(o.total_cost) || 0;
+    p.totalFee += Number(o.membership_fee ?? 0) || 0;
     const candidate = STAGE_RANK[o.status];
     const current = STAGE_RANK[p.stageStatus];
     if (candidate < 90 && (current >= 90 || candidate < current)) {
@@ -340,7 +344,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :bar-color='barColor(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
+        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`',
+        :total-fee-note='p.totalFee > 0 ? `С учётом взноса пайщиков: ${formatCost(p.totalCost + p.totalFee)}` : undefined'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')

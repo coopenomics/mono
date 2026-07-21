@@ -12,5 +12,5 @@ export async function fetchOffer(id: string): Promise<MarketplaceOfferDetailView
     Queries.Marketplace.GetOffer.query,
     { variables: { id } },
   );
-  return offer;
+  return offer as MarketplaceOfferDetailView | null;
 }

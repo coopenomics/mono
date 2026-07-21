@@ -13,6 +13,14 @@ export async function getMembershipFeePercent(): Promise<number> {
   return result.membership_fee_percent;
 }
 
+/**
+ * Цена с учётом членского взноса — единая формула для всех экранов заказчика
+ * (каталог, деталь предложения, добавление в корзину, сводка корзины).
+ */
+export function applyMembershipFee(price: number, feePercent: number): number {
+  return price * (1 + feePercent / 100);
+}
+
 export interface IssuanceDiffLine {
   /** Сумма позиции по заказу (заблокированный резерв без взноса). */
   orderedTotal: number;
@@ -41,6 +49,5 @@ export function computeIssuanceDiff(
     if (diff > 0) refund += diff;
     else if (diff < 0) surcharge += -diff;
   }
-  const withFee = 1 + feePercent / 100;
-  return { refund: refund * withFee, surcharge: surcharge * withFee };
+  return { refund: applyMembershipFee(refund, feePercent), surcharge: applyMembershipFee(surcharge, feePercent) };
 }

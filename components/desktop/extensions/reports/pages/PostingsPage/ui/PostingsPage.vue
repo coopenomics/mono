@@ -209,7 +209,7 @@
               EntityIdBadge(
                 v-if='props.row.processHash'
                 :rawId='shortHash(props.row.processHash)'
-                @click='copyFullHash(props.row.processHash)'
+                @click='copyText(props.row.processHash)'
               )
 </template>
 

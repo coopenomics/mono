@@ -258,7 +258,7 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
       map.set(key, {
         key,
         productName: o.product_name || 'Товар по предложению',
-        unit: o.unit_of_measure,
+        unit: o.unit_of_measure ?? '',
         quantity: qty,
         boxes,
       });
@@ -382,7 +382,7 @@ function groupOrdersByProduct(orders: MarketplaceSupplierPickupOrderView[]): Pic
       map.set(key, {
         key,
         productName: o.product_name || 'Товар по предложению',
-        unit: o.unit_of_measure,
+        unit: o.unit_of_measure ?? '',
         orderedTotal: qty,
         orders: [o],
       });

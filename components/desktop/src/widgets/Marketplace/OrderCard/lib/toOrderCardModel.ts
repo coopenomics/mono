@@ -38,6 +38,10 @@ export interface OrderCardSource {
   quantity: number;
   unit_of_measure?: string | null;
   total_cost: string;
+  /** Членский взнос, включённый в стоимость заказа (requirement b6) — on-chain, null до первой sync-дельты. */
+  membership_fee?: string | null;
+  /** Готовая сумма total_cost + membership_fee (считает бэк — см. toMarketplaceOrderDTO). */
+  total_cost_with_fee: string;
   status: DomainOrderStatus;
   created_at: string | Date;
   delivery_braname: string;
@@ -47,17 +51,31 @@ export interface OrderCardSource {
   delivery_point_lng?: number | null;
 }
 
-export function toOrderCardModel(o: OrderCardSource): Order {
+/**
+ * `role` определяет, что показывает «Сумма» карточки (requirement b6):
+ *  - 'orderer' (по умолчанию) — цена С членским взносом, как в каталоге:
+ *    это то, что заказчик реально платит.
+ *  - 'offerer' — себестоимость поставщика БЕЗ взноса (его деньги), плюс
+ *    отдельная строка-подсказка со взносом пайщика для справки.
+ */
+export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer' = 'orderer'): Order {
   const name = o.delivery_point_name || undefined;
   const address = o.delivery_point_address || undefined;
   const display = orderStatusDisplay(o.status);
+  const rawCost = parseFloat(o.total_cost) || 0;
+  const isOfferer = role === 'offerer';
+  const feeAmount = Number(o.membership_fee ?? 0);
   return {
     id: o.id,
     shortId: o.id.slice(0, 8),
     title: o.product_name || 'Товар по предложению',
     units: o.quantity,
     unitLabel: marketplaceUnitShort(o.unit_of_measure),
-    totalCost: parseFloat(o.total_cost) || 0,
+    totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
+    feeNote:
+      isOfferer && feeAmount > 0
+        ? `С учётом взноса пайщика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
+        : undefined,
     status: STATUS_TO_CARD[o.status],
     // Бейдж карточки рисуем по доменному статусу (исчерпывающая карта), а не по
     // грубому card-status — иначе на карточке два разных текста статуса.

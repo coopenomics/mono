@@ -54,6 +54,8 @@ export const rawOrderSelector = {
   group_min_volume: true,
   price_per_unit: true,
   total_cost: true,
+  membership_fee: true,
+  total_cost_with_fee: true,
   cycle_id: true,
   checkout_id: true,
   shipment_id: true,
