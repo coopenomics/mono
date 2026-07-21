@@ -436,3 +436,21 @@ export interface MarketplaceNewSupplierRequestEvent {
   /** Номер договора из заявки. */
   contract_number: string;
 }
+
+/**
+ * Председатель одобрил заявку поставщика на допуск (членская модель).
+ * Поставщик получает multi-channel уведомление — заявка рассмотрена, открыт
+ * доступ в личный кабинет Стола поставщика. Эмитится ПОСЛЕ записи решения в
+ * PG (INV-12); адресат (заявитель) и человекочитаемое имя резолвятся в
+ * listener'е.
+ */
+export const MARKETPLACE_SUPPLIER_APPROVED_EVENT =
+  'marketplace.supplier.member.approved';
+
+export interface MarketplaceSupplierApprovedEvent {
+  coopname: string;
+  /** Пайщик, чью заявку одобрили — адресат уведомления. */
+  member_account: string;
+  /** Номер договора из заявки. */
+  contract_number: string;
+}

@@ -6,7 +6,9 @@ import {
 } from '../../domain/repositories/marketplace-supplier.repository';
 import {
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
+  MARKETPLACE_SUPPLIER_APPROVED_EVENT,
   type MarketplaceNewSupplierRequestEvent,
+  type MarketplaceSupplierApprovedEvent,
 } from '../events/marketplace-notification.events';
 import type { MarketplaceSupplierDomainEntity } from '../../domain/entities/marketplace-supplier.entity';
 import {
@@ -197,7 +199,27 @@ export class MarketplaceSupplierRegistryService {
       reviewed_at: new Date(),
     });
     this.invalidateCache(coopname);
+    this.emitApproved(coopname, member_account, result.contract_number ?? '');
     return result;
+  }
+
+  /**
+   * Сигнал об одобрении заявки поставщика — listener шлёт заявителю push о
+   * том, что решение принято и открыт доступ в личный кабинет Стола
+   * поставщика. Эмитится после записи в PG (INV-12); доставка не влияет на
+   * основной flow.
+   */
+  private emitApproved(
+    coopname: string,
+    member_account: string,
+    contract_number: string
+  ): void {
+    const event: MarketplaceSupplierApprovedEvent = {
+      coopname,
+      member_account,
+      contract_number,
+    };
+    this.eventBus.emit(MARKETPLACE_SUPPLIER_APPROVED_EVENT, event);
   }
 
   /** Отклонение заявки председателем. */

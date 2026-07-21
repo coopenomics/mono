@@ -22,6 +22,7 @@ import {
   MARKETPLACE_SUPPLIER_PAYMENT_CONFIRMED_EVENT,
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
+  MARKETPLACE_SUPPLIER_APPROVED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
@@ -34,6 +35,7 @@ import {
   type MarketplaceSupplierPaymentConfirmedEvent,
   type MarketplaceSupplierPaymentDeclinedEvent,
   type MarketplaceNewSupplierRequestEvent,
+  type MarketplaceSupplierApprovedEvent,
 } from '../events/marketplace-notification.events';
 
 /**
@@ -177,6 +179,34 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Заявка поставщика ${event.member_account}: ошибка отправки push председателю (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_SUPPLIER_APPROVED_EVENT)
+  async handleSupplierApproved(event: MarketplaceSupplierApprovedEvent): Promise<void> {
+    try {
+      const supplierName = await this.accountPort.getDisplayName(event.member_account);
+      const payload: Workflows.MarketplaceSupplierApproved.IPayload = {
+        supplierName,
+        contractNumber: event.contract_number,
+        coopname: event.coopname,
+        // Реальный путь стола поставщика (market-supplier/my-offers) — не
+        // легаси-алиас /offerer/..., которым по инерции пользуются соседние
+        // уведомления этого файла и который давно разошёлся с install.ts.
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/my-offers`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.member_account,
+        Workflows.MarketplaceSupplierApproved.id,
+        payload
+      );
+      this.logger.log(
+        `Заявка поставщика ${event.member_account}: push об одобрении допуска отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Заявка поставщика ${event.member_account}: ошибка отправки push об одобрении (${err.message}) — flow не блокируется.`
       );
     }
   }

@@ -42,6 +42,7 @@ import { workflow as marketplaceNewOrderForSupplierWorkflow } from './marketplac
 import { workflow as marketplaceReturnAcceptedSupplierWorkflow } from './marketplace-return-accepted-supplier';
 import { workflow as marketplaceOrderDeclinedBySupplierWorkflow } from './marketplace-order-declined-by-supplier';
 import { workflow as marketplaceNewSupplierRequestWorkflow } from './marketplace-new-supplier-request';
+import { workflow as marketplaceSupplierApprovedWorkflow } from './marketplace-supplier-approved';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -91,6 +92,7 @@ export * as MarketplaceNewOrderForSupplier from './marketplace-new-order-for-sup
 export * as MarketplaceReturnAcceptedSupplier from './marketplace-return-accepted-supplier';
 export * as MarketplaceOrderDeclinedBySupplier from './marketplace-order-declined-by-supplier';
 export * as MarketplaceNewSupplierRequest from './marketplace-new-supplier-request';
+export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
@@ -137,6 +139,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceReturnAcceptedSupplierWorkflow,
   marketplaceOrderDeclinedBySupplierWorkflow,
   marketplaceNewSupplierRequestWorkflow,
+  marketplaceSupplierApprovedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,
   branchTrustedRequestedWorkflow,
