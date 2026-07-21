@@ -36,6 +36,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly quantity: number;
   public readonly price_per_unit: string;
   public readonly total_cost: string;
+  /** Членский взнос, включённый в стоимость заказа — on-chain mirror (см. MarketplaceOrderProps). */
+  public membership_fee: string | null;
   public readonly cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ; null = legacy покарточный заказ. */
   public readonly checkout_id: string | null;
@@ -92,6 +94,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.quantity = props.quantity;
     this.price_per_unit = props.price_per_unit;
     this.total_cost = props.total_cost;
+    this.membership_fee = props.membership_fee;
     this.cycle_id = props.cycle_id;
     this.checkout_id = props.checkout_id;
     this.shipment_id = props.shipment_id;
@@ -157,6 +160,9 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.on_chain_id = blockchainData.on_chain_id;
     this.on_chain_block_num = blockNum;
     this.on_chain_present = present;
+    // membership_fee — immutable on-chain snapshot (контракт пишет его один
+    // раз при createorder), безусловный overwrite идемпотентен.
+    this.membership_fee = blockchainData.membership_fee;
     // Forward-only guard. Backend опережает цепь на нескольких переходах
     // «прямого пути»: cycle-hook / синтез индивидуальной заявки переводят
     // Order в ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) и далее ACCEPTED /
@@ -279,4 +285,6 @@ export interface MarketplaceOrderBlockchainData {
   order_hash: string;
   on_chain_id: string;
   status: MarketplaceOrderStatus;
+  /** Членский взнос из on-chain `order` row (requirement b6), null — старая строка без поля. */
+  membership_fee: string | null;
 }

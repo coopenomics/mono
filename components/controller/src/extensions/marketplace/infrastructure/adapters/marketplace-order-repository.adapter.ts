@@ -6,7 +6,10 @@ import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   type MarketplaceOrderStatusChangedEvent,
 } from '../../application/events/marketplace-notification.events';
-import { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
+import {
+  MarketplaceOrderDomainEntity,
+  type MarketplaceOrderBlockchainData,
+} from '../../domain/entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateInput,
   MarketplaceOrderDomainRepository,
@@ -226,7 +229,9 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
    * out-of-band on-chain транзакций. По умолчанию — no-op с warn-логом.
    */
   async createIfNotExists(
-    blockchainData: { order_hash: string; on_chain_id: string; status: MarketplaceOrderStatus },
+    // Типизировано полным MarketplaceOrderBlockchainData (не ad-hoc inline-типом) —
+    // иначе новое on-chain-поле (как membership_fee) молча не долетает и сюда.
+    blockchainData: MarketplaceOrderBlockchainData,
     blockNum: number,
     present = true
   ): Promise<MarketplaceOrderDomainEntity> {
@@ -236,6 +241,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       existing.on_chain_block_num = blockNum;
       existing.on_chain_present = present;
       existing.status = blockchainData.status;
+      existing.membership_fee = blockchainData.membership_fee;
       return this.persistDomain(existing);
     }
     // Out-of-band on-chain Order: оставляем минимальный stub-row,
@@ -488,22 +494,41 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
   // ── private ──
 
+  /**
+   * Поля, которые может изменить `entity.updateFromBlockchain(...)` (sync-flow)
+   * или ручная мутация в `createIfNotExists`. Именованный Pick-тип — не просто
+   * документация: если `updateFromBlockchain` начнёт писать новое on-chain
+   * поле, а сюда его забудут добавить, объект `patch` ниже не покроет тип и
+   * TS не даст скомпилироваться. Раньше (до фикса membership_fee)
+   * `repo.update()` принимал произвольный `QueryDeepPartialEntity` без такой
+   * проверки — поле молча терялось при sync.
+   */
   private async persistDomain(
     entity: MarketplaceOrderDomainEntity
   ): Promise<MarketplaceOrderDomainEntity> {
-    await this.repo.update(
-      { id: entity.id },
-      {
-        status: entity.status,
-        last_status_reason: entity.last_status_reason,
-        accepted_at: entity.accepted_at,
-        received_at: entity.received_at,
-        cancelled_at: entity.cancelled_at,
-        on_chain_id: entity.on_chain_id,
-        on_chain_block_num: entity.on_chain_block_num,
-        on_chain_present: entity.on_chain_present,
-      }
-    );
+    const patch: Pick<
+      MarketplaceOrderEntity,
+      | 'status'
+      | 'last_status_reason'
+      | 'accepted_at'
+      | 'received_at'
+      | 'cancelled_at'
+      | 'on_chain_id'
+      | 'on_chain_block_num'
+      | 'on_chain_present'
+      | 'membership_fee'
+    > = {
+      status: entity.status,
+      last_status_reason: entity.last_status_reason,
+      accepted_at: entity.accepted_at,
+      received_at: entity.received_at,
+      cancelled_at: entity.cancelled_at,
+      on_chain_id: entity.on_chain_id,
+      on_chain_block_num: entity.on_chain_block_num,
+      on_chain_present: entity.on_chain_present,
+      membership_fee: entity.membership_fee,
+    };
+    await this.repo.update({ id: entity.id }, patch);
     const row = await this.repo.findOneOrFail({ where: { id: entity.id } });
     return this.mapper.toDomain(row);
   }

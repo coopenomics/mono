@@ -1,4 +1,4 @@
-import { Field, ID, Int, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Int, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { IsArray, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceShipmentDomainEntity } from '../../domain/entities/marketplace-shipment.entity';
@@ -38,7 +38,7 @@ registerEnumType(MarketplaceShipmentStatusEnum, {
 // Задаётся при формировании партии; число коробок выводится из количества.
 @ObjectType('MarketplaceShipmentLinePackaging')
 export class MarketplaceShipmentLinePackagingDTO {
-  @Field(() => ID, { description: 'Заказ партии, к которому относится упаковка.' })
+  @Field(() => String, { description: 'Заказ партии, к которому относится упаковка.' })
   order_id!: string;
   @Field(() => Int, { description: 'Сколько единиц имущества в одной коробке.' })
   units_per_box!: number;
@@ -75,7 +75,7 @@ export class MarketplaceShipmentTTNDataDTO {
 // (для каждого заказа: сколько единиц в коробке).
 @InputType('MarketplaceShipmentLinePackagingInput')
 export class MarketplaceShipmentLinePackagingInputDTO {
-  @Field(() => ID, { description: 'Заказ партии, к которому относится упаковка.' })
+  @Field(() => String, { description: 'Заказ партии, к которому относится упаковка.' })
   @IsString()
   @IsNotEmpty()
   order_id!: string;
@@ -131,13 +131,13 @@ export class MarketplaceShipmentTTNDataInputDTO {
 
 @ObjectType('MarketplaceShipment')
 export class MarketplaceShipmentDTO {
-  @Field(() => ID)
+  @Field(() => String)
   id!: string;
 
   @Field(() => String, { description: 'Кооператив, в котором сформирована партия.' })
   coopname!: string;
 
-  @Field(() => ID, { description: 'Идентификатор консолидированной заявки.' })
+  @Field(() => String, { description: 'Идентификатор консолидированной заявки.' })
   cycle_id!: string;
 
   @Field(() => String, { description: 'Account поставщика-владельца Offer\'ов.' })
@@ -195,7 +195,7 @@ export class MarketplaceShipmentGroupInputDTO {
   @IsEnum(MarketplaceShipmentDeliveryVariantEnum)
   delivery_variant!: MarketplaceShipmentDeliveryVariantEnum;
 
-  @Field(() => [ID], {
+  @Field(() => [String], {
     nullable: true,
     description:
       'Подмножество заказов этого КУ, реально погружаемых в партию (частичная отгрузка). ' +
@@ -218,7 +218,7 @@ export class MarketplaceShipmentGroupInputDTO {
 
 @InputType('MarketplaceCreateShipmentInput')
 export class MarketplaceCreateShipmentInputDTO {
-  @Field(() => ID, { description: 'Идентификатор консолидированной заявки в статусе ACCEPTED.' })
+  @Field(() => String, { description: 'Идентификатор консолидированной заявки в статусе ACCEPTED.' })
   @IsString()
   @IsNotEmpty()
   cycle_id!: string;
@@ -245,7 +245,7 @@ export class MarketplaceCreateShipmentResultDTO {
 
 @InputType('MarketplaceGetShipmentInput')
 export class MarketplaceGetShipmentInputDTO {
-  @Field(() => ID, { description: 'Идентификатор партии поставки.' })
+  @Field(() => String, { description: 'Идентификатор партии поставки.' })
   @IsString()
   @IsNotEmpty()
   shipment_id!: string;
@@ -253,7 +253,7 @@ export class MarketplaceGetShipmentInputDTO {
 
 @InputType('MarketplaceListShipmentsInput')
 export class MarketplaceListShipmentsInputDTO {
-  @Field(() => ID, { nullable: true, description: 'Фильтр по консолидированной заявке.' })
+  @Field(() => String, { nullable: true, description: 'Фильтр по консолидированной заявке.' })
   @IsOptional()
   @IsString()
   cycle_id?: string;

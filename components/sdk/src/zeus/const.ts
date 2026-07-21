@@ -4847,13 +4847,13 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		created_at:"DateTime",
 		created_by_operator_account:"String",
-		cycle_id:"ID",
+		cycle_id:"String",
 		expeditor_data:"MarketplaceShipmentTTNData",
 		fact_quantity_per_order:"MarketplaceAplReceptionFactEntry",
-		id:"ID",
+		id:"String",
 		offerer_account:"String",
 		offerer_name:"String",
-		shipment_id:"ID",
+		shipment_id:"String",
 		status:"MarketplaceAplReceptionStatus",
 		supplier_signed_at:"DateTime",
 		supplier_signsupp_tx_hash:"String",
@@ -4865,7 +4865,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionFactEntry:{
 		fact_quantity:"Int",
 		fact_unit_price:"String",
-		order_id:"ID",
+		order_id:"String",
 		product_name:"String",
 		unit_of_measure:"String"
 	},
@@ -5116,21 +5116,21 @@ export const ReturnTypes: Record<string,any> = {
 		delivery_point_address:"String",
 		delivery_point_name:"String",
 		expiry_date:"DateTime",
-		id:"ID",
+		id:"String",
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
-		order_id:"ID",
+		order_id:"String",
 		orderer_account_snapshot:"String",
 		orderer_name:"String",
 		ownership:"MarketplaceInventoryOwnership",
 		product_name_snapshot:"String",
-		published_offer_id:"ID",
+		published_offer_id:"String",
 		quantity_per_label:"Int",
 		received_at:"DateTime",
 		received_by_operator_account:"String",
-		reserved_order_id:"ID",
+		reserved_order_id:"String",
 		shelf:"String",
-		shipment_id:"ID",
+		shipment_id:"String",
 		status:"MarketplaceInventoryStatus",
 		unit_of_measure:"String",
 		updated_at:"DateTime"
@@ -5263,6 +5263,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",
+		membership_fee:"String",
 		offer_hash:"String",
 		offer_id:"String",
 		order_hash:"String",
@@ -5280,6 +5281,7 @@ export const ReturnTypes: Record<string,any> = {
 		supplier_account:"String",
 		supplier_name:"String",
 		total_cost:"String",
+		total_cost_with_fee:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",
 		warehouse_quantity:"Int",
@@ -5317,15 +5319,15 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOutgoingPaymentRequest:{
 		amount:"String",
-		apl_reception_id:"ID",
+		apl_reception_id:"String",
 		completed_at:"DateTime",
 		coopname:"String",
-		core_payment_id:"ID",
+		core_payment_id:"String",
 		created_at:"DateTime",
 		decline_reason:"String",
-		id:"ID",
+		id:"String",
 		order_hash:"String",
-		order_id:"ID",
+		order_id:"String",
 		payee_account:"String",
 		payout_destination:"String",
 		payout_tx_hash:"String",
@@ -5507,9 +5509,9 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		coopname:"String",
 		created_at:"DateTime",
-		cycle_id:"ID",
+		cycle_id:"String",
 		delivery_variant:"MarketplaceShipmentDeliveryVariant",
-		id:"ID",
+		id:"String",
 		offerer_account:"String",
 		status:"MarketplaceShipmentStatus",
 		total_amount:"String",
@@ -5519,7 +5521,7 @@ export const ReturnTypes: Record<string,any> = {
 		updated_at:"DateTime"
 	},
 	MarketplaceShipmentLinePackaging:{
-		order_id:"ID",
+		order_id:"String",
 		units_per_box:"Int"
 	},
 	MarketplaceShipmentTTNData:{
@@ -5544,7 +5546,7 @@ export const ReturnTypes: Record<string,any> = {
 		order_lines:"MarketplaceStockAcceptOrderLine"
 	},
 	MarketplaceStockIssuanceOperatorLine:{
-		offer_id:"ID",
+		offer_id:"String",
 		order_hash:"String",
 		product_name:"String",
 		quantity:"Int",
@@ -5554,8 +5556,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceStockProposal:{
 		braname:"String",
 		created_at:"DateTime",
-		created_order_ids:"ID",
-		id:"ID",
+		created_order_ids:"String",
+		id:"String",
 		items:"MarketplaceStockProposalItem",
 		member_account:"String",
 		operator_account:"String",
@@ -5564,7 +5566,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost:"String"
 	},
 	MarketplaceStockProposalAcceptResult:{
-		order_ids:"ID",
+		order_ids:"String",
 		proposal:"MarketplaceStockProposal"
 	},
 	MarketplaceStockProposalCreatedEvent:{
@@ -5572,7 +5574,7 @@ export const ReturnTypes: Record<string,any> = {
 		proposal_id:"String"
 	},
 	MarketplaceStockProposalItem:{
-		offer_id:"ID",
+		offer_id:"String",
 		product_name:"String",
 		quantity:"Int",
 		unit_price:"String"

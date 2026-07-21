@@ -33,6 +33,10 @@ import {
  * содержит — их выставляет только backend (cycle-hook / app-слой), и они
  * никогда не приходят дельтой. Поэтому STATUS_MAP содержит ровно on-chain
  * значения; `cancelled` обрабатывается отдельно (см. KNOWN_UNMAPPED_STATUSES).
+ *
+ * requirement b6: `membership_fee` контракт считает и пишет в `order` row
+ * САМ (createorder.cpp, по ставке `mkt_config_singleton` на момент создания
+ * заказа) — backend его не вычисляет, только зеркалит через эту дельту.
  */
 @Injectable()
 export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
@@ -91,6 +95,7 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
         order_hash: value.hash,
         on_chain_id: value.id.toString(),
         status,
+        membership_fee: MarketplaceOrderDeltaMapper.parseAssetAmount(value.membership_fee),
       };
     } catch (error: any) {
       this.logger.error(
@@ -121,5 +126,17 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
 
   getSupportedTableNames(): string[] {
     return ['orders'];
+  }
+
+  /**
+   * `membership_fee` on-chain — `binary_extension<asset>` вида `"45.0000 RUB"`
+   * (может отсутствовать у строк, созданных до requirement b6). Храним в БД
+   * как чистую numeric-строку без символа — тот же формат, что у
+   * `total_cost`/`price_per_unit` (см. `computeTotalCostAmount`).
+   */
+  private static parseAssetAmount(asset: string | undefined): string | null {
+    if (!asset) return null;
+    const amount = asset.split(' ')[0];
+    return Number.isNaN(Number(amount)) ? null : amount;
   }
 }
