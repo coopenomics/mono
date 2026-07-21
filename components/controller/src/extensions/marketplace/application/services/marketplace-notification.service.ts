@@ -124,7 +124,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/cashier/Payments`,
+        // Кассирского стола пока нет — MVP использует стол совета (роль
+        // председателя, см. комментарий выше). Реестр платежей фильтруется по
+        // владельцу платежа (routeUsername в PaymentsPage.vue) — ведём сразу
+        // на платежи конкретного поставщика, а не на общий список.
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/soviet/payments/${event.supplier_account}`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         cashier.username,
@@ -245,7 +249,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         kuName: event.braname,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.orderer_account,
@@ -475,7 +479,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         reasonExcerpt,
         coopname: event.coopname,
         order_id: event.order_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/orderer/MyOrders`,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.orderer_account,
