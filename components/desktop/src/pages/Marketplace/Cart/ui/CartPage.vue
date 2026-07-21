@@ -153,11 +153,11 @@ useMarketplaceRealtime(
   { onResync: () => reloadLive() },
 );
 
-// requirement b6: членский взнос входит в общую стоимость заказа — сводка
-// показывает его отдельной строкой и итог с учётом взноса.
+// requirement b6: членский взнос входит в общую стоимость заказа. Заказчику
+// показываем только итоговую цену — без разбивки на себестоимость и взнос
+// (это внутренняя экономика кооператива, не его забота).
 const feePercent = ref(0);
 const totalWithFee = computed(() => applyMembershipFee(Number(cartStore.totalCost), feePercent.value));
-const feeAmount = computed(() => totalWithFee.value - Number(cartStore.totalCost));
 
 onMounted(async () => {
   try {
@@ -270,12 +270,6 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
         .mp-cart__summary-line
           span Всего единиц
           span.mp-cart__summary-val {{ cartStore.totalQuantity }}
-        .mp-cart__summary-line(v-if="feePercent > 0")
-          span Стоимость имущества
-          span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
-        .mp-cart__summary-line(v-if="feePercent > 0")
-          span Членский взнос ({{ feePercent }}%)
-          span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
           span Итого
           span {{ money(totalWithFee) }} {{ symbol }}

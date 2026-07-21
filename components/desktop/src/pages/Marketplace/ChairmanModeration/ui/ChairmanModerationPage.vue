@@ -6,7 +6,7 @@ import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceUnitShort } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
@@ -39,6 +39,10 @@ const items = ref<MarketplacePendingOfferView[]>([]);
 const total = ref(0);
 const loading = ref(false);
 const currentPage = ref(1);
+// Модератор — как поставщик и администратор — видит цену с учётом членского
+// взноса (это то, что реально заплатит заказчик); заказчику в каталоге эта
+// подпись не показывается.
+const feePercent = ref(0);
 
 // Убираем offer из ленты после решения (он сменил статус и пропал из очереди).
 function removeFromList(offerId: string): void {
@@ -138,6 +142,11 @@ useMarketplaceRealtime(
 
 onMounted(async () => {
   await Promise.all([loadPage(false), loadCategories()]);
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Без ставки показываем карточки без цены с учётом взноса.
+  }
 });
 </script>
 
@@ -169,7 +178,7 @@ q-page.moderation(role="region", aria-label="Модерация предложе
         //- Клик по карточке открывает полную карточку предложения на столе
         //- администратора (категория/участки/гарантия/галерея). Кнопки
         //- «Одобрить»/«Отклонить» останавливают всплытие (@click.stop).
-        CatalogOfferCard(:offer="toCatalogOffer(o)", @click="goToDetail(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", @click="goToDetail(o)")
           template(#actions)
             BaseButton(
               variant="danger",

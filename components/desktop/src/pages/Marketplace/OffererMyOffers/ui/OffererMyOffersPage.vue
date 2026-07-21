@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -73,6 +73,9 @@ const currentPage = ref(1);
 const loading = ref(false);
 const statusFilter = ref<MarketplaceOfferStatusView | null>(null);
 const search = ref('');
+// Поставщик видит цену с учётом членского взноса — это то, что реально
+// заплатит заказчик за его товар (не только себестоимость).
+const feePercent = ref(0);
 
 // Скелетон показываем только на первичной загрузке (список ещё пуст). При
 // polling'е данные обновляются молча — без дёргания спиннером.
@@ -215,6 +218,11 @@ onMounted(async () => {
   if (fromUrl) statusFilter.value = fromUrl.value;
 
   await load(1, false);
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Без ставки показываем карточки без цены с учётом взноса.
+  }
 });
 
 // Живое обновление вместо polling: одобрение/остаток прилетают сигналом,
@@ -277,7 +285,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
     template(v-if="filtered.length > 0")
       .row.q-col-gutter-md
         .col-12.col-sm-6.col-md-4.col-lg-3(v-for="card in cards", :key="card.id")
-          CatalogOfferCard(:offer="card", @click="goCard(card)")
+          CatalogOfferCard(:offer="card", :fee-percent="feePercent", @click="goCard(card)")
           .my-offers__reason(v-if="card.domainStatus === 'REJECTED' && card.rejectReason")
             q-icon(name="error", color="negative", size="16px")
             span {{ card.rejectReason }}

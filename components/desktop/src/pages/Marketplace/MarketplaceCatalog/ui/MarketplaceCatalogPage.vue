@@ -392,7 +392,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", @click="goToDetail(o)")
+        CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", :show-fee-note="false", @click="goToDetail(o)")
           template(v-if="needsKU && offerKUNames(o).length", #details)
             .catalog__offer-ku
               q-icon(name="location_on", size="14px")

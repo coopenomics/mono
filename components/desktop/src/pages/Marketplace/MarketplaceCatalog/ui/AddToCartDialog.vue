@@ -160,8 +160,6 @@ BaseDialog(
         | Уже в корзине: {{ alreadyInCart }} {{ unitLabel }} — добавление суммируется.
       .add-to-cart__price(v-if="offer")
         | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
-        template(v-if="feePercent > 0")
-          |  (с членским взносом {{ feePercent }}%)
       .add-to-cart__total(v-if="offer")
         | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
   template(#footer)

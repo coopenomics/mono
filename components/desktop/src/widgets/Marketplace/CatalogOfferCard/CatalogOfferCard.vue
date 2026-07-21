@@ -45,7 +45,7 @@
         </span>
       </div>
 
-      <div v-if="hasFee" class="mp-catalog-offer-card__fee-note">
+      <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note">
         Цена с членским взносом {{ feeLabel }}
       </div>
 
@@ -96,9 +96,13 @@ const props = defineProps({
   // принимается прямо в ней), передаём false.
   clickable: { type: Boolean, default: true },
   // Единая ставка членского взноса кооператива, проценты (requirement b6).
-  // Если задана и > 0 — карточка показывает цену с учётом взноса (взнос
-  // входит в общую стоимость заказа) и поясняющую подпись.
+  // Если задана и > 0 — карточка ВСЕГДА показывает цену с учётом взноса (он
+  // входит в стоимость, которую заказчик реально платит).
   feePercent: { type: Number, default: 0 },
+  // Поясняющая подпись «Цена с членским взносом N%» — только для
+  // поставщика/администратора (им нужно видеть разбивку). Заказчику она не
+  // нужна: он видит просто финальную цену, без экономики кооператива.
+  showFeeNote: { type: Boolean, default: true },
 })
 
 const emit = defineEmits<{

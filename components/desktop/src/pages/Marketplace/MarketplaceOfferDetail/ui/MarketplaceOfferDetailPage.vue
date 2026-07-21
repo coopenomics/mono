@@ -221,7 +221,9 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         span {{ offer.supplier_name }}
 
       .offer-detail__price {{ priceLabel }}
-      .offer-detail__fee-note(v-if="feePercent > 0") Цена с членским взносом {{ feePercent }}%
+      //- Пояснение «с членским взносом» — только на столе администратора
+      //- (readonly = модерация). Заказчику показываем просто финальную цену.
+      .offer-detail__fee-note(v-if="feePercent > 0 && readonly") Цена с членским взносом {{ feePercent }}%
 
       BaseButton(
         v-if="!readonly",

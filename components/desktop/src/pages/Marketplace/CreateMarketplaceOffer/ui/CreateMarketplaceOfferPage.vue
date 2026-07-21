@@ -135,6 +135,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               emit-value,
               map-options
             )
+          p.offer-wizard__hint(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
           .offer-wizard__qty
             q-input.offer-wizard__qty-input(
               v-model.number='form.quantity_available',
@@ -344,6 +345,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
 import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
+import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { Zeus } from '@coopenomics/sdk';
 import { republishOffer, withdrawOffer } from 'src/entities/MarketplaceOffer';
 import {
@@ -390,6 +392,11 @@ const route = useRoute();
 const systemStore = useSystemStore();
 const kuStore = useMarketplaceKUDetailsStore();
 const governSymbol = computed(() => systemStore.governSymbol);
+
+// Ставка членского взноса — поставщик должен видеть цену, которую реально
+// заплатит заказчик (requirement: цена с взносом только на столе поставщика
+// и администратора, не в самом каталоге заказчика).
+const feePercent = ref(0);
 
 // Цена — целое или с двумя знаками после запятой (рубли/копейки). Допускаем
 // и точку, и запятую при вводе; в payload нормализуем к точке. На цепь backend
@@ -679,9 +686,24 @@ async function loadKuOptions(): Promise<void> {
 
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
+
+// Цена с учётом взноса — то, что реально увидит и заплатит заказчик. Превью
+// карточки справа показывает именно её (как она появится в каталоге), а не
+// голую себестоимость поставщика.
+const priceWithFee = computed<number | null>(() => {
+  if (!priceNumberStr.value) return null;
+  const n = Number(priceNumberStr.value);
+  if (Number.isNaN(n)) return null;
+  return feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
+});
 const formattedPrice = computed(() =>
-  priceNumberStr.value ? formatAsset2Digits(`${priceNumberStr.value} ${governSymbol.value}`) : '—'
+  priceWithFee.value != null ? formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`) : '—'
 );
+const priceWithFeeHint = computed(() => {
+  if (priceWithFee.value == null || feePercent.value <= 0) return '';
+  const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
+  return `Заказчик увидит цену с учётом членского взноса ${feePercent.value}%: ${formatted}`;
+});
 
 const stockEmpty = computed(
   () => !form.value.unlimited_flag && (form.value.quantity_available ?? 0) <= 0
@@ -1016,6 +1038,11 @@ onMounted(async () => {
   void loadSupplierPaymentSettings()
     .then((s) => {
       payoutSettings.value = s;
+    })
+    .catch(() => undefined);
+  void getMembershipFeePercent()
+    .then((p) => {
+      feePercent.value = p;
     })
     .catch(() => undefined);
   try {
