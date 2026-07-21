@@ -123,9 +123,18 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
     _patches.value = [];
   };
 
+  // Запросы независимы (разные срезы кошелька/соглашений) — allSettled, а не
+  // all: падение одного (напр. недостаточно прав на один из резолверов) не
+  // должно обнулять остальные пять уже успешно загруженных.
+  function unwrap<T>(result: PromiseSettledResult<T>, fallback: T): T {
+    if (result.status === 'fulfilled') return result.value ?? fallback;
+    console.error(result.reason);
+    return fallback;
+  }
+
   const loadUserWallet = async (params: ILoadUserWallet) => {
-    try {
-      const data = await Promise.all([
+    const [depositsRes, withdrawsRes, programWalletsRes, methodsRes, agreementsRes, userWalletsRes] =
+      await Promise.allSettled([
         api.loadUserDepositsData(params),
         api.loadUserWithdrawsData(params),
         api.loadUserProgramWalletsData(params),
@@ -134,19 +143,16 @@ export const useWalletStore = defineStore(namespace, (): IWalletStore => {
         api.loadUserWalletsData(params),
       ]);
 
-      deposits.value = data[0] ?? [];
-      withdraws.value = data[1] ?? [];
-      _program_wallets_base.value = data[2] ?? [];
-      methods.value = data[3] ?? [];
-      agreements.value = data[4] ?? [];
-      user_wallets.value = data[5] ?? [];
-      // Серверная правда выигрывает — все наложенные оптимистичные патчи
-      // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
-      // как «откат через TTL» через несколько секунд).
-      clearOptimisticPatches();
-    } catch (e: any) {
-      console.log(e);
-    }
+    deposits.value = unwrap(depositsRes, []);
+    withdraws.value = unwrap(withdrawsRes, []);
+    _program_wallets_base.value = unwrap(programWalletsRes, []);
+    methods.value = unwrap(methodsRes, []);
+    agreements.value = unwrap(agreementsRes, []);
+    user_wallets.value = unwrap(userWalletsRes, []);
+    // Серверная правда выигрывает — все наложенные оптимистичные патчи
+    // сбрасываются. Если расхождение есть, оно будет видно сразу (а не
+    // как «откат через TTL» через несколько секунд).
+    clearOptimisticPatches();
   };
 
   return {

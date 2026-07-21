@@ -11,7 +11,7 @@ export class RolesGuard implements CanActivate {
    * Работает следующим образом:
    * 1. Если присутствует заголовок `server-secret`, доступ разрешён.
    * 2. Если роли не заданы через декоратор `@AuthRoles`, доступ открыт.
-   * 3. Если пользователь обращается к своим ресурсам (поле `username` внутри объекта `data` в запросе совпадает с `user.username`), доступ разрешён.
+   * 3. Если пользователь обращается к своим ресурсам (поле `username` — вложенное в `data`/`filter`, либо плоский аргумент — совпадает с `user.username`), доступ разрешён.
    * 4. Если пользователь имеет хотя бы одну из разрешённых ролей, доступ разрешён.
    * 5. В иных случаях доступ запрещён, выбрасывается ошибка с кодом 401.
    *
@@ -50,7 +50,8 @@ export class RolesGuard implements CanActivate {
     const filter = args.filter;
 
     if ((data && data.username && user.username === data.username) ||
-        (filter && filter.username && user.username === filter.username)) {
+        (filter && filter.username && user.username === filter.username) ||
+        (args.username && user.username === args.username)) {
       return true; // Если username совпадает, разрешаем доступ
     }
 
