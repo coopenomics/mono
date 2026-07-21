@@ -19,6 +19,10 @@ import {
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
 import { MarketplaceOnboardingService } from '../onboarding/marketplace-onboarding.service';
+import {
+  MARKETPLACE_CART_REPOSITORY,
+  type MarketplaceCartDomainRepository,
+} from '../../domain/repositories/marketplace-cart.repository';
 
 /**
  * Провайдер грантов «Стола заказов» для канона авторизации столов.
@@ -36,13 +40,19 @@ import { MarketplaceOnboardingService } from '../onboarding/marketplace-onboardi
  *  Так до принятия никто, кроме председателя, не видит ни столов, ни страниц.
  *
  *  L3 (пайщик-заказчик): даже после принятия ЦПП кооперативом orderer-права
- *  выдаются ТОЛЬКО если конкретный пайщик подписал персональную оферту ЦПП
- *  (`MarketplaceOnboardingService.requires_gate === false`). Пока не подписал —
- *  вместо рабочих orderer-прав выдаётся единственный маркер видимости
- *  `Onboarding:orderer` (страница подключения к Столу заказов). Это зеркало
- *  L1-гейта председателя на уровне отдельного пайщика: до подписи виден лишь
- *  онбординг, после — открывается полный стол заказчика. Прочие роли
- *  (offerer/operator/admin/board) от L3-оферты заказчика не зависят.
+ *  выдаются ТОЛЬКО если выполнены ОБА независимых факта: (а) пайщик подписал
+ *  персональную оферту ЦПП (`MarketplaceOnboardingService.requires_gate ===
+ *  false` — могло произойти ещё на L2, при регистрации) И (б) пайщик выбрал
+ *  кооперативный участок (КУ/пункт выдачи) — `MarketplaceCart.delivery_braname
+ *  !== null`. Подпись оферты на L2 НЕ подразумевает выбор КУ — это отдельный
+ *  шаг, которого при регистрации не было. Пока хотя бы одно из двух не
+ *  выполнено — вместо рабочих orderer-прав выдаётся единственный маркер
+ *  видимости `Onboarding:orderer` (страница подключения к Столу заказов, где
+ *  КУ выбирается всегда, а подпись показывается, только если ещё не была дана
+ *  на L2). Это зеркало L1-гейта председателя на уровне отдельного пайщика: до
+ *  выполнения обоих условий виден лишь онбординг, после — открывается полный
+ *  стол заказчика. Прочие роли (offerer/operator/admin/board) от L3-гейта
+ *  заказчика не зависят.
  *
  * Всё — без отдельного desktop-фильтра и без зеркального гейта во фронтовом
  * install.ts: видимость целиком определяется набором grants.
@@ -63,6 +73,8 @@ export class MarketplaceDesktopGrantsProvider
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly onboardingService: MarketplaceOnboardingService,
+    @Inject(MARKETPLACE_CART_REPOSITORY)
+    private readonly cartRepository: MarketplaceCartDomainRepository,
   ) {}
 
   onModuleInit(): void {
@@ -96,12 +108,16 @@ export class MarketplaceDesktopGrantsProvider
     const grants = new Set(expandGrantsForRoles(otherRoles));
 
     // L3-гейт заказчика: orderer-права материализуются только после подписи
-    // персональной оферты ЦПП. До подписи — маркер видимости страницы онбординга.
+    // персональной оферты ЦПП И выбора КУ — оферта могла быть подписана ещё на
+    // L2 (регистрации), где выбора КУ не было вовсе, поэтому проверяем оба
+    // факта независимо (см. класс-JSDoc выше).
     if (roles.includes('orderer')) {
-      const { requires_gate } = await this.onboardingService.getOnboardingState(
-        ctx.username,
-      );
-      if (requires_gate) {
+      const [{ requires_gate }, cart] = await Promise.all([
+        this.onboardingService.getOnboardingState(ctx.username),
+        this.cartRepository.findByOrderer(ctx.coopname, ctx.username),
+      ]);
+      const needsGate = requires_gate || !cart?.delivery_braname;
+      if (needsGate) {
         grants.add('Onboarding:orderer');
       } else {
         for (const g of expandGrantsForRoles(['orderer'])) grants.add(g);
