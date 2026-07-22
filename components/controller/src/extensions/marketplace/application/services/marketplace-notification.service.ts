@@ -5,6 +5,7 @@ import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -120,7 +121,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const payload: Workflows.MarketplaceCashierNewPayment.IPayload = {
         cashierName,
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
@@ -218,7 +219,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentConfirmed.IPayload = {
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentReference: event.payment_reference,
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
@@ -366,7 +367,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
       switch (event.decision) {
         case 'accept_at_visit':
           outcomeHuman = 'Возврат принят — средства восстановлены на программе Стола Заказов';
-          returnedAmount = event.ledger_snapshot?.amount;
+          returnedAmount = event.ledger_snapshot?.amount
+            ? AmountFormatterUtils.formatAmountSafe(event.ledger_snapshot.amount)
+            : undefined;
           break;
         case 'reject_remote':
           outcomeHuman = 'Возврат отклонён удалённо председателем';
@@ -407,7 +410,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentDeclined.IPayload = {
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reason: event.reason,
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
@@ -438,7 +441,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         ordererName,
         quantity: event.quantity,
-        totalCost: event.total_cost,
+        totalCost: AmountFormatterUtils.formatAmountSafe(event.total_cost),
         coopname: event.coopname,
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
