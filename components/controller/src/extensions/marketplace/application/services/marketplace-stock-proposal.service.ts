@@ -413,6 +413,7 @@ export class MarketplaceStockProposalService {
         offer_id: offer.id,
         product_title: offer.product_name,
         unit_of_measurement: MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] ?? '',
+        order_unit_size: offer.order_unit_size,
         quantity: item.quantity,
         unit_price: offer.price_per_unit,
       });

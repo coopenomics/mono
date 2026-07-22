@@ -164,6 +164,23 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       expect(action.total_amount).toBe('500.0000');
     });
 
+    it('оффер с фасовкой (order_unit_size=0.1) → акт в физических базовых единицах (0.5 кг за 1000/кг), сумма неизменна', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      mocks.offerRepo.findById.mockResolvedValue({
+        id: 'offer-1',
+        product_name: 'Икра',
+        unit_of_measure: 'kg',
+        order_unit_size: '0.1',
+      } as unknown as Awaited<ReturnType<MarketplaceOfferDomainRepository['findById']>>);
+      const service = buildService(mocks);
+      await service.getOpenIssuanceSignablePayload('voskhod', 'order-1', 'chairman');
+      const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
+      // 5 единиц заказа × 0.1 кг = 0.5 кг физически; цена за кг = 500 / 0.5 = 1000; сумма 500 не меняется.
+      expect(action.fact_quantity).toBeCloseTo(0.5, 6);
+      expect(action.unit_cost).toBe('1000.0000');
+      expect(action.total_amount).toBe('500.0000');
+    });
+
     it('не формирует акт, когда на складе пусто', async () => {
       const service = buildService(buildMocks({ 'order-1': 0 }));
       await expect(

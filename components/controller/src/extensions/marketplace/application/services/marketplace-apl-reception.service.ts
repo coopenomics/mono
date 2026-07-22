@@ -97,7 +97,7 @@ import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { MARKETPLACE_UNIT_LABEL, toPhysicalActLine } from '../shared/unit-label.util';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -328,6 +328,15 @@ export class MarketplaceAplReceptionService {
     // данные товара, а не заглушку фабрики. Оферта могла быть снята — тогда
     // подставляем безопасные значения по самому заказу.
     const offer = await this.offerRepo.findById(input.order.offer_id);
+    // Акт приёма-передачи показывает переданное имущество в физических базовых
+    // единицах (кол-во = кол-во единиц заказа × размер единицы заказа, цена — за
+    // базовую единицу); сумма акта неизменна.
+    const { physicalQuantity, unitCostPerBase } = toPhysicalActLine(
+      fact_quantity,
+      total_amount,
+      offer?.order_unit_size,
+      this.assetConfig.decimals
+    );
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
@@ -339,13 +348,13 @@ export class MarketplaceAplReceptionService {
       braname: input.reception.braname,
       accept_braname: input.reception.braname,
       reception_id: input.reception.id,
-      fact_quantity,
+      fact_quantity: physicalQuantity,
       total_amount,
       supplier_account: input.reception.offerer_account,
       sku: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
       unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
-      unit_cost: fact_unit_price,
+      unit_cost: unitCostPerBase,
       currency: this.assetConfig.symbol,
       // Тело документа сохраняется в стор: председателю при закрывающей
       // подписи нужен ИСХОДНЫЙ документ (оригинальный порядок ключей meta)
