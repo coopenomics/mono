@@ -8,7 +8,12 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import {
+  HandoffTokenKind,
+  useMarketplaceRealtime,
+  applyMembershipFee,
+  getMembershipFeePercent,
+} from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -52,6 +57,16 @@ const cancellable = computed(() => order.value?.status === 'ACTIVE');
 const totalWithFee = computed(() => (order.value ? Number(order.value.total_cost_with_fee) : 0));
 const unitPriceWithFee = computed(() =>
   order.value && order.value.quantity > 0 ? totalWithFee.value / order.value.quantity : 0,
+);
+
+// «Факт выдачи»: issuance_fact.fact_cost с бэка — себестоимость без взноса
+// (та же природа, что order.total_cost). Доразбивка недо-/перевыдачи
+// (computeIssuanceDiff, стол оператора) уже возвращает взнос пропорционально
+// расхождению — здесь та же ставка применяется к каждой стороне отдельно,
+// чтобы «Заказ» и «Факт» были в одних единицах с «Суммой заказа» выше.
+const feePercent = ref(0);
+const factCostWithFee = computed(() =>
+  issuanceFact.value ? applyMembershipFee(Number(issuanceFact.value.fact_cost), feePercent.value) : 0,
 );
 
 const pvzName = computed(() => order.value?.delivery_point_name || order.value?.delivery_braname || '');
@@ -154,6 +169,11 @@ function confirmCancel(): void {
 
 onMounted(() => {
   void load();
+  void getMembershipFeePercent()
+    .then((p) => {
+      feePercent.value = p;
+    })
+    .catch(() => undefined);
 });
 
 // Открыта одна карточка — реагируем только на сигнал по её order_id, чужие
@@ -241,8 +261,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
               td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
             tr
               td Сумма
-              td.text-right {{ formatPrice(order.total_cost) }}
-              td.text-right {{ formatPrice(issuanceFact.fact_cost) }}
+              td.text-right {{ formatPrice(String(totalWithFee)) }}
+              td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)

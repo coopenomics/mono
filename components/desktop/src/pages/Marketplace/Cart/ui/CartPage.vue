@@ -43,6 +43,14 @@ function money(value: string | number | null | undefined): string {
   return Number(value ?? 0).toLocaleString('ru-RU');
 }
 
+// Позиции корзины приходят с бэка без взноса (price_per_unit/line_total —
+// сырые себестоимость/сумма). Заказчику показываем везде цену с учётом
+// взноса — как в каталоге и в «Итого» ниже, иначе строка и сумма расходятся
+// (строка «1000 ₽», а «Итого» — уже «1300 ₽»).
+function moneyWithFee(value: string | number | null | undefined): string {
+  return money(applyMembershipFee(Number(value ?? 0), feePercent.value));
+}
+
 // Низкоуровневый коммит количества (целое ≥ 1). Кламп делает changeQty.
 async function setQty(offerId: string, next: number): Promise<void> {
   if (next < 1 || cartStore.mutating) return;
@@ -208,7 +216,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               q-icon(name="image", size="22px")
           .mp-cart__info
             .mp-cart__name(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)") {{ it.product_name }}
-            .mp-cart__unit {{ money(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
+            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
             BaseChip.mp-cart__warn(
               v-if="it.available_on_current_ku === false",
               variant="warn",
@@ -248,7 +256,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             )
               template(#icon-left)
                 q-icon(name="add")
-          .mp-cart__sum {{ money(it.line_total) }} {{ symbol }}
+          .mp-cart__sum {{ moneyWithFee(it.line_total) }} {{ symbol }}
           BaseButton.mp-cart__del(
             variant="ghost",
             icon-only,

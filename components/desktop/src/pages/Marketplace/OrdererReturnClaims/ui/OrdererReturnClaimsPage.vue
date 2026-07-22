@@ -50,7 +50,9 @@ const orderOptions = computed(() => {
     .filter((o) => !openOrderIds.has(o.id))
     .map((o) => ({
       value: o.id,
-      label: `Заказ ${o.id.slice(0, 8)} · ${o.quantity} ед. · ${o.total_cost} ₽`,
+      // total_cost_with_fee — как в «Мои заказы»: заказчику показываем сумму,
+      // которую он реально заплатил (с членским взносом), не себестоимость.
+      label: `Заказ ${o.id.slice(0, 8)} · ${o.quantity} ед. · ${Number(o.total_cost_with_fee).toLocaleString('ru-RU')} ₽`,
     }));
 });
 
