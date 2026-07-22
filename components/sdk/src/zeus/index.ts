@@ -8563,6 +8563,8 @@ export type ValueTypes = {
 	labeled_by_operator_account?:boolean | `@${string}`,
 	/** Заказ, к которому относится позиция. */
 	order_id?:boolean | `@${string}`,
+	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
+	order_unit_size?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -8586,7 +8588,7 @@ export type ValueTypes = {
 	/** Партия поставки, в составе которой имущество получено. */
 	shipment_id?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
-	/** Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе. */
+	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -21574,6 +21576,8 @@ export type ResolverInputTypes = {
 	labeled_by_operator_account?:boolean | `@${string}`,
 	/** Заказ, к которому относится позиция. */
 	order_id?:boolean | `@${string}`,
+	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
+	order_unit_size?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -21597,7 +21601,7 @@ export type ResolverInputTypes = {
 	/** Партия поставки, в составе которой имущество получено. */
 	shipment_id?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
-	/** Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе. */
+	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -34174,6 +34178,8 @@ export type ModelTypes = {
 	labeled_by_operator_account?: string | undefined | null,
 	/** Заказ, к которому относится позиция. */
 	order_id: string,
+	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
+	order_unit_size?: string | undefined | null,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -34197,7 +34203,7 @@ export type ModelTypes = {
 	/** Партия поставки, в составе которой имущество получено. */
 	shipment_id: string,
 	status: ModelTypes["MarketplaceInventoryStatus"],
-	/** Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе. */
+	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?: string | undefined | null,
 	updated_at: ModelTypes["DateTime"]
 };
@@ -47945,6 +47951,8 @@ export type GraphQLTypes = {
 	labeled_by_operator_account?: string | undefined | null,
 	/** Заказ, к которому относится позиция. */
 	order_id: string,
+	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
+	order_unit_size?: string | undefined | null,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -47968,7 +47976,7 @@ export type GraphQLTypes = {
 	/** Партия поставки, в составе которой имущество получено. */
 	shipment_id: string,
 	status: GraphQLTypes["MarketplaceInventoryStatus"],
-	/** Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе. */
+	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
 	unit_of_measure?: string | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceInventoryItem']: Omit<GraphQLTypes["MarketplaceInventoryItem"], "...on MarketplaceInventoryItem">

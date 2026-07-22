@@ -5125,6 +5125,7 @@ export const ReturnTypes: Record<string,any> = {
 		labeled_at:"DateTime",
 		labeled_by_operator_account:"String",
 		order_id:"String",
+		order_unit_size:"String",
 		orderer_account_snapshot:"String",
 		orderer_name:"String",
 		ownership:"MarketplaceInventoryOwnership",
