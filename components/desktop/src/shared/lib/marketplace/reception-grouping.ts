@@ -30,6 +30,7 @@ export interface GroupableReception {
     product_name?: string | null;
     fact_quantity: number | string;
     unit_of_measure?: string | null;
+    order_unit_size?: string | null;
     fact_unit_price?: string | null;
   }>;
 }
@@ -40,6 +41,7 @@ export interface ReceptionGroupLine {
   key: string;
   productName: string;
   unit: string;
+  orderUnitSize: string | null;
   quantity: number;
   amount: number;
 }
@@ -116,6 +118,7 @@ export function groupAplReceptions<T extends GroupableReception>(
             key: lk,
             productName: f.product_name || 'Товар по предложению',
             unit: f.unit_of_measure ?? '',
+            orderUnitSize: f.order_unit_size ?? null,
             quantity: qty,
             amount: qty * price,
           });

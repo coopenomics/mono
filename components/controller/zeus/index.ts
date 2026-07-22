@@ -7723,9 +7723,11 @@ export type ValueTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
+	order_unit_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
-	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceAplReceptionFactEntry']?: Omit<ValueTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
@@ -20762,9 +20764,11 @@ export type ResolverInputTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
+	order_unit_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
-	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -33412,9 +33416,11 @@ export type ModelTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
+	order_unit_size?: string | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
-	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
@@ -47098,9 +47104,11 @@ export type GraphQLTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
+	order_unit_size?: string | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
-	/** Единица измерения товара по этой позиции (шт., кг, л, упак.). */
+	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null,
 	['...on MarketplaceAplReceptionFactEntry']: Omit<GraphQLTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 };

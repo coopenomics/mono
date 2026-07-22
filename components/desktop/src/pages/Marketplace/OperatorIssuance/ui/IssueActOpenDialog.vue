@@ -12,7 +12,7 @@ import {
   computeIssuanceDiff,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
   getStockIssuancePayloads,
@@ -151,7 +151,7 @@ const correctionRows = computed<CorrectionRow[]>(() =>
     return {
       sku: o.id.slice(0, 8),
       title: o.product_name || 'Товар по предложению',
-      unit: marketplaceUnitShort(o.unit_of_measure),
+      unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
       expected: o.quantity,
       available: availableOf(o),
       shelf: (o.warehouse_shelves ?? []).join(', ') || undefined,

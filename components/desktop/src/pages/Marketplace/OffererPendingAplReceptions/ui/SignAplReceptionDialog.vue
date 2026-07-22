@@ -5,7 +5,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
@@ -195,7 +195,7 @@ BaseDialog(
         tbody
           tr(v-for="l in acceptedLines", :key="l.key")
             td {{ l.productName }}
-            td.num {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+            td.num {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr

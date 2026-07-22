@@ -1,4 +1,4 @@
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { encodeHandoffToken, HandoffTokenKind } from 'src/shared/lib/marketplace';
 import type { TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
 import type { MarketplaceShipmentView } from '../api';
@@ -66,7 +66,7 @@ export function buildTtnData(
         sku: o.offer_id ? String(o.offer_id).slice(0, 8) : '—',
         title: o.product_name || 'Товар по предложению',
         qty: o.quantity,
-        unit: marketplaceUnitShort(o.unit_of_measure),
+        unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
         price: parseFloat(o.price_per_unit) || 0,
         unitsPerBox: unitsPerBox ?? undefined,
         boxes,

@@ -9,7 +9,7 @@ import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, CardLis
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -224,6 +224,7 @@ interface DeliveryLine {
   key: string;
   productName: string;
   unit: string;
+  orderUnitSize: string | null;
   quantity: number;
   // Экспедиторская упаковка: сколько коробок суммарно по товару (если поставка
   // идёт по ТТН и упаковка задана). 0 — упаковка неизвестна, коробки не показываем.
@@ -259,6 +260,7 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure ?? '',
+        orderUnitSize: o.order_unit_size ?? null,
         quantity: qty,
         boxes,
       });
@@ -365,6 +367,7 @@ interface PickupGroup {
   key: string;
   productName: string;
   unit: string;
+  orderUnitSize: string | null;
   orderedTotal: number;
   orders: MarketplaceSupplierPickupOrderView[];
 }
@@ -383,6 +386,7 @@ function groupOrdersByProduct(orders: MarketplaceSupplierPickupOrderView[]): Pic
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure ?? '',
+        orderUnitSize: o.order_unit_size ?? null,
         orderedTotal: qty,
         orders: [o],
       });
@@ -748,7 +752,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         ul.reception__card-items(v-if='g.lines.length')
           li.reception__card-item(v-for='l in g.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+            span.reception__card-qty {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
@@ -794,7 +798,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           li.reception__card-item(v-for='l in d.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
             span.reception__card-qty
-              | {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+              | {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
               span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')
@@ -833,7 +837,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__group(v-for='g in declaredGroups', :key='g.key')
           .reception__group-head
             span.reception__group-title {{ g.productName }}
-            span.reception__group-total Заказано {{ g.orderedTotal }} {{ marketplaceUnitShort(g.unit) }}
+            span.reception__group-total Заказано {{ g.orderedTotal }} {{ marketplaceOrderUnitLabel(g.unit, g.orderUnitSize) }}
           .reception__unit(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !isSelected(o.id) }')
             q-checkbox(
               :model-value='isSelected(o.id)',
@@ -843,7 +847,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
             .reception__unit-info
               .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
               .reception__unit-meta
-                | Заказано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+                | Заказано {{ o.quantity }} {{ marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size) }}
                 template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
             .reception__unit-fact
               //- Кламп на каждом изменении, не только на blur: стрелки
@@ -856,7 +860,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 :min='0',
                 :max='o.quantity',
                 :disable='!isSelected(o.id)',
-                :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
                 @update:model-value='() => clampFact(o.id, o.quantity)',
                 @blur='clampFact(o.id, o.quantity)'
               )
@@ -882,12 +886,12 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         .reception__group(v-for='g in addonGroups', :key='g.key')
           .reception__group-head
             span.reception__group-title {{ g.productName }}
-            span.reception__group-total Акцептовано {{ g.orderedTotal }} {{ marketplaceUnitShort(g.unit) }}
+            span.reception__group-total Акцептовано {{ g.orderedTotal }} {{ marketplaceOrderUnitLabel(g.unit, g.orderUnitSize) }}
           .reception__unit.reception__unit--addon(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !takeAddon }')
             q-icon(name='add_circle_outline', size='16px')
             .reception__unit-info
               .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
-              .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceUnitShort(o.unit_of_measure) }}
+              .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size) }}
             .reception__unit-fact
               BaseInput(
                 v-model.number='pickupFact[o.id]',
@@ -896,7 +900,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
                 :min='0',
                 :max='o.quantity',
                 :disable='!takeAddon',
-                :suffix='marketplaceUnitShort(o.unit_of_measure)',
+                :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
                 @update:model-value='() => clampFact(o.id, o.quantity)',
                 @blur='clampFact(o.id, o.quantity)'
               )

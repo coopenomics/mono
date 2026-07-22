@@ -4869,6 +4869,7 @@ export const ReturnTypes: Record<string,any> = {
 		fact_quantity:"Int",
 		fact_unit_price:"String",
 		order_id:"String",
+		order_unit_size:"String",
 		product_name:"String",
 		unit_of_measure:"String"
 	},

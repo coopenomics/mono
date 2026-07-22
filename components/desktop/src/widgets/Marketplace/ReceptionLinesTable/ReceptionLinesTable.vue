@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
@@ -14,6 +14,7 @@ export interface ReceptionLineRow {
   product_name: string | null;
   fact_quantity: number;
   unit_of_measure: string | null;
+  order_unit_size: string | null;
   fact_unit_price: string | null;
 }
 
@@ -22,7 +23,7 @@ const props = defineProps<{
 }>();
 
 function unitShort(row: ReceptionLineRow): string {
-  return marketplaceUnitShort(row.unit_of_measure ?? '');
+  return marketplaceOrderUnitLabel(row.unit_of_measure, row.order_unit_size);
 }
 
 function lineSum(row: ReceptionLineRow): number {
