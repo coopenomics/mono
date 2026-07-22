@@ -6,6 +6,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { applyMembershipFee } from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
 
 // Минимально необходимый набор полей оффера для добавления в корзину —
@@ -13,7 +14,7 @@ import type { MarketplaceOfferView } from '../types';
 // (MarketplaceOfferDetailView) представлением, чтобы диалог переиспользовался.
 type CartOffer = Pick<
   MarketplaceOfferView,
-  'id' | 'product_name' | 'unit_of_measure' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
+  'id' | 'product_name' | 'unit_of_measure' | 'order_unit_size' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
 >;
 
 /**
@@ -51,18 +52,11 @@ const open = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 });
 
-const UNIT_LABEL: Record<MarketplaceOfferView['unit_of_measure'], string> = {
-  piece: 'шт',
-  kg: 'кг',
-  liter: 'л',
-  pack: 'упак',
-};
-
 const quantity = ref<number>(1);
 const submitting = ref<boolean>(false);
 
 const unitLabel = computed(() =>
-  props.offer ? UNIT_LABEL[props.offer.unit_of_measure] : '',
+  marketplaceOrderUnitLabel(props.offer?.unit_of_measure, props.offer?.order_unit_size),
 );
 
 const maxQuantity = computed(() => {

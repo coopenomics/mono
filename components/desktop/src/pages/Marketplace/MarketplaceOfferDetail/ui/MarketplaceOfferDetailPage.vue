@@ -7,8 +7,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
-import { marketplaceUnitShort } from 'src/shared/lib/consts';
-import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { marketplaceOrderUnitLabel, marketplaceUnitLabel } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls, formatAsset2Digits } from 'src/shared/lib/utils';
 import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
@@ -82,8 +82,9 @@ const noKU = computed(() => !cartStore.currentBraname);
 
 const images = computed(() => (offer.value ? marketplaceOfferImageUrls(offer.value.images) : []));
 
+// Подпись единицы заказа (фасовки): «100 г», «упаковка 8 шт», «шт»…
 const unitShort = computed(() =>
-  offer.value ? marketplaceUnitShort(offer.value.unit_of_measure) : '',
+  offer.value ? marketplaceOrderUnitLabel(offer.value.unit_of_measure, offer.value.order_unit_size) : '',
 );
 
 const categoryLabel = computed(() => {
@@ -117,6 +118,15 @@ const priceLabel = computed(() =>
     ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
     : '',
 );
+// Справочная цена за базовую единицу (за кг / л / шт) для сравнения — только
+// когда единица заказа ≠ базовой (фасовка). От цены заказчика (с взносом).
+const referenceNote = computed(() => {
+  if (!offer.value) return '';
+  const size = Number.parseFloat(String(offer.value.order_unit_size ?? '1'));
+  if (!Number.isFinite(size) || size <= 0 || size === 1) return '';
+  const formatted = formatAsset2Digits(`${priceWithFee.value / size} ${system.governSymbol}`);
+  return `≈ ${formatted} за ${marketplaceUnitLabel(offer.value.unit_of_measure)}`;
+});
 
 const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
@@ -221,6 +231,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         span {{ offer.supplier_name }}
 
       .offer-detail__price {{ priceLabel }}
+      .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
       //- Пояснение «с членским взносом» — только на столе администратора
       //- (readonly = модерация). Заказчику показываем просто финальную цену.
       .offer-detail__fee-note(v-if="feePercent > 0 && readonly") Цена с членским взносом {{ feePercent }}%

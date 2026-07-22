@@ -953,7 +953,8 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCreateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
-		images:"MarketplaceOfferImageUploadInput"
+		images:"MarketplaceOfferImageUploadInput",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceCreateOrderProposalLineInput:{
 		signiss1_act:"MarketplaceIssueActSignedDocumentInput"
@@ -1182,6 +1183,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSwitchSupplierModelInput:{
 		model:"MarketplaceSupplierModel"
 	},
+	MarketplaceUnitOfMeasure: "enum" as const,
 	MarketplaceUnpublishStockInput:{
 
 	},
@@ -1191,7 +1193,8 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceUpdateOfferInput:{
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
-		images:"MarketplaceOfferImageUploadInput"
+		images:"MarketplaceOfferImageUploadInput",
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceUpdateWriteoffDraftInput:{
 		items:"MarketplaceWriteoffItemInput"
@@ -4962,6 +4965,7 @@ export const ReturnTypes: Record<string,any> = {
 		line_total:"String",
 		max_available:"Int",
 		offer_id:"String",
+		order_unit_size:"String",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Int",
@@ -5180,6 +5184,7 @@ export const ReturnTypes: Record<string,any> = {
 		description:"String",
 		id:"String",
 		images:"MarketplaceOfferImage",
+		order_unit_size:"String",
 		pack_size:"Int",
 		price_per_unit:"String",
 		product_name:"String",
@@ -5193,7 +5198,7 @@ export const ReturnTypes: Record<string,any> = {
 		stock_braname:"String",
 		supplier_account:"String",
 		supplier_name:"String",
-		unit_of_measure:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
 		unlimited_flag:"Boolean",
 		updated_at:"DateTime",
 		vitrine_id:"String",
@@ -5267,6 +5272,7 @@ export const ReturnTypes: Record<string,any> = {
 		offer_hash:"String",
 		offer_id:"String",
 		order_hash:"String",
+		order_unit_size:"String",
 		orderer_account:"String",
 		orderer_name:"String",
 		orderer_signed_at:"DateTime",

@@ -1,5 +1,5 @@
 import { Queries } from '@coopenomics/sdk';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import type { Order, OrderStatus } from '../OrderCard.vue';
 import { orderStatusDisplay } from './orderStatusDisplay';
 
@@ -37,6 +37,8 @@ export interface OrderCardSource {
   product_name?: string | null;
   quantity: number;
   unit_of_measure?: string | null;
+  /** Размер единицы заказа (фасовки) в базовых единицах — для подписи «100 г»/«упаковка 8 шт». */
+  order_unit_size?: string | null;
   total_cost: string;
   /** Членский взнос, включённый в стоимость заказа (requirement b6) — on-chain, null до первой sync-дельты. */
   membership_fee?: string | null;
@@ -70,7 +72,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     shortId: o.id.slice(0, 8),
     title: o.product_name || 'Товар по предложению',
     units: o.quantity,
-    unitLabel: marketplaceUnitShort(o.unit_of_measure),
+    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
     feeNote:
       isOfferer && feeAmount > 0

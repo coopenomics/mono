@@ -15,7 +15,7 @@ import {
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
@@ -48,7 +48,9 @@ const loading = ref(false);
 const receiveDialogOpen = ref(false);
 
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
-const unitShort = computed(() => marketplaceUnitShort(order.value?.unit_of_measure));
+const unitShort = computed(() =>
+  marketplaceOrderUnitLabel(order.value?.unit_of_measure, order.value?.order_unit_size),
+);
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
 
 // requirement b6: заказчику показываем цену С членским взносом (как в

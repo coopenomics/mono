@@ -10,7 +10,7 @@ import {
 } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
-import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 
 /**
@@ -35,8 +35,9 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const symbol = computed(() => system.governSymbol);
 
-function unitShort(u: string | null | undefined): string {
-  return marketplaceUnitShort((u ?? '') as Parameters<typeof marketplaceUnitShort>[0]);
+// Подпись единицы заказа (фасовки): «100 г», «упаковка 8 шт», «шт»…
+function unitShort(u: string | null | undefined, size?: string | null): string {
+  return marketplaceOrderUnitLabel(u, size);
 }
 
 function money(value: string | number | null | undefined): string {
@@ -78,7 +79,7 @@ function changeQty(item: IMarketplaceCartItem, next: number): number {
   const max = maxOf(item);
   if (max != null && n > max) {
     n = max;
-    NotifyAlert(`Доступно не больше ${max} ${unitShort(item.unit_of_measure ?? '')}`);
+    NotifyAlert(`Доступно не больше ${max} × ${unitShort(item.unit_of_measure, item.order_unit_size)}`);
   }
   if (n !== item.quantity) void setQty(item.offer_id, n);
   return n;
@@ -216,7 +217,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               q-icon(name="image", size="22px")
           .mp-cart__info
             .mp-cart__name(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)") {{ it.product_name }}
-            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
+            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure, it.order_unit_size) }}
             BaseChip.mp-cart__warn(
               v-if="it.available_on_current_ku === false",
               variant="warn",
@@ -245,7 +246,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
                 @change="onQtyInput(it, $event)",
                 @keyup.enter="blurOnEnter"
               )
-              span.mp-cart__qty-unit {{ unitShort(it.unit_of_measure) }}
+              span.mp-cart__qty-unit × {{ unitShort(it.unit_of_measure, it.order_unit_size) }}
             BaseButton(
               variant="ghost",
               icon-only,

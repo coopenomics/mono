@@ -45,6 +45,10 @@
         </span>
       </div>
 
+      <div v-if="offer.referenceNote" class="mp-catalog-offer-card__reference">
+        {{ offer.referenceNote }}
+      </div>
+
       <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note">
         Цена с членским взносом {{ feeLabel }}
       </div>
@@ -82,7 +86,8 @@ export interface CatalogOffer {
   images?: string[]        // URL'ы всех изображений — показываются каруселью
   remainUnits?: number
   unitCost?: number | string
-  unitLabel?: string       // ед., шт., кг и т.д.
+  unitLabel?: string       // единица заказа: «100 г», «упаковка 8 шт», «шт»…
+  referenceNote?: string   // справочная цена за базовую единицу «≈ 2500 ₽ за кг»
   status?: CatalogOfferStatus
   category?: string        // название категории — показывается над заголовком
   supplierName?: string    // ФИО / наименование поставщика
@@ -275,6 +280,11 @@ function onClick() {
   }
 
   &__fee-note {
+    font-size: 12px;
+    color: var(--p-ink-3);
+  }
+
+  &__reference {
     font-size: 12px;
     color: var(--p-ink-3);
   }

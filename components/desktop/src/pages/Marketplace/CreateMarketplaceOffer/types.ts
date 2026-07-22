@@ -13,7 +13,7 @@ export interface MarketplaceOfferDeliveryPoint {
   min_supply_volume: number;
 }
 
-export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
+export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
 
 /**
  * Элемент набора изображений в payload. ЛИБО новый файл (base64 + mime_type),
@@ -53,6 +53,8 @@ export interface MarketplaceCreateOfferFormState {
   category_id: number | null;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
+  /** Размер единицы заказа (фасовки) в базовых единицах, numeric как string. */
+  order_unit_size: string;
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -65,6 +67,8 @@ export interface MarketplaceCreateOfferPayload {
   category_id: number;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
+  /** Размер единицы заказа (фасовки) в базовых единицах, numeric как string. */
+  order_unit_size: string;
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -105,6 +109,7 @@ export interface MarketplaceOfferEditPrefill {
   category_id: string | number | null;
   price_per_unit: string;
   unit_of_measure: string;
+  order_unit_size?: string | null;
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];

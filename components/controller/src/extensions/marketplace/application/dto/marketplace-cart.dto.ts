@@ -24,13 +24,21 @@ export class MarketplaceCartItemDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Единица измерения товара (шт., кг, л, упак.).',
+    description: 'Базовая единица измерения товара (штука, килограмм, литр).',
   })
   public readonly unit_of_measure!: string | null;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Цена за единицу товара на текущий момент.',
+    description:
+      'Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц ' +
+      'входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук.',
+  })
+  public readonly order_unit_size!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Цена за одну единицу заказа на текущий момент.',
   })
   public readonly price_per_unit!: string | null;
 

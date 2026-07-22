@@ -9,5 +9,4 @@ export const MARKETPLACE_UNIT_LABEL: Record<MarketplaceUnitOfMeasure, string> = 
   piece: 'шт.',
   kg: 'кг',
   liter: 'л',
-  pack: 'упак.',
 };

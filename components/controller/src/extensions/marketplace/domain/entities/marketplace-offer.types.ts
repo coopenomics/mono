@@ -44,20 +44,25 @@ export interface MarketplaceOfferImage {
 /** Технический предел числа изображений на один Offer (защита от злоупотребления). */
 export const MARKETPLACE_OFFER_MAX_IMAGES = 8;
 
-export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter' | 'pack';
+/**
+ * Базовая физическая единица измерения товара. Именно в ней задаётся
+ * `order_unit_size` (сколько базовых единиц в одной единице заказа) и
+ * считается справочная цена «за базовую единицу». «Упаковка» здесь НЕ значение
+ * — упаковка/фасовка выражается через `order_unit_size` (например, `piece` +
+ * `order_unit_size = 8` = заказ упаковками по 8 штук).
+ */
+export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
 
 export const MarketplaceUnitsOfMeasure = {
   PIECE: 'piece',
   KG: 'kg',
   LITER: 'liter',
-  PACK: 'pack',
 } as const satisfies Record<string, MarketplaceUnitOfMeasure>;
 
 export const MARKETPLACE_UNITS_OF_MEASURE: MarketplaceUnitOfMeasure[] = [
   MarketplaceUnitsOfMeasure.PIECE,
   MarketplaceUnitsOfMeasure.KG,
   MarketplaceUnitsOfMeasure.LITER,
-  MarketplaceUnitsOfMeasure.PACK,
 ];
 
 export type {

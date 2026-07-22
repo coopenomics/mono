@@ -34,6 +34,7 @@ function buildOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Mark
     category_id: 1,
     price_per_unit: '150.0000',
     unit_of_measure: MarketplaceUnitsOfMeasure.PIECE,
+    order_unit_size: '1',
     quantity_available: 10,
     quantity_blocked: 0,
     quantity_consumed: 0,

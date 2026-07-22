@@ -11,7 +11,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
@@ -76,7 +76,7 @@ function shortId(id: string | null | undefined): string {
   return id ? id.slice(0, 8) : '—';
 }
 function unitLabel(o: AdminOfferView): string {
-  return marketplaceUnitShort(o.unit_of_measure);
+  return marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size);
 }
 function formatPrice(v: string | null | undefined): string {
   return v ? formatAsset2Digits(String(v)) : '—';

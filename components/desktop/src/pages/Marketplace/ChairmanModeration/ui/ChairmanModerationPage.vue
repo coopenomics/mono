@@ -4,7 +4,7 @@ import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { fetchCategories } from '../../MarketplaceCatalog/api';
-import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -76,7 +76,7 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: marketplaceUnitShort(offer.unit_of_measure),
+    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
     status: 'moderation',
     category: categoryName(offer) ?? undefined,
     supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,
