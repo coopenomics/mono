@@ -143,6 +143,10 @@ function buildMocks() {
     info: jest.fn(),
   } as any;
 
+  const eventBus = {
+    emit: jest.fn(),
+  } as unknown as jest.Mocked<EventEmitter2>;
+
   return {
     shipmentRepo,
     orderRepo,
@@ -157,6 +161,7 @@ function buildMocks() {
     supplierRegistry,
     supplierActionService,
     documentDomainService,
+    eventBus,
     logger,
   };
 }
@@ -177,7 +182,7 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.supplierRegistry,
     mocks.supplierActionService,
     mocks.documentDomainService,
-    new EventEmitter2(),
+    mocks.eventBus,
     mocks.logger
   );
   // Подпись клиента в jest-spec'е не верифицируем: цель тестов — поведение
@@ -528,7 +533,7 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
 
       const result = await service.cancelReception({
         coopname: 'voskhod',
-        operator_account: 'operator1',
+        cancelled_by: 'operator1',
         apl_reception_id: 'apl-1',
       });
 
@@ -536,6 +541,40 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
       expect(patch.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
       expect(mocks.shipmentRepo.applyStatusTransition).toHaveBeenCalledWith('ship-1', 'SUPPLY_PREPARED');
       expect(result.apl_reception.status).toBe(MarketplaceAplReceptionStatuses.CANCELLED);
+      // Откат оператором — без push «поставщик отменил».
+      expect(mocks.eventBus.emit).not.toHaveBeenCalledWith(
+        'marketplace.aplReception.operator.cancelledBySupplier',
+        expect.anything()
+      );
+    });
+
+    it('отмена поставщиком → emit уведомления оператору, сформировавшему акт', async () => {
+      const reception = buildReception({
+        status: MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN,
+        offerer_account: 'supplier1',
+        created_by_operator_account: 'operator1',
+      });
+      mocks.receptionRepo.findById.mockResolvedValue(reception);
+      mocks.receptionRepo.applySignatures.mockImplementation(async (_id, patch) => {
+        Object.assign(reception, patch);
+        return reception;
+      });
+
+      await service.cancelReception({
+        coopname: 'voskhod',
+        cancelled_by: 'supplier1',
+        apl_reception_id: 'apl-1',
+      });
+
+      expect(mocks.eventBus.emit).toHaveBeenCalledWith(
+        'marketplace.aplReception.operator.cancelledBySupplier',
+        expect.objectContaining({
+          apl_reception_id: 'apl-1',
+          supplier_account: 'supplier1',
+          operator_account: 'operator1',
+          braname: 'ku.krasn.1',
+        })
+      );
     });
 
     it('после подписи поставщика (PENDING_CHAIRMAN) → ConflictException, ничего не меняется', async () => {
@@ -547,7 +586,7 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
       await expect(
         service.cancelReception({
           coopname: 'voskhod',
-          operator_account: 'operator1',
+          cancelled_by: 'operator1',
           apl_reception_id: 'apl-1',
         })
       ).rejects.toThrow(ConflictException);

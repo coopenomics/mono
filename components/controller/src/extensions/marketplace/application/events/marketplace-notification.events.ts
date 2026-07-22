@@ -17,6 +17,25 @@ export const MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT =
 export const MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT =
   'marketplace.aplReception.a.supplier.onsiteSignRequested';
 
+/**
+ * Поставщик у стойки отменил черновик приёмки (не согласен с фактом / отказывается
+ * подписывать) — акт CANCELLED, партия снова SUPPLY_PREPARED. Оповещение только
+ * оператору, который сформировал акт (`created_by_operator_account`): он на
+ * месте и должен повторить приёмку либо оформить отказ в приёмке по партии.
+ */
+export const MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT =
+  'marketplace.aplReception.operator.cancelledBySupplier';
+
+export interface MarketplaceAplReceptionCancelledBySupplierEvent {
+  coopname: string;
+  apl_reception_id: string;
+  braname: string;
+  /** Поставщик, отменивший приёмку — для текста уведомления. */
+  supplier_account: string;
+  /** Оператор, сформировавший акт — единственный адресат уведомления. */
+  operator_account: string;
+}
+
 export const MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT =
   'marketplace.outgoingPayment.cashier.newTask';
 

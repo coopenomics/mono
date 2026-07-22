@@ -49,18 +49,20 @@ const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
 const loading = ref(false);
-const activeKey = ref('pending-accept');
+const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 const showSkeleton = computed(() => loading.value && items.value.length === 0);
 
-// Фильтр по этапу. «Ждут акцепта» = ACTIVE (заказ создан пайщиком, ждёт приёма
-// поставщиком к поставке — guard backend требует status==ACTIVE). После приёма
-// заказ переходит в ACCEPTED и попадает в партию (cycle_id). READY_TO_RECEIVE
-// для поставщика — продолжение «у кооператива»; EXPIRED_*/RETURNED — терминальные.
+// Фильтр по этапу. «Все» — дефолт (весь оборот). Остальные табы — фильтры по статусу.
+// «Ждут акцепта» = ACTIVE (заказ создан пайщиком, ждёт приёма поставщиком к
+// поставке — guard backend требует status==ACTIVE). После приёма заказ
+// переходит в ACCEPTED и попадает в партию (cycle_id). READY_TO_RECEIVE для
+// поставщика — продолжение «у кооператива»; EXPIRED_*/RETURNED — терминальные.
 const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderStatusView[] | null }> = [
+  { key: 'all', label: 'Все', statuses: null },
   { key: 'pending-accept', label: 'Ждут акцепта', statuses: ['ACTIVE'] },
   { key: 'accepted', label: 'Приняты', statuses: ['ACCEPTED'] },
   { key: 'supply-prepared', label: 'Собраны к отгрузке', statuses: ['SUPPLY_PREPARED'] },
@@ -75,7 +77,6 @@ const FILTERS: Array<{ key: string; label: string; statuses: MarketplaceOrderSta
     label: 'Отменены',
     statuses: ['CANCELLED_BY_ORDERER', 'CANCELLED_BY_SUPPLIER', 'RETURNED'],
   },
-  { key: 'all', label: 'Все', statuses: null },
 ];
 
 const tabs = computed<PageTab[]>(() => FILTERS.map((f) => ({ key: f.key, label: f.label })));
@@ -88,7 +89,7 @@ function onSelectTab(tab: PageTab): void {
   if (activeKey.value === tab.key) return;
   activeKey.value = tab.key;
   const query = { ...route.query };
-  if (tab.key === 'pending-accept') delete query.status;
+  if (tab.key === 'all') delete query.status;
   else query.status = tab.key;
   void router.replace({ query });
   void load(1, false);
@@ -122,8 +123,6 @@ interface SupplierParty {
   orders: MarketplaceOrderView[];
   totalUnits: number;
   totalCost: number;
-  /** Сумма членских взносов пайщиков по заказам партии (requirement b6) — справочно, не деньги поставщика. */
-  totalFee: number;
   /** Целевой минимальный объём поставки на этот КУ (для накопителя). */
   minVolume: number | null;
   stageStatus: MarketplaceOrderStatusView;
@@ -152,7 +151,6 @@ const parties = computed<SupplierParty[]>(() => {
         orders: [],
         totalUnits: 0,
         totalCost: 0,
-        totalFee: 0,
         minVolume: collecting
           ? (minVolumeMap.value.get(`${o.offer_id}::${o.delivery_braname}`) ?? null)
           : null,
@@ -163,7 +161,6 @@ const parties = computed<SupplierParty[]>(() => {
     p.orders.push(o);
     p.totalUnits += o.quantity;
     p.totalCost += parseFloat(o.total_cost) || 0;
-    p.totalFee += Number(o.membership_fee ?? 0) || 0;
     const candidate = STAGE_RANK[o.status];
     const current = STAGE_RANK[p.stageStatus];
     if (candidate < 90 && (current >= 90 || candidate < current)) {
@@ -344,13 +341,12 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :bar-color='barColor(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`',
-        :total-fee-note='p.totalFee > 0 ? `С учётом взноса пайщиков: ${formatCost(p.totalCost + p.totalFee)}` : undefined'
+        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')
-            BaseButton(variant='ghost', size='sm', @click='onDeclineParty(p)') Отклонить
-            BaseButton(variant='primary', size='sm', :loading='loading', @click='onAcceptParty(p)')
+            BaseButton(variant='ghost', @click='onDeclineParty(p)') Отклонить
+            BaseButton(variant='primary', :loading='loading', @click='onAcceptParty(p)')
               | Принять заказ
 
       .incoming-orders__more(v-if='hasMore')

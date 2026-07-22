@@ -12,6 +12,7 @@ import {
 } from './marketplace-ku-chairman.service';
 import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
@@ -25,6 +26,7 @@ import {
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
   MARKETPLACE_SUPPLIER_APPROVED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
+  type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
   type MarketplaceNewOrderForSupplierEvent,
@@ -95,6 +97,42 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `АПП ${event.apl_reception_id}: ошибка отправки push поставщику (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT)
+  async handleAplReceptionCancelledBySupplier(
+    event: MarketplaceAplReceptionCancelledBySupplierEvent
+  ): Promise<void> {
+    try {
+      const operatorName = await this.accountPort.getDisplayName(event.operator_account);
+      const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const payload: Workflows.MarketplaceAplReceptionCancelledBySupplier.IPayload = {
+        operatorName,
+        supplierName,
+        kuName,
+        coopname: event.coopname,
+        apl_reception_id: event.apl_reception_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/reception`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.operator_account,
+        Workflows.MarketplaceAplReceptionCancelledBySupplier.id,
+        payload
+      );
+      this.logger.log(
+        `АПП ${event.apl_reception_id}: push оператору ${event.operator_account} об отмене поставщиком отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${event.apl_reception_id}: ошибка отправки push оператору об отмене поставщиком (${err.message}) — flow не блокируется.`
       );
     }
   }
