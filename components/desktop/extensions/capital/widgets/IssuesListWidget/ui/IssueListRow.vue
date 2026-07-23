@@ -1,57 +1,60 @@
 <template lang="pug">
 .issue-row(role='row')
-  // 1. Метаблок (горизонтально): приоритет → ID → инлайн-чип времени.
-  // Чип фиксированной ширины — title не «прыгает» между задачами с разным estimate/fact.
-  .meta-block
+  // 1. Левые колонки — та же сетка, что у проектов/компонентов:
+  // приоритет (на месте chevron) → плоский ID фиксированной ширины.
+  .row-lead
     q-icon.priority-icon(
       :name='priorityIcon'
       :color='priorityColor'
       size='18px'
     )
       q-tooltip(anchor='bottom middle', self='top middle') Приоритет: {{ priorityLabel }}
+  .row-id
     EntityIdBadge(
       :raw-id='issue.id'
       copy-on-click
       address-clipboard
-    )
-      template(#prefix)
-        q-icon(name='task', size='xs')
-    IssueTimeChip(
-      :issue-hash='issue.issue_hash'
-      :estimate='issue.estimate'
-      :fact='issue.fact'
-      :readonly='!canChangeEstimate'
+      flat
     )
 
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
     span.title-text {{ issue.title }}
-    q-chip.label-chip(
+    BaseChip.label-chip(
       v-for='tag in tags'
       :key='tag'
-      dense
+      variant='neutral'
       size='sm'
-      color='grey-4'
-      text-color='dark'
     ) {{ tag }}
 
-  // 3. Действия: компактный chip статуса + аватарки исполнителей.
+  // 3. Правая сетка строки — те же фиксированные колонки, что у проектов
+  // и компонентов: время | статус | люди
   .actions-block(@click.stop)
-    IssueStatusChip(
-      :model-value='issue.status'
-      :issue-hash='issue.issue_hash'
-      :readonly='!issue.permissions.can_change_status'
-      :allowed-transitions='issue.permissions.allowed_status_transitions'
-    )
-    SetCreatorAvatars(
-      :issue='issue'
-      :permissions='issue.permissions'
-    )
+    .cell-time
+      IssueTimeChip(
+        :issue-hash='issue.issue_hash'
+        :estimate='issue.estimate'
+        :fact='issue.fact'
+        :readonly='!canChangeEstimate'
+      )
+    .cell-side
+      IssueStatusChip(
+        :model-value='issue.status'
+        :issue-hash='issue.issue_hash'
+        :readonly='!issue.permissions.can_change_status'
+        :allowed-transitions='issue.permissions.allowed_status_transitions'
+      )
+    .cell-actions
+      SetCreatorAvatars(
+        :issue='issue'
+        :permissions='issue.permissions'
+      )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { EntityIdBadge } from 'src/shared/ui';
+import { BaseChip } from 'src/shared/ui/base';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
@@ -87,20 +90,27 @@ const canChangeEstimate = computed(
   // мигрирует на вторую строку, не клипается за правый край.
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  row-gap: var(--p-2);
   min-height: 48px;
-  padding: 6px 12px;
+  padding: var(--p-2) var(--p-3) var(--p-2) 0;
   width: 100%;
   box-sizing: border-box;
 }
 
-// 1. Meta — горизонтальная цепочка приоритет → ID → время.
-.meta-block {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
+// 1. Левые колонки — сетка, синхронная со строками проектов/компонентов.
+.row-lead {
+  width: 28px;
   flex-shrink: 0;
-  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-id {
+  width: 96px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .priority-icon {
@@ -117,14 +127,14 @@ const canChangeEstimate = computed(
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--p-1);
   cursor: pointer;
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--p-fs-body);
   transition: color 0.15s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 
@@ -137,8 +147,6 @@ const canChangeEstimate = computed(
 }
 
 .label-chip {
-  font-size: 0.7rem;
-  font-weight: 500;
   max-width: 140px;
 
   :deep(.q-chip__content) {
@@ -148,13 +156,33 @@ const canChangeEstimate = computed(
   }
 }
 
-// 3. Actions — фиксированный набор справа, не сжимается.
+// 3. Actions — фиксированная колоночная сетка справа, синхронная со
+// строками проектов/компонентов (см. .row-cells в их виджетах).
 .actions-block {
   display: flex;
   align-items: center;
-  gap: 8px;
   flex-shrink: 0;
   margin-left: auto;
+}
+
+.cell-time {
+  width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 132px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
 }
 
 // Mobile: meta + title в первой строке (title справа от меты), actions
@@ -162,11 +190,7 @@ const canChangeEstimate = computed(
 @media (max-width: 640px) {
   .issue-row {
     flex-wrap: wrap;
-    row-gap: 6px;
-  }
-
-  .meta-block {
-    gap: 6px;
+    row-gap: var(--p-2);
   }
 
   .title-block {
@@ -178,6 +202,13 @@ const canChangeEstimate = computed(
     width: 100%;
     margin-left: 0;
     justify-content: flex-end;
+    gap: var(--p-2);
+  }
+
+  .cell-time,
+  .cell-side,
+  .cell-actions {
+    width: auto;
   }
 }
 </style>

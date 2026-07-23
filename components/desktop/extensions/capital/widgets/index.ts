@@ -25,6 +25,7 @@ export * from './ProjectPathWidget';
 export * from './ProjectInfoSelectorWidget';
 export * from './ProjectTitleEditor';
 export * from './ProjectsListWidget';
+export * from './ProjectsFilterPanel';
 export * from './ImportContributorsButton';
 export * from './ListFilterWidget';
 export * from './ExpandOptionsWidget';

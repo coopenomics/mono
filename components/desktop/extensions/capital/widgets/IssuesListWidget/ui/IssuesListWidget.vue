@@ -1,61 +1,72 @@
 <template lang="pug">
 div
-  q-card(flat)
-    q-card-section(style='padding: 0px')
-      //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
-      .issues-scroll-area(
-        v-if='!compact',
-        style='height: calc(100vh - 55px); overflow-y: auto'
-      )
-        q-table(
-          ref='tableRef',
-          :rows='issues?.items || []',
-          :columns='columns',
-          row-key='_id',
-          :pagination='pagination',
-          :loading='onLoading',
-          flat,
-          square,
-          hide-header,
-          hide-pagination,
-          virtual-scroll,
-          @virtual-scroll='onScroll',
-          :virtual-scroll-target='".issues-scroll-area"',
-          :virtual-scroll-item-size='48',
-          :virtual-scroll-sticky-size-start='48',
-          :rows-per-page-options='[0]',
-          no-data-label="Нет задач"
-        )
-          template(#body='props')
-            q-tr(:props='props')
-              q-td
-                IssueListRow(
-                  :issue='props.row'
-                  @click='handleIssueClick'
-                )
+  //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
+  .issues-scroll-area(v-if='!compact')
+    q-table(
+      ref='tableRef',
+      :rows='issues?.items || []',
+      :columns='columns',
+      row-key='_id',
+      :pagination='pagination',
+      :loading='onLoading',
+      flat,
+      square,
+      hide-header,
+      hide-pagination,
+      virtual-scroll,
+      @virtual-scroll='onScroll',
+      :virtual-scroll-target='".issues-scroll-area"',
+      :virtual-scroll-item-size='48',
+      :virtual-scroll-sticky-size-start='48',
+      :rows-per-page-options='[0]'
+    )
+      template(#body='props')
+        q-tr(:props='props')
+          q-td
+            IssueListRow(
+              :issue='props.row'
+              @click='handleIssueClick'
+            )
 
-      //- Компактный режим без фиксированной высоты (для вложенного использования)
-      div(v-else)
-        q-table(
-          :rows='issues?.items || []',
-          :columns='columns',
-          row-key='_id',
-          :pagination='compactPagination',
-          :loading='loading',
-          flat,
-          square,
-          hide-header,
-          hide-pagination,
-          :rows-per-page-options='[0]',
-          no-data-label="Нет задач"
-        )
-          template(#body='props')
-            q-tr(:props='props')
-              q-td
-                IssueListRow(
-                  :issue='props.row'
-                  @click='handleIssueClick'
-                )
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
+
+    // Полоска-добавлялка после всех задач
+    CreateIssueButton(:project-hash='projectHash', row)
+
+  //- Компактный режим без фиксированной высоты (для вложенного использования)
+  div(v-else)
+    q-table(
+      :rows='issues?.items || []',
+      :columns='columns',
+      row-key='_id',
+      :pagination='compactPagination',
+      :loading='loading',
+      flat,
+      square,
+      hide-header,
+      hide-pagination,
+      :rows-per-page-options='[0]'
+    )
+      template(#body='props')
+        q-tr(:props='props')
+          q-td
+            IssueListRow(
+              :issue='props.row'
+              @click='handleIssueClick'
+            )
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
+
+    // Полоска-добавлялка после всех задач
+    CreateIssueButton(:project-hash='projectHash', row)
 
 </template>
 <script lang="ts" setup>
@@ -66,6 +77,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
 
 const props = defineProps<{
@@ -275,6 +287,11 @@ onMounted(async () => {
 // table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
 // контент: длинный title распирает строку шире контейнера, actions-блок
 // уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
+.issues-scroll-area {
+  height: calc(100vh - 55px);
+  overflow-y: auto;
+}
+
 .q-table {
   table-layout: fixed;
   width: 100%;
@@ -287,5 +304,16 @@ onMounted(async () => {
     padding: 0; // строка живёт в IssueListRow.vue со своими отступами
     overflow: hidden;
   }
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 </style>

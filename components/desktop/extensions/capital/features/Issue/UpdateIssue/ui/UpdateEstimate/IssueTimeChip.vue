@@ -118,7 +118,7 @@ function formatHours(h: number | null | undefined): string {
 
 const inlineLabel = computed(() => {
   if (hasFact.value && hasEstimate.value) {
-    return `${formatHours(props.fact)}/${formatHours(props.estimate)}`;
+    return `${formatHours(props.fact)} / ${formatHours(props.estimate)}`;
   }
   if (hasFact.value) return formatHours(props.fact);
   if (hasEstimate.value) return formatHours(props.estimate);
@@ -139,8 +139,8 @@ const progressColor = computed(() => {
   if (!hasEstimate.value) return 'grey-6';
   const fact = props.fact ?? 0;
   const est = props.estimate ?? 0;
-  if (fact > est + 1e-6) return 'orange-7';
-  return 'teal-7';
+  if (fact > est + 1e-6) return 'warning';
+  return 'primary';
 });
 
 const progressLabel = computed(() => {
@@ -181,27 +181,28 @@ const saveEstimate = async () => {
   align-items: center;
 }
 
-// Триггер фиксированной ширины — title не прыгает между задачами
-// с разными значениями времени.
+// Триггер живёт в фиксированной колонке строки (.cell-time) и
+// прижимается к её правому краю — время всех уровней в одной вертикали.
 .time-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
   padding: 2px 6px;
   height: 22px;
-  width: 86px;
   box-sizing: border-box;
   border-radius: 4px;
-  font-size: 11px;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
   font-weight: 500;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
   cursor: pointer;
   transition: background-color 0.12s ease;
   white-space: nowrap;
   overflow: hidden;
 
   &:hover:not(.readonly) {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--p-surface-2);
   }
 
   &.readonly {
@@ -209,7 +210,7 @@ const saveEstimate = async () => {
   }
 
   &.empty {
-    color: var(--q-grey-6, #757575);
+    color: var(--p-ink-3);
     justify-content: flex-start;
   }
 }
@@ -229,14 +230,14 @@ const saveEstimate = async () => {
 .time-popup {
   min-width: 240px;
   padding: 12px;
-  background-color: var(--q-color-white, #fff);
+  background-color: var(--p-surface);
   border-radius: 8px;
 }
 
 .popup-header {
   font-size: 11px;
   font-weight: 600;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -252,7 +253,7 @@ const saveEstimate = async () => {
 .popup-label {
   width: 64px;
   font-size: 12px;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
 }
 
 .popup-input {
@@ -270,7 +271,7 @@ const saveEstimate = async () => {
   flex: 1;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-  color: var(--q-grey-8, #424242);
+  color: var(--p-ink);
 }
 
 .popup-progress {
@@ -280,14 +281,14 @@ const saveEstimate = async () => {
 
 .popup-progress-text {
   font-size: 11px;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
 
 .popup-hint {
   font-size: 10px;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   line-height: 1.3;
   font-style: italic;
 }

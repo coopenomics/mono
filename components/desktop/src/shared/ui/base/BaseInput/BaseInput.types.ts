@@ -5,6 +5,7 @@ export interface BaseInputProps {
   error?: string;
   placeholder?: string;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'textarea';
+  /** Авторост высоты для type="textarea" */
   autogrow?: boolean;
   /** Моноширинный шрифт (для аккаунт-имён, hash, и т.п.) */
   mono?: boolean;

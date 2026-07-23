@@ -3,6 +3,7 @@ div
   // Список компонентов проекта
   ComponentsListWidget(
     :components='project?.components || []',
+    :project='project || undefined',
     :expanded='expandedComponents',
     @open-component='handleComponentClick',
     @toggle-component='handleComponentToggle'

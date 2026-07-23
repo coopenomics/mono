@@ -1,15 +1,69 @@
 <template lang="pug">
 div.column.flex-1.min-h-0.min-w-0.no-wrap
+  .q-px-md.q-pt-md(v-if="project")
+    ProjectTitleEditor(
+      :project="project"
+      @field-change="handleFieldChange"
+      @update:title="handleTitleUpdate"
+    ).full-width
+      template(#prepend-icon)
+        q-icon(name='work', size='24px', color='primary')
+
+  // Субменю проекта — канонный таббар; справа контекстное действие активной вкладки
+  PageTabs.q-px-md(
+    v-if="!isIssueRoute"
+    :tabs="projectTabs"
+    :active-key="activeTabKey"
+  )
+    template(#actions)
+      template(v-if="project")
+        PendingClearanceButton(
+          v-if="project.permissions?.pending_clearance"
+        )
+        MakeClearanceButton(
+          v-else-if="!project.permissions?.has_clearance"
+          ref="makeClearanceRef"
+          :project="project"
+          @clearance-submitted="handleClearanceSubmitted"
+        )
+        template(v-else)
+          CreateComponentButton(
+            v-if="activeTabKey === 'project-components' && project.permissions?.can_edit_project"
+            ref="createComponentRef"
+            :project="project"
+            size="sm"
+            @on-click="handleComponentCreated"
+          )
+          CreateRequirementButton(
+            v-if="activeTabKey === 'project-requirements'"
+            ref="createRequirementRef"
+            :filter="{ project_hash: projectHash }"
+            :permissions="project.permissions"
+            @action-completed="handleRequirementCreated"
+          )
+          AddAuthorButton(
+            v-if="activeTabKey === 'project-contributors' && project.permissions?.can_manage_authors"
+            ref="addAuthorRef"
+            :project="project"
+            @authors-added="handleAuthorsAdded"
+          )
+          CreateProjectInvestButton(
+            v-if="activeTabKey === 'project-planning'"
+            ref="investRef"
+            :project="project"
+            @action-completed="handleInvestCompleted"
+          )
+
+  // Скелетон первичной загрузки проекта — каркас вместо пустой страницы
+  .project-page-skeleton(v-if="!project")
+    .project-page-skeleton__side
+      .skel(v-for="i in 4", :key="i")
+    .project-page-skeleton__main
+      .skel.skel--title
+      .skel.skel--text(v-for="i in 3", :key="i")
+
   // Мобильный layout - колонки одна под другой
-  div(v-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
-    div.q-px-md.q-pt-md(v-if="project")
-      ProjectTitleEditor(
-        :project="project"
-        @field-change="handleFieldChange"
-        @update:title="handleTitleUpdate"
-      ).full-width
-        template(#prepend-icon)
-          q-icon(name='work', size='24px', color='primary')
+  div(v-else-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
     div
       ProjectSidebarWidget(
         :project="project"
@@ -21,147 +75,39 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
       div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
         router-view
 
-      Fab(v-if="project")
-        // Если доступно больше одного действия - показываем раскрывающийся список
-        template(#actions v-if="project?.permissions?.has_clearance && availableActions.length > 1")
-          CreateComponentFabAction(
-            ref="createComponentFabRef"
-            v-if="project?.permissions?.can_edit_project"
-            :project="project"
-            @action-completed="handleComponentCreated"
-          )
-          CreateRequirementFabAction(
-            ref="createRequirementFabRef"
-            :filter="{ project_hash: projectHash }"
-            :permissions="project?.permissions"
-            @action-completed="handleRequirementCreated"
-          )
-          AddAuthorFabAction(
-            ref="addAuthorFabRef"
-            v-if="project?.permissions?.can_manage_authors"
-            :project="project"
-            @action-completed="handleAuthorsAdded"
-          )
-          ProjectInvestFabAction(
-            ref="projectInvestFabRef"
-            :project="project"
-            @action-completed="handleInvestCompleted"
-          )
-
-        // Если доступно только одно действие - показываем его как основную кнопку
-        template(#default)
-          ProjectInvestFabAction(
-            ref="projectInvestFabRef"
-            v-if="project?.permissions?.has_clearance && availableActions.length === 1 && availableActions.includes('invest')"
-            :project="project"
-            fab
-            @action-completed="handleInvestCompleted"
-          )
-
-          // Показываем кнопку ожидания, если запрос на допуск в рассмотрении
-          PendingClearanceButton(
-            v-else-if="project?.permissions?.pending_clearance"
-          )
-
-          // Показываем кнопку участия, если пользователь не имеет допуска к проекту
-          MakeClearanceButton(
-            ref="makeClearanceFabRef"
-            v-else-if="!project?.permissions?.has_clearance"
-            :project="project"
-            fab
-            @clearance-submitted="handleClearanceSubmitted"
-          )
-
   // Десктоп: панель after без overflow-hidden — у q-splitter снова overflow:auto, иначе скролл «глушится»
-  .column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
-    .q-px-md.q-pt-md(v-if="project")
-      ProjectTitleEditor(
+  q-splitter.col.flex-1.min-h-0(
+    v-else
+    v-model="sidebarWidth"
+    :limits="[200, 800]"
+    unit="px"
+    separator-class="bg-grey-3"
+    before-class="column no-wrap min-h-0 overflow-y-auto"
+    after-class="min-h-0"
+    @update:model-value="saveSidebarWidth"
+  )
+    template(#before)
+      ProjectSidebarWidget(
         :project="project"
-        @field-change="handleFieldChange"
-        @update:title="handleTitleUpdate"
-      ).full-width
-        template(#prepend-icon)
-          q-icon(name='work', size='24px', color='primary')
-    q-splitter.col.flex-1.min-h-0(
-      v-model="sidebarWidth"
-      :limits="[200, 800]"
-      unit="px"
-      separator-class="bg-grey-3"
-      before-class="column no-wrap min-h-0 overflow-y-auto"
-      after-class="min-h-0"
-      @update:model-value="saveSidebarWidth"
-    )
-      template(#before)
-        ProjectSidebarWidget(
-          :project="project"
-          @project-deleted="handleProjectDeleted"
-        )
+        @project-deleted="handleProjectDeleted"
+      )
 
-      template(#after)
-        div.column.full-height.min-h-0.relative-position
-          div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-            router-view
-
-          Fab(v-if="project")
-            template(#actions v-if="project?.permissions?.has_clearance && availableActions.length > 1")
-              CreateComponentFabAction(
-                ref="createComponentFabRef"
-                v-if="project?.permissions?.can_edit_project"
-                :project="project"
-                @action-completed="handleComponentCreated"
-              )
-              CreateRequirementFabAction(
-                ref="createRequirementFabRef"
-                :filter="{ project_hash: projectHash }"
-                :permissions="project?.permissions"
-                @action-completed="handleRequirementCreated"
-              )
-              AddAuthorFabAction(
-                ref="addAuthorFabRef"
-                v-if="project?.permissions?.can_manage_authors"
-                :project="project"
-                @action-completed="handleAuthorsAdded"
-              )
-              ProjectInvestFabAction(
-                ref="projectInvestFabRef"
-                :project="project"
-                @action-completed="handleInvestCompleted"
-              )
-
-            template(#default)
-              ProjectInvestFabAction(
-                ref="projectInvestFabRef"
-                v-if="project?.permissions?.has_clearance && availableActions.length === 1 && availableActions.includes('invest')"
-                :project="project"
-                fab
-                @action-completed="handleInvestCompleted"
-              )
-
-              PendingClearanceButton(
-                v-else-if="project?.permissions?.pending_clearance"
-              )
-
-              MakeClearanceButton(
-                ref="makeClearanceFabRef"
-                v-else-if="!project?.permissions?.has_clearance"
-                :project="project"
-                fab
-                @clearance-submitted="handleClearanceSubmitted"
-              )
+    template(#after)
+      div.column.full-height.min-h-0.relative-position
+        div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
+          router-view
 </template>
 <script lang="ts" setup>
-import { onMounted, onBeforeUnmount, computed, markRaw, watch, ref } from 'vue';
+import { onMounted, computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks/useWindowSize';
 import { useProjectLoader } from 'app/extensions/capital/entities/Project/model';
 import { useBackButton } from 'src/shared/lib/navigation';
-import { useHeaderActions } from 'src/shared/hooks';
-import { RouteMenuButton, Fab } from 'src/shared/ui';
-import { CreateComponentFabAction } from 'app/extensions/capital/features/Project/CreateComponent';
-import { CreateRequirementFabAction } from 'app/extensions/capital/features/Story/CreateStory';
-// import { SetPlanFabAction } from 'app/extensions/capital/features/Project/SetPlan';
-import { ProjectInvestFabAction } from 'app/extensions/capital/features/Invest/CreateProjectInvest';
-import { AddAuthorFabAction } from 'app/extensions/capital/features/Project/AddAuthor';
+import { PageTabs } from 'src/shared/ui/layout';
+import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
+import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
+import { CreateProjectInvestButton } from 'app/extensions/capital/features/Invest/CreateProjectInvest';
+import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
 import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
 import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/PendingClearanceButton';
 import { ProjectSidebarWidget } from 'app/extensions/capital/widgets';
@@ -197,142 +143,69 @@ const saveSidebarWidth = (width: number) => {
 // Определение layout в зависимости от размера экрана
 const isMobileLayout = isMobile;
 
-// Список доступных действий для FAB
-const availableActions = computed(() => {
-  if (!project.value?.permissions?.has_clearance) return [];
+type CapitalActionOpen = { openDialog: () => void } | null;
 
-  const actions: any = [];
-  const p = project.value.permissions;
-
-  if (p.can_edit_project) actions.push('component');
-  if (p.can_create_requirement) actions.push('requirement');
-  if (p.can_manage_authors) actions.push('author');
-  // Инвестирование доступно всем участникам с допуском
-  actions.push('invest');
-
-  return actions;
-});
-
-type CapitalFabOpen = { openDialog: () => void } | null;
-
-const createComponentFabRef = ref<CapitalFabOpen>(null);
-const createRequirementFabRef = ref<CapitalFabOpen>(null);
-const addAuthorFabRef = ref<CapitalFabOpen>(null);
-const projectInvestFabRef = ref<CapitalFabOpen>(null);
-const makeClearanceFabRef = ref<CapitalFabOpen>(null);
+const createComponentRef = ref<CapitalActionOpen>(null);
+const createRequirementRef = ref<CapitalActionOpen>(null);
+const addAuthorRef = ref<CapitalActionOpen>(null);
+const investRef = ref<CapitalActionOpen>(null);
+const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
 const { project, projectHash, loadProject } = useProjectLoader();
 
+// Хоткеи действуют на той вкладке, где видна соответствующая кнопка
 useCapitalFabHotkeys(() => {
   const perms = project.value?.permissions;
   if (!perms) {
     return {};
   }
 
-  const joinHandler =
-    !perms.has_clearance && !perms.pending_clearance
-      ? () => makeClearanceFabRef.value?.openDialog()
-      : undefined;
-
   if (!perms.has_clearance) {
-    return joinHandler ? { join: joinHandler } : {};
+    return !perms.pending_clearance
+      ? { join: () => makeClearanceRef.value?.openDialog() }
+      : {};
   }
 
   return {
     component: perms.can_edit_project
-      ? () => createComponentFabRef.value?.openDialog()
+      ? () => createComponentRef.value?.openDialog()
       : undefined,
     requirement: perms.can_create_requirement
-      ? () => createRequirementFabRef.value?.openDialog()
+      ? () => createRequirementRef.value?.openDialog()
       : undefined,
     author: perms.can_manage_authors
-      ? () => addAuthorFabRef.value?.openDialog()
+      ? () => addAuthorRef.value?.openDialog()
       : undefined,
-    invest: () => projectInvestFabRef.value?.openDialog(),
+    invest: () => investRef.value?.openDialog(),
   };
 });
 const route = useRoute();
 const router = useRouter();
 
-// Массив кнопок меню для шапки
-const menuButtons = computed(() => {
+// На странице задачи субменю проекта не показываем
+const isIssueRoute = computed(() => route.name === 'project-issue');
+
+// Активная вкладка: вложенные маршруты подсвечивают родительскую вкладку
+const activeTabKey = computed(() => {
+  const name = String(route.name ?? '');
+  if (name === 'project-requirement-detail') return 'project-requirements';
+  return name;
+});
+
+// Субменю проекта (вкладки)
+const projectTabs = computed(() => {
+  const params = { project_hash: projectHash.value };
   const currentBackRoute = route.query._backRoute as string;
   const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
   return [
-    {
-      id: 'project-description-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-description',
-        label: 'Описание',
-        icon: 'description',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 1,
-    },
-    {
-      id: 'project-requirements-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-requirements',
-        label: 'Артефакты',
-        icon: 'inventory_2',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 2,
-    },
-    {
-      id: 'project-components-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-components',
-        label: 'Компоненты',
-        icon: 'widgets',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 3,
-    },
-    {
-      id: 'project-planning-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-planning',
-        label: 'План',
-        icon: 'timeline',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 4,
-    },
-    {
-      id: 'project-contributors-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-contributors',
-        label: 'Участники',
-        icon: 'groups',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 6,
-    },
-    {
-      id: 'project-history-menu',
-      component: markRaw(RouteMenuButton),
-      props: {
-        routeName: 'project-history',
-        label: 'История',
-        icon: 'history',
-        routeParams: { project_hash: projectHash.value },
-        query,
-      },
-      order: 7,
-    },
+    { key: 'project-description', label: 'Описание', route: { name: 'project-description', params, query } },
+    { key: 'project-requirements', label: 'Артефакты', route: { name: 'project-requirements', params, query } },
+    { key: 'project-components', label: 'Компоненты', route: { name: 'project-components', params, query } },
+    { key: 'project-planning', label: 'План', route: { name: 'project-planning', params, query } },
+    { key: 'project-contributors', label: 'Участники', route: { name: 'project-contributors', params, query } },
+    { key: 'project-history', label: 'История', route: { name: 'project-history', params, query } },
   ];
 });
 
@@ -368,33 +241,10 @@ const { setBackButton } = useBackButton({
   }
 });
 
-// Регистрируем кнопки меню в header
-const { registerAction: registerHeaderAction, clearActions } = useHeaderActions();
-
-
-// Явно очищаем кнопки при уходе со страницы
-onBeforeUnmount(() => {
-  clearActions();
-});
-
 // Отслеживаем изменение backRoute для обновления кнопки "Назад"
 watch(() => route.query._backRoute, () => {
   setBackButton();
 });
-
-// Отслеживаем переходы на дочерние маршруты (например, на страницу задачи)
-watch(() => route.name, (newRouteName) => {
-  if (newRouteName === 'project-issue') {
-    // Если перешли на страницу задачи - очищаем кнопки меню проекта
-    clearActions();
-  } else if (newRouteName && newRouteName.toString().startsWith('project-') && newRouteName !== 'project-base') {
-    // Если вернулись на страницы проекта - регистрируем кнопки снова
-    menuButtons.value.forEach(button => {
-      registerHeaderAction(button);
-    });
-  }
-});
-
 
 // Обработчик создания компонента
 const handleComponentCreated = () => {
@@ -405,11 +255,6 @@ const handleComponentCreated = () => {
 const handleRequirementCreated = () => {
   // Можно добавить логику обновления списка артефактов
 };
-
-// Обработчик установки плана
-// const handlePlanSet = () => {
-  // Можно добавить логику обновления данных проекта
-// };
 
 // Обработчик добавления соавторов
 const handleAuthorsAdded = () => {
@@ -444,54 +289,53 @@ const handleProjectDeleted = () => {
   router.push({ name: 'projects-list', params: { coopname } });
 };
 
-// Регистрируем действия в header
 onMounted(async () => {
   // Загружаем сохраненную ширину sidebar
   loadSidebarWidth();
 
   // Загружаем проект при монтировании (composable сделает это автоматически)
   await loadProject();
-
-  // Регистрируем кнопки меню только если мы НЕ на странице задачи
-  if (route.name !== 'project-issue') {
-    menuButtons.value.forEach(button => {
-      registerHeaderAction(button);
-    });
-  }
 });
-
-// Явно очищаем кнопки при уходе со страницы
-onBeforeUnmount(() => {
-  clearActions();
-});
-
-// Отслеживаем изменение backRoute для обновления кнопки "Назад"
-watch(() => route.query._backRoute, () => {
-  setBackButton();
-});
-
-// Отслеживаем переходы на дочерние маршруты (например, на страницу задачи)
-watch(() => route.name, (newRouteName) => {
-  if (newRouteName === 'project-issue') {
-    // Если перешли на страницу задачи - очищаем кнопки меню проекта
-    clearActions();
-  } else if (newRouteName && newRouteName.toString().startsWith('project-') && newRouteName !== 'project-base') {
-    // Если вернулись на страницы проекта - регистрируем кнопки снова
-    menuButtons.value.forEach(button => {
-      registerHeaderAction(button);
-    });
-  }
-});
-
-
 </script>
 
 <style lang="scss" scoped>
-.q-chip {
-  font-weight: 500;
-}
+// Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
+.project-page-skeleton {
+  display: flex;
+  gap: var(--p-4);
+  padding: var(--p-4);
 
-.text-h6 {
-  margin-bottom: 4px;
+  &__side {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel {
+      height: 40px;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel--title {
+      width: 240px;
+      max-width: 60%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    &__side {
+      width: 100%;
+    }
+  }
 }
 </style>

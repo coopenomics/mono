@@ -1,12 +1,13 @@
 <template lang="pug">
 q-btn(
-  color="accent"
+  :color="fab ? 'accent' : 'primary'"
   :label="buttonLabel"
   @click="dialogRef?.openDialog()"
   :fab="fab"
   :disable="isSubmitting"
   v-if="!project?.permissions?.pending_clearance"
-).bg-fab-accent-radial
+  :class="{ 'bg-fab-accent-radial': fab }"
+)
   CreateDialog(
 
     ref="dialogRef"
