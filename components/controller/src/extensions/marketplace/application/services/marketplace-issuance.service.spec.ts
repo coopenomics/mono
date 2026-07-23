@@ -164,7 +164,7 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       expect(action.total_amount).toBe('500.0000');
     });
 
-    it('оффер с фасовкой (order_unit_size=0.1) → акт в физических базовых единицах (0.5 кг за 1000/кг), сумма неизменна', async () => {
+    it('оффер с фасовкой (order_unit_size=0.1, kg) → акт в единицах заказа без пересчёта: кол-во=5, цена за фасовку, единица «100 г»', async () => {
       const mocks = buildMocks({ 'order-1': 5 });
       mocks.offerRepo.findById.mockResolvedValue({
         id: 'offer-1',
@@ -175,10 +175,12 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       const service = buildService(mocks);
       await service.getOpenIssuanceSignablePayload('voskhod', 'order-1', 'chairman');
       const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
-      // 5 единиц заказа × 0.1 кг = 0.5 кг физически; цена за кг = 500 / 0.5 = 1000; сумма 500 не меняется.
-      expect(action.fact_quantity).toBeCloseTo(0.5, 6);
-      expect(action.unit_cost).toBe('1000.0000');
+      // 5 единиц заказа (порций по 100 г) — так и остаются 5, цена за порцию (100),
+      // без разворота в 0.5 кг; единица измерения = ярлык фасовки «100 г».
+      expect(action.fact_quantity).toBe(5);
+      expect(action.unit_cost).toBe('100.0000');
       expect(action.total_amount).toBe('500.0000');
+      expect(action.unit_of_measurement).toBe('100 г');
     });
 
     it('не формирует акт, когда на складе пусто', async () => {

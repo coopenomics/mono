@@ -38,7 +38,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
-import { MARKETPLACE_UNIT_LABEL, toPhysicalActLine } from '../shared/unit-label.util';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -513,8 +513,9 @@ export class MarketplaceIssuanceService {
       supplier_account: input.order.supplier_account,
       offer_id: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
-      unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
-      order_unit_size: offer?.order_unit_size,
+      unit_of_measurement: offer
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        : '',
       transmitter: input.transmitter,
       actual_quantity: input.actual_quantity,
       unit_price,
@@ -536,9 +537,8 @@ export class MarketplaceIssuanceService {
     transmitter: string;
     offer_id: string;
     product_title: string;
+    /** Готовый ярлык единицы заказа (фасовки) — строит вызывающая сторона из оферты. */
     unit_of_measurement: string;
-    /** Размер единицы заказа (фасовки) из оферты остатка — для пересчёта акта в базовые единицы. */
-    order_unit_size?: string | null;
     quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
@@ -554,7 +554,6 @@ export class MarketplaceIssuanceService {
       offer_id: input.offer_id,
       product_title: input.product_title,
       unit_of_measurement: input.unit_of_measurement,
-      order_unit_size: input.order_unit_size,
       transmitter: input.transmitter,
       actual_quantity: input.quantity,
       unit_price: input.unit_price,
@@ -570,23 +569,15 @@ export class MarketplaceIssuanceService {
     supplier_account: string;
     offer_id: string;
     product_title: string;
+    /** Готовый ярлык единицы заказа (фасовки). */
     unit_of_measurement: string;
-    /** Размер единицы заказа (фасовки) из оферты — для пересчёта акта в базовые единицы. */
-    order_unit_size?: string | null;
     transmitter: string;
     actual_quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
+    // Акт выдачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в базовые:
+    // количество = число единиц заказа, цена — за единицу заказа.
     const total_amount = (p.actual_quantity * Number.parseFloat(p.unit_price)).toFixed(4);
-    // Акт выдачи показывает переданное имущество в физических базовых единицах
-    // (кол-во = кол-во единиц заказа × размер единицы заказа, цена — за базовую
-    // единицу); сумма акта неизменна.
-    const { physicalQuantity, unitCostPerBase } = toPhysicalActLine(
-      p.actual_quantity,
-      total_amount,
-      p.order_unit_size,
-      this.assetConfig.decimals
-    );
     const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
       coopname: p.coopname,
@@ -598,13 +589,13 @@ export class MarketplaceIssuanceService {
       transmitter: p.transmitter,
       braname: p.delivery_braname,
       accept_braname: p.delivery_braname,
-      fact_quantity: physicalQuantity,
+      fact_quantity: p.actual_quantity,
       total_amount,
       supplier_account: p.supplier_account,
       sku: p.offer_id,
       product_title: p.product_title,
       unit_of_measurement: p.unit_of_measurement,
-      unit_cost: unitCostPerBase,
+      unit_cost: p.unit_price,
       currency: this.assetConfig.symbol,
       // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
       // мог получить исходник по doc_hash через buildDocumentAggregate и

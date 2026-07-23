@@ -34,7 +34,7 @@ import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
-import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -232,7 +232,7 @@ export class MarketplaceWriteoffService {
     if (!offerId) return FALLBACK;
     const offer = await this.offerRepo.findById(offerId);
     if (!offer) return FALLBACK;
-    return MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] ?? FALLBACK;
+    return marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size);
   }
 
   /**
