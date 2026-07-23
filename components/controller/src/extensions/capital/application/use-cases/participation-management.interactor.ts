@@ -345,7 +345,20 @@ export class ParticipationManagementInteractor {
       );
     }
 
-    // Проверяем, есть ли уже запрос на рассмотрении для данного пользователя и проекта
+    // Уже подтверждённый допуск — повторный отклик не нужен
+    const confirmedAppendix =
+      await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
+        data.username,
+        data.project_hash
+      );
+    if (confirmedAppendix) {
+      throw new HttpApiError(
+        httpStatus.CONFLICT,
+        'Вы уже являетесь участником этого проекта'
+      );
+    }
+
+    // Есть незакрытый запрос на рассмотрении
     const existingAppendix =
       await this.appendixRepository.findCreatedByUsernameAndProjectHash(
         data.username,
@@ -612,11 +625,17 @@ export class ParticipationManagementInteractor {
       );
     }
 
-    // 6. Находим родительское приложение (appendix) к родительскому проекту
-    const parentAppendix = await this.appendixRepository.findCreatedByUsernameAndProjectHash(
-      data.username,
-      parentProject.project_hash
-    );
+    // 6. Допуск к родительскому проекту: confirmed (уже участник)
+    // или created (только что отправили отклик на родителя в том же диалоге)
+    const parentAppendix =
+      (await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
+        data.username,
+        parentProject.project_hash
+      )) ??
+      (await this.appendixRepository.findCreatedByUsernameAndProjectHash(
+        data.username,
+        parentProject.project_hash
+      ));
 
     if (!parentAppendix) {
       throw new HttpApiError(

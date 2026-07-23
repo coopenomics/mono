@@ -19,7 +19,7 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
   )
     template(#actions)
       PendingClearanceButton(
-        v-if="project.permissions?.pending_clearance"
+        v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
       )
       MakeClearanceButton(
         v-else-if="!project.permissions?.has_clearance"

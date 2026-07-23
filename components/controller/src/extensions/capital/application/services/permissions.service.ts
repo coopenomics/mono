@@ -306,10 +306,11 @@ export class PermissionsService {
       ? await this.isProjectContributor(username, project.coopname, project.project_hash)
       : false;
 
-    // Проверяем наличие pending clearance
-    const pending_clearance = project.coopname
-      ? (await this.appendixRepository.findCreatedByUsernameAndProjectHash(username, project.project_hash)) !== null
-      : false;
+    // Запрос на рассмотрении — только status=created и только если допуска ещё нет
+    const pending_clearance =
+      !has_clearance && project.coopname
+        ? (await this.appendixRepository.findCreatedByUsernameAndProjectHash(username, project.project_hash)) !== null
+        : false;
 
     // Проверяем допуск к родителю — каскадно вниз по иерархии проектов:
     // если есть допуск к корневому проекту, пользователь видит артефакты всех его компонентов.

@@ -5,10 +5,10 @@ div
   ArtifactsAccessPlaceholder(
     v-else-if='!canViewArtifacts'
     scope='component'
-    :pending='componentPermissions?.pending_clearance === true'
+    :pending='componentPermissions?.pending_clearance === true && componentPermissions?.has_clearance !== true'
   )
     template(#action)
-      PendingClearanceButton(v-if='componentPermissions?.pending_clearance')
+      PendingClearanceButton(v-if='componentPermissions?.pending_clearance && !componentPermissions?.has_clearance')
       MakeClearanceButton(
         v-else-if='component'
         :project='component'
