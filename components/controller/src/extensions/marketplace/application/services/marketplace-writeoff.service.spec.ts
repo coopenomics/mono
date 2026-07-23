@@ -212,14 +212,17 @@ describe('MarketplaceWriteoffService', () => {
       expect(mocks.repo.create).not.toHaveBeenCalled();
     });
 
-    it('ConflictException — есть проект на повестке совета', async () => {
+    it('разрешает создать второй проект, даже когда первый уже на повестке совета (разные партии скоропорта независимы)', async () => {
+      // Гард findOpenInCouncil снят намеренно (598, коммит f20e416a): защита от
+      // двойного списания одной позиции перенесена на уровень кандидатов
+      // (findActiveLockedInventoryIds), а не запретом второго проекта целиком.
       mocks.repo.findOpenDraft.mockResolvedValue(null);
-      mocks.repo.findOpenInCouncil.mockResolvedValue(
-        buildProposal({ status: 'ON_AGENDA' } as any)
-      );
+      mocks.repo.create.mockResolvedValue(buildProposal());
 
-      await expect(service.createDraft(baseInput)).rejects.toThrow(ConflictException);
-      expect(mocks.repo.create).not.toHaveBeenCalled();
+      const result = await service.createDraft(baseInput);
+
+      expect(mocks.repo.create).toHaveBeenCalled();
+      expect(result.id).toBe('p-1');
     });
 
     it('BadRequest — пустой список позиций', async () => {
@@ -492,22 +495,14 @@ describe('MarketplaceWriteoffService', () => {
   // ── onCouncilAuthorized ────────────────────────────────────────────────
 
   describe('onCouncilAuthorized', () => {
-    it('happy — markAuthorized + сразу запускает executeAuthorizedProposal', async () => {
+    it('happy — markAuthorized переводит проект в PENDING_CONFIRMATION, списание НЕ запускается автоматически', async () => {
+      // Автозапуск списания убран (598, коммит 02841aba8): совет только
+      // одобряет, а фактическое списание по каждому КУ подтверждает его
+      // председатель отдельной подписью (confirmWriteoff → confirmwroff).
       const onAgenda = buildProposal({ status: 'ON_AGENDA' } as any);
-      const authorized = buildProposal({ status: 'AUTHORIZED' } as any);
+      const authorized = buildProposal({ status: 'PENDING_CONFIRMATION' } as any);
       mocks.repo.findByHash.mockResolvedValue(onAgenda);
       mocks.repo.markAuthorized.mockResolvedValue(authorized);
-      const executingProp = buildProposal({ status: 'EXECUTING' } as any);
-      mocks.repo.findById.mockResolvedValue(authorized);
-      mocks.repo.markExecuting.mockResolvedValue(executingProp);
-      const executedItem = buildProposal({
-        status: 'EXECUTING',
-        items: [{ ...buildProposal().items[0], executed: true }],
-      } as any);
-      mocks.repo.markItemExecuted.mockResolvedValue(executedItem);
-      mocks.repo.markFullyExecuted.mockResolvedValue(
-        buildProposal({ status: 'EXECUTED' } as any)
-      );
 
       await service.onCouncilAuthorized({
         coopname: 'voskhod',
@@ -516,8 +511,15 @@ describe('MarketplaceWriteoffService', () => {
         protocol_doc: { hash: 'protocol-doc' },
       });
 
-      expect(mocks.repo.markAuthorized).toHaveBeenCalled();
-      expect(mocks.chainPort.execWroff).toHaveBeenCalled();
+      expect(mocks.repo.markAuthorized).toHaveBeenCalledWith(
+        'p-1',
+        expect.objectContaining({ decided_by_account: 'chairman1' })
+      );
+      expect(mocks.eventBus.emit).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ coopname: 'voskhod', proposal_id: 'p-1' })
+      );
+      expect(mocks.chainPort.execWroff).not.toHaveBeenCalled();
     });
 
     it('пропускает — proposal не найден по hash', async () => {
