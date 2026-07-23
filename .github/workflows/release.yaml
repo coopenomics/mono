@@ -408,15 +408,16 @@ jobs:
 
   # ============================================================================
   # trigger-coopenomics-docs — пересборка сайта C9S/coopenomics.
-  # Гейт: ветка main.
+  # Гейт: ветка main + задан secret DOCS_DISPATCH_TOKEN.
   #
-  # coopenomics переехал на Gitea (C9S/coopenomics); его publish-docs.yaml
-  # клонирует mono и пересобирает сайт. Gitea НЕ имеет API для
-  # repository_dispatch — только workflow_dispatch, поэтому дёргаем целевой
-  # workflow через Gitea API с PAT (secret DOCS_DISPATCH_TOKEN — префикс GITEA_
-  # у секретов зарезервирован Gitea, нельзя; права write на C9S/coopenomics).
-  # Целевой workflow слушает workflow_dispatch с входами
-  # mono_sha/mono_ref.
+  # Dual-host: Actions могут бежать на GitHub или Gitea. Сайт доков живёт на
+  # Gitea (C9S/coopenomics), поэтому API всегда бьёт в GITEA_SERVER_URL
+  # (var, дефолт https://git.coopenomics.world) — НЕ в github.server_url
+  # (на GitHub Actions тот = github.com → 410).
+  #
+  # Без DOCS_DISPATCH_TOKEN job пропускается (GitHub-only режим: токен не
+  # задаём → релиз не валится). На Gitea задаём PAT (префикс GITEA_ у секретов
+  # зарезервирован, поэтому имя DOCS_DISPATCH_TOKEN; write на C9S/coopenomics).
   # ============================================================================
   trigger-coopenomics-docs:
     needs: release
@@ -424,12 +425,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger coopenomics website rebuild (Gitea workflow_dispatch)
+        env:
+          DOCS_DISPATCH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          GITEA_SERVER_URL: ${{ vars.GITEA_SERVER_URL }}
         run: |
+          if [ -z "$DOCS_DISPATCH_TOKEN" ]; then
+            echo "DOCS_DISPATCH_TOKEN не задан — skip (GitHub-only / без Gitea docs dispatch)"
+            exit 0
+          fi
+          GITEA_SERVER_URL="${GITEA_SERVER_URL:-https://git.coopenomics.world}"
           curl -fsSL -X POST \
-            -H "Authorization: token ${{ secrets.DOCS_DISPATCH_TOKEN }}" \
+            -H "Authorization: token ${DOCS_DISPATCH_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{"ref":"master","inputs":{"mono_sha":"${{ github.sha }}","mono_ref":"${{ github.ref }}"}}' \
-            "${{ github.server_url }}/api/v1/repos/C9S/coopenomics/actions/workflows/publish-docs.yaml/dispatches"
+            "${GITEA_SERVER_URL}/api/v1/repos/C9S/coopenomics/actions/workflows/publish-docs.yaml/dispatches"
 
   # ============================================================================
   # trigger-mono-docs — деплой ВТОРОЙ документации (сайт доков mono) через
