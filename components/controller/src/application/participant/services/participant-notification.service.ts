@@ -4,6 +4,7 @@ import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 
 /**
  * Сервис для отправки уведомлений участникам
@@ -108,7 +109,7 @@ export class ParticipantNotificationService implements OnModuleInit {
       const payload: Workflows.NewInitialPaymentRequest.IPayload = {
         chairmanName,
         participantName,
-        paymentAmount,
+        paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
         paymentCurrency,
         paymentType: 'Вступительный и минимальный паевой взнос',
         coopname,

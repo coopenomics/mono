@@ -12,10 +12,12 @@ import {
   MARKETPLACE_APL_RECEPTION_STATUS_CHANGED_EVENT,
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
   MARKETPLACE_APL_SUPPLIER_ONSITE_SIGN_REQUEST_EVENT,
+  MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   type MarketplaceAplReceptionStatusChangedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceAplSupplierOnsiteSignRequestEvent,
+  type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
 } from '../events/marketplace-notification.events';
 import {
@@ -797,18 +799,16 @@ export class MarketplaceAplReceptionService {
   }
 
   /**
-   * Откат черновика приёмки: поставщик не согласен со снятыми оператором
-   * позициями целиком (повезёт замену в другой раз) — оператор отменяет акт и
-   * пересобирает его заново. Допустимо ТОЛЬКО до подписи поставщика
-   * (PENDING_SUPPLIER_SIGN): on-chain ещё ничего не произошло (заказы в ACCEPTED,
-   * signsupp не отправлялся), поэтому откат — чисто PG: приёмка → CANCELLED,
-   * партия возвращается в SUPPLY_PREPARED (готова к новой приёмке), заказы не
-   * трогаем. После подписи поставщика откат невозможен — signsupp/declineorder
-   * уже на цепи.
+   * Откат черновика приёмки до подписи поставщика (PENDING_SUPPLIER_SIGN):
+   * on-chain ещё ничего не произошло (заказы в ACCEPTED, signsupp не
+   * отправлялся), поэтому откат — чисто PG: приёмка → CANCELLED, партия
+   * возвращается в SUPPLY_PREPARED (готова к новой приёмке), заказы не
+   * трогаем. Инициатор — оператор КУ или сам поставщик (не согласен с фактом
+   * приёмки). После подписи поставщика откат невозможен — signsupp уже на цепи.
    */
   async cancelReception(input: {
     coopname: string;
-    operator_account: string;
+    cancelled_by: string;
     apl_reception_id: string;
   }): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
@@ -829,9 +829,23 @@ export class MarketplaceAplReceptionService {
     );
 
     this.logger.log(
-      `АПП ${reception.id}: приёмка отменена оператором ${input.operator_account} (поставщик не согласен) — партия ${reception.shipment_id} снова готова к приёмке.`
+      `АПП ${reception.id}: приёмка отменена ${input.cancelled_by} — партия ${reception.shipment_id} снова готова к приёмке.`
     );
     this.emitReceptionStatusChanged(cancelled);
+
+    // Поставщик отказался у стойки — только создавшему акт оператору (он на
+    // месте). Откат самим оператором уведомление не шлёт.
+    if (input.cancelled_by === reception.offerer_account) {
+      const event: MarketplaceAplReceptionCancelledBySupplierEvent = {
+        coopname: reception.coopname,
+        apl_reception_id: reception.id,
+        braname: reception.braname,
+        supplier_account: reception.offerer_account,
+        operator_account: reception.created_by_operator_account,
+      };
+      this.eventBus.emit(MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT, event);
+    }
+
     return { apl_reception: cancelled };
   }
 

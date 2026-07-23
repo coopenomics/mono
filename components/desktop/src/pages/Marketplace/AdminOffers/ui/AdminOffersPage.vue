@@ -52,7 +52,7 @@ const columns = [
   { name: 'supplier', align: 'left' as const, label: 'Поставщик', field: 'supplier_account' },
   { name: 'price', align: 'right' as const, label: 'Цена', field: 'price_per_unit' },
   { name: 'available', align: 'right' as const, label: 'Доступно', field: 'quantity_available' },
-  { name: 'warranty', align: 'right' as const, label: 'Гарантия', field: 'warranty_days' },
+  { name: 'warranty', align: 'right' as const, label: 'Гарантийный срок возврата', field: 'warranty_days' },
   { name: 'created', align: 'left' as const, label: 'Создано', field: 'created_at' },
   { name: 'actions', align: 'right' as const, label: '', field: 'id' },
 ];
@@ -82,7 +82,7 @@ function formatPrice(v: string | null | undefined): string {
   return v ? formatAsset2Digits(String(v)) : '—';
 }
 function formatWarranty(days: number | null | undefined): string {
-  return days && days > 0 ? `${days} дн.` : 'Без гарантии';
+  return days && days > 0 ? `${days} дн.` : 'Без гарантийного срока возврата';
 }
 function supplierTitle(o: AdminOfferView): string {
   return fioCache.value.get(o.supplier_account) || o.supplier_account || '—';

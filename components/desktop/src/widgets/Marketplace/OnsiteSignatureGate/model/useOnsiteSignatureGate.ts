@@ -7,6 +7,7 @@ import {
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
 } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
+import { cancelAplReception } from 'src/pages/Marketplace/OperatorReception/api';
 import { Classes, Zeus } from '@coopenomics/sdk';
 import {
   listStockProposals,
@@ -41,8 +42,9 @@ import {
  * Сигнал = сам статус. Источник обновлений — realtime-подписка marketplace
  * (персональный канал пайщика): на любое событие канал ядра дёргает refresh,
  * плюс catch-up при возврате приложения в активность и страховочный таймер.
- * Гейт сам закрывается, как только статус ушёл вперёд (подписал) ИЛИ оператор
- * откатил — после ближайшей дочитки список пустеет. Поллинга нет.
+ * Гейт сам закрывается, как только статус ушёл вперёд (подписал) ИЛИ приёмка
+ * откатили (поставщик / оператор) — после ближайшей дочитки список пустеет.
+ * Поллинга нет.
  */
 
 const PENDING_SUPPLIER_SIGN = 'PENDING_SUPPLIER_SIGN';
@@ -157,7 +159,12 @@ async function signSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>):
   try {
     const { errors } = await signReceptionGroupAsSupplier(group.receptions, wif);
     if (errors.length === 0) {
-      SuccessAlert('Поставка подписана. Ожидается закрывающая подпись председателя КУ.');
+      const allRejected = group.lines.every((l) => l.quantity <= 0);
+      SuccessAlert(
+        allRejected
+          ? 'Отказ в приёмке подтверждён. Заказчикам вернётся оплата.'
+          : 'Поставка подписана. Ожидается закрывающая подпись председателя КУ.',
+      );
     } else {
       for (const { receptionId, error } of errors) {
         FailAlert(error, `Не удалось подписать один из актов поставки (${receptionId.slice(0, 8)})`);
@@ -230,6 +237,24 @@ async function signProposal(task: MarketplaceStockProposalView): Promise<void> {
   }
 }
 
+async function cancelSupplier(group: ReceptionGroup<MarketplaceAplReceptionView>): Promise<void> {
+  signingKey.value = group.key;
+  try {
+    // До подписи поставщика на цепи ничего нет — cancelAplReception откатывает
+    // черновик в PG (CANCELLED + партия → SUPPLY_PREPARED). Оператор снова
+    // примет имущество и покажет QR; гейт всплывёт заново.
+    for (const r of group.receptions) {
+      await cancelAplReception({ apl_reception_id: r.id });
+    }
+    SuccessAlert('Приёмка отменена. Оператор сформирует акт заново.');
+  } catch (error) {
+    FailAlert(error, 'Не удалось отменить приёмку');
+  } finally {
+    signingKey.value = null;
+    await refresh();
+  }
+}
+
 async function declineProposal(task: MarketplaceStockProposalView): Promise<void> {
   signingKey.value = task.id;
   try {
@@ -253,6 +278,7 @@ export function useOnsiteSignatureGate() {
     proposalSums,
     refresh,
     signSupplier,
+    cancelSupplier,
     signProposal,
     declineProposal,
   };

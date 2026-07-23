@@ -239,7 +239,7 @@ q-page.offerer-supply
     v-if='loading && !shipments.length',
     :columns='skeletonColumns',
     :rows='6',
-    min-width="1040px"
+    min-width="1140px"
   )
 
   //- Сформированные партии — основной список стола.
@@ -251,7 +251,7 @@ q-page.offerer-supply
           thead
             tr
               th.col-id Цикл
-              th КУ
+              th.col-ku КУ
               th.col-variant Вариант
               th.col-status Статус
               th.col-num Сумма
@@ -266,7 +266,7 @@ q-page.offerer-supply
                   copy-on-click
                 )
                 span(v-else) —
-              td
+              td.col-ku
                 .offerer-supply__ku-text
                   .offerer-supply__ku-name {{ kuName(row.braname) }}
                   .offerer-supply__ku-addr(v-if='kuAddr(row.braname)') {{ kuAddr(row.braname) }}
@@ -386,13 +386,14 @@ q-page.offerer-supply
   &__ku-name {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink);
-    overflow-wrap: anywhere;
+    // break-word, не anywhere: иначе при узкой ячейке «РОМАШКА» сыпется в столбик.
+    overflow-wrap: break-word;
   }
 
   &__ku-addr {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   &__ku-meta {
@@ -439,13 +440,19 @@ q-page.offerer-supply
 .table-scroll {
   overflow-x: auto;
 }
+// Глобальный канон (.table{min-width:0!important}) снимает локальный min-width —
+// без !important колонка КУ без явной ширины схлопывалась в буквы-столбиком.
+// Сумма ширин = min-width: при нехватке места скролл в .table-scroll, не сжатие.
 .table {
-  table-layout: fixed;
-  min-width: 1040px;
+  table-layout: fixed !important;
+  min-width: 1140px !important;
 }
 .col-id {
   width: 150px;
   font-family: var(--font-mono);
+}
+.col-ku {
+  width: 280px;
 }
 .col-variant {
   width: 160px;

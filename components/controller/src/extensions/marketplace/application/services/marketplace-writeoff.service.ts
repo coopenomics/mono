@@ -17,6 +17,7 @@ import type { PaginationInputDTO } from '~/application/common/dto/pagination.dto
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -938,11 +939,7 @@ export class MarketplaceWriteoffService {
    */
   formatAssetHuman(value: number): string {
     const num = Number.isFinite(value) ? value : 0;
-    const formatted = num.toLocaleString('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return `${formatted} ${this.assetSymbol}`;
+    return AmountFormatterUtils.formatAmount(`${num} ${this.assetSymbol}`);
   }
 
   formatAssetNumber(value: number): string {

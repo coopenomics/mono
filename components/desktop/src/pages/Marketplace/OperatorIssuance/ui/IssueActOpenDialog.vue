@@ -3,8 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { Classes } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton, BaseBadge } from 'src/shared/ui/base';
-import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { BaseButton, BaseBadge, BaseDialog } from 'src/shared/ui/base';
+import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/CorrectionTable';
 import {
   useActsPreview,
@@ -199,11 +199,6 @@ const leftCount = computed(() => positionsCount.value - includedCount.value);
 
 const recipientName = computed(
   () => props.orders.find((o) => o.orderer_name)?.orderer_name || props.orders[0]?.orderer_account || '',
-);
-
-// Хотя бы одна ВЫДАВАЕМАЯ позиция вышла за пределы заказа — окрашиваем в warning.
-const anyOver = computed(() =>
-  includedOrders.value.some((o) => (facts.value[o.id]?.qty ?? o.quantity) > o.quantity),
 );
 
 // Превышение склада среди выдаваемых: ввод выше принятого. Блокирует подпись.
@@ -415,79 +410,79 @@ function cancel(): void {
 </script>
 
 <template lang="pug">
-TakeoverDialog(
+BaseDialog(
   :model-value="modelValue"
-  wide
   title="Открытие выдачи пайщику"
-  :lead-text="recipientName ? `${recipientName} · к выдаче ${includedCount} из ${positionsCount} · ${formatAsset2Digits(totalFactCost)} ₽${issuanceDiff.refund > 0 ? ` · вернётся в кошелёк ${formatAsset2Digits(issuanceDiff.refund.toFixed(4))} ₽` : ''}` : ''"
-  :kind="anyOver ? 'warning' : 'info'"
-  :loading="signing"
+  maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
-  @confirm="confirm"
-  @cancel="cancel"
 )
-  template(#default)
-    .mp-issue-open-dialog
-      .mp-issue-open-dialog__intro
-        | Сверьте имущество с заказами пайщика и отметьте галочкой «Выдать» то,
-        | что он забирает сейчас. «План» — сколько заказано, «Принято» — сколько
-        | на складе и доступно к выдаче (выдать больше нельзя). Снятые позиции
-        | остаются на складе и в эту выдачу не попадают — выдаём частично.
+  ActDialogLayout(wide)
+    template(#head)
+      .issue-act__who(v-if="recipientName")
+        span.issue-act__name {{ recipientName }}
+        span.issue-act__meta
+          | К выдаче {{ includedCount }} из {{ positionsCount }}
+          |  · {{ formatAsset2Digits(totalFactCost) }} ₽
+          template(v-if="issuanceDiff.refund > 0")
+            |  · вернётся в кошелёк {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
 
-      template(v-if="!showActs")
-        .mp-issue-open-dialog__toolbar
-          BaseButton(variant="ghost" size="sm" @click="stockPickOpen = true")
-            template(#icon-left)
-              q-icon(name="add_shopping_cart" size="16px")
-            | Со склада
-        CorrectionTable(:rows="correctionRows" selectable @change="onCorrectionChange" @toggle="onCorrectionToggle")
+    template(#lead)
+      | Сверьте имущество с заказами пайщика и отметьте галочкой то, что он
+      | забирает сейчас. «План» — сколько заказано, «Принято» — сколько на складе
+      | (выдать больше нельзя). Снятые позиции остаются на складе.
 
-        //- Доложено со склада — позиции, добавленные оператором сверх заказа.
-        .mp-issue-open-dialog__restock(v-if="restockLines.length")
-          .mp-issue-open-dialog__restock-head
-            BaseBadge(variant="info") Доложено со склада
-          .mp-issue-open-dialog__restock-row(v-for="l in restockLines" :key="l.offer_id")
-            .mp-issue-open-dialog__restock-info
-              span.mp-issue-open-dialog__restock-name {{ l.product_name }}
-              span.mp-issue-open-dialog__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ l.quantity }}
-            .mp-issue-open-dialog__restock-right
-              span.mp-issue-open-dialog__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
-              BaseButton(variant="ghost" size="sm" @click="removeRestock(l.offer_id)")
-                q-icon(name="close" size="16px")
+    template(v-if="!showActs")
+      .issue-act__toolbar
+        BaseButton(variant="ghost", @click="stockPickOpen = true")
+          template(#icon-left)
+            q-icon(name="add_shopping_cart", size="18px")
+          | Со склада
+      CorrectionTable(:rows="correctionRows", selectable, @change="onCorrectionChange", @toggle="onCorrectionToggle")
 
-        .mp-issue-open-dialog__totals
-          .mp-issue-open-dialog__sum
-            span.mp-issue-open-dialog__sum-label К выдаче ({{ includedCount }} из {{ positionsCount }} позиц.)
-            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
-          .mp-issue-open-dialog__sum(v-if="leftCount > 0")
-            span.mp-issue-open-dialog__sum-label Остаётся на складе
-            span.mp-issue-open-dialog__sum-value {{ leftCount }} позиц.
-          .mp-issue-open-dialog__sum(v-if="issuanceDiff.refund > 0")
-            span.mp-issue-open-dialog__sum-label Вернётся в кошелёк Стола заказов
-            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
-          .mp-issue-open-dialog__sum(v-if="issuanceDiff.surcharge > 0")
-            span.mp-issue-open-dialog__sum-label Доплата по факту (спишется с паевого)
-            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
-          .mp-issue-open-dialog__sum(v-if="restockLines.length")
-            span.mp-issue-open-dialog__sum-label Доложено со склада
-            span.mp-issue-open-dialog__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
+      .issue-act__restock(v-if="restockLines.length")
+        .issue-act__restock-head
+          BaseBadge(variant="info") Доложено со склада
+        .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
+          .issue-act__restock-info
+            span.issue-act__restock-name {{ l.product_name }}
+            span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ l.quantity }}
+          .issue-act__restock-right
+            span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
+            BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")
+              q-icon(name="close", size="18px")
 
-        //- Почему кнопка «Подписать и открыть выдачу» недоступна — явно, чтобы
-        //- оператор не упирался в перечёркнутую кнопку без объяснения.
-        .mp-issue-open-dialog__blocker(v-if="blockReason")
-          q-icon(name="info" size="18px")
-          span {{ blockReason }}
+    .issue-act__preview(v-else, v-html="previewHtml")
 
-      .mp-issue-open-dialog__preview(v-if="showActs", v-html="previewHtml")
+    template(#after)
+      .issue-act__totals(v-if="!showActs")
+        .issue-act__sum
+          span.issue-act__sum-label К выдаче ({{ includedCount }} из {{ positionsCount }} позиц.)
+          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+        .issue-act__sum(v-if="leftCount > 0")
+          span.issue-act__sum-label Остаётся на складе
+          span.issue-act__sum-value {{ leftCount }} позиц.
+        .issue-act__sum(v-if="issuanceDiff.refund > 0")
+          span.issue-act__sum-label Вернётся в кошелёк Стола заказов
+          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
+        .issue-act__sum(v-if="issuanceDiff.surcharge > 0")
+          span.issue-act__sum-label Доплата по факту (спишется с паевого)
+          span.issue-act__sum-value {{ formatAsset2Digits(issuanceDiff.surcharge.toFixed(4)) }} ₽
+        .issue-act__sum(v-if="restockLines.length")
+          span.issue-act__sum-label Доложено со склада
+          span.issue-act__sum-value {{ formatAsset2Digits(restockTotal) }} ₽
 
-    StockPickDialog(
-      v-model="stockPickOpen"
-      :braname="issueBraname"
-      @add="onAddRestock"
-    )
+      .issue-act__blocker(v-if="!showActs && blockReason")
+        q-icon(name="info", size="18px")
+        span {{ blockReason }}
 
-  template(#actions="{ cancel: onCancel, confirm: onConfirm }")
-    BaseButton(variant="ghost" @click="onCancel") Закрыть
+  StockPickDialog(
+    v-model="stockPickOpen"
+    :braname="issueBraname"
+    @add="onAddRestock"
+  )
+
+  template(#footer)
+    BaseButton(variant="ghost", @click="cancel") Закрыть
     BaseButton(
       variant="ghost"
       :loading="previewLoading"
@@ -495,29 +490,37 @@ TakeoverDialog(
       @click="toggleActs"
     )
       template(#icon-left)
-        q-icon(name="description" size="16px")
+        q-icon(name="description", size="18px")
       | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(
       variant="primary"
       :loading="signing"
       :disabled="!allValid || signing"
-      @click="onConfirm"
+      @click="confirm"
     )
       template(#icon-left)
-        q-icon(name="draw" size="16px")
+        q-icon(name="draw", size="18px")
       | Подписать и отправить пайщику
 </template>
 
 <style scoped lang="scss">
-.mp-issue-open-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-4, 16px);
+.issue-act {
+  &__who {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
 
-  &__intro {
+  &__name {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__meta {
     font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    line-height: 1.4;
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
   }
 
   &__toolbar {
@@ -555,7 +558,7 @@ TakeoverDialog(
     &-name {
       font-size: var(--p-fs-body-sm, 13px);
       color: var(--p-ink);
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
     }
 
     &-meta {
@@ -608,7 +611,6 @@ TakeoverDialog(
     display: flex;
     align-items: flex-start;
     gap: var(--p-2, 8px);
-    margin-top: var(--p-3, 12px);
     padding: var(--p-3, 12px);
     border: 1px solid var(--p-warn-line, var(--p-line));
     border-radius: var(--p-r-md, 12px);
@@ -624,26 +626,21 @@ TakeoverDialog(
   }
 
   &__preview {
-    max-height: 60vh;
+    max-height: 55vh;
     overflow: auto;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    padding: var(--p-4, 16px);
-    background: var(--p-surface);
   }
+}
 
-  // Заголовок акта и разделитель в сводном превью.
-  :deep(.mp-issue-open-dialog__act-head) {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
-    margin: 0 0 var(--p-2, 8px);
-  }
+:deep(.mp-issue-open-dialog__act-head) {
+  font-size: var(--p-fs-body, 14px);
+  font-weight: 600;
+  color: var(--p-ink);
+  margin: 0 0 var(--p-2, 8px);
+}
 
-  :deep(.mp-issue-open-dialog__act-sep) {
-    border: none;
-    border-top: 1px solid var(--p-line);
-    margin: var(--p-4, 16px) 0;
-  }
+:deep(.mp-issue-open-dialog__act-sep) {
+  border: none;
+  border-top: 1px solid var(--p-line);
+  margin: var(--p-4, 16px) 0;
 }
 </style>

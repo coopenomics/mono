@@ -179,10 +179,11 @@ export class MarketplaceAplReceptionResolver {
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
     name: 'marketplaceCancelAplReception',
     description:
-      'Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования.',
+      'Отмена акта приёмки до подписи поставщика — партия возвращается к приёмке для повторного формирования. Доступно оператору КУ и самому поставщику (не согласен с фактом приёмки).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Receiving', 'create')
+  // Guard: capability проверяем в теле — два легитимных пути (operator:create /
+  // offerer:cancel:own), декоратор принимает только один action.
   async marketplaceCancelAplReception(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAplReceptionByIdInputDTO
@@ -190,14 +191,24 @@ export class MarketplaceAplReceptionResolver {
     const coopname = config.coopname;
     const roles = member.marketplace_roles as MarketplaceRole[];
 
-    // Ownership: отменить приёмку может только оператор своего КУ (как и
-    // открытие/закрытие приёмки) — иначе можно было бы отменить чужой акт по
-    // подставленному apl_reception_id.
-    if (!canAccess(roles, 'Receiving', 'read:all')) {
-      const reception = await this.receptionRepo.findById(data.apl_reception_id);
-      if (!reception || reception.coopname !== coopname) {
-        throw new NotFoundException('Акт приёмки не найден.');
-      }
+    const reception = await this.receptionRepo.findById(data.apl_reception_id);
+    if (!reception || reception.coopname !== coopname) {
+      throw new NotFoundException('Акт приёмки не найден.');
+    }
+
+    const asOperator = canAccess(roles, 'Receiving', 'create');
+    const asSupplier =
+      canAccess(roles, 'Receiving', 'cancel:own') &&
+      reception.offerer_account === member.username;
+
+    if (!asOperator && !asSupplier) {
+      throw new ForbiddenException(
+        'Отмена приёмки доступна оператору участка или поставщику этого акта.'
+      );
+    }
+
+    // Оператор без read:all — только свой КУ (как create/close приёмки).
+    if (asOperator && !asSupplier && !canAccess(roles, 'Receiving', 'read:all')) {
       const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
         reception.braname,
@@ -212,7 +223,7 @@ export class MarketplaceAplReceptionResolver {
 
     const result = await this.service.cancelReception({
       coopname,
-      operator_account: member.username,
+      cancelled_by: member.username,
       apl_reception_id: data.apl_reception_id,
     });
     const dto = new MarketplaceAplReceptionResultDTO();

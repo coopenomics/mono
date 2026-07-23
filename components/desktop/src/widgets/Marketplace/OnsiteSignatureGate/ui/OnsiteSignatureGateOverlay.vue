@@ -16,8 +16,9 @@ import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
  *
  * Persistent-режим (no-backdrop / no-escape / no-close): пайщик не может
  * «увести» окно — закрывает его только сама подпись (статус ушёл вперёд) либо
- * откат оператора. Это легитимное исключение из правила «не перекрывать экран»:
- * осознанный consent-gate, как онбординг-оферты.
+ * отмена (поставщик / оператор откатили черновик приёмки; пайщик отказался
+ * от бандла выдачи). Это легитимное исключение из правила «не перекрывать
+ * экран»: осознанный consent-gate, как онбординг-оферты.
  */
 
 const {
@@ -28,6 +29,7 @@ const {
   proposalSums,
   refresh,
   signSupplier,
+  cancelSupplier,
   signProposal,
   declineProposal,
 } = useOnsiteSignatureGate();
@@ -122,6 +124,13 @@ BaseDialog(
             td.num {{ formatAsset2Digits(g.totalAmount) }} ₽
 
       .onsite-gate__foot
+        //- До signsupp на цепи ничего нет: «Отменить» = откат черновика
+        //- приёмки, оператор примет имущество заново.
+        BaseButton(
+          variant='ghost',
+          :disabled='anySigning',
+          @click='cancelSupplier(g)'
+        ) Отменить
         BaseButton(
           variant='primary',
           :loading='supplierBusy(g)',
@@ -130,7 +139,7 @@ BaseDialog(
         )
           template(#icon-left)
             q-icon(name='draw', size='18px')
-          | Подписать поставку
+          | {{ g.lines.some((l) => l.quantity > 0) ? 'Подписать поставку' : 'Подтвердить отмену' }}
 
     //- Бандл выдачи: оператор уже подписал акт передачи (по заказам и/или
     //- докладке со склада) — пайщику остаётся одна подпись получения; до неё на
@@ -164,7 +173,7 @@ BaseDialog(
             td.num
             td.num {{ formatAsset2Digits(proposalCharges(p).share.toFixed(4)) }} ₽
 
-      .onsite-gate__foot.onsite-gate__foot--split
+      .onsite-gate__foot
         BaseButton(
           variant='ghost',
           :disabled='anySigning',
@@ -283,10 +292,8 @@ BaseDialog(
   &__foot {
     display: flex;
     justify-content: flex-end;
-
-    &--split {
-      justify-content: space-between;
-    }
+    align-items: center;
+    gap: var(--p-3, 12px);
   }
 }
 </style>

@@ -141,7 +141,7 @@ export class ProviderService {
   ): Promise<GeneratedDocumentDTO> {
     // Устанавливаем registry_id для ConvertToAxonStatement
     data.registry_id = 51;
-    // Форматируем сумму в читаемый формат (10.0000 RUB -> 10,00 RUB)
+    // Форматируем сумму в читаемый формат (1000.0000 RUB -> 1 000,00 RUB)
     data.convert_amount = AmountFormatterUtils.formatAmount(data.convert_amount);
     const document = await this.documentDomainService.generateDocument({ data, options });
     // TODO: чтобы избавиться от unknown необходимо строго типизировать ответ фабрики документов

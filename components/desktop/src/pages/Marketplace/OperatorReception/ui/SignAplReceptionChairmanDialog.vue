@@ -4,6 +4,7 @@ import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseBadge, BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { AccountBadge } from 'src/shared/ui/domain';
+import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
@@ -143,21 +144,21 @@ BaseDialog(
   maximized
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
-  .mp-sign-apl-chairman(v-if="group")
-    .mp-sign-apl-chairman__head
-      .mp-sign-apl-chairman__who
-        Avatar(:name="group.offererName", size="md", tone="primary")
-        .mp-sign-apl-chairman__ident
-          span.mp-sign-apl-chairman__name {{ group.offererName }}
-          AccountBadge(:account-name="group.offererAccount", size="sm")
-      .mp-sign-apl-chairman__meta
-        BaseBadge(variant="neutral") {{ variantLabel }}
+  ActDialogLayout(v-if="group")
+    template(#head)
+      .sign-apl__top
+        .sign-apl__who
+          Avatar(:name="group.offererName", size="md", tone="primary")
+          .sign-apl__ident
+            span.sign-apl__name {{ group.offererName }}
+            AccountBadge(:account-name="group.offererAccount", size="sm")
+        .sign-apl__meta
+          BaseBadge(variant="neutral") {{ variantLabel }}
+          span.sign-apl__sub
+            | КУ {{ kuName }}
+            template(v-if="group.ttnNumbers.length")  · ТТН {{ group.ttnNumbers.join(', ') }}
 
-    .mp-sign-apl-chairman__sub
-      | КУ {{ kuName }}
-      template(v-if="group.ttnNumbers.length")  · ТТН {{ group.ttnNumbers.join(', ') }}
-
-    table.mp-sign-apl-chairman__table(v-if="!showActs")
+    table.sign-apl__table(v-if="!showActs")
       thead
         tr
           th Товар
@@ -174,34 +175,29 @@ BaseDialog(
           td.num
           td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
 
-    q-card(v-if="showActs", flat, bordered).mp-sign-apl-chairman__preview
+    .sign-apl__preview(v-else)
       q-inner-loading(:showing="previewLoading")
         q-spinner(size="28px")
-      q-card-section.q-pa-md(v-if="previewHtml")
-        div(v-html="previewHtml")
+      div(v-if="previewHtml", v-html="previewHtml")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
     BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
       template(#icon-left)
-        q-icon(name="description", size="16px")
+        q-icon(name="description", size="18px")
       | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
       template(#icon-left)
-        q-icon(name="draw", size="16px")
+        q-icon(name="draw", size="18px")
       span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
       span(v-else) Подписать председателем
 </template>
 
 <style scoped lang="scss">
-.mp-sign-apl-chairman {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-
-  &__head {
+.sign-apl {
+  &__top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
@@ -225,13 +221,14 @@ BaseDialog(
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     color: var(--p-ink);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   &__meta {
     display: flex;
-    gap: var(--p-1, 4px);
     flex-wrap: wrap;
+    align-items: center;
+    gap: var(--p-2, 8px);
   }
 
   &__sub {
@@ -246,7 +243,7 @@ BaseDialog(
 
     th,
     td {
-      padding: var(--p-2, 8px) var(--p-2, 8px);
+      padding: var(--p-2, 8px);
       border-bottom: 1px solid var(--p-line);
       text-align: left;
       color: var(--p-ink);
@@ -270,8 +267,8 @@ BaseDialog(
 
   &__preview {
     position: relative;
-    min-height: 80px;
-    max-height: 60vh;
+    min-height: 120px;
+    max-height: 55vh;
     overflow: auto;
   }
 }

@@ -1,365 +1,229 @@
-<template>
-  <div class="mp-correction-table">
-    <!-- Desktop / planshet — обычная таблица -->
-    <q-table
-      v-if="!compact"
-      class="mp-correction-table__grid"
-      :rows="enrichedRows"
-      :columns="columns"
-      row-key="sku"
-      flat
-      bordered
-      hide-bottom
-      :pagination="{ rowsPerPage: 0 }"
-      :rows-per-page-options="[0]"
-    >
-      <template #body-cell-include="props">
-        <q-td :props="props" class="text-center">
-          <q-checkbox
-            :model-value="props.row.included !== false"
-            :disable="props.row.noStock"
-            dense
-            @update:model-value="(v) => emit('toggle', { sku: props.row.sku, included: !!v })"
-          >
-            <q-tooltip v-if="props.row.noStock">Нет на складе — выдать нечего</q-tooltip>
-          </q-checkbox>
-        </q-td>
-      </template>
+<template lang="pug">
+.correction-table
+  //- Тот же паттерн unit-row, что и в приёмке имущества: чекбокс · инфо ·
+  //- статус · кол-во/цена. Без q-table — канон .table / Base*.
+  .correction-table__unit(
+    v-for='r in enrichedRows',
+    :key='r.sku',
+    :class='{ "correction-table__unit--off": isOff(r) }'
+  )
+    span.correction-table__check(v-if='selectable')
+      BaseCheckbox(
+        :model-value='r.included !== false',
+        :disabled='r.noStock',
+        @update:model-value='(v) => emit("toggle", { sku: r.sku, included: !!v })'
+      )
+      q-tooltip(v-if='r.noStock') Нет на складе — выдать нечего
 
-      <template #body-cell-delta="props">
-        <q-td :props="props" :class="deltaClass(props.row)">
-          <strong>{{ props.row.delta > 0 ? '+' : '' }}{{ props.row.delta }}</strong>
-        </q-td>
-      </template>
+    .correction-table__info
+      .correction-table__title {{ r.title }}
+      .correction-table__meta
+        | План {{ r.expected }} {{ r.unit }}
+        template(v-if='r.available !== undefined')
+          |  · Принято {{ r.available }} {{ r.unit }}
+        template(v-if='r.shelf')
+          |  · Полка {{ r.shelf }}
 
-      <template #body-cell-fact="props">
-        <q-td :props="props">
-          <q-input
-            v-model.number="props.row.fact"
-            type="number"
-            dense
-            outlined
-            input-class="text-right mp-correction-table__fact-input"
-            @update:model-value="emit('change', { sku: props.row.sku, fact: props.row.fact, factPrice: props.row.factPrice })"
-          />
-        </q-td>
-      </template>
+    BaseBadge.correction-table__status(:variant='statusVariant(r)') {{ statusLabel(r) }}
 
-      <template #body-cell-factPrice="props">
-        <q-td :props="props">
-          <q-input
-            v-model.number="props.row.factPrice"
-            type="number"
-            dense
-            outlined
-            input-class="text-right mp-correction-table__fact-input"
-            @update:model-value="onPriceChange(props.row)"
-          />
-        </q-td>
-      </template>
+    .correction-table__fact
+      BaseInput(
+        :model-value='r.fact',
+        type='number',
+        label='Кол-во',
+        :min='0',
+        :max='factCeiling(r)',
+        :disabled='isOff(r)',
+        :suffix='r.unit',
+        @update:model-value='(v) => onFactInput(r, v)'
+      )
+      BaseInput(
+        v-if='hasPrice',
+        :model-value='r.factPrice',
+        type='number',
+        label='Цена/ед.',
+        :disabled='isOff(r)',
+        @update:model-value='(v) => onPriceInput(r, v)'
+      )
 
-      <template #body-cell-status="props">
-        <q-td :props="props">
-          <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(props.row)}`">
-            {{ statusLabel(props.row) }}
-          </span>
-        </q-td>
-      </template>
-    </q-table>
-
-    <!-- Mobile (xs) — карточный вид, факт это крупное touch-friendly поле -->
-    <div v-else class="mp-correction-table__cards">
-      <div
-        v-for="r in enrichedRows"
-        :key="r.sku"
-        class="mp-card mp-correction-table__card"
-      >
-        <div class="mp-correction-table__card-head">
-          <div class="row items-start no-wrap" style="gap: 8px">
-            <q-checkbox
-              v-if="selectable"
-              :model-value="r.included !== false"
-              :disable="r.noStock"
-              dense
-              @update:model-value="(v) => emit('toggle', { sku: r.sku, included: !!v })"
-            />
-            <div>
-              <div class="mp-correction-table__card-title">{{ r.title }}</div>
-              <div class="mp-correction-table__card-sku">SKU · {{ r.sku }}<template v-if="r.shelf"> · Полка {{ r.shelf }}</template></div>
-            </div>
-          </div>
-          <span class="mp-status-chip" :class="`mp-status-chip--${statusKind(r)}`">
-            {{ statusLabel(r) }}
-          </span>
-        </div>
-
-        <div class="mp-correction-table__card-grid">
-          <div>
-            <div class="mp-correction-table__card-label">План</div>
-            <div class="mp-correction-table__card-value">{{ r.expected }} {{ r.unit }}</div>
-          </div>
-          <div v-if="hasAvailable">
-            <div class="mp-correction-table__card-label">Принято</div>
-            <div class="mp-correction-table__card-value">{{ r.available ?? '—' }} {{ r.unit }}</div>
-          </div>
-          <div>
-            <div class="mp-correction-table__card-label">Факт</div>
-            <q-input
-              v-model.number="r.fact"
-              type="number"
-              outlined
-              dense
-              :suffix="r.unit"
-              class="mp-correction-table__fact-input--mobile"
-              @update:model-value="emit('change', { sku: r.sku, fact: r.fact, factPrice: r.factPrice })"
-            />
-          </div>
-          <div>
-            <div class="mp-correction-table__card-label">Δ</div>
-            <div :class="['mp-correction-table__card-value', deltaClass(r)]">
-              {{ r.delta > 0 ? '+' : '' }}{{ r.delta }}
-            </div>
-          </div>
-        </div>
-
-        <div v-if="hasPrice" class="mp-correction-table__card-price">
-          <div class="mp-correction-table__card-label">Цена за единицу</div>
-          <q-input
-            v-model.number="r.factPrice"
-            type="number"
-            outlined
-            dense
-            class="mp-correction-table__fact-input--mobile"
-            @update:model-value="onPriceChange(r)"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer summary (одинаковый и для таблицы, и для карточек) -->
-    <div class="mp-correction-table__summary">
-      <div class="mp-correction-table__summary-count">
-        Итого позиций: {{ enrichedRows.length }}
-      </div>
-      <div class="mp-correction-table__summary-chips">
-        <span v-if="noStockCount" class="mp-status-chip mp-status-chip--error">Нет на складе · {{ noStockCount }}</span>
-        <span v-if="overStockCount" class="mp-status-chip mp-status-chip--error">Больше принятого · {{ overStockCount }}</span>
-        <span class="mp-status-chip mp-status-chip--success">Совпадает · {{ matchCount }}</span>
-        <span class="mp-status-chip mp-status-chip--warning">Недостача · {{ shortCount }}</span>
-        <span class="mp-status-chip mp-status-chip--info">Избыток · {{ overCount }}</span>
-      </div>
-    </div>
-  </div>
+  .correction-table__summary
+    .correction-table__summary-count Итого позиций: {{ enrichedRows.length }}
+    .correction-table__summary-chips
+      BaseBadge(v-if='noStockCount', variant='neg') Нет на складе · {{ noStockCount }}
+      BaseBadge(v-if='overStockCount', variant='neg') Больше принятого · {{ overStockCount }}
+      BaseBadge(variant='pos') Совпадает · {{ matchCount }}
+      BaseBadge(variant='warn') Недостача · {{ shortCount }}
+      BaseBadge(variant='info') Избыток · {{ overCount }}
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
-import { useQuasar, type QTableProps } from 'quasar'
+import { computed, type PropType } from 'vue';
+import { BaseBadge, BaseCheckbox, BaseInput } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 
 export interface CorrectionRow {
-  sku: string
-  title: string
-  unit: string
-  expected: number   // план (заказ), количество
-  fact: number       // факт (поступление/выдача), количество
+  sku: string;
+  title: string;
+  unit: string;
+  /** План (заказ), количество. */
+  expected: number;
+  /** Факт (поступление/выдача), количество. */
+  fact: number;
   /**
    * Выдавать ли позицию в этой операции (режим `selectable`). Снятая галочка =
-   * имущество остаётся на складе, в текущую выдачу не попадает. Управляет
-   * частичной выдачей: пайщик забирает не всё, что причитается.
+   * имущество остаётся на складе, в текущую выдачу не попадает.
    */
-  included?: boolean
+  included?: boolean;
   /**
-   * Принято на склад и не выдано — потолок факта при выдаче. Если задано,
-   * fact > available подсвечивается ошибкой «Больше принятого»: выдать со
-   * склада больше, чем физически есть, нельзя.
+   * Принято на склад и не выдано — потолок факта при выдаче. fact > available
+   * → «Больше принятого».
    */
-  available?: number
-  /** Полка/полки склада, где лежит позиция после раскладки (лента выдачи). */
-  shelf?: string
-  expectedPrice?: number  // цена за единицу по заказу (план)
-  factPrice?: number       // фактическая цена за единицу (редактируется оператором)
+  available?: number;
+  /** Полка/полки склада после раскладки. */
+  shelf?: string;
+  expectedPrice?: number;
+  factPrice?: number;
 }
 
 const props = defineProps({
   rows: { type: Array as PropType<CorrectionRow[]>, required: true },
-  // Режим частичной выдачи: первая колонка — чекбокс «Выдать». Снятые позиции
-  // в операцию не попадают (остаются на складе).
   selectable: { type: Boolean, default: false },
-})
+});
 
 const emit = defineEmits<{
-  (e: 'change', payload: { sku: string; fact: number; factPrice?: number }): void
-  (e: 'toggle', payload: { sku: string; included: boolean }): void
-}>()
+  (e: 'change', payload: { sku: string; fact: number; factPrice?: number }): void;
+  (e: 'toggle', payload: { sku: string; included: boolean }): void;
+}>();
 
-const $q = useQuasar()
-const compact = computed(() => $q.screen.lt.sm)
+const hasPrice = computed(() => props.rows.some((r) => r.expectedPrice !== undefined));
 
-// Режим правки цены включается, если хотя бы у одной строки задана цена.
-const hasPrice = computed(() => props.rows.some((r) => r.expectedPrice !== undefined))
-// Колонка «Принято» (склад) показывается, если потолок задан хотя бы у одной строки.
-const hasAvailable = computed(() => props.rows.some((r) => r.available !== undefined))
-// Колонка «Полка» — только если хоть одна позиция размечена по полкам.
-const hasShelf = computed(() => props.rows.some((r) => !!r.shelf))
+type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean; noStock: boolean };
 
-const enrichedRows = computed(() =>
+const enrichedRows = computed<EnrichedRow[]>(() =>
   props.rows.map((r) => ({
     ...r,
     delta: r.fact - r.expected,
     overStock: r.available !== undefined && r.fact > r.available,
-    // Принято 0 на склад — позицию физически нечего выдавать. Отдельный
-    // статус (а не общая «Недостача»): именно такие строки блокируют открытие
-    // выдачи, и оператор должен видеть это явно.
     noStock: r.available !== undefined && r.available <= 0,
-  }))
-)
+  })),
+);
 
-const columns = computed<QTableProps['columns']>(() => {
-  const base: NonNullable<QTableProps['columns']> = [
-    { name: 'sku',      label: 'SKU',     field: 'sku',      align: 'left' },
-    { name: 'title',    label: 'Позиция', field: 'title',    align: 'left' },
-    { name: 'expected', label: 'План',    field: 'expected', align: 'right' },
-  ]
-  if (props.selectable) {
-    base.unshift({ name: 'include', label: 'Выдать', field: 'included', align: 'center' })
-  }
-  if (hasShelf.value) {
-    base.splice(2, 0, { name: 'shelf', label: 'Полка', field: 'shelf', align: 'left' })
-  }
-  if (hasAvailable.value) {
-    base.push({ name: 'available', label: 'Принято', field: 'available', align: 'right' })
-  }
-  base.push(
-    { name: 'fact',     label: 'Факт',    field: 'fact',     align: 'right' },
-    { name: 'delta',    label: 'Δ',       field: 'delta',    align: 'right' },
-    { name: 'unit',     label: 'Ед.',     field: 'unit',     align: 'left' },
-  )
-  if (hasPrice.value) {
-    base.push({ name: 'factPrice', label: 'Цена/ед.', field: 'factPrice', align: 'right' })
-  }
-  base.push({ name: 'status', label: 'Статус', field: 'sku', align: 'center' })
-  return base
-})
-
-function onPriceChange(row: CorrectionRow): void {
-  emit('change', { sku: row.sku, fact: row.fact, factPrice: row.factPrice })
+function isOff(r: EnrichedRow): boolean {
+  return props.selectable && r.included === false;
 }
 
-type StatusKind = 'success' | 'warning' | 'info' | 'error'
+function factCeiling(r: EnrichedRow): number | undefined {
+  if (r.available !== undefined) return r.available;
+  return undefined;
+}
 
-type EnrichedRow = CorrectionRow & { delta: number; overStock: boolean; noStock: boolean }
+function toNumber(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function onFactInput(r: EnrichedRow, raw: unknown): void {
+  let fact = toNumber(raw);
+  if (fact < 0) fact = 0;
+  const ceiling = factCeiling(r);
+  if (ceiling !== undefined && fact > ceiling) fact = ceiling;
+  emit('change', { sku: r.sku, fact, factPrice: r.factPrice });
+}
+
+function onPriceInput(r: EnrichedRow, raw: unknown): void {
+  emit('change', { sku: r.sku, fact: r.fact, factPrice: Math.max(0, toNumber(raw)) });
+}
 
 function statusLabel(r: EnrichedRow): string {
-  if (r.noStock) return 'Нет на складе'
-  if (r.overStock) return 'Больше принятого'
-  if (r.delta === 0) return 'Совпадает'
-  if (r.delta < 0)  return 'Недостача'
-  return 'Избыток'
+  if (r.noStock) return 'Нет на складе';
+  if (r.overStock) return 'Больше принятого';
+  if (r.delta === 0) return 'Совпадает';
+  if (r.delta < 0) return 'Недостача';
+  return 'Избыток';
 }
 
-function statusKind(r: EnrichedRow): StatusKind {
-  if (r.noStock) return 'error'
-  if (r.overStock) return 'error'
-  if (r.delta === 0) return 'success'
-  if (r.delta < 0)  return 'warning'
-  return 'info'
+function statusVariant(r: EnrichedRow): BaseBadgeVariant {
+  if (r.noStock || r.overStock) return 'neg';
+  if (r.delta === 0) return 'pos';
+  if (r.delta < 0) return 'warn';
+  return 'info';
 }
 
-function deltaClass(r: EnrichedRow): string {
-  if (r.noStock || r.overStock) return 'text-negative'
-  if (r.delta === 0) return 'text-positive'
-  if (r.delta < 0)  return 'text-warning'
-  return 'text-info'
-}
-
-// noStock-строки выносим в отдельный счётчик (не смешиваем с «Недостача»).
-const noStockCount = computed(() => enrichedRows.value.filter((r) => r.noStock).length)
-const matchCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta === 0).length)
-const shortCount = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta < 0).length)
-const overCount  = computed(() => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta > 0).length)
-const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overStock).length)
+const noStockCount = computed(() => enrichedRows.value.filter((r) => r.noStock).length);
+const matchCount = computed(
+  () => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta === 0).length,
+);
+const shortCount = computed(
+  () => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta < 0).length,
+);
+const overCount = computed(
+  () => enrichedRows.value.filter((r) => !r.overStock && !r.noStock && r.delta > 0).length,
+);
+const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overStock).length);
 </script>
 
 <style scoped lang="scss">
-.mp-correction-table {
+.correction-table {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3, 12px);
+  gap: var(--p-1, 4px);
 
-  &__grid {
-    width: 100%;
-    background: var(--p-surface);
-    border-radius: var(--p-r-md, 12px);
+  &__unit {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    padding-top: var(--p-2, 8px);
+    border-top: 1px solid var(--p-line);
 
-    :deep(.q-table__container),
-    :deep(.q-table__middle) {
-      width: 100%;
+    &:first-child {
+      border-top: 0;
+      padding-top: 0;
     }
 
-    :deep(table) {
-      width: 100%;
-      table-layout: fixed;
-    }
-
-    :deep(td), :deep(th) {
-      font-size: var(--p-fs-body, 14px);
-      overflow-wrap: anywhere;
-    }
-
-    // Поле «факт» не должно быть микроскопическим — даём минимум на ввод
-    :deep(.mp-correction-table__fact-input) {
-      min-width: 64px;
+    &--off {
+      opacity: 0.5;
     }
   }
 
-  &__cards {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3, 12px);
+  &__check {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
   }
 
-  &__card-head {
+  &__info {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink);
+    overflow-wrap: break-word;
+  }
+
+  &__meta {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__status {
+    flex: 0 0 auto;
+  }
+
+  // Кол-во и Цена/ед. — один ряд, как в приёмке имущества поставщика.
+  &__fact {
+    flex: 0 0 auto;
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
     gap: var(--p-2, 8px);
-    margin-bottom: var(--p-2, 8px);
-  }
+    width: 280px;
 
-  &__card-title {
-    font-weight: 500;
-    color: var(--p-ink);
-  }
-
-  &__card-sku {
-    font-size: var(--p-fs-meta, 12px);
-    color: var(--p-ink-3);
-    margin-top: 2px;
-  }
-
-  &__card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-    gap: var(--p-3, 12px);
-    align-items: end;
-  }
-
-  &__card-label {
-    font-size: 11px;
-    color: var(--p-ink-3);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    margin-bottom: 4px;
-  }
-
-  &__card-value {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--p-ink);
-  }
-
-  &__fact-input--mobile :deep(.q-field__control) {
-    min-height: 44px;
+    :deep(.base-input) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 
   &__summary {
@@ -368,7 +232,8 @@ const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overSto
     justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
-    padding-top: var(--p-2, 8px);
+    padding-top: var(--p-3, 12px);
+    margin-top: var(--p-2, 8px);
     border-top: 1px solid var(--p-line);
   }
 
@@ -381,6 +246,22 @@ const overStockCount = computed(() => enrichedRows.value.filter((r) => r.overSto
     display: flex;
     gap: var(--p-2, 8px);
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .correction-table {
+    &__unit {
+      flex-wrap: wrap;
+    }
+
+    &__fact {
+      width: 100%;
+    }
+
+    &__status {
+      order: 3;
+    }
   }
 }
 </style>

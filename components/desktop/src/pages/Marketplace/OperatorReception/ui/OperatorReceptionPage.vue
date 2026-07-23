@@ -5,9 +5,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { Avatar, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
+import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -337,9 +338,12 @@ const pickupFact = ref<Record<string, number>>({});
 // Фактическая цена за единицу, корректируется оператором на приёмке (B2):
 // по умолчанию = цена заказа (привезли хуже → принимаем со скидкой).
 const pickupPrice = ref<Record<string, string>>({});
-// Выбранные к приёмке единицы (R7). Снятая галка = не принимаем эту единицу;
-// если по партии не выбрано ни одной единицы — партия не создаётся и ждёт
-// (кейс экспедитора: одна партия здесь, другая ещё в пути).
+// Выбранные к приёмке единицы. Снятая галка = не принимаем эту единицу
+// (fact=0 → отказ в приёмке при подписи поставщика). Если сняты ВСЕ галки
+// по задекларированным партиям и добор не берём — кнопка становится
+// «Отказать в приёмке» и создаёт акты со всеми fact=0 (полный отказ партии).
+// Частичный кейс (часть партий без галок при выбранных в других) — пустые
+// партии по-прежнему пропускаем: они ждут (экспедитор: одна здесь, другая в пути).
 const selectedOrderIds = ref<Set<string>>(new Set());
 // Принимать ли добор по акцепту (ACCEPTED-заказы без партии) одним самовывозом.
 const takeAddon = ref(true);
@@ -359,44 +363,6 @@ const declaredOrders = computed(() =>
 const addonOrders = computed(() =>
   pickupOrders.value.filter((o) => o.status === 'ACCEPTED'),
 );
-
-// Группировка единиц приёмки по товару: несколько заказов одного товара (разные
-// заказчики) — одна группа с общим заголовком и суммой заказанного. Внутри —
-// строки по заказчикам (факт/цена правятся per-Order: бухгалтерия per-Order).
-interface PickupGroup {
-  key: string;
-  productName: string;
-  unit: string;
-  orderUnitSize: string | null;
-  orderedTotal: number;
-  orders: MarketplaceSupplierPickupOrderView[];
-}
-
-function groupOrdersByProduct(orders: MarketplaceSupplierPickupOrderView[]): PickupGroup[] {
-  const map = new Map<string, PickupGroup>();
-  for (const o of orders) {
-    const key = `${o.product_name ?? ''}|${o.unit_of_measure ?? ''}`;
-    const qty = Number(o.quantity) || 0;
-    const g = map.get(key);
-    if (g) {
-      g.orders.push(o);
-      g.orderedTotal += qty;
-    } else {
-      map.set(key, {
-        key,
-        productName: o.product_name || 'Товар по предложению',
-        unit: o.unit_of_measure ?? '',
-        orderUnitSize: o.order_unit_size ?? null,
-        orderedTotal: qty,
-        orders: [o],
-      });
-    }
-  }
-  return [...map.values()];
-}
-
-const declaredGroups = computed(() => groupOrdersByProduct(declaredOrders.value));
-const addonGroups = computed(() => groupOrdersByProduct(addonOrders.value));
 
 // Заголовок диалога приёмки: режим ТТН экспедитора vs приёмка по коду поставщика.
 const pickupDialogTitle = computed(() =>
@@ -427,8 +393,8 @@ function clampFact(orderId: string, ordered: number): void {
   else pickupFact.value[orderId] = Math.trunc(v);
 }
 
-// Сколько актов будет создано: по одному на каждую партию с ≥1 выбранной
-// единицей + один на добор (если принимаем и он есть).
+// Сколько актов будет создано при обычной приёмке: по одному на каждую партию
+// с ≥1 выбранной единицей + один на добор (если принимаем и он есть).
 const plannedReceptionsCount = computed(() => {
   const shipments = new Set<string>();
   for (const o of declaredOrders.value) {
@@ -436,6 +402,18 @@ const plannedReceptionsCount = computed(() => {
   }
   return shipments.size + (takeAddon.value && addonOrders.value.length ? 1 : 0);
 });
+
+// Все галки сняты, добор не берём — полный отказ в приёмке по видимым партиям.
+const isRejectAllReception = computed(
+  () =>
+    declaredOrders.value.length > 0 &&
+    !declaredOrders.value.some((o) => selectedOrderIds.value.has(o.id)) &&
+    !(takeAddon.value && addonOrders.value.length > 0),
+);
+
+const canSubmitPickup = computed(
+  () => isRejectAllReception.value || plannedReceptionsCount.value > 0,
+);
 
 // Единая точка открытия диалога приёмки по поставщику (QR-скан и «самовывоз по
 // факту» ведут сюда): грузим все единицы имущества поставщика на этом КУ и
@@ -467,7 +445,9 @@ async function openPickupForSupplier(account: string): Promise<void> {
     pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
-    pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
+    pickupPrice.value = Object.fromEntries(
+      orders.map((o) => [o.id, String(Number(o.price_per_unit) || 0)]),
+    );
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
     // Чекбокс «Принять добор» по умолчанию ВЫКЛЮЧЕН, когда есть привезённая
     // партия — добор не должен «залетать» автоматически, оператор включает его
@@ -514,7 +494,9 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
     pickupSupplierName.value = orders[0]?.supplier_name ?? '';
     pickupOrders.value = orders;
     pickupFact.value = Object.fromEntries(orders.map((o) => [o.id, o.quantity]));
-    pickupPrice.value = Object.fromEntries(orders.map((o) => [o.id, o.price_per_unit]));
+    pickupPrice.value = Object.fromEntries(
+      orders.map((o) => [o.id, String(Number(o.price_per_unit) || 0)]),
+    );
     selectedOrderIds.value = new Set(orders.map((o) => o.id));
     takeAddon.value = false;
     pickupDialogOpen.value = true;
@@ -566,20 +548,18 @@ function consumeHandoffQuery(): void {
   void onQrScanned(code);
 }
 
-// Сформировать акты приёмки по выбранному: на каждую партию с выбранными
-// единицами — createAplReception с фактическим кол-вом per-Order (R5; невыбранные
-// единицы партии = 0, потолок = заказано). Не выбранные целиком партии остаются
-// ждать. Добор по акцепту — express-самовывозом.
+// Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
+// с фактическим кол-вом per-Order (невыбранные = 0). Полный отказ (все галки
+// сняты) — акты по всем видимым партиям со всеми fact=0; поставщик подтвердит
+// отмену в гейте → declineorder + возврат заказчикам. Частичный: партии без
+// выбранных единиц пропускаем (ждут). Добор по акцепту — express-самовывозом.
 const acceptingPickup = ref(false);
 
 async function acceptPickup(): Promise<void> {
   acceptingPickup.value = true;
   let created = 0;
+  const rejectAll = isRejectAllReception.value;
   try {
-    // Задекларированные единицы → по партиям (shipment_id); партию без выбранных
-    // единиц пропускаем (она ждёт). Связь по shipment_id обязательна при
-    // нескольких частичных партиях на одном КУ — группировка по cycle_id брала бы
-    // не ту партию.
     const byShipment = new Map<string, MarketplaceSupplierPickupOrderView[]>();
     for (const o of declaredOrders.value) {
       if (!o.shipment_id) continue;
@@ -589,20 +569,23 @@ async function acceptPickup(): Promise<void> {
     }
     for (const [shipment_id, orders] of byShipment) {
       const anySelected = orders.some((o) => selectedOrderIds.value.has(o.id));
-      if (!anySelected) continue;
+      // Полный отказ — создаём акт и по партиям без галок; иначе пустые ждут.
+      if (!rejectAll && !anySelected) continue;
       await createAplReception({
         shipment_id,
         fact_quantity_per_order: orders.map((o) => ({
           order_id: o.id,
-          fact_quantity: selectedOrderIds.value.has(o.id) ? pickupFact.value[o.id] ?? o.quantity : 0,
+          fact_quantity:
+            !rejectAll && selectedOrderIds.value.has(o.id)
+              ? pickupFact.value[o.id] ?? o.quantity
+              : 0,
           fact_unit_price: pickupPrice.value[o.id] ?? o.price_per_unit,
         })),
       });
       created += 1;
     }
-    // Добор по акцепту — самовывозом (принимается весь добор поставщика на КУ)
-    // с фактическим количеством и ценой по каждой единице (B2/R5).
-    if (takeAddon.value && addonOrders.value.length) {
+    // Добор по акцепту — только при обычной приёмке (не при полном отказе).
+    if (!rejectAll && takeAddon.value && addonOrders.value.length) {
       const result = await createExpressReception({
         offerer_account: pickupAccount.value,
         braname: braname.value.trim(),
@@ -614,9 +597,20 @@ async function acceptPickup(): Promise<void> {
       });
       created += result.apl_receptions.length;
     }
-    SuccessAlert(created > 1 ? `Создано актов приёмки: ${created}` : 'Акт приёмки создан');
+    if (rejectAll) {
+      SuccessAlert(
+        'Отказ в приёмке оформлен. Поставщик подтвердит отмену — заказчикам вернётся оплата.',
+      );
+    } else {
+      SuccessAlert(created > 1 ? `Создано актов приёмки: ${created}` : 'Акт приёмки создан');
+    }
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать часть актов — проверьте ленту и повторите');
+    FailAlert(
+      e,
+      rejectAll
+        ? 'Не удалось оформить отказ в приёмке'
+        : 'Не удалось сформировать часть актов — проверьте ленту и повторите',
+    );
   } finally {
     acceptingPickup.value = false;
     pickupDialogOpen.value = false;
@@ -819,104 +813,113 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
   ScannerDialog(v-model='scanDialogOpen', title='Сканирование QR партии', @scanned='onQrScanned')
 
-  //- Эпик 14: агрегирующая приёмка по account-bound коду. Плоский список единиц
-  //- имущества (R7a): сверху — задекларированные в партии (по ТТН), ниже
-  //- разделитель и добор по акцепту. Факт правится на месте, потолок = заказано (R5).
+  //- Эпик 14: агрегирующая приёмка. Каркас — ActDialogLayout (как выдача и
+  //- подписи АПП): lead + карточка позиций + футер BaseDialog.
   BaseDialog(v-model='pickupDialogOpen', :title='pickupDialogTitle', maximized)
-    .reception__pickup
-      .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
-      .reception__pickup-hint
-        | По каждой единице скорректируйте фактическое количество (не выше
-        | заказанного) и цену.
-        template(v-if='declaredGroups.length')
-          |  Снимите галку с задекларированной единицы, чтобы не принимать её;
-          | партия без выбранных единиц не создаётся и ждёт.
+    ActDialogLayout(v-if='pickupDialogOpen')
+      template(#head)
+        .reception__pickup-account {{ pickupSupplierName || pickupAccount }}
+      template(#lead)
+        | По каждой позиции сверьте заказанное с фактом: поправьте количество
+        | (не выше заказанного) и цену.
+        template(v-if='declaredOrders.length')
+          |  Снимите галку, чтобы не принимать позицию; партия без выбранных
+          | позиций не создаётся и ждёт.
 
-      template(v-if='declaredGroups.length')
+      template(v-if='declaredOrders.length')
         .reception__pickup-section Задекларировано в партии (по ТТН)
-        .reception__group(v-for='g in declaredGroups', :key='g.key')
-          .reception__group-head
-            span.reception__group-title {{ g.productName }}
-            span.reception__group-total Заказано {{ g.orderedTotal }} {{ marketplaceOrderUnitLabel(g.unit, g.orderUnitSize) }}
-          .reception__unit(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !isSelected(o.id) }')
-            q-checkbox(
-              :model-value='isSelected(o.id)',
-              dense,
-              @update:model-value='(v) => toggleOrder(o.id, v)'
+        .reception__unit(
+          v-for='o in declaredOrders',
+          :key='o.id',
+          :class='{ "reception__unit--off": !isSelected(o.id) }'
+        )
+          BaseCheckbox(
+            :model-value='isSelected(o.id)',
+            @update:model-value='(v) => toggleOrder(o.id, v)'
+          )
+          .reception__unit-info
+            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+            .reception__unit-meta(v-if='shipmentForOrder(o)?.ttn_number')
+              | ТТН {{ shipmentForOrder(o)?.ttn_number }}
+          .reception__unit-fact
+            BaseInput(
+              :model-value='o.quantity',
+              type='number',
+              label='Заказано',
+              readonly,
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
             )
-            .reception__unit-info
-              .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
-              .reception__unit-meta
-                | Заказано {{ o.quantity }} {{ marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size) }}
-                template(v-if='shipmentForOrder(o)?.ttn_number')  · ТТН {{ shipmentForOrder(o)?.ttn_number }}
-            .reception__unit-fact
-              //- Кламп на каждом изменении, не только на blur: стрелки
-              //- спиннера успевали показать «11 при заказе 10», хотя при
-              //- отправке значение всё равно срезалось — вводило в заблуждение.
-              BaseInput(
-                v-model.number='pickupFact[o.id]',
-                type='number',
-                label='Кол-во',
-                :min='0',
-                :max='o.quantity',
-                :disable='!isSelected(o.id)',
-                :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
-                @update:model-value='() => clampFact(o.id, o.quantity)',
-                @blur='clampFact(o.id, o.quantity)'
-              )
-              BaseInput(
-                v-model='pickupPrice[o.id]',
-                type='number',
-                label='Цена/ед.',
-                :disable='!isSelected(o.id)'
-              )
+            BaseInput(
+              v-model.number='pickupFact[o.id]',
+              type='number',
+              label='Принять',
+              :min='0',
+              :max='o.quantity',
+              :disabled='!isSelected(o.id)',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              @update:model-value='() => clampFact(o.id, o.quantity)',
+              @blur='clampFact(o.id, o.quantity)'
+            )
+            BaseInput(
+              v-model='pickupPrice[o.id]',
+              type='number',
+              label='Цена/ед.',
+              :disabled='!isSelected(o.id)'
+            )
 
-      template(v-if='addonGroups.length')
-        //- Обёртку «Добор по акцепту» + чекбокс показываем ТОЛЬКО при наличии
-        //- партии: без партии standalone-«Принять добор» путает оператора. С
-        //- партией чекбокс по умолчанию выключен — добор не включается сам.
-        template(v-if='declaredGroups.length')
+      template(v-if='addonOrders.length')
+        template(v-if='declaredOrders.length')
           .reception__pickup-divider
           .reception__pickup-section-row
             .reception__pickup-section Добор по акцепту (вне партии)
-            q-checkbox(v-model='takeAddon', dense, label='Принять добор')
-        //- Без партии — это просто имущество поставщика; принимаем без обёртки
-        //- «добор» (добор включён скрыто, см. openPickupForSupplier).
+            BaseCheckbox(v-model='takeAddon', label='Принять добор')
         .reception__pickup-section(v-else) Имущество поставщика
-        .reception__group(v-for='g in addonGroups', :key='g.key')
-          .reception__group-head
-            span.reception__group-title {{ g.productName }}
-            span.reception__group-total Акцептовано {{ g.orderedTotal }} {{ marketplaceOrderUnitLabel(g.unit, g.orderUnitSize) }}
-          .reception__unit.reception__unit--addon(v-for='o in g.orders', :key='o.id', :class='{ "reception__unit--off": !takeAddon }')
-            q-icon(name='add_circle_outline', size='16px')
-            .reception__unit-info
-              .reception__unit-title для {{ o.orderer_name || o.orderer_account }}
-              .reception__unit-meta Акцептовано {{ o.quantity }} {{ marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size) }}
-            .reception__unit-fact
-              BaseInput(
-                v-model.number='pickupFact[o.id]',
-                type='number',
-                label='Кол-во',
-                :min='0',
-                :max='o.quantity',
-                :disable='!takeAddon',
-                :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
-                @update:model-value='() => clampFact(o.id, o.quantity)',
-                @blur='clampFact(o.id, o.quantity)'
-              )
-              BaseInput(
-                v-model='pickupPrice[o.id]',
-                type='number',
-                label='Цена/ед.',
-                :disable='!takeAddon'
-              )
+        .reception__unit.reception__unit--addon(
+          v-for='o in addonOrders',
+          :key='o.id',
+          :class='{ "reception__unit--off": !takeAddon }'
+        )
+          q-icon.reception__unit-addon-icon(name='add_circle_outline', size='18px')
+          .reception__unit-info
+            .reception__unit-title {{ o.product_name || 'Товар по предложению' }}
+          .reception__unit-fact
+            BaseInput(
+              :model-value='o.quantity',
+              type='number',
+              label='Акцепт',
+              readonly,
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
+            )
+            BaseInput(
+              v-model.number='pickupFact[o.id]',
+              type='number',
+              label='Принять',
+              :min='0',
+              :max='o.quantity',
+              :disabled='!takeAddon',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              @update:model-value='() => clampFact(o.id, o.quantity)',
+              @blur='clampFact(o.id, o.quantity)'
+            )
+            BaseInput(
+              v-model='pickupPrice[o.id]',
+              type='number',
+              label='Цена/ед.',
+              :disabled='!takeAddon'
+            )
 
-      .reception__pickup-actions
-        BaseButton(variant='ghost', size='sm', @click='pickupDialogOpen = false') Отмена
-        BaseButton(variant='primary', size='sm', :loading='acceptingPickup', :disabled='!plannedReceptionsCount', @click='acceptPickup')
-          template(#icon-left)
-            q-icon(name='how_to_reg', size='16px')
-          | Сформировать акты ({{ plannedReceptionsCount }})
+    template(#footer)
+      BaseButton(variant='ghost', @click='pickupDialogOpen = false') Отмена
+      BaseButton(
+        :variant='isRejectAllReception ? "negative" : "primary"',
+        :loading='acceptingPickup',
+        :disabled='!canSubmitPickup',
+        @click='acceptPickup'
+      )
+        template(#icon-left)
+          q-icon(:name='isRejectAllReception ? "block" : "how_to_reg"', size='18px')
+        span(v-if='isRejectAllReception') Отказать в приёмке
+        span(v-else) Сформировать акты ({{ plannedReceptionsCount }})
 </template>
 
 <style scoped lang="scss">
@@ -1057,27 +1060,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     justify-content: flex-end;
   }
 
-  &__pickup {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-  }
-
   &__pickup-account {
-    font-size: var(--p-fs-body, 14px);
+    font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     color: var(--p-ink);
-    font-family: var(--font-mono);
-  }
-
-  &__pickup-hint {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    margin-bottom: var(--p-2, 8px);
   }
 
   &__pickup-section {
-    font-size: var(--p-fs-body-sm, 13px);
+    font-size: var(--p-fs-meta, 12px);
     font-weight: 600;
     color: var(--p-ink-2);
     text-transform: uppercase;
@@ -1094,53 +1084,28 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   &__pickup-divider {
     height: 1px;
     background: var(--p-line);
-    margin: var(--p-3, 12px) 0 var(--p-1, 4px);
-  }
-
-  &__pickup-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--p-2, 8px);
-    margin-top: var(--p-3, 12px);
-  }
-
-  &__group {
-    display: flex;
-    flex-direction: column;
-    margin-top: var(--p-3, 12px);
-  }
-
-  &__group-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--p-3, 12px);
-    padding-bottom: var(--p-1, 4px);
-  }
-
-  &__group-title {
-    font-size: var(--p-fs-body, 14px);
-    font-weight: 600;
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__group-total {
-    flex: 0 0 auto;
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-    font-variant-numeric: tabular-nums;
+    margin: var(--p-2, 8px) 0;
   }
 
   &__unit {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--p-2, 8px);
-    padding-top: var(--p-2, 8px);
+    padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
+
+    &:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+    }
 
     &--off {
       opacity: 0.5;
+    }
+
+    &--addon .reception__unit-addon-icon {
+      color: var(--p-ink-3);
+      flex-shrink: 0;
     }
   }
 
@@ -1151,8 +1116,9 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
   &__unit-title {
     font-size: var(--p-fs-body, 14px);
+    font-weight: 600;
     color: var(--p-ink);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   &__unit-meta {
@@ -1161,14 +1127,13 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
     font-variant-numeric: tabular-nums;
   }
 
-  //- Кол-во и Цена/ед. — один горизонтальный ряд, оба с label (одинаковая высота,
-  //- выровнены сверху), чтобы инпуты не «прыгали» друг относительно друга.
+  // Заказано (readonly) · Принять · Цена/ед. — один ряд, как сверка на выдаче.
   &__unit-fact {
     flex: 0 0 auto;
     display: flex;
     align-items: flex-start;
     gap: var(--p-2, 8px);
-    width: 280px;
+    width: 420px;
 
     :deep(.base-input) {
       flex: 1 1 0;
@@ -1183,6 +1148,14 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
 
     &__grid {
       grid-template-columns: 1fr;
+    }
+
+    &__unit {
+      flex-wrap: wrap;
+    }
+
+    &__unit-fact {
+      width: 100%;
     }
   }
 }

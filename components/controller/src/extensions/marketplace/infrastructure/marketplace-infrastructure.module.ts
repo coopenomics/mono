@@ -78,6 +78,7 @@ import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supp
 import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
+import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
 import { MarketplaceOutgoingPaymentRequestMapper } from './mappers/marketplace-outgoing-payment-request.mapper';
 import { MarketplaceTtnDocumentMapper } from './mappers/marketplace-ttn-document.mapper';
 import { MarketplaceReturnClaimMapper } from './mappers/marketplace-return-claim.mapper';
@@ -307,6 +308,7 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     },
     // Story 5.3 / 5.4 — АПП приёмки на КУ
     MarketplaceAplReceptionMapper,
+    MarketplaceAplReceptionIndexInitializer,
     {
       provide: MARKETPLACE_APL_RECEPTION_REPOSITORY,
       useClass: MarketplaceAplReceptionRepositoryAdapter,

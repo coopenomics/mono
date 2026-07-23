@@ -57,8 +57,10 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Shipment: ['create:own'],
     // Story 5.3/5.4: поставщик подписывает АПП первым (по приходу
     // имущества). `sign:first` оставлен для backward-compat, `sign:as-supplier`
-    // — каноническая action из AC Story 5.4.
-    Receiving: ['sign:first', 'sign:as-supplier'],
+    // — каноническая action из AC Story 5.4. `cancel:own` — отказ от
+    // черновика приёмки до своей подписи (onsite-gate «Отменить»): on-chain
+    // ещё ничего нет, партия возвращается оператору к повторной приёмке.
+    Receiving: ['sign:first', 'sign:as-supplier', 'cancel:own'],
     KU: ['read'],
     Vitrine: ['read'],
     Economy: ['read'],

@@ -5,12 +5,14 @@ import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from './marketplace-ku-chairman.service';
 import {
   MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT,
+  MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
@@ -24,6 +26,7 @@ import {
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
   MARKETPLACE_SUPPLIER_APPROVED_EVENT,
   type MarketplaceAplSupplierSignRequestEvent,
+  type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
   type MarketplaceNewOrderForSupplierEvent,
@@ -98,6 +101,42 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
   }
 
+  @OnEvent(MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT)
+  async handleAplReceptionCancelledBySupplier(
+    event: MarketplaceAplReceptionCancelledBySupplierEvent
+  ): Promise<void> {
+    try {
+      const operatorName = await this.accountPort.getDisplayName(event.operator_account);
+      const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const payload: Workflows.MarketplaceAplReceptionCancelledBySupplier.IPayload = {
+        operatorName,
+        supplierName,
+        kuName,
+        coopname: event.coopname,
+        apl_reception_id: event.apl_reception_id,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/reception`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.operator_account,
+        Workflows.MarketplaceAplReceptionCancelledBySupplier.id,
+        payload
+      );
+      this.logger.log(
+        `АПП ${event.apl_reception_id}: push оператору ${event.operator_account} об отмене поставщиком отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `АПП ${event.apl_reception_id}: ошибка отправки push оператору об отмене поставщиком (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
   @OnEvent(MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT)
   async handleCashierNewPayment(event: MarketplaceCashierNewPaymentEvent): Promise<void> {
     try {
@@ -120,7 +159,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const payload: Workflows.MarketplaceCashierNewPayment.IPayload = {
         cashierName,
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
         coopname: event.coopname,
@@ -218,7 +257,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentConfirmed.IPayload = {
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         paymentReference: event.payment_reference,
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
@@ -366,7 +405,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
       switch (event.decision) {
         case 'accept_at_visit':
           outcomeHuman = 'Возврат принят — средства восстановлены на программе Стола Заказов';
-          returnedAmount = event.ledger_snapshot?.amount;
+          returnedAmount = event.ledger_snapshot?.amount
+            ? AmountFormatterUtils.formatAmountSafe(event.ledger_snapshot.amount)
+            : undefined;
           break;
         case 'reject_remote':
           outcomeHuman = 'Возврат отклонён удалённо председателем';
@@ -407,7 +448,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       const supplierName = await this.accountPort.getDisplayName(event.supplier_account);
       const payload: Workflows.MarketplaceSupplierPaymentDeclined.IPayload = {
         supplierName,
-        amount: event.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         reason: event.reason,
         apl_reception_id: event.apl_reception_id,
         payment_request_id: event.payment_request_id,
@@ -438,7 +479,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         supplierName,
         ordererName,
         quantity: event.quantity,
-        totalCost: event.total_cost,
+        totalCost: AmountFormatterUtils.formatAmountSafe(event.total_cost),
         coopname: event.coopname,
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,

@@ -9,6 +9,7 @@ import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/u
 import { Inject } from '@nestjs/common';
 import { TokenContract } from 'cooptypes';
 import type { IAction } from '~/types';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 
 /**
  * Сервис обработки событий для отправки уведомлений
@@ -74,7 +75,7 @@ export class NotificationEventService {
 
       // Подготавливаем payload для уведомления согласно схеме из @coopenomics/notifications
       const notificationPayload: Workflows.NewTransfer.IPayload = {
-        quantity: transferAmount,
+        quantity: AmountFormatterUtils.formatAmountSafe(transferAmount),
       };
 
       // Отправляем уведомление используя воркфлоу из пакета @coopenomics/notifications

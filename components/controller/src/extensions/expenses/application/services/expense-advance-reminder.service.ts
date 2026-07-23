@@ -3,6 +3,7 @@ import { Interval } from '@nestjs/schedule';
 import { Workflows } from '@coopenomics/notifications';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
 import config from '~/config/config';
+import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,
@@ -131,7 +132,7 @@ export class ExpenseAdvanceReminderService implements OnModuleInit {
       link,
       advances: advances.map((advance) => ({
         description: advance.description,
-        amount: advance.amount,
+        amount: AmountFormatterUtils.formatAmountSafe(advance.amount),
         url: `${base}/${advance.proposal_hash}`,
       })),
     };

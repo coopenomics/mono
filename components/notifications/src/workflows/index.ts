@@ -26,6 +26,7 @@ import { workflow as decisionExpiredWorkflow } from './decision-expired';
 import { workflow as chatcoopCalendarEventCreatedWorkflow } from './chatcoop-calendar-event-created';
 import { workflow as chatcoopCalendarEventUpdatedWorkflow } from './chatcoop-calendar-event-updated';
 import { workflow as marketplaceAplSupplierSignRequestWorkflow } from './marketplace-apl-supplier-sign-request';
+import { workflow as marketplaceAplReceptionCancelledBySupplierWorkflow } from './marketplace-apl-reception-cancelled-by-supplier';
 import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-cashier-new-payment';
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
@@ -76,6 +77,7 @@ export * as DecisionExpired from './decision-expired';
 export * as ChatCoopCalendarEventCreated from './chatcoop-calendar-event-created';
 export * as ChatCoopCalendarEventUpdated from './chatcoop-calendar-event-updated';
 export * as MarketplaceAplSupplierSignRequest from './marketplace-apl-supplier-sign-request';
+export * as MarketplaceAplReceptionCancelledBySupplier from './marketplace-apl-reception-cancelled-by-supplier';
 export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment';
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
@@ -123,6 +125,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   chatcoopCalendarEventCreatedWorkflow,
   chatcoopCalendarEventUpdatedWorkflow,
   marketplaceAplSupplierSignRequestWorkflow,
+  marketplaceAplReceptionCancelledBySupplierWorkflow,
   marketplaceCashierNewPaymentWorkflow,
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,

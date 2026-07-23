@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
+import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
@@ -168,21 +169,21 @@ BaseDialog(
   maximized
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  .sign-apl(v-if="group")
-    .sign-apl__head
-      q-icon(name="local_shipping", size="28px")
-      .sign-apl__ident
-        span.sign-apl__name Поставка на {{ kuName }}
-        span.sign-apl__addr(v-if="kuAddr")
-          q-icon(name="place", size="14px")
-          | {{ kuAddr }}
-        span.sign-apl__sub {{ variantLabel }}
-      .sign-apl__meta(v-if="group.ttnNumbers.length")
-        span.sign-apl__ttn-label
-          q-icon(name="description", size="14px")
-          | {{ group.ttnNumbers.length > 1 ? 'Товарно-транспортные накладные' : 'Товарно-транспортная накладная' }}
-        .sign-apl__ttn-list
-          BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
+  ActDialogLayout(v-if="group")
+    template(#head)
+      .sign-apl__top
+        .sign-apl__ident
+          span.sign-apl__name Поставка на {{ kuName }}
+          span.sign-apl__addr(v-if="kuAddr")
+            q-icon(name="place", size="14px")
+            | {{ kuAddr }}
+          span.sign-apl__sub {{ variantLabel }}
+        .sign-apl__meta(v-if="group.ttnNumbers.length")
+          span.sign-apl__ttn-label
+            q-icon(name="description", size="14px")
+            | {{ group.ttnNumbers.length > 1 ? 'ТТН' : 'ТТН' }}
+          .sign-apl__ttn-list
+            BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
 
     template(v-if="!showActs")
       .sign-apl__section-head(v-if="hasRejected && hasAccepted") Принимается
@@ -216,34 +217,30 @@ BaseDialog(
           | отменяете их поставку — заказчикам возвращается полная стоимость и
           | членский взнос, удержания с вас нет.
 
-    q-card(v-if="showActs", flat, bordered).sign-apl__preview
+    .sign-apl__preview(v-else)
       q-inner-loading(:showing="previewLoading")
         q-spinner(size="28px")
-      q-card-section.q-pa-md(v-if="previewHtml")
-        div(v-html="previewHtml")
+      div(v-if="previewHtml", v-html="previewHtml")
 
   template(#footer)
     BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
     BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group || !hasAccepted", @click="toggleActs")
       template(#icon-left)
-        q-icon(name="description", size="16px")
+        q-icon(name="description", size="18px")
       | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
     BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
       template(#icon-left)
-        q-icon(name="draw", size="16px")
+        q-icon(name="draw", size="18px")
       span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
       span(v-else) {{ confirmLabel }}
 </template>
 
 <style scoped lang="scss">
 .sign-apl {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3, 12px);
-
-  &__head {
+  &__top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
   }
@@ -259,16 +256,16 @@ BaseDialog(
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     color: var(--p-ink);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   &__addr {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--p-1, 4px);
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
 
     .q-icon {
       flex: 0 0 auto;
@@ -285,14 +282,13 @@ BaseDialog(
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
-    margin-left: auto;
     align-items: flex-end;
   }
 
   &__ttn-label {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--p-1, 4px);
     font-size: var(--p-fs-meta, 12px);
     font-weight: 600;
     text-transform: uppercase;
@@ -319,7 +315,7 @@ BaseDialog(
 
     th,
     td {
-      padding: var(--p-2, 8px) var(--p-2, 8px);
+      padding: var(--p-2, 8px);
       border-bottom: 1px solid var(--p-line);
       text-align: left;
       color: var(--p-ink);
@@ -343,15 +339,15 @@ BaseDialog(
 
   &__preview {
     position: relative;
-    min-height: 80px;
-    max-height: 60vh;
+    min-height: 120px;
+    max-height: 55vh;
     overflow: auto;
   }
 
   &__section-head {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--p-1, 4px);
     font-size: var(--p-fs-meta, 12px);
     font-weight: 600;
     text-transform: uppercase;
@@ -369,7 +365,7 @@ BaseDialog(
   }
 
   &__refuse {
-    margin-top: var(--p-3, 12px);
+    margin-top: var(--p-2, 8px);
     padding: var(--p-3, 12px);
     border: 1px solid var(--p-neg-soft, var(--p-line));
     border-radius: var(--p-r-md, 12px);

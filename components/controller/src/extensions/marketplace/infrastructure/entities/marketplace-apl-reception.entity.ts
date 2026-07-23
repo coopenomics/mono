@@ -16,20 +16,24 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 
 /**
  * Story 5.3 / 5.4: TypeORM-сущность АПП приёмки. Один Shipment имеет ровно
- * одну активную АПП.
+ * одну активную АПП (CANCELLED не блокирует повторную приёмку той же партии).
  *
  * Hot-path индексы:
- *   - `(coopname, shipment_id)` unique — операторская обвязка по Shipment'у;
+ *   - `(coopname, shipment_id)` partial-unique WHERE status <> CANCELLED;
  *   - `(coopname, braname, status)` — operator-стол текущих АПП по КУ;
  *   - `(coopname, offerer_account, status)` — offerer-стол для асинхронной
  *     подписи (Вариант Б);
- *   - `(coopname, ttn_number)` partial-unique — Story 5.4 поиск по ТТН.
+ *   - `(coopname, ttn_number)` partial-unique — Story 5.4 поиск по ТТН,
+ *     тоже без CANCELLED (повторная приёмка той же ТТН после отката).
  */
 @Entity({ name: 'marketplace_apl_reception' })
-@Index('IDX_marketplace_apl_reception_shipment_unique', ['coopname', 'shipment_id'], { unique: true })
+@Index('IDX_marketplace_apl_reception_shipment_unique', ['coopname', 'shipment_id'], {
+  unique: true,
+  where: "status <> 'CANCELLED'",
+})
 @Index('IDX_marketplace_apl_reception_ttn_unique', ['coopname', 'ttn_number'], {
   unique: true,
-  where: 'ttn_number IS NOT NULL',
+  where: "ttn_number IS NOT NULL AND status <> 'CANCELLED'",
 })
 @Index(['coopname', 'braname', 'status'])
 @Index(['coopname', 'offerer_account', 'status'])
