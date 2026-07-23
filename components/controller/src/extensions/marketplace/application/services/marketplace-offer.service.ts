@@ -85,7 +85,12 @@ export interface OfferCreateRequest {
   unlimited_flag: boolean;
   /** КУ поставки с минимальным объёмом на каждом. */
   delivery_points: MarketplaceOfferDeliveryPoint[];
-  warranty_days: number;
+  /**
+   * Срок годности имущества в днях (задаёт поставщик). Основа списания
+   * скоропорта. Гарантийный срок возврата (`warranty_days`) поставщик не
+   * указывает — его устанавливает модератор при одобрении.
+   */
+  shelf_life_days: number;
   barcode_strategy?: MarketplaceBarcodeStrategy | null;
   pack_size?: number | null;
   /** Изображения товара (base64). Порядок в массиве = порядок показа. */
@@ -174,7 +179,11 @@ export class MarketplaceOfferService {
       quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
       unlimited_flag: input.unlimited_flag,
       delivery_points: this.normalizeDeliveryPoints(input.delivery_points),
-      warranty_days: input.warranty_days,
+      shelf_life_days: input.shelf_life_days,
+      // Гарантийный срок возврата устанавливает модератор при одобрении;
+      // при создании поставщиком он не задан (0 = возврат недоступен, пока
+      // председатель не проставит срок на модерации).
+      warranty_days: 0,
       barcode_strategy,
       pack_size,
       images,
@@ -221,8 +230,8 @@ export class MarketplaceOfferService {
       this.assertSaleUnitSize(patch.order_unit_size);
       patch.order_unit_size = patch.order_unit_size.trim();
     }
-    if (patch.warranty_days !== undefined && patch.warranty_days < 0) {
-      throw new BadRequestException('Срок гарантии не может быть отрицательным.');
+    if (patch.shelf_life_days !== undefined && patch.shelf_life_days < 0) {
+      throw new BadRequestException('Срок годности не может быть отрицательным.');
     }
 
     if (patch.barcode_strategy !== undefined || patch.pack_size !== undefined) {
@@ -241,7 +250,7 @@ export class MarketplaceOfferService {
     // меняет часто и без участия председателя — их правка НЕ снимает оффер с
     // публикации и не шлёт на повторную модерацию. Любое же изменение
     // «модерационно-значимого» контента (название, описание, категория,
-    // фото, единица измерения, условия цикла, гарантия, штрихкод) — то, что
+    // фото, единица измерения, условия цикла, срок годности, штрихкод) — то, что
     // председатель видит и проверяет, — сбрасывает статус в PENDING_MODERATION
     // (кроме WITHDRAWN — см. ниже). requireOwnedEditable пропускает сюда любой
     // не-удалённый статус. Для REJECTED любая правка — это исправление причины
@@ -445,8 +454,8 @@ export class MarketplaceOfferService {
       }
     }
 
-    if (input.warranty_days < 0) {
-      throw new BadRequestException('Срок гарантии не может быть отрицательным.');
+    if (input.shelf_life_days < 0) {
+      throw new BadRequestException('Срок годности не может быть отрицательным.');
     }
 
     if (input.barcode_strategy !== undefined && input.barcode_strategy !== null) {

@@ -17,6 +17,7 @@ import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
+import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchAllOffers } from '../api';
 import type { AdminOfferView, AdminOfferStatusView } from '../types';
@@ -52,6 +53,7 @@ const columns = [
   { name: 'supplier', align: 'left' as const, label: 'Поставщик', field: 'supplier_account' },
   { name: 'price', align: 'right' as const, label: 'Цена', field: 'price_per_unit' },
   { name: 'available', align: 'right' as const, label: 'Доступно', field: 'quantity_available' },
+  { name: 'shelf_life', align: 'right' as const, label: 'Срок годности', field: 'shelf_life_days' },
   { name: 'warranty', align: 'right' as const, label: 'Гарантийный срок возврата', field: 'warranty_days' },
   { name: 'created', align: 'left' as const, label: 'Создано', field: 'created_at' },
   { name: 'actions', align: 'right' as const, label: '', field: 'id' },
@@ -84,6 +86,9 @@ function formatPrice(v: string | null | undefined): string {
 function formatWarranty(days: number | null | undefined): string {
   return days && days > 0 ? `${days} дн.` : 'Без гарантийного срока возврата';
 }
+function formatShelfLife(days: number | null | undefined): string {
+  return days && days > 0 ? `${days} дн.` : 'Без срока годности';
+}
 function supplierTitle(o: AdminOfferView): string {
   return fioCache.value.get(o.supplier_account) || o.supplier_account || '—';
 }
@@ -95,6 +100,17 @@ function formatDate(d: unknown): string {
     : parsed.toLocaleString('ru-RU', {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
       });
+}
+
+// Редактирование гарантийного срока возврата предложения — операция модератора
+// (председателя). Срок годности (скоропорт) правит поставщик в своей форме.
+const { confirmSetWarranty, isSettingWarranty } = useOfferModeration({
+  onWarrantyChanged: () => void load(),
+});
+
+function editWarranty(o: AdminOfferView): void {
+  if (!o.id) return;
+  confirmSetWarranty({ id: o.id, product_name: o.product_name || 'Предложение' }, o.warranty_days ?? 0);
 }
 
 function goToOffer(o: AdminOfferView): void {
@@ -200,20 +216,32 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
         q-td.text-right.font-monospace(:props="props") {{ formatPrice(props.row.price_per_unit) }}
       template(#body-cell-available="props")
         q-td.text-right(:props="props") {{ props.row.unlimited_flag ? '∞' : props.row.quantity_available }} {{ unitLabel(props.row) }}
+      template(#body-cell-shelf_life="props")
+        q-td.text-right(:props="props") {{ formatShelfLife(props.row.shelf_life_days) }}
       template(#body-cell-warranty="props")
         q-td.text-right(:props="props") {{ formatWarranty(props.row.warranty_days) }}
       template(#body-cell-created="props")
         q-td(:props="props") {{ formatDate(props.row.created_at) }}
       template(#body-cell-actions="props")
         q-td.text-right(:props="props", @click.stop)
-          BaseButton(
-            variant="secondary",
-            size="sm",
-            @click="goToOffer(props.row)"
-          )
-            template(#icon-left)
-              q-icon(name="open_in_new", size="16px")
-            | Открыть
+          .admin-offers__row-actions
+            BaseButton(
+              variant="secondary",
+              size="sm",
+              :loading="isSettingWarranty(props.row.id)",
+              @click="editWarranty(props.row)"
+            )
+              template(#icon-left)
+                q-icon(name="event_repeat", size="16px")
+              | Гарант. срок
+            BaseButton(
+              variant="secondary",
+              size="sm",
+              @click="goToOffer(props.row)"
+            )
+              template(#icon-left)
+                q-icon(name="open_in_new", size="16px")
+              | Открыть
       template(#no-data)
         .admin-offers__nodata
           EmptyState(
@@ -235,6 +263,12 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
     width: 100%;
     display: flex;
     justify-content: center;
+  }
+
+  &__row-actions {
+    display: inline-flex;
+    gap: var(--p-2, 8px);
+    justify-content: flex-end;
   }
 
   &__chips {

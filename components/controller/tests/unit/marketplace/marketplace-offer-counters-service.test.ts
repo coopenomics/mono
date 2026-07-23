@@ -41,6 +41,7 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     quantity_consumed: 0,
     unlimited_flag: false,
     delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }],
+    shelf_life_days: 0,
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,

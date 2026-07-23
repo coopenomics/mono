@@ -169,16 +169,16 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               @update:model-value='onToggleUnlimited'
             )
           q-input(
-            v-model.number='form.warranty_days',
-            label='Гарантийный срок возврата (дней)',
+            v-model.number='form.shelf_life_days',
+            label='Срок годности (дней)',
             type='number',
             min='0',
             outlined,
             dense,
             no-error-icon,
             reserve-hint-space,
-            hint='0 — без гарантийного срока возврата: возврат невозможен. Иначе — конечный срок в днях',
-            :rules='[(v) => (v !== null && v >= 0) || "Гарантийный срок возврата не может быть отрицательным"]'
+            hint='По сроку годности имущество списывается со склада как скоропорт. 0 — без срока годности (не списывается). Гарантийный срок возврата назначает председатель при модерации.',
+            :rules='[(v) => (v !== null && v >= 0) || "Срок годности не может быть отрицательным"]'
           )
 
         //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
@@ -305,9 +305,9 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   .offer-preview__spec(v-if='form.delivery_points.length')
                     dt Участки поставки
                     dd {{ deliveryPointsPreview }}
-                  .offer-preview__spec(v-if='form.warranty_days > 0')
-                    dt Гарантийный срок возврата
-                    dd {{ form.warranty_days }} дн.
+                  .offer-preview__spec(v-if='form.shelf_life_days > 0')
+                    dt Срок годности
+                    dd {{ form.shelf_life_days }} дн.
 
     //- ───────── Навигация ─────────
     footer.offer-wizard__foot
@@ -549,7 +549,7 @@ function onWithdraw(): void {
 // ===== Шаги =====
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
-  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантийный срок возврата' },
+  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, срок годности' },
   { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
@@ -612,7 +612,7 @@ const form = ref<MarketplaceCreateOfferFormState>({
   quantity_available: 1,
   unlimited_flag: false,
   delivery_points: [],
-  warranty_days: 0,
+  shelf_life_days: 0,
 });
 
 // ===== Изображения =====
@@ -1014,7 +1014,7 @@ async function onSubmit(): Promise<void> {
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     delivery_points: f.delivery_points,
-    warranty_days: f.warranty_days,
+    shelf_life_days: f.shelf_life_days,
     images: buildImagesPayload(),
   };
 
@@ -1067,7 +1067,7 @@ async function prefillForEdit(id: string): Promise<void> {
         braname: d.braname,
         min_supply_volume: d.min_supply_volume,
       })),
-      warranty_days: offer.warranty_days,
+      shelf_life_days: offer.shelf_life_days,
     };
     gallery.value = (offer.images ?? [])
       .slice()

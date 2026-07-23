@@ -42,6 +42,9 @@ export interface OfferCreateInput {
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
+  /** Срок годности в днях (поставщик) — основа списания скоропорта. */
+  shelf_life_days: number;
+  /** Гарантийный срок возврата в днях (модератор) — окно возврата. */
   warranty_days: number;
   barcode_strategy: MarketplaceBarcodeStrategy;
   pack_size: number | null;
@@ -63,6 +66,9 @@ export interface OfferUpdateInput {
   quantity_available?: number;
   unlimited_flag?: boolean;
   delivery_points?: MarketplaceOfferDeliveryPoint[];
+  /** Срок годности в днях (правит поставщик). */
+  shelf_life_days?: number;
+  /** Гарантийный срок возврата в днях (правит модератор). */
   warranty_days?: number;
   barcode_strategy?: MarketplaceBarcodeStrategy;
   pack_size?: number | null;

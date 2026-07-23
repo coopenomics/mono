@@ -77,6 +77,8 @@ export * as DeleteCustomCategory from './deleteCustomCategory'
 export * as ApproveOffer from './approveOffer'
 /** Эпик 3 / Story 3.6: председатель отклоняет offer (PENDING_MODERATION → REJECTED) */
 export * as RejectOffer from './rejectOffer'
+/** Модератор меняет гарантийный срок возврата уже одобренного offer'а */
+export * as SetOfferWarranty from './setOfferWarranty'
 /** Поставщик меняет содержимое своего offer'а до модерации */
 export * as UpdateOffer from './updateOffer'
 /** Поставщик отзывает свой offer (любой статус, кроме APPROVED/REJECTED) */

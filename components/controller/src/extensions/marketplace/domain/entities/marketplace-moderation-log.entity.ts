@@ -2,7 +2,7 @@
  * Story 3.3: domain entity записи журнала модерации.
  * Append-only, без обновления.
  */
-export type MarketplaceModerationAction = 'approve' | 'reject';
+export type MarketplaceModerationAction = 'approve' | 'reject' | 'set_warranty';
 
 export class MarketplaceModerationLogDomainEntity {
   public readonly id!: string;

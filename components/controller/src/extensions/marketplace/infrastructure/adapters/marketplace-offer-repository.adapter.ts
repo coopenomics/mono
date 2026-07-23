@@ -157,6 +157,7 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       quantity_consumed: 0,
       unlimited_flag: input.unlimited_flag,
       delivery_points: input.delivery_points ?? [],
+      shelf_life_days: input.shelf_life_days,
       warranty_days: input.warranty_days,
       barcode_strategy: input.barcode_strategy,
       pack_size: input.pack_size,

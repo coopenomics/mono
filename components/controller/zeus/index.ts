@@ -7833,7 +7833,9 @@ export type ValueTypes = {
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
-	offer_id: string | Variable<any, string>
+	offer_id: string | Variable<any, string>,
+	/** Гарантийный срок возврата в днях, устанавливаемый модератором при одобрении. В течение этого срока пайщик может вернуть имущество. 0 — возврат по этому предложению недоступен. */
+	warranty_days: number | Variable<any, string>
 };
 	["MarketplaceApproveReturnVisitInput"]: {
 	/** Кооперативный участок, на который приглашаем пайщика. */
@@ -8335,10 +8337,11 @@ export type ValueTypes = {
 	price_per_unit: string | Variable<any, string>,
 	product_name: string | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
+	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
+	shelf_life_days: number | Variable<any, string>,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure: ValueTypes["MarketplaceUnitOfMeasure"] | Variable<any, string>,
-	unlimited_flag: boolean | Variable<any, string>,
-	warranty_days: number | Variable<any, string>
+	unlimited_flag: boolean | Variable<any, string>
 };
 	["MarketplaceCreateOrderProposalLineInput"]: {
 	/** Фактическое количество к выдаче (сверено оператором). */
@@ -8896,6 +8899,8 @@ export type ValueTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
+	shelf_life_days?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
 	/** Заполнено — предложение кооператива со склада этого участка (исполнение мгновенное, без цикла поставки). */
 	stock_braname?:boolean | `@${string}`,
@@ -8907,6 +8912,7 @@ export type ValueTypes = {
 	unlimited_flag?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 	vitrine_id?:boolean | `@${string}`,
+	/** Гарантийный срок возврата в днях (окно возврата имущества). Задаёт модератор при одобрении. */
 	warranty_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOffer']?: Omit<ValueTypes["MarketplaceOffer"], "...on MarketplaceOffer">
@@ -9687,6 +9693,11 @@ export type ValueTypes = {
 	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
 	membership_fee_percent: number | Variable<any, string>
 };
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string | Variable<any, string>,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number | Variable<any, string>
+};
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string | Variable<any, string>
@@ -10033,9 +10044,10 @@ export type ValueTypes = {
 	price_per_unit?: string | undefined | null | Variable<any, string>,
 	product_name?: string | undefined | null | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
+	/** Срок годности имущества в днях (основа списания скоропорта). */
+	shelf_life_days?: number | undefined | null | Variable<any, string>,
 	unit_of_measure?: ValueTypes["MarketplaceUnitOfMeasure"] | undefined | null | Variable<any, string>,
-	unlimited_flag?: boolean | undefined | null | Variable<any, string>,
-	warranty_days?: number | undefined | null | Variable<any, string>
+	unlimited_flag?: boolean | undefined | null | Variable<any, string>
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string | Variable<any, string>,
@@ -10796,6 +10808,7 @@ marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBra
 marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ValueTypes["MarketplaceSetMembershipFeeInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomyConfig"]],
+marketplaceSetOfferWarranty?: [{	input: ValueTypes["MarketplaceSetOfferWarrantyInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ValueTypes["MarketplaceSetTrusteeWeightInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
@@ -20873,7 +20886,9 @@ export type ResolverInputTypes = {
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
-	offer_id: string
+	offer_id: string,
+	/** Гарантийный срок возврата в днях, устанавливаемый модератором при одобрении. В течение этого срока пайщик может вернуть имущество. 0 — возврат по этому предложению недоступен. */
+	warranty_days: number
 };
 	["MarketplaceApproveReturnVisitInput"]: {
 	/** Кооперативный участок, на который приглашаем пайщика. */
@@ -21353,10 +21368,11 @@ export type ResolverInputTypes = {
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
+	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure: ResolverInputTypes["MarketplaceUnitOfMeasure"],
-	unlimited_flag: boolean,
-	warranty_days: number
+	unlimited_flag: boolean
 };
 	["MarketplaceCreateOrderProposalLineInput"]: {
 	/** Фактическое количество к выдаче (сверено оператором). */
@@ -21904,6 +21920,8 @@ export type ResolverInputTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
+	shelf_life_days?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
 	/** Заполнено — предложение кооператива со склада этого участка (исполнение мгновенное, без цикла поставки). */
 	stock_braname?:boolean | `@${string}`,
@@ -21915,6 +21933,7 @@ export type ResolverInputTypes = {
 	unlimited_flag?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
 	vitrine_id?:boolean | `@${string}`,
+	/** Гарантийный срок возврата в днях (окно возврата имущества). Задаёт модератор при одобрении. */
 	warranty_days?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -22664,6 +22683,11 @@ export type ResolverInputTypes = {
 	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
 	membership_fee_percent: number
 };
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
@@ -22994,9 +23018,10 @@ export type ResolverInputTypes = {
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях (основа списания скоропорта). */
+	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: ResolverInputTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	unlimited_flag?: boolean | undefined | null,
-	warranty_days?: number | undefined | null
+	unlimited_flag?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
@@ -23737,6 +23762,7 @@ marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverIn
 marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ResolverInputTypes["MarketplaceSetMembershipFeeInput"]},ResolverInputTypes["MarketplaceEconomyConfig"]],
+marketplaceSetOfferWarranty?: [{	input: ResolverInputTypes["MarketplaceSetOfferWarrantyInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ResolverInputTypes["MarketplaceSetSupplierPayoutMethodInput"]},ResolverInputTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ResolverInputTypes["MarketplaceSetTrusteeWeightInput"]},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
@@ -33522,7 +33548,9 @@ export type ModelTypes = {
 };
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
-	offer_id: string
+	offer_id: string,
+	/** Гарантийный срок возврата в днях, устанавливаемый модератором при одобрении. В течение этого срока пайщик может вернуть имущество. 0 — возврат по этому предложению недоступен. */
+	warranty_days: number
 };
 	["MarketplaceApproveReturnVisitInput"]: {
 	/** Кооперативный участок, на который приглашаем пайщика. */
@@ -33976,10 +34004,11 @@ export type ModelTypes = {
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
+	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure: ModelTypes["MarketplaceUnitOfMeasure"],
-	unlimited_flag: boolean,
-	warranty_days: number
+	unlimited_flag: boolean
 };
 	["MarketplaceCreateOrderProposalLineInput"]: {
 	/** Фактическое количество к выдаче (сверено оператором). */
@@ -34498,6 +34527,8 @@ export type ModelTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: ModelTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
+	shelf_life_days: number,
 	status: ModelTypes["MarketplaceOfferStatus"],
 	/** Заполнено — предложение кооператива со склада этого участка (исполнение мгновенное, без цикла поставки). */
 	stock_braname?: string | undefined | null,
@@ -34509,6 +34540,7 @@ export type ModelTypes = {
 	unlimited_flag: boolean,
 	updated_at: ModelTypes["DateTime"],
 	vitrine_id: string,
+	/** Гарантийный срок возврата в днях (окно возврата имущества). Задаёт модератор при одобрении. */
 	warranty_days: number
 };
 	["MarketplaceOfferDeliveryPoint"]: {
@@ -35220,6 +35252,11 @@ export type ModelTypes = {
 	/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
 	membership_fee_percent: number
 };
+	["MarketplaceSetOfferWarrantyInput"]: {
+	offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
@@ -35528,9 +35565,10 @@ export type ModelTypes = {
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях (основа списания скоропорта). */
+	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	unlimited_flag?: boolean | undefined | null,
-	warranty_days?: number | undefined | null
+	unlimited_flag?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
@@ -36701,7 +36739,7 @@ export type ModelTypes = {
 	marketplaceAddSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
-	/** Одобрить Offer (status → ACTIVE) (admin) */
+	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
 	marketplaceApproveReturnVisit: ModelTypes["MarketplaceReturnClaimResult"],
@@ -36711,7 +36749,7 @@ export type ModelTypes = {
 	marketplaceAssignInventoryShelf: ModelTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
 	marketplaceBindInventoryBarcode: ModelTypes["MarketplaceInventoryMutationResult"],
-	/** Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования. */
+	/** Отмена акта приёмки до подписи поставщика — партия возвращается к приёмке для повторного формирования. Доступно оператору КУ и самому поставщику (не согласен с фактом приёмки). */
 	marketplaceCancelAplReception: ModelTypes["MarketplaceAplReceptionResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: ModelTypes["MarketplaceCancelOrderResult"],
@@ -36819,6 +36857,8 @@ export type ModelTypes = {
 	marketplaceSetKUStatus: ModelTypes["MarketplaceKUDetails"],
 	/** Установить единую ставку членского взноса кооператива (одинакова для всех кооперативных участков). Доступно администратору. */
 	marketplaceSetMembershipFee: ModelTypes["MarketplaceEconomyConfig"],
+	/** Изменить гарантийный срок возврата предложения (admin) */
+	marketplaceSetOfferWarranty: ModelTypes["MarketplaceOffer"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
 	marketplaceSetSupplierPayoutMethod: ModelTypes["MarketplaceSupplierPaymentSettings"],
 	/** Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка. */
@@ -47219,7 +47259,9 @@ export type GraphQLTypes = {
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]: MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
-		offer_id: string
+		offer_id: string,
+	/** Гарантийный срок возврата в днях, устанавливаемый модератором при одобрении. В течение этого срока пайщик может вернуть имущество. 0 — возврат по этому предложению недоступен. */
+	warranty_days: number
 };
 	["MarketplaceApproveReturnVisitInput"]: {
 		/** Кооперативный участок, на который приглашаем пайщика. */
@@ -47721,10 +47763,11 @@ export type GraphQLTypes = {
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
+	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure: GraphQLTypes["MarketplaceUnitOfMeasure"],
-	unlimited_flag: boolean,
-	warranty_days: number
+	unlimited_flag: boolean
 };
 	["MarketplaceCreateOrderProposalLineInput"]: {
 		/** Фактическое количество к выдаче (сверено оператором). */
@@ -48284,6 +48327,8 @@ export type GraphQLTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: GraphQLTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
+	shelf_life_days: number,
 	status: GraphQLTypes["MarketplaceOfferStatus"],
 	/** Заполнено — предложение кооператива со склада этого участка (исполнение мгновенное, без цикла поставки). */
 	stock_braname?: string | undefined | null,
@@ -48295,6 +48340,7 @@ export type GraphQLTypes = {
 	unlimited_flag: boolean,
 	updated_at: GraphQLTypes["DateTime"],
 	vitrine_id: string,
+	/** Гарантийный срок возврата в днях (окно возврата имущества). Задаёт модератор при одобрении. */
 	warranty_days: number,
 	['...on MarketplaceOffer']: Omit<GraphQLTypes["MarketplaceOffer"], "...on MarketplaceOffer">
 };
@@ -49074,6 +49120,11 @@ export type GraphQLTypes = {
 		/** Новая единая ставка членского взноса, проценты (от 0 до 100). */
 	membership_fee_percent: number
 };
+	["MarketplaceSetOfferWarrantyInput"]: {
+		offer_id: string,
+	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
+	warranty_days: number
+};
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
 	method_id: string
@@ -49420,9 +49471,10 @@ export type GraphQLTypes = {
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Срок годности имущества в днях (основа списания скоропорта). */
+	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	unlimited_flag?: boolean | undefined | null,
-	warranty_days?: number | undefined | null
+	unlimited_flag?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 		id: string,
@@ -50637,7 +50689,7 @@ export type GraphQLTypes = {
 	marketplaceAddSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
-	/** Одобрить Offer (status → ACTIVE) (admin) */
+	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
 	marketplaceApproveReturnVisit: GraphQLTypes["MarketplaceReturnClaimResult"],
@@ -50647,7 +50699,7 @@ export type GraphQLTypes = {
 	marketplaceAssignInventoryShelf: GraphQLTypes["MarketplaceInventoryMutationResult"],
 	/** Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером). */
 	marketplaceBindInventoryBarcode: GraphQLTypes["MarketplaceInventoryMutationResult"],
-	/** Оператор отменяет акт приёмки до подписи поставщика (поставщик не согласен со снятыми позициями) — партия возвращается к приёмке для повторного формирования. */
+	/** Отмена акта приёмки до подписи поставщика — партия возвращается к приёмке для повторного формирования. Доступно оператору КУ и самому поставщику (не согласен с фактом приёмки). */
 	marketplaceCancelAplReception: GraphQLTypes["MarketplaceAplReceptionResult"],
 	/** Отменить свой заказ до его приёма поставщиком; средства разблокируются. */
 	marketplaceCancelOrder: GraphQLTypes["MarketplaceCancelOrderResult"],
@@ -50755,6 +50807,8 @@ export type GraphQLTypes = {
 	marketplaceSetKUStatus: GraphQLTypes["MarketplaceKUDetails"],
 	/** Установить единую ставку членского взноса кооператива (одинакова для всех кооперативных участков). Доступно администратору. */
 	marketplaceSetMembershipFee: GraphQLTypes["MarketplaceEconomyConfig"],
+	/** Изменить гарантийный срок возврата предложения (admin) */
+	marketplaceSetOfferWarranty: GraphQLTypes["MarketplaceOffer"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
 	marketplaceSetSupplierPayoutMethod: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
 	/** Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка. */
@@ -55806,6 +55860,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];
+	["MarketplaceSetOfferWarrantyInput"]: ValueTypes["MarketplaceSetOfferWarrantyInput"];
 	["MarketplaceSetSupplierPayoutMethodInput"]: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"];
 	["MarketplaceSetTrusteeWeightInput"]: ValueTypes["MarketplaceSetTrusteeWeightInput"];
 	["MarketplaceShipmentDeliveryVariant"]: ValueTypes["MarketplaceShipmentDeliveryVariant"];

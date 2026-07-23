@@ -277,6 +277,10 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
           span.offer-detail__point-vol {{ p.volume }}
 
     section.offer-detail__section
+      .offer-detail__section-head Срок годности
+      .offer-detail__desc {{ offer.shelf_life_days > 0 ? `${offer.shelf_life_days} дн.` : 'Без срока годности' }}
+
+    section.offer-detail__section
       .offer-detail__section-head Гарантийный срок возврата
       .offer-detail__desc {{ offer.warranty_days > 0 ? `${offer.warranty_days} дн.` : 'Без гарантийного срока возврата' }}
 
