@@ -1,14 +1,13 @@
 <template lang="pug">
-.breadcrumb-path(:style="{ color: textColor }")
+.breadcrumb-path(:class="{ 'breadcrumb-path--custom': useCustomColor }" :style="pathStyle")
   // Родительский проект (если есть)
   .breadcrumb-item(
-    :class="{ 'custom-color': useCustomColor }"
     v-if="project?.parent_hash && project?.parent_title"
     @click="goToParentProject(project.parent_hash)"
   )
-    q-icon(name="folder", size="14px" :color="useCustomColor ? 'white' : 'grey-7'")
+    q-icon(name="folder", size="14px" :color="iconColorMuted")
     span {{ truncateText(project.parent_title, 30) }}
-    q-icon.breadcrumb-link(name="open_in_new", size="10px" :color="useCustomColor ? 'white' : 'grey-7'")
+    q-icon.breadcrumb-link(name="open_in_new", size="10px" :color="iconColorMuted")
 
   // Разделитель
   .breadcrumb-separator(
@@ -16,15 +15,13 @@
   ) /
 
   // Текущий проект/компонент
-
   .breadcrumb-item.current(
-    :class="{ 'custom-color': useCustomColor }"
     v-if="project?.title"
     @click="goToCurrentItem(project?.project_hash)"
   )
-    q-icon(name="task", size="14px" :color="useCustomColor ? 'white' : 'primary'")
+    q-icon(name="task", size="14px" :color="iconColorCurrent")
     span {{ truncateText(project?.title || 'Загрузка...', 35) }}
-    q-icon.breadcrumb-link(name="open_in_new", size="10px" :color="useCustomColor ? 'white' : 'grey-7'")
+    q-icon.breadcrumb-link(name="open_in_new", size="10px" :color="iconColorMuted")
 
 </template>
 
@@ -38,14 +35,18 @@ const route = useRoute();
 
 const props = defineProps<{
   project?: IProject | null;
+  /** Опциональный цвет текста (например, для тёмного фона). Без него — канонные ink-токены. */
   textColor?: string;
 }>();
 
-// Вычисляемый цвет текста (по умолчанию или переданный)
-const textColor = computed(() => props.textColor || '#666');
-
-// Флаг использования кастомного цвета
 const useCustomColor = computed(() => !!props.textColor);
+
+const pathStyle = computed(() =>
+  props.textColor ? { color: props.textColor } : undefined,
+);
+
+const iconColorMuted = computed(() => (useCustomColor.value ? props.textColor : 'grey-7'));
+const iconColorCurrent = computed(() => (useCustomColor.value ? props.textColor : 'primary'));
 
 // Функция для сокращения текста
 const truncateText = (text: string, maxLength: number): string => {
@@ -107,48 +108,46 @@ const goToCurrentItem = (projectHash?: string) => {
 .breadcrumb-path {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--p-2);
   flex-wrap: wrap;
-  background: rgba(var(--q-primary-rgb), 0.04);
-  border: 1px solid rgba(var(--q-primary-rgb), 0.1);
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
 }
 
 .breadcrumb-path.capital-entity-header-path {
   margin-top: 0;
   margin-bottom: 0;
-  gap: 6px;
+}
+
+.breadcrumb-path--custom .breadcrumb-item:hover,
+.breadcrumb-path--custom .breadcrumb-item.current {
+  color: inherit;
 }
 
 .breadcrumb-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--p-1);
   cursor: pointer;
-  transition: all 0.2s ease;
   color: inherit;
   font-weight: 500;
+  transition: color var(--p-dur-fast) var(--p-ease-standard);
 
   &:hover {
-    text-decoration: underline;
+    color: var(--p-primary);
 
     .breadcrumb-link {
       opacity: 1;
-      transform: scale(1.1);
-    }
-
-    &:not(.custom-color) {
-      color: var(--q-primary);
     }
   }
 
   &.current {
     font-weight: 600;
+    color: var(--p-ink);
 
-    &:not(.custom-color) {
-      color: var(--q-primary);
+    &:hover {
+      color: var(--p-primary);
     }
   }
 
@@ -164,45 +163,14 @@ const goToCurrentItem = (projectHash?: string) => {
 }
 
 .breadcrumb-separator {
-  color: inherit;
-  opacity: 0.7;
+  color: var(--p-ink-3);
   font-weight: normal;
   user-select: none;
 }
 
 .breadcrumb-link {
   opacity: 0.4;
-  transition: all 0.2s ease;
+  transition: opacity var(--p-dur-fast) var(--p-ease-standard);
   flex-shrink: 0;
-}
-
-@media (max-width: 600px) {
-  .breadcrumb-path {
-    padding: 6px 8px;
-    font-size: 12px;
-    gap: 4px;
-  }
-
-  .breadcrumb-path.capital-entity-header-path {
-    padding: 4px 6px;
-    min-height: 28px;
-    gap: 4px;
-  }
-
-  .breadcrumb-item {
-    gap: 2px;
-
-    .q-icon {
-      font-size: 12px;
-    }
-
-    .breadcrumb-link {
-      font-size: 8px;
-    }
-  }
-
-  .breadcrumb-separator {
-    font-size: 12px;
-  }
 }
 </style>

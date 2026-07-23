@@ -9,22 +9,22 @@ q-btn(
   :class="{ 'bg-fab-accent-radial': fab }"
 )
   CreateDialog(
-
     ref="dialogRef"
+    title="Откликнуться на приглашение"
     submit-text="Отправить отклик"
-    dialog-style="width: 1000px; max-width: 100% !important;"
+    size="lg"
     :is-submitting="isSubmitting"
     :disabled="isSubmitDisabled"
     @submit="handleConfirmRespond"
     @dialog-closed="clear"
   )
-    template(#title)
-      | Откликнуться на приглашение в:
-      ProjectPathWidget.ml-2(:project="project" text-color="white")
     template(#form-fields)
+      .invite-dialog__target.q-mb-md
+        .text-caption.text-grey-7.q-mb-xs Куда отклик
+        ProjectPathWidget(:project="project")
 
-      .text-body2.q-mb-md
-        | Выберите роли участия:
+      .text-body2.text-weight-medium.q-mb-sm
+        | Выберите роли участия
 
       RoleSelector(
         v-model="selectedRoles"

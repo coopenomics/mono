@@ -59,6 +59,10 @@ const loading = ref(false);
 const handleSuccess = () => {
   emit('actionCompleted');
 };
+
+defineExpose({
+  openDialog: () => dialogRef.value?.openDialog(),
+});
 </script>
 
 <style lang="scss" scoped>
