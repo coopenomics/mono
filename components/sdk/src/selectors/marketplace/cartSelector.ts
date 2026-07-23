@@ -10,6 +10,7 @@ const rawCartItemSelector = {
   quantity: true,
   product_name: true,
   unit_of_measure: true,
+  order_unit_size: true,
   price_per_unit: true,
   line_total: true,
   image_url: true,

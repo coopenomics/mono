@@ -175,6 +175,7 @@ export class MarketplaceCartService {
           quantity: item.quantity,
           product_name: offer?.product_name ?? null,
           unit_of_measure: offer?.unit_of_measure ?? null,
+          order_unit_size: offer?.order_unit_size ?? null,
           price_per_unit: offer?.price_per_unit ?? null,
           line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
           image_url: imageUrl,

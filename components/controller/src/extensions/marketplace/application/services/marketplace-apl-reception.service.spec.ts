@@ -596,3 +596,46 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
     });
   });
 });
+
+describe('MarketplaceAplReceptionService — единица заказа (фасовка) в акте приёмки', () => {
+  let mocks: ReturnType<typeof buildMocks>;
+  let service: MarketplaceAplReceptionService;
+
+  beforeEach(() => {
+    mocks = buildMocks();
+    service = buildService(mocks);
+  });
+
+  it('оффер с фасовкой (order_unit_size=0.1, kg) → акт в единицах заказа без пересчёта: кол-во=5, цена за фасовку, единица «100 г»', async () => {
+    // Зеркало теста MarketplaceIssuanceService (выдача) — приёмка и выдача
+    // используют один и тот же toPhysicalActLine-подобный путь; здесь
+    // проверяем, что он больше НЕ пересчитывает в базовые единицы (0.5 кг), а
+    // ведёт акт в единицах заказа, как заказал/поставил поставщик.
+    const reception = buildReception({
+      fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 5 } as any],
+    });
+    const order = buildOrder({
+      id: 'order-1',
+      offer_id: 'offer-1',
+      quantity: 5,
+      price_per_unit: '100.0000',
+    });
+    mocks.receptionRepo.findById.mockResolvedValue(reception);
+    mocks.orderRepo.findByCycleId.mockResolvedValue([order]);
+    mocks.offerRepo.findById.mockResolvedValue({
+      id: 'offer-1',
+      product_name: 'Икра',
+      unit_of_measure: 'kg',
+      order_unit_size: '0.1',
+    });
+    mocks.documentDomainService.generateDocument.mockResolvedValue({} as any);
+
+    await service.getSupplierSignablePayloads('voskhod', 'apl-1');
+
+    const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
+    expect(action.fact_quantity).toBe(5);
+    expect(action.unit_cost).toBe('100.0000');
+    expect(action.total_amount).toBe('500.0000');
+    expect(action.unit_of_measurement).toBe('100 г');
+  });
+});

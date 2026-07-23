@@ -1,4 +1,4 @@
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 
 /**
@@ -74,7 +74,7 @@ export function groupAcceptedByKu(orders: MarketplaceOrderView[]): ShipmentKuBuc
       cycle_id: o.cycle_id,
       title: o.product_name || 'Товар по предложению',
       quantity: o.quantity,
-      unit: marketplaceUnitShort(o.unit_of_measure),
+      unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
       sum: parseFloat(o.total_cost) || 0,
     });
   }
@@ -114,7 +114,7 @@ export function groupAcceptedOrders(orders: MarketplaceOrderView[]): ShipmentFor
 
     const first = cycleOrders[0];
     const productName = first.product_name || 'Заявка';
-    const unit = marketplaceUnitShort(first.unit_of_measure);
+    const unit = marketplaceOrderUnitLabel(first.unit_of_measure, first.order_unit_size);
     cycles.push({
       cycle_id,
       title: `${productName} · №${cycle_id.slice(0, 8)} · ${unit}`,

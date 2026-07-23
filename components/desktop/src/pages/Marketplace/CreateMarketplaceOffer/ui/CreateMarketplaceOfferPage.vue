@@ -113,17 +113,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
         //- ───────── Шаг 2: Цена и наличие ─────────
         q-form.offer-wizard__step(v-else-if='step.key === "pricing"', ref='pricingForm', greedy)
           .offer-wizard__row
-            q-input(
-              v-model='form.price_per_unit',
-              label='Цена за единицу',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
-              :suffix='governSymbol',
-              hint='Два знака после запятой, например 100.50',
-              :rules='[priceRule]'
-            )
             q-select(
               v-model='form.unit_of_measure',
               :options='unitOptions',
@@ -133,8 +122,32 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               no-error-icon,
               reserve-hint-space,
               emit-value,
+              map-options,
+              @update:model-value='onUnitChange'
+            )
+            q-select(
+              v-model='form.order_unit_size',
+              :options='orderUnitOptions',
+              label='Единица заказа',
+              outlined,
+              dense,
+              no-error-icon,
+              reserve-hint-space,
+              emit-value,
               map-options
             )
+          q-input(
+            v-model='form.price_per_unit',
+            :label='priceLabel',
+            outlined,
+            dense,
+            no-error-icon,
+            reserve-hint-space,
+            :suffix='governSymbol',
+            hint='Два знака после запятой, например 100.50',
+            :rules='[priceRule]'
+          )
+          p.offer-wizard__hint(v-if='referencePriceHint') {{ referencePriceHint }}
           p.offer-wizard__hint(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
           .offer-wizard__qty
             q-input.offer-wizard__qty-input(
@@ -146,6 +159,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               dense,
               no-error-icon,
               reserve-hint-space,
+              :suffix='`× ${orderUnitLabel}`',
               :disable='form.unlimited_flag',
               :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
             )
@@ -200,7 +214,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               outlined,
               dense,
               no-error-icon,
-              :suffix='selectedUnitLabel',
+              :suffix='orderUnitLabel',
               @update:model-value='(v) => setKuMin(ku.braname, v)'
             )
 
@@ -282,7 +296,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               .offer-preview__pricerow
                 .offer-preview__pricebox
                   span.offer-preview__price {{ formattedPrice }}
-                  span.offer-preview__per за {{ selectedUnitLabel }}
+                  span.offer-preview__per за {{ orderUnitLabel }}
                 BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
               section.offer-preview__specs
@@ -343,7 +357,11 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
-import { MARKETPLACE_UNIT_OPTIONS } from 'src/shared/lib/consts';
+import {
+  MARKETPLACE_UNIT_OPTIONS,
+  MARKETPLACE_ORDER_UNIT_PRESETS,
+  marketplaceOrderUnitLabel,
+} from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { Zeus } from '@coopenomics/sdk';
@@ -590,6 +608,7 @@ const form = ref<MarketplaceCreateOfferFormState>({
   category_id: null,
   price_per_unit: '',
   unit_of_measure: 'piece',
+  order_unit_size: '1',
   quantity_available: 1,
   unlimited_flag: false,
   delivery_points: [],
@@ -626,11 +645,35 @@ const selectedCategoryLabel = computed(
 const selectedUnitLabel = computed(
   () => unitOptions.find((o) => o.value === form.value.unit_of_measure)?.label ?? ''
 );
+
+// Опции размера единицы заказа (фасовки) под выбранную базовую единицу.
+// Фиксированный пресет: заказчик/поставщик оперируют типовыми фасовками, но
+// backend примет и произвольное положительное значение.
+const orderUnitOptions = computed(() =>
+  (MARKETPLACE_ORDER_UNIT_PRESETS[form.value.unit_of_measure] ?? ['1']).map((v) => ({
+    label: marketplaceOrderUnitLabel(form.value.unit_of_measure, v),
+    value: v,
+  }))
+);
+// Человекочитаемая подпись текущей единицы заказа: «100 г», «упаковка 8 шт»…
+const orderUnitLabel = computed(() =>
+  marketplaceOrderUnitLabel(form.value.unit_of_measure, form.value.order_unit_size)
+);
+const priceLabel = computed(() => `Цена за ${orderUnitLabel.value}`);
+
+// Смена базовой единицы обнуляет фасовку к первому пресету (0.1 кг для веса не
+// имеет смысла оставлять при переключении на штуки).
+function onUnitChange(): void {
+  const presets = MARKETPLACE_ORDER_UNIT_PRESETS[form.value.unit_of_measure] ?? ['1'];
+  if (!presets.includes(form.value.order_unit_size)) {
+    form.value.order_unit_size = form.value.unit_of_measure === 'piece' ? '1' : presets[0];
+  }
+}
 const deliveryPointsPreview = computed(() =>
   form.value.delivery_points
     .map((d) => {
       const name = kuOptions.value.find((k) => k.braname === d.braname)?.name ?? d.braname;
-      return `${name} (от ${d.min_supply_volume} ${selectedUnitLabel.value})`;
+      return `${name} (от ${d.min_supply_volume} ${orderUnitLabel.value})`;
     })
     .join(', ')
 );
@@ -705,13 +748,24 @@ const priceWithFeeHint = computed(() => {
   return `Заказчик увидит цену с учётом членского взноса ${feePercent.value}%: ${formatted}`;
 });
 
+// Справочная цена за базовую единицу (за 1 кг / 1 л / 1 шт) — для сравнения
+// предложений при фасовке ≠ базовой единице. Считается от цены заказчика (с
+// членским взносом), т.к. именно её он сравнивает.
+const referencePriceHint = computed(() => {
+  const size = Number.parseFloat(form.value.order_unit_size);
+  if (priceWithFee.value == null || !Number.isFinite(size) || size <= 0 || size === 1) return '';
+  const perBase = priceWithFee.value / size;
+  const formatted = formatAsset2Digits(`${perBase} ${governSymbol.value}`);
+  return `≈ ${formatted} за ${selectedUnitLabel.value} — для сравнения`;
+});
+
 const stockEmpty = computed(
   () => !form.value.unlimited_flag && (form.value.quantity_available ?? 0) <= 0
 );
 const stockLabel = computed(() => {
   if (form.value.unlimited_flag) return 'В наличии';
   if (stockEmpty.value) return 'Нет в наличии';
-  return `В наличии: ${form.value.quantity_available} ${selectedUnitLabel.value}`;
+  return `В наличии: ${form.value.quantity_available} × ${orderUnitLabel.value}`;
 });
 
 // ===== Черновик формы в LocalStorage (только режим создания) =====
@@ -956,6 +1010,7 @@ async function onSubmit(): Promise<void> {
     category_id: f.category_id as number,
     price_per_unit: priceNumberStr.value,
     unit_of_measure: f.unit_of_measure,
+    order_unit_size: f.order_unit_size,
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     delivery_points: f.delivery_points,
@@ -1005,6 +1060,7 @@ async function prefillForEdit(id: string): Promise<void> {
       category_id: offer.category_id != null ? Number(offer.category_id) : null,
       price_per_unit: formatPriceForInput(offer.price_per_unit),
       unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
+      order_unit_size: offer.order_unit_size ? String(offer.order_unit_size) : '1',
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
       delivery_points: (offer.delivery_points ?? []).map((d) => ({

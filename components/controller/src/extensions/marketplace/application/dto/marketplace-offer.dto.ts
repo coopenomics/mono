@@ -3,6 +3,7 @@ import { createPaginationResult } from '~/application/common/dto/pagination.dto'
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MarketplaceOfferStatuses,
+  MarketplaceUnitsOfMeasure,
   type MarketplaceOfferImage,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
@@ -17,6 +18,17 @@ registerEnumType(MarketplaceOfferStatusEnum, {
   description:
     'Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, ' +
     'REJECTED — отклонено, WITHDRAWN — снято поставщиком.',
+});
+
+export const MarketplaceUnitOfMeasureEnum = MarketplaceUnitsOfMeasure;
+export type MarketplaceUnitOfMeasureEnum =
+  (typeof MarketplaceUnitOfMeasureEnum)[keyof typeof MarketplaceUnitOfMeasureEnum];
+registerEnumType(MarketplaceUnitOfMeasureEnum, {
+  name: 'MarketplaceUnitOfMeasure',
+  description:
+    'Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. ' +
+    'Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно ' +
+    'размером единицы заказа.',
 });
 
 @ObjectType('MarketplaceOfferImage')
@@ -76,11 +88,24 @@ export class MarketplaceOfferDTO {
   @Field(() => String, { nullable: true }) public readonly description!: string | null;
   @Field(() => Int) public readonly category_id!: number;
 
-  @Field(() => String, { description: 'Цена за единицу (numeric как string)' })
+  @Field(() => String, {
+    description:
+      'Цена за одну единицу заказа (фасовку). numeric как string.',
+  })
   public readonly price_per_unit!: string;
 
-  @Field(() => String, { description: 'piece | kg | liter | pack' })
-  public readonly unit_of_measure!: string;
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
+    description: 'Базовая единица измерения товара (штука, килограмм, литр).',
+  })
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum;
+
+  @Field(() => String, {
+    description:
+      'Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц ' +
+      'входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка ' +
+      'из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string.',
+  })
+  public readonly order_unit_size!: string;
 
   @Field(() => Int) public readonly quantity_available!: number;
   @Field(() => Int) public readonly quantity_blocked!: number;
@@ -153,7 +178,8 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     description: o.description,
     category_id: o.category_id,
     price_per_unit: o.price_per_unit,
-    unit_of_measure: o.unit_of_measure,
+    unit_of_measure: o.unit_of_measure as MarketplaceUnitOfMeasureEnum,
+    order_unit_size: o.order_unit_size,
     quantity_available: o.quantity_available,
     quantity_blocked: o.quantity_blocked,
     quantity_consumed: o.quantity_consumed,

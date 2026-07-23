@@ -33,6 +33,13 @@ export class MarketplaceOfferDomainEntity {
   public readonly price_per_unit!: string;
   public readonly unit_of_measure!: MarketplaceUnitOfMeasure;
 
+  /**
+   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
+   * За неё указана `price_per_unit`; `quantity` заказа — целое число фасовок.
+   * numeric → string. Справочная цена за базовую единицу считается делением.
+   */
+  public readonly order_unit_size!: string;
+
   public readonly quantity_available!: number;
   public readonly quantity_blocked!: number;
   public readonly quantity_consumed!: number;
@@ -77,6 +84,7 @@ export class MarketplaceOfferDomainEntity {
     category_id: number;
     price_per_unit: string;
     unit_of_measure: MarketplaceUnitOfMeasure;
+    order_unit_size: string;
     quantity_available: number;
     quantity_blocked: number;
     quantity_consumed: number;

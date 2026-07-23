@@ -6,7 +6,7 @@ import { FailAlert } from 'src/shared/api'
 import { EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units'
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import {
   WarehouseSummaryGrid,
@@ -85,7 +85,7 @@ const buckets = computed<Bucket[]>(() => {
         pvzName: row.delivery_point_name ?? null,
         pvzAddress: row.delivery_point_address ?? null,
         pvzBraname: row.braname,
-        unit: marketplaceUnitShort(row.unit_of_measure),
+        unit: marketplaceOrderUnitLabel(row.unit_of_measure, row.order_unit_size),
         incoming: 0,
         outgoing: 0,
       } satisfies Bucket)

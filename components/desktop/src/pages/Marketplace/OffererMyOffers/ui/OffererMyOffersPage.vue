@@ -6,7 +6,7 @@ import { useMarketplaceRealtime, getMembershipFeePercent } from 'src/shared/lib/
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
-import { marketplaceUnitShort } from 'src/shared/lib/consts';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { FilterBar, PageHint } from 'src/shared/ui/domain';
@@ -144,7 +144,7 @@ const cards = computed<OfferCard[]>(() =>
     // это двойное списание (100 опубликовал, заказали 1 → показывало 98).
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
     unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: marketplaceUnitShort(o.unit_of_measure),
+    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     rejectReason: o.reject_reason ?? null,

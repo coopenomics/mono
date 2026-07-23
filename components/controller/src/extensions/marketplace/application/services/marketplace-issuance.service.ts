@@ -38,7 +38,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
-import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -513,7 +513,9 @@ export class MarketplaceIssuanceService {
       supplier_account: input.order.supplier_account,
       offer_id: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
-      unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
+      unit_of_measurement: offer
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        : '',
       transmitter: input.transmitter,
       actual_quantity: input.actual_quantity,
       unit_price,
@@ -535,6 +537,7 @@ export class MarketplaceIssuanceService {
     transmitter: string;
     offer_id: string;
     product_title: string;
+    /** Готовый ярлык единицы заказа (фасовки) — строит вызывающая сторона из оферты. */
     unit_of_measurement: string;
     quantity: number;
     unit_price: string;
@@ -566,11 +569,14 @@ export class MarketplaceIssuanceService {
     supplier_account: string;
     offer_id: string;
     product_title: string;
+    /** Готовый ярлык единицы заказа (фасовки). */
     unit_of_measurement: string;
     transmitter: string;
     actual_quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
+    // Акт выдачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в базовые:
+    // количество = число единиц заказа, цена — за единицу заказа.
     const total_amount = (p.actual_quantity * Number.parseFloat(p.unit_price)).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,

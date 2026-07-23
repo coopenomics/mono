@@ -7,7 +7,7 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
   MarketplaceOrderStatusView,
@@ -116,7 +116,7 @@ const parties = computed<CollectiveParty[]>(() => {
         offer_id: o.offer_id,
         productName: o.product_name || 'Товар по предложению',
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceUnitShort(o.unit_of_measure),
+        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
         orders: [],
         ownUnits: 0,
         ownCost: 0,

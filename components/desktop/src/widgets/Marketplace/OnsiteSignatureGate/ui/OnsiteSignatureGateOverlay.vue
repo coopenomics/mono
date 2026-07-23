@@ -4,7 +4,7 @@ import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, computeStockProposalCharges } from 'src/shared/lib/marketplace';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
@@ -115,7 +115,7 @@ BaseDialog(
         tbody
           tr(v-for='l in g.lines', :key='l.key')
             td {{ l.productName }}
-            td.num {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+            td.num {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr

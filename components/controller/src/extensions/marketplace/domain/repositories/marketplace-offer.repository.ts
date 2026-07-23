@@ -36,7 +36,9 @@ export interface OfferCreateInput {
   description: string | null;
   category_id: number;
   price_per_unit: string;
-  unit_of_measure: 'piece' | 'kg' | 'liter' | 'pack';
+  unit_of_measure: 'piece' | 'kg' | 'liter';
+  /** Размер единицы заказа (фасовки) в базовых единицах. numeric как string. */
+  order_unit_size: string;
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -55,7 +57,9 @@ export interface OfferUpdateInput {
   description?: string | null;
   category_id?: number;
   price_per_unit?: string;
-  unit_of_measure?: 'piece' | 'kg' | 'liter' | 'pack';
+  unit_of_measure?: 'piece' | 'kg' | 'liter';
+  /** Размер единицы заказа (фасовки) в базовых единицах. numeric как string. */
+  order_unit_size?: string;
   quantity_available?: number;
   unlimited_flag?: boolean;
   delivery_points?: MarketplaceOfferDeliveryPoint[];

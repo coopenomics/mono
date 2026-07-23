@@ -41,12 +41,25 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'integer' })
   public category_id!: number;
 
-  // numeric → string в TypeORM (precision deliberately, не плодим float)
+  // numeric → string в TypeORM (precision deliberately, не плодим float).
+  // Цена задаётся за одну единицу заказа (фасовку размером `order_unit_size`
+  // базовых единиц), не за одну базовую единицу.
   @Column({ type: 'numeric', precision: 18, scale: 4 })
   public price_per_unit!: string;
 
   @Column({ type: 'varchar', length: 16 })
-  public unit_of_measure!: 'piece' | 'kg' | 'liter' | 'pack';
+  public unit_of_measure!: 'piece' | 'kg' | 'liter';
+
+  /**
+   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
+   * За неё указана `price_per_unit`, и в ней заказчик набирает `quantity`
+   * (заказ = целое число таких фасовок). Примеры: икра `kg` + 0.1 (цена за
+   * 100 г), яйца `piece` + 8 (цена за упаковку 8 шт), молоко `liter` + 1.
+   * Справочная цена за базовую единицу = `price_per_unit / order_unit_size`.
+   * numeric → string в TypeORM.
+   */
+  @Column({ type: 'numeric', precision: 12, scale: 3, default: 1 })
+  public order_unit_size!: string;
 
   @Column({ type: 'integer', default: 0 })
   public quantity_available!: number;

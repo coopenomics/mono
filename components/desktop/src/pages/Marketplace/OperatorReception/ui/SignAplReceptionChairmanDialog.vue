@@ -7,7 +7,7 @@ import { AccountBadge } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchChairmanSignablePayloads,
@@ -167,7 +167,7 @@ BaseDialog(
       tbody
         tr(v-for="l in group.lines", :key="l.key")
           td {{ l.productName }}
-          td.num {{ l.quantity }} {{ marketplaceUnitShort(l.unit) }}
+          td.num {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
           td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
       tfoot
         tr

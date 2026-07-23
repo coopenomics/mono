@@ -36,6 +36,7 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     category_id: 1,
     price_per_unit: '50.0000',
     unit_of_measure: 'kg',
+    order_unit_size: '1',
     quantity_available: 100,
     quantity_blocked: 0,
     quantity_consumed: 0,
@@ -354,6 +355,47 @@ describe('MarketplaceOfferService.create', () => {
     await expect(
       service.create(baseCreateRequest({ price_per_unit: 'abc' }))
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('order_unit_size по умолчанию «1», если не передан', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer());
+    const service = makeService(repo, cats);
+
+    await service.create(baseCreateRequest());
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ order_unit_size: '1' })
+    );
+  });
+
+  it('order_unit_size пробрасывается в repository (фасовка 100 г)', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    repo.create.mockResolvedValue(makeOffer({ order_unit_size: '0.1' }));
+    const service = makeService(repo, cats);
+
+    await service.create(baseCreateRequest({ unit_of_measure: 'kg', order_unit_size: '0.1' }));
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ order_unit_size: '0.1' })
+    );
+  });
+
+  it('некорректный order_unit_size (0 или не число) → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.countRecentCreatedBy.mockResolvedValue(0);
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ order_unit_size: '0' }))
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.create(baseCreateRequest({ order_unit_size: 'abc' }))
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });
 

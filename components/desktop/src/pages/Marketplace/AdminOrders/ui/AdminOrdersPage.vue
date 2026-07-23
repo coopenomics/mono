@@ -11,7 +11,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
@@ -88,7 +88,7 @@ function shortId(id: string | null | undefined): string {
   return id ? id.slice(0, 8) : '—';
 }
 function unitLabel(o: AdminOrderView): string {
-  return marketplaceUnitShort(o.unit_of_measure);
+  return marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size);
 }
 // requirement b6: реестр показывает сумму, которую реально заплатил пайщик
 // (себестоимость + членский взнос, зафиксированный в заказе контрактом) —

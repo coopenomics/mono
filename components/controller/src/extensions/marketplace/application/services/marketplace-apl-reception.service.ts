@@ -99,7 +99,7 @@ import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -330,6 +330,9 @@ export class MarketplaceAplReceptionService {
     // данные товара, а не заглушку фабрики. Оферта могла быть снята — тогда
     // подставляем безопасные значения по самому заказу.
     const offer = await this.offerRepo.findById(input.order.offer_id);
+    // Акт приёма-передачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в
+    // базовые: количество = число единиц заказа, цена — за единицу заказа,
+    // подпись единицы = ярлык фасовки («упаковка 8 шт» / «100 г» / «кг»).
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
@@ -346,7 +349,9 @@ export class MarketplaceAplReceptionService {
       supplier_account: input.reception.offerer_account,
       sku: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
-      unit_of_measurement: offer ? MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] : '',
+      unit_of_measurement: offer
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        : '',
       unit_cost: fact_unit_price,
       currency: this.assetConfig.symbol,
       // Тело документа сохраняется в стор: председателю при закрывающей

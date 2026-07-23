@@ -5,7 +5,6 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -18,9 +17,11 @@ import {
 } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
-import { MarketplaceBarcodeStrategyEnum, MarketplaceOfferStatusEnum } from './marketplace-offer.dto';
-
-const UNITS = ['piece', 'kg', 'liter', 'pack'] as const;
+import {
+  MarketplaceBarcodeStrategyEnum,
+  MarketplaceOfferStatusEnum,
+  MarketplaceUnitOfMeasureEnum,
+} from './marketplace-offer.dto';
 
 /** Технический предел числа КУ поставки на один Offer. */
 const MARKETPLACE_OFFER_MAX_DELIVERY_POINTS = 100;
@@ -82,13 +83,28 @@ export class MarketplaceCreateOfferInputDTO {
   @Min(1)
   public category_id!: number;
 
-  @Field(() => String, { description: 'Цена за единицу (numeric как string, до 4 знаков)' })
+  @Field(() => String, {
+    description:
+      'Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков.',
+  })
   @Matches(/^\d+(\.\d{1,4})?$/)
   public price_per_unit!: string;
 
-  @Field(() => String, { description: 'piece | kg | liter | pack' })
-  @IsIn(UNITS as unknown as string[])
-  public unit_of_measure!: 'piece' | 'kg' | 'liter' | 'pack';
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
+    description: 'Базовая единица измерения товара (штука, килограмм, литр).',
+  })
+  @IsEnum(MarketplaceUnitOfMeasureEnum)
+  public unit_of_measure!: MarketplaceUnitOfMeasureEnum;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц ' +
+      'указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1».',
+  })
+  @IsOptional()
+  @Matches(/^\d+(\.\d{1,3})?$/)
+  public order_unit_size?: string | null;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()
@@ -175,10 +191,18 @@ export class MarketplaceUpdateOfferInputDTO {
   @Matches(/^\d+(\.\d{1,4})?$/)
   public price_per_unit?: string;
 
-  @Field(() => String, { nullable: true })
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true })
   @IsOptional()
-  @IsIn(UNITS as unknown as string[])
-  public unit_of_measure?: 'piece' | 'kg' | 'liter' | 'pack';
+  @IsEnum(MarketplaceUnitOfMeasureEnum)
+  public unit_of_measure?: MarketplaceUnitOfMeasureEnum;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Размер единицы заказа (фасовки) в базовых единицах.',
+  })
+  @IsOptional()
+  @Matches(/^\d+(\.\d{1,3})?$/)
+  public order_unit_size?: string;
 
   @Field(() => Int, { nullable: true })
   @IsOptional()

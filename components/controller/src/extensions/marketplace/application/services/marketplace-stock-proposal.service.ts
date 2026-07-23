@@ -25,7 +25,7 @@ import type { ISignedDocumentDomainInterface } from '~/domain/document/interface
 import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
-import { MARKETPLACE_UNIT_LABEL } from '../shared/unit-label.util';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import {
   MARKETPLACE_ISSUANCE_SERVICE,
   type MarketplaceIssuanceService,
@@ -412,7 +412,7 @@ export class MarketplaceStockProposalService {
         transmitter: input.operator_account,
         offer_id: offer.id,
         product_title: offer.product_name,
-        unit_of_measurement: MARKETPLACE_UNIT_LABEL[offer.unit_of_measure] ?? '',
+        unit_of_measurement: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
         quantity: item.quantity,
         unit_price: offer.price_per_unit,
       });

@@ -49,9 +49,15 @@ export class MarketplaceAplReceptionFactEntryDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Единица измерения товара по этой позиции (шт., кг, л, упак.).',
+    description: 'Базовая единица измерения товара по этой позиции (штука, килограмм, литр).',
   })
   unit_of_measure!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Размер единицы заказа (фасовки) в базовых единицах по этой позиции.',
+  })
+  order_unit_size!: string | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -298,7 +304,10 @@ export function toExpressPickupCandidateDTO(c: {
  */
 export interface MarketplaceAplReceptionDisplayFields {
   offerer_name?: string | null;
-  lineByOrderId?: Map<string, { product_name: string | null; unit_of_measure: string | null }>;
+  lineByOrderId?: Map<
+    string,
+    { product_name: string | null; unit_of_measure: string | null; order_unit_size: string | null }
+  >;
 }
 
 export function toMarketplaceAplReceptionDTO(
@@ -323,6 +332,7 @@ export function toMarketplaceAplReceptionDTO(
     const line = display?.lineByOrderId?.get(f.order_id);
     entry.product_name = line?.product_name ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
+    entry.order_unit_size = line?.order_unit_size ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

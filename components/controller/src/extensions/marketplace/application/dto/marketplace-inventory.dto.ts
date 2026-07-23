@@ -105,9 +105,15 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Единица измерения товара (шт./кг/литр/упак.) — из предложения. Для подписей количества на складе.',
+    description: 'Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе.',
   })
   unit_of_measure!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Размер единицы заказа (фасовки) в базовых единицах — из предложения.',
+  })
+  order_unit_size!: string | null;
 
   @Field(() => String, {
     nullable: true,
@@ -327,6 +333,7 @@ export function toMarketplaceInventoryItemDTO(
   // (резолвер списка) батчем по заказам — не хранятся снимком. По умолчанию null.
   dto.orderer_name = null;
   dto.unit_of_measure = null;
+  dto.order_unit_size = null;
   dto.delivery_point_name = null;
   dto.delivery_point_address = null;
   dto.shelf = e.shelf;

@@ -7,7 +7,7 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceUnitShort } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   acceptOrdersBatch,
@@ -147,7 +147,7 @@ const parties = computed<SupplierParty[]>(() => {
         productName: o.product_name || 'Товар по предложению',
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceUnitShort(o.unit_of_measure),
+        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
         orders: [],
         totalUnits: 0,
         totalCost: 0,
