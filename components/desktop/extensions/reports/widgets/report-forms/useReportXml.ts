@@ -33,7 +33,8 @@ export interface BaseHeader {
   signerMiddleName: string
   signerRepDoc: string
   signerSnils: string
-  sfrRegNumber: string
+  /** Рег. номер ПФР — читается из тега `<РегНомер>` ЕФС-1 (fss4.generator.ts кладёт туда именно ПФР, не СФР). */
+  pfrRegNumber: string
 }
 
 export interface UseReportXmlReturn {
@@ -117,7 +118,7 @@ export function useReportXml(
       signerLastName: '', signerFirstName: '', signerMiddleName: '',
       signerRepDoc: '',
       signerSnils: '',
-      sfrRegNumber: '',
+      pfrRegNumber: '',
     }
 
     if (!doc.value) return withRequisites(empty)
@@ -147,7 +148,7 @@ export function useReportXml(
       signerMiddleName: getAttr('Подписант ФИО', 'Отчество') || getText('Отчество'),
       signerRepDoc: getAttr('Подписант СвПред', 'НаимДок'),
       signerSnils: getAttr('ПерсСвФЛ', 'СНИЛС'),
-      sfrRegNumber: getText('РегНомер'),
+      pfrRegNumber: getText('РегНомер'),
     }
     return withRequisites(h)
   })
@@ -174,7 +175,7 @@ export function useReportXml(
       signerFirstName: h.signerFirstName || get('signerFirstName'),
       signerMiddleName: h.signerMiddleName || get('signerMiddleName'),
       signerSnils: h.signerSnils || get('signerSnils'),
-      sfrRegNumber: h.sfrRegNumber || get('sfrRegNumber'),
+      pfrRegNumber: h.pfrRegNumber || get('pfrRegNumber'),
     }
   }
 

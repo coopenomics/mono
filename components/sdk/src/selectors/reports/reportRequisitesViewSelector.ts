@@ -24,6 +24,7 @@ export const rawReportRequisitesViewSelector = {
   oktmo: rawRequisiteFieldViewSelector,
   okpo: rawRequisiteFieldViewSelector,
   sfrRegNumber: rawRequisiteFieldViewSelector,
+  pfrRegNumber: rawRequisiteFieldViewSelector,
   chairmanPosition: rawRequisiteFieldViewSelector,
   signerSnils: rawRequisiteFieldViewSelector,
   signerRepDoc: rawRequisiteFieldViewSelector,

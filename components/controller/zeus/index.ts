@@ -9043,6 +9043,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	oktmo?:ValueTypes["RequisiteFieldView"],
 	okved?:ValueTypes["RequisiteFieldView"],
 	orgName?:ValueTypes["RequisiteFieldView"],
+	pfrRegNumber?:ValueTypes["RequisiteFieldView"],
 	phone?:ValueTypes["RequisiteFieldView"],
 	sfrRegNumber?:ValueTypes["RequisiteFieldView"],
 	signerFirstName?:ValueTypes["RequisiteFieldView"],
@@ -10179,8 +10180,10 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	oktmo?: string | undefined | null | Variable<any, string>,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null | Variable<any, string>,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null | Variable<any, string>,
 	phoneOverride?: string | undefined | null | Variable<any, string>,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null | Variable<any, string>,
 	signerRepDoc?: string | undefined | null | Variable<any, string>,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -10482,6 +10485,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	firstName?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
+	pfrRegNumber?:boolean | `@${string}`,
 	repDoc?:boolean | `@${string}`,
 	sfrRegNumber?:boolean | `@${string}`,
 	snils?:boolean | `@${string}`,
@@ -18204,6 +18208,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	oktmo?:ResolverInputTypes["RequisiteFieldView"],
 	okved?:ResolverInputTypes["RequisiteFieldView"],
 	orgName?:ResolverInputTypes["RequisiteFieldView"],
+	pfrRegNumber?:ResolverInputTypes["RequisiteFieldView"],
 	phone?:ResolverInputTypes["RequisiteFieldView"],
 	sfrRegNumber?:ResolverInputTypes["RequisiteFieldView"],
 	signerFirstName?:ResolverInputTypes["RequisiteFieldView"],
@@ -19317,8 +19322,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -19614,6 +19621,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	firstName?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
+	pfrRegNumber?:boolean | `@${string}`,
 	repDoc?:boolean | `@${string}`,
 	sfrRegNumber?:boolean | `@${string}`,
 	snils?:boolean | `@${string}`,
@@ -27847,6 +27855,7 @@ export type ModelTypes = {
 	oktmo: ModelTypes["RequisiteFieldView"],
 	okved: ModelTypes["RequisiteFieldView"],
 	orgName: ModelTypes["RequisiteFieldView"],
+	pfrRegNumber: ModelTypes["RequisiteFieldView"],
 	phone: ModelTypes["RequisiteFieldView"],
 	sfrRegNumber: ModelTypes["RequisiteFieldView"],
 	signerFirstName: ModelTypes["RequisiteFieldView"],
@@ -28930,8 +28939,10 @@ export type ModelTypes = {
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -29214,6 +29225,7 @@ export type ModelTypes = {
 	firstName: string,
 	lastName: string,
 	middleName?: string | undefined | null,
+	pfrRegNumber?: string | undefined | null,
 	repDoc?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	snils?: string | undefined | null,
@@ -37955,6 +37967,7 @@ export type GraphQLTypes = {
 	oktmo: GraphQLTypes["RequisiteFieldView"],
 	okved: GraphQLTypes["RequisiteFieldView"],
 	orgName: GraphQLTypes["RequisiteFieldView"],
+	pfrRegNumber: GraphQLTypes["RequisiteFieldView"],
 	phone: GraphQLTypes["RequisiteFieldView"],
 	sfrRegNumber: GraphQLTypes["RequisiteFieldView"],
 	signerFirstName: GraphQLTypes["RequisiteFieldView"],
@@ -39090,8 +39103,10 @@ export type GraphQLTypes = {
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -39395,6 +39410,7 @@ export type GraphQLTypes = {
 	firstName: string,
 	lastName: string,
 	middleName?: string | undefined | null,
+	pfrRegNumber?: string | undefined | null,
 	repDoc?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	snils?: string | undefined | null,

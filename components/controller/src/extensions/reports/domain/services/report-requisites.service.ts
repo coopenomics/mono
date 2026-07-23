@@ -39,6 +39,8 @@ export interface MergedRequisites {
   oktmo: RequisiteField;
   okpo: RequisiteField;
   sfrRegNumber: RequisiteField;
+  /** Рег. номер страхователя в ПФР (XXX-XXX-XXXXXX) — отдельный от sfrRegNumber, требуется для ЕФС-1. */
+  pfrRegNumber: RequisiteField;
   chairmanPosition: RequisiteField;
   signerSnils: RequisiteField;
   signerRepDoc: RequisiteField;
@@ -94,6 +96,7 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
   [ReportType.FSS4]: [
     { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
     { key: 'sfrRegNumber', label: 'Регистрационный номер в СФР', source: 'manual' },
+    { key: 'pfrRegNumber', label: 'Регистрационный номер в ПФР', source: 'manual' },
     { key: 'chairmanPosition', label: 'Должность руководителя', source: 'manual' },
   ],
   [ReportType.PSV]: [{ key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' }],
@@ -152,6 +155,7 @@ export class ReportRequisitesService {
       oktmo: mn(manual?.oktmo),
       okpo: mn(manual?.okpo),
       sfrRegNumber: mn(manual?.sfr_reg_number),
+      pfrRegNumber: mn(manual?.pfr_reg_number),
       chairmanPosition: mn(manual?.chairman_position),
       signerSnils: mn(manual?.signer_snils),
       signerRepDoc: mn(manual?.signer_rep_doc),
@@ -218,6 +222,7 @@ export class ReportRequisitesService {
       oktmo: input.oktmo ?? undefined,
       okpo: input.okpo ?? undefined,
       sfr_reg_number: input.sfr_reg_number ?? undefined,
+      pfr_reg_number: input.pfr_reg_number ?? undefined,
       chairman_position: input.chairman_position ?? undefined,
       signer_snils: input.signer_snils ?? undefined,
       signer_rep_doc: input.signer_rep_doc ?? undefined,

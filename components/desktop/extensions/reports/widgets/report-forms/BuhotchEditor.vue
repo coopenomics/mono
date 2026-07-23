@@ -11,6 +11,8 @@
         :model-value='editsValue.header.correctionNumber'
         @update:model-value='v => updateField("header.correctionNumber", clampInt(v, 0, 999))'
         :rules='[v => (v >= 0 && v <= 999) || "0..999"]'
+        :error='errFor("header.correctionNumber")'
+        :error-message='msgFor("header.correctionNumber")'
         dense filled
       )
       q-input(
@@ -18,6 +20,8 @@
         type='number'
         :model-value='editsValue.header.reportYear'
         @update:model-value='v => updateField("header.reportYear", clampInt(v, 2000, 2100))'
+        :error='errFor("header.reportYear")'
+        :error-message='msgFor("header.reportYear")'
         dense filled
       )
       q-input(
@@ -26,6 +30,8 @@
         @update:model-value='v => updateField("header.docDate", v)'
         mask='##.##.####'
         :rules='[reportRules.dateDdMmYyyy()]'
+        :error='errFor("header.docDate")'
+        :error-message='msgFor("header.docDate")'
         dense filled
       )
 
@@ -191,24 +197,32 @@
         label='Нематериальные, финансовые и др. внеоборотные активы'
         code='1170'
         :row='editsValue.balance.nonMaterialAndLongFin'
+        base-path='balance.nonMaterialAndLongFin'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.nonMaterialAndLongFin", row)'
       )
       BalanceRowEditor(
         label='Денежные средства и денежные эквиваленты'
         code='1250'
         :row='editsValue.balance.cash'
+        base-path='balance.cash'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.cash", row)'
       )
       BalanceRowEditor(
         label='Финансовые и другие оборотные активы'
         code='1260'
         :row='editsValue.balance.shortTermFin'
+        base-path='balance.shortTermFin'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.shortTermFin", row)'
       )
       BalanceRowEditor.total(
         label='БАЛАНС (актив)'
         code='1600'
         :row='editsValue.balance.assetsTotal'
+        base-path='balance.assetsTotal'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.assetsTotal", row)'
       )
 
@@ -218,12 +232,16 @@
         label='Целевые средства (паевой фонд + целевые поступления)'
         code='1350'
         :row='editsValue.balance.targetFunds'
+        base-path='balance.targetFunds'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.targetFunds", row)'
       )
       BalanceRowEditor.total(
         label='БАЛАНС (пассив)'
         code='1700'
         :row='editsValue.balance.passivesTotal'
+        base-path='balance.passivesTotal'
+        :field-errors='props.fieldErrors'
         @update='row => updateRow("balance.passivesTotal", row)'
       )
 
