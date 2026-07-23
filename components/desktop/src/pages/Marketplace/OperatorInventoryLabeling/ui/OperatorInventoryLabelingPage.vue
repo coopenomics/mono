@@ -46,6 +46,11 @@ const loading = ref(false)
 const RECEIVED = Zeus.MarketplaceInventoryStatus.RECEIVED
 const LABELED = Zeus.MarketplaceInventoryStatus.LABELED
 
+/** ФИО заказчика (с бэка), иначе служебный аккаунт — для подписи на карточке. */
+function ordererLabel(item: MarketplaceInventoryItemView): string {
+  return item.orderer_name?.trim() || item.orderer_account_snapshot
+}
+
 // Имущество на складе (принятое/промаркированное) — то, что раскладываем.
 const boardItems = computed(() =>
   items.value.filter((i) => i.status === RECEIVED || i.status === LABELED),
@@ -442,7 +447,7 @@ q-page.place(role='region', aria-label='Склад участка')
             .place__card-top
               .place__card-info
                 .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
-                .place__card-meta {{ item.quantity_per_label }} ед. · {{ item.orderer_account_snapshot }}
+                .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
               .place__card-actions
                 BaseButton(
                   v-if='!item.barcode_value',

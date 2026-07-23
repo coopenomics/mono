@@ -156,15 +156,15 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             )
           q-input(
             v-model.number='form.warranty_days',
-            label='Гарантия (дней)',
+            label='Гарантийный срок возврата (дней)',
             type='number',
             min='0',
             outlined,
             dense,
             no-error-icon,
             reserve-hint-space,
-            hint='0 — без гарантии: возврат невозможен. Иначе — конечный срок в днях',
-            :rules='[(v) => (v !== null && v >= 0) || "Срок гарантии не может быть отрицательным"]'
+            hint='0 — без гарантийного срока возврата: возврат невозможен. Иначе — конечный срок в днях',
+            :rules='[(v) => (v !== null && v >= 0) || "Гарантийный срок возврата не может быть отрицательным"]'
           )
 
         //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
@@ -292,7 +292,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                     dt Участки поставки
                     dd {{ deliveryPointsPreview }}
                   .offer-preview__spec(v-if='form.warranty_days > 0')
-                    dt Гарантия
+                    dt Гарантийный срок возврата
                     dd {{ form.warranty_days }} дн.
 
     //- ───────── Навигация ─────────
@@ -531,7 +531,7 @@ function onWithdraw(): void {
 // ===== Шаги =====
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
-  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантия' },
+  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантийный срок возврата' },
   { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
