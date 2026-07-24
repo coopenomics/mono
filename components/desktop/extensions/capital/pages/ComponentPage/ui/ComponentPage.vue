@@ -38,12 +38,6 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
           :project="project"
           @action-completed="handlePlanSet"
         )
-        CreateProjectInvestButton(
-          v-if="activeTabKey === 'component-planning'"
-          ref="investRef"
-          :project="project"
-          @action-completed="handleInvestCompleted"
-        )
         AddAuthorButton(
           v-if="activeTabKey === 'component-contributors' && project.permissions?.can_manage_authors"
           ref="addAuthorRef"
@@ -131,7 +125,6 @@ import { useBackButton } from 'src/shared/lib/navigation';
 import { PageTabs } from 'src/shared/ui/layout';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import { CreateRequirementButton } from 'app/extensions/capital/features/Story/CreateStory';
-import { CreateProjectInvestButton } from 'app/extensions/capital/features/Invest/CreateProjectInvest';
 import { AddAuthorButton } from 'app/extensions/capital/features/Project/AddAuthor';
 import { SetPlanButton } from 'app/extensions/capital/features/Project/SetPlan';
 import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor/MakeClearance';
@@ -176,7 +169,6 @@ const createIssueRef = ref<CapitalActionOpen>(null);
 const createRequirementRef = ref<CapitalActionOpen>(null);
 const setPlanRef = ref<CapitalActionOpen>(null);
 const addAuthorRef = ref<CapitalActionOpen>(null);
-const investRef = ref<CapitalActionOpen>(null);
 const makeClearanceRef = ref<CapitalActionOpen>(null);
 
 // Используем composable для загрузки проекта
@@ -208,7 +200,6 @@ useCapitalFabHotkeys(() => {
     author: perms.can_manage_authors
       ? () => addAuthorRef.value?.openDialog()
       : undefined,
-    invest: () => investRef.value?.openDialog(),
   };
 });
 const route = useRoute();
@@ -304,11 +295,6 @@ const handlePlanSet = () => {
 
 // Обработчик добавления соавторов
 const handleAuthorsAdded = () => {
-  // Можно добавить логику обновления данных проекта
-};
-
-// Обработчик создания инвестиции
-const handleInvestCompleted = () => {
   // Можно добавить логику обновления данных проекта
 };
 
