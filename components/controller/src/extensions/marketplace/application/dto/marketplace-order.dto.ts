@@ -111,14 +111,6 @@ export class MarketplaceOrderDTO {
   })
   public readonly unit_of_measure!: string | null;
 
-  @Field(() => String, {
-    nullable: true,
-    description:
-      'Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько ' +
-      'базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук.',
-  })
-  public readonly order_unit_size!: string | null;
-
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
 
@@ -381,7 +373,6 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
   unit_of_measure?: string | null;
-  order_unit_size?: string | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;
@@ -419,7 +410,6 @@ export function toMarketplaceOrderDTO(
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,
     unit_of_measure: display?.unit_of_measure ?? null,
-    order_unit_size: display?.order_unit_size ?? null,
     supplier_account: o.supplier_account,
     supplier_name: display?.supplier_name ?? null,
     delivery_braname: o.delivery_braname,

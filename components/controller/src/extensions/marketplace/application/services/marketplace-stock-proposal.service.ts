@@ -415,7 +415,7 @@ export class MarketplaceStockProposalService {
         transmitter: input.operator_account,
         offer_id: offer.id,
         product_title: offer.product_name,
-        unit_of_measurement: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
+        unit_of_measurement: marketplaceOrderUnitLabel(offer.unit_of_measure),
         quantity: item.quantity,
         unit_price: offer.price_per_unit,
       });

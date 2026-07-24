@@ -97,16 +97,6 @@ export class MarketplaceCreateOfferInputDTO {
   @IsEnum(MarketplaceUnitOfMeasureEnum)
   public unit_of_measure!: MarketplaceUnitOfMeasureEnum;
 
-  @Field(() => String, {
-    nullable: true,
-    description:
-      'Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц ' +
-      'указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1».',
-  })
-  @IsOptional()
-  @Matches(/^\d+(\.\d{1,3})?$/)
-  public order_unit_size?: string | null;
-
   @Field(() => Float, { nullable: true })
   @IsOptional()
   @IsNumber()
@@ -200,14 +190,6 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsOptional()
   @IsEnum(MarketplaceUnitOfMeasureEnum)
   public unit_of_measure?: MarketplaceUnitOfMeasureEnum;
-
-  @Field(() => String, {
-    nullable: true,
-    description: 'Размер единицы заказа (фасовки) в базовых единицах.',
-  })
-  @IsOptional()
-  @Matches(/^\d+(\.\d{1,3})?$/)
-  public order_unit_size?: string;
 
   @Field(() => Float, { nullable: true })
   @IsOptional()

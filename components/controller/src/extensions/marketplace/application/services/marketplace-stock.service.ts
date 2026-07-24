@@ -209,7 +209,6 @@ export class MarketplaceStockService {
           category_id: origin.category_id,
           price_per_unit: this.normalizePrice(price),
           unit_of_measure: origin.unit_of_measure,
-          order_unit_size: origin.order_unit_size,
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.

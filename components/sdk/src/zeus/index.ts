@@ -7723,8 +7723,6 @@ export type ValueTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -8049,8 +8047,6 @@ export type ValueTypes = {
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в корзине. */
@@ -8329,8 +8325,6 @@ export type ValueTypes = {
 	description?: string | undefined | null | Variable<any, string>,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
-	/** Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1». */
-	order_unit_size?: string | undefined | null | Variable<any, string>,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null | Variable<any, string>,
 	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
@@ -8566,8 +8560,6 @@ export type ValueTypes = {
 	labeled_by_operator_account?:boolean | `@${string}`,
 	/** Заказ, к которому относится позиция. */
 	order_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -8886,8 +8878,6 @@ export type ValueTypes = {
 	id?:boolean | `@${string}`,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images?:ValueTypes["MarketplaceOfferImage"],
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
@@ -9069,8 +9059,6 @@ export type ValueTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** Хеш заказа в блокчейне (для сверки). */
 	order_hash?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
 	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
@@ -10038,8 +10026,6 @@ export type ValueTypes = {
 	id: string | Variable<any, string>,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
-	/** Размер единицы заказа (фасовки) в базовых единицах. */
-	order_unit_size?: string | undefined | null | Variable<any, string>,
 	pack_size?: number | undefined | null | Variable<any, string>,
 	price_per_unit?: string | undefined | null | Variable<any, string>,
 	product_name?: string | undefined | null | Variable<any, string>,
@@ -20779,8 +20765,6 @@ export type ResolverInputTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -21093,8 +21077,6 @@ export type ResolverInputTypes = {
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в корзине. */
@@ -21360,8 +21342,6 @@ export type ResolverInputTypes = {
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1». */
-	order_unit_size?: string | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
@@ -21592,8 +21572,6 @@ export type ResolverInputTypes = {
 	labeled_by_operator_account?:boolean | `@${string}`,
 	/** Заказ, к которому относится позиция. */
 	order_id?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot?:boolean | `@${string}`,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -21907,8 +21885,6 @@ export type ResolverInputTypes = {
 	id?:boolean | `@${string}`,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images?:ResolverInputTypes["MarketplaceOfferImage"],
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
@@ -22082,8 +22058,6 @@ export type ResolverInputTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** Хеш заказа в блокчейне (для сверки). */
 	order_hash?:boolean | `@${string}`,
-	/** Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account?:boolean | `@${string}`,
 	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
@@ -23012,8 +22986,6 @@ export type ResolverInputTypes = {
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах. */
-	order_unit_size?: string | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
@@ -33446,8 +33418,6 @@ export type ModelTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
-	order_unit_size?: string | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -33743,8 +33713,6 @@ export type ModelTypes = {
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?: string | undefined | null,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?: string | undefined | null,
 	/** Название товара из предложения — для отображения в корзине. */
@@ -33996,8 +33964,6 @@ export type ModelTypes = {
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1». */
-	order_unit_size?: string | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
@@ -34207,8 +34173,6 @@ export type ModelTypes = {
 	labeled_by_operator_account?: string | undefined | null,
 	/** Заказ, к которому относится позиция. */
 	order_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
-	order_unit_size?: string | undefined | null,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -34514,8 +34478,6 @@ export type ModelTypes = {
 	id: string,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images: Array<ModelTypes["MarketplaceOfferImage"]>,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string. */
-	order_unit_size: string,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
@@ -34680,8 +34642,6 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Хеш заказа в блокчейне (для сверки). */
 	order_hash: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?: string | undefined | null,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
 	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
@@ -35559,8 +35519,6 @@ export type ModelTypes = {
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах. */
-	order_unit_size?: string | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
@@ -47150,8 +47108,6 @@ export type GraphQLTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах по этой позиции. */
-	order_unit_size?: string | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -47476,8 +47432,6 @@ export type GraphQLTypes = {
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?: string | undefined | null,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?: string | undefined | null,
 	/** Название товара из предложения — для отображения в корзине. */
@@ -47755,8 +47709,6 @@ export type GraphQLTypes = {
 	description?: string | undefined | null,
 	/** Изображения товара (base64). Порядок = порядок показа, первое — обложка. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах: за сколько базовых единиц указана цена. Например, «0.1» — по 100 г, «8» — упаковка из 8 штук. По умолчанию «1». */
-	order_unit_size?: string | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
 	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
@@ -47994,8 +47946,6 @@ export type GraphQLTypes = {
 	labeled_by_operator_account?: string | undefined | null,
 	/** Заказ, к которому относится позиция. */
 	order_id: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах — из предложения. */
-	order_unit_size?: string | undefined | null,
 	/** Заказчик — печатается на наклейке. */
 	orderer_account_snapshot: string,
 	/** Фамилия Имя Отчество заказчика (организация — краткое наименование). Для показа в списках вместо служебного имени аккаунта. */
@@ -48314,8 +48264,6 @@ export type GraphQLTypes = {
 	id: string,
 	/** Изображения товара (обложка — первое). URL подписаны и ограничены по TTL. */
 	images: Array<GraphQLTypes["MarketplaceOfferImage"]>,
-	/** Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string. */
-	order_unit_size: string,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
@@ -48497,8 +48445,6 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** Хеш заказа в блокчейне (для сверки). */
 	order_hash: string,
-	/** Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук. */
-	order_unit_size?: string | undefined | null,
 	/** Аккаунт пайщика-заказчика. */
 	orderer_account: string,
 	/** Наименование заказчика (ФИО пайщика или название организации) — для экранов выдачи/подписи. */
@@ -49465,8 +49411,6 @@ export type GraphQLTypes = {
 	id: string,
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
-	/** Размер единицы заказа (фасовки) в базовых единицах. */
-	order_unit_size?: string | undefined | null,
 	pack_size?: number | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,

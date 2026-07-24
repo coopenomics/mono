@@ -162,7 +162,6 @@ export class MarketplaceOrderDisplayService {
       result.set(order.id, {
         product_name: offer?.product_name ?? null,
         unit_of_measure: offer?.unit_of_measure ?? null,
-        order_unit_size: offer?.order_unit_size ?? null,
         delivery_point_name: branch?.name ?? null,
         delivery_point_address: branch?.address ?? null,
         delivery_point_lat: branch?.lat ?? null,

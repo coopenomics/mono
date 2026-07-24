@@ -232,7 +232,7 @@ export class MarketplaceWriteoffService {
     if (!offerId) return FALLBACK;
     const offer = await this.offerRepo.findById(offerId);
     if (!offer) return FALLBACK;
-    return marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size);
+    return marketplaceOrderUnitLabel(offer.unit_of_measure);
   }
 
   /**

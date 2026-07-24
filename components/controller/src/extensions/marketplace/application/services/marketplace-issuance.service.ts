@@ -515,7 +515,7 @@ export class MarketplaceIssuanceService {
       offer_id: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
       unit_of_measurement: offer
-        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure)
         : '',
       transmitter: input.transmitter,
       actual_quantity: input.actual_quantity,

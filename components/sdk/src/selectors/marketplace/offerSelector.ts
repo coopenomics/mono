@@ -11,7 +11,6 @@ const rawOfferSelector = {
   category_id: true,
   price_per_unit: true,
   unit_of_measure: true,
-  order_unit_size: true,
   quantity_available: true,
   quantity_blocked: true,
   quantity_consumed: true,

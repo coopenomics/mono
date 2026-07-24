@@ -351,7 +351,7 @@ export class MarketplaceAplReceptionService {
       sku: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
       unit_of_measurement: offer
-        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure)
         : '',
       unit_cost: fact_unit_price,
       currency: this.assetConfig.symbol,

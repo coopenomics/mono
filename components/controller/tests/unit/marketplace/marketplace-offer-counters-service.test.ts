@@ -35,7 +35,6 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     category_id: 1,
     price_per_unit: '50.0000',
     unit_of_measure: 'kg',
-    order_unit_size: '1',
     quantity_available: 90,
     quantity_blocked: 10,
     quantity_consumed: 0,

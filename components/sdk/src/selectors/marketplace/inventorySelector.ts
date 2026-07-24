@@ -15,7 +15,6 @@ const rawInventorySelector = {
   orderer_account_snapshot: true,
   orderer_name: true,
   unit_of_measure: true,
-  order_unit_size: true,
   delivery_point_name: true,
   delivery_point_address: true,
   shelf: true,

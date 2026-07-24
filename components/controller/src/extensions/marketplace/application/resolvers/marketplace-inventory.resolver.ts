@@ -223,7 +223,6 @@ export class MarketplaceInventoryResolver {
       dto.orderer_name = nameByAccount.get(item.orderer_account_snapshot) ?? null;
       const display = displayByOrderId.get(item.order_id);
       dto.unit_of_measure = display?.unit_of_measure ?? null;
-      dto.order_unit_size = display?.order_unit_size ?? null;
       dto.delivery_point_name = display?.delivery_point_name ?? null;
       dto.delivery_point_address = display?.delivery_point_address ?? null;
       return dto;

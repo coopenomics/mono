@@ -76,11 +76,6 @@ export interface OfferCreateRequest {
   category_id: number;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
-  /**
-   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
-   * numeric как string. Опционально — по умолчанию «1» (одна базовая единица).
-   */
-  order_unit_size?: string | null;
   quantity_available: number | null;
   unlimited_flag: boolean;
   /** КУ поставки с минимальным объёмом на каждом. */
@@ -175,7 +170,6 @@ export class MarketplaceOfferService {
       category_id: input.category_id,
       price_per_unit: input.price_per_unit,
       unit_of_measure: input.unit_of_measure,
-      order_unit_size: this.normalizeSaleUnitSize(input.order_unit_size),
       quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
       unlimited_flag: input.unlimited_flag,
       delivery_points: this.normalizeDeliveryPoints(input.delivery_points),
@@ -225,10 +219,6 @@ export class MarketplaceOfferService {
     }
     if (patch.unit_of_measure !== undefined) {
       this.assertUnit(patch.unit_of_measure);
-    }
-    if (patch.order_unit_size !== undefined && patch.order_unit_size !== null) {
-      this.assertSaleUnitSize(patch.order_unit_size);
-      patch.order_unit_size = patch.order_unit_size.trim();
     }
     if (patch.shelf_life_days !== undefined && patch.shelf_life_days < 0) {
       throw new BadRequestException('Срок годности не может быть отрицательным.');
@@ -473,9 +463,6 @@ export class MarketplaceOfferService {
       );
     }
 
-    if (input.order_unit_size !== undefined && input.order_unit_size !== null) {
-      this.assertSaleUnitSize(input.order_unit_size);
-    }
   }
 
   /**
@@ -570,25 +557,6 @@ export class MarketplaceOfferService {
     if (!MARKETPLACE_UNITS_OF_MEASURE.includes(u)) {
       throw new BadRequestException('Выбрана недопустимая единица измерения.');
     }
-  }
-
-  /**
-   * Размер единицы заказа (фасовки) — положительное число (до трёх знаков
-   * после запятой) базовых единиц. Пример: «0.1» для заказа по 100 г при
-   * базовой единице «кг», «8» для упаковки из 8 штук.
-   */
-  private assertSaleUnitSize(size: string): void {
-    if (typeof size !== 'string' || !/^\d+(\.\d{1,3})?$/.test(size) || Number.parseFloat(size) <= 0) {
-      throw new BadRequestException(
-        'Размер фасовки должен быть положительным числом (например, «0.1» или «8»).'
-      );
-    }
-  }
-
-  /** Пустое значение фасовки → «1» (одна базовая единица). */
-  private normalizeSaleUnitSize(size: string | null | undefined): string {
-    if (size === undefined || size === null || size.trim() === '') return '1';
-    return size.trim();
   }
 
   private async ensureCategoryExists(category_id: number): Promise<void> {

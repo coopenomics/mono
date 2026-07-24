@@ -136,7 +136,6 @@ export class MarketplaceOfferResolver {
       category_id: input.category_id,
       price_per_unit: input.price_per_unit,
       unit_of_measure: input.unit_of_measure,
-      order_unit_size: input.order_unit_size ?? null,
       quantity_available: input.quantity_available ?? null,
       unlimited_flag: input.unlimited_flag,
       delivery_points: input.delivery_points ?? [],
