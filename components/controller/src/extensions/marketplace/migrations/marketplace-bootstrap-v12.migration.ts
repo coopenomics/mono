@@ -2,7 +2,7 @@ import type { IExtensionSchemaMigration } from '~/domain/extension/services/exte
 import { IConfig } from '../types';
 
 /**
- * Bootstrap-миграция v11 расширения `market` — явная готовность к выдаче.
+ * Bootstrap-миграция v12 расширения `market` — явная готовность к выдаче.
  * Оператор КУ выдачи вручную объявляет заказ готовым («Объявить выдачу» на
  * столе ПВЗ) ДО прихода заказчика: раньше единственным способом «открыть
  * выдачу» был скан QR уже пришедшего пайщика, и push «приходите заберите»
@@ -19,11 +19,11 @@ import { IConfig } from '../types';
  * ACCEPTED_TO_COOP это просто «ещё не объявлено».
  *
  * Конфиг расширения не меняется — `migrate` тождественный (нужен только для
- * bump schema_version, как у v6/v7/v8/v9/v10).
+ * bump schema_version, как у v6/v7/v8/v9/v10/v11).
  */
-export const marketplaceBootstrapV11Migration: IExtensionSchemaMigration<Partial<IConfig>, IConfig> = {
+export const marketplaceBootstrapV12Migration: IExtensionSchemaMigration<Partial<IConfig>, IConfig> = {
   extensionName: 'market',
-  version: 11,
+  version: 12,
 
   migrate(oldConfig, def) {
     return { ...def, ...oldConfig };
