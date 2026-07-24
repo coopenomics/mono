@@ -25,6 +25,7 @@ const rawOfferSelector = {
     lat: true,
     lng: true,
   },
+  shelf_life_days: true,
   warranty_days: true,
   barcode_strategy: true,
   pack_size: true,

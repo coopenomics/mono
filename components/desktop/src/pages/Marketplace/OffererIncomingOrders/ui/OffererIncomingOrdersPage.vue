@@ -335,13 +335,13 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
         hide-order-count,
-        :volume-label='`Объём партии: ${p.totalUnits} ${p.unitLabel}`',
-        :target-label='hasTarget(p) ? `цель — от ${p.minVolume} ${p.unitLabel}` : ""',
+        :volume-label='`Объём партии: ${p.totalUnits}×${p.unitLabel}`',
+        :target-label='hasTarget(p) ? `цель — от ${p.minVolume}×${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits} ${p.unitLabel}`'
+        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits}×${p.unitLabel}`'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')

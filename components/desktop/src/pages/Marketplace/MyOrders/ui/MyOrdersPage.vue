@@ -11,6 +11,7 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { cancelOrder, fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -250,7 +251,7 @@ async function onLoadMore(): Promise<void> {
 function confirmCancel(order: MarketplaceOrderView): void {
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${order.id.slice(0, 8)} (${order.quantity} ед., ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${order.id.slice(0, 8)} (${marketplaceQuantityLabel(order.quantity, order.unit_of_measure, order.order_unit_size)}, ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,

@@ -81,3 +81,18 @@ export function marketplaceOrderUnitLabel(
   if (q === 1) return 'шт';
   return `упаковка ${trimNumber(q)} шт`;
 }
+
+/**
+ * Кол-во × единица заказа: «1×1 кг», «2×500 г», «3×упаковка 8 шт», «1×шт».
+ * Склейка через пробел («1 1 кг») читается как «одиннадцать кг» — непонятно,
+ * где количество упаковок, а где размер фасовки.
+ */
+export function marketplaceQuantityLabel(
+  quantity: number | string | null | undefined,
+  unit: string | null | undefined,
+  size?: string | number | null | undefined,
+): string {
+  const parsed = typeof quantity === 'string' ? Number.parseFloat(quantity) : quantity ?? 0;
+  const q = Number.isFinite(parsed as number) ? (parsed as number) : 0;
+  return `${trimNumber(q)}×${marketplaceOrderUnitLabel(unit, size)}`;
+}

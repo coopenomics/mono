@@ -82,6 +82,20 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   public delivery_points!: Array<{ braname: string; min_supply_volume: number }>;
 
+  /**
+   * Срок годности имущества в днях (задаёт поставщик при создании). По нему
+   * при приёмке считается `marketplace_inventory.expiry_date` — основа
+   * off-chain списания скоропорта (крон Эпика 8). Не путать с `warranty_days`.
+   * `synchronize:true` создаёт колонку ADD COLUMN с default 0 (миграция v11).
+   */
+  @Column({ type: 'integer', default: 0 })
+  public shelf_life_days!: number;
+
+  /**
+   * Гарантийный срок возврата в днях (задаёт модератор при одобрении). Питает
+   * on-chain `warranty_until` заказа — окно возврата имущества (`submretrn`).
+   * Не путать со сроком годности `shelf_life_days`.
+   */
   @Column({ type: 'integer', default: 0 })
   public warranty_days!: number;
 

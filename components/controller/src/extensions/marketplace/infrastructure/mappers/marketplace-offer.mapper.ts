@@ -21,6 +21,7 @@ export class MarketplaceOfferMapper {
       quantity_consumed: row.quantity_consumed,
       unlimited_flag: row.unlimited_flag,
       delivery_points: row.delivery_points ?? [],
+      shelf_life_days: row.shelf_life_days,
       warranty_days: row.warranty_days,
       barcode_strategy: row.barcode_strategy,
       pack_size: row.pack_size,

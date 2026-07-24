@@ -9,7 +9,7 @@ import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   decodeHandoffToken,
@@ -73,20 +73,29 @@ interface IssuanceLine {
  * Количество и стоимость строки — ПО ФАКТУ, не по заказу (инцидент 2026-06-09:
  * заказ 10, принято 5, карточка показывала 10 и подпись уходила на 10):
  *  - «к выдаче» (ACCEPTED_TO_COOP) — потолок по принятому на склад, стоимость
- *    по цене заказа;
- *  - «ждут получения» (READY_TO_RECEIVE) — из акта выдачи (issuance_fact).
+ *    с членским взносом (то, что заплатил заказчик);
+ *  - «ждут получения» (READY_TO_RECEIVE) — из акта выдачи (issuance_fact),
+ *    cost без взноса масштабируем до полной суммы по ставке заказа.
  */
+function costWithFee(o: MarketplaceOrderIssuanceView, costWithoutFee: number): number {
+  const base = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
+  const full = Number.parseFloat(String(o.total_cost_with_fee ?? '0')) || 0;
+  if (base > 0 && full > 0) return costWithoutFee * (full / base);
+  return full || costWithoutFee;
+}
+
 function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number; total: number } {
   const ordered = Number.parseFloat(String(o.quantity ?? '0')) || 0;
   const orderedTotal = Number.parseFloat(String(o.total_cost ?? '0')) || 0;
+  const orderedTotalWithFee = Number.parseFloat(String(o.total_cost_with_fee ?? '0')) || 0;
   if (o.status === 'READY_TO_RECEIVE') {
     const qty = o.issuance_fact?.actual_quantity ?? ordered;
-    const total = Number.parseFloat(String(o.issuance_fact?.fact_cost ?? orderedTotal)) || 0;
-    return { qty, ordered, total };
+    const factCost = Number.parseFloat(String(o.issuance_fact?.fact_cost ?? orderedTotal)) || 0;
+    return { qty, ordered, total: costWithFee(o, factCost) };
   }
   const qty = Math.min(ordered, o.warehouse_quantity ?? ordered);
-  const unitPrice = ordered ? orderedTotal / ordered : 0;
-  return { qty, ordered, total: qty * unitPrice };
+  const unitPriceWithFee = ordered ? orderedTotalWithFee / ordered : 0;
+  return { qty, ordered, total: qty * unitPriceWithFee };
 }
 
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
@@ -342,9 +351,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ line.quantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ line.orderedQuantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
             BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
 
         //- Ждут получения — выдача открыта, ждём подпись заказчика.
@@ -354,9 +363,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ line.quantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ line.orderedQuantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
             BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
@@ -392,9 +401,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
           .issuance__resolve-item-meta
-            | {{ line.quantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+            | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
             span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-              |  · заказано {{ line.orderedQuantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }}
+              |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
         BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
       //- Открываем выдачу разом по всем готовым позициям пайщика — одна операция.

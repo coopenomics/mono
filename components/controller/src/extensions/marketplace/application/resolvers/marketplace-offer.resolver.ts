@@ -140,7 +140,7 @@ export class MarketplaceOfferResolver {
       quantity_available: input.quantity_available ?? null,
       unlimited_flag: input.unlimited_flag,
       delivery_points: input.delivery_points ?? [],
-      warranty_days: input.warranty_days,
+      shelf_life_days: input.shelf_life_days,
       barcode_strategy: input.barcode_strategy ?? null,
       pack_size: input.pack_size ?? null,
       images: input.images ?? null,

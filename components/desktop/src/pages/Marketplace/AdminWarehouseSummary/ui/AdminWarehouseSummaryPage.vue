@@ -181,8 +181,7 @@ q-page.warehouse-summary(role='region', aria-label='Сводный склад к
                     span.warehouse-summary__pvz-name {{ row.pvzName }}
                     span.warehouse-summary__pvz-addr(v-if='row.pvzAddress') {{ row.pvzAddress }}
                 td.col-num
-                  strong {{ row.turnover }}
-                  |  {{ row.unit }}
+                  strong {{ row.turnover }}×{{ row.unit }}
 
       EmptyState(
         v-else,

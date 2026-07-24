@@ -147,11 +147,11 @@ BaseDialog(
         :model-value="quantity",
         type="number",
         :label="`Количество (${unitLabel})`",
-        :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${unitLabel}` : 'Без ограничения остатка'",
+        :hint="maxQuantity !== null ? `Доступно: ${maxQuantity}×${unitLabel}` : 'Без ограничения остатка'",
         @update:model-value="onQuantityInput"
       )
       .add-to-cart__note(v-if="alreadyInCart > 0")
-        | Уже в корзине: {{ alreadyInCart }} {{ unitLabel }} — добавление суммируется.
+        | Уже в корзине: {{ alreadyInCart }}×{{ unitLabel }} — добавление суммируется.
       .add-to-cart__price(v-if="offer")
         | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
       .add-to-cart__total(v-if="offer")

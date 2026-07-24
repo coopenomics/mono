@@ -11,11 +11,25 @@ import { client } from 'src/shared/api/client';
  * администратора) — DRY.
  */
 
-/** Председатель одобряет предложение (статус → ACTIVE, попадает в каталог). */
-export async function approveOffer(offer_id: string) {
+/**
+ * Председатель одобряет предложение (статус → ACTIVE, попадает в каталог) и
+ * устанавливает гарантийный срок возврата в днях — окно, в течение которого
+ * пайщик может вернуть имущество. Срок годности (списание скоропорта) — поле
+ * поставщика, задаётся отдельно при создании предложения.
+ */
+export async function approveOffer(offer_id: string, warranty_days: number) {
   const { [Mutations.Marketplace.ApproveOffer.name]: result } = await client.Mutation(
     Mutations.Marketplace.ApproveOffer.mutation,
-    { variables: { input: { offer_id } } },
+    { variables: { input: { offer_id, warranty_days } } },
+  );
+  return result;
+}
+
+/** Председатель меняет гарантийный срок возврата уже одобренного предложения. */
+export async function setOfferWarranty(offer_id: string, warranty_days: number) {
+  const { [Mutations.Marketplace.SetOfferWarranty.name]: result } = await client.Mutation(
+    Mutations.Marketplace.SetOfferWarranty.mutation,
+    { variables: { input: { offer_id, warranty_days } } },
   );
   return result;
 }

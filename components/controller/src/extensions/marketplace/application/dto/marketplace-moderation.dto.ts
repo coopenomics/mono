@@ -1,5 +1,5 @@
-import { Field, InputType, ObjectType } from '@nestjs/graphql';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { IsInt, IsNotEmpty, IsString, MaxLength, Min } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 
 @InputType('MarketplaceListPendingOffersInput')
@@ -10,6 +10,30 @@ export class MarketplaceApproveOfferInputDTO {
   @Field(() => String)
   @IsString()
   public offer_id!: string;
+
+  @Field(() => Int, {
+    description:
+      'Гарантийный срок возврата в днях, устанавливаемый модератором при ' +
+      'одобрении. В течение этого срока пайщик может вернуть имущество. ' +
+      '0 — возврат по этому предложению недоступен.',
+  })
+  @IsInt()
+  @Min(0)
+  public warranty_days!: number;
+}
+
+@InputType('MarketplaceSetOfferWarrantyInput')
+export class MarketplaceSetOfferWarrantyInputDTO {
+  @Field(() => String)
+  @IsString()
+  public offer_id!: string;
+
+  @Field(() => Int, {
+    description: 'Новый гарантийный срок возврата в днях (окно возврата имущества).',
+  })
+  @IsInt()
+  @Min(0)
+  public warranty_days!: number;
 }
 
 @InputType('MarketplaceRejectOfferInput')
