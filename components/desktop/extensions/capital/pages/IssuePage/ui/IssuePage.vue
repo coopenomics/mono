@@ -1,27 +1,48 @@
 <template lang="pug">
 div.column.flex-1.min-h-0.min-w-0.no-wrap
-  // Мобильный layout - колонки одна под другой
-  div(v-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
-    div.q-px-md.q-pt-md(v-if="issue")
-      ProjectPathWidget.capital-entity-header-path(
-        v-if="parentProject"
-        :project="parentProject"
+  PageTabs(
+    v-if="issue"
+    :tabs="issueTabs"
+    :active-key="activeTabKey"
+  )
+    template(#actions)
+      q-btn(
+        v-if="activeTabKey === 'component-issue-requirements' && canCreateRequirement"
+        flat
+        dense
+        no-caps
+        color="primary"
+        icon="add"
+        label="Артефакт"
+        size="sm"
+        @click="openCreateRequirementDialog"
       )
+
+  .issue-page-skeleton(v-if="!issue")
+    .issue-page-skeleton__side(v-if="showSidebar")
+      .skel(v-for="i in 4", :key="i")
+    .issue-page-skeleton__main
+      .skel.skel--title
+      .skel.skel--text(v-for="i in 3", :key="i")
+
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="isMobileLayout"
+  )
+    .q-px-md(v-if="showSidebar")
       IssueTitleEditor(
         :issue="issue"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
-      ).full-width.q-mt-xs
+      ).full-width
         template(#prepend-icon)
-          q-icon(name='task', size='24px', color='primary')
-    div
+          q-icon(name="task", size="24px", color="primary")
+        template(#hint)
+          ProjectPathWidget(v-if="parentProject", :project="parentProject")
       IssueSidebarWidget(
-        v-if="issue"
         :issue="issue"
         :permissions="issue.permissions"
         :project-hash="projectHash"
         :parent-project-hash="parentProjectHash"
-        :logs-refresh-trigger="logsRefreshTrigger"
         compact-mobile
         @update:status="handleStatusUpdate"
         @update:priority="handlePriorityUpdate"
@@ -32,80 +53,23 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
         @issue-deleted="handleIssueDeleted"
         @issue-moved="handleIssueMoved"
       )
+    div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
+      div.col.min-h-0.overflow-auto.min-w-0
+        router-view
 
-    div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden
-      div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-        .row.items-center.q-gutter-md.q-mb-sm.q-px-md.q-pb-sm
-          .col.min-w-0
-            AutoSaveIndicator(
-              :is-auto-saving="isAutoSaving"
-              :auto-save-error="autoSaveError"
-            )
-            Editor(
-              v-if="issue"
-              v-model='issue.description',
-              label='Описание задачи',
-              placeholder='Опишите задачу подробно...',
-              :readonly="!issue.permissions?.can_edit_issue",
-              :padded="false"
-              @change='handleDescriptionChange'
-            )
-
-        IssueLinkedGitCommitsWidget.q-px-md.q-mt-md(
-          v-if='linkedGitCommits.length'
-          :commits='linkedGitCommits'
-        )
-
-        q-expansion-item.q-px-md.q-mt-md(
-          v-if='issue'
-          icon='assignment'
-          label='Требования к задаче'
-          :caption='requirementsCaption'
-          header-class='text-grey-7'
-          dense-toggle
-          default-opened
-        )
-          RequirementsListWidget(
-            :filter='requirementsFilter'
-            :max-items='50'
-            :permissions='issue.permissions'
-          )
-          .row.justify-end.q-mt-sm(v-if='canCreateRequirement')
-            q-btn(
-              flat
-              dense
-              no-caps
-              color='primary'
-              icon='add'
-              label='Добавить требование'
-              @click='openCreateRequirementDialog'
-            )
-
-        q-expansion-item.q-px-md.q-mt-md(
-          v-if='issue'
-          icon='schedule'
-          label='История рабочего времени'
-          :caption='worklogCaption'
-          header-class='text-grey-7'
-          dense-toggle
-        )
-          TimeEntriesWidget(
-            :issue-hash='issue.issue_hash'
-          )
-
-  .column.flex-1.min-h-0.min-w-0.no-wrap(v-else)
-    .q-px-md.q-pt-md(v-if="issue")
-      ProjectPathWidget.capital-entity-header-path(
-        v-if="parentProject"
-        :project="parentProject"
-      )
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="showSidebar"
+  )
+    .q-px-md
       IssueTitleEditor(
         :issue="issue"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
-      ).full-width.q-mt-xs
+      ).full-width
         template(#prepend-icon)
-          q-icon(name='task', size='24px', color='primary')
+          q-icon(name="task", size="24px", color="primary")
+        template(#hint)
+          ProjectPathWidget(v-if="parentProject", :project="parentProject")
     q-splitter.col.flex-1.min-h-0(
       v-model="sidebarWidth"
       :limits="[200, 800]"
@@ -117,12 +81,10 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
     )
       template(#before)
         IssueSidebarWidget(
-          v-if="issue"
           :issue="issue"
           :permissions="issue.permissions"
           :project-hash="projectHash"
           :parent-project-hash="parentProjectHash"
-          :logs-refresh-trigger="logsRefreshTrigger"
           @update:status="handleStatusUpdate"
           @update:priority="handlePriorityUpdate"
           @update:estimate="handleEstimateUpdate"
@@ -132,446 +94,368 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
           @issue-deleted="handleIssueDeleted"
           @issue-moved="handleIssueMoved"
         )
-
       template(#after)
-        div.column.full-height.min-h-0
-          div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-            .row.items-center.q-gutter-md.q-mb-sm.q-px-md.q-pb-sm
-              .col.min-w-0
-                AutoSaveIndicator(
-                  :is-auto-saving="isAutoSaving"
-                  :auto-save-error="autoSaveError"
-                )
+        div.column.full-height.min-h-0.relative-position
+          div.col.min-h-0.overflow-auto.min-w-0
+            router-view
 
-                Editor(
-                  v-if="issue"
-                  v-model='issue.description',
-                  label='Описание задачи',
-                  placeholder='Опишите задачу подробно...',
-                  :readonly="!issue.permissions?.can_edit_issue",
-                  :padded="false"
-                  @change='handleDescriptionChange'
-                )
-
-            IssueLinkedGitCommitsWidget.q-px-md.q-mt-md(
-              v-if='linkedGitCommits.length'
-              :commits='linkedGitCommits'
-            )
-
-            q-expansion-item.q-px-md.q-mt-md(
-              v-if='issue'
-              icon='assignment'
-              label='Требования к задаче'
-              :caption='requirementsCaption'
-              header-class='text-grey-7'
-              dense-toggle
-              default-opened
-            )
-              RequirementsListWidget(
-                :filter='requirementsFilter'
-                :max-items='50'
-                :permissions='issue.permissions'
-              )
-              .row.justify-end.q-mt-sm(v-if='canCreateRequirement')
-                q-btn(
-                  flat
-                  dense
-                  no-caps
-                  color='primary'
-                  icon='add'
-                  label='Добавить требование'
-                  @click='openCreateRequirementDialog'
-                )
-
-            q-expansion-item.q-px-md.q-mt-md(
-              v-if='issue'
-              icon='schedule'
-              label='История рабочего времени'
-              :caption='worklogCaption'
-              header-class='text-grey-7'
-              dense-toggle
-            )
-              TimeEntriesWidget(
-                :issue-hash='issue.issue_hash'
-              )
+  div.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+    div.col.min-h-0.overflow-auto.min-w-0
+      router-view
 
   CreateRequirementWithEditorDialog(
-    ref='createRequirementDialog'
-    :filter='createRequirementFilter'
-    @success='handleRequirementCreated'
+    ref="createRequirementDialog"
+    :filter="createRequirementFilter"
+    @success="handleRequirementCreated"
   )
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useWindowSize } from 'src/shared/hooks/useWindowSize';
-import { FailAlert } from 'src/shared/api';
-import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
-import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
-import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
-import type { IProject } from 'app/extensions/capital/entities/Project/model';
-import { EMPTY_HASH } from 'src/shared/lib/consts';
-import { useBackButton } from 'src/shared/lib/navigation';
-import { Editor, AutoSaveIndicator } from 'src/shared/ui';
-import { toMarkdown } from 'src/shared/lib/utils';
-import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue';
-import { IssueSidebarWidget, IssueLinkedGitCommitsWidget, TimeEntriesWidget } from 'app/extensions/capital/widgets';
-import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor';
-import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget';
-import { RequirementsListWidget } from 'app/extensions/capital/widgets/RequirementsListWidget';
-import { CreateRequirementWithEditorDialog } from 'app/extensions/capital/features/Story/CreateStory';
-import { useStoryStore, type IGetStoriesInput } from 'app/extensions/capital/entities/Story/model';
+import { ref, computed, onMounted, watch, provide } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useWindowSize } from 'src/shared/hooks/useWindowSize'
+import { FailAlert } from 'src/shared/api'
+import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api'
+import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api'
+import type { IIssue } from 'app/extensions/capital/entities/Issue/model'
+import type { IProject } from 'app/extensions/capital/entities/Project/model'
+import { EMPTY_HASH } from 'src/shared/lib/consts'
+import { useBackButton } from 'src/shared/lib/navigation'
+import { PageTabs } from 'src/shared/ui/layout'
+import { toMarkdown } from 'src/shared/lib/utils'
+import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
+import { IssueSidebarWidget } from 'app/extensions/capital/widgets'
+import { IssueTitleEditor } from 'app/extensions/capital/widgets/IssueTitleEditor'
+import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget'
+import { CreateRequirementWithEditorDialog } from 'app/extensions/capital/features/Story/CreateStory'
+import type { IGetStoriesInput } from 'app/extensions/capital/entities/Story/model'
+import { ISSUE_PAGE_KEY } from '../model/context'
 
-const route = useRoute();
-const router = useRouter();
+const route = useRoute()
+const router = useRouter()
+const { isMobile } = useWindowSize()
 
-// Используем Quasar и window size для определения размера экрана
-const { isMobile } = useWindowSize();
+const issue = ref<IIssue | null>(null)
+const parentProject = ref<IProject | null>(null)
+const logsRefreshTrigger = ref(0)
 
-const issue = ref<IIssue | null>(null);
-const loading = ref(false);
+const SIDEBAR_WIDTH_KEY = 'sidebar-width'
+const DEFAULT_SIDEBAR_WIDTH = 300
+const sidebarWidth = ref(DEFAULT_SIDEBAR_WIDTH)
 
-// Информация о родительском элементе (компонент-контейнер задачи)
-const parentProject = ref<IProject | null>(null);
-
-// Триггер для обновления логов задачи
-const logsRefreshTrigger = ref(0);
-
-// Управление шириной sidebar
-const SIDEBAR_WIDTH_KEY = 'sidebar-width';
-const DEFAULT_SIDEBAR_WIDTH = 300;
-
-// Reactive переменная для ширины sidebar
-const sidebarWidth = ref(DEFAULT_SIDEBAR_WIDTH);
-
-// Загрузка ширины sidebar из localStorage
 const loadSidebarWidth = () => {
-  const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+  const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY)
   if (saved) {
-    const parsed = parseInt(saved, 10);
+    const parsed = parseInt(saved, 10)
     if (!isNaN(parsed) && parsed >= 200 && parsed <= 800) {
-      sidebarWidth.value = parsed;
+      sidebarWidth.value = parsed
     }
   }
-};
+}
 
-// Сохранение ширины sidebar в localStorage
 const saveSidebarWidth = (width: number) => {
-  localStorage.setItem(SIDEBAR_WIDTH_KEY, width.toString());
-};
+  localStorage.setItem(SIDEBAR_WIDTH_KEY, width.toString())
+}
 
-// Определение layout в зависимости от размера экрана
-const isMobileLayout = isMobile;
+const isMobileLayout = isMobile
+const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
 
-// Используем composable для обновления задач
-const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue();
+const issueHash = computed(() => route.params.issue_hash as string)
+const projectHash = computed(() => route.params.project_hash as string)
 
-// Получаем параметры из маршрута
-const issueHash = computed(() => route.params.issue_hash as string);
-const projectHash = computed(() => route.params.project_hash as string);
-const parentHash = computed(() => projectHash.value);
+const linkedGitCommits = computed(() => (issue.value as { linked_git_commits?: unknown[] } | null)?.linked_git_commits ?? [])
 
-const linkedGitCommits = computed(() => issue.value?.linked_git_commits ?? []);
-
-// Фильтр для виджета требований — story только этой задачи
 const requirementsFilter = computed<Partial<IGetStoriesInput['filter']>>(() => ({
   issue_hash: issue.value?.issue_hash ?? '',
-}));
+}))
 
-// Фильтр для диалога создания — issue_hash + project_hash родителя
 const createRequirementFilter = computed(() => ({
   project_hash: projectHash.value,
   issue_hash: issue.value?.issue_hash ?? '',
-}));
+}))
 
-// Право на создание требования к задаче
 const canCreateRequirement = computed((): boolean => {
-  return Boolean(issue.value?.permissions?.can_create_requirement);
-});
+  return Boolean(issue.value?.permissions?.can_create_requirement)
+})
 
-// Подпись рядом с заголовком «Требования к задаче»
-const storyStore = useStoryStore();
-const requirementsCaption = computed(() => {
-  const stored = storyStore.stories;
-  const cur = issue.value?.issue_hash;
-  if (!cur || !stored) return '';
-  const count = stored.items.filter((s) => s.issue_hash === cur).length;
-  if (count === 0) return 'пока пусто';
-  return `${count} шт.`;
-});
-
-const createRequirementDialog = ref<InstanceType<typeof CreateRequirementWithEditorDialog> | null>(null);
+const createRequirementDialog = ref<InstanceType<typeof CreateRequirementWithEditorDialog> | null>(null)
 const openCreateRequirementDialog = () => {
-  createRequirementDialog.value?.openDialog();
-};
-const handleRequirementCreated = () => {
-  // RequirementsListWidget сам подцепит новый story через store
-};
+  createRequirementDialog.value?.openDialog()
+}
+const handleRequirementCreated = () => {}
 
-// Подпись рядом с заголовком «История рабочего времени» — отражает факт/план одной строкой.
-const worklogCaption = computed(() => {
-  const fact = issue.value?.fact ?? 0;
-  const estimate = issue.value?.estimate ?? 0;
-  const format = (h: number) => {
-    if (h <= 0) return '0ч';
-    if (h < 8) {
-      const rounded = h % 1 === 0 ? h : parseFloat(h.toFixed(2));
-      return `${rounded}ч`;
-    }
-    return `${Math.round((h / 8) * 10) / 10}д`;
-  };
-  if (fact <= 0 && estimate <= 0) return 'записей пока нет';
-  if (estimate <= 0) return `отработано ${format(fact)}`;
-  return `${format(fact)} из ${format(estimate)}`;
-});
+const activeTabKey = computed(() => {
+  const name = String(route.name ?? '')
+  if (name === 'component-issue' || name === 'component-issue-redirect') {
+    return 'component-issue-description'
+  }
+  return name
+})
 
-/** parent_hash родительского проекта — перенос задачи только между компонентами этого проекта */
+const showSidebar = computed(() => activeTabKey.value === 'component-issue-description')
+
+const issueTabs = computed(() => {
+  const params = {
+    project_hash: projectHash.value,
+    issue_hash: issueHash.value,
+  }
+  const currentBackRoute = route.query._backRoute as string
+  const query = currentBackRoute ? { _backRoute: currentBackRoute } : {}
+
+  return [
+    { key: 'component-issue-description', label: 'Описание', route: { name: 'component-issue-description', params, query } },
+    { key: 'component-issue-requirements', label: 'Артефакты', route: { name: 'component-issue-requirements', params, query } },
+    { key: 'component-issue-commits', label: 'Коммиты', route: { name: 'component-issue-commits', params, query } },
+    { key: 'component-issue-history', label: 'История', route: { name: 'component-issue-history', params, query } },
+  ]
+})
+
 const parentProjectHash = computed(() => {
-  const p = parentProject.value?.parent_hash?.trim();
-  if (!p || p === EMPTY_HASH) return null;
-  return p;
-});
+  const p = parentProject.value?.parent_hash?.trim()
+  if (!p || p === EMPTY_HASH) return null
+  return p
+})
 
 const routeIssueKey = computed(
   () => `${String(route.params.issue_hash)}:${String(route.params.project_hash)}`,
-);
+)
 
-// Проверяем и конвертируем описание в Markdown формат если необходимо
-const ensureMarkdownFormat = (description: any) => {
-  if (!description) return '';
+const ensureMarkdownFormat = (description: unknown) => {
+  if (!description) return ''
+  return toMarkdown(description)
+}
 
-  // Используем универсальную утилиту конвертации
-  return toMarkdown(description);
-};
-
-// Загрузка информации о родительском элементе
 const loadParentInfo = async () => {
   try {
-    const projectData = await ProjectApi.loadProject({
-      hash: parentHash.value,
-    });
-
-    if (projectData) {
-      parentProject.value = projectData;
-    } else {
-      parentProject.value = null;
-    }
+    const projectData = await ProjectApi.loadProject({ hash: projectHash.value })
+    parentProject.value = projectData || null
   } catch (error) {
-    console.error('Ошибка при загрузке информации о родителе:', error);
-    parentProject.value = null;
+    console.error('Ошибка при загрузке информации о родителе:', error)
+    parentProject.value = null
   }
-};
+}
 
-// Обработчик изменения полей
-const handleFieldChange = () => {
-  // Просто триггер реактивности для computed hasChanges в виджетах
-};
+const handleFieldChange = () => {}
 
-// Обработчик обновления названия задачи
 const handleTitleUpdate = async (value: string) => {
-  if (issue.value) {
-    issue.value.title = value;
-
-    // Отправляем мутацию на обновление названия
-    const updateData = {
-      issue_hash: issue.value.issue_hash,
-      title: value,
-    };
-
-    try {
-      await debounceSave(updateData, projectHash.value);
-      // Обновляем логи после успешного сохранения
-      logsRefreshTrigger.value++;
-    } catch (error) {
-      console.error('Failed to update title:', error);
-    }
-  }
-};
-
-// Обработчик изменения описания задачи
-const handleDescriptionChange = async () => {
-  if (!issue.value) return;
-
-  const updateData = {
-    issue_hash: issue.value.issue_hash,
-    description: issue.value.description,
-  };
-
+  if (!issue.value) return
+  issue.value.title = value
   try {
-    // Запускаем авто-сохранение с задержкой
-    await debounceSave(updateData, projectHash.value);
-    // Обновляем логи после успешного сохранения
-    logsRefreshTrigger.value++;
+    await debounceSave({ issue_hash: issue.value.issue_hash, title: value }, projectHash.value)
+    logsRefreshTrigger.value++
   } catch (error) {
-    console.error('Failed to update description:', error);
+    console.error('Failed to update title:', error)
   }
-};
+}
 
-// Убрали правый drawer - StoriesWidget теперь в сайдбаре
+const handleDescriptionChange = async () => {
+  if (!issue.value) return
+  try {
+    await debounceSave(
+      { issue_hash: issue.value.issue_hash, description: issue.value.description },
+      projectHash.value,
+    )
+    logsRefreshTrigger.value++
+  } catch (error) {
+    console.error('Failed to update description:', error)
+  }
+}
 
-// Настраиваем кнопку "Назад"
 useBackButton({
   text: 'Назад',
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
-    const backRoute = route.query._backRoute as string;
+    const backRoute = route.query._backRoute as string
     if (backRoute) {
-      // Проверяем, является ли backRoute ключом sessionStorage
-      const storedRoute = sessionStorage.getItem(backRoute);
+      const storedRoute = sessionStorage.getItem(backRoute)
       if (storedRoute) {
         try {
-          const routeData = JSON.parse(storedRoute);
+          const routeData = JSON.parse(storedRoute)
           router.push({
             name: routeData.name,
             params: routeData.params,
-            query: routeData.query
-          });
-          // Очищаем сохраненные данные
-          sessionStorage.removeItem(backRoute);
-          return;
+            query: routeData.query,
+          })
+          sessionStorage.removeItem(backRoute)
+          return
         } catch (error) {
-          console.warn('Failed to parse stored route:', error);
+          console.warn('Failed to parse stored route:', error)
         }
       }
-      // Если это обычное название маршрута, переходим стандартно
-      router.push({ name: backRoute });
+      router.push({ name: backRoute })
     } else {
-      router.back();
+      router.back()
     }
-  }
-});
+  },
+})
 
-// Загрузка задачи
 const loadIssue = async () => {
-  loading.value = true;
   try {
-    console.log('Загрузка задачи:', issueHash.value);
-
-    // Получаем задачу по HASH
-    const issueData = await IssueApi.loadIssue({
-      issue_hash: issueHash.value,
-    });
-
-    issue.value = issueData || null;
-
-    // Конвертируем описание в Markdown формат если необходимо
+    const issueData = await IssueApi.loadIssue({ issue_hash: issueHash.value })
+    issue.value = issueData || null
     if (issue.value?.description) {
-      issue.value.description = ensureMarkdownFormat(issue.value.description);
+      issue.value.description = ensureMarkdownFormat(issue.value.description)
     }
   } catch (error) {
-    console.error('Ошибка при загрузке задачи:', error);
-    FailAlert('Не удалось загрузить задачу');
-  } finally {
-    loading.value = false;
+    console.error('Ошибка при загрузке задачи:', error)
+    FailAlert('Не удалось загрузить задачу')
   }
-};
+}
 
-// Обработчики обновления полей задачи
-const handleStatusUpdate = (value: any) => {
+const handleStatusUpdate = (value: unknown) => {
   if (issue.value) {
-    issue.value.status = value;
-    // Обновляем логи после изменения статуса
-    logsRefreshTrigger.value++;
+    issue.value.status = value as IIssue['status']
+    logsRefreshTrigger.value++
   }
-};
+}
 
-const handlePriorityUpdate = (value: any) => {
+const handlePriorityUpdate = (value: unknown) => {
   if (issue.value) {
-    issue.value.priority = value;
-    // Обновляем логи после изменения приоритета
-    logsRefreshTrigger.value++;
+    issue.value.priority = value as IIssue['priority']
+    logsRefreshTrigger.value++
   }
-};
+}
 
 const handleEstimateUpdate = (value: number) => {
   if (issue.value) {
-    issue.value.estimate = value;
-    // Обновляем логи после изменения оценки
-    logsRefreshTrigger.value++;
+    issue.value.estimate = value
+    logsRefreshTrigger.value++
   }
-};
+}
 
 const handleLabelsUpdate = (value: string[]) => {
-  if (!issue.value) return;
-  const prev = issue.value.metadata;
+  if (!issue.value) return
+  const prev = issue.value.metadata
   const base: Record<string, unknown> =
     prev && typeof prev === 'object' && prev !== null && !Array.isArray(prev)
       ? { ...(prev as Record<string, unknown>) }
-      : {};
-  base.labels = value;
-  issue.value.metadata = base as IIssue['metadata'];
-  logsRefreshTrigger.value++;
-};
+      : {}
+  base.labels = value
+  issue.value.metadata = base as IIssue['metadata']
+  logsRefreshTrigger.value++
+}
 
-const handleCreatorsSet = (creators: any[]) => {
+const handleCreatorsSet = (creators: unknown[]) => {
   if (issue.value) {
-    // Обновляем список создателей в локальном состоянии
-    issue.value.creators = creators.map(c => c.username);
-    // Обновляем логи после изменения ответственных
-    logsRefreshTrigger.value++;
+    issue.value.creators = (creators as { username: string }[]).map((c) => c.username)
+    logsRefreshTrigger.value++
   }
-};
+}
 
-const handleIssueUpdated = (updatedIssue: any) => {
+const handleIssueUpdated = (updatedIssue: unknown) => {
   if (updatedIssue && issue.value) {
-    // Обновляем локальную задачу обновленными данными
-    issue.value = { ...issue.value, ...updatedIssue };
+    issue.value = { ...issue.value, ...(updatedIssue as IIssue) }
   }
-};
+}
 
 const handleIssueDeleted = () => {
-  const coopname = route.params.coopname as string;
+  const coopname = route.params.coopname as string
   router.push({
     name: 'component-tasks',
-    params: {
-      coopname,
-      project_hash: projectHash.value,
-    },
-  });
-};
+    params: { coopname, project_hash: projectHash.value },
+  })
+}
 
 const handleIssueMoved = ({
   updatedIssue,
   toProjectHash,
 }: {
-  updatedIssue: IIssue;
-  fromProjectHash: string;
-  toProjectHash: string;
+  updatedIssue: IIssue
+  fromProjectHash: string
+  toProjectHash: string
 }) => {
-  const coopname = route.params.coopname as string;
+  const coopname = route.params.coopname as string
   void router.replace({
-    name: 'component-issue',
+    name: 'component-issue-description',
     params: {
       coopname,
       project_hash: toProjectHash,
       issue_hash: updatedIssue.issue_hash,
     },
     query: { ...route.query },
-  });
-};
+  })
+}
 
+provide(ISSUE_PAGE_KEY, {
+  issue,
+  parentProject,
+  projectHash,
+  logsRefreshTrigger,
+  isAutoSaving,
+  autoSaveError,
+  requirementsFilter,
+  createRequirementFilter,
+  canCreateRequirement,
+  linkedGitCommits,
+  handleDescriptionChange,
+  openCreateRequirementDialog,
+})
+
+watch(routeIssueKey, async (_key, prev) => {
+  if (prev === undefined) return
+  await loadParentInfo()
+  await loadIssue()
+})
+
+// Дефолт: пустой/родительский маршрут → вкладка «Описание»
 watch(
-  routeIssueKey,
-  async (_key, prev) => {
-    if (prev === undefined) return;
-    await loadParentInfo();
-    await loadIssue();
+  () => route.name,
+  (name) => {
+    if (name === 'component-issue' || name === 'component-issue-redirect') {
+      void router.replace({
+        name: 'component-issue-description',
+        params: route.params,
+        query: route.query,
+      })
+    }
   },
-);
+  { immediate: true },
+)
 
-// Инициализация
 onMounted(async () => {
-  // Загружаем сохраненную ширину sidebar
-  loadSidebarWidth();
-
-  // Загружаем информацию о родителе
-  await loadParentInfo();
-
-  // Загружаем задачу
-  await loadIssue();
-});
+  loadSidebarWidth()
+  await loadParentInfo()
+  await loadIssue()
+})
 </script>
 
 <style lang="scss" scoped>
+.issue-page-skeleton {
+  display: flex;
+  gap: var(--p-4);
+  padding: var(--p-4);
+
+  &__side {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel {
+      height: 40px;
+    }
+  }
+
+  &__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3);
+
+    .skel--title {
+      width: 240px;
+      max-width: 60%;
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+
+    &__side {
+      width: 100%;
+    }
+  }
+}
 </style>

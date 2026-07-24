@@ -180,7 +180,7 @@ const handleSubmit = async () => {
         icon: 'launch',
         handler: () => {
           router.push({
-            name: 'component-issue',
+            name: 'component-issue-description',
             params: {
               coopname: system.info.coopname,
               project_hash: currentProjectHash.value,

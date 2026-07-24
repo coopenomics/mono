@@ -6,7 +6,7 @@ q-input(
   outline
   :readonly="!permissions?.can_edit_issue"
   @input="handleTitleChange"
-  hide-bottom-space
+  :hide-bottom-space="!$slots.hint"
   :rules="[val => !!val || 'Название задачи обязательно']"
   type="textarea"
   autogrow
@@ -46,6 +46,9 @@ q-input(
         copy-on-click
         address-clipboard
       )
+
+  template(v-if="$slots.hint", #hint)
+    slot(name="hint")
 </template>
 
 <script lang="ts" setup>

@@ -56,7 +56,7 @@ const handleComponentToggle = (componentHash: string) => {
 // Обработчик клика по задаче
 const handleIssueClick = (issue: IIssue) => {
   router.push({
-    name: 'component-issue',
+    name: 'component-issue-description',
     params: {
       project_hash: issue.project_hash,
       issue_hash: issue.issue_hash,

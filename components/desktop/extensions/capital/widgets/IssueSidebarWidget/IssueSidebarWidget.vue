@@ -45,13 +45,6 @@ div(
           @deleted='emit("issue-deleted")'
         )
 
-        .capital-sidebar-logs.q-mt-md(v-if='issue?.issue_hash')
-          IssueLogsTableWidget(
-            :issue-hash='issue.issue_hash'
-            :refresh-trigger='logsRefreshTrigger'
-            compact
-          )
-
   template(v-else)
     IssueControls(
       :issue='issue'
@@ -84,22 +77,12 @@ div(
           :can-delete='true'
           @deleted='emit("issue-deleted")'
         )
-
-      .capital-sidebar-logs(
-        v-if='issue.issue_hash'
-      )
-        IssueLogsTableWidget(
-          :issue-hash='issue.issue_hash'
-          :refresh-trigger='logsRefreshTrigger'
-          compact
-        )
 </template>
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/Issue/model'
 import { IssueControls } from 'app/extensions/capital/widgets/IssueControls'
-import { IssueLogsTableWidget } from '../IssueLogsTableWidget'
 import { DeleteIssueButton } from 'app/extensions/capital/features/Issue/DeleteIssue'
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue'
 
@@ -112,13 +95,10 @@ interface Props {
   projectHash?: string
   /** parent_hash родительского проекта текущего компонента (для списка других компонентов того же проекта) */
   parentProjectHash?: string | null
-  /** Счётчик для перезагрузки логов задачи (с IssuePage) */
-  logsRefreshTrigger?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   compactMobile: false,
-  logsRefreshTrigger: 0,
 })
 
 const detailsOpen = ref(false)
@@ -192,22 +172,6 @@ const handleIssueUpdated = (issue: unknown) => {
   :deep(.q-btn) {
     margin-top: 0;
   }
-}
-
-.capital-sidebar-logs {
-  padding-top: 4px;
-}
-
-.capital-sidebar-logs__heading {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.65);
-  margin-bottom: 6px;
-}
-
-.body--dark .capital-sidebar-logs__heading,
-.q-dark .capital-sidebar-logs__heading {
-  color: rgba(255, 255, 255, 0.72);
 }
 
 .capital-sidebar-mobile-compact {

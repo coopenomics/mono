@@ -1,101 +1,113 @@
 <template lang="pug">
 div.column.flex-1.min-h-0.min-w-0.no-wrap
-  .q-px-md.q-pt-md(v-if="project")
-    ProjectTitleEditor(
-      :project="project"
-      @field-change="handleFieldChange"
-      @update:title="handleTitleUpdate"
-    ).full-width
-      template(#prepend-icon)
-        q-icon(name='work', size='24px', color='primary')
-
-  // Субменю проекта — канонный таббар; справа контекстное действие активной вкладки
-  PageTabs.q-px-md(
-    v-if="!isIssueRoute"
+  // Меню вкладок — сразу под шапкой, без внешних отступов
+  PageTabs(
+    v-if="project && !isIssueRoute"
     :tabs="projectTabs"
     :active-key="activeTabKey"
   )
     template(#actions)
-      template(v-if="project")
-        PendingClearanceButton(
-          v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
-        )
-        MakeClearanceButton(
-          v-else-if="!project.permissions?.has_clearance"
-          ref="makeClearanceRef"
+      PendingClearanceButton(
+        v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
+      )
+      MakeClearanceButton(
+        v-else-if="!project.permissions?.has_clearance"
+        ref="makeClearanceRef"
+        :project="project"
+        @clearance-submitted="handleClearanceSubmitted"
+      )
+      template(v-else)
+        CreateComponentButton(
+          v-if="activeTabKey === 'project-components' && project.permissions?.can_edit_project"
+          ref="createComponentRef"
           :project="project"
-          @clearance-submitted="handleClearanceSubmitted"
+          size="sm"
+          @on-click="handleComponentCreated"
         )
-        template(v-else)
-          CreateComponentButton(
-            v-if="activeTabKey === 'project-components' && project.permissions?.can_edit_project"
-            ref="createComponentRef"
-            :project="project"
-            size="sm"
-            @on-click="handleComponentCreated"
-          )
-          CreateRequirementButton(
-            v-if="activeTabKey === 'project-requirements'"
-            ref="createRequirementRef"
-            :filter="{ project_hash: projectHash }"
-            :permissions="project.permissions"
-            @action-completed="handleRequirementCreated"
-          )
-          AddAuthorButton(
-            v-if="activeTabKey === 'project-contributors' && project.permissions?.can_manage_authors"
-            ref="addAuthorRef"
-            :project="project"
-            @authors-added="handleAuthorsAdded"
-          )
-          CreateProjectInvestButton(
-            v-if="activeTabKey === 'project-planning'"
-            ref="investRef"
-            :project="project"
-            @action-completed="handleInvestCompleted"
-          )
+        CreateRequirementButton(
+          v-if="activeTabKey === 'project-requirements'"
+          ref="createRequirementRef"
+          :filter="{ project_hash: projectHash }"
+          :permissions="project.permissions"
+          @action-completed="handleRequirementCreated"
+        )
+        AddAuthorButton(
+          v-if="activeTabKey === 'project-contributors' && project.permissions?.can_manage_authors"
+          ref="addAuthorRef"
+          :project="project"
+          @authors-added="handleAuthorsAdded"
+        )
+        CreateProjectInvestButton(
+          v-if="activeTabKey === 'project-planning'"
+          ref="investRef"
+          :project="project"
+          @action-completed="handleInvestCompleted"
+        )
 
-  // Скелетон первичной загрузки проекта — каркас вместо пустой страницы
+  // Скелетон первичной загрузки проекта
   .project-page-skeleton(v-if="!project")
-    .project-page-skeleton__side
+    .project-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .project-page-skeleton__main
       .skel.skel--title
       .skel.skel--text(v-for="i in 3", :key="i")
 
-  // Мобильный layout - колонки одна под другой
-  div(v-else-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
-    div
+  // Мобильный layout — сайдбар только на «Описание»
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="isMobileLayout"
+  )
+    .q-px-md(v-if="showSidebar")
+      ProjectTitleEditor(
+        :project="project"
+        @field-change="handleFieldChange"
+        @update:title="handleTitleUpdate"
+      ).full-width
+        template(#prepend-icon)
+          q-icon(name='work', size='24px', color='primary')
       ProjectSidebarWidget(
         :project="project"
         compact-mobile
         @project-deleted="handleProjectDeleted"
       )
-
     div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
-      div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
+      div.col.min-h-0.overflow-auto.min-w-0
         router-view
 
-  // Десктоп: панель after без overflow-hidden — у q-splitter снова overflow:auto, иначе скролл «глушится»
-  q-splitter.col.flex-1.min-h-0(
-    v-else
-    v-model="sidebarWidth"
-    :limits="[200, 800]"
-    unit="px"
-    separator-class="bg-grey-3"
-    before-class="column no-wrap min-h-0 overflow-y-auto"
-    after-class="min-h-0"
-    @update:model-value="saveSidebarWidth"
+  // Десктоп «Описание»: название + сайдбар управления + контент
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="showSidebar"
   )
-    template(#before)
-      ProjectSidebarWidget(
+    .q-px-md
+      ProjectTitleEditor(
         :project="project"
-        @project-deleted="handleProjectDeleted"
-      )
+        @field-change="handleFieldChange"
+        @update:title="handleTitleUpdate"
+      ).full-width
+        template(#prepend-icon)
+          q-icon(name='work', size='24px', color='primary')
+    q-splitter.col.flex-1.min-h-0(
+      v-model="sidebarWidth"
+      :limits="[200, 800]"
+      unit="px"
+      separator-class="bg-grey-3"
+      before-class="column no-wrap min-h-0 overflow-y-auto"
+      after-class="min-h-0"
+      @update:model-value="saveSidebarWidth"
+    )
+      template(#before)
+        ProjectSidebarWidget(
+          :project="project"
+          @project-deleted="handleProjectDeleted"
+        )
+      template(#after)
+        div.column.full-height.min-h-0.relative-position
+          div.col.min-h-0.overflow-auto.min-w-0
+            router-view
 
-    template(#after)
-      div.column.full-height.min-h-0.relative-position
-        div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-          router-view
+  // Остальные вкладки — контент на всю ширину
+  div.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+    div.col.min-h-0.overflow-auto.min-w-0
+      router-view
 </template>
 <script lang="ts" setup>
 import { onMounted, computed, watch, ref } from 'vue';
@@ -192,6 +204,11 @@ const activeTabKey = computed(() => {
   if (name === 'project-requirement-detail') return 'project-requirements';
   return name;
 });
+
+// Управление (статус, мастер, video, git, удалить) — только на вкладке «Описание»
+const showSidebar = computed(
+  () => !isIssueRoute.value && activeTabKey.value === 'project-description',
+);
 
 // Субменю проекта (вкладки)
 const projectTabs = computed(() => {

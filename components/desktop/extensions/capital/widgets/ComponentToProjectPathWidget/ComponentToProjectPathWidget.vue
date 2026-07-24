@@ -98,14 +98,20 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .component-to-project-path {
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 // Шапка страницы сущности: над заголовком, без верхнего «воздуха»
 .component-to-project-path.capital-entity-header-path {
   margin-top: 0;
   margin-bottom: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .breadcrumb-item {

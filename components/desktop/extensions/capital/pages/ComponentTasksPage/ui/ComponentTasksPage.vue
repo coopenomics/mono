@@ -49,7 +49,7 @@ const loadProject = async () => {
 // Обработчик клика по задаче
 const handleIssueClick = (issue: IIssue) => {
   router.push({
-    name: 'component-issue',
+    name: 'component-issue-description',
     params: {
       project_hash: projectHash.value,
       issue_hash: issue.issue_hash,

@@ -1,18 +1,7 @@
 <template lang="pug">
 div.column.flex-1.min-h-0.min-w-0.no-wrap
-  .q-px-md.q-pt-md(v-if="project")
-    ComponentToProjectPathWidget.capital-entity-header-path(:project="project")
-    ProjectTitleEditor(
-      :project="project"
-      label="Компонент"
-      @field-change="handleFieldChange"
-      @update:title="handleTitleUpdate"
-    ).full-width.q-mt-xs
-      template(#prepend-icon)
-        q-icon(name='code', size='24px', color='primary')
-
-  // Субменю компонента — канонный таббар; справа контекстное действие активной вкладки
-  PageTabs.q-px-md(
+  // Меню вкладок — сразу под шапкой, без внешних отступов
+  PageTabs(
     v-if="project && !isIssueRoute"
     :tabs="componentTabs"
     :active-key="activeTabKey"
@@ -62,48 +51,76 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
           @authors-added="handleAuthorsAdded"
         )
 
-  // Скелетон первичной загрузки компонента — каркас вместо пустой страницы
+  // Скелетон первичной загрузки компонента
   .component-page-skeleton(v-if="!project")
-    .component-page-skeleton__side
+    .component-page-skeleton__side(v-if="showSidebar")
       .skel(v-for="i in 4", :key="i")
     .component-page-skeleton__main
       .skel.skel--title
       .skel.skel--text(v-for="i in 3", :key="i")
 
-  // Мобильный layout - колонки одна под другой
-  div(v-else-if="isMobileLayout").column.col.flex-1.min-h-0.min-w-0
-    div
+  // Мобильный layout — сайдбар только на «Описание»
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="isMobileLayout"
+  )
+    .q-px-md(v-if="showSidebar")
+      ProjectTitleEditor(
+        :project="project"
+        label="Компонент"
+        @field-change="handleFieldChange"
+        @update:title="handleTitleUpdate"
+      ).full-width
+        template(#prepend-icon)
+          q-icon(name='code', size='24px', color='primary')
+        template(#hint)
+          ComponentToProjectPathWidget(:project="project")
       ComponentSidebarWidget(
         :project="project"
         compact-mobile
         @project-deleted="handleProjectDeleted"
       )
-
     div.col.flex-1.min-h-0.min-w-0.column.overflow-hidden.relative-position
-      div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
+      div.col.min-h-0.overflow-auto.min-w-0
         router-view
 
-  // Десктоп: панель after без overflow-hidden — у q-splitter снова overflow:auto, иначе скролл «глушится»
-  q-splitter.col.flex-1.min-h-0(
-    v-else
-    v-model="sidebarWidth"
-    :limits="[200, 800]"
-    unit="px"
-    separator-class="bg-grey-3"
-    before-class="column no-wrap min-h-0 overflow-y-auto"
-    after-class="min-h-0"
-    @update:model-value="saveSidebarWidth"
+  // Десктоп «Описание»: название + сайдбар управления + контент
+  div.column.col.flex-1.min-h-0.min-w-0(
+    v-else-if="showSidebar"
   )
-    template(#before)
-      ComponentSidebarWidget(
+    .q-px-md
+      ProjectTitleEditor(
         :project="project"
-        @project-deleted="handleProjectDeleted"
-      )
+        label="Компонент"
+        @field-change="handleFieldChange"
+        @update:title="handleTitleUpdate"
+      ).full-width
+        template(#prepend-icon)
+          q-icon(name='code', size='24px', color='primary')
+        template(#hint)
+          ComponentToProjectPathWidget(:project="project")
+    q-splitter.col.flex-1.min-h-0(
+      v-model="sidebarWidth"
+      :limits="[200, 800]"
+      unit="px"
+      separator-class="bg-grey-3"
+      before-class="column no-wrap min-h-0 overflow-y-auto"
+      after-class="min-h-0"
+      @update:model-value="saveSidebarWidth"
+    )
+      template(#before)
+        ComponentSidebarWidget(
+          :project="project"
+          @project-deleted="handleProjectDeleted"
+        )
+      template(#after)
+        div.column.full-height.min-h-0.relative-position
+          div.col.min-h-0.overflow-auto.min-w-0
+            router-view
 
-    template(#after)
-      div.column.full-height.min-h-0.relative-position
-        div.col.min-h-0.overflow-auto.q-pt-md.min-w-0
-          router-view
+  // Остальные вкладки — контент на всю ширину
+  div.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+    div.col.min-h-0.overflow-auto.min-w-0
+      router-view
 </template>
 <script lang="ts" setup>
 import { onMounted, computed, watch, ref } from 'vue';
@@ -198,7 +215,10 @@ const route = useRoute();
 const router = useRouter();
 
 // На странице задачи субменю компонента не показываем
-const isIssueRoute = computed(() => route.name === 'component-issue');
+const isIssueRoute = computed(() => {
+  const name = String(route.name ?? '')
+  return name === 'component-issue' || name.startsWith('component-issue-')
+})
 
 // Активная вкладка: вложенные маршруты подсвечивают родительскую вкладку
 const activeTabKey = computed(() => {
@@ -206,6 +226,11 @@ const activeTabKey = computed(() => {
   if (name === 'component-requirement-detail') return 'component-requirements';
   return name;
 });
+
+// Управление (статус, мастер, video, git, удалить) — только на вкладке «Описание»
+const showSidebar = computed(
+  () => !isIssueRoute.value && activeTabKey.value === 'component-description',
+);
 
 // Субменю компонента (вкладки)
 const componentTabs = computed(() => {

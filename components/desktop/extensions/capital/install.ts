@@ -7,6 +7,10 @@ import { ProjectsListPage } from './pages/ProjectsListPage';
 import { ProjectPage } from './pages/ProjectPage';
 import { ComponentPage } from './pages/ComponentPage';
 import { IssuePage } from './pages/IssuePage';
+import { IssueDescriptionPage } from './pages/IssueDescriptionPage';
+import { IssueRequirementsPage } from './pages/IssueRequirementsPage';
+import { IssueCommitsPage } from './pages/IssueCommitsPage';
+import { IssueHistoryPage } from './pages/IssueHistoryPage';
 import { TrackerPage } from './pages';
 import { ProjectsVotingPage } from './pages';
 import { ProjectsResultsPage } from './pages';
@@ -557,7 +561,65 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                   requiresAuth: true,
                   hidden: true,
                 },
-                children: [],
+                children: [
+                  {
+                    path: '',
+                    name: 'component-issue-redirect',
+                    redirect: { name: 'component-issue-description' },
+                  },
+                  {
+                    path: 'description',
+                    name: 'component-issue-description',
+                    component: markRaw(IssueDescriptionPage),
+                    meta: {
+                      title: 'Описание задачи',
+                      icon: 'fa-solid fa-file-alt',
+                      roles: [],
+                      agreements: agreementsBase,
+                      requiresAuth: true,
+                      hidden: true,
+                    },
+                  },
+                  {
+                    path: 'requirements',
+                    name: 'component-issue-requirements',
+                    component: markRaw(IssueRequirementsPage),
+                    meta: {
+                      title: 'Артефакты задачи',
+                      icon: 'fa-solid fa-clipboard-list',
+                      roles: [],
+                      agreements: agreementsBase,
+                      requiresAuth: true,
+                      hidden: true,
+                    },
+                  },
+                  {
+                    path: 'commits',
+                    name: 'component-issue-commits',
+                    component: markRaw(IssueCommitsPage),
+                    meta: {
+                      title: 'Коммиты задачи',
+                      icon: 'fa-solid fa-code-commit',
+                      roles: [],
+                      agreements: agreementsBase,
+                      requiresAuth: true,
+                      hidden: true,
+                    },
+                  },
+                  {
+                    path: 'history',
+                    name: 'component-issue-history',
+                    component: markRaw(IssueHistoryPage),
+                    meta: {
+                      title: 'История задачи',
+                      icon: 'fa-solid fa-history',
+                      roles: [],
+                      agreements: agreementsBase,
+                      requiresAuth: true,
+                      hidden: true,
+                    },
+                  },
+                ],
               },
         ],
       },

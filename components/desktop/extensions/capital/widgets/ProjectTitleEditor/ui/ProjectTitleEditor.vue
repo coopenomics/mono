@@ -9,7 +9,7 @@ div
     outline
     type="textarea"
     autogrow
-    hide-bottom-space
+    :hide-bottom-space="!$slots.hint"
     :rules="[val => !!val || 'Название проекта обязательно']"
   ).full-width.capital-title-editor-input
     template(#prepend)
@@ -47,6 +47,9 @@ div
           copy-on-click
           address-clipboard
         )
+
+    template(v-if="$slots.hint", #hint)
+      slot(name="hint")
 </template>
 
 <script lang="ts" setup>

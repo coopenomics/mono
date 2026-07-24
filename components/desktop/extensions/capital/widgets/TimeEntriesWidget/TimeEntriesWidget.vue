@@ -1,97 +1,80 @@
 <template lang="pug">
-q-card(flat, style='margin-left: 20px; margin-top: 8px;')
-  q-table(
-    :rows='timeEntries?.items || []',
-    :columns='columns',
-    row-key='_id',
-    :loading='loading',
-    flat,
-    square,
-    hide-header,
-    hide-bottom,
-    :pagination='pagination',
-    @request='onRequest'
-  )
-
-    template(#body='props')
-      q-tr(:props='props')
-        q-td
-          .commit-info(v-if='props.row.commit_hash')
-            q-chip(
-              color='blue',
-              text-color='white',
-              dense,
-              size='sm',
-              :label='`Commit: ${props.row.commit_hash.substring(0, 8)}`'
-            )
-        q-td.text-right
-          .stats-info
-            .stat-item
-              ColorCard(color='grey')
-                .card-value {{ formatHours(props.row.hours) }}
-                .card-label {{ formatDate(props.row.date) }}
+.time-entries(v-if="issueHash")
+  .time-entries__empty(v-if="!loading && !rows.length")
+    CapitalSectionEmpty.capital-section-empty--centered(
+      icon="schedule"
+      title="Записей рабочего времени пока нет"
+      body="Фактическое время по задаче появится здесь после учёта часов."
+    )
+  .time-entries__list(v-else)
+    .time-entries__row(v-for="row in rows", :key="row._id")
+      .time-entries__who {{ contributorLabel(row.contributor_hash) }}
+      .time-entries__meta
+        span.time-entries__hours {{ formatHours(row.hours) }}
+        span.time-entries__sep ·
+        span.time-entries__date {{ formatDate(row.date) }}
+      q-chip.time-entries__commit(
+        v-if="row.commit_hash"
+        dense
+        size="sm"
+        color="primary"
+        text-color="white"
+        :label="row.commit_hash.substring(0, 8)"
+      )
+  .row.justify-center.q-py-sm(v-if="loading")
+    q-spinner(color="primary", size="24px")
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
-import { useSystemStore } from 'src/entities/System/model';
-import { FailAlert } from 'src/shared/api';
-import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
-import { formatHours } from 'src/shared/lib/utils';
+import { ref, onMounted, watch, computed } from 'vue'
+import { useSystemStore } from 'src/entities/System/model'
+import { FailAlert } from 'src/shared/api'
+import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model'
+import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model'
+import { formatHours } from 'src/shared/lib/utils'
+import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSectionEmpty'
 
 const props = defineProps<{
-  issueHash: string;
-  coopname?: string;
-  username?: string;
-}>();
+  issueHash: string
+  coopname?: string
+  username?: string
+}>()
 
-const { info } = useSystemStore();
-const timeEntriesStore = useTimeEntriesStore();
+const { info } = useSystemStore()
+const timeEntriesStore = useTimeEntriesStore()
+const contributorStore = useContributorStore()
 
-const timeEntries = ref<any>(null);
-const loading = ref(false);
+const timeEntries = ref<{ items?: Array<Record<string, unknown>>; totalCount?: number } | null>(null)
+const loading = ref(false)
 
-// Определяем столбцы таблицы
-const columns = [
-  {
-    name: 'commit',
-    label: 'Коммит',
-    align: 'left' as const,
-    field: 'commit_hash' as const,
-    sortable: false,
-  },
-  {
-    name: 'ticket',
-    label: 'Билет времени',
-    align: 'right' as const,
-    field: 'hours' as const,
-    sortable: true,
-  },
-];
+const rows = computed(() => timeEntries.value?.items ?? [])
 
-// Пагинация
-const pagination = ref({
-  sortBy: '_created_at',
-  sortOrder: 'DESC',
-  page: 1,
-  rowsPerPage: 100,
-  rowsNumber: 0,
-});
+const contributorByHash = computed(() => {
+  const map = new Map<string, string>()
+  for (const c of contributorStore.contributors?.items ?? []) {
+    if (c.contributor_hash) {
+      map.set(c.contributor_hash, c.display_name || c.username || c.contributor_hash)
+    }
+  }
+  return map
+})
 
+const contributorLabel = (hash?: string) => {
+  if (!hash) return 'Участник'
+  return contributorByHash.value.get(hash) || `${hash.slice(0, 8)}…`
+}
 
-// Форматирование даты
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('ru-RU');
-};
+  return new Date(dateString).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
-// Загрузка данных по записям времени
-const loadTimeEntries = async (paginationData?: any) => {
-  if (!props.issueHash) return;
-
-  const paginationToUse = paginationData || pagination.value;
-  loading.value = true;
-
+const loadTimeEntries = async () => {
+  if (!props.issueHash) return
+  loading.value = true
   try {
     const entries = await timeEntriesStore.loadTimeEntries({
       filter: {
@@ -100,94 +83,89 @@ const loadTimeEntries = async (paginationData?: any) => {
         username: props.username,
       },
       options: {
-        page: paginationToUse.page,
-        limit: paginationToUse.rowsPerPage,
-        sortBy: paginationToUse.sortBy,
-        sortOrder: paginationToUse.sortOrder,
+        page: 1,
+        limit: 100,
+        sortBy: '_created_at',
+        sortOrder: 'DESC',
       },
-    });
-
-    timeEntries.value = entries;
-    pagination.value.rowsNumber = entries.totalCount;
+    })
+    timeEntries.value = entries
   } catch (error) {
-    console.error('Ошибка при загрузке записей времени:', error);
-    FailAlert('Не удалось загрузить записи времени');
+    console.error('Ошибка при загрузке записей времени:', error)
+    FailAlert('Не удалось загрузить записи времени')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
-// Обработчик запросов пагинации и сортировки
-const onRequest = async (requestProps: any) => {
-  const { page, rowsPerPage, sortBy, descending } = requestProps.pagination;
+onMounted(async () => {
+  if (!contributorStore.contributors?.items?.length) {
+    try {
+      await contributorStore.loadContributors({})
+    } catch {
+      // имена подтянем позже / покажем короткий hash
+    }
+  }
+  await loadTimeEntries()
+})
 
-  pagination.value.page = page;
-  pagination.value.rowsPerPage = rowsPerPage;
-  pagination.value.sortBy = sortBy;
-  pagination.value.sortOrder = descending ? 'DESC' : 'ASC';
-
-  await loadTimeEntries(pagination.value);
-};
-
-// Загружаем данные при монтировании и изменении issueHash
-onMounted(() => {
-  loadTimeEntries();
-});
-
-watch(() => props.issueHash, () => {
-  // Сбрасываем пагинацию при изменении issue
-  pagination.value.page = 1;
-  loadTimeEntries();
-});
+watch(
+  () => props.issueHash,
+  () => {
+    loadTimeEntries()
+  },
+)
 </script>
 
 <style lang="scss" scoped>
-
-.commit-info {
-  max-width: 200px;
+.time-entries__empty {
+  width: 100%;
 }
 
-.label {
-  font-weight: 400;
-  color: #666;
-  margin-right: 4px;
-}
-
-.stats-info {
+.time-entries__list {
   display: flex;
-  flex-direction: row;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: var(--p-2);
 }
 
-.stat-item {
+.time-entries__row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--p-2);
+  padding: var(--p-2) 0;
+  border-bottom: 1px solid var(--p-line);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 
-  .stat-label {
-    font-size: 0.75rem;
-    color: #666;
-    white-space: nowrap;
-  }
-
-  :deep(.color-card) {
-    margin-bottom: 0;
-    padding: 6px 8px 2px 8px;
+  &:last-child {
+    border-bottom: 0;
   }
 }
 
-.card-value {
-  font-size: 16px;
+.time-entries__who {
   font-weight: 500;
   color: var(--p-ink);
-  margin-bottom: var(--p-2);
+  min-width: 8rem;
 }
 
-.card-label {
-  font-size: var(--p-fs-body);
+.time-entries__meta {
   color: var(--p-ink-2);
-  margin-bottom: var(--p-1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+.time-entries__hours {
+  color: var(--p-ink);
+  font-weight: 500;
+}
+
+.time-entries__sep {
+  opacity: 0.5;
+}
+
+.time-entries__commit {
+  margin-left: auto;
 }
 </style>

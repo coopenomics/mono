@@ -89,7 +89,7 @@ const goToCurrentItem = (projectHash?: string) => {
   // Для текущего элемента: если есть parent_hash — это компонент, иначе — проект.
   // Со страницы задачи компонента чаще нужен список задач, а не описание.
   const routeName = props.project?.parent_hash
-    ? route.name === 'component-issue'
+    ? String(route.name ?? '').startsWith('component-issue')
       ? 'component-tasks'
       : 'component-description'
     : 'project-description';
@@ -106,18 +106,21 @@ const goToCurrentItem = (projectHash?: string) => {
 
 <style lang="scss" scoped>
 .breadcrumb-path {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--p-2);
   flex-wrap: wrap;
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
+  max-width: 100%;
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
   color: var(--p-ink-2);
 }
 
 .breadcrumb-path.capital-entity-header-path {
   margin-top: 0;
   margin-bottom: 0;
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .breadcrumb-path--custom .breadcrumb-item:hover,
