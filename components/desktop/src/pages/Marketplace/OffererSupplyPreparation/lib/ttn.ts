@@ -66,7 +66,7 @@ export function buildTtnData(
         sku: o.offer_id ? String(o.offer_id).slice(0, 8) : '—',
         title: o.product_name || 'Товар по предложению',
         qty: o.quantity,
-        unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+        unit: marketplaceOrderUnitLabel(o.unit_of_measure),
         price: parseFloat(o.price_per_unit) || 0,
         unitsPerBox: unitsPerBox ?? undefined,
         boxes,

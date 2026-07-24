@@ -35,9 +35,9 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const symbol = computed(() => system.governSymbol);
 
-// Подпись единицы заказа (фасовки): «100 г», «упаковка 8 шт», «шт»…
-function unitShort(u: string | null | undefined, size?: string | null): string {
-  return marketplaceOrderUnitLabel(u, size);
+// Подпись базовой единицы измерения: «кг», «л», «шт».
+function unitShort(u: string | null | undefined): string {
+  return marketplaceOrderUnitLabel(u);
 }
 
 function money(value: string | number | null | undefined): string {
@@ -79,7 +79,7 @@ function changeQty(item: IMarketplaceCartItem, next: number): number {
   const max = maxOf(item);
   if (max != null && n > max) {
     n = max;
-    NotifyAlert(`Доступно не больше ${max} × ${unitShort(item.unit_of_measure, item.order_unit_size)}`);
+    NotifyAlert(`Доступно не больше ${max} × ${unitShort(item.unit_of_measure)}`);
   }
   if (n !== item.quantity) void setQty(item.offer_id, n);
   return n;
@@ -217,7 +217,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               q-icon(name="image", size="22px")
           .mp-cart__info
             .mp-cart__name(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)") {{ it.product_name }}
-            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure, it.order_unit_size) }}
+            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
             BaseChip.mp-cart__warn(
               v-if="it.available_on_current_ku === false",
               variant="warn",
@@ -246,7 +246,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
                 @change="onQtyInput(it, $event)",
                 @keyup.enter="blurOnEnter"
               )
-              span.mp-cart__qty-unit × {{ unitShort(it.unit_of_measure, it.order_unit_size) }}
+              span.mp-cart__qty-unit × {{ unitShort(it.unit_of_measure) }}
             BaseButton(
               variant="ghost",
               icon-only,

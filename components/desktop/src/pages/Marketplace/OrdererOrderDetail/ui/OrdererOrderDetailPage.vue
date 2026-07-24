@@ -49,7 +49,7 @@ const receiveDialogOpen = ref(false);
 
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
 const unitShort = computed(() =>
-  marketplaceOrderUnitLabel(order.value?.unit_of_measure, order.value?.order_unit_size),
+  marketplaceOrderUnitLabel(order.value?.unit_of_measure),
 );
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
 

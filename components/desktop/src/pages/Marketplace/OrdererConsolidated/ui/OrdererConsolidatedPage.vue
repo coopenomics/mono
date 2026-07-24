@@ -116,7 +116,7 @@ const parties = computed<CollectiveParty[]>(() => {
         offer_id: o.offer_id,
         productName: o.product_name || 'Товар по предложению',
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
         orders: [],
         ownUnits: 0,
         ownCost: 0,

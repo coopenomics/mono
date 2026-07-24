@@ -74,7 +74,7 @@ export function groupAcceptedByKu(orders: MarketplaceOrderView[]): ShipmentKuBuc
       cycle_id: o.cycle_id,
       title: o.product_name || 'Товар по предложению',
       quantity: o.quantity,
-      unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+      unit: marketplaceOrderUnitLabel(o.unit_of_measure),
       sum: parseFloat(o.total_cost) || 0,
     });
   }
@@ -114,7 +114,7 @@ export function groupAcceptedOrders(orders: MarketplaceOrderView[]): ShipmentFor
 
     const first = cycleOrders[0];
     const productName = first.product_name || 'Заявка';
-    const unit = marketplaceOrderUnitLabel(first.unit_of_measure, first.order_unit_size);
+    const unit = marketplaceOrderUnitLabel(first.unit_of_measure);
     cycles.push({
       cycle_id,
       title: `${productName} · №${cycle_id.slice(0, 8)} · ${unit}`,

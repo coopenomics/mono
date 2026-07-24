@@ -72,7 +72,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     shortId: o.id.slice(0, 8),
     title: o.product_name || 'Товар по предложению',
     units: o.quantity,
-    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
     feeNote:
       isOfferer && feeAmount > 0

@@ -251,7 +251,7 @@ async function onLoadMore(): Promise<void> {
 function confirmCancel(order: MarketplaceOrderView): void {
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${order.id.slice(0, 8)} (${marketplaceQuantityLabel(order.quantity, order.unit_of_measure, order.order_unit_size)}, ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${order.id.slice(0, 8)} (${marketplaceQuantityLabel(order.quantity, order.unit_of_measure)}, ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,

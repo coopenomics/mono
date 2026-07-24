@@ -147,7 +147,7 @@ const parties = computed<SupplierParty[]>(() => {
         productName: o.product_name || 'Товар по предложению',
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
         orders: [],
         totalUnits: 0,
         totalCost: 0,

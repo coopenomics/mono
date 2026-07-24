@@ -76,7 +76,7 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
+    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
     status: 'moderation',
     category: categoryName(offer) ?? undefined,
     supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,

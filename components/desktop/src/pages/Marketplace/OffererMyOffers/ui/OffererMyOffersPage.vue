@@ -144,7 +144,7 @@ const cards = computed<OfferCard[]>(() =>
     // это двойное списание (100 опубликовал, заказали 1 → показывало 98).
     remainUnits: o.unlimited_flag ? undefined : o.quantity_available,
     unitCost: parseFloat(o.price_per_unit) || 0,
-    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+    unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
     status: STATUS_TO_CARD[o.status],
     domainStatus: o.status,
     rejectReason: o.reject_reason ?? null,

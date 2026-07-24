@@ -151,7 +151,7 @@ const correctionRows = computed<CorrectionRow[]>(() =>
     return {
       sku: o.id.slice(0, 8),
       title: o.product_name || 'Товар по предложению',
-      unit: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+      unit: marketplaceOrderUnitLabel(o.unit_of_measure),
       expected: o.quantity,
       available: availableOf(o),
       shelf: (o.warehouse_shelves ?? []).join(', ') || undefined,

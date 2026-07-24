@@ -88,7 +88,7 @@ function shortId(id: string | null | undefined): string {
   return id ? id.slice(0, 8) : '—';
 }
 function unitLabel(o: AdminOrderView): string {
-  return marketplaceQuantityLabel(o.quantity, o.unit_of_measure, o.order_unit_size);
+  return marketplaceQuantityLabel(o.quantity, o.unit_of_measure);
 }
 // requirement b6: реестр показывает сумму, которую реально заплатил пайщик
 // (себестоимость + членский взнос, зафиксированный в заказе контрактом) —

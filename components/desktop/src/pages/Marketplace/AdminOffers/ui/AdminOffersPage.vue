@@ -89,7 +89,7 @@ function formatPrice(v: string | null | undefined): string {
 }
 function availableLabel(o: AdminOfferView): string {
   if (o.unlimited_flag) return 'Без ограничений';
-  return marketplaceQuantityLabel(o.quantity_available, o.unit_of_measure, o.order_unit_size);
+  return marketplaceQuantityLabel(o.quantity_available, o.unit_of_measure);
 }
 function formatWarranty(days: number | null | undefined): string {
   return days && days > 0 ? `${days} дн.` : 'Без гарантийного срока возврата';

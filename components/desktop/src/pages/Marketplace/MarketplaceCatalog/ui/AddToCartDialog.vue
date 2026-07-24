@@ -14,7 +14,7 @@ import type { MarketplaceOfferView } from '../types';
 // (MarketplaceOfferDetailView) представлением, чтобы диалог переиспользовался.
 type CartOffer = Pick<
   MarketplaceOfferView,
-  'id' | 'product_name' | 'unit_of_measure' | 'order_unit_size' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
+  'id' | 'product_name' | 'unit_of_measure' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
 >;
 
 /**
@@ -56,7 +56,7 @@ const quantity = ref<number>(1);
 const submitting = ref<boolean>(false);
 
 const unitLabel = computed(() =>
-  marketplaceOrderUnitLabel(props.offer?.unit_of_measure, props.offer?.order_unit_size),
+  marketplaceOrderUnitLabel(props.offer?.unit_of_measure),
 );
 
 const maxQuantity = computed(() => {

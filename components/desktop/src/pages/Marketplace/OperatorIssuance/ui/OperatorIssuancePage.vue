@@ -64,7 +64,7 @@ interface IssuanceLine {
   /** Заказано пайщиком; больше quantity — недопоставка, показываем рядом. */
   orderedQuantity: number;
   unit: MarketplaceOrderIssuanceView['unit_of_measure'];
-  orderUnitSize: MarketplaceOrderIssuanceView['order_unit_size'];
+  orderUnitSize: string | null;
   total: string;
   status: string;
 }
@@ -120,7 +120,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
         quantity: qty,
         orderedQuantity: ordered,
         unit: o.unit_of_measure,
-        orderUnitSize: o.order_unit_size,
+        orderUnitSize: null,
         total: total.toFixed(4),
         status: o.status,
       });

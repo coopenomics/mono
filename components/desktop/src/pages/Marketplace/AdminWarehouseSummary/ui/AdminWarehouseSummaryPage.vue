@@ -85,7 +85,7 @@ const buckets = computed<Bucket[]>(() => {
         pvzName: row.delivery_point_name ?? null,
         pvzAddress: row.delivery_point_address ?? null,
         pvzBraname: row.braname,
-        unit: marketplaceOrderUnitLabel(row.unit_of_measure, row.order_unit_size),
+        unit: marketplaceOrderUnitLabel(row.unit_of_measure),
         incoming: 0,
         outgoing: 0,
       } satisfies Bucket)

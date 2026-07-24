@@ -47,52 +47,35 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
 }
 
-/**
- * Пресеты размера единицы заказа (фасовки) по базовой единице — фиксированный
- * выбор в форме публикации. На backend `order_unit_size` допускает любое
- * положительное число, но заказчику/поставщику показываем типовые варианты.
- * Значения — в базовых единицах (kg/liter/piece), как строки numeric.
- */
-export const MARKETPLACE_ORDER_UNIT_PRESETS: Record<MarketplaceUnitOfMeasure, readonly string[]> = {
-  kg: ['0.1', '0.25', '0.5', '1', '2', '5'],
-  liter: ['0.25', '0.5', '1', '1.5', '2', '5'],
-  piece: ['1', '6', '8', '10', '12', '30'],
-};
-
-/** Убирает хвостовые нули у числа-фасовки: 1.000 → «1», 0.100 → «0.1». */
+/** Убирает хвостовые нули количества: 1.000 → «1», 0.500 → «0.5». */
 function trimNumber(n: number): string {
   return String(Number(n.toFixed(3)));
 }
 
 /**
- * Человекочитаемая подпись одной единицы заказа (фасовки) — объём, которым
- * оперирует заказчик. Примеры: kg+0.1 → «100 г», kg+1 → «1 кг»,
- * liter+0.5 → «500 мл», piece+8 → «упаковка 8 шт», piece+1 → «шт».
+ * Подпись базовой единицы измерения (Эпик 17): количество ведётся прямо в
+ * базовой единице (кг/л/шт), поэтому ярлык — сама единица. Понятие «фасовки»
+ * упразднено; необязательный второй аргумент игнорируется (обратная
+ * совместимость вызовов).
  */
 export function marketplaceOrderUnitLabel(
   unit: string | null | undefined,
-  size: string | number | null | undefined,
+  _size?: string | number | null | undefined,
 ): string {
-  const parsed = typeof size === 'string' ? Number.parseFloat(size) : size ?? 1;
-  const q = Number.isFinite(parsed) && (parsed as number) > 0 ? (parsed as number) : 1;
-  if (unit === 'kg') return q < 1 ? `${Math.round(q * 1000)} г` : `${trimNumber(q)} кг`;
-  if (unit === 'liter') return q < 1 ? `${Math.round(q * 1000)} мл` : `${trimNumber(q)} л`;
-  // piece
-  if (q === 1) return 'шт';
-  return `упаковка ${trimNumber(q)} шт`;
+  return marketplaceUnitShort(unit);
 }
 
 /**
- * Кол-во × единица заказа: «1×1 кг», «2×500 г», «3×упаковка 8 шт», «1×шт».
- * Склейка через пробел («1 1 кг») читается как «одиннадцать кг» — непонятно,
- * где количество упаковок, а где размер фасовки.
+ * Кол-во + базовая единица: «0.5 кг», «20 кг», «3 шт». Количество дробное в
+ * базовой единице; необязательный третий аргумент игнорируется (обратная
+ * совместимость вызовов).
  */
 export function marketplaceQuantityLabel(
   quantity: number | string | null | undefined,
   unit: string | null | undefined,
-  size?: string | number | null | undefined,
+  _size?: string | number | null | undefined,
 ): string {
   const parsed = typeof quantity === 'string' ? Number.parseFloat(quantity) : quantity ?? 0;
   const q = Number.isFinite(parsed as number) ? (parsed as number) : 0;
-  return `${trimNumber(q)}×${marketplaceOrderUnitLabel(unit, size)}`;
+  return `${trimNumber(q)} ${marketplaceUnitShort(unit)}`;
 }

@@ -261,7 +261,7 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure ?? '',
-        orderUnitSize: o.order_unit_size ?? null,
+        orderUnitSize: null,
         quantity: qty,
         boxes,
       });
@@ -847,7 +847,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               type='number',
               label='Заказано',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
@@ -856,7 +856,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               :min='0',
               :max='o.quantity',
               :disabled='!isSelected(o.id)',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
               @update:model-value='() => clampFact(o.id, o.quantity)',
               @blur='clampFact(o.id, o.quantity)'
             )
@@ -888,7 +888,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               type='number',
               label='Акцепт',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
@@ -897,7 +897,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               :min='0',
               :max='o.quantity',
               :disabled='!takeAddon',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
               @update:model-value='() => clampFact(o.id, o.quantity)',
               @blur='clampFact(o.id, o.quantity)'
             )
