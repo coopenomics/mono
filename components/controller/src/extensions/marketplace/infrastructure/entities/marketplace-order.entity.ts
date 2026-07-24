@@ -148,6 +148,14 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'jsonb', nullable: true })
   public issuance_fact!: MarketplaceOrderIssuanceFactSnapshot | null;
 
+  /**
+   * Момент ручного объявления готовности к выдаче оператором КУ («Объявить
+   * выдачу»). Backend-only операционный сигнал — статус не меняется, on-chain
+   * не пишется; триггерит push заказчику и бейдж «Готово к выдаче».
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  public ready_announced_at!: Date | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   public chairman_signed_at!: Date | null;
 

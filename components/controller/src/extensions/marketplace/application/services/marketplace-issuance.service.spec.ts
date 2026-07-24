@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { MarketplaceIssuanceService } from './marketplace-issuance.service';
+import { MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT } from '../events/marketplace-notification.events';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderDomainRepository } from '../../domain/repositories/marketplace-order.repository';
 import type { MarketplaceInventoryDomainRepository } from '../../domain/repositories/marketplace-inventory.repository';
@@ -22,6 +23,7 @@ function buildOrder(
     price_per_unit: '100.0000',
     total_cost: '1000.0000',
     status: 'ACCEPTED_TO_COOP',
+    ready_announced_at: null,
     chairman_signed_at: null,
     warranty_period_secs: 0,
     ...overrides,
@@ -32,6 +34,9 @@ function buildMocks(warehouseByOrder: Record<string, number>) {
   const orderRepo = {
     findById: jest.fn().mockImplementation(async (id: string) => buildOrder({ id })),
     applyIssuanceOpened: jest.fn(),
+    applyReadyAnnounced: jest
+      .fn()
+      .mockImplementation(async (id: string) => buildOrder({ id, ready_announced_at: new Date() })),
   } as unknown as jest.Mocked<MarketplaceOrderDomainRepository>;
 
   const inventoryRepo = {
@@ -144,6 +149,70 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
           signed_document: signedDocumentStub,
         })
       ).rejects.toThrow('Документ не подписан');
+    });
+  });
+
+  describe('announceReady', () => {
+    it('объявляет готовность и шлёт push заказчику (ACCEPTED_TO_COOP, склад > 0)', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      const service = buildService(mocks);
+      const res = await service.announceReady({
+        coopname: 'voskhod',
+        order_id: 'order-1',
+        operator_account: 'operator1',
+      });
+      expect(mocks.orderRepo.applyReadyAnnounced).toHaveBeenCalledWith('order-1');
+      expect(res.ready_announced_at).not.toBeNull();
+      expect(mocks.eventBus.emit).toHaveBeenCalledWith(
+        MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+        expect.objectContaining({ order_id: 'order-1', orderer_account: 'orderer1' })
+      );
+    });
+
+    it('идемпотентно: уже объявлено — без повторного push и записи', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      mocks.orderRepo.findById = jest
+        .fn()
+        .mockResolvedValue(buildOrder({ id: 'order-1', ready_announced_at: new Date() }));
+      const service = buildService(mocks);
+      await service.announceReady({
+        coopname: 'voskhod',
+        order_id: 'order-1',
+        operator_account: 'operator1',
+      });
+      expect(mocks.orderRepo.applyReadyAnnounced).not.toHaveBeenCalled();
+      expect(mocks.eventBus.emit).not.toHaveBeenCalled();
+    });
+
+    it('нельзя объявить, пока на склад по заказу ничего не принято', async () => {
+      const mocks = buildMocks({ 'order-1': 0 });
+      const service = buildService(mocks);
+      await expect(
+        service.announceReady({ coopname: 'voskhod', order_id: 'order-1', operator_account: 'operator1' })
+      ).rejects.toThrow(ConflictException);
+      expect(mocks.eventBus.emit).not.toHaveBeenCalled();
+    });
+
+    it('нельзя объявить заказ не в статусе ACCEPTED_TO_COOP', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      mocks.orderRepo.findById = jest
+        .fn()
+        .mockResolvedValue(buildOrder({ id: 'order-1', status: 'ACTIVE' }));
+      const service = buildService(mocks);
+      await expect(
+        service.announceReady({ coopname: 'voskhod', order_id: 'order-1', operator_account: 'operator1' })
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('нельзя объявить, если выдача уже открыта (chairman_signed_at задан)', async () => {
+      const mocks = buildMocks({ 'order-1': 5 });
+      mocks.orderRepo.findById = jest
+        .fn()
+        .mockResolvedValue(buildOrder({ id: 'order-1', chairman_signed_at: new Date() }));
+      const service = buildService(mocks);
+      await expect(
+        service.announceReady({ coopname: 'voskhod', order_id: 'order-1', operator_account: 'operator1' })
+      ).rejects.toThrow(ConflictException);
     });
   });
 

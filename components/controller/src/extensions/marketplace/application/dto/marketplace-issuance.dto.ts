@@ -10,6 +10,19 @@ export class MarketplaceListIssuancesByBranameInputDTO {
 }
 
 /**
+ * Ручное объявление готовности к выдаче оператором КУ («Объявить выдачу» на
+ * столе ПВЗ). Не подпись и не on-chain действие — только сигнал заказчику
+ * «приходите заберите» до его прихода.
+ */
+@InputType('MarketplaceAnnounceOrderReadyInput')
+export class MarketplaceAnnounceOrderReadyInputDTO {
+  @Field(() => ID, { description: 'Заказ, который объявляется готовым к выдаче на пункте.' })
+  @IsString()
+  @IsNotEmpty()
+  public readonly order_id!: string;
+}
+
+/**
  * Превью акта выдачи (registry 1105) для подписи ОПЕРАТОРОМ КУ первой подписью
  * (signiss1) в едином пути выдачи: оператор кладёт подписанный акт в бандл
  * (marketplaceCreateStockProposal), на цепь он уходит только при подписи пайщика.

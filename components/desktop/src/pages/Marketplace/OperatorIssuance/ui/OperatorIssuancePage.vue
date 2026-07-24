@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
@@ -19,6 +19,7 @@ import {
   useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
 import {
+  announceOrderReady,
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
 } from '../api';
@@ -131,6 +132,10 @@ interface IssuanceGroup {
   account: string;
   name: string;
   toIssue: MarketplaceOrderIssuanceView[];
+  /** Позиции «к выдаче», по которым готовность ещё НЕ объявлена — цель кнопки. */
+  toAnnounce: MarketplaceOrderIssuanceView[];
+  /** Сколько позиций «к выдаче» уже объявлены готовыми (ждём прихода заказчика). */
+  announcedCount: number;
   toIssueLines: IssuanceLine[];
   awaitingLines: IssuanceLine[];
   total: string;
@@ -148,12 +153,16 @@ const groups = computed<IssuanceGroup[]>(() => {
   for (const [account, orders] of map) {
     const named = orders.find((o) => o.orderer_name);
     const toIssue = orders.filter((o) => o.status === 'ACCEPTED_TO_COOP');
+    const toAnnounce = toIssue.filter((o) => !o.is_ready_announced);
+    const announcedCount = toIssue.length - toAnnounce.length;
     const toIssueLines = mergeLines(toIssue);
     const awaitingLines = mergeLines(orders.filter((o) => o.status === 'READY_TO_RECEIVE'));
     out.push({
       account,
       name: named?.orderer_name || account,
       toIssue,
+      toAnnounce,
+      announcedCount,
       toIssueLines,
       awaitingLines,
       // Итог — по факту строк (склад/акт), не по заказанному: при недопоставке
@@ -185,6 +194,27 @@ function startOpen(orders: MarketplaceOrderIssuanceView[]): void {
   if (!toIssue.length) return;
   selectedOrders.value = toIssue;
   openDialog.value = true;
+}
+
+// Объявление готовности к выдаче: по карточке заказчика разом объявляем все его
+// ещё не объявленные позиции «к выдаче». Статус заказа не меняется — заказчику
+// уходит push «приходите заберите», позиции получают бейдж «Объявлено». Сама
+// выдача по-прежнему открывается при приходе заказчика (скан QR).
+const announcingAccount = ref<string | null>(null);
+async function announceGroup(g: IssuanceGroup): Promise<void> {
+  if (!g.toAnnounce.length || announcingAccount.value) return;
+  announcingAccount.value = g.account;
+  try {
+    for (const o of g.toAnnounce) {
+      await announceOrderReady(o.id);
+    }
+    SuccessAlert(`Заказчик оповещён — заказ готов к выдаче (${g.toAnnounce.length} позиц.).`);
+    await load();
+  } catch (e) {
+    FailAlert(e, 'Не удалось объявить готовность к выдаче');
+  } finally {
+    announcingAccount.value = null;
+  }
 }
 
 // QR-код получения: оператор сканирует account-bound код заказчика → резолвим
@@ -347,6 +377,22 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
                   |  · заказано {{ line.orderedQuantity }} {{ marketplaceOrderUnitLabel(line.unit, line.orderUnitSize) }}
             BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
 
+          //- Одна кнопка на карточку: объявить готовыми к выдаче все ещё не
+          //- объявленные позиции заказчика (заказчику уходит уведомление).
+          //- Уже объявленные показываем бейджем — оператор не жмёт повторно.
+          .issuance__announce
+            BaseButton(
+              v-if='g.toAnnounce.length',
+              variant='primary',
+              size='sm',
+              :loading='announcingAccount === g.account',
+              @click='announceGroup(g)'
+            )
+              template(#icon-left)
+                q-icon(name='campaign', size='16px')
+              | Объявить выдачу
+            BaseBadge(v-if='g.announcedCount', variant='pos') Объявлено, ждём заказчика
+
         //- Ждут получения — выдача открыта, ждём подпись заказчика.
         .issuance__section(v-if='g.awaitingLines.length')
           .issuance__section-head Ждут получения заказчиком
@@ -482,6 +528,14 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
+  }
+
+  &__announce {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-1, 4px);
   }
 
   &__section-head {

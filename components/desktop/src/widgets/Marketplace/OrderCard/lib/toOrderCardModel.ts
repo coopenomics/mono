@@ -45,6 +45,13 @@ export interface OrderCardSource {
   /** Готовая сумма total_cost + membership_fee (считает бэк — см. toMarketplaceOrderDTO). */
   total_cost_with_fee: string;
   status: DomainOrderStatus;
+  /**
+   * Оператор пункта объявил заказ готовым к выдаче. В бандл-модели заказчик почти
+   * не видит on-chain READY_TO_RECEIVE (он схлопнут с получением), поэтому это
+   * единственный ранний сигнал «приходите заберите»: при флаге на статусе
+   * ACCEPTED_TO_COOP карточка показывает «Готов к выдаче».
+   */
+  is_ready_announced?: boolean;
   created_at: string | Date;
   delivery_braname: string;
   delivery_point_name?: string | null;
@@ -63,7 +70,12 @@ export interface OrderCardSource {
 export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer' = 'orderer'): Order {
   const name = o.delivery_point_name || undefined;
   const address = o.delivery_point_address || undefined;
-  const display = orderStatusDisplay(o.status);
+  // Объявленная готовность к выдаче показывается заказчику как «Готов к выдаче»,
+  // хотя on-chain статус ещё ACCEPTED_TO_COOP (переиспользуем вид READY_TO_RECEIVE).
+  const announcedReady = !!o.is_ready_announced && o.status === 'ACCEPTED_TO_COOP';
+  const display = announcedReady
+    ? orderStatusDisplay('READY_TO_RECEIVE')
+    : orderStatusDisplay(o.status);
   const rawCost = parseFloat(o.total_cost) || 0;
   const isOfferer = role === 'offerer';
   const feeAmount = Number(o.membership_fee ?? 0);
@@ -78,7 +90,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
       isOfferer && feeAmount > 0
         ? `С учётом взноса пайщика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
         : undefined,
-    status: STATUS_TO_CARD[o.status],
+    status: announcedReady ? 'ready-to-issue' : STATUS_TO_CARD[o.status],
     // Бейдж карточки рисуем по доменному статусу (исчерпывающая карта), а не по
     // грубому card-status — иначе на карточке два разных текста статуса.
     statusLabel: display.label,

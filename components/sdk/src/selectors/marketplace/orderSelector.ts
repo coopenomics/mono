@@ -71,6 +71,7 @@ export const rawOrderSelector = {
   create_tx: rawOrderCreateTxSnapshotSelector,
   current_warehouse_braname: true,
   issuance_fact: rawOrderIssuanceFactSnapshotSelector,
+  is_ready_announced: true,
   chairman_signed_at: true,
   chairman_account: true,
   signiss1_tx_hash: true,

@@ -275,6 +275,14 @@ export class MarketplaceOrderDTO {
   })
   public readonly issuance_fact!: MarketplaceOrderIssuanceFactSnapshotDTO | null;
 
+  @Field(() => Boolean, {
+    description:
+      'Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено ' +
+      'уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ' +
+      'ещё не готов к получению.',
+  })
+  public readonly is_ready_announced!: boolean;
+
   @Field(() => Date, {
     nullable: true,
     description: 'Когда председатель кооперативного участка открыл выдачу первой подписью.',
@@ -457,6 +465,7 @@ export function toMarketplaceOrderDTO(
           diff_state: o.issuance_fact.diff_state as MarketplaceOrderIssuanceFactDiffStateEnum,
         })
       : null,
+    is_ready_announced: o.is_ready_announced,
     chairman_signed_at: o.chairman_signed_at,
     chairman_account: o.chairman_account,
     signiss1_tx_hash: o.signiss1_tx_hash,

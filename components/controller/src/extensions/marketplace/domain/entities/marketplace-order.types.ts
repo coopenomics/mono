@@ -130,6 +130,15 @@ export interface MarketplaceOrderProps {
   current_warehouse_braname: string | null;
   /** Снапшот фактической выдачи — заполняется в момент `signiss2`. */
   issuance_fact: MarketplaceOrderIssuanceFactSnapshot | null;
+  /**
+   * Момент, когда оператор КУ выдачи вручную объявил заказ готовым к выдаче
+   * («Объявить выдачу» на столе ПВЗ). Backend-only операционный сигнал —
+   * on-chain статус не меняется (остаётся ACCEPTED_TO_COOP), проводок нет.
+   * Именно он, а не приём в кооператив, шлёт заказчику push «приходите
+   * заберите» и включает бейдж «Готово к выдаче» в его кабинете. null — ещё
+   * не объявлено.
+   */
+  ready_announced_at: Date | null;
   /** Время первой подписи (председатель КУ выдачи открыл выдачу — `signiss1`). */
   chairman_signed_at: Date | null;
   /** Backend account, открывший выдачу первой подписью. */

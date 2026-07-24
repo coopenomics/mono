@@ -180,6 +180,13 @@ export interface MarketplaceOrderDomainRepository
   ): Promise<MarketplaceOrderDomainEntity>;
 
   /**
+   * Оператор КУ выдачи объявил заказ готовым к выдаче («Объявить выдачу»).
+   * Проставляет `ready_announced_at = now()`, статус НЕ меняет (остаётся
+   * ACCEPTED_TO_COOP). Backend-only сигнал, ортогональный подписям.
+   */
+  applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
    * Story 6.3: применяет финальную подпись АПП-выдачи (заказчик получил
    * имущество). Переводит Order READY_TO_RECEIVE → RECEIVED и заполняет
    * `issuance_fact`, `orderer_signed_at`, `delivery_signer_account`,

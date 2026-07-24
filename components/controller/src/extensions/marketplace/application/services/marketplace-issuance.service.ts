@@ -254,7 +254,59 @@ export class MarketplaceIssuanceService {
       `Выдача order ${order.id} открыта председателем ${input.chairman_account} (tx=${txHash}); статус READY_TO_RECEIVE.`
     );
 
-    // Story 6.1 / FR22: push заказчику — заказ готов на ПВЗ.
+    // Push «заказ готов на ПВЗ» здесь НЕ эмитим: открытие выдачи происходит,
+    // когда заказчик уже стоит у стойки (в бандл-модели signiss1 уходит на цепь
+    // при контрподписи получения). Уведомление «приходите заберите» отправляет
+    // announceReady — заранее, до прихода. См. MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT.
+    return { order: updated, tx_hash: txHash };
+  }
+
+  /**
+   * Оператор КУ выдачи вручную объявляет заказ готовым к выдаче («Объявить
+   * выдачу» на столе ПВЗ) — ДО прихода заказчика. Это единственная точка, где
+   * заказчику уходит push «приходите заберите» и в его кабинете загорается
+   * «Готово к выдаче».
+   *
+   * Backend-only сигнал, ортогональный подписям: on-chain статус остаётся
+   * ACCEPTED_TO_COOP (проводок нет), поэтому инварианты бандла
+   * (`awaits_chairman_issue_open`) и последующая выдача (signiss1/signiss2)
+   * не затрагиваются. Идемпотентно — повторный вызов не шлёт push дважды.
+   */
+  async announceReady(input: {
+    coopname: string;
+    order_id: string;
+    operator_account: string;
+  }): Promise<MarketplaceOrderDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+
+    // Уже объявлено — тихий no-op без повторного push (двойной клик оператора,
+    // гонка realtime-обновления стола).
+    if (order.ready_announced_at !== null) {
+      return order;
+    }
+    if (order.status !== 'ACCEPTED_TO_COOP') {
+      throw new ConflictException(
+        `Заказ в статусе «${order.status}» — объявить готовность к выдаче нельзя.`
+      );
+    }
+    if (order.chairman_signed_at !== null) {
+      throw new ConflictException('Выдача по заказу уже открыта.');
+    }
+
+    // Объявлять готовым можно только то, что физически принято на склад КУ:
+    // иначе заказчик придёт на пустой пункт.
+    const available = await this.loadAvailableOnWarehouse(order);
+    if (available <= 0) {
+      throw new ConflictException(
+        'По заказу ещё ничего не принято на склад пункта выдачи — объявить готовность нельзя.'
+      );
+    }
+
+    const updated = await this.orderRepo.applyReadyAnnounced(order.id);
+    this.logger.log(
+      `Заказ ${order.id} объявлен готовым к выдаче оператором ${input.operator_account}.`
+    );
+
     const event: MarketplaceOrderReadyToReceiveEvent = {
       coopname: updated.coopname,
       order_id: updated.id,
@@ -264,7 +316,7 @@ export class MarketplaceIssuanceService {
     };
     this.eventBus.emit(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, event);
 
-    return { order: updated, tx_hash: txHash };
+    return updated;
   }
 
   async finalizeIssuance(
