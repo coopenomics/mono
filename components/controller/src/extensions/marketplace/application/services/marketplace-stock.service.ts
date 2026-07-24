@@ -10,6 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { computeStockOrderHash } from '../shared/order-hash.util';
+import { assertValidQuantity, toQuantityAsset } from '../shared/quantity.util';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
@@ -315,8 +316,8 @@ export class MarketplaceStockService {
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput
   ): Promise<MarketplaceStockOrderCreateResult> {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
+    if (!(input.quantity > 0)) {
+      throw new BadRequestException('Количество должно быть больше нуля.');
     }
     const offer = await this.offerRepo.findById(input.offer_id);
     if (!offer || offer.coopname !== input.coopname) {
@@ -328,6 +329,7 @@ export class MarketplaceStockService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(`Предложение не активно (статус «${offer.status}»).`);
     }
+    assertValidQuantity(input.quantity, offer.unit_of_measure);
     if (offer.quantity_available < input.quantity) {
       throw new BadRequestException(
         `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
@@ -371,7 +373,7 @@ export class MarketplaceStockService {
         order_hash,
         offer_hash,
         delivery_braname: offer.stock_braname,
-        quantity: input.quantity,
+        quantity: toQuantityAsset(input.quantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,

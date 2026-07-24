@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { computeOrderHash } from '../shared/order-hash.util';
+import { assertValidQuantity, toQuantityAsset } from '../shared/quantity.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   type MarketplaceNewOrderForSupplierEvent,
@@ -151,6 +152,7 @@ export class MarketplaceOrderCreateService {
         `Предложение не активно (статус «${offer.status}»). Заказ оформить нельзя.`
       );
     }
+    assertValidQuantity(input.quantity, offer.unit_of_measure);
     if (!offer.unlimited_flag && offer.quantity_available < input.quantity) {
       throw new BadRequestException(
         `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
@@ -182,7 +184,7 @@ export class MarketplaceOrderCreateService {
         offer_hash,
         offerer: offer.supplier_account,
         delivery_braname: input.delivery_braname,
-        quantity: input.quantity,
+        quantity: toQuantityAsset(input.quantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
@@ -268,8 +270,11 @@ export class MarketplaceOrderCreateService {
   // ── private ──────────────────────────────────────────────────────
 
   private validateInput(input: MarketplaceOrderCreateInputDto): void {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
+    // Единично-зависимая валидация количества (штука — целое, вес/объём —
+    // дробное) выполняется после загрузки Offer'а через assertValidQuantity;
+    // здесь — только базовая проверка положительности.
+    if (!(input.quantity > 0)) {
+      throw new BadRequestException('Количество должно быть больше нуля.');
     }
     if (!input.delivery_braname || input.delivery_braname.length === 0) {
       throw new BadRequestException('Не указан ПВЗ получения.');
