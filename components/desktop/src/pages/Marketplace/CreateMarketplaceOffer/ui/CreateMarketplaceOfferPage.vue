@@ -298,6 +298,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   span.offer-preview__price {{ formattedPrice }}
                   span.offer-preview__per за {{ orderUnitLabel }}
                 BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
+              p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
               section.offer-preview__specs
                 .offer-preview__specs-title Характеристики
@@ -730,22 +731,24 @@ async function loadKuOptions(): Promise<void> {
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
 
-// Цена с учётом взноса — то, что реально увидит и заплатит заказчик. Превью
-// карточки справа показывает именно её (как она появится в каталоге), а не
-// голую себестоимость поставщика.
+// Цена с учётом взноса — то, что реально увидит и заплатит пайщик.
 const priceWithFee = computed<number | null>(() => {
   if (!priceNumberStr.value) return null;
   const n = Number(priceNumberStr.value);
   if (Number.isNaN(n)) return null;
   return feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
 });
-const formattedPrice = computed(() =>
-  priceWithFee.value != null ? formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`) : '—'
-);
+// В превью крупно — своя цена поставщика (без взноса).
+const formattedPrice = computed(() => {
+  if (!priceNumberStr.value) return '—';
+  const n = Number(priceNumberStr.value);
+  if (Number.isNaN(n)) return '—';
+  return formatAsset2Digits(`${n} ${governSymbol.value}`);
+});
 const priceWithFeeHint = computed(() => {
   if (priceWithFee.value == null || feePercent.value <= 0) return '';
   const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
-  return `Заказчик увидит цену с учётом членского взноса ${feePercent.value}%: ${formatted}`;
+  return `Цена для заказчика: ${formatted} за ${orderUnitLabel.value}`;
 });
 
 // Справочная цена за базовую единицу (за 1 кг / 1 л / 1 шт) — для сравнения
@@ -1439,6 +1442,12 @@ onBeforeUnmount(() => {
   }
 
   &__per {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__fee {
+    margin: 0;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }

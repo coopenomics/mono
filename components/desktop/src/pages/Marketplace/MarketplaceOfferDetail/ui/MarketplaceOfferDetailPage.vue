@@ -107,17 +107,24 @@ const stockLabel = computed(() => {
 });
 
 // requirement b6: единая ставка членского взноса входит в цену, которую видит
-// заказчик — как в карточке каталога (CatalogOfferCard). Раздельная
-// себестоимость без взноса остаётся только на столе поставщика.
+// заказчик — как в карточке каталога (CatalogOfferCard). На столе администратора
+// (readonly) крупно — цена поставщика без взноса, ниже «Цена для заказчика».
 const feePercent = ref(0);
 const priceWithFee = computed(() =>
   offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
 );
-const priceLabel = computed(() =>
-  offer.value
-    ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
-    : '',
-);
+const priceLabel = computed(() => {
+  if (!offer.value) return '';
+  // Админ/модератор — себестоимость поставщика; заказчик — цена с взносом.
+  const amount = readonly.value
+    ? Number(offer.value.price_per_unit)
+    : priceWithFee.value;
+  return `${amount.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`;
+});
+const memberPriceNote = computed(() => {
+  if (!offer.value || feePercent.value <= 0 || !readonly.value) return '';
+  return `Цена для заказчика ${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`;
+});
 // Справочная цена за базовую единицу (за кг / л / шт) для сравнения — только
 // когда единица заказа ≠ базовой (фасовка). От цены заказчика (с взносом).
 const referenceNote = computed(() => {
@@ -232,9 +239,8 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
 
       .offer-detail__price {{ priceLabel }}
       .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
-      //- Пояснение «с членским взносом» — только на столе администратора
-      //- (readonly = модерация). Заказчику показываем просто финальную цену.
-      .offer-detail__fee-note(v-if="feePercent > 0 && readonly") Цена с членским взносом {{ feePercent }}%
+      //- На столе администратора: цена поставщика сверху, ниже — сколько заплатит пайщик.
+      .offer-detail__fee-note(v-if="memberPriceNote") {{ memberPriceNote }}
 
       BaseButton(
         v-if="!readonly",

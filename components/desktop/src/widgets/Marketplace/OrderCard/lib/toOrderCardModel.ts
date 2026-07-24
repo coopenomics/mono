@@ -58,7 +58,7 @@ export interface OrderCardSource {
  *  - 'orderer' (по умолчанию) — цена С членским взносом, как в каталоге:
  *    это то, что заказчик реально платит.
  *  - 'offerer' — себестоимость поставщика БЕЗ взноса (его деньги), плюс
- *    отдельная строка-подсказка со взносом пайщика для справки.
+ *    отдельная строка «Цена для заказчика» с суммой для справки.
  */
 export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer' = 'orderer'): Order {
   const name = o.delivery_point_name || undefined;
@@ -76,7 +76,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
     feeNote:
       isOfferer && feeAmount > 0
-        ? `С учётом взноса пайщика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
+        ? `Цена для заказчика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
         : undefined,
     status: STATUS_TO_CARD[o.status],
     // Бейдж карточки рисуем по доменному статусу (исчерпывающая карта), а не по

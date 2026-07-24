@@ -37,7 +37,7 @@
 
       <div class="mp-catalog-offer-card__meta">
         <span class="mp-catalog-offer-card__price" v-if="offer.unitCost != null">
-          {{ formatPrice(unitCostWithFee) }}
+          {{ formatPrice(displayUnitCost) }}
           <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
         </span>
         <span class="mp-catalog-offer-card__stock" :class="{ 'mp-catalog-offer-card__stock--empty': isEmpty }">
@@ -49,8 +49,10 @@
         {{ offer.referenceNote }}
       </div>
 
+      <!-- На столе поставщика/админа: своя цена сверху, ниже — сколько заплатит пайщик. -->
       <div v-if="hasFee && showFeeNote" class="mp-catalog-offer-card__fee-note">
-        Цена с членским взносом {{ feeLabel }}
+        Цена для заказчика {{ formatPrice(unitCostWithFee) }}
+        <span class="mp-catalog-offer-card__unit">/ {{ unitLabel }}</span>
       </div>
 
       <div v-if="shortDescription" class="mp-catalog-offer-card__desc">
@@ -101,12 +103,12 @@ const props = defineProps({
   // принимается прямо в ней), передаём false.
   clickable: { type: Boolean, default: true },
   // Единая ставка членского взноса кооператива, проценты (requirement b6).
-  // Если задана и > 0 — карточка ВСЕГДА показывает цену с учётом взноса (он
-  // входит в стоимость, которую заказчик реально платит).
+  // В каталоге заказчика (showFeeNote=false) крупно — цена с взносом.
+  // На столе поставщика/админа (showFeeNote=true) крупно — своя цена без
+  // взноса, ниже строка «Цена для заказчика» с суммой (не процентом).
   feePercent: { type: Number, default: 0 },
-  // Поясняющая подпись «Цена с членским взносом N%» — только для
-  // поставщика/администратора (им нужно видеть разбивку). Заказчику она не
-  // нужна: он видит просто финальную цену, без экономики кооператива.
+  // Разбивка «своя / для пайщика» — только поставщику и администратору.
+  // Заказчику не нужна: он видит просто финальную цену.
   showFeeNote: { type: Boolean, default: true },
 })
 
@@ -178,9 +180,12 @@ const unitCostWithFee = computed<number | string>(() => {
   return applyMembershipFee(n, props.feePercent)
 })
 
-const feeLabel = computed(() => {
-  const p = props.feePercent
-  return (Number.isInteger(p) ? String(p) : p.toFixed(2).replace(/\.?0+$/, '')) + ' %'
+// Крупная цена: у поставщика/админа — своя (без взноса), у заказчика — с взносом.
+const displayUnitCost = computed<number | string>(() => {
+  const base = props.offer.unitCost
+  if (base == null) return ''
+  if (hasFee.value && !props.showFeeNote) return unitCostWithFee.value
+  return base
 })
 
 function formatPrice(v: number | string) {
