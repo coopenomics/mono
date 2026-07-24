@@ -102,14 +102,13 @@ const props = defineProps({
   // На экранах, где по карточке ничего не открывается (модерация — решение
   // принимается прямо в ней), передаём false.
   clickable: { type: Boolean, default: true },
-  // Единая ставка членского взноса кооператива, проценты (requirement b6).
-  // В каталоге заказчика (showFeeNote=false) крупно — цена с взносом.
-  // На столе поставщика/админа (showFeeNote=true) крупно — своя цена без
-  // взноса, ниже строка «Цена для заказчика» с суммой (не процентом).
+  // В каталоге и у остальных ролей (showFeeNote=false) крупно — цена с взносом.
+  // На столе поставщика (showFeeNote=true) крупно — своя цена без взноса,
+  // ниже строка «Цена для заказчика» с суммой (не процентом).
   feePercent: { type: Number, default: 0 },
-  // Разбивка «своя / для пайщика» — только поставщику и администратору.
-  // Заказчику не нужна: он видит просто финальную цену.
-  showFeeNote: { type: Boolean, default: true },
+  // Разбивка «своя / для заказчика» — только на столе поставщика.
+  // Всем остальным (каталог, ПВЗ, админ) — просто полная цена с взносом.
+  showFeeNote: { type: Boolean, default: false },
 })
 
 const emit = defineEmits<{
@@ -161,7 +160,7 @@ const stockLabel = computed(() => {
   if (isUnlimited.value) return 'Без ограничений'
   return isEmpty.value
     ? 'Нет в наличии'
-    : `${props.offer.remainUnits} ${unitLabel.value}`
+    : `${props.offer.remainUnits}×${unitLabel.value}`
 })
 
 const cardClasses = computed(() => ({

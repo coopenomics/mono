@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 
 /**
@@ -22,8 +22,8 @@ const props = defineProps<{
   rows: ReceptionLineRow[];
 }>();
 
-function unitShort(row: ReceptionLineRow): string {
-  return marketplaceOrderUnitLabel(row.unit_of_measure, row.order_unit_size);
+function qtyLabel(row: ReceptionLineRow): string {
+  return marketplaceQuantityLabel(row.fact_quantity, row.unit_of_measure, row.order_unit_size);
 }
 
 function lineSum(row: ReceptionLineRow): number {
@@ -44,7 +44,7 @@ const total = computed(() => props.rows.reduce((acc, r) => acc + lineSum(r), 0))
 
   .mp-reception-lines__row(v-for='(row, i) in rows', :key='i')
     .mp-reception-lines__cell.mp-reception-lines__cell--title {{ row.product_name || 'Товар по предложению' }}
-    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ row.fact_quantity }} {{ unitShort(row) }}
+    .mp-reception-lines__cell.mp-reception-lines__cell--num {{ qtyLabel(row) }}
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(row.fact_unit_price ?? '0') }} ₽
     .mp-reception-lines__cell.mp-reception-lines__cell--num {{ formatAsset2Digits(String(lineSum(row))) }} ₽
 

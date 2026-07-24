@@ -11,7 +11,8 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
@@ -30,6 +31,8 @@ const items = ref<AdminOfferView[]>([]);
 const loading = ref(false);
 const statusFilter = ref<AdminOfferStatusView[]>([]);
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 });
+// Полная цена для всех, кроме поставщика — с членским взносом.
+const feePercent = ref(0);
 
 const OFFER_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
   PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
@@ -77,11 +80,16 @@ function resetFilters(): void {
 function shortId(id: string | null | undefined): string {
   return id ? id.slice(0, 8) : '—';
 }
-function unitLabel(o: AdminOfferView): string {
-  return marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size);
-}
 function formatPrice(v: string | null | undefined): string {
-  return v ? formatAsset2Digits(String(v)) : '—';
+  if (!v) return '—';
+  const n = Number.parseFloat(v);
+  if (!Number.isFinite(n)) return '—';
+  const withFee = feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
+  return formatAsset2Digits(String(withFee));
+}
+function availableLabel(o: AdminOfferView): string {
+  if (o.unlimited_flag) return 'Без ограничений';
+  return marketplaceQuantityLabel(o.quantity_available, o.unit_of_measure, o.order_unit_size);
 }
 function formatWarranty(days: number | null | undefined): string {
   return days && days > 0 ? `${days} дн.` : 'Без гарантийного срока возврата';
@@ -159,7 +167,12 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
   void load();
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    feePercent.value = await getMembershipFeePercent();
+  } catch {
+    // Без ставки показываем цену поставщика как есть.
+  }
   void load();
 });
 </script>
@@ -215,7 +228,7 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
       template(#body-cell-price="props")
         q-td.text-right.font-monospace(:props="props") {{ formatPrice(props.row.price_per_unit) }}
       template(#body-cell-available="props")
-        q-td.text-right(:props="props") {{ props.row.unlimited_flag ? '∞' : props.row.quantity_available }} {{ unitLabel(props.row) }}
+        q-td.text-right(:props="props") {{ props.row.unlimited_flag ? '∞' : availableLabel(props.row) }}
       template(#body-cell-shelf_life="props")
         q-td.text-right(:props="props") {{ formatShelfLife(props.row.shelf_life_days) }}
       template(#body-cell-warranty="props")

@@ -285,7 +285,7 @@ q-page.my-offers(role="region", aria-label="Мои предложения")
     template(v-if="filtered.length > 0")
       .row.q-col-gutter-md
         .col-12.col-sm-6.col-md-4.col-lg-3(v-for="card in cards", :key="card.id")
-          CatalogOfferCard(:offer="card", :fee-percent="feePercent", @click="goCard(card)")
+          CatalogOfferCard(:offer="card", :fee-percent="feePercent", :show-fee-note="true", @click="goCard(card)")
           .my-offers__reason(v-if="card.domainStatus === 'REJECTED' && card.rejectReason")
             q-icon(name="error", color="negative", size="16px")
             span {{ card.rejectReason }}

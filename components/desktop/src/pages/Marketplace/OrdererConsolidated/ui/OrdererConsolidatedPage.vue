@@ -242,13 +242,13 @@ q-page.collective(role="region", aria-label="Коллективный заказ
         :stage-status="p.stageStatus",
         :order-count="p.orders.length",
         hide-order-count,
-        :volume-label="`Накоплено: ${accumulated(p)} ${p.unitLabel}`",
-        :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume} ${p.unitLabel}` : ''",
+        :volume-label="`Накоплено: ${accumulated(p)}×${p.unitLabel}`",
+        :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume}×${p.unitLabel}` : ''",
         :progress="progressRatio(p)",
         :bar-color="barColor(p)",
         :members="[]",
         total-label="Ваше участие в партии",
-        :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits} ${p.unitLabel}`"
+        :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits}×${p.unitLabel}`"
       )
 </template>
 

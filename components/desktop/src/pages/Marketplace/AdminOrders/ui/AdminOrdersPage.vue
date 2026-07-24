@@ -11,7 +11,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseBadge, BaseButton, EmptyState } from 'src/shared/ui/base';
 import { EntityIdBadge } from 'src/shared/ui';
@@ -88,7 +88,7 @@ function shortId(id: string | null | undefined): string {
   return id ? id.slice(0, 8) : '—';
 }
 function unitLabel(o: AdminOrderView): string {
-  return marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size);
+  return marketplaceQuantityLabel(o.quantity, o.unit_of_measure, o.order_unit_size);
 }
 // requirement b6: реестр показывает сумму, которую реально заплатил пайщик
 // (себестоимость + членский взнос, зафиксированный в заказе контрактом) —
@@ -257,7 +257,7 @@ q-page.admin-orders(role="region", aria-label="Реестр заказов ко�
                 q-tooltip Открыть предложение
           q-td {{ ordererTitle(props.row) }}
           q-td {{ supplierTitle(props.row) }}
-          q-td.text-right {{ props.row.quantity }} {{ unitLabel(props.row) }}
+          q-td.text-right {{ unitLabel(props.row) }}
           q-td.text-right.font-monospace {{ formatTotalWithFee(props.row) }}
           q-td {{ formatDate(props.row.created_at) }}
 

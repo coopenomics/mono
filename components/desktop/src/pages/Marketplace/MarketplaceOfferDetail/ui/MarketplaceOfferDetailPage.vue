@@ -103,28 +103,20 @@ const stockLabel = computed(() => {
   if (offer.value.unlimited_flag) return 'Без ограничения остатка';
   return isEmpty.value
     ? 'Нет в наличии'
-    : `В наличии: ${offer.value.quantity_available} ${unitShort.value}`;
+    : `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
 });
 
-// requirement b6: единая ставка членского взноса входит в цену, которую видит
-// заказчик — как в карточке каталога (CatalogOfferCard). На столе администратора
-// (readonly) крупно — цена поставщика без взноса, ниже «Цена для заказчика».
+// requirement b6: единая ставка членского взноса входит в цену для всех,
+// кроме стола поставщика (там — своя цена + строка «для заказчика»).
 const feePercent = ref(0);
 const priceWithFee = computed(() =>
   offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
 );
-const priceLabel = computed(() => {
-  if (!offer.value) return '';
-  // Админ/модератор — себестоимость поставщика; заказчик — цена с взносом.
-  const amount = readonly.value
-    ? Number(offer.value.price_per_unit)
-    : priceWithFee.value;
-  return `${amount.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`;
-});
-const memberPriceNote = computed(() => {
-  if (!offer.value || feePercent.value <= 0 || !readonly.value) return '';
-  return `Цена для заказчика ${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`;
-});
+const priceLabel = computed(() =>
+  offer.value
+    ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
+    : '',
+);
 // Справочная цена за базовую единицу (за кг / л / шт) для сравнения — только
 // когда единица заказа ≠ базовой (фасовка). От цены заказчика (с взносом).
 const referenceNote = computed(() => {
@@ -139,7 +131,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume} ${unitShort.value}`,
+    volume: `от ${p.min_supply_volume}×${unitShort.value}`,
   })),
 );
 
@@ -239,8 +231,6 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
 
       .offer-detail__price {{ priceLabel }}
       .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
-      //- На столе администратора: цена поставщика сверху, ниже — сколько заплатит пайщик.
-      .offer-detail__fee-note(v-if="memberPriceNote") {{ memberPriceNote }}
 
       BaseButton(
         v-if="!readonly",
