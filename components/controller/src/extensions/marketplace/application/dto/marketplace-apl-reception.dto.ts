@@ -1,5 +1,5 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { ArrayMinSize, IsArray, IsNumber, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
@@ -32,7 +32,7 @@ export class MarketplaceAplReceptionFactEntryDTO {
   @Field(() => String)
   order_id!: string;
 
-  @Field(() => Int, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
+  @Field(() => Float, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
   fact_quantity!: number;
 
   @Field(() => String, {
@@ -67,8 +67,8 @@ export class MarketplaceAplReceptionFactEntryInputDTO {
   @IsNotEmpty()
   order_id!: string;
 
-  @Field(() => Int)
-  @IsInt()
+  @Field(() => Float)
+  @IsNumber()
   @Min(0)
   fact_quantity!: number;
 
@@ -265,7 +265,7 @@ export class MarketplaceExpressPickupCandidateDTO {
   @Field(() => Int, { description: 'Сколько принятых заказов ожидает приёмки.' })
   orders_count!: number;
 
-  @Field(() => Int, { description: 'Суммарное количество единиц.' })
+  @Field(() => Float, { description: 'Суммарное количество единиц.' })
   total_units!: number;
 
   @Field(() => String, { description: 'Суммарная сумма заказов.' })

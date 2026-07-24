@@ -20,6 +20,7 @@ export class MarketplaceOrderMapper {
       supplier_account: row.supplier_account,
       delivery_braname: row.delivery_braname,
       quantity: row.quantity,
+      unit_of_measure: row.unit_of_measure,
       price_per_unit: row.price_per_unit,
       total_cost: row.total_cost,
       membership_fee: row.membership_fee ?? null,

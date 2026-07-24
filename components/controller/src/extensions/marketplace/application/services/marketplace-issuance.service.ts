@@ -39,6 +39,7 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { toQuantityAsset } from '../shared/quantity.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -323,7 +324,7 @@ export class MarketplaceIssuanceService {
         coopname: order.coopname,
         orderer: order.orderer_account,
         order_hash: order.order_hash,
-        actual_quantity,
+        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
         actual_unit_price: this.formatAsset(fact_unit_price),
         delivery_signer,
         act,

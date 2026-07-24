@@ -13,6 +13,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
+import { toQuantityAsset } from '../shared/quantity.util';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
@@ -305,7 +306,7 @@ export class MarketplaceReturnClaimService {
         orderer: input.orderer_account,
         request_hash,
         original_order_hash: order.order_hash,
-        actual_quantity,
+        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
         reason_text: input.reason_text,
         photos: photos.map((p) => p.content_hash),
         statement: statementAct,

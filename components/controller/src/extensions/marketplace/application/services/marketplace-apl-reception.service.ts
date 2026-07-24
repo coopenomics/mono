@@ -82,6 +82,7 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
+import { toQuantityAsset } from '../shared/quantity.util';
 import {
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
   MarketplaceSupplierSettingsService,
@@ -1250,7 +1251,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         signer,
         order_hash: order.order_hash,
-        actual_quantity,
+        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
         actual_unit_price,
         act,
       });

@@ -1,4 +1,5 @@
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 export type MarketplaceOrderStatus =
   | 'ACTIVE'
@@ -102,6 +103,7 @@ export interface MarketplaceOrderProps {
   supplier_account: string;
   delivery_braname: string;
   quantity: number;
+  unit_of_measure: MarketplaceUnitOfMeasure;
   price_per_unit: string;
   total_cost: string;
   /**

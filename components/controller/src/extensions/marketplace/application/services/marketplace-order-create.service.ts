@@ -229,6 +229,7 @@ export class MarketplaceOrderCreateService {
       supplier_account: offer.supplier_account,
       delivery_braname: input.delivery_braname,
       quantity: input.quantity,
+      unit_of_measure: offer.unit_of_measure,
       price_per_unit: offer.price_per_unit,
       total_cost: locked_amount,
       cycle_id: null,

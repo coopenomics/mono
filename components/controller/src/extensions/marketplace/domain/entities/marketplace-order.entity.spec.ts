@@ -12,6 +12,7 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     supplier_account: 'supplier1',
     delivery_braname: 'ku.krasn.1',
     quantity: 3,
+    unit_of_measure: 'piece',
     price_per_unit: '150.0000',
     total_cost: '450.0000',
     membership_fee: null,

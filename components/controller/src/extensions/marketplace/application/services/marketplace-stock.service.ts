@@ -413,6 +413,7 @@ export class MarketplaceStockService {
       supplier_account: input.coopname, // продавец — кооператив (маркер stock-ордера)
       delivery_braname: offer.stock_braname,
       quantity: input.quantity,
+      unit_of_measure: offer.unit_of_measure,
       price_per_unit: offer.price_per_unit,
       total_cost,
       cycle_id: null,

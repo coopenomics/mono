@@ -49,6 +49,7 @@ import {
 import { MarketplaceStockService, MARKETPLACE_STOCK_SERVICE } from './marketplace-stock.service';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
+import { assertValidQuantity } from '../shared/quantity.util';
 import {
   MarketplaceStockProposalStatuses,
   type MarketplaceStockProposalItem,
@@ -301,8 +302,8 @@ export class MarketplaceStockProposalService {
     offer_id: string,
     quantity: number
   ): Promise<MarketplaceOfferDomainEntity> {
-    if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new BadRequestException('Количество в строке должно быть целым числом больше нуля.');
+    if (!(quantity > 0)) {
+      throw new BadRequestException('Количество в строке должно быть больше нуля.');
     }
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer || offer.coopname !== coopname) {
@@ -316,6 +317,7 @@ export class MarketplaceStockProposalService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(`«${offer.product_name}» снят с публикации.`);
     }
+    assertValidQuantity(quantity, offer.unit_of_measure);
     if (offer.quantity_available < quantity) {
       throw new BadRequestException(
         `«${offer.product_name}»: на складе свободно ${offer.quantity_available} ед., нельзя предложить ${quantity}.`
@@ -336,8 +338,8 @@ export class MarketplaceStockProposalService {
     member_account: string,
     line: MarketplaceOrderProposalCreateLine
   ): Promise<MarketplaceStockProposalItem> {
-    if (!Number.isInteger(line.actual_quantity) || line.actual_quantity <= 0) {
-      throw new BadRequestException('Количество в строке заказа должно быть целым больше нуля.');
+    if (!(line.actual_quantity > 0)) {
+      throw new BadRequestException('Количество в строке заказа должно быть больше нуля.');
     }
     if (Number.parseFloat(line.actual_unit_price) <= 0) {
       throw new BadRequestException('Цена в строке заказа должна быть больше нуля.');
@@ -366,6 +368,7 @@ export class MarketplaceStockProposalService {
         `Заказ ${order.id} (статус «${order.status}») не готов к открытию выдачи.`
       );
     }
+    assertValidQuantity(line.actual_quantity, order.unit_of_measure);
     const offer = await this.offerRepo.findById(order.offer_id);
     return {
       order_id: order.id,

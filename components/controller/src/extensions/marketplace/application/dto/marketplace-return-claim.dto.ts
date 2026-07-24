@@ -1,8 +1,8 @@
 import {
   Field,
+  Float,
   ID,
   InputType,
-  Int,
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
@@ -11,7 +11,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -108,13 +108,13 @@ export class MarketplaceCreateReturnClaimInputDTO {
   @IsEnum(MarketplaceReturnClaimDefectCategoryEnum)
   public readonly defect_category?: MarketplaceReturnClaimDefectCategory;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description: 'Возвращаемое количество единиц (по умолчанию — выданное количество).',
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   public readonly actual_quantity?: number;
 
   @Field(() => MarketplaceReturnStatementSignedInputDTO, {
@@ -142,13 +142,13 @@ export class MarketplaceReturnClaimSignablePayloadInputDTO {
   @IsNotEmpty()
   public readonly order_id!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description: 'Возвращаемое количество (если не указано — выданное количество).',
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   public readonly actual_quantity?: number;
 
   @Field({
@@ -355,7 +355,7 @@ export class MarketplaceReturnClaimLedgerSnapshotDTO {
   @Field({ description: 'Сумма compensating-forward (восстановленная на программный кошелёк).' })
   public readonly amount!: string;
 
-  @Field(() => Int, { description: 'Возвращённое количество единиц имущества.' })
+  @Field(() => Float, { description: 'Возвращённое количество единиц имущества.' })
   public readonly returned_quantity!: number;
 
   @Field({ description: 'Хэш транзакции accretrn в блокчейне.' })
@@ -401,7 +401,7 @@ export class MarketplaceReturnClaimDTO {
   @Field(() => MarketplaceReturnClaimExpectedResolutionEnum)
   public readonly expected_resolution!: MarketplaceReturnClaimExpectedResolution;
 
-  @Field(() => Int) public readonly actual_quantity!: number;
+  @Field(() => Float) public readonly actual_quantity!: number;
   @Field() public readonly fact_cost!: string;
 
   @Field(() => [MarketplaceReturnClaimPhotoDTO], { description: 'Фотографии товара, приложенные пайщиком.' })

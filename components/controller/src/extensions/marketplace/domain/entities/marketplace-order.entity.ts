@@ -4,6 +4,7 @@ import type {
   MarketplaceOrderProps,
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
+import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { IBlockchainSynchronizable } from '~/shared/interfaces/blockchain-sync.interface';
 
@@ -34,6 +35,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly supplier_account: string;
   public readonly delivery_braname: string;
   public readonly quantity: number;
+  public readonly unit_of_measure: MarketplaceUnitOfMeasure;
   public readonly price_per_unit: string;
   public readonly total_cost: string;
   /** Членский взнос, включённый в стоимость заказа — on-chain mirror (см. MarketplaceOrderProps). */
@@ -92,6 +94,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.supplier_account = props.supplier_account;
     this.delivery_braname = props.delivery_braname;
     this.quantity = props.quantity;
+    this.unit_of_measure = props.unit_of_measure;
     this.price_per_unit = props.price_per_unit;
     this.total_cost = props.total_cost;
     this.membership_fee = props.membership_fee;

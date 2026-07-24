@@ -4,6 +4,7 @@ import type {
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
+import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -22,6 +23,7 @@ export interface MarketplaceOrderCreateInput {
   supplier_account: string;
   delivery_braname: string;
   quantity: number;
+  unit_of_measure: MarketplaceUnitOfMeasure;
   price_per_unit: string;
   total_cost: string;
   cycle_id: string | null;

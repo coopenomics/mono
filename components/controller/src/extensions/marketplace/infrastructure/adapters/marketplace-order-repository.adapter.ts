@@ -71,6 +71,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       supplier_account: input.supplier_account,
       delivery_braname: input.delivery_braname,
       quantity: input.quantity,
+      unit_of_measure: input.unit_of_measure,
       price_per_unit: input.price_per_unit,
       total_cost: input.total_cost,
       cycle_id: input.cycle_id,

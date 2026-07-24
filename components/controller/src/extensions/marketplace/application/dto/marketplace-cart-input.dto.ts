@@ -1,5 +1,5 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, InputType } from '@nestjs/graphql';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 @InputType('MarketplaceAddToCartInput', {
   description: 'Добавить позицию в корзину (с привязкой к пункту выдачи).',
@@ -9,8 +9,8 @@ export class MarketplaceAddToCartInputDTO {
   @IsString()
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц (целое, ≥ 1).' })
-  @IsInt()
+  @Field(() => Float, { description: 'Количество единиц (> 0; для штук — целое).' })
+  @IsNumber()
   @Min(1)
   public readonly quantity!: number;
 
@@ -33,8 +33,8 @@ export class MarketplaceUpdateCartItemInputDTO {
   @IsString()
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Новое количество единиц (целое, ≥ 1).' })
-  @IsInt()
+  @Field(() => Float, { description: 'Новое количество единиц (> 0; для штук — целое).' })
+  @IsNumber()
   @Min(1)
   public readonly quantity!: number;
 }

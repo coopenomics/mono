@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
 
 /**
  * Эпик 16: позиция корзины с обогащением для UI. Реквизиты товара
@@ -13,7 +13,7 @@ export class MarketplaceCartItemDTO {
   @Field(() => String, { description: 'Идентификатор предложения.' })
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц в корзине.' })
+  @Field(() => Float, { description: 'Количество единиц в корзине.' })
   public readonly quantity!: number;
 
   @Field(() => String, {
@@ -61,7 +61,7 @@ export class MarketplaceCartItemDTO {
   })
   public readonly available_on_current_ku!: boolean;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество).',
@@ -96,7 +96,7 @@ export class MarketplaceCartDTO {
   @Field(() => Int, { description: 'Количество разных позиций (строк) в корзине.' })
   public readonly positions_count!: number;
 
-  @Field(() => Int, { description: 'Суммарное количество единиц всех позиций.' })
+  @Field(() => Float, { description: 'Суммарное количество единиц всех позиций.' })
   public readonly total_quantity!: number;
 
   @Field(() => String, { description: 'Итоговая сумма корзины (по доступным к доставке позициям).' })

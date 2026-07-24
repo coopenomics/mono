@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
+import { numericQuantityTransformer } from './numeric-quantity.transformer';
 
 /**
  * Story 3.2: Offer Стола заказов. Pure db (не on-chain).
@@ -61,13 +62,14 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'numeric', precision: 12, scale: 3, default: 1 })
   public order_unit_size!: string;
 
-  @Column({ type: 'integer', default: 0 })
+  // Дробный остаток (Эпик 17): numeric в базовой единице (кг/л/шт), transformer → number.
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_available!: number;
 
-  @Column({ type: 'integer', default: 0 })
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_blocked!: number;
 
-  @Column({ type: 'integer', default: 0 })
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_consumed!: number;
 
   @Column({ type: 'boolean', default: false })

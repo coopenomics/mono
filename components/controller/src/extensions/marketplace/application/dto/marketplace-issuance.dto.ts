@@ -1,5 +1,5 @@
-import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, ID, InputType } from '@nestjs/graphql';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 @InputType('MarketplaceListIssuancesByBranameInput')
 export class MarketplaceListIssuancesByBranameInputDTO {
@@ -21,13 +21,13 @@ export class MarketplaceIssueActPayloadInputDTO {
   @IsNotEmpty()
   public readonly order_id!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ).',
   })
   @IsOptional()
-  @IsInt()
+  @IsNumber()
   @Min(0)
   public readonly actual_quantity?: number;
 

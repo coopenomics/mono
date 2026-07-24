@@ -11,6 +11,11 @@ import type {
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
+import {
+  MarketplaceUnitsOfMeasure,
+  type MarketplaceUnitOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
+import { numericQuantityTransformer } from './numeric-quantity.transformer';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
@@ -66,8 +71,16 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'varchar', length: 13 })
   public delivery_braname!: string;
 
-  @Column({ type: 'integer' })
+  // Дробное количество (Эпик 17): numeric в базовой единице; transformer
+  // возвращает number. Точность 3 — граммы/миллилитры (KG/LTR); PCS — целое.
+  @Column({ type: 'numeric', precision: 18, scale: 3, transformer: numericQuantityTransformer })
   public quantity!: number;
+
+  // Единица измерения заказа, денормализованная из Offer'а при создании (как и
+  // price_per_unit): нужна для сборки on-chain asset-количества (символ KG/LTR/
+  // PCS) на выдаче/приёмке/возврате и для форматирования в актах/UI.
+  @Column({ type: 'varchar', length: 16, default: MarketplaceUnitsOfMeasure.PIECE })
+  public unit_of_measure!: MarketplaceUnitOfMeasure;
 
   // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer)
   @Column({ type: 'numeric', precision: 18, scale: 4 })

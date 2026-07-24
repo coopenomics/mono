@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
@@ -65,7 +65,7 @@ export class MarketplaceOfferDeliveryPointDTO {
   @Field(() => String, { description: 'Кооперативный участок (ПВЗ) поставки.' })
   public readonly braname!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     description:
       'Минимальный объём, от которого поставщик готов везти на этот участок ' +
       '(в единицах товара). Ориентир для накопления партии, не жёсткий порог.',
@@ -107,9 +107,9 @@ export class MarketplaceOfferDTO {
   })
   public readonly order_unit_size!: string;
 
-  @Field(() => Int) public readonly quantity_available!: number;
-  @Field(() => Int) public readonly quantity_blocked!: number;
-  @Field(() => Int) public readonly quantity_consumed!: number;
+  @Field(() => Float) public readonly quantity_available!: number;
+  @Field(() => Float) public readonly quantity_blocked!: number;
+  @Field(() => Float) public readonly quantity_consumed!: number;
   @Field(() => Boolean) public readonly unlimited_flag!: boolean;
 
   @Field(() => [MarketplaceOfferDeliveryPointDTO], {

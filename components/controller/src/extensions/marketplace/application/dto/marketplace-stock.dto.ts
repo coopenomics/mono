@@ -1,9 +1,9 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -69,8 +69,8 @@ export class MarketplaceStockProposalItemInputDTO {
   @IsNotEmpty()
   offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц, предлагаемое пайщику.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Количество единиц, предлагаемое пайщику.' })
+  @IsNumber()
   @Min(1)
   quantity!: number;
 }
@@ -102,7 +102,7 @@ export class MarketplaceStockIssuanceOperatorLineDTO {
   @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц.' })
+  @Field(() => Float, { description: 'Количество единиц.' })
   quantity!: number;
 
   @Field(() => String, { description: 'Детерминированный order_hash будущего заказа из остатка.' })
@@ -127,8 +127,8 @@ export class MarketplaceCreateStockProposalLineInputDTO {
   @IsNotEmpty()
   offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Количество единиц.' })
+  @IsNumber()
   @Min(1)
   quantity!: number;
 
@@ -152,8 +152,8 @@ export class MarketplaceCreateOrderProposalLineInputDTO {
   @IsNotEmpty()
   order_id!: string;
 
-  @Field(() => Int, { description: 'Фактическое количество к выдаче (сверено оператором).' })
-  @IsInt()
+  @Field(() => Float, { description: 'Фактическое количество к выдаче (сверено оператором).' })
+  @IsNumber()
   @Min(1)
   actual_quantity!: number;
 
@@ -328,7 +328,7 @@ export class MarketplaceStockProposalItemDTO {
   @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
-  @Field(() => Int, { description: 'Предложенное количество единиц.' })
+  @Field(() => Float, { description: 'Предложенное количество единиц.' })
   quantity!: number;
 
   @Field(() => String, { description: 'Цена за единицу на момент предложения.' })

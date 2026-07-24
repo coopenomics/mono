@@ -1,4 +1,4 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
+import { Field, Float, InputType, Int } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -106,9 +107,9 @@ export class MarketplaceCreateOfferInputDTO {
   @Matches(/^\d+(\.\d{1,3})?$/)
   public order_unit_size?: string | null;
 
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   @IsOptional()
-  @IsInt()
+  @IsNumber()
   @Min(0)
   public quantity_available!: number | null;
 
@@ -208,9 +209,9 @@ export class MarketplaceUpdateOfferInputDTO {
   @Matches(/^\d+(\.\d{1,3})?$/)
   public order_unit_size?: string;
 
-  @Field(() => Int, { nullable: true })
+  @Field(() => Float, { nullable: true })
   @IsOptional()
-  @IsInt()
+  @IsNumber()
   @Min(0)
   public quantity_available?: number;
 

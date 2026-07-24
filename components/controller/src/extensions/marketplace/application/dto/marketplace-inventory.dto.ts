@@ -1,9 +1,9 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -91,7 +91,7 @@ export class MarketplaceInventoryItemDTO {
   @Field(() => String, { description: 'Наименование товара — для печатной наклейки.' })
   product_name_snapshot!: string;
 
-  @Field(() => Int, { description: 'Количество единиц имущества в этой позиции склада.' })
+  @Field(() => Float, { description: 'Количество единиц имущества в этой позиции склада.' })
   quantity_per_label!: number;
 
   @Field(() => String, { description: 'Заказчик — печатается на наклейке.' })
@@ -250,8 +250,8 @@ export class MarketplaceClearInventoryLabelInputDTO {
 
 @InputType('MarketplaceInventorySplitEntryInput')
 export class MarketplaceInventorySplitEntryInputDTO {
-  @Field(() => Int, { description: 'Количество единиц в этой доле.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Количество единиц в этой доле.' })
+  @IsNumber()
   @Min(1)
   quantity!: number;
 

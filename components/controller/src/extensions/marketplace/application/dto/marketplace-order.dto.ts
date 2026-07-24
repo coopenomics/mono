@@ -33,7 +33,7 @@ registerEnumType(MarketplaceOrderIssuanceFactDiffStateEnum, {
   description: 'Фактическая выдача имущества пайщику на ПВЗ.',
 })
 export class MarketplaceOrderIssuanceFactSnapshotDTO {
-  @Field(() => Int, { description: 'Фактически выданное количество единиц.' })
+  @Field(() => Float, { description: 'Фактически выданное количество единиц.' })
   public readonly actual_quantity!: number;
 
   @Field(() => String, { description: 'Фактическая цена за единицу (скорректирована оператором при открытии выдачи).' })
@@ -155,10 +155,10 @@ export class MarketplaceOrderDTO {
   })
   public readonly delivery_point_lng!: number | null;
 
-  @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
+  @Field(() => Float, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Сколько по заказу фактически принято на склад пункта выдачи и ещё не ' +
@@ -176,7 +176,7 @@ export class MarketplaceOrderDTO {
   })
   public readonly warehouse_shelves!: string[] | null;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Сколько уже накоплено по этому предложению на данном пункте выдачи всеми ' +
@@ -185,7 +185,7 @@ export class MarketplaceOrderDTO {
   })
   public readonly group_accumulated_quantity!: number | null;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Целевой минимальный объём поставки на этот пункт выдачи — ориентир сбора ' +

@@ -1,4 +1,4 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
@@ -94,7 +94,7 @@ export class MarketplaceCheckoutFailedLineDTO {
   @Field(() => String, { nullable: true, description: 'Название товара (для отображения).' })
   public readonly product_name!: string | null;
 
-  @Field(() => Int, { description: 'Количество единиц непрошедшей позиции.' })
+  @Field(() => Float, { description: 'Количество единиц непрошедшей позиции.' })
   public readonly quantity!: number;
 
   @Field(() => String, { description: 'Причина, по которой позиция не оформлена.' })
