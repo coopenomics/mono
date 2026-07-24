@@ -24,13 +24,13 @@ void marketplace::submretrn(eosio::name coopname,
                              eosio::name orderer,
                              checksum256 request_hash,
                              checksum256 original_order_hash,
-                             uint64_t actual_quantity,
+                             eosio::asset actual_quantity,
                              std::string reason_text,
                              std::vector<checksum256> photos,
                              document2 statement) {
   require_auth(coopname);
 
-  eosio::check(actual_quantity > 0, "Возвращаемое количество должно быть больше нуля");
+  Marketplace::check_quantity(actual_quantity);
   eosio::check(!photos.empty(), "Приложите хотя бы одну фотографию товара");
   eosio::check(reason_text.size() > 0 && reason_text.size() <= 500,
                "Опишите причину возврата (от 1 до 500 символов)");
@@ -45,6 +45,8 @@ void marketplace::submretrn(eosio::name coopname,
                "Возврат возможен только по выданному заказу");
   eosio::check(o.return_request_id == 0,
                "По этому заказу уже открыто заявление на возврат");
+  eosio::check(actual_quantity.symbol == o.actual_quantity.symbol,
+               "Единица измерения возврата не совпадает с заказом");
   eosio::check(actual_quantity <= o.actual_quantity,
                "Нельзя вернуть больше единиц, чем было выдано");
   eosio::check(o.warranty_period_secs > 0,
@@ -54,9 +56,7 @@ void marketplace::submretrn(eosio::name coopname,
   eosio::check(now < o.warranty_until,
                "Гарантийный срок по заказу истёк");
 
-  const eosio::asset fact_cost = eosio::asset(
-      static_cast<int64_t>(actual_quantity) * o.unit_price.amount,
-      _root_govern_symbol);
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, o.unit_price);
 
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);

@@ -224,7 +224,14 @@ static constexpr uint64_t _capital_program_id = 4;
 
 
     static constexpr eosio::symbol _root_symbol = eosio::symbol(eosio::symbol_code("AXON"), 4); /*!< системный токен */
-    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4); 
+    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4);
+
+    // Единицы измерения количества имущества marketplace (Эпик 17, L14):
+    // количество — fixed-point asset с символом единицы. Точность = младшая
+    // единица: KG(3)=граммы, LTR(3)=миллилитры, PCS(0)=штука неделима.
+    static constexpr eosio::symbol _unit_kg    = eosio::symbol(eosio::symbol_code("KG"),  3);
+    static constexpr eosio::symbol _unit_liter = eosio::symbol(eosio::symbol_code("LTR"), 3);
+    static constexpr eosio::symbol _unit_piece = eosio::symbol(eosio::symbol_code("PCS"), 0);
     static const eosio::asset _provider_initial = eosio::asset(1000000, _root_govern_symbol);
     static const eosio::asset _provider_minimum = eosio::asset(3000000, _root_govern_symbol);
     

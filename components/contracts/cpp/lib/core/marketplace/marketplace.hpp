@@ -33,6 +33,36 @@ namespace Marketplace {
 
 using namespace eosio;
 
+// ── Количество как fixed-point asset (Эпик 17, L14) ─────────────────────
+//
+// quantity/actual_quantity — asset с символом единицы измерения (KG/LTR/PCS);
+// дробность веса/объёма выражается младшими единицами (0.500 KG = 500 г).
+// Штука (PCS, precision 0) неделима на уровне типа. Цена задаётся за одну
+// базовую единицу (кг/литр/штуку) money-asset'ом _root_govern_symbol.
+
+inline bool is_valid_unit_symbol(const eosio::symbol& sym) {
+  return sym == _unit_kg || sym == _unit_liter || sym == _unit_piece;
+}
+
+/// Валидация количества: корректный asset, известная единица, положительное.
+inline void check_quantity(const eosio::asset& quantity) {
+  eosio::check(quantity.is_valid() && is_valid_unit_symbol(quantity.symbol),
+               "Недопустимая единица измерения количества");
+  eosio::check(quantity.amount > 0, "Количество должно быть больше нуля");
+}
+
+/// Стоимость = количество × цена-за-базовую-единицу / 10^precision(количества),
+/// округление half-up. Цена — money-asset в _root_govern_symbol; результат — в
+/// её символе. int128 против переполнения (крупные партии: тонны × цена).
+inline eosio::asset calc_cost(const eosio::asset& quantity, const eosio::asset& unit_price) {
+  int64_t scale = 1;
+  for (uint8_t i = 0; i < quantity.symbol.precision(); ++i) scale *= 10;
+  const uint128_t num = static_cast<uint128_t>(quantity.amount) *
+                        static_cast<uint128_t>(unit_price.amount);
+  const int64_t amount = static_cast<int64_t>((num + static_cast<uint128_t>(scale) / 2) / scale);
+  return eosio::asset(amount, unit_price.symbol);
+}
+
 // ── Orders ──────────────────────────────────────────────────────────────
 
 inline std::optional<order> get_order_by_hash(eosio::name coopname, const checksum256& order_hash) {

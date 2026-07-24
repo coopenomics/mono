@@ -41,14 +41,14 @@ void marketplace::stockorder(eosio::name coopname,
                               checksum256 order_hash,
                               checksum256 offer_hash,
                               eosio::name delivery_braname,
-                              uint64_t quantity,
+                              eosio::asset quantity,
                               eosio::asset unit_price,
                               uint32_t warranty_period_secs,
                               checksum256 batch_hash) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
-  eosio::check(quantity > 0, "Количество должно быть больше нуля");
+  Marketplace::check_quantity(quantity);
   eosio::check(unit_price.is_valid() && unit_price.amount > 0,
                "Некорректная цена за единицу");
   eosio::check(unit_price.symbol == _root_govern_symbol,
@@ -64,10 +64,8 @@ void marketplace::stockorder(eosio::name coopname,
   // КУ, на складе которого лежит остаток; он же — КУ выдачи
   get_branch_or_fail(coopname, delivery_braname);
 
-  // ── Расчёт total_cost ────────────────────────────────────────────────
-  eosio::asset total_cost = eosio::asset(
-      static_cast<int64_t>(quantity) * unit_price.amount,
-      _root_govern_symbol);
+  // ── Расчёт total_cost (Эпик 17: qty * price / 10^precision) ───────────
+  const eosio::asset total_cost = Marketplace::calc_cost(quantity, unit_price);
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 

@@ -34,11 +34,11 @@
 void marketplace::signchair(eosio::name coopname,
                              eosio::name signer,
                              checksum256 order_hash,
-                             uint64_t actual_quantity,
+                             eosio::asset actual_quantity,
                              eosio::asset actual_unit_price,
                              document2 act) {
   require_auth(coopname);
-  eosio::check(actual_quantity > 0, "Фактическое количество должно быть больше нуля");
+  Marketplace::check_quantity(actual_quantity);
   eosio::check(actual_unit_price.symbol == _root_govern_symbol,
                "Фактическая цена за единицу указана в неверной валюте");
   eosio::check(actual_unit_price.amount > 0,
@@ -47,6 +47,8 @@ void marketplace::signchair(eosio::name coopname,
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.status == OrderStatus::SUPPLY_PREPARED,
                "Заказ не готов к приёмке кооперативом");
+  eosio::check(actual_quantity.symbol == o.quantity.symbol,
+               "Единица измерения фактического количества не совпадает с заказом");
 
   // Авторизация подписи: signer должен быть в trusted списке приёмного КУ.
   auto branch = get_branch_or_fail(coopname, o.accept_braname);
@@ -56,9 +58,7 @@ void marketplace::signchair(eosio::name coopname,
   verify_document_or_fail(act, { o.offerer, signer });
 
   // Итоговая стоимость к получению поставщиком — от скорректированного факта.
-  const eosio::asset fact_cost = eosio::asset(
-      static_cast<int64_t>(actual_quantity) * actual_unit_price.amount,
-      _root_govern_symbol);
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма приёмки должна быть больше нуля");
 

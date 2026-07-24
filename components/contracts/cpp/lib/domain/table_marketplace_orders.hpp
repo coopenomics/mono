@@ -123,11 +123,11 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   eosio::name accept_braname;                                 ///< КУ приёмки от поставщика (заполняется на signsupp); проверка signchair через Branch::is_user_authorized
   eosio::name current_warehouse_braname;                      ///< текущая точка хранения; signchair: = accept_braname; signiss1: = delivery_braname (фиксация готовности к выдаче)
 
-  uint64_t quantity = 0;                                      ///< заказанное количество
-  uint64_t actual_quantity = 0;                               ///< фактически выданное (signiss2); до signiss2 == quantity
-  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за единицу
-  eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price (заблокированная сумма)
-  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price (после signiss2)
+  eosio::asset quantity = asset(0, _unit_piece);              ///< заказанное количество (asset с символом единицы KG/LTR/PCS, Эпик 17)
+  eosio::asset actual_quantity = asset(0, _unit_piece);       ///< фактически выданное (signiss2); до signiss2 == quantity
+  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за одну базовую единицу (кг/литр/штуку)
+  eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price / 10^precision (заблокированная сумма)
+  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price / 10^precision (после signiss2)
 
   uint32_t warranty_period_secs = 0;                          ///< из Offer'а — для submretrn гард'а
   time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в signiss2)

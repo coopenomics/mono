@@ -29,7 +29,7 @@ void marketplace::createorder(eosio::name coopname,
                                checksum256 offer_hash,
                                eosio::name offerer,
                                eosio::name delivery_braname,
-                               uint64_t quantity,
+                               eosio::asset quantity,
                                eosio::asset unit_price,
                                uint32_t warranty_period_secs,
                                checksum256 batch_hash,
@@ -37,7 +37,7 @@ void marketplace::createorder(eosio::name coopname,
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
-  eosio::check(quantity > 0, "Количество должно быть больше нуля");
+  Marketplace::check_quantity(quantity);
   eosio::check(!is_empty_document(convert_statement),
                "Отсутствует заявление о конвертации паевого взноса");
   verify_document_or_fail(convert_statement, { orderer });
@@ -56,10 +56,8 @@ void marketplace::createorder(eosio::name coopname,
   // КУ выдачи существует
   get_branch_or_fail(coopname, delivery_braname);
 
-  // ── Расчёт total_cost ────────────────────────────────────────────────
-  eosio::asset total_cost = eosio::asset(
-      static_cast<int64_t>(quantity) * unit_price.amount,
-      _root_govern_symbol);
+  // ── Расчёт total_cost (Эпик 17: qty * price / 10^precision) ───────────
+  const eosio::asset total_cost = Marketplace::calc_cost(quantity, unit_price);
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 
