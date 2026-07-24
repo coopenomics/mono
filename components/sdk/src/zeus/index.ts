@@ -7656,7 +7656,7 @@ export type ValueTypes = {
 	delivery_braname?: string | undefined | null | Variable<any, string>,
 	/** Идентификатор предложения. */
 	offer_id: string | Variable<any, string>,
-	/** Количество единиц (целое, ≥ 1). */
+	/** Количество единиц (> 0; для штук — целое). */
 	quantity: number | Variable<any, string>
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -10026,7 +10026,7 @@ export type ValueTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string | Variable<any, string>,
-	/** Новое количество единиц (целое, ≥ 1). */
+	/** Новое количество единиц (> 0; для штук — целое). */
 	quantity: number | Variable<any, string>
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -20714,7 +20714,7 @@ export type ResolverInputTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (целое, ≥ 1). */
+	/** Количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -23000,7 +23000,7 @@ export type ResolverInputTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (целое, ≥ 1). */
+	/** Новое количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -33383,7 +33383,7 @@ export type ModelTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (целое, ≥ 1). */
+	/** Количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -35547,7 +35547,7 @@ export type ModelTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (целое, ≥ 1). */
+	/** Новое количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -47082,7 +47082,7 @@ export type GraphQLTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (целое, ≥ 1). */
+	/** Количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -49453,7 +49453,7 @@ export type GraphQLTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 		/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (целое, ≥ 1). */
+	/** Новое количество единиц (> 0; для штук — целое). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {

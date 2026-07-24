@@ -4872,7 +4872,7 @@ export const ReturnTypes: Record<string,any> = {
 		variant:"MarketplaceAplReceptionVariant"
 	},
 	MarketplaceAplReceptionFactEntry:{
-		fact_quantity:"Int",
+		fact_quantity:"Float",
 		fact_unit_price:"String",
 		order_id:"String",
 		order_unit_size:"String",
@@ -4963,19 +4963,19 @@ export const ReturnTypes: Record<string,any> = {
 		items:"MarketplaceCartItem",
 		positions_count:"Int",
 		total_cost:"String",
-		total_quantity:"Int"
+		total_quantity:"Float"
 	},
 	MarketplaceCartItem:{
 		available_on_current_ku:"Boolean",
 		id:"String",
 		image_url:"String",
 		line_total:"String",
-		max_available:"Int",
+		max_available:"Float",
 		offer_id:"String",
 		order_unit_size:"String",
 		price_per_unit:"String",
 		product_name:"String",
-		quantity:"Int",
+		quantity:"Float",
 		unit_of_measure:"String"
 	},
 	MarketplaceCategory:{
@@ -5016,7 +5016,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceCheckoutFailedLine:{
 		offer_id:"String",
 		product_name:"String",
-		quantity:"Int",
+		quantity:"Float",
 		reason:"String"
 	},
 	MarketplaceCheckoutResult:{
@@ -5047,7 +5047,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"String",
 		supplier_account:"String",
 		total_amount:"String",
-		total_quantity:"Int",
+		total_quantity:"Float",
 		triggered_by_supplier_at:"DateTime",
 		updated_at:"DateTime"
 	},
@@ -5115,7 +5115,7 @@ export const ReturnTypes: Record<string,any> = {
 		offerer_account:"String",
 		orders_count:"Int",
 		total_amount:"String",
-		total_units:"Int"
+		total_units:"Float"
 	},
 	MarketplaceInventoryItem:{
 		arrival_price:"String",
@@ -5137,7 +5137,7 @@ export const ReturnTypes: Record<string,any> = {
 		ownership:"MarketplaceInventoryOwnership",
 		product_name_snapshot:"String",
 		published_offer_id:"String",
-		quantity_per_label:"Int",
+		quantity_per_label:"Float",
 		received_at:"DateTime",
 		received_by_operator_account:"String",
 		reserved_order_id:"String",
@@ -5196,9 +5196,9 @@ export const ReturnTypes: Record<string,any> = {
 		pack_size:"Int",
 		price_per_unit:"String",
 		product_name:"String",
-		quantity_available:"Int",
-		quantity_blocked:"Int",
-		quantity_consumed:"Int",
+		quantity_available:"Float",
+		quantity_blocked:"Float",
+		quantity_consumed:"Float",
 		reject_reason:"String",
 		rejected_at:"DateTime",
 		rejected_by:"String",
@@ -5218,7 +5218,7 @@ export const ReturnTypes: Record<string,any> = {
 		braname:"String",
 		lat:"Float",
 		lng:"Float",
-		min_supply_volume:"Int",
+		min_supply_volume:"Float",
 		name:"String"
 	},
 	MarketplaceOfferImage:{
@@ -5244,7 +5244,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceOfferStockChangedEvent:{
 		offer_id:"String",
-		quantity_available:"Int",
+		quantity_available:"Float",
 		unlimited_flag:"Boolean"
 	},
 	MarketplaceOnboardingState:{
@@ -5272,8 +5272,8 @@ export const ReturnTypes: Record<string,any> = {
 		delivery_point_lng:"Float",
 		delivery_point_name:"String",
 		delivery_signer_account:"String",
-		group_accumulated_quantity:"Int",
-		group_min_volume:"Int",
+		group_accumulated_quantity:"Float",
+		group_min_volume:"Float",
 		id:"String",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",
@@ -5287,7 +5287,7 @@ export const ReturnTypes: Record<string,any> = {
 		orderer_signed_at:"DateTime",
 		price_per_unit:"String",
 		product_name:"String",
-		quantity:"Int",
+		quantity:"Float",
 		received_at:"DateTime",
 		shipment_id:"String",
 		signiss1_tx_hash:"String",
@@ -5299,7 +5299,7 @@ export const ReturnTypes: Record<string,any> = {
 		total_cost_with_fee:"String",
 		unit_of_measure:"String",
 		updated_at:"DateTime",
-		warehouse_quantity:"Int",
+		warehouse_quantity:"Float",
 		warehouse_shelves:"String",
 		warranty_period_secs:"Int",
 		warranty_until:"DateTime"
@@ -5311,7 +5311,7 @@ export const ReturnTypes: Record<string,any> = {
 		tx_hash:"String"
 	},
 	MarketplaceOrderIssuanceFactSnapshot:{
-		actual_quantity:"Int",
+		actual_quantity:"Float",
 		diff_state:"MarketplaceOrderIssuanceFactDiffState",
 		fact_cost:"String",
 		fact_unit_price:"String"
@@ -5461,7 +5461,7 @@ export const ReturnTypes: Record<string,any> = {
 		totalRequests:"Int"
 	},
 	MarketplaceReturnClaim:{
-		actual_quantity:"Int",
+		actual_quantity:"Float",
 		coopname:"String",
 		created_at:"DateTime",
 		decision_log:"MarketplaceReturnClaimDecisionEntry",
@@ -5495,7 +5495,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceReturnClaimLedgerSnapshot:{
 		amount:"String",
 		at:"DateTime",
-		returned_quantity:"Int",
+		returned_quantity:"Float",
 		tx_hash:"String"
 	},
 	MarketplaceReturnClaimOnSiteInspection:{
@@ -5564,7 +5564,7 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		order_hash:"String",
 		product_name:"String",
-		quantity:"Int",
+		quantity:"Float",
 		signiss1_document:"GeneratedDocument",
 		unit_price:"String"
 	},
@@ -5591,7 +5591,7 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceStockProposalItem:{
 		offer_id:"String",
 		product_name:"String",
-		quantity:"Int",
+		quantity:"Float",
 		unit_price:"String"
 	},
 	MarketplaceStockProposalResolvedEvent:{

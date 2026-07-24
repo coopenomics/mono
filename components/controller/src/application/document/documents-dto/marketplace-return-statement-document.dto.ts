@@ -1,5 +1,5 @@
-import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Field, Float, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
@@ -36,8 +36,8 @@ export class MarketplaceReturnStatementRequestPayloadInputDTO {
   @IsString()
   unit_of_measurement!: string;
 
-  @Field(() => Int, { description: 'Возвращаемое количество единиц.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Возвращаемое количество единиц.' })
+  @IsNumber()
   @Min(1)
   units!: number;
 
@@ -87,8 +87,8 @@ class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommo
   @IsString()
   defect_category?: string;
 
-  @Field(() => Int, { description: 'Фактическое количество единиц к возврату.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Фактическое количество единиц к возврату.' })
+  @IsNumber()
   @Min(1)
   actual_quantity!: number;
 

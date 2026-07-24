@@ -1,5 +1,5 @@
-import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, InputType, IntersectionType, OmitType } from '@nestjs/graphql';
+import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
 import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
@@ -37,8 +37,8 @@ class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<
   @IsString()
   reception_id!: string;
 
-  @Field(() => Int, { description: 'Фактически принятое количество единиц по заказу.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Фактически принятое количество единиц по заказу.' })
+  @IsNumber()
   @Min(0)
   fact_quantity!: number;
 
@@ -88,12 +88,12 @@ class BaseMarketplaceIssueActMetaDocumentInputDTO implements ExcludeCommonProps<
   @IsString()
   braname?: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description: 'Фактически выдаваемое количество единиц (заполняется на финальной подписи).',
   })
   @IsOptional()
-  @IsInt()
+  @IsNumber()
   @Min(0)
   actual_quantity?: number;
 
