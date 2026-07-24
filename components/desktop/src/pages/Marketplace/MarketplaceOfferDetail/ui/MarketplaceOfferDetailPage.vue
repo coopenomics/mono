@@ -103,12 +103,11 @@ const stockLabel = computed(() => {
   if (offer.value.unlimited_flag) return 'Без ограничения остатка';
   return isEmpty.value
     ? 'Нет в наличии'
-    : `В наличии: ${offer.value.quantity_available} ${unitShort.value}`;
+    : `В наличии: ${offer.value.quantity_available}×${unitShort.value}`;
 });
 
-// requirement b6: единая ставка членского взноса входит в цену, которую видит
-// заказчик — как в карточке каталога (CatalogOfferCard). Раздельная
-// себестоимость без взноса остаётся только на столе поставщика.
+// requirement b6: единая ставка членского взноса входит в цену для всех,
+// кроме стола поставщика (там — своя цена + строка «для заказчика»).
 const feePercent = ref(0);
 const priceWithFee = computed(() =>
   offer.value ? applyMembershipFee(Number(offer.value.price_per_unit), feePercent.value) : 0,
@@ -132,7 +131,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume} ${unitShort.value}`,
+    volume: `от ${p.min_supply_volume}×${unitShort.value}`,
   })),
 );
 
@@ -232,9 +231,6 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
 
       .offer-detail__price {{ priceLabel }}
       .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
-      //- Пояснение «с членским взносом» — только на столе администратора
-      //- (readonly = модерация). Заказчику показываем просто финальную цену.
-      .offer-detail__fee-note(v-if="feePercent > 0 && readonly") Цена с членским взносом {{ feePercent }}%
 
       BaseButton(
         v-if="!readonly",
@@ -275,6 +271,10 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         li.offer-detail__point(v-for="p in deliveryPoints", :key="p.key")
           span.offer-detail__point-name {{ p.name }}
           span.offer-detail__point-vol {{ p.volume }}
+
+    section.offer-detail__section
+      .offer-detail__section-head Срок годности
+      .offer-detail__desc {{ offer.shelf_life_days > 0 ? `${offer.shelf_life_days} дн.` : 'Без срока годности' }}
 
     section.offer-detail__section
       .offer-detail__section-head Гарантийный срок возврата

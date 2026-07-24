@@ -47,6 +47,19 @@ export class MarketplaceOfferDomainEntity {
 
   /** КУ поставки с минимальным объёмом на каждом (Эпик 15). */
   public readonly delivery_points!: MarketplaceOfferDeliveryPoint[];
+  /**
+   * Срок годности имущества в днях. Указывает поставщик при создании
+   * предложения. По нему при приёмке считается `expiry_date` позиции склада —
+   * основа списания скоропорта (off-chain, крон Эпика 8). НЕ путать с
+   * `warranty_days` (гарантийный срок возврата).
+   */
+  public readonly shelf_life_days!: number;
+  /**
+   * Гарантийный срок возврата в днях. Устанавливает модератор (председатель)
+   * при одобрении предложения. По нему контракт считает `warranty_until`
+   * заказа — окно, в течение которого пайщик может вернуть имущество
+   * (`submretrn`). НЕ путать со сроком годности `shelf_life_days`.
+   */
   public readonly warranty_days!: number;
 
   public readonly barcode_strategy!: MarketplaceBarcodeStrategy;
@@ -90,6 +103,7 @@ export class MarketplaceOfferDomainEntity {
     quantity_consumed: number;
     unlimited_flag: boolean;
     delivery_points: MarketplaceOfferDeliveryPoint[];
+    shelf_life_days: number;
     warranty_days: number;
     barcode_strategy: MarketplaceBarcodeStrategy;
     pack_size: number | null;

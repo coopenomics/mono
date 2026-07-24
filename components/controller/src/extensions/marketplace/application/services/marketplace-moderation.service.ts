@@ -64,10 +64,21 @@ export class MarketplaceModerationService {
     return this.offerRepo.list({ coopname, status: MarketplaceOfferStatuses.PENDING_MODERATION }, pagination);
   }
 
-  async approve(offer_id: string, admin_account: string): Promise<MarketplaceOfferDomainEntity> {
+  async approve(
+    offer_id: string,
+    admin_account: string,
+    warranty_days: number
+  ): Promise<MarketplaceOfferDomainEntity> {
+    if (!Number.isInteger(warranty_days) || warranty_days < 0) {
+      throw new BadRequestException('Гарантийный срок возврата должен быть целым неотрицательным числом дней.');
+    }
     const offer = await this.requirePending(offer_id);
+    // Гарантийный срок возврата задаёт модератор именно на одобрении: питает
+    // on-chain `warranty_until` заказа (окно возврата). Срок годности для
+    // скоропорта — отдельное поле `shelf_life_days`, его поставил поставщик.
     const updated = await this.offerRepo.applyUpdate(offer.id, {
       status: MarketplaceOfferStatuses.ACTIVE,
+      warranty_days,
       approved_by: admin_account,
       approved_at: new Date(),
       rejected_by: null,
@@ -122,6 +133,34 @@ export class MarketplaceModerationService {
       supplier_account: offer.supplier_account,
       rejected_by: admin_account,
       reason: trimmed,
+    });
+    return updated;
+  }
+
+  /**
+   * Правка гарантийного срока возврата уже одобренного предложения. Отдельно
+   * от `approve`, потому что модератор может пересмотреть срок после публикации
+   * без повторной модерации содержимого. Влияет только на будущие заказы (у
+   * контракта `warranty_until` фиксируется на выдаче каждого заказа).
+   */
+  async setWarranty(
+    offer_id: string,
+    admin_account: string,
+    warranty_days: number
+  ): Promise<MarketplaceOfferDomainEntity> {
+    if (!Number.isInteger(warranty_days) || warranty_days < 0) {
+      throw new BadRequestException('Гарантийный срок возврата должен быть целым неотрицательным числом дней.');
+    }
+    const offer = await this.offerRepo.findById(offer_id);
+    if (!offer) {
+      throw new NotFoundException('Предложение не найдено.');
+    }
+    const updated = await this.offerRepo.applyUpdate(offer.id, { warranty_days });
+    await this.logRepo.append({
+      offer_id: offer.id,
+      action: 'set_warranty',
+      by_account: admin_account,
+      reason: `Гарантийный срок возврата: ${warranty_days} дн.`,
     });
     return updated;
   }

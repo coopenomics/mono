@@ -213,6 +213,7 @@ export class MarketplaceStockService {
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
           delivery_points: [{ braname, min_supply_volume: 1 }],
+          shelf_life_days: origin.shelf_life_days,
           warranty_days: origin.warranty_days,
           barcode_strategy: origin.barcode_strategy,
           pack_size: origin.pack_size,

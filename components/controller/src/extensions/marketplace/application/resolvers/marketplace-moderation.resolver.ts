@@ -16,6 +16,7 @@ import {
   MarketplaceListPendingOffersInputDTO,
   MarketplaceModerationLogEntryDTO,
   MarketplaceRejectOfferInputDTO,
+  MarketplaceSetOfferWarrantyInputDTO,
 } from '../dto/marketplace-moderation.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -70,7 +71,8 @@ export class MarketplaceModerationResolver {
 
   @Mutation(() => MarketplaceOfferDTO, {
     name: 'marketplaceApproveOffer',
-    description: 'Одобрить Offer (status → ACTIVE) (admin)',
+    description:
+      'Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Offer', 'moderate')
@@ -78,7 +80,21 @@ export class MarketplaceModerationResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceApproveOfferInputDTO
   ): Promise<MarketplaceOfferDTO> {
-    const offer = await this.service.approve(input.offer_id, member.username);
+    const offer = await this.service.approve(input.offer_id, member.username, input.warranty_days);
+    return toOfferDTO(offer);
+  }
+
+  @Mutation(() => MarketplaceOfferDTO, {
+    name: 'marketplaceSetOfferWarranty',
+    description: 'Изменить гарантийный срок возврата предложения (admin)',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Offer', 'moderate')
+  async marketplaceSetOfferWarranty(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('input') input: MarketplaceSetOfferWarrantyInputDTO
+  ): Promise<MarketplaceOfferDTO> {
+    const offer = await this.service.setWarranty(input.offer_id, member.username, input.warranty_days);
     return toOfferDTO(offer);
   }
 

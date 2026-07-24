@@ -14,7 +14,7 @@ export class MarketplaceModerationLogEntity {
   public offer_id!: string;
 
   @Column({ type: 'varchar', length: 16 })
-  public action!: 'approve' | 'reject';
+  public action!: 'approve' | 'reject' | 'set_warranty';
 
   @Column({ type: 'varchar', length: 13 })
   public by_account!: string;

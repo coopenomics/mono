@@ -18,9 +18,9 @@
     .correction-table__info
       .correction-table__title {{ r.title }}
       .correction-table__meta
-        | План {{ r.expected }} {{ r.unit }}
+        | План {{ r.expected }}×{{ r.unit }}
         template(v-if='r.available !== undefined')
-          |  · Принято {{ r.available }} {{ r.unit }}
+          |  · Принято {{ r.available }}×{{ r.unit }}
         template(v-if='r.shelf')
           |  · Полка {{ r.shelf }}
 

@@ -1104,7 +1104,9 @@ export class MarketplaceAplReceptionService {
    * Оприходование склада: на каждый принятый Order группы (fact_quantity > 0)
    * заводим позицию инвентаря в статусе RECEIVED — имущество физически на
    * складе КУ. Штрих-код и полка не назначаются (оператор сделает это на столе
-   * раскладки/маркировки). Срок годности — `received_at + warranty_period_secs`.
+   * раскладки/маркировки). Срок годности позиции — `received_at +
+   * offer.shelf_life_days` (поле поставщика), основа списания скоропорта. НЕ
+   * путать с гарантийным сроком возврата (`warranty_period_secs`, окно возврата).
    *
    * Идемпотентно: если по Order'у позиция уже есть (повторная подпись/ретрай),
    * пропускаем, чтобы не задвоить склад.
@@ -1132,9 +1134,14 @@ export class MarketplaceAplReceptionService {
       const already = await this.inventoryRepo.countByOrder(reception.coopname, order.id);
       if (already > 0) continue;
       const offer = offerById.get(order.offer_id);
+      // Срок годности берём из предложения (задал поставщик), а не из
+      // гарантийного срока возврата заказа: списание скоропорта и окно возврата
+      // теперь разведены. 0/отсутствие срока годности → позиция не списывается
+      // по сроку (expiry_date=null).
+      const shelfLifeDays = offer?.shelf_life_days ?? 0;
       const expiry =
-        order.warranty_period_secs > 0
-          ? new Date(receivedAt.getTime() + order.warranty_period_secs * 1000)
+        shelfLifeDays > 0
+          ? new Date(receivedAt.getTime() + shelfLifeDays * 86_400 * 1000)
           : null;
       await this.inventoryRepo.create({
         coopname: reception.coopname,

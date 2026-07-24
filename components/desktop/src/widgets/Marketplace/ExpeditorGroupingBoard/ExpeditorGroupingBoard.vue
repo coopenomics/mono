@@ -34,7 +34,7 @@
             <div class="mp-egb__item-id">№ {{ item.shortId }}</div>
             <div class="mp-egb__item-title">{{ item.title }}</div>
             <div class="mp-egb__item-meta">
-              {{ item.units }} {{ item.unitLabel ?? 'ед.' }} · {{ item.pvz }}
+              {{ item.units }}×{{ item.unitLabel ?? 'ед.' }} · {{ item.pvz }}
             </div>
           </div>
 

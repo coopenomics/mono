@@ -1138,6 +1138,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceSetMembershipFeeInput:{
 
 	},
+	MarketplaceSetOfferWarrantyInput:{
+
+	},
 	MarketplaceSetSupplierPayoutMethodInput:{
 
 	},
@@ -1979,6 +1982,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceSetMembershipFee:{
 			data:"MarketplaceSetMembershipFeeInput"
+		},
+		marketplaceSetOfferWarranty:{
+			input:"MarketplaceSetOfferWarrantyInput"
 		},
 		marketplaceSetSupplierPayoutMethod:{
 			input:"MarketplaceSetSupplierPayoutMethodInput"
@@ -5202,6 +5208,7 @@ export const ReturnTypes: Record<string,any> = {
 		reject_reason:"String",
 		rejected_at:"DateTime",
 		rejected_by:"String",
+		shelf_life_days:"Int",
 		status:"MarketplaceOfferStatus",
 		stock_braname:"String",
 		supplier_account:"String",
@@ -6069,6 +6076,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",
 		marketplaceSetMembershipFee:"MarketplaceEconomyConfig",
+		marketplaceSetOfferWarranty:"MarketplaceOffer",
 		marketplaceSetSupplierPayoutMethod:"MarketplaceSupplierPaymentSettings",
 		marketplaceSetTrusteeWeight:"Boolean",
 		marketplaceSignAplReceptionAsChairman:"MarketplaceAplReceptionResult",

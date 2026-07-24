@@ -169,16 +169,16 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               @update:model-value='onToggleUnlimited'
             )
           q-input(
-            v-model.number='form.warranty_days',
-            label='Гарантийный срок возврата (дней)',
+            v-model.number='form.shelf_life_days',
+            label='Срок годности (дней)',
             type='number',
             min='0',
             outlined,
             dense,
             no-error-icon,
             reserve-hint-space,
-            hint='0 — без гарантийного срока возврата: возврат невозможен. Иначе — конечный срок в днях',
-            :rules='[(v) => (v !== null && v >= 0) || "Гарантийный срок возврата не может быть отрицательным"]'
+            hint='По сроку годности имущество списывается со склада как скоропорт. 0 — без срока годности (не списывается). Гарантийный срок возврата назначает председатель при модерации.',
+            :rules='[(v) => (v !== null && v >= 0) || "Срок годности не может быть отрицательным"]'
           )
 
         //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
@@ -298,6 +298,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   span.offer-preview__price {{ formattedPrice }}
                   span.offer-preview__per за {{ orderUnitLabel }}
                 BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
+              p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
               section.offer-preview__specs
                 .offer-preview__specs-title Характеристики
@@ -305,9 +306,9 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                   .offer-preview__spec(v-if='form.delivery_points.length')
                     dt Участки поставки
                     dd {{ deliveryPointsPreview }}
-                  .offer-preview__spec(v-if='form.warranty_days > 0')
-                    dt Гарантийный срок возврата
-                    dd {{ form.warranty_days }} дн.
+                  .offer-preview__spec(v-if='form.shelf_life_days > 0')
+                    dt Срок годности
+                    dd {{ form.shelf_life_days }} дн.
 
     //- ───────── Навигация ─────────
     footer.offer-wizard__foot
@@ -549,7 +550,7 @@ function onWithdraw(): void {
 // ===== Шаги =====
 const steps: StepperStep[] = [
   { key: 'basics', label: 'Товар', description: 'Название, категория, описание' },
-  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, гарантийный срок возврата' },
+  { key: 'pricing', label: 'Цена и наличие', description: 'Стоимость, количество, срок годности' },
   { key: 'supply', label: 'Условия поставки', description: 'Участки и объём поставки' },
   { key: 'images', label: 'Изображения', description: 'Фотографии товара' },
   { key: 'review', label: 'Проверка и публикация', description: 'Сверьте карточку перед отправкой' },
@@ -612,7 +613,7 @@ const form = ref<MarketplaceCreateOfferFormState>({
   quantity_available: 1,
   unlimited_flag: false,
   delivery_points: [],
-  warranty_days: 0,
+  shelf_life_days: 0,
 });
 
 // ===== Изображения =====
@@ -730,22 +731,24 @@ async function loadKuOptions(): Promise<void> {
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
 
-// Цена с учётом взноса — то, что реально увидит и заплатит заказчик. Превью
-// карточки справа показывает именно её (как она появится в каталоге), а не
-// голую себестоимость поставщика.
+// Цена с учётом взноса — то, что реально увидит и заплатит пайщик.
 const priceWithFee = computed<number | null>(() => {
   if (!priceNumberStr.value) return null;
   const n = Number(priceNumberStr.value);
   if (Number.isNaN(n)) return null;
   return feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
 });
-const formattedPrice = computed(() =>
-  priceWithFee.value != null ? formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`) : '—'
-);
+// В превью крупно — своя цена поставщика (без взноса).
+const formattedPrice = computed(() => {
+  if (!priceNumberStr.value) return '—';
+  const n = Number(priceNumberStr.value);
+  if (Number.isNaN(n)) return '—';
+  return formatAsset2Digits(`${n} ${governSymbol.value}`);
+});
 const priceWithFeeHint = computed(() => {
   if (priceWithFee.value == null || feePercent.value <= 0) return '';
   const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
-  return `Заказчик увидит цену с учётом членского взноса ${feePercent.value}%: ${formatted}`;
+  return `Цена для заказчика: ${formatted} за ${orderUnitLabel.value}`;
 });
 
 // Справочная цена за базовую единицу (за 1 кг / 1 л / 1 шт) — для сравнения
@@ -1014,7 +1017,7 @@ async function onSubmit(): Promise<void> {
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     delivery_points: f.delivery_points,
-    warranty_days: f.warranty_days,
+    shelf_life_days: f.shelf_life_days,
     images: buildImagesPayload(),
   };
 
@@ -1067,7 +1070,7 @@ async function prefillForEdit(id: string): Promise<void> {
         braname: d.braname,
         min_supply_volume: d.min_supply_volume,
       })),
-      warranty_days: offer.warranty_days,
+      shelf_life_days: offer.shelf_life_days,
     };
     gallery.value = (offer.images ?? [])
       .slice()
@@ -1439,6 +1442,12 @@ onBeforeUnmount(() => {
   }
 
   &__per {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__fee {
+    margin: 0;
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }

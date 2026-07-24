@@ -116,7 +116,14 @@ export class MarketplaceOfferDTO {
     description: 'КУ поставки с минимальным объёмом на каждом.',
   })
   public readonly delivery_points!: MarketplaceOfferDeliveryPointDTO[];
-  @Field(() => Int) public readonly warranty_days!: number;
+  @Field(() => Int, {
+    description: 'Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик.',
+  })
+  public readonly shelf_life_days!: number;
+  @Field(() => Int, {
+    description: 'Гарантийный срок возврата в днях (окно возврата имущества). Задаёт модератор при одобрении.',
+  })
+  public readonly warranty_days!: number;
 
   @Field(() => MarketplaceBarcodeStrategyEnum, {
     description: 'Стратегия маркировки штрих-кодом для приёмки на КУ',
@@ -187,6 +194,7 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     delivery_points: (o.delivery_points ?? []).map(
       (d) => new MarketplaceOfferDeliveryPointDTO(d)
     ),
+    shelf_life_days: o.shelf_life_days,
     warranty_days: o.warranty_days,
     barcode_strategy: o.barcode_strategy as MarketplaceBarcodeStrategyEnum,
     pack_size: o.pack_size,

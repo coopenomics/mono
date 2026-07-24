@@ -28,7 +28,7 @@
       </div>
       <div class="order-card__fact">
         <div class="order-card__fact-label">Кол-во</div>
-        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
+        <div class="order-card__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
       </div>
     </div>
 

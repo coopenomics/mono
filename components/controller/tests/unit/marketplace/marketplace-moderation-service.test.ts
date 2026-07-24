@@ -41,6 +41,7 @@ function makeOffer(overrides: Partial<MarketplaceOfferDomainEntity> = {}): Marke
     quantity_consumed: 0,
     unlimited_flag: false,
     delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }],
+    shelf_life_days: 0,
     warranty_days: 0,
     barcode_strategy: 'PER_ORDER',
     pack_size: null,
@@ -110,12 +111,13 @@ describe('MarketplaceModerationService.approve', () => {
     logRepo.append.mockResolvedValue(makeLog());
     const service = new MarketplaceModerationService(offerRepo, logRepo, bus);
 
-    const updated = await service.approve('offer-1', 'chair');
+    const updated = await service.approve('offer-1', 'chair', 30);
     expect(updated.status).toBe('ACTIVE');
     expect(offerRepo.applyUpdate).toHaveBeenCalledWith(
       'offer-1',
       expect.objectContaining({
         status: 'ACTIVE',
+        warranty_days: 30,
         approved_by: 'chair',
         rejected_by: null,
         reject_reason: null,
@@ -138,7 +140,7 @@ describe('MarketplaceModerationService.approve', () => {
     offerRepo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' as MarketplaceOfferStatus }));
     const service = new MarketplaceModerationService(offerRepo, makeLogRepo(), makeEventBus());
 
-    await expect(service.approve('offer-1', 'chair')).rejects.toThrow(ConflictException);
+    await expect(service.approve('offer-1', 'chair', 30)).rejects.toThrow(ConflictException);
   });
 
   it('approve несуществующего → 404', async () => {
@@ -146,7 +148,7 @@ describe('MarketplaceModerationService.approve', () => {
     offerRepo.findById.mockResolvedValue(null);
     const service = new MarketplaceModerationService(offerRepo, makeLogRepo(), makeEventBus());
 
-    await expect(service.approve('offer-x', 'chair')).rejects.toThrow(NotFoundException);
+    await expect(service.approve('offer-x', 'chair', 30)).rejects.toThrow(NotFoundException);
   });
 });
 

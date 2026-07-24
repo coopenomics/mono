@@ -58,7 +58,8 @@ export interface MarketplaceCreateOfferFormState {
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
-  warranty_days: number;
+  /** Срок годности имущества в днях — основа списания скоропорта (задаёт поставщик). */
+  shelf_life_days: number;
 }
 
 export interface MarketplaceCreateOfferPayload {
@@ -72,7 +73,8 @@ export interface MarketplaceCreateOfferPayload {
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
-  warranty_days: number;
+  /** Срок годности имущества в днях — основа списания скоропорта. */
+  shelf_life_days: number;
   /**
    * Итоговый упорядоченный набор изображений (первый — обложка). При создании —
    * только новые файлы (base64). При обновлении — смесь: уже сохранённые
@@ -113,7 +115,8 @@ export interface MarketplaceOfferEditPrefill {
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
-  warranty_days: number;
+  /** Срок годности имущества в днях (поле поставщика). */
+  shelf_life_days: number;
   status: 'PENDING_MODERATION' | 'ACTIVE' | 'REJECTED' | 'WITHDRAWN';
   reject_reason?: string | null;
   images?: MarketplaceOfferImageView[];

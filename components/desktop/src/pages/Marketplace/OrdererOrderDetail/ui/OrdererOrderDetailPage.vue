@@ -154,7 +154,7 @@ function confirmCancel(): void {
   if (!o) return;
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity} ед., ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity}×${unitShort.value || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,
@@ -232,7 +232,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label Количество
-                .order-detail__fact-value {{ order.quantity }} {{ unitShort }}
+                .order-detail__fact-value {{ order.quantity }}×{{ unitShort }}
               .order-detail__fact
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
@@ -259,8 +259,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
           tbody
             tr
               td Количество
-              td.text-right {{ order.quantity }} {{ unitShort }}
-              td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
+              td.text-right {{ order.quantity }}×{{ unitShort }}
+              td.text-right {{ issuanceFact.actual_quantity }}×{{ unitShort }}
             tr
               td Сумма
               td.text-right {{ formatPrice(String(totalWithFee)) }}

@@ -127,10 +127,14 @@ export class MarketplaceCreateOfferInputDTO {
   @Type(() => MarketplaceOfferDeliveryPointInputDTO)
   public delivery_points!: MarketplaceOfferDeliveryPointInputDTO[];
 
-  @Field(() => Int)
+  @Field(() => Int, {
+    description:
+      'Срок годности имущества в днях. По нему рассчитывается списание ' +
+      'скоропорта со склада. 0 — имущество без срока годности (не списывается).',
+  })
   @IsInt()
   @Min(0)
-  public warranty_days!: number;
+  public shelf_life_days!: number;
 
   @Field(() => MarketplaceBarcodeStrategyEnum, {
     nullable: true,
@@ -226,11 +230,14 @@ export class MarketplaceUpdateOfferInputDTO {
   @Type(() => MarketplaceOfferDeliveryPointInputDTO)
   public delivery_points?: MarketplaceOfferDeliveryPointInputDTO[];
 
-  @Field(() => Int, { nullable: true })
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Срок годности имущества в днях (основа списания скоропорта).',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
-  public warranty_days?: number;
+  public shelf_life_days?: number;
 
   @Field(() => MarketplaceBarcodeStrategyEnum, { nullable: true })
   @IsOptional()

@@ -6,7 +6,7 @@ import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
@@ -196,7 +196,7 @@ BaseDialog(
         tbody
           tr(v-for="l in acceptedLines", :key="l.key")
             td {{ l.productName }}
-            td.num {{ l.quantity }} {{ marketplaceOrderUnitLabel(l.unit, l.orderUnitSize) }}
+            td.num {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
