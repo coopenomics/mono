@@ -33,6 +33,7 @@
         label='Кол-во',
         :min='0',
         :max='factCeiling(r)',
+        :step='stepFor(r.unit)',
         :disabled='isOff(r)',
         :suffix='r.unit',
         @update:model-value='(v) => onFactInput(r, v)'
@@ -115,6 +116,12 @@ function isOff(r: EnrichedRow): boolean {
 function factCeiling(r: EnrichedRow): number | undefined {
   if (r.available !== undefined) return r.available;
   return undefined;
+}
+
+// Шаг ввода количества по единице: штука неделима (1), вес/объём — дробный шаг
+// 0.001 (граммы/миллилитры), чтобы браузер не блокировал дробное значение.
+function stepFor(unit: string): string {
+  return unit === 'шт' || unit === 'шт.' ? '1' : '0.001';
 }
 
 function toNumber(v: unknown): number {
