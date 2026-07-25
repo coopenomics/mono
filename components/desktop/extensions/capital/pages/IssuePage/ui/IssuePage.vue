@@ -27,7 +27,7 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
   div.column.col.flex-1.min-h-0.min-w-0(
     v-else-if="isMobileLayout"
   )
-    .q-px-md(v-if="showSidebar")
+    .q-px-md.q-pb-sm(v-if="showSidebar")
       IssueTitleEditor(
         :issue="issue"
         @field-change="handleFieldChange"
@@ -59,7 +59,7 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
   div.column.col.flex-1.min-h-0.min-w-0(
     v-else-if="showSidebar"
   )
-    .q-px-md
+    .q-px-md.q-pb-md
       IssueTitleEditor(
         :issue="issue"
         @field-change="handleFieldChange"
@@ -74,25 +74,26 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
       :limits="[200, 800]"
       unit="px"
       separator-class="bg-grey-3"
-      before-class="column no-wrap min-h-0 overflow-y-auto"
+      before-class="column no-wrap overflow-hidden"
       after-class="min-h-0"
       @update:model-value="saveSidebarWidth"
     )
       template(#before)
-        IssueSidebarWidget(
-          :issue="issue"
-          :permissions="issue.permissions"
-          :project-hash="projectHash"
-          :parent-project-hash="parentProjectHash"
-          @update:status="handleStatusUpdate"
-          @update:priority="handlePriorityUpdate"
-          @update:estimate="handleEstimateUpdate"
-          @update:labels="handleLabelsUpdate"
-          @creators-set="handleCreatorsSet"
-          @issue-updated="handleIssueUpdated"
-          @issue-deleted="handleIssueDeleted"
-          @issue-moved="handleIssueMoved"
-        )
+        .issue-sidebar-pane.column.no-wrap.full-height.min-h-0
+          IssueSidebarWidget.col.min-h-0(
+            :issue="issue"
+            :permissions="issue.permissions"
+            :project-hash="projectHash"
+            :parent-project-hash="parentProjectHash"
+            @update:status="handleStatusUpdate"
+            @update:priority="handlePriorityUpdate"
+            @update:estimate="handleEstimateUpdate"
+            @update:labels="handleLabelsUpdate"
+            @creators-set="handleCreatorsSet"
+            @issue-updated="handleIssueUpdated"
+            @issue-deleted="handleIssueDeleted"
+            @issue-moved="handleIssueMoved"
+          )
       template(#after)
         div.column.full-height.min-h-0.relative-position
           div.col.min-h-0.overflow-auto.min-w-0
@@ -420,6 +421,15 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Обёртка before-панели сплиттера: на всю высоту, чтобы сайдбар
+// (flex-колонка + margin-top: auto у «Удалить») мог прижаться вниз.
+.issue-sidebar-pane {
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
 .issue-page-skeleton {
   display: flex;
   gap: var(--p-4);

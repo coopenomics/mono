@@ -1,6 +1,6 @@
 <template lang="pug">
 div(
-  :class="compactMobile ? 'capital-sidebar-mobile-compact q-px-md q-pb-sm' : 'capital-sidebar-root-desktop q-pa-md column no-wrap min-w-0 w-full'"
+  :class="compactMobile ? 'capital-sidebar-mobile-compact q-px-md q-pb-sm' : 'capital-sidebar-root-desktop q-pa-md'"
 )
   template(v-if="compactMobile")
     q-btn.capital-sidebar-details-btn(
@@ -46,37 +46,36 @@ div(
         )
 
   template(v-else)
-    IssueControls(
-      :issue='issue'
-      :permissions='permissions'
-      @update:status='handleStatusUpdate'
-      @update:priority='handlePriorityUpdate'
-      @update:estimate='handleEstimateUpdate'
-      @update:labels='handleLabelsUpdate'
-      @creators-set='handleCreatorsSet'
-      @issue-updated='handleIssueUpdated'
-    ).full-width
-    .capital-sidebar-bottom.column(
-      v-if="issue && projectHash"
-    )
+    .capital-sidebar-body
+      IssueControls(
+        :issue='issue'
+        :permissions='permissions'
+        @update:status='handleStatusUpdate'
+        @update:priority='handlePriorityUpdate'
+        @update:estimate='handleEstimateUpdate'
+        @update:labels='handleLabelsUpdate'
+        @creators-set='handleCreatorsSet'
+        @issue-updated='handleIssueUpdated'
+      ).full-width
 
       MoveIssueButton(
+        v-if="issue && projectHash"
         :issue='issue'
         :project-hash='projectHash'
         :permissions='permissions'
         :parent-project-hash='parentProjectHash'
         @moved='emit("issue-moved", $event)'
-      ).q-mb-sm
+      ).q-mt-sm
 
-      .capital-sidebar-delete-footer.q-pb-sm(
-        v-if="permissions?.can_delete_issue"
+    .capital-sidebar-delete-footer(
+      v-if="issue && projectHash && permissions?.can_delete_issue"
+    )
+      DeleteIssueButton(
+        :issue-hash='issue.issue_hash'
+        :project-hash='projectHash'
+        :can-delete='true'
+        @deleted='emit("issue-deleted")'
       )
-        DeleteIssueButton(
-          :issue-hash='issue.issue_hash'
-          :project-hash='projectHash'
-          :can-delete='true'
-          @deleted='emit("issue-deleted")'
-        )
 </template>
 
 <script lang="ts" setup>
@@ -151,27 +150,30 @@ const handleIssueUpdated = (issue: unknown) => {
 </script>
 
 <style lang="scss" scoped>
+// Родитель (.issue-sidebar-pane) — column + full-height + .col на этом корне.
+// Заполняем высоту flex-ом и прижимаем удаление margin-top: auto.
 .capital-sidebar-root-desktop {
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-.capital-sidebar-bottom {
-  flex-shrink: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  padding-top: 12px;
-}
-
-.body--dark .capital-sidebar-bottom,
-.q-dark .capital-sidebar-bottom {
-  border-top-color: rgba(255, 255, 255, 0.12);
+.capital-sidebar-body {
+  flex: 0 0 auto;
 }
 
 .capital-sidebar-delete-footer {
+  margin-top: auto;
   flex-shrink: 0;
-
-  :deep(.q-btn) {
-    margin-top: 0;
-  }
+  border-top: 1px solid var(--p-line);
+  padding-top: var(--p-3);
+  background: var(--p-canvas);
 }
 
 .capital-sidebar-mobile-compact {
