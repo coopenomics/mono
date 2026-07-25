@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
-import { debounce } from 'quasar';
+import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -127,12 +127,20 @@ async function onRemove(offerId: string, packageId: string | null): Promise<void
   }
 }
 
-async function onClear(): Promise<void> {
-  try {
-    await cartStore.clear();
-  } catch (e) {
-    FailAlert(e);
-  }
+function onClear(): void {
+  Dialog.create({
+    title: 'Очистить корзину?',
+    message: 'Все позиции корзины будут удалены. Отменить это действие нельзя.',
+    cancel: { label: 'Не очищать', flat: true },
+    ok: { label: 'Очистить', color: 'negative', unelevated: true },
+    persistent: true,
+  }).onOk(async () => {
+    try {
+      await cartStore.clear();
+    } catch (e) {
+      FailAlert(e);
+    }
+  });
 }
 
 // Оформление → отдельная страница подтверждения (итог не показываем в корзине,
