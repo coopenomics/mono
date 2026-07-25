@@ -49,7 +49,8 @@ export const description = 'Заявление доверенного лица �
 
 export const context = `<style>
 h1 { margin: 0px; text-align: center; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
+.digital-document { padding: 20px; }
+.digital-document p { margin: 0 0 6px; }
 .subheader { padding-bottom: 20px; }
 </style>
 

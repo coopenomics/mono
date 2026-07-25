@@ -41,9 +41,9 @@ export class Factory extends DocFactory<MarketplaceWriteoffStatement.Action> {
     const user = await this.getUser(data.username, data.block_num)
     const chairman = this.getCommonUser(user)
 
-    // Имя ЦПП фиксировано для членского стола заказов (не из заглушки реестра).
+    // Имя ЦПП фиксировано для стола заказов (не из заглушки реестра).
     const program: Cooperative.Registry.MarketplaceWriteoffStatement.Model['program'] = {
-      name: 'Членский стол заказов',
+      name: 'Стол заказов',
     }
 
     const items: Cooperative.Registry.MarketplaceWriteoffStatement.WriteoffItemModel[] =

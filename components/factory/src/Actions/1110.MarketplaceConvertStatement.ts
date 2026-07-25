@@ -42,8 +42,8 @@ export class Factory extends DocFactory<MarketplaceConvertStatement.Action> {
     const userData = await this.getUser(data.username, data.block_num)
     const user = this.getCommonUser(userData)
 
-    // Имя ЦПП фиксировано для членского стола заказов (как в 1106).
-    const program: MarketplaceConvertStatement.Model['program'] = { name: 'Членский стол заказов' }
+    // Имя ЦПП фиксировано для стола заказов (как в 1106).
+    const program: MarketplaceConvertStatement.Model['program'] = { name: 'Стол заказов' }
 
     const combinedData: MarketplaceConvertStatement.Model = {
       meta,

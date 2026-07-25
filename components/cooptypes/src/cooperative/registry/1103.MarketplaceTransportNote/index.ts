@@ -89,7 +89,8 @@ export const description = 'Транспортная накладная на п�
 export const context = `<style>
 h1 { margin: 0px; text-align: center; }
 h3 { margin: 0px; padding-top: 15px; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
+.digital-document { padding: 20px; }
+.digital-document p { margin: 0 0 6px; }
 .subheader { padding-bottom: 20px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
@@ -190,7 +191,7 @@ th {  width: 35%; }
 export const translations = {
   ru: {
     ttn_number_label: 'ТРАНСПОРТНАЯ НАКЛАДНАЯ № {0}',
-    ttn_subtitle: 'на перевозку партии имущества по Целевой Потребительской Программе «Членский стол заказов»',
+    ttn_subtitle: 'на перевозку партии имущества по Целевой Потребительской Программе «Стол заказов»',
     ttn_intro: '{0} "{1}" (далее – Кооператив) принимает к перевозке партию имущества, отправляемую пайщиком-поставщиком {2} (далее – Поставщик), на основании настоящей транспортной накладной.',
     shipment_label: 'Партия поставки',
     cycle_label: 'Консолидированная заявка',
