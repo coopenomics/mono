@@ -2,7 +2,7 @@
 span
   BaseButton(
     v-if='canCreateRequirement',
-    variant='ghost',
+    variant='primary',
     size='sm',
     aria-label='Создать артефакт',
     @click.stop='dialogRef?.openDialog()'

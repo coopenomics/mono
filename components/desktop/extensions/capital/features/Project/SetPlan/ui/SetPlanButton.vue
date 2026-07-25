@@ -2,7 +2,7 @@
 span
   BaseButton(
     v-if="project?.permissions?.can_set_plan"
-    variant='ghost'
+    variant='primary'
     size='sm'
     aria-label='Установить план'
     @click.stop='dialogRef?.openDialog()'

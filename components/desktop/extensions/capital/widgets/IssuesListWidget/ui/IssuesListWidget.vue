@@ -2,6 +2,9 @@
 div
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
   .issues-scroll-area(v-if='!compact')
+    // Полоска-добавлялка перед списком задач
+    CreateIssueButton(:project-hash='projectHash', row)
+
     q-table(
       ref='tableRef',
       :rows='issues?.items || []',
@@ -34,11 +37,11 @@ div
           q-icon(name='inbox', size='20px')
           span Нет задач
 
-    // Полоска-добавлялка после всех задач
-    CreateIssueButton(:project-hash='projectHash', row)
-
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   div(v-else)
+    // Полоска-добавлялка перед списком задач
+    CreateIssueButton(:project-hash='projectHash', row)
+
     q-table(
       :rows='issues?.items || []',
       :columns='columns',
@@ -64,9 +67,6 @@ div
         .list-empty
           q-icon(name='inbox', size='20px')
           span Нет задач
-
-    // Полоска-добавлялка после всех задач
-    CreateIssueButton(:project-hash='projectHash', row)
 
 </template>
 <script lang="ts" setup>

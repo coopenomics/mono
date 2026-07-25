@@ -14,7 +14,7 @@ span(:class='{ "create-host--row": row }')
 
   BaseButton(
     v-else,
-    variant='ghost',
+    variant='primary',
     :size='size ?? (mini ? "sm" : "md")',
     :loading='loading',
     :icon-only='mini',

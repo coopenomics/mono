@@ -1,7 +1,7 @@
 <template lang="pug">
 span
   BaseButton(
-    variant='ghost',
+    variant='primary',
     size='sm',
     :loading='isSubmitting',
     aria-label='Добавить соавтора',

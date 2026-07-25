@@ -60,7 +60,7 @@
                 )
                   span {{ props.row.title }}
 
-              // Правая сетка строки: время | инвестиции | действие —
+              // Правая сетка строки: время | (слот выравнивания) | действие —
               // фиксированные колонки, одинаковые для всех уровней дерева
               .col-auto.row-cells
                 .cell-time
@@ -69,10 +69,6 @@
                     span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
                     q-tooltip Часы исполнителей: факт / план
                 .cell-side
-                  .row-meta(v-if='hasInvestMeta(props.row.fact?.total_received_investments, props.row.plan?.invest_pool)')
-                    q-icon(name='payments', size='14px')
-                    span.t-mono-sm {{ formatInvestFactPlan(props.row.fact?.total_received_investments, props.row.plan?.invest_pool) }}
-                    q-tooltip Инвестиции: привлечено / план
                 .cell-actions
                   // Мастер — ответственный за проект (зеркально исполнителям задач)
                   SetMasterAvatar(:project='props.row')
@@ -102,7 +98,7 @@ import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
-import { formatHoursFactPlan, formatInvestFactPlan, hasInvestMeta } from 'app/extensions/capital/shared/lib';
+import { formatHoursFactPlan } from 'app/extensions/capital/shared/lib';
 
 const props = defineProps<{
   coopname?: string;

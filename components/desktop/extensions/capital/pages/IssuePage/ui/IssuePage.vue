@@ -6,17 +6,16 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
     :active-key="activeTabKey"
   )
     template(#actions)
-      q-btn(
+      BaseButton(
         v-if="activeTabKey === 'component-issue-requirements' && canCreateRequirement"
-        flat
-        dense
-        no-caps
-        color="primary"
-        icon="add"
-        label="Артефакт"
+        variant="primary"
         size="sm"
+        aria-label="Создать артефакт"
         @click="openCreateRequirementDialog"
       )
+        template(#icon-left)
+          q-icon(name="add", size="18px")
+        | Артефакт
 
   .issue-page-skeleton(v-if="!issue")
     .issue-page-skeleton__side(v-if="showSidebar")
@@ -122,6 +121,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { EMPTY_HASH } from 'src/shared/lib/consts'
 import { useBackButton } from 'src/shared/lib/navigation'
 import { PageTabs } from 'src/shared/ui/layout'
+import { BaseButton } from 'src/shared/ui/base'
 import { toMarkdown } from 'src/shared/lib/utils'
 import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
 import { IssueSidebarWidget } from 'app/extensions/capital/widgets'
