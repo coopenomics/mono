@@ -90,11 +90,26 @@ const regenerate = async () => {
   }
 };
 
-// Функция для декодирования и очистки HTML
+// Функция для декодирования и очистки HTML.
+//
+// WHOLE_DOCUMENT: true — иначе DOMPurify вырезает содержимое <style> целиком
+// (сам тег остаётся в списке разрешённых через ADD_TAGS, но его текстовый
+// узел стирается), даже с ADD_TAGS: ['style']. Проверено эмпирически. В
+// WHOLE_DOCUMENT-режиме DOMPurify оборачивает результат в <html><head>...
+// <style>...</style></head><body>...</body></html> и содержимое style
+// выживает. Обёртка html/head/body безвредна: при вставке через
+// `shadowRoot.innerHTML` (см. ShadowHtml.vue) браузер разбирает её по
+// алгоритму fragment-парсинга и просто не создаёт сами теги html/head/body,
+// а их содержимое (включая <style>) остаётся в дереве shadow-root — CSS
+// оттуда действует на всё поддерево независимо от вложенности. Благодаря
+// этому шаблонам документов больше не нужно держать в уме, что этот
+// компонент форсит pre-wrap и стирает их <style> — можно писать вёрстку один
+// раз, единообразно для PDF (weasyprint) и предпросмотра.
 function sanitizeHtml(html: string) {
   return DOMPurify.sanitize(html, {
     ADD_TAGS: ['style'],
     ADD_ATTR: ['class', 'id'],
+    WHOLE_DOCUMENT: true,
   });
 }
 
