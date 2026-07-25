@@ -1110,9 +1110,24 @@ async function onSubmit(): Promise<void> {
       FailAlert(new Error('Добавьте хотя бы одну упаковку.'));
       return;
     }
+    // Точность содержимого зависит от единицы (как unitStep): штука неделима
+    // (0 знаков), вес/объём — до 3 знаков (граммы/миллилитры). Проверяем на
+    // клиенте, чтобы не гонять на сервер и обратно за очевидной ошибкой.
+    const sizePrecision = f.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 0 : 3;
     for (const p of f.packages) {
       if (!p.size || p.size <= 0) {
         FailAlert(new Error('У каждой упаковки укажите содержимое больше нуля.'));
+        return;
+      }
+      const scaledSize = p.size * 10 ** sizePrecision;
+      if (Math.abs(scaledSize - Math.round(scaledSize)) > 1e-9) {
+        FailAlert(
+          new Error(
+            f.unit_of_measure === MarketplaceUnitOfMeasure.PIECE
+              ? 'Содержимое упаковки в штуках должно быть целым — если это вес или объём (например, граммы), выберите единицу «кг» или «литр».'
+              : `Содержимое упаковки для единицы «${orderUnitLabel.value}» допускает не более ${sizePrecision} знаков после запятой.`
+          )
+        );
         return;
       }
       if (!/^\d+([.,]\d{1,4})?$/.test(p.price.trim()) || Number.parseFloat(p.price.replace(',', '.')) <= 0) {
