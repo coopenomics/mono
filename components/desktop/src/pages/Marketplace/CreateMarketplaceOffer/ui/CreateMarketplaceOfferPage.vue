@@ -915,7 +915,20 @@ function scheduleSaveDraft(): void {
 function restoreDraft(): void {
   const saved = LocalStorage.getItem(DRAFT_KEY) as Partial<OfferDraft> | null;
   if (!saved?.form) return;
-  form.value = { ...form.value, ...saved.form };
+  // Черновик мог быть сохранён ДО перехода unit_of_measure/sale_form на
+  // реальные GraphQL-enum'ы (Эпик 18) — тогда в LocalStorage лежат старые
+  // строчные значения ('kg', 'packaged'), которых больше нет в enum'е.
+  // Слепой мёрж тихо возвращал бы их в форму и валил submit на каждой
+  // загрузке, независимо от reload. Не доверяем сохранённому значению, если
+  // оно не входит в текущий набор — оставляем свежий дефолт формы.
+  const restoredForm: Partial<MarketplaceCreateOfferFormState> = { ...saved.form };
+  if (!Object.values(MarketplaceUnitOfMeasure).includes(restoredForm.unit_of_measure!)) {
+    delete restoredForm.unit_of_measure;
+  }
+  if (!Object.values(MarketplaceSaleForm).includes(restoredForm.sale_form!)) {
+    delete restoredForm.sale_form;
+  }
+  form.value = { ...form.value, ...restoredForm };
   if (typeof saved.activeKey === 'string') activeKey.value = saved.activeKey;
   if (Array.isArray(saved.completedKeys)) completedKeys.value = saved.completedKeys;
   if (Array.isArray(saved.images) && saved.images.length) {
