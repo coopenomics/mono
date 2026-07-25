@@ -465,12 +465,33 @@ export class ResultSubmissionService {
               }
               case 'contribution_feedback': {
                 const fb = content.data as ICommitContributionFeedbackData;
+                const starsPart =
+                  Number.isInteger(fb.satisfaction_stars) && fb.satisfaction_stars >= 1 && fb.satisfaction_stars <= 5
+                    ? `<p><strong>Оценка работы:</strong> ${this.escapeHtml(String(fb.satisfaction_stars))} / 5</p>`
+                    : '';
                 const reviewPart = fb.review_text.trim()
                   ? `<p><strong>Отзыв:</strong> ${this.escapeHtml(fb.review_text).replace(/\n/g, '<br/>')}</p>`
                   : '';
-                diffHtmlBlocks.push(
-                  `<div class="commit-content contribution-feedback"><p><strong>Оценка работы:</strong> ${this.escapeHtml(String(fb.satisfaction_stars))} / 5</p>${reviewPart}</div>`
-                );
+                if (starsPart || reviewPart) {
+                  diffHtmlBlocks.push(
+                    `<div class="commit-content contribution-feedback">${starsPart}${reviewPart}</div>`
+                  );
+                }
+                break;
+              }
+              case 'committed_issues': {
+                const issues = (content.data as { issues?: Array<{ title?: string; issue_hash?: string }> })?.issues;
+                if (issues?.length) {
+                  const items = issues
+                    .map((issue) => {
+                      const title = this.escapeHtml(issue.title?.trim() || issue.issue_hash || 'Задача');
+                      return `<li>${title}</li>`;
+                    })
+                    .join('');
+                  diffHtmlBlocks.push(
+                    `<div class="commit-content committed-issues"><p><strong>Задачи:</strong></p><ul>${items}</ul></div>`
+                  );
+                }
                 break;
               }
               default: {

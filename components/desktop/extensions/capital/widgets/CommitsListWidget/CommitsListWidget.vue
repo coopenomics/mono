@@ -1,132 +1,124 @@
 <template lang="pug">
-q-card(flat)
-
-  q-table(
-    :rows='commits?.items || []',
-    :columns='columns',
-    row-key='commit_hash',
-    :pagination='pagination',
-    @request='onRequest',
-    flat,
-    square,
-    :no-data-label='"Нет коммитов"'
+.commits-list
+  EmptyState(
+    v-if='!loading && !rows.length',
+    title='Коммитов пока нет',
+    body='Когда участники зафиксируют время по компонентам, коммиты появятся здесь для проверки.'
   )
-    template(#body='props')
-      q-tr(
-        :props='props',
-        @click.prevent.stop='handleCommitClick(props.row.commit_hash)',
-      )
-        q-td(style='width: 35px')
+    template(#icon)
+      q-icon(name='fact_check')
+
+  .row.justify-center.q-py-lg(v-else-if='loading && !rows.length')
+    q-spinner(color='primary', size='32px')
+
+  template(v-else)
+    .commits-list__items
+      .commits-list__item(v-for='row in rows', :key='row.commit_hash')
+        //- Строка как у «Время»: иконка + заголовок/мета слева, статус+действие справа
+        .commits-list__row(
+          role='button',
+          tabindex='0',
+          @click='handleToggleExpand(row.commit_hash)',
+          @keydown.enter.prevent='handleToggleExpand(row.commit_hash)',
+          @keydown.space.prevent='handleToggleExpand(row.commit_hash)'
+        )
           ExpandToggleButton(
-            :expanded='expanded[props.row.commit_hash]',
-            @click='handleToggleExpand(props.row.commit_hash)'
+            :expanded='!!expanded[row.commit_hash]',
+            @click='handleToggleExpand(row.commit_hash)'
           )
-        // Проекты и компоненты с возможностью перехода
-        q-td(style='max-width: 250px; word-wrap: break-word; white-space: normal')
-          .projects-info
-            .project-link(
-              v-if='props.row.project?.parent_title',
-              @click.stop='navigateToProject(props.row.project.parent_hash)'
+          q-icon.commits-list__icon(name='folder_open', size='20px')
+
+          .commits-list__main
+            .commits-list__title(
+              @click.stop='navigateToComponent(row.project_hash)'
+            ) {{ row.project?.title || 'Компонент' }}
+            .commits-list__sub.t-sm.t-muted
+              span.commits-list__parent(
+                v-if='row.project?.parent_title',
+                @click.stop='navigateToProject(row.project.parent_hash)'
+              ) {{ row.project.parent_title }}
+              span(v-if='row.project?.parent_title') ·
+              span {{ row.display_name || row.username || 'Неизвестный' }}
+            .commits-list__hours.t-sm
+              BaseBadge(:variant='getStatusVariant(row.status)') {{ getStatusLabel(row.status) }}
+              BaseBadge(variant='info') {{ formatHours(Number(row.amounts?.creators_hours) || 0) }}
+              BaseBadge(variant='neutral') {{ formatCurrency(row.amounts?.creators_base_pool) }}
+
+          .commits-list__actions(
+            v-if='canModerate(row)',
+            @click.stop
+          )
+            ApproveCommitButton(:commit-hash='row.commit_hash', mini)
+            DeclineCommitButton(:commit-hash='row.commit_hash', mini)
+
+        //- Детали — только в развороте, через DataRow
+        .commits-list__details(v-if='expanded[row.commit_hash]')
+          DataRow(label='Дата', :value='formatDate(row.created_at)')
+          DataRow(
+            label='Стоимость часа',
+            :value='`${formatCurrency(row.amounts?.hour_cost)} / час`'
+          )
+          DataRow(
+            label='Себестоимость',
+            :value='formatCurrency(row.amounts?.creators_base_pool)'
+          )
+
+          .commits-list__feedback(v-if='getCommittedIssues(row.data).length')
+            .t-sm.t-muted Задачи
+            ul.commits-list__issues
+              li(v-for='issue in getCommittedIssues(row.data)', :key='issue.issue_hash')
+                a.commits-list__issue-link(
+                  href='#',
+                  @click.prevent.stop='goToIssue(row.project_hash, issue.issue_hash)'
+                ) {{ issue.title }}
+
+          .commits-list__feedback(v-if='getContributionFeedback(row.data)')
+            .t-sm.t-muted Отзыв и оценка работы
+            q-rating(
+              v-if='(getContributionFeedback(row.data)?.satisfaction_stars ?? 0) >= 1',
+              :model-value='getContributionFeedback(row.data)?.satisfaction_stars ?? 1',
+              readonly,
+              size='sm',
+              color='accent'
             )
-              q-icon(name='fa-regular fa-folder', size='xs').q-mr-xs
-              span.list-item-title {{ props.row.project.parent_title }}
-            .component-link(
-              v-if='props.row.project?.title',
-              @click.stop='navigateToComponent(props.row.project_hash)'
-            )
-              q-icon(name='fa-regular fa-folder-open', size='xs').q-mr-xs
-              span.list-item-title {{ props.row.project.title }}
+            pre.commits-list__pre(v-if='getContributionFeedback(row.data)?.review_text')
+              | {{ getContributionFeedback(row.data)?.review_text }}
 
-        // Пользователь
-        q-td(style='width: 120px')
-          .text-grey-7 {{ props.row.display_name || props.row.username || 'Неизвестный' }}
+          .commits-list__feedback(v-if='row.description')
+            .t-sm.t-muted Сообщение коммита
+            pre.commits-list__pre {{ row.description }}
 
-        // Статус
-        q-td(style='width: 120px')
-          q-chip(
-            :color='getStatusColor(props.row.status)',
-            :text-color="'white'",
-            dense,
-            size='sm'
-          ) {{ getStatusLabel(props.row.status) }}
+          .commits-list__feedback(v-if='getGitData(row.data)?.url')
+            .t-sm.t-muted Ссылка
+            a.commits-list__url(
+              :href='getGitData(row.data).url',
+              target='_blank',
+              rel='noopener noreferrer'
+            ) {{ getGitData(row.data).url }}
 
-        // Затраченное время
-        q-td.text-right(style='width: 100px')
-          .stats-info
-            ColorCard(color='blue')
-              .card-value {{ formatHours(Number(props.row.amounts?.creators_hours) || 0) }}
+          .commits-list__feedback(v-if='getGitData(row.data)?.diff')
+            .t-sm.t-muted Изменения
+            DiffViewer(:diff='getGitData(row.data).diff')
 
-        // Стоимость часа
-        q-td.text-right(style='width: 120px')
-          .stats-info
-            ColorCard(color='orange')
-              .card-value {{ formatCurrency(props.row.amounts?.hour_cost) }} / час
-
-        // Сумма
-        q-td.text-right(style='width: 150px')
-          .stats-info
-            ColorCard(color='green')
-
-              .card-value {{ formatCurrency(props.row.amounts?.creators_base_pool) }}
-
-        // Кнопки действий
-        q-td(style='width: 120px')
-          .row.items-center.q-gutter-xs.justify-end(v-if='props.row.project?.master === session.username')
-            ApproveCommitButton(
-              v-if='props.row.status === Zeus.CommitStatus.CREATED'
-              :commit-hash='props.row.commit_hash'
-              mini
-            )
-
-            DeclineCommitButton(
-              v-if='props.row.status === Zeus.CommitStatus.CREATED'
-              :commit-hash='props.row.commit_hash'
-              mini
-            )
-      // Разворачиваемый контент с деталями коммита
-      q-tr.q-virtual-scroll--with-prev(
-        no-hover,
-        v-if='expanded[props.row.commit_hash]',
-        :key='`e_${props.row.commit_hash}`'
-      )
-
-        q-td(colspan='9', style='padding: 16px;')
-          .commit-details
-            .row.q-gutter-md
-              .col
-                .text-subtitle2.text-grey-7 Дата:
-                .text-body2 {{ formatDate(props.row.created_at) }}
-
-            .q-mt-md
-              .q-mt-md(v-if='getContributionFeedback(props.row.data)')
-                .text-subtitle2.text-grey-7.q-mt-md Отзыв и оценка работы
-                q-rating(
-                  :model-value='getContributionFeedback(props.row.data)?.satisfaction_stars ?? 1',
-                  readonly,
-                  size='sm',
-                  color='accent'
-                )
-                pre.commit-message-code(v-if='getContributionFeedback(props.row.data)?.review_text')
-                  | {{ getContributionFeedback(props.row.data)?.review_text }}
-
-              .q-mt-md(v-if='props.row.description')
-                .text-subtitle2.text-grey-7 Сообщение коммита (блокчейн):
-                pre.commit-message-code {{ props.row.description }}
-
-              .q-mt-md(v-if='getGitData(props.row.data)?.url')
-                .text-subtitle2.text-grey-7 Ссылка:
-                a(:href='getGitData(props.row.data).url', target='_blank', rel='noopener noreferrer').commit-url {{ getGitData(props.row.data).url }}
-
-              .q-mt-md(v-if='getGitData(props.row.data)?.diff')
-                .text-subtitle2.text-grey-7 Изменения:
-                DiffViewer(:diff='getGitData(props.row.data).diff')
-
+    .commits-list__foot.t-sm.t-muted(v-if='pagination.rowsNumber > pagination.rowsPerPage')
+      span {{ rangeLabel }}
+      BaseButton(
+        variant='ghost',
+        size='sm',
+        :disabled='pagination.page <= 1',
+        @click='goToPage(pagination.page - 1)'
+      ) Назад
+      BaseButton(
+        variant='ghost',
+        size='sm',
+        :disabled='pagination.page * pagination.rowsPerPage >= pagination.rowsNumber',
+        @click='goToPage(pagination.page + 1)'
+      ) Ещё
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import type { QTableProps } from 'quasar';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
@@ -135,12 +127,13 @@ import type { IGetCommitsFilter } from 'app/extensions/capital/entities/Commit/m
 import { ApproveCommitButton } from 'app/extensions/capital/features/Commit/ApproveCommit';
 import { DeclineCommitButton } from 'app/extensions/capital/features/Commit/DeclineCommit';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { EmptyState, BaseBadge, BaseButton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { Zeus } from '@coopenomics/sdk';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatHours } from 'src/shared/lib/utils';
 import { DiffViewer } from 'src/shared/ui/DiffViewer';
-
 
 const props = defineProps<{
   filter?: IGetCommitsFilter;
@@ -149,9 +142,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggleExpand: [commitHash: string];
-  commitClick: [commitHash: string];
   dataLoaded: [commitHashes: string[]];
-  paginationChanged: [pagination: { page: number; rowsPerPage: number; sortBy: string; descending: boolean }];
+  paginationChanged: [pagination: {
+    page: number;
+    rowsPerPage: number;
+    sortBy: string;
+    descending: boolean;
+  }];
 }>();
 
 const router = useRouter();
@@ -159,30 +156,12 @@ const session = useSessionStore();
 const { info } = useSystemStore();
 const commitStore = useCommitStore();
 
-const commits = ref<any>(null);
+const commits = ref<{ items?: Array<Record<string, any>>; totalCount?: number } | null>(null);
 const loading = ref(false);
 
-// Используем computed для реактивной связи с props.expanded
-const expanded = computed({
-  get: () => props.expanded || {},
-  set: () => {
-    // Сеттер не используется напрямую, изменения происходят через emit
-  }
-});
+const expanded = computed(() => props.expanded || {});
+const rows = computed(() => commits.value?.items ?? []);
 
-// Следим за изменениями в commitStore и обновляем локальные данные
-watch(() => commitStore.commits, (newCommits) => {
-  if (newCommits) {
-    commits.value = newCommits;
-    pagination.value.rowsNumber = newCommits.totalCount || 0;
-
-    // Эмитим событие загрузки данных
-    const commitHashes = newCommits.items?.map(item => item.commit_hash) || [];
-    emit('dataLoaded', commitHashes);
-  }
-}, { deep: true });
-
-// Пагинация
 const pagination = ref({
   sortBy: 'created_at',
   descending: true,
@@ -191,8 +170,30 @@ const pagination = ref({
   rowsNumber: 0,
 });
 
-// Загрузка коммитов
-const loadCommits = async (paginationData?: any) => {
+const rangeLabel = computed(() => {
+  const { page, rowsPerPage, rowsNumber } = pagination.value;
+  if (!rowsNumber) return '';
+  const from = (page - 1) * rowsPerPage + 1;
+  const to = Math.min(page * rowsPerPage, rowsNumber);
+  return `${from}-${to} из ${rowsNumber}`;
+});
+
+watch(
+  () => commitStore.commits,
+  (newCommits) => {
+    if (newCommits) {
+      commits.value = newCommits;
+      pagination.value.rowsNumber = newCommits.totalCount || 0;
+      emit(
+        'dataLoaded',
+        newCommits.items?.map((item) => item.commit_hash) || [],
+      );
+    }
+  },
+  { deep: true },
+);
+
+const loadCommits = async (paginationData?: typeof pagination.value) => {
   const paginationToUse = paginationData || pagination.value;
   loading.value = true;
 
@@ -214,13 +215,10 @@ const loadCommits = async (paginationData?: any) => {
 
     commits.value = commitStore.commits;
     pagination.value.rowsNumber = commitStore.commits?.totalCount || 0;
-
-    // Эмитим событие загрузки данных с актуальными ключами коммитов
-    const commitHashes = commitStore.commits?.items?.map(
-      (commit: any) => commit.commit_hash,
-    ) || [];
-
-    emit('dataLoaded', commitHashes);
+    emit(
+      'dataLoaded',
+      commitStore.commits?.items?.map((commit) => commit.commit_hash) || [],
+    );
   } catch (error) {
     console.error('Ошибка при загрузке коммитов:', error);
     FailAlert('Не удалось загрузить список коммитов');
@@ -229,23 +227,14 @@ const loadCommits = async (paginationData?: any) => {
   }
 };
 
-// Обработчик запросов пагинации и сортировки
-const onRequest = async (requestProps: any) => {
-  const { page, rowsPerPage, sortBy, descending } = requestProps.pagination;
-
+const goToPage = async (page: number) => {
   pagination.value.page = page;
-  pagination.value.rowsPerPage = rowsPerPage;
-  pagination.value.sortBy = sortBy;
-  pagination.value.descending = descending;
-
-  // Эмитим изменение пагинации для родительской страницы
   emit('paginationChanged', {
-    page,
-    rowsPerPage,
-    sortBy,
-    descending,
+    page: pagination.value.page,
+    rowsPerPage: pagination.value.rowsPerPage,
+    sortBy: pagination.value.sortBy,
+    descending: pagination.value.descending,
   });
-
   await loadCommits(pagination.value);
 };
 
@@ -253,15 +242,13 @@ const handleToggleExpand = (commitHash: string) => {
   emit('toggleExpand', commitHash);
 };
 
-const handleCommitClick = (commitHash: string) => {
-  emit('commitClick', commitHash);
-};
+const canModerate = (row: Record<string, any>) =>
+  row.project?.master === session.username &&
+  row.status === Zeus.CommitStatus.CREATED;
 
-// Вспомогательные функции
 const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleDateString('ru-RU', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -270,20 +257,16 @@ const formatDate = (dateString: string) => {
   });
 };
 
-
-// Функции для работы со статусами
-const getStatusColor = (status: string) => {
+const getStatusVariant = (status: string): BaseBadgeVariant => {
   switch (status) {
     case Zeus.CommitStatus.CREATED:
-      return 'orange';
+      return 'warn';
     case Zeus.CommitStatus.APPROVED:
-      return 'green';
+      return 'pos';
     case Zeus.CommitStatus.DECLINED:
-      return 'red';
-    case Zeus.CommitStatus.UNDEFINED:
-      return 'grey';
+      return 'neg';
     default:
-      return 'grey';
+      return 'neutral';
   }
 };
 
@@ -302,16 +285,16 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-// Функция форматирования валюты
 const formatCurrency = (value?: string) => {
-  if (!value) return '0.00';
+  if (!value) return '0,00';
   return formatAsset2Digits(value);
 };
 
-// Функция для извлечения Git-данных из массива данных коммита
-const getGitData = (data: any[] | null | undefined) => {
+const getGitData = (data: unknown[] | null | undefined) => {
   if (!data || !Array.isArray(data)) return undefined;
-  const gitItem = data.find(item => item?.type === 'git');
+  const gitItem = data.find(
+    (item) => !!item && typeof item === 'object' && (item as { type?: string }).type === 'git',
+  ) as { data?: { url?: string; diff?: string } } | undefined;
   return gitItem?.data;
 };
 
@@ -320,218 +303,220 @@ interface IContributionFeedbackView {
   review_text: string;
 }
 
-const getContributionFeedback = (data: unknown[] | null | undefined): IContributionFeedbackView | undefined => {
+const getContributionFeedback = (
+  data: unknown[] | null | undefined,
+): IContributionFeedbackView | undefined => {
   if (!data || !Array.isArray(data)) return undefined;
   const row = data.find(
-    (item): item is { type: 'contribution_feedback'; data: { review_text?: unknown; satisfaction_stars?: unknown } } =>
+    (item): item is {
+      type: 'contribution_feedback';
+      data: { review_text?: unknown; satisfaction_stars?: unknown };
+    } =>
       !!item &&
       typeof item === 'object' &&
       (item as { type?: string }).type === 'contribution_feedback',
   );
   if (!row?.data || typeof row.data !== 'object') return undefined;
-  const stars = Number((row.data as { satisfaction_stars?: unknown }).satisfaction_stars);
-  if (!Number.isInteger(stars) || stars < 1 || stars > 5) return undefined;
-  const reviewText =
-    typeof (row.data as { review_text?: unknown }).review_text === 'string'
-      ? (row.data as { review_text: string }).review_text
-      : '';
-  return { satisfaction_stars: stars, review_text: reviewText };
+  const starsRaw = Number(row.data.satisfaction_stars);
+  const hasStars = Number.isInteger(starsRaw) && starsRaw >= 1 && starsRaw <= 5;
+  const reviewText = typeof row.data.review_text === 'string' ? row.data.review_text.trim() : '';
+  if (!hasStars && !reviewText) return undefined;
+  return {
+    satisfaction_stars: hasStars ? starsRaw : 0,
+    review_text: reviewText,
+  };
 };
 
-// Функция навигации к проекту (родительскому)
-const navigateToProject = (projectHash: string) => {
-  if (projectHash) {
-    router.push({
-      name: 'project-description',
-      params: { project_hash: projectHash },
-      query: { _useHistoryBack: 'true' }
-    });
-  }
+const getCommittedIssues = (
+  data: unknown[] | null | undefined,
+): Array<{ issue_hash: string; title: string }> => {
+  if (!data || !Array.isArray(data)) return [];
+  const row = data.find(
+    (item) => !!item && typeof item === 'object' && (item as { type?: string }).type === 'committed_issues',
+  ) as { data?: { issues?: Array<{ issue_hash?: string; title?: string }> } } | undefined;
+  const issues = row?.data?.issues;
+  if (!Array.isArray(issues)) return [];
+  return issues
+    .filter((issue) => !!issue?.issue_hash)
+    .map((issue) => ({
+      issue_hash: String(issue.issue_hash),
+      title: String(issue.title || issue.issue_hash).trim(),
+    }));
 };
 
-// Функция навигации к компоненту
-const navigateToComponent = (projectHash: string) => {
-  if (projectHash) {
-    router.push({
-      name: 'component-description',
-      params: { project_hash: projectHash },
-      query: { _useHistoryBack: 'true' }
-    });
-  }
+const navigateToProject = (projectHash?: string) => {
+  if (!projectHash) return;
+  router.push({
+    name: 'project-description',
+    params: { project_hash: projectHash },
+    query: { _useHistoryBack: 'true' },
+  });
 };
 
-// Загружаем данные при монтировании
+const navigateToComponent = (projectHash?: string) => {
+  if (!projectHash) return;
+  router.push({
+    name: 'component-description',
+    params: { project_hash: projectHash },
+    query: { _useHistoryBack: 'true' },
+  });
+};
+
+const goToIssue = (projectHash: string | undefined, issueHash: string) => {
+  if (!projectHash || !issueHash) return;
+  router.push({
+    name: 'component-issue',
+    params: {
+      project_hash: projectHash,
+      issue_hash: issueHash,
+    },
+    query: { _useHistoryBack: 'true' },
+  });
+};
+
 onMounted(async () => {
   await loadCommits();
 });
-
-// Определяем столбцы таблицы
-const columns: QTableProps['columns'] = [
-  {
-    name: 'expand',
-    label: '',
-    align: 'center' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'projects',
-    label: 'Проект / Компонент',
-    align: 'left' as const,
-    field: 'project.title' as const,
-    sortable: false,
-  },
-  {
-    name: 'user',
-    label: 'Пользователь',
-    align: 'left' as const,
-    field: 'username' as const,
-    sortable: true,
-  },
-  {
-    name: 'status',
-    label: 'Статус',
-    align: 'center' as const,
-    field: 'status' as const,
-    sortable: true,
-  },
-  {
-    name: 'hours',
-    label: 'Время',
-    align: 'right' as const,
-    field: 'amounts.creators_hours' as const,
-    sortable: true,
-  },
-  {
-    name: 'hour_rate',
-    label: 'Стоимость часа',
-    align: 'right' as const,
-    field: 'amounts.hour_cost' as const,
-    sortable: true,
-  },
-  {
-    name: 'total',
-    label: 'Сумма',
-    align: 'right' as const,
-    field: 'amounts.total_contribution' as const,
-    sortable: true,
-  },
-  {
-    name: 'actions',
-    label: 'Действия',
-    align: 'center' as const,
-    field: '' as const,
-    sortable: false,
-  },
-];
 </script>
 
 <style lang="scss" scoped>
-.projects-info {
-  .project-link {
-    display: block;
-    cursor: pointer;
-    margin-bottom: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .project-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-      word-wrap: break-word;
-      white-space: normal;
-      line-height: 1.3;
-    }
-  }
-
-  .component-link {
-    display: block;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-left: 16px;
-    border-left: 2px solid #1976d2;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: rgba(25, 118, 210, 0.08);
-    }
-
-    .component-title {
-      font-size: 0.875rem;
-      word-wrap: break-word;
-      white-space: normal;
-      line-height: 1.3;
-    }
-  }
-}
-
-.stats-info {
+.commits-list {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--p-4);
+  min-width: 0;
 }
 
-.commit-details {
-  .text-subtitle2 {
-    margin-bottom: 4px;
-  }
-
-  .text-body2 {
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-  }
-  .commit-text {
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-    word-break: break-all;
-    flex: 1;
-
-    a {
-      color: var(--q-primary);
-      text-decoration: underline;
-
-      &:hover {
-        text-decoration: none;
-      }
-    }
-  }
-
-  .commit-url {
-    color: var(--q-primary);
-    text-decoration: underline;
-    font-family: 'Courier New', monospace;
-    font-size: 0.875rem;
-
-    &:hover {
-      text-decoration: none;
-    }
-  }
-
-  .commit-message-code {
-
-    padding: 10px 12px;
-    font-family: 'Courier New', ui-monospace, monospace;
-    font-size: 0.8125rem;
-    line-height: 1.35;
-    white-space: pre-wrap;
-    word-break: break-word;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 6px;
-    max-height: 280px;
-    overflow: auto;
-  }
+.commits-list__items {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--p-line);
 }
 
-.card-value {
-  font-size: 16px;
+.commits-list__item {
+  border-bottom: 1px solid var(--p-line);
+}
+
+.commits-list__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-2);
+  padding: var(--p-3) 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.commits-list__row:focus-visible {
+  outline: none;
+  box-shadow: var(--p-focus-ring);
+}
+
+.commits-list__icon {
+  color: var(--p-ink-2);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.commits-list__main {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.commits-list__title {
   font-weight: 500;
   color: var(--p-ink);
-  margin-bottom: var(--p-2);
+  word-break: break-word;
+}
+
+.commits-list__title:hover {
+  color: var(--p-primary);
+}
+
+.commits-list__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-1);
+  align-items: baseline;
+}
+
+.commits-list__parent:hover {
+  color: var(--p-primary);
+  cursor: pointer;
+}
+
+.commits-list__hours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+}
+
+.commits-list__actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+}
+
+.commits-list__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: 0 0 var(--p-4) var(--p-6);
+  min-width: 0;
+}
+
+.commits-list__feedback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  min-width: 0;
+}
+
+.commits-list__issues {
+  margin: 0;
+  padding-left: var(--p-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+
+.commits-list__issue-link {
+  color: var(--p-primary);
+  word-break: break-word;
+}
+
+.commits-list__pre {
+  margin: 0;
+  padding: var(--p-3);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-sm);
+  border: 1px solid var(--p-line);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.commits-list__url {
+  color: var(--p-primary);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-body-sm);
+  word-break: break-all;
+}
+
+.commits-list__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
 }
 </style>

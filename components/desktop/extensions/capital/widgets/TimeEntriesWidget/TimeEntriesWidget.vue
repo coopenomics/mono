@@ -1,26 +1,18 @@
 <template lang="pug">
 .time-entries(v-if="issueHash")
-  .time-entries__empty(v-if="!loading && !rows.length")
-    CapitalSectionEmpty.capital-section-empty--centered(
-      icon="schedule"
-      title="Записей рабочего времени пока нет"
-      body="Фактическое время по задаче появится здесь после учёта часов."
-    )
-  .time-entries__list(v-else)
+  .time-entries__empty.t-sm.t-muted(v-if="!loading && !rows.length")
+    | Записей рабочего времени пока нет
+
+  .time-entries__list(v-else-if="rows.length")
     .time-entries__row(v-for="row in rows", :key="row._id")
       .time-entries__who {{ contributorLabel(row.contributor_hash) }}
       .time-entries__meta
         span.time-entries__hours {{ formatHours(row.hours) }}
         span.time-entries__sep ·
         span.time-entries__date {{ formatDate(row.date) }}
-      q-chip.time-entries__commit(
-        v-if="row.commit_hash"
-        dense
-        size="sm"
-        color="primary"
-        text-color="white"
-        :label="row.commit_hash.substring(0, 8)"
-      )
+      BaseBadge.time-entries__commit(v-if="row.commit_hash", variant="accent")
+        | {{ String(row.commit_hash).substring(0, 8) }}
+
   .row.justify-center.q-py-sm(v-if="loading")
     q-spinner(color="primary", size="24px")
 </template>
@@ -32,7 +24,7 @@ import { FailAlert } from 'src/shared/api'
 import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model'
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model'
 import { formatHours } from 'src/shared/lib/utils'
-import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSectionEmpty'
+import { BaseBadge } from 'src/shared/ui/base'
 
 const props = defineProps<{
   issueHash: string
@@ -119,7 +111,7 @@ watch(
 
 <style lang="scss" scoped>
 .time-entries__empty {
-  width: 100%;
+  padding: var(--p-2) 0;
 }
 
 .time-entries__list {

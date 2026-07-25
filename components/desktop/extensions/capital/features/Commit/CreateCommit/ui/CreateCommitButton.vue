@@ -1,15 +1,15 @@
 <template lang="pug">
 div
-  q-btn(
-    color='accent',
-    @click.stop='showDialog = true',
+  BaseButton(
+    variant='primary',
+    :size='mini || isMobile ? "sm" : "md"',
     :loading='loading',
-    label="Коммит",
-    icon="add",
-    :size='mini ? "sm" : "md"',
-    :dense="isMobile"
-    :disabled='disabled'
+    :disabled='disabled',
+    @click.stop='showDialog = true'
   )
+    template(#icon-left)
+      q-icon(name='add')
+    | Коммит
 
   BaseDialog(
     v-model='showDialog',
@@ -21,6 +21,7 @@ div
       :class='isMobile ? "q-pb-md" : "q-pb-lg"',
       :handler-submit='handleCreateCommit',
       :is-submitting='isSubmitting',
+      :disabled='!hasValidHourlyRate',
       :button-submit-txt='"Зафиксировать"',
       :button-cancel-txt='"Отмена"',
       @cancel='clear'
@@ -39,9 +40,10 @@ div
               .text-caption.text-grey-7 Себестоимость
               .text-body1.text-weight-medium.text-primary {{ commitCostFormatted }}
               .text-caption.text-grey-6.q-pl-sm {{ commitCostCaption }}
-            .create-commit-kv(v-else-if='contributorStore.self')
+            .create-commit-kv(v-else)
               .text-caption.text-grey-7 Себестоимость
-              .text-body2.text-grey-6 Ставка в час не задана — сумму посчитать нельзя.
+              .text-body2.text-negative
+                | Укажите стоимость часа в профиле участника — без ставки коммит зафиксировать нельзя.
             template(v-if='commitBreakdown?.tail && commitBreakdown.tail > 1e-6')
               q-separator(color='grey-5', style='opacity: 0.35')
               .text-caption.text-grey-7
@@ -81,6 +83,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { BaseButton } from 'src/shared/ui/base';
 import { Form } from 'src/shared/ui/Form';
 import { useWindowSize } from 'src/shared/hooks';
 import { formatHours } from 'src/shared/lib/utils';
@@ -145,13 +148,19 @@ const commitBreakdown = computed(() => {
   return { total, chain, tail };
 });
 
+/** Ставка > 0 обязательна: без неё себестоимость коммита = 0 и отработать потом нельзя */
+const hourlyRateAmount = computed(() => {
+  return parseAssetAmountParts(contributorStore.self?.rate_per_hour).amount;
+});
+
+const hasValidHourlyRate = computed(() => hourlyRateAmount.value > HOURS_EPS);
+
 /** Стоимость выбранных часов: ставка из профиля участника × часы в форме */
 const commitCostFormatted = computed(() => {
   const hours = formData.value.creator_hours || 0;
-  if (hours <= HOURS_EPS) return '';
+  if (hours <= HOURS_EPS || !hasValidHourlyRate.value) return '';
   const rateStr = contributorStore.self?.rate_per_hour;
   const { amount: rate, symbol } = parseAssetAmountParts(rateStr);
-  if (rate <= 0) return '';
   const raw = rate * hours;
   const assetStr = symbol ? `${raw} ${symbol}` : String(raw);
   return formatAsset2Digits(assetStr);
@@ -159,11 +168,9 @@ const commitCostFormatted = computed(() => {
 
 const commitCostCaption = computed(() => {
   const hours = formData.value.creator_hours || 0;
-  if (hours <= HOURS_EPS) return '';
+  if (hours <= HOURS_EPS || !hasValidHourlyRate.value) return '';
   const rateStr = contributorStore.self?.rate_per_hour?.trim();
   if (!rateStr) return '';
-  const { amount: rate } = parseAssetAmountParts(rateStr);
-  if (rate <= 0) return '';
   return `${formatAsset2Digits(rateStr)} × ${formatHours(hours)}`;
 });
 
@@ -187,6 +194,11 @@ const clear = () => {
 };
 
 const handleCreateCommit = async () => {
+  if (!hasValidHourlyRate.value) {
+    FailAlert('Укажите стоимость часа в профиле участника — без ставки коммит зафиксировать нельзя.');
+    return;
+  }
+
   try {
     isSubmitting.value = true;
 

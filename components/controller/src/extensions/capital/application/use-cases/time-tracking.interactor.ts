@@ -197,6 +197,27 @@ export class TimeTrackingInteractor {
   }
 
   /**
+   * Задачи, чьи time-entries вошли в коммит (для снимка в commit.data и UI приёмки).
+   */
+  async getCommittedIssueSummaries(
+    commitHash: string
+  ): Promise<Array<{ issue_hash: string; title: string }>> {
+    const entries = await this.timeEntryRepository.findCommittedByCommitHash(commitHash);
+    const uniqueHashes = [...new Set(entries.map((e) => e.issue_hash).filter(Boolean))];
+    const result: Array<{ issue_hash: string; title: string }> = [];
+
+    for (const issueHash of uniqueHashes) {
+      const issue = await this.issueRepository.findByIssueHash(issueHash);
+      result.push({
+        issue_hash: issueHash,
+        title: issue?.title?.trim() || `${issueHash.slice(0, 8)}…`,
+      });
+    }
+
+    return result;
+  }
+
+  /**
    * Лечебный пересчёт: для всех DONE-задач проекта, где участник сейчас в creators,
    * пересобирает незакоммиченные estimate-билеты по личным долям creators
    * (estimate / N − собственный committed). Идемпотентно. Вызывается перед createCommit

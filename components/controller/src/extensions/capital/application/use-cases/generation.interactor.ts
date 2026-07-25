@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
+import { AssetUtils } from '~/shared/utils/asset.utils';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
   type IssueLinkedGitCommitRepository,
@@ -59,6 +60,14 @@ export class GenerationInteractor {
 
     if (!contributor) {
       throw new Error(`Участник не найден: ${data.username} в кооперативе ${data.coopname}`);
+    }
+
+    // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать.
+    const { amount: ratePerHour } = AssetUtils.parseAsset(contributor.rate_per_hour);
+    if (ratePerHour <= 0) {
+      throw new Error(
+        'Нельзя зафиксировать коммит: в профиле участника не задана стоимость часа. Укажите ставку и повторите.'
+      );
     }
 
     // Ленивый ремонт: перед расчётом доступного времени приводим estimate-билеты
@@ -267,6 +276,18 @@ export class GenerationInteractor {
     // Фиксируем указанное количество времени в коммите
     await this.timeTrackingService.commitTime(contributor.contributor_hash, data.project_hash, chainHours, commitHash);
 
+    // Снимок задач, чьи часы вошли в коммит — для приёмки мастером и сборки результата
+    const committedIssues = await this.timeTrackingService.getCommittedIssueSummaries(commitHash);
+    if (committedIssues.length > 0) {
+      const issuesPayload: CommitContentData = {
+        type: 'committed_issues',
+        data: { issues: committedIssues },
+      };
+      if (!enrichedData) enrichedData = [];
+      enrichedData.push(issuesPayload);
+      createdEntity.data = enrichedData;
+    }
+
     // Сохраняем сущность в базу данных после успешной транзакции
     await this.commitRepository.saveCreated(createdEntity);
 
@@ -449,13 +470,18 @@ export class GenerationInteractor {
     const out: CommitContentData[] = [];
     for (const item of payload) {
       if (item.type !== 'contribution_feedback') continue;
-      const stars = Number(item.data?.satisfaction_stars);
-      if (!Number.isInteger(stars) || stars < 1 || stars > 5) continue;
-      const reviewText = typeof item.data?.review_text === 'string' ? item.data.review_text : '';
+      const starsRaw = Number(item.data?.satisfaction_stars);
+      const hasStars = Number.isInteger(starsRaw) && starsRaw >= 1 && starsRaw <= 5;
+      const reviewText = typeof item.data?.review_text === 'string' ? item.data.review_text.trim() : '';
       if (reviewText.length > 8000) continue;
+      // Оценка и текст независимы: достаточно одного из двух
+      if (!hasStars && !reviewText) continue;
       out.push({
         type: 'contribution_feedback',
-        data: { satisfaction_stars: stars, review_text: reviewText },
+        data: {
+          satisfaction_stars: hasStars ? starsRaw : 0,
+          review_text: reviewText,
+        },
       });
     }
     return out;

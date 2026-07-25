@@ -50,6 +50,15 @@ export class TimeTrackingService {
   }
 
   /**
+   * Задачи, чьи часы вошли в коммит (снимок для commit.data / UI).
+   */
+  async getCommittedIssueSummaries(
+    commitHash: string
+  ): Promise<Array<{ issue_hash: string; title: string }>> {
+    return this.timeTrackingInteractor.getCommittedIssueSummaries(commitHash);
+  }
+
+  /**
    * Получить статистику времени для участника по проекту (DTO версия)
    */
   async getTimeStats(contributorHash: string, projectHash: string) {

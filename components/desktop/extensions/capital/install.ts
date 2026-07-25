@@ -477,7 +477,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'my-invitations',
             component: markRaw(InvitationsPage),
             meta: {
-              title: 'Мои приглашения',
+              title: 'Приглашения',
               icon: 'fa-solid fa-envelope-open-text',
               roles: [],
               agreements: agreementsBase,
@@ -503,7 +503,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'tracker',
             component: markRaw(TrackerPage),
             meta: {
-              title: 'Мое время',
+              title: 'Время',
               icon: 'fa-solid fa-clock',
               roles: [],
               agreements: agreementsBase,
