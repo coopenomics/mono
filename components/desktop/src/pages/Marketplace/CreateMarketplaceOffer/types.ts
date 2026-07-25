@@ -15,6 +15,23 @@ export interface MarketplaceOfferDeliveryPoint {
 
 export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
 
+/** Способ отпуска (Эпик 18): по мере (by_measure) или упаковкой (packaged). */
+export type MarketplaceSaleForm = 'by_measure' | 'packaged';
+
+/** Строка упаковки в форме оффера (Эпик 18): содержимое + цена за упаковку. */
+export interface MarketplaceOfferPackageForm {
+  /** id уже сохранённой упаковки (для префилла при правке); пусто у новой. */
+  id?: string;
+  /** Содержимое упаковки в базовой единице (0,5 л/кг; 12 шт). */
+  size: number | null;
+  /** Цена за упаковку (numeric-строка). */
+  price: string;
+  /** Подпись упаковки («Пакет 0,5 л»); пусто — строится из размера. */
+  label: string;
+  /** Упаковка по умолчанию (для витрины). */
+  is_default: boolean;
+}
+
 /**
  * Элемент набора изображений в payload. ЛИБО новый файл (base64 + mime_type),
  * ЛИБО ссылка на уже сохранённое изображение (bucket_key — сохранить его в
@@ -53,6 +70,10 @@ export interface MarketplaceCreateOfferFormState {
   category_id: number | null;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
+  /** Способ отпуска (Эпик 18). */
+  sale_form: MarketplaceSaleForm;
+  /** Каталог упаковок при отпуске упаковкой. */
+  packages: MarketplaceOfferPackageForm[];
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -66,6 +87,10 @@ export interface MarketplaceCreateOfferPayload {
   category_id: number;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
+  /** Способ отпуска (Эпик 18). */
+  sale_form: MarketplaceSaleForm;
+  /** Каталог упаковок (Эпик 18); опущен/пуст при отпуске по мере. */
+  packages?: Array<{ size: number; price: string; label?: string | null; is_default?: boolean }>;
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -107,6 +132,8 @@ export interface MarketplaceOfferEditPrefill {
   category_id: string | number | null;
   price_per_unit: string;
   unit_of_measure: string;
+  sale_form?: string;
+  packages?: Array<{ id: string; size: number; price: string; label: string | null; is_default: boolean }>;
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];

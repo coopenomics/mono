@@ -57,28 +57,29 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
     offer_id: string,
     quantity: number,
     delivery_braname?: string | null,
+    package_id?: string | null,
   ): Promise<void> {
     mutating.value = true
     try {
-      cart.value = await api.addToCart({ offer_id, quantity, delivery_braname })
+      cart.value = await api.addToCart({ offer_id, quantity, package_id, delivery_braname })
     } finally {
       mutating.value = false
     }
   }
 
-  async function setQty(offer_id: string, quantity: number): Promise<void> {
+  async function setQty(offer_id: string, quantity: number, package_id?: string | null): Promise<void> {
     mutating.value = true
     try {
-      cart.value = await api.updateCartItem({ offer_id, quantity })
+      cart.value = await api.updateCartItem({ offer_id, quantity, package_id })
     } finally {
       mutating.value = false
     }
   }
 
-  async function removeItem(offer_id: string): Promise<void> {
+  async function removeItem(offer_id: string, package_id?: string | null): Promise<void> {
     mutating.value = true
     try {
-      cart.value = await api.removeFromCart({ offer_id })
+      cart.value = await api.removeFromCart({ offer_id, package_id })
     } finally {
       mutating.value = false
     }
@@ -122,6 +123,7 @@ export const useMarketplaceCartStore = defineStore(namespace, () => {
         const signed = await signer.signDocument(p.document, global.username, 1)
         lines.push({
           offer_id: p.offer_id,
+          package_id: p.package_id,
           order_hash: p.order_hash,
           signed_statement: signed as ICheckoutSignedLine['signed_statement'],
         })

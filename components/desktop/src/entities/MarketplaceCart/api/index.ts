@@ -26,6 +26,7 @@ async function getCart(): Promise<IMarketplaceCart> {
 async function addToCart(input: {
   offer_id: string
   quantity: number
+  package_id?: string | null
   delivery_braname?: string | null
 }): Promise<IMarketplaceCart> {
   const { [Mutations.Marketplace.AddToCart.name]: cart } = await client.Mutation(
@@ -39,6 +40,7 @@ async function addToCart(input: {
 async function updateCartItem(input: {
   offer_id: string
   quantity: number
+  package_id?: string | null
 }): Promise<IMarketplaceCart> {
   const { [Mutations.Marketplace.UpdateCartItem.name]: cart } = await client.Mutation(
     Mutations.Marketplace.UpdateCartItem.mutation,
@@ -48,7 +50,7 @@ async function updateCartItem(input: {
 }
 
 /** Удалить позицию из корзины. */
-async function removeFromCart(input: { offer_id: string }): Promise<IMarketplaceCart> {
+async function removeFromCart(input: { offer_id: string; package_id?: string | null }): Promise<IMarketplaceCart> {
   const { [Mutations.Marketplace.RemoveFromCart.name]: cart } = await client.Mutation(
     Mutations.Marketplace.RemoveFromCart.mutation,
     { variables: { input } },

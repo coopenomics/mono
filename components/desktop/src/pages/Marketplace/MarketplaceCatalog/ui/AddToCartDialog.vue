@@ -15,6 +15,7 @@ import type { MarketplaceOfferView } from '../types';
 type CartOffer = Pick<
   MarketplaceOfferView,
   'id' | 'product_name' | 'unit_of_measure' | 'unlimited_flag' | 'quantity_available' | 'price_per_unit'
+  | 'sale_form' | 'packages'
 >;
 
 /**
@@ -52,22 +53,56 @@ const open = computed({
   set: (v: boolean) => emit('update:modelValue', v),
 });
 
+// Эпик 18: quantity — количество в базовой единице (по мере) либо число
+// упаковок (упаковкой) выбранной упаковки selectedPackageId.
 const quantity = ref<number>(1);
+const selectedPackageId = ref<string | null>(null);
 const submitting = ref<boolean>(false);
 
+const isPackaged = computed(() => props.offer?.sale_form === 'packaged');
 const unitLabel = computed(() =>
   marketplaceOrderUnitLabel(props.offer?.unit_of_measure),
+);
+// Шаг ввода: по мере — штука целая (1), вес/объём дробный (0.001); упаковкой — целое.
+const quantityStep = computed(() =>
+  isPackaged.value || props.offer?.unit_of_measure === 'piece' ? 1 : 0.001,
+);
+
+const packageOptions = computed(() =>
+  (props.offer?.packages ?? []).map((p) => ({
+    value: p.id,
+    label: `${p.label || `Упаковка ${String(p.size).replace('.', ',')} ${unitLabel.value}`} — ${applyMembershipFee(Number(p.price), props.feePercent).toLocaleString('ru-RU')} ${system.governSymbol}`,
+  })),
+);
+
+const selectedPackage = computed(() =>
+  (props.offer?.packages ?? []).find((p) => p.id === selectedPackageId.value) ?? null,
 );
 
 const maxQuantity = computed(() => {
   if (!props.offer) return null;
   if (props.offer.unlimited_flag) return null;
+  // Остаток в базовых единицах; при упаковке — переводим в число упаковок.
+  if (isPackaged.value && selectedPackage.value) {
+    return Math.floor(props.offer.quantity_available / selectedPackage.value.size);
+  }
   return props.offer.quantity_available;
 });
 
+// Цена единицы отпуска (с взносом): по мере — за базовую единицу; упаковкой — за упаковку.
 const priceWithFee = computed(() => {
   if (!props.offer) return 0;
-  return applyMembershipFee(Number(props.offer.price_per_unit), props.feePercent);
+  const base = isPackaged.value
+    ? Number(selectedPackage.value?.price ?? 0)
+    : Number(props.offer.price_per_unit);
+  return applyMembershipFee(base, props.feePercent);
+});
+
+const saleUnitLabel = computed(() => {
+  if (isPackaged.value && selectedPackage.value) {
+    return `упак. ${String(selectedPackage.value.size).replace('.', ',')} ${unitLabel.value}`;
+  }
+  return unitLabel.value;
 });
 
 const totalSum = computed(() => {
@@ -84,7 +119,11 @@ const alreadyInCart = computed(() => {
 const canSubmit = computed(() => {
   if (!props.offer) return false;
   const q = Number(quantity.value);
-  if (!Number.isInteger(q) || q < 1) return false;
+  if (!(q > 0)) return false;
+  if (isPackaged.value) {
+    if (!selectedPackageId.value) return false;
+    if (!Number.isInteger(q)) return false;
+  }
   if (maxQuantity.value !== null && q > maxQuantity.value) return false;
   return true;
 });
@@ -97,7 +136,14 @@ function onQuantityInput(value: string | number | null): void {
 watch(
   () => props.modelValue,
   (v) => {
-    if (v) quantity.value = 1;
+    if (v) {
+      quantity.value = 1;
+      // Предвыбираем упаковку по умолчанию (или первую).
+      const pkgs = props.offer?.packages ?? [];
+      selectedPackageId.value = isPackaged.value
+        ? (pkgs.find((p) => p.is_default)?.id ?? pkgs[0]?.id ?? null)
+        : null;
+    }
   },
 );
 
@@ -109,6 +155,7 @@ async function onSubmit(): Promise<void> {
       props.offer.id,
       Number(quantity.value),
       cartStore.currentBraname,
+      isPackaged.value ? selectedPackageId.value : null,
     );
     // CTA прямо в тосте: быстрый переход к оформлению, чтобы не искать корзину
     // отдельно. Заказал одну позицию — сразу из всплывашки идёшь в корзину.
@@ -143,17 +190,29 @@ BaseDialog(
   template(#default)
     .add-to-cart
       .add-to-cart__offer(v-if="offer") {{ offer.product_name }}
+      q-select(
+        v-if="isPackaged",
+        :model-value="selectedPackageId",
+        :options="packageOptions",
+        label="Упаковка",
+        outlined,
+        dense,
+        emit-value,
+        map-options,
+        @update:model-value="(v) => selectedPackageId = v"
+      )
       BaseInput(
         :model-value="quantity",
         type="number",
-        :label="`Количество (${unitLabel})`",
-        :hint="maxQuantity !== null ? `Доступно: ${maxQuantity}×${unitLabel}` : 'Без ограничения остатка'",
+        :step="quantityStep",
+        :label="isPackaged ? 'Число упаковок' : `Количество (${unitLabel})`",
+        :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${isPackaged ? 'упак.' : unitLabel}` : 'Без ограничения остатка'",
         @update:model-value="onQuantityInput"
       )
       .add-to-cart__note(v-if="alreadyInCart > 0")
-        | Уже в корзине: {{ alreadyInCart }}×{{ unitLabel }} — добавление суммируется.
+        | Уже в корзине: {{ alreadyInCart }} — добавление суммируется.
       .add-to-cart__price(v-if="offer")
-        | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ unitLabel }}
+        | Цена: {{ priceWithFee.toLocaleString('ru-RU') }} {{ system.governSymbol }} за {{ saleUnitLabel }}
       .add-to-cart__total(v-if="offer")
         | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
   template(#footer)

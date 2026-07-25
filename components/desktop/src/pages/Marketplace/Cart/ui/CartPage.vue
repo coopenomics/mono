@@ -52,11 +52,28 @@ function moneyWithFee(value: string | number | null | undefined): string {
   return money(applyMembershipFee(Number(value ?? 0), feePercent.value));
 }
 
-// Низкоуровневый коммит количества (целое ≥ 1). Кламп делает changeQty.
-async function setQty(offerId: string, next: number): Promise<void> {
-  if (next < 1 || cartStore.mutating) return;
+// Эпик 18: упаковочная позиция — целое число упаковок; по мере — дробное в
+// базовой единице (штука неделима). Шаг задаёт stepFor.
+function isPackagedItem(item: IMarketplaceCartItem): boolean {
+  return item.sale_form === 'packaged';
+}
+function stepFor(item: IMarketplaceCartItem): number {
+  if (isPackagedItem(item)) return 1;
+  return item.unit_of_measure === 'piece' ? 1 : 0.001;
+}
+// Подпись единицы отпуска: упаковкой — «упак. 0,5 л» (package_label), иначе базовая.
+function saleUnitLabel(item: IMarketplaceCartItem): string {
+  return item.package_label ?? unitShort(item.unit_of_measure);
+}
+function quantize(item: IMarketplaceCartItem, v: number): number {
+  return stepFor(item) === 1 ? Math.floor(v) : Math.round(v * 1000) / 1000;
+}
+
+// Низкоуровневый коммит количества (> 0). Кламп делает changeQty.
+async function setQty(offerId: string, next: number, packageId: string | null): Promise<void> {
+  if (next <= 0 || cartStore.mutating) return;
   try {
-    await cartStore.setQty(offerId, next);
+    await cartStore.setQty(offerId, next, packageId);
   } catch (e) {
     FailAlert(e);
   }
@@ -72,16 +89,17 @@ function atMax(item: IMarketplaceCartItem): boolean {
   return max != null && item.quantity >= max;
 }
 
-// Кламп к [1, max] и коммит, если значение изменилось. Возвращает итог.
+// Кламп к [step, max] и коммит, если значение изменилось. Возвращает итог.
 function changeQty(item: IMarketplaceCartItem, next: number): number {
-  let n = Math.floor(next);
-  if (!Number.isFinite(n) || n < 1) n = 1;
+  let n = quantize(item, next);
+  const min = stepFor(item);
+  if (!Number.isFinite(n) || n < min) n = min;
   const max = maxOf(item);
   if (max != null && n > max) {
     n = max;
-    NotifyAlert(`Доступно не больше ${max} × ${unitShort(item.unit_of_measure)}`);
+    NotifyAlert(`Доступно не больше ${max} ${saleUnitLabel(item)}`);
   }
-  if (n !== item.quantity) void setQty(item.offer_id, n);
+  if (n !== item.quantity) void setQty(item.offer_id, n, item.package_id ?? null);
   return n;
 }
 
@@ -91,7 +109,7 @@ function changeQty(item: IMarketplaceCartItem, next: number): number {
 function onQtyInput(item: IMarketplaceCartItem, ev: Event): void {
   const el = ev.target as HTMLInputElement;
   const parsed = Number(el.value);
-  const next = Number.isFinite(parsed) && parsed >= 1 ? parsed : item.quantity;
+  const next = Number.isFinite(parsed) && parsed > 0 ? parsed : item.quantity;
   el.value = String(changeQty(item, next));
 }
 
@@ -101,9 +119,9 @@ function blurOnEnter(ev: Event): void {
   (ev.target as HTMLInputElement).blur();
 }
 
-async function onRemove(offerId: string): Promise<void> {
+async function onRemove(offerId: string, packageId: string | null): Promise<void> {
   try {
-    await cartStore.removeItem(offerId);
+    await cartStore.removeItem(offerId, packageId);
   } catch (e) {
     FailAlert(e);
   }
@@ -210,14 +228,14 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     //- Левая колонка: позиции корзины.
     .col-12.col-md-8
       BaseCard.mp-cart__items
-        .mp-cart__line(v-for="it in cartStore.items", :key="it.offer_id")
+        .mp-cart__line(v-for="it in cartStore.items", :key="it.id")
           .mp-cart__thumb(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)")
             q-img(v-if="it.image_url", :src="it.image_url", ratio="1")
             .mp-cart__thumb-empty(v-else)
               q-icon(name="image", size="22px")
           .mp-cart__info
             .mp-cart__name(role="button", tabindex="0", @click="goToDetail(it.offer_id)", @keyup.enter="goToDetail(it.offer_id)") {{ it.product_name }}
-            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ unitShort(it.unit_of_measure) }}
+            .mp-cart__unit {{ moneyWithFee(it.price_per_unit) }} {{ symbol }} / {{ saleUnitLabel(it) }}
             BaseChip.mp-cart__warn(
               v-if="it.available_on_current_ku === false",
               variant="warn",
@@ -229,8 +247,8 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               icon-only,
               size="sm",
               aria-label="Уменьшить количество",
-              :disabled="it.quantity <= 1 || cartStore.mutating",
-              @click="changeQty(it, it.quantity - 1)"
+              :disabled="it.quantity <= stepFor(it) || cartStore.mutating",
+              @click="changeQty(it, it.quantity - stepFor(it))"
             )
               template(#icon-left)
                 q-icon(name="remove")
@@ -246,14 +264,14 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
                 @change="onQtyInput(it, $event)",
                 @keyup.enter="blurOnEnter"
               )
-              span.mp-cart__qty-unit × {{ unitShort(it.unit_of_measure) }}
+              span.mp-cart__qty-unit × {{ saleUnitLabel(it) }}
             BaseButton(
               variant="ghost",
               icon-only,
               size="sm",
               aria-label="Увеличить количество",
               :disabled="cartStore.mutating || atMax(it)",
-              @click="changeQty(it, it.quantity + 1)"
+              @click="changeQty(it, it.quantity + stepFor(it))"
             )
               template(#icon-left)
                 q-icon(name="add")
@@ -264,7 +282,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             size="sm",
             aria-label="Удалить позицию",
             :disabled="cartStore.mutating",
-            @click="onRemove(it.offer_id)"
+            @click="onRemove(it.offer_id, it.package_id ?? null)"
           )
             template(#icon-left)
               q-icon(name="delete_outline")
