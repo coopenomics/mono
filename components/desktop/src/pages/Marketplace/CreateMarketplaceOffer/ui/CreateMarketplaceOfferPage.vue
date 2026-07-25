@@ -120,54 +120,47 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               outlined,
               dense,
               no-error-icon,
-              reserve-hint-space,
               emit-value,
               map-options
             )
-          q-input(
-            v-model='form.price_per_unit',
-            :label='priceLabel',
-            outlined,
-            dense,
-            no-error-icon,
-            reserve-hint-space,
-            :suffix='governSymbol',
-            hint='Два знака после запятой, например 100.50',
-            :rules='[priceRule]'
-          )
-          p.offer-wizard__hint(v-if='referencePriceHint') {{ referencePriceHint }}
-          p.offer-wizard__hint(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
-          .offer-wizard__qty
-            q-input.offer-wizard__qty-input(
-              v-model.number='form.quantity_available',
-              label='Доступное количество',
+            q-input(
+              v-model='form.price_per_unit',
+              :label='priceLabel',
+              outlined,
+              dense,
+              no-error-icon,
+              :suffix='governSymbol',
+              :rules='[priceRule]'
+            )
+          .offer-wizard__row
+            .offer-wizard__qty
+              q-input.offer-wizard__qty-input(
+                v-model.number='form.quantity_available',
+                label='Доступное количество',
+                type='number',
+                min='0',
+                outlined,
+                dense,
+                no-error-icon,
+                :suffix='`× ${orderUnitLabel}`',
+                :disable='form.unlimited_flag',
+                :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
+              )
+              BaseCheckbox.offer-wizard__qty-check(
+                :model-value='form.unlimited_flag',
+                label='Без ограничения',
+                @update:model-value='onToggleUnlimited'
+              )
+            q-input(
+              v-model.number='form.shelf_life_days',
+              label='Срок годности (дней)',
               type='number',
               min='0',
               outlined,
               dense,
               no-error-icon,
-              reserve-hint-space,
-              :suffix='`× ${orderUnitLabel}`',
-              :disable='form.unlimited_flag',
-              :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
+              :rules='[(v) => (v !== null && v >= 0) || "Срок годности не может быть отрицательным"]'
             )
-            BaseCheckbox.offer-wizard__qty-check(
-              :model-value='form.unlimited_flag',
-              label='Без ограничения',
-              @update:model-value='onToggleUnlimited'
-            )
-          q-input(
-            v-model.number='form.shelf_life_days',
-            label='Срок годности (дней)',
-            type='number',
-            min='0',
-            outlined,
-            dense,
-            no-error-icon,
-            reserve-hint-space,
-            hint='По сроку годности имущество списывается со склада как скоропорт. 0 — без срока годности (не списывается). Гарантийный срок возврата назначает председатель при модерации.',
-            :rules='[(v) => (v !== null && v >= 0) || "Срок годности не может быть отрицательным"]'
-          )
 
         //- ───────── Шаг 3: КУ поставки и минимальный объём ─────────
         .offer-wizard__step(v-else-if='step.key === "supply"')
@@ -711,10 +704,6 @@ const priceWithFeeHint = computed(() => {
   return `Цена для заказчика: ${formatted} за ${orderUnitLabel.value}`;
 });
 
-// Цена задаётся за базовую единицу (Эпик 17) — справочный пересчёт из фасовки
-// больше не нужен.
-const referencePriceHint = computed(() => '');
-
 const stockEmpty = computed(
   () => !form.value.unlimited_flag && (form.value.quantity_available ?? 0) <= 0
 );
@@ -1120,25 +1109,28 @@ onBeforeUnmount(() => {
 
   &__row {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--p-3, 12px);
+    align-items: start;
+
+    :deep(.q-field) {
+      width: 100%;
+    }
   }
 
   &__qty {
     display: flex;
-    align-items: flex-start;
-    gap: var(--p-4, 16px);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    min-width: 0;
   }
 
   &__qty-input {
-    flex: 0 1 240px;
+    width: 100%;
   }
 
-  // Чекбокс в одной строке с полем количества; небольшой top-отступ
-  // выравнивает его по центру dense-контрола.
   &__qty-check {
-    margin-top: var(--p-2, 8px);
+    align-self: flex-start;
   }
 
   &__field-label {

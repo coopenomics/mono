@@ -15,6 +15,7 @@ import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, EmptyState, TableSkeleton } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, TableSkeletonColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
+import { useDataPoller } from 'src/shared/lib/composables'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
@@ -43,6 +44,8 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const isChairman = computed(() => session.isChairman ?? false)
 
 const loading = ref(false)
+// Ручной перезапуск геокода — показываем лоадер на кнопке, пока мутация идёт.
+const geocodingBranames = ref<Set<string>>(new Set())
 
 const dialogOpen = ref(false)
 const dialogBranch = ref<IBranch | null>(null)
@@ -113,13 +116,24 @@ function openMap(row: IssuancePointRow): void {
   mapOpen.value = true
 }
 
+function isGeocodingRow(row: IssuancePointRow): boolean {
+  return geocodingBranames.value.has(row.branch.braname)
+}
+
+function isGeocodePending(row: IssuancePointRow): boolean {
+  return (
+    row.details?.geocodeStatus === GeocodeStatus.PENDING ||
+    isGeocodingRow(row)
+  )
+}
+
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок', cell: 'text' },
-  { label: 'Город', cell: 'text', cellWidth: '120px' },
-  { label: 'Адрес', cell: 'text' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Геокод', cell: 'badge' },
-  { label: 'Действия', class: 'col-action', cell: 'icon' },
+  { label: 'Участок', cell: 'text', class: 'col-ku', cellWidth: '220px' },
+  { label: 'Город', cell: 'text', class: 'col-city', cellWidth: '120px' },
+  { label: 'Адрес', cell: 'text', class: 'col-address', cellWidth: '280px' },
+  { label: 'Статус', cell: 'badge', class: 'col-status', cellWidth: '150px' },
+  { label: 'Геокод', cell: 'badge', class: 'col-geo', cellWidth: '180px' },
+  { label: 'Действия', class: 'col-action', cell: 'icon', cellWidth: '190px' },
 ]
 
 async function load(): Promise<void> {
@@ -135,6 +149,27 @@ async function load(): Promise<void> {
     loading.value = false
   }
 }
+
+/** Тихое обновление ПВЗ-детализаций — для poll, пока геокодер в PENDING. */
+async function reloadKuDetails(): Promise<void> {
+  try {
+    await kuStore.load({ coopname: coopname.value, onlyActive: false })
+  } catch {
+    // Poll не спамит FailAlert — следующий тик или resync подхватят.
+  }
+}
+
+const hasPendingGeocode = computed(() =>
+  kuStore.details.some((d) => d.geocodeStatus === GeocodeStatus.PENDING),
+)
+
+// После сохранения ПВЗ геокодер на бэкенде fire-and-forget: статус PENDING → OK/FAILED.
+// Пока есть PENDING — опрашиваем каждые 3 с (быстрее страховочного resync ws).
+useDataPoller(reloadKuDetails, {
+  interval: 3000,
+  immediate: true,
+  enabled: hasPendingGeocode,
+})
 
 function openAdd(branch: IBranch): void {
   dialogBranch.value = branch
@@ -162,18 +197,28 @@ async function setStatus(row: IssuancePointRow, status: KuDetailsStatus): Promis
 }
 
 async function retryGeocode(row: IssuancePointRow): Promise<void> {
+  geocodingBranames.value = new Set(geocodingBranames.value).add(row.branch.braname)
   try {
-    await kuStore.retryGeocode(coopname.value, row.branch.braname)
-    SuccessAlert('Геокодинг адреса перезапущен')
+    const updated = await kuStore.retryGeocode(coopname.value, row.branch.braname)
+    if (updated.geocodeStatus === GeocodeStatus.OK) {
+      SuccessAlert('Координаты определены')
+    } else if (updated.geocodeStatus === GeocodeStatus.FAILED) {
+      FailAlert(
+        new Error(updated.geocodeErrorMessage || 'Не удалось определить координаты'),
+      )
+    } else {
+      SuccessAlert('Геокодинг запущен — статус обновится автоматически')
+    }
   } catch (e) {
     FailAlert(e, 'Не удалось перезапустить геокодинг')
+  } finally {
+    const next = new Set(geocodingBranames.value)
+    next.delete(row.branch.braname)
+    geocodingBranames.value = next
   }
 }
 
-// Фоновое обновление вместо кнопки: геокодер проставляет координаты
-// асинхронно после сохранения адреса — статус доезжает страховочным
-// resync'ом канала (60с) и catch-up'ом на возврат вкладки. Собственных
-// realtime-событий у КУ-деталей нет (изменения делает сам админ).
+// Страховочный resync ws-канала + catch-up на возврат вкладки (дополнение к poll).
 const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
@@ -201,7 +246,7 @@ q-page.admin-pvz
     v-if='loading && !rows.length',
     :columns='skeletonColumns',
     :rows='5',
-    min-width='980px'
+    min-width='1140px'
   )
   .table-wrap(v-else-if='rows.length')
     .table-scroll
@@ -210,7 +255,7 @@ q-page.admin-pvz
           tr
             th.col-ku Участок
             th.col-city Город
-            th Адрес
+            th.col-address Адрес
             th.col-status Статус
             th.col-geo Геокод
             th.col-action Действия
@@ -222,13 +267,20 @@ q-page.admin-pvz
                 :full-name='branchName(row)'
               )
             td.col-city {{ row.branch.city || '—' }}
-            td.admin-pvz__address {{ addressOf(row) }}
+            td.col-address.admin-pvz__address {{ addressOf(row) }}
             td.col-status
               BaseBadge(:variant='statusOf(row).variant') {{ statusOf(row).label }}
             td.col-geo
               .admin-pvz__geo(v-if='row.details')
-                BaseBadge(:variant='GEOCODE_LABEL[row.details.geocodeStatus].variant')
-                  | {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
+                BaseBadge.admin-pvz__geo-badge(
+                  :variant='GEOCODE_LABEL[row.details.geocodeStatus].variant'
+                )
+                  q-spinner.admin-pvz__geo-spinner(
+                    v-if='isGeocodePending(row)',
+                    color='inherit',
+                    size='14px'
+                  )
+                  span {{ GEOCODE_LABEL[row.details.geocodeStatus].label }}
                   q-tooltip(
                     v-if='row.details.geocodeStatus === GeocodeStatus.FAILED && row.details.geocodeErrorMessage'
                   ) {{ row.details.geocodeErrorMessage }}
@@ -269,7 +321,9 @@ q-page.admin-pvz
                     variant='ghost',
                     icon-only,
                     size='sm',
-                    aria-label='Перезапустить геокодинг',
+                    aria-label='Определить координаты',
+                    :loading='isGeocodingRow(row)',
+                    :disabled='isGeocodingRow(row)',
                     @click='retryGeocode(row)'
                   )
                     template(#icon-left)
@@ -360,6 +414,16 @@ q-page.admin-pvz
     gap: var(--p-1, 4px);
   }
 
+  &__geo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__geo-spinner {
+    flex-shrink: 0;
+  }
+
   &__map-addr {
     color: var(--p-ink-2);
     margin-bottom: var(--p-3, 12px);
@@ -369,24 +433,34 @@ q-page.admin-pvz
 .table-scroll {
   overflow-x: auto;
 }
+
+// Глобальный канон (.table{min-width:0!important}) снимает локальный min-width —
+// без !important колонки схлопываются и наезжают друг на друга. Сумма ширин =
+// min-width: при нехватке места скролл в .table-scroll, не сжатие.
 .table {
-  table-layout: fixed;
-  min-width: 980px;
+  table-layout: fixed !important;
+  min-width: 1140px !important;
 }
+
 .col-ku {
-  width: 240px;
+  width: 220px;
 }
 .col-city {
-  width: 140px;
+  width: 120px;
+}
+.col-address {
+  width: 280px;
+  overflow-wrap: anywhere;
 }
 .col-status {
-  width: 160px;
+  width: 150px;
+  white-space: nowrap;
 }
 .col-geo {
-  width: 170px;
+  width: 180px;
 }
 .col-action {
-  width: 200px;
+  width: 190px;
   text-align: right;
 }
 
