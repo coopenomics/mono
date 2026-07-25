@@ -56,14 +56,10 @@ div
               )
                 span {{ props.row.title }}
 
-            // Правая сетка строки: время | (слот выравнивания) | действие —
-            // фиксированные колонки, одинаковые для всех уровней дерева
+            // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+            // время на уровне компонента пока скрыто — почти всегда нули
             .col-auto.row-cells
               .cell-time
-                .row-meta
-                  q-icon(name='schedule', size='14px')
-                  span.t-mono-sm {{ formatHoursFactPlan(props.row.fact?.creators_hours, props.row.plan?.creators_hours) }}
-                  q-tooltip Часы исполнителей: факт / план
               .cell-side
               .cell-actions
                 // Мастер — ответственный за компонент (зеркально исполнителям задач)
@@ -96,7 +92,6 @@ import {
   getProjectStatusIcon,
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
-import { formatHoursFactPlan } from 'app/extensions/capital/shared/lib';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { EntityIdBadge } from 'src/shared/ui';

@@ -9,7 +9,7 @@ span(:class='{ "create-host--row": row }')
     @click.stop='handleButtonClick',
     @keydown.enter.prevent='handleButtonClick'
   )
-    q-icon(name='add', size='16px')
+    q-icon(name='add', size='14px')
     span Добавить компонент
 
   BaseButton(
@@ -78,17 +78,17 @@ defineExpose({
   width: 100%;
 }
 
-// Полнострочная «полоска-добавлялка»: muted-текст, проявляется фоном по hover
+// Полнострочная «полоска-добавлялка»: компактнее строк данных, muted
 .list-add-row {
   display: flex;
   align-items: center;
   gap: var(--p-2);
   width: 100%;
-  min-height: 40px;
-  padding: var(--p-2) var(--p-3);
+  min-height: 28px;
+  padding: var(--p-1) var(--p-3);
   box-sizing: border-box;
   color: var(--p-ink-3);
-  font-size: var(--p-fs-body-sm);
+  font-size: var(--p-fs-meta);
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease;
 

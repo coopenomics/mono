@@ -287,7 +287,9 @@
   font-size: var(--p-fs-body);
   border-bottom: 1px solid var(--p-line);
 }
-.q-table tbody tr:hover {
+/* Не красить q-tr--no-hover: вложенные строки-обёртки (раскрытый
+   проект/компонент) иначе подсвечиваются при ховере дочерних задач. */
+.q-table tbody > tr:not(.q-tr--no-hover):hover {
   background: var(--p-surface-2);
 }
 .q-table__top {
