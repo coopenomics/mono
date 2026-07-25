@@ -158,65 +158,65 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             .offer-wizard__hint(v-if='form.sale_form === "by_measure"') Заказчик указывает произвольное количество; цена — за {{ orderUnitLabel }}.
             .offer-wizard__hint(v-else) Товар отпускается целыми упаковками, у каждой своя цена. Заказчик выбирает упаковку и число упаковок.
 
-          //- ───────── Редактор упаковок ─────────
-          .offer-wizard__packages(v-if='form.sale_form === "packaged"')
-            .offer-wizard__hint(v-if='form.packages.length > 1')
-              | Кружок слева — упаковка по умолчанию (первой видна в каталоге).
-            .offer-wizard__pkg-row(v-for='(pkg, i) in form.packages', :key='i')
-              q-radio.offer-wizard__pkg-default(
-                :model-value='defaultPackageIndex',
-                :val='i',
-                color='primary',
-                dense,
-                aria-label='Сделать упаковкой по умолчанию',
-                @update:model-value='setDefaultPackage(i)'
-              )
-              q-input.offer-wizard__pkg-size(
-                v-model.number='pkg.size',
-                :label='`Содержимое, ${orderUnitLabel}`',
-                type='number',
-                min='0',
-                :step='unitStep',
-                outlined,
-                dense,
-                no-error-icon,
-                hide-bottom-space
-              )
-              q-input.offer-wizard__pkg-price(
-                v-model='pkg.price',
-                label='Цена упаковки',
-                outlined,
-                dense,
-                no-error-icon,
-                hide-bottom-space,
-                :suffix='governSymbol'
-              )
-              q-input.offer-wizard__pkg-label(
-                v-model='pkg.label',
-                label='Подпись (необяз.)',
-                outlined,
-                dense,
-                no-error-icon,
-                hide-bottom-space
-              )
-              BaseButton(
+            //- ───────── Редактор упаковок — внутри той же карточки ─────────
+            .offer-wizard__packages(v-if='form.sale_form === "packaged"')
+              .offer-wizard__hint(v-if='form.packages.length > 1')
+                | Кружок слева — упаковка по умолчанию (первой видна в каталоге).
+              .offer-wizard__pkg-row(v-for='(pkg, i) in form.packages', :key='i')
+                q-radio.offer-wizard__pkg-default(
+                  :model-value='defaultPackageIndex',
+                  :val='i',
+                  color='primary',
+                  dense,
+                  aria-label='Сделать упаковкой по умолчанию',
+                  @update:model-value='setDefaultPackage(i)'
+                )
+                q-input.offer-wizard__pkg-size(
+                  v-model.number='pkg.size',
+                  :label='`Содержимое, ${orderUnitLabel}`',
+                  type='number',
+                  min='0',
+                  :step='unitStep',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space
+                )
+                q-input.offer-wizard__pkg-price(
+                  v-model='pkg.price',
+                  label='Цена упаковки',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space,
+                  :suffix='governSymbol'
+                )
+                q-input.offer-wizard__pkg-label(
+                  v-model='pkg.label',
+                  label='Подпись (необяз.)',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space
+                )
+                BaseButton(
+                  variant='ghost',
+                  icon-only,
+                  size='sm',
+                  :disabled='form.packages.length <= 1',
+                  aria-label='Убрать упаковку',
+                  @click='removePackage(i)'
+                )
+                  template(#icon-left)
+                    q-icon(name='delete_outline', size='18px')
+              BaseButton.offer-wizard__pkg-add(
                 variant='ghost',
-                icon-only,
                 size='sm',
-                :disabled='form.packages.length <= 1',
-                aria-label='Убрать упаковку',
-                @click='removePackage(i)'
+                @click='addPackage'
               )
                 template(#icon-left)
-                  q-icon(name='delete_outline', size='18px')
-            BaseButton.offer-wizard__pkg-add(
-              variant='ghost',
-              size='sm',
-              @click='addPackage'
-            )
-              template(#icon-left)
-                q-icon(name='add', size='16px')
-              span.q-ml-sm Добавить упаковку
+                  q-icon(name='add', size='16px')
+                span.q-ml-sm Добавить упаковку
 
           .offer-wizard__qty-group
             .offer-wizard__field-label Наличие
