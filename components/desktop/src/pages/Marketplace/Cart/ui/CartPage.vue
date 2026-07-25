@@ -131,7 +131,7 @@ function onClear(): void {
   Dialog.create({
     title: 'Очистить корзину?',
     message: 'Все позиции корзины будут удалены. Отменить это действие нельзя.',
-    cancel: { label: 'Не очищать', flat: true },
+    cancel: { label: 'Отмена', flat: true },
     ok: { label: 'Очистить', color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
