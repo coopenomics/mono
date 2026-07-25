@@ -68,11 +68,19 @@ const quantityStep = computed(() =>
   isPackaged.value || props.offer?.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001,
 );
 
+// Подпись варианта в селекте — название (если задано) ВСЕГДА вместе с
+// размером упаковки, а не вместо него: заказчику нужно видеть объём сразу
+// при выборе, не выбирая упаковку заранее ради строки «Цена: ... за упак.» под селектом.
 const packageOptions = computed(() =>
-  (props.offer?.packages ?? []).map((p) => ({
-    value: p.id,
-    label: `${p.label || `Упаковка ${String(p.size).replace('.', ',')} ${unitLabel.value}`} — ${applyMembershipFee(Number(p.price), props.feePercent).toLocaleString('ru-RU')} ${system.governSymbol}`,
-  })),
+  (props.offer?.packages ?? []).map((p) => {
+    const sizeLabel = `${String(p.size).replace('.', ',')} ${unitLabel.value}`;
+    const nameLabel = p.label ? `${p.label} — ${sizeLabel}` : `Упаковка ${sizeLabel}`;
+    const priceLabel = `${applyMembershipFee(Number(p.price), props.feePercent).toLocaleString('ru-RU')} ${system.governSymbol}`;
+    return {
+      value: p.id,
+      label: `${nameLabel} — ${priceLabel}`,
+    };
+  }),
 );
 
 const selectedPackage = computed(() =>
