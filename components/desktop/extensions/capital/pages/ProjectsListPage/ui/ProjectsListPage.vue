@@ -1,5 +1,8 @@
 <template lang="pug">
-.projects-list-page
+//- Родитель Мастерской: список на корне, проект/компонент/задача — children через router-view
+//- (подсветка «Мастерская» в рейле через matched по name projects-list).
+router-view(v-if='!isWorkshopRoot')
+.projects-list-page(v-else)
   //- Панель фильтров (ProjectsFilterPanel) намеренно скрыта со страницы —
   //- фильтрами пока не пользуемся; виджет остаётся в проекте на будущее
 
@@ -40,7 +43,7 @@
 
 <script lang="ts" setup>
 import { onMounted, onBeforeMount, onBeforeUnmount, ref, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useExpandableState } from 'src/shared/lib/composables';
 import { useHeaderActions } from 'src/shared/hooks';
 import { CreateProjectHeaderButton } from 'app/extensions/capital/features/Project/CreateProject';
@@ -50,11 +53,17 @@ import { useSessionStore } from 'src/entities/Session';
 import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
 
 const router = useRouter();
+const route = useRoute();
 const session = useSessionStore();
+
+/** Корень Мастерской (список), не вложенный проект/компонент/задача. */
+const isWorkshopRoot = computed(() => route.name === 'projects-list');
 
 // openDialog кнопки-в-шапке прилетает колбэком (см. CreateProjectHeaderButton)
 const openProjectDialog = ref<(() => void) | null>(null);
-const capitalFabHotkeysEnabled = computed(() => session.isChairman || session.isMember);
+const capitalFabHotkeysEnabled = computed(
+  () => isWorkshopRoot.value && (session.isChairman || session.isMember),
+);
 
 useCapitalFabHotkeys(
   () => ({
@@ -158,29 +167,40 @@ onBeforeMount(() => {
   };
 });
 
-// Регистрируем действия в header
+function registerListHeaderActions(): void {
+  if (!(session.isChairman || session.isMember)) return;
+  registerHeaderAction({
+    id: 'capital-projects-create',
+    component: CreateProjectHeaderButton,
+    props: {
+      exposeOpen: (fn: () => void) => {
+        openProjectDialog.value = fn;
+      },
+    },
+    order: 1,
+  });
+}
+
+// Регистрируем действия в header только на корне списка
 onMounted(async () => {
   // Загружаем сохраненное состояние expanded из LocalStorage
   loadProjectsExpandedState();
   loadComponentsExpandedState();
 
-  // Главное действие страницы — создание проекта в правом верхнем углу топбара
-  if (session.isChairman || session.isMember) {
-    registerHeaderAction({
-      id: 'capital-projects-create',
-      component: CreateProjectHeaderButton,
-      props: {
-        exposeOpen: (fn: () => void) => {
-          openProjectDialog.value = fn;
-        },
-      },
-      order: 1,
-    });
+  if (isWorkshopRoot.value) {
+    registerListHeaderActions();
   }
+});
+
+// При уходе во вложенный маршрут / возврате на список — шапка списка
+watch(isWorkshopRoot, (isRoot) => {
+  if (isRoot) registerListHeaderActions();
+  else clearActions();
 });
 
 // Следим за изменениями фильтров и обновляем список
 watch(() => projectStore.projectFilters, () => {
+  if (!isWorkshopRoot.value) return;
   projectsListKey.value++;
 }, { deep: true });
 

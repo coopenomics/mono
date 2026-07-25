@@ -56,17 +56,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
             },
-          },
-          {
-            // Отдельная страница документа (deep-link из поиска и реестра).
-            path: 'documents/:hash',
-            name: 'document-details',
-            component: markRaw(DocumentDetailsPage),
-            meta: {
-              title: 'Документ',
-              roles: ['chairman', 'member'],
-              hidden: true,
-            },
+            children: [
+              {
+                // Отдельная страница документа (deep-link из поиска и реестра).
+                path: ':hash',
+                name: 'document-details',
+                component: markRaw(DocumentDetailsPage),
+                meta: {
+                  title: 'Документ',
+                  roles: ['chairman', 'member'],
+                  hidden: true,
+                },
+              },
+            ],
           },
           {
             path: 'payments/:username?',
