@@ -48,6 +48,7 @@ export const rawOrderSelector = {
   delivery_point_lat: true,
   delivery_point_lng: true,
   quantity: true,
+  package_size: true,
   warehouse_quantity: true,
   warehouse_shelves: true,
   group_accumulated_quantity: true,

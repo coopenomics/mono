@@ -9111,6 +9111,8 @@ export type ValueTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
+	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в карточке заказа. */
@@ -22165,6 +22167,8 @@ export type ResolverInputTypes = {
 	orderer_name?:boolean | `@${string}`,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
+	package_size?:boolean | `@${string}`,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в карточке заказа. */
@@ -34803,6 +34807,8 @@ export type ModelTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
+	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
 	/** Название товара из предложения — для отображения в карточке заказа. */
@@ -34828,7 +34834,7 @@ export type ModelTypes = {
 	/** Полная сумма к оплате заказчиком: total_cost + membership_fee. Готовое значение — клиенту не нужно складывать поля самому. */
 	total_cost_with_fee: string,
 	/** Базовая единица измерения товара из предложения (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: ModelTypes["DateTime"],
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */
@@ -48661,6 +48667,8 @@ export type GraphQLTypes = {
 	orderer_name?: string | undefined | null,
 	/** Когда заказчик поставил финальную подпись на акте выдачи. */
 	orderer_signed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, иначе quantity/package_size — число упаковок в заказе. */
+	package_size: number,
 	/** Цена за единицу товара на момент заказа. */
 	price_per_unit: string,
 	/** Название товара из предложения — для отображения в карточке заказа. */
@@ -48686,7 +48694,7 @@ export type GraphQLTypes = {
 	/** Полная сумма к оплате заказчиком: total_cost + membership_fee. Готовое значение — клиенту не нужно складывать поля самому. */
 	total_cost_with_fee: string,
 	/** Базовая единица измерения товара из предложения (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Когда запись о заказе последний раз изменялась. */
 	updated_at: GraphQLTypes["DateTime"],
 	/** Сколько по заказу фактически принято на склад пункта выдачи и ещё не выдано — доступно к выдаче. Может быть меньше заказанного при недопоставке. Заполняется в лентах выдачи. */

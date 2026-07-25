@@ -1,5 +1,6 @@
 import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import {
@@ -105,11 +106,11 @@ export class MarketplaceOrderDTO {
   })
   public readonly product_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара из предложения (штука, килограмм, литр).',
   })
-  public readonly unit_of_measure!: string | null;
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
@@ -149,6 +150,13 @@ export class MarketplaceOrderDTO {
 
   @Field(() => Float, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
+
+  @Field(() => Float, {
+    description:
+      'Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, ' +
+      'иначе quantity/package_size — число упаковок в заказе.',
+  })
+  public readonly package_size!: number;
 
   @Field(() => Float, {
     nullable: true,
@@ -372,7 +380,7 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
  */
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
-  unit_of_measure?: string | null;
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;
@@ -418,6 +426,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lat: display?.delivery_point_lat ?? null,
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
+    package_size: o.package_size,
     warehouse_quantity: display?.warehouse_quantity ?? null,
     warehouse_shelves: display?.warehouse_shelves ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,

@@ -88,3 +88,27 @@ export function marketplaceQuantityLabel(
   const q = Number.isFinite(parsed as number) ? (parsed as number) : 0;
   return `${trimNumber(q)} ${marketplaceUnitShort(unit)}`;
 }
+
+/**
+ * Презентация количества заказа с учётом упаковки (Эпик 18): по мере —
+ * базовое количество и единица («10 кг»); упаковкой — заказ ведётся в базовой
+ * единице (`quantity` — итог, `packageSize` — содержимое одной упаковки), но
+ * заказчику показываем число упаковок, как он их выбирал («10×упак. 0,1 л»),
+ * а не итоговый объём в базовой единице. Зеркалит backend `presentSaleUnit`
+ * (`controller/.../application/shared/packaging.util.ts`) — там же source of
+ * truth формата подписи.
+ */
+export function marketplaceOrderSaleUnit(
+  quantity: number,
+  unit: string | null | undefined,
+  packageSize: number | null | undefined,
+): { units: number; unitLabel: string } {
+  const baseLabel = marketplaceUnitShort(unit);
+  if (packageSize && packageSize > 0) {
+    return {
+      units: Number((quantity / packageSize).toFixed(0)),
+      unitLabel: `упак. ${String(packageSize).replace('.', ',')} ${baseLabel}`,
+    };
+  }
+  return { units: Number(trimNumber(quantity)), unitLabel: baseLabel };
+}

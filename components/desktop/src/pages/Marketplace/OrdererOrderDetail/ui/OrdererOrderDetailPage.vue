@@ -15,7 +15,7 @@ import {
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
@@ -50,6 +50,15 @@ const receiveDialogOpen = ref(false);
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
 const unitShort = computed(() =>
   marketplaceOrderUnitLabel(order.value?.unit_of_measure),
+);
+// Кол-во «как заказывал» (Эпик 18): по мере — базовое количество, упаковкой —
+// число упаковок (а не итоговый объём в базовой единице). Для сверки
+// «Заказ vs Факт» ниже используется база (unitShort) — там сравниваются
+// количества в одной мере, включая возможную недопоставку неполной упаковки.
+const orderSaleUnit = computed(() =>
+  order.value
+    ? marketplaceOrderSaleUnit(order.value.quantity, order.value.unit_of_measure, order.value.package_size)
+    : { units: 0, unitLabel: '' },
 );
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
 
@@ -154,7 +163,7 @@ function confirmCancel(): void {
   if (!o) return;
   Dialog.create({
     title: 'Отменить заказ?',
-    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity}×${unitShort.value || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
+    message: `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units}×${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
     cancel: { label: 'Не отменять', flat: true },
     ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
     persistent: true,
@@ -232,7 +241,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label Количество
-                .order-detail__fact-value {{ order.quantity }}×{{ unitShort }}
+                .order-detail__fact-value {{ orderSaleUnit.units }}×{{ orderSaleUnit.unitLabel }}
               .order-detail__fact
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
