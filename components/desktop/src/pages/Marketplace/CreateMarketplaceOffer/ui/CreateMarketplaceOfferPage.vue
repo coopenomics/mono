@@ -239,6 +239,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 @click='onToggleUnlimited(true)'
               ) Количество не ограничено
             q-input.offer-wizard__qty-input(
+              v-if='!form.unlimited_flag',
               v-model.number='form.quantity_available',
               label='Доступное количество',
               type='number',
@@ -247,9 +248,8 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               dense,
               no-error-icon,
               hide-bottom-space,
-              :suffix='form.unlimited_flag ? undefined : `× ${orderUnitLabel}`',
-              :disable='form.unlimited_flag',
-              :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или выберите «Количество не ограничено»"]'
+              :suffix='`× ${orderUnitLabel}`',
+              :rules='[(v) => (v !== null && v >= 0) || "Укажите количество или выберите «Количество не ограничено»"]'
             )
           q-input.offer-wizard__field-full(
             v-model.number='form.shelf_life_days',
