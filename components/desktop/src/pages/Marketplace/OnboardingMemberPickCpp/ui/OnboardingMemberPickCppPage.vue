@@ -131,6 +131,10 @@ async function waitForSignatureSynced(): Promise<boolean> {
  * перечитываем гранты/маршруты, фиксируем выбранный КУ как пункт выдачи и уходим
  * на стол заказчика. Скрываем форму (redirecting), чтобы не мелькнул промежуток.
  */
+// Имя собственного маршрута — используется ниже, чтобы не выбрать его же
+// целью редиректа после успешного подключения (см. комментарий в proceedToDesk).
+const ONBOARDING_ROUTE_NAME = 'marketplace-onboarding-member-cpp';
+
 async function proceedToDesk(): Promise<void> {
   redirecting.value = true;
   await desktop.loadDesktop();
@@ -144,14 +148,29 @@ async function proceedToDesk(): Promise<void> {
       console.warn('[OnboardingMemberPickCpp] setCartDeliveryPoint упал:', e);
     }
   }
+  // Гейт уже подтверждён снятым (requires_gate=false проверено до вызова) —
+  // сюда маршрут онбординга попасть не должен. Но backend-грант
+  // Onboarding:orderer может отозваться с небольшим лагом относительно этой
+  // проверки: firstAccessibleRoute тогда всё ещё видит его первым в списке
+  // (см. install.ts — онбординг объявлен первым дочерним маршрутом) и вернёт
+  // ЭТОТ ЖЕ маршрут. Навигация на саму себя не размонтирует страницу —
+  // redirecting остаётся true навсегда (вечный спиннер, без ошибки). Явно
+  // исключаем онбординг из кандидатов на этом шаге.
   const target = desktop.firstAccessibleRoute('market');
-  void router.push(
-    target
+  const destination =
+    target && target.name !== ONBOARDING_ROUTE_NAME
       ? coopname.value
         ? { name: target.name, params: { coopname: coopname.value } }
         : { name: target.name }
-      : { name: 'marketplace-catalog' },
-  );
+      : { name: 'marketplace-catalog' };
+  await router.push(destination);
+  // Защитный сброс на случай прочих причин, по которым переход не увёл со
+  // страницы (например гвард прав всё же откатил назад) — не оставляем
+  // пользователя с вечным спиннером без объяснения.
+  if (router.currentRoute.value.name === ONBOARDING_ROUTE_NAME) {
+    redirecting.value = false;
+    NotifyAlert('Подключение завершено, но переход на стол не удался. Обновите страницу.');
+  }
 }
 
 /**
