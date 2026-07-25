@@ -20,6 +20,7 @@ const CONVERT_STATEMENT = {
 } as unknown as MarketContract.Actions.CreateOrder.ICreateOrder['convert_statement'];
 import {
   MarketplaceOfferStatuses,
+  MarketplaceSaleForms,
   MarketplaceUnitsOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 
@@ -168,7 +169,7 @@ describe('MarketplaceOrderCreateService', () => {
         delivery_braname: 'ku.krasn.1',
         convert_statement: CONVERT_STATEMENT,
       })
-    ).rejects.toThrow(/Количество должно быть целым числом больше нуля/);
+    ).rejects.toThrow(/Количество должно быть больше нуля/);
   });
 
   it('compensating rollback: при chain submit fail вызывает counters.onOrderRolledBack', async () => {
@@ -247,11 +248,79 @@ describe('MarketplaceOrderCreateService', () => {
     expect(chainArgs.orderer).toBe('orderer1');
     expect(chainArgs.offerer).toBe('supplier1');
     expect(chainArgs.delivery_braname).toBe('ku.krasn.1');
-    expect(chainArgs.quantity).toBe(2);
+    expect(chainArgs.quantity).toBe('2 PCS');
     expect(chainArgs.unit_price).toBe('150.0000 RUB');
+    expect(chainArgs.package_size).toBe('0 PCS'); // по мере — упаковки нет
     expect(chainArgs.warranty_period_secs).toBe(7 * 86_400);
     expect(chainArgs.order_hash).toHaveLength(64);
     expect(chainArgs.offer_hash).toHaveLength(64);
     expect(chainArgs.batch_hash).toBe('0'.repeat(64));
+  });
+
+  /**
+   * Инцидент 2026-07-25: заказ 10 упаковок по 0,1 л при цене 100 ₽/упаковку
+   * заблокировал на кошельке 100 ₽ вместо 1000 ₽. Причиной оказался не этот
+   * сервис (устаревший контракт на dev-цепи), но именно здесь собираются
+   * параметры транзакции createorder — если бы сервис когда-нибудь начал
+   * считать total_cost/quantity по базовому количеству вместо числа упаковок,
+   * этот тест обязан упасть первым.
+   */
+  it('happy path (упаковкой, Эпик 18): total_cost = число упаковок × цена упаковки, НЕ базовое количество × цена', async () => {
+    mocks.offerRepo.findById.mockResolvedValue(
+      buildOffer({
+        sale_form: MarketplaceSaleForms.PACKAGED,
+        unit_of_measure: MarketplaceUnitsOfMeasure.LITER,
+        packages: [
+          { id: 'pkg-0.1l', size: 0.1, price: '100.0000', label: null, sort_order: 0, is_default: true },
+        ],
+        quantity_available: 10,
+      })
+    );
+    mocks.counters.onOrderBlocked.mockResolvedValue({
+      id: 'offer-1',
+      quantity_available: 9,
+      quantity_blocked: 1,
+      quantity_consumed: 0,
+    } as any);
+    mocks.chainPort.createOrder.mockResolvedValue({
+      response: {
+        transaction_id: 'tx-hash-pkg',
+        processed: { id: 'tx-hash-pkg', block_num: 9_999_998 },
+      },
+    } as any);
+    mocks.orderRepo.persistAfterBlock.mockImplementation(async (input) =>
+      ({
+        ...input,
+        id: 'order-uuid-pkg',
+        created_at: new Date(),
+        updated_at: new Date(),
+      } as unknown as MarketplaceOrderDomainEntity)
+    );
+
+    const result = await service.execute({
+      coopname: 'voskhod',
+      orderer_account: 'orderer1',
+      offer_id: 'offer-1',
+      quantity: 10, // 10 упаковок, не 10 литров
+      package_id: 'pkg-0.1l',
+      delivery_braname: 'ku.krasn.1',
+      convert_statement: CONVERT_STATEMENT,
+    });
+
+    // Именно тот баг, который списал 100 ₽ вместо 1000 ₽ на реальном заказе:
+    // 1 л (базовое количество) × 100 ₽ = 100 ₽. Ожидаемое — 10 упаковок × 100 ₽.
+    expect(result.tx_snapshot.locked_amount).toBe('1000.0000');
+    expect(result.tx_snapshot.locked_amount).not.toBe('100.0000');
+
+    const chainArgs = mocks.chainPort.createOrder.mock.calls[0][0];
+    // На цепь уходит БАЗОВОЕ количество (1 л = 10 упаковок × 0,1 л) — контракт
+    // сам восстанавливает число упаковок делением на package_size.
+    expect(chainArgs.quantity).toBe('1.000 LTR');
+    expect(chainArgs.unit_price).toBe('100.0000 RUB'); // цена за упаковку, не за литр
+    expect(chainArgs.package_size).toBe('0.100 LTR');
+
+    // Блокировка остатка оффера — тоже в базовом количестве (1 л), не в числе упаковок.
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 1);
+    expect(result.order.id).toBe('order-uuid-pkg');
   });
 });
