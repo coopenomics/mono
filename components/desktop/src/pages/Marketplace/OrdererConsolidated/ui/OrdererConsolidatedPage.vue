@@ -7,7 +7,7 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
   MarketplaceOrderStatusView,
@@ -85,6 +85,10 @@ interface CollectiveParty {
   productName: string;
   pvzName: string;
   unitLabel: string;
+  /** Базовая единица (сырое значение) — для пересчёта «Ваш вклад» в упаковки (Эпик 18). */
+  unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
+  /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в своих заказах партии. */
+  packageSize: number | null;
   orders: MarketplaceOrderView[];
   /** Свой вклад (сумма собственных заказов в этой партии). */
   ownUnits: number;
@@ -117,6 +121,8 @@ const parties = computed<CollectiveParty[]>(() => {
         productName: o.product_name || 'Товар по предложению',
         pvzName: o.delivery_point_name || o.delivery_braname,
         unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
+        unitOfMeasure: o.unit_of_measure,
+        packageSize: o.package_size,
         orders: [],
         ownUnits: 0,
         ownCost: 0,
@@ -126,6 +132,9 @@ const parties = computed<CollectiveParty[]>(() => {
       };
       buckets.set(key, p);
     }
+    // Разные упаковки среди своих заказов в этой партии — «число упаковок»
+    // неоднозначно, откатываемся к базовой единице.
+    if (p.packageSize !== o.package_size) p.packageSize = null;
     p.orders.push(o);
     p.ownUnits += o.quantity;
     p.ownCost += Number(o.total_cost_with_fee);
@@ -151,6 +160,14 @@ function hasTarget(p: CollectiveParty): boolean {
 
 function accumulated(p: CollectiveParty): number {
   return p.groupAccumulated ?? p.ownUnits;
+}
+
+// «Ваш вклад»: число упаковок, как заказчик их выбирал (Эпик 18), а не
+// итоговый объём в базовой единице — «Накоплено»/«цель» нарочно остаются в
+// базовой единице (порог поставки не зависит от упаковки конкретного заказа).
+function ownUnitsLabel(p: CollectiveParty): string {
+  const saleUnit = marketplaceOrderSaleUnit(p.ownUnits, p.unitOfMeasure, p.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function reachedMin(p: CollectiveParty): boolean {
@@ -248,7 +265,7 @@ q-page.collective(role="region", aria-label="Коллективный заказ
         :bar-color="barColor(p)",
         :members="[]",
         total-label="Ваше участие в партии",
-        :total-value="`${formatCost(p.ownCost)} · ${p.ownUnits}×${p.unitLabel}`"
+        :total-value="`${formatCost(p.ownCost)} · ${ownUnitsLabel(p)}`"
       )
 </template>
 

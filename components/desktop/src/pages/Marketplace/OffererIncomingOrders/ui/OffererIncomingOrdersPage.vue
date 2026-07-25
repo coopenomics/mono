@@ -7,7 +7,7 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   acceptOrdersBatch,
@@ -120,6 +120,10 @@ interface SupplierParty {
   deliveryBraname: string;
   pvzName: string;
   unitLabel: string;
+  /** Базовая единица (сырое значение) — для пересчёта «Итого» в упаковки (Эпик 18). */
+  unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
+  /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в партии (смешанные не считаем упаковками). */
+  packageSize: number | null;
   orders: MarketplaceOrderView[];
   totalUnits: number;
   totalCost: number;
@@ -148,6 +152,8 @@ const parties = computed<SupplierParty[]>(() => {
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
         unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
+        unitOfMeasure: o.unit_of_measure,
+        packageSize: o.package_size,
         orders: [],
         totalUnits: 0,
         totalCost: 0,
@@ -158,6 +164,9 @@ const parties = computed<SupplierParty[]>(() => {
       };
       buckets.set(key, p);
     }
+    // Разные упаковки внутри одной партии (заказчики выбрали разный размер) —
+    // «число упаковок» для суммы неоднозначно, откатываемся к базовой единице.
+    if (p.packageSize !== o.package_size) p.packageSize = null;
     p.orders.push(o);
     p.totalUnits += o.quantity;
     p.totalCost += parseFloat(o.total_cost) || 0;
@@ -194,6 +203,15 @@ function progressRatio(p: SupplierParty): number {
 // уже принятая партия) — успех.
 function barColor(p: SupplierParty): string {
   return p.kind === 'collecting' && hasTarget(p) && !reachedMin(p) ? 'primary' : 'positive';
+}
+
+// «Итого партии»: число упаковок, как их заказывали (Эпик 18), а не итоговый
+// объём в базовой единице — «Объём партии»/«цель» выше нарочно остаются в
+// базовой единице (это порог поставки, не зависит от того, как заказчики
+// упаковали покупку).
+function totalUnitsLabel(p: SupplierParty): string {
+  const saleUnit = marketplaceOrderSaleUnit(p.totalUnits, p.unitOfMeasure, p.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function formatCost(value: number): string {
@@ -341,7 +359,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :bar-color='barColor(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits}×${p.unitLabel}`'
+        :total-value='`${formatCost(p.totalCost)} · ${totalUnitsLabel(p)}`'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')
