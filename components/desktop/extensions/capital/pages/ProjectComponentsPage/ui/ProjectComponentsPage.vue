@@ -11,6 +11,7 @@ div
     template(#component-content='{ component }')
       IssuesListWidget(
         :project-hash='component.project_hash',
+        :can-manage-issues='!!component.permissions?.can_manage_issues',
         :compact='true',
         @issue-click='handleIssueClick'
       )

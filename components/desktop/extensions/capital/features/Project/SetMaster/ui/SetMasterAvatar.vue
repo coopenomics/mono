@@ -65,6 +65,8 @@ const currentMaster = ref<IContributor | null>(null);
 const isSaving = ref(false);
 const isLoadingMaster = ref(false);
 const isProgrammaticChange = ref(false);
+/** Инкремент на каждый loadMaster — устаревшие async-ответы не трогают флаг/state */
+let loadGeneration = 0;
 
 const canSet = computed(() => !!props.project?.permissions?.can_set_master);
 
@@ -75,10 +77,12 @@ const masterInitial = computed(() => {
 });
 
 const loadMaster = async (masterUsername: string) => {
+  const gen = ++loadGeneration;
   isProgrammaticChange.value = true;
   isLoadingMaster.value = true;
   try {
     if (!masterUsername) {
+      if (gen !== loadGeneration) return;
       currentMaster.value = null;
       selectedMaster.value = null;
       return;
@@ -86,16 +90,23 @@ const loadMaster = async (masterUsername: string) => {
     const contributor = await contributorStore.loadContributor({
       username: masterUsername,
     });
+    if (gen !== loadGeneration) return;
     currentMaster.value = contributor ?? null;
     selectedMaster.value = contributor ?? null;
   } catch (error) {
     console.error('SetMasterAvatar: load master failed', error);
+    if (gen !== loadGeneration) return;
     currentMaster.value = null;
     selectedMaster.value = null;
   } finally {
-    await nextTick();
-    isProgrammaticChange.value = false;
-    isLoadingMaster.value = false;
+    // Сбрасываем флаг только у актуальной загрузки — иначе параллельный
+    // loadMaster (ремаунт списка при «назад» в Мастерскую) оставляет окно,
+    // в котором watch selectedMaster принимает отображение за назначение.
+    if (gen === loadGeneration) {
+      await nextTick();
+      isProgrammaticChange.value = false;
+      isLoadingMaster.value = false;
+    }
   }
 };
 
@@ -104,6 +115,7 @@ watch(
   async (newProject) => {
     if (newProject) {
       setMasterInput.value.project_hash = newProject.project_hash;
+      setMasterInput.value.coopname = newProject.coopname || '';
       await loadMaster(newProject.master || '');
     } else {
       await loadMaster('');
@@ -114,27 +126,30 @@ watch(
 
 watch(selectedMaster, async (newMaster, oldMaster) => {
   if (isProgrammaticChange.value) return;
+  if (isLoadingMaster.value) return;
   if (isSaving.value) return;
 
+  const newUsername = newMaster?.username || '';
+  const currentUsername = currentMaster.value?.username || '';
+  // Перезагрузка/ремаунт: тот же мастер — не назначение
+  if (newUsername === currentUsername) return;
+
   if (!canSet.value) {
-    FailAlert('У вас нет прав на изменение мастера');
+    // UI назначения нет — тихий откат (гонка loadMaster), без FailAlert
     isProgrammaticChange.value = true;
-    selectedMaster.value = oldMaster ?? null;
+    selectedMaster.value = oldMaster ?? currentMaster.value;
     await nextTick();
     isProgrammaticChange.value = false;
     return;
   }
 
-  if ((newMaster?.username || '') === (currentMaster.value?.username || ''))
-    return;
-
   isSaving.value = true;
   loading.value = true;
   try {
     await setMaster({
-      coopname: setMasterInput.value.coopname,
+      coopname: setMasterInput.value.coopname || props.project.coopname,
       project_hash: props.project.project_hash,
-      master: newMaster?.username || '',
+      master: newUsername,
     });
     currentMaster.value = newMaster ?? null;
     emit('master-set', newMaster ?? null);

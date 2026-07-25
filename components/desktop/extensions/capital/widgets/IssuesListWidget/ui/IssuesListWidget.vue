@@ -5,8 +5,12 @@
 .list-surface(:class="{ 'list-surface--fill': !compact }")
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
   .issues-scroll-area(v-if='!compact')
-    // Полоска-добавлялка перед списком задач
-    CreateIssueButton(:project-hash='projectHash', row)
+    // Полоска-добавлялка — только мастеру (can_manage_issues)
+    CreateIssueButton(
+      v-if='canManageIssues',
+      :project-hash='projectHash',
+      row
+    )
 
     q-table(
       ref='tableRef',
@@ -42,8 +46,12 @@
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   template(v-else)
-    // Полоска-добавлялка перед списком задач
-    CreateIssueButton(:project-hash='projectHash', row)
+    // Полоска-добавлялка — только мастеру (can_manage_issues)
+    CreateIssueButton(
+      v-if='canManageIssues',
+      :project-hash='projectHash',
+      row
+    )
 
     q-table(
       :rows='issues?.items || []',
@@ -90,6 +98,8 @@ const props = defineProps<{
   master?: string;
   creators?: string[];
   compact?: boolean;
+  /** Право мастера на управление задачами — без него полоска «Добавить задачу» скрыта */
+  canManageIssues?: boolean;
 }>();
 
 const emit = defineEmits<{

@@ -3,6 +3,7 @@
   // Таблица задач компонента
   IssuesListWidget(
     :project-hash='projectHash',
+    :can-manage-issues='!!project?.permissions?.can_manage_issues',
     @issue-click='handleIssueClick'
   )
 </template>

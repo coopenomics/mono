@@ -34,6 +34,7 @@ router-view(v-if='!isWorkshopRoot')
             :priorities='componentPriorities',
             :creators='componentCreators',
             :master='componentMaster',
+            :can-manage-issues='!!component.permissions?.can_manage_issues',
             :compact='true',
             @issue-click='(issue) => router.push({ name: "component-issue", params: { project_hash: issue.project_hash, issue_hash: issue.issue_hash }, query: { _backRoute: "projects-list" } })'
           )
