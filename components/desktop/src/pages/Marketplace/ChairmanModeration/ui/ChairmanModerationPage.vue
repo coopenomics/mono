@@ -179,6 +179,11 @@ q-page.moderation(role="region", aria-label="Модерация предложе
         //- администратора (категория/участки/гарантия/галерея). Кнопки
         //- «Одобрить»/«Отклонить» останавливают всплытие (@click.stop).
         CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", @click="goToDetail(o)")
+          //- Срок годности задаёт поставщик — модератор ориентируется на него,
+          //- назначая гарантийный срок возврата в диалоге «Одобрить».
+          template(#details)
+            .mp-catalog-offer-card__reference
+              | Срок годности: {{ o.shelf_life_days > 0 ? `${o.shelf_life_days} дн.` : 'без срока годности' }}
           template(#actions)
             BaseButton(
               variant="danger",
