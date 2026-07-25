@@ -4984,7 +4984,7 @@ export const ReturnTypes: Record<string,any> = {
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Float",
-		sale_form:"String",
+		sale_form:"MarketplaceSaleForm",
 		unit_of_measure:"String"
 	},
 	MarketplaceCategory:{

@@ -8059,7 +8059,7 @@ export type ValueTypes = {
 	product_name?:boolean | `@${string}`,
 	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity?:boolean | `@${string}`,
-	/** Способ отпуска предложения: by_measure | packaged. */
+	/** Способ отпуска предложения: по мере или упаковкой. */
 	sale_form?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
@@ -21145,7 +21145,7 @@ export type ResolverInputTypes = {
 	product_name?:boolean | `@${string}`,
 	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity?:boolean | `@${string}`,
-	/** Способ отпуска предложения: by_measure | packaged. */
+	/** Способ отпуска предложения: по мере или упаковкой. */
 	sale_form?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
@@ -33836,8 +33836,8 @@ export type ModelTypes = {
 	product_name?: string | undefined | null,
 	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number,
-	/** Способ отпуска предложения: by_measure | packaged. */
-	sale_form?: string | undefined | null,
+	/** Способ отпуска предложения: по мере или упаковкой. */
+	sale_form?: ModelTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null
 };
@@ -47608,8 +47608,8 @@ export type GraphQLTypes = {
 	product_name?: string | undefined | null,
 	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number,
-	/** Способ отпуска предложения: by_measure | packaged. */
-	sale_form?: string | undefined | null,
+	/** Способ отпуска предложения: по мере или упаковкой. */
+	sale_form?: GraphQLTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null,
 	['...on MarketplaceCartItem']: Omit<GraphQLTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">

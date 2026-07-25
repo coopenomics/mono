@@ -1,4 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { MarketplaceSaleFormEnum } from './marketplace-offer.dto';
 
 /**
  * Эпик 16: позиция корзины с обогащением для UI. Реквизиты товара
@@ -25,11 +26,11 @@ export class MarketplaceCartItemDTO {
   })
   public readonly package_label!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceSaleFormEnum, {
     nullable: true,
-    description: 'Способ отпуска предложения: by_measure | packaged.',
+    description: 'Способ отпуска предложения: по мере или упаковкой.',
   })
-  public readonly sale_form!: string | null;
+  public readonly sale_form!: MarketplaceSaleFormEnum | null;
 
   @Field(() => Float, {
     description: 'Количество: базовое (по мере) или число упаковок (упаковкой).',
