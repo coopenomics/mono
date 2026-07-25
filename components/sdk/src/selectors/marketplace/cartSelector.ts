@@ -7,6 +7,9 @@ import { rawDocumentSelector } from '../common/documentSelector'
 const rawCartItemSelector = {
   id: true,
   offer_id: true,
+  package_id: true,
+  package_label: true,
+  sale_form: true,
   quantity: true,
   product_name: true,
   unit_of_measure: true,
@@ -68,6 +71,7 @@ export const marketplaceCheckoutResultSelector = Selector('MarketplaceCheckoutRe
  */
 const rawCheckoutSignableLineSelector = {
   offer_id: true,
+  package_id: true,
   order_hash: true,
   amount: true,
   document: rawDocumentSelector,
