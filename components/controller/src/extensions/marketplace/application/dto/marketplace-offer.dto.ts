@@ -3,8 +3,10 @@ import { createPaginationResult } from '~/application/common/dto/pagination.dto'
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MarketplaceOfferStatuses,
+  MarketplaceSaleForms,
   MarketplaceUnitsOfMeasure,
   type MarketplaceOfferImage,
+  type MarketplaceOfferPackage,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
 
@@ -27,8 +29,18 @@ registerEnumType(MarketplaceUnitOfMeasureEnum, {
   name: 'MarketplaceUnitOfMeasure',
   description:
     'Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. ' +
-    'Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно ' +
-    'размером единицы заказа.',
+    'Количество и цена ведутся прямо в ней.',
+});
+
+export const MarketplaceSaleFormEnum = MarketplaceSaleForms;
+export type MarketplaceSaleFormEnum =
+  (typeof MarketplaceSaleFormEnum)[keyof typeof MarketplaceSaleFormEnum];
+registerEnumType(MarketplaceSaleFormEnum, {
+  name: 'MarketplaceSaleForm',
+  description:
+    'Способ отпуска товара: by_measure — по мере (делимый, заказывают ' +
+    'произвольное количество, цена за базовую единицу); packaged — упаковкой ' +
+    '(целыми упаковками фиксированного содержимого, у каждой своя цена).',
 });
 
 @ObjectType('MarketplaceOfferImage')
@@ -77,6 +89,33 @@ export class MarketplaceOfferDeliveryPointDTO {
   }
 }
 
+@ObjectType('MarketplaceOfferPackage')
+export class MarketplaceOfferPackageDTO {
+  @Field(() => String, { description: 'Идентификатор упаковки в каталоге предложения.' })
+  public readonly id!: string;
+
+  @Field(() => Float, {
+    description: 'Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт).',
+  })
+  public readonly size!: number;
+
+  @Field(() => String, { description: 'Цена за одну упаковку (numeric-строка).' })
+  public readonly price!: string;
+
+  @Field(() => String, { nullable: true, description: 'Подпись упаковки («Пакет 0,5 л»).' })
+  public readonly label!: string | null;
+
+  @Field(() => Int, { description: 'Порядок показа упаковки в карточке.' })
+  public readonly sort_order!: number;
+
+  @Field(() => Boolean, { description: 'Упаковка по умолчанию (для витрины и сортировки).' })
+  public readonly is_default!: boolean;
+
+  constructor(init: Partial<MarketplaceOfferPackageDTO>) {
+    Object.assign(this, init);
+  }
+}
+
 @ObjectType('MarketplaceOffer')
 export class MarketplaceOfferDTO {
   @Field(() => String) public readonly id!: string;
@@ -93,6 +132,16 @@ export class MarketplaceOfferDTO {
       'Цена за одну единицу заказа (фасовку). numeric как string.',
   })
   public readonly price_per_unit!: string;
+
+  @Field(() => MarketplaceSaleFormEnum, {
+    description: 'Способ отпуска: по мере (by_measure) или упаковкой (packaged).',
+  })
+  public readonly sale_form!: MarketplaceSaleFormEnum;
+
+  @Field(() => [MarketplaceOfferPackageDTO], {
+    description: 'Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере.',
+  })
+  public readonly packages!: MarketplaceOfferPackageDTO[];
 
   @Field(() => MarketplaceUnitOfMeasureEnum, {
     description: 'Базовая единица измерения товара (штука, килограмм, литр).',
@@ -178,6 +227,8 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     category_id: o.category_id,
     price_per_unit: o.price_per_unit,
     unit_of_measure: o.unit_of_measure as MarketplaceUnitOfMeasureEnum,
+    sale_form: o.sale_form as MarketplaceSaleFormEnum,
+    packages: (o.packages ?? []).map((p) => new MarketplaceOfferPackageDTO(p)),
     quantity_available: o.quantity_available,
     quantity_blocked: o.quantity_blocked,
     quantity_consumed: o.quantity_consumed,

@@ -13,7 +13,27 @@ export class MarketplaceCartItemDTO {
   @Field(() => String, { description: 'Идентификатор предложения.' })
   public readonly offer_id!: string;
 
-  @Field(() => Float, { description: 'Количество единиц в корзине.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере.',
+  })
+  public readonly package_id!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере.',
+  })
+  public readonly package_label!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Способ отпуска предложения: by_measure | packaged.',
+  })
+  public readonly sale_form!: string | null;
+
+  @Field(() => Float, {
+    description: 'Количество: базовое (по мере) или число упаковок (упаковкой).',
+  })
   public readonly quantity!: number;
 
   @Field(() => String, {

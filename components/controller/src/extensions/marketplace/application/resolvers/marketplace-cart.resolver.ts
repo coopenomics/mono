@@ -76,6 +76,7 @@ export class MarketplaceCartResolver {
       {
         offer_id: input.offer_id,
         quantity: input.quantity,
+        package_id: input.package_id ?? null,
         delivery_braname: input.delivery_braname ?? null,
       }
     );
@@ -93,7 +94,7 @@ export class MarketplaceCartResolver {
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.updateItem(
       { coopname: config.coopname, orderer_account: member.username },
-      { offer_id: input.offer_id, quantity: input.quantity }
+      { offer_id: input.offer_id, quantity: input.quantity, package_id: input.package_id ?? null }
     );
   }
 
@@ -109,7 +110,8 @@ export class MarketplaceCartResolver {
   ): Promise<MarketplaceCartDTO> {
     return this.cartService.removeItem(
       { coopname: config.coopname, orderer_account: member.username },
-      input.offer_id
+      input.offer_id,
+      input.package_id ?? null
     );
   }
 
@@ -152,6 +154,7 @@ export class MarketplaceCartResolver {
       document.binary = l.document.binary;
       return new MarketplaceCheckoutSignableLineDTO({
         offer_id: l.offer_id,
+        package_id: l.package_id,
         order_hash: l.order_hash,
         amount: l.amount,
         document,

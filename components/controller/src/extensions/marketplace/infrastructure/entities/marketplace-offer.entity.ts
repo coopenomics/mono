@@ -49,6 +49,30 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'varchar', length: 16 })
   public unit_of_measure!: 'piece' | 'kg' | 'liter';
 
+  /**
+   * Способ отпуска (Эпик 18): `by_measure` — по мере (цена за базовую единицу),
+   * `packaged` — упаковкой (цена за упаковку из `packages`). `synchronize:true`
+   * создаёт колонку с default 'by_measure'.
+   */
+  @Column({ type: 'varchar', length: 16, default: 'by_measure' })
+  public sale_form!: 'by_measure' | 'packaged';
+
+  /**
+   * Каталог упаковок при `sale_form = packaged` (Эпик 18). jsonb-массив
+   * `{ id, size, price, label, sort_order, is_default }` — у каждой упаковки
+   * своя цена (управляемая упаковка). Пустой при отпуске по мере. Паттерн
+   * jsonb value-object как `delivery_points`/`images`.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  public packages!: Array<{
+    id: string;
+    size: number;
+    price: string;
+    label: string | null;
+    sort_order: number;
+    is_default: boolean;
+  }>;
+
   // Дробный остаток (Эпик 17): numeric в базовой единице (кг/л/шт), transformer → number.
   @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_available!: number;

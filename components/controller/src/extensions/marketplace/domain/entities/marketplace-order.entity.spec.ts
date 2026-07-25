@@ -14,6 +14,7 @@ function buildProps(overrides: Partial<MarketplaceOrderProps> = {}): Marketplace
     quantity: 3,
     unit_of_measure: 'piece',
     price_per_unit: '150.0000',
+    package_size: 0,
     total_cost: '450.0000',
     membership_fee: null,
     cycle_id: null,

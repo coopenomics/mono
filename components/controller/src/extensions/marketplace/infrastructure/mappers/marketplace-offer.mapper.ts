@@ -15,6 +15,8 @@ export class MarketplaceOfferMapper {
       category_id: row.category_id,
       price_per_unit: row.price_per_unit,
       unit_of_measure: row.unit_of_measure,
+      sale_form: row.sale_form ?? 'by_measure',
+      packages: row.packages ?? [],
       quantity_available: row.quantity_available,
       quantity_blocked: row.quantity_blocked,
       quantity_consumed: row.quantity_consumed,

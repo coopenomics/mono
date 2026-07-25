@@ -105,6 +105,8 @@ export interface MarketplaceOrderProps {
   quantity: number;
   unit_of_measure: MarketplaceUnitOfMeasure;
   price_per_unit: string;
+  /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
+  package_size: number;
   total_cost: string;
   /**
    * Членский взнос, включённый в стоимость заказа (requirement b6). On-chain

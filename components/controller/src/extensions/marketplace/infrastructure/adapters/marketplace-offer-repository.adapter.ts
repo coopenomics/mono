@@ -151,6 +151,8 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       category_id: input.category_id,
       price_per_unit: input.price_per_unit,
       unit_of_measure: input.unit_of_measure,
+      sale_form: input.sale_form,
+      packages: input.packages ?? [],
       quantity_available: input.unlimited_flag ? 0 : input.quantity_available,
       quantity_blocked: 0,
       quantity_consumed: 0,

@@ -17,6 +17,14 @@ export class MarketplaceCheckoutSignedLineInputDTO {
   public readonly offer_id!: string;
 
   @Field(() => String, {
+    nullable: true,
+    description: 'Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере.',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly package_id?: string | null;
+
+  @Field(() => String, {
     description: 'order_hash будущего заказа — тот же, что в мете заявления.',
   })
   @IsString()
@@ -65,6 +73,12 @@ export class MarketplaceCheckoutCartInputDTO {
 export class MarketplaceCheckoutSignableLineDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
   public readonly offer_id!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Упаковка позиции (при отпуске упаковкой); null — отпуск по мере.',
+  })
+  public readonly package_id!: string | null;
 
   @Field(() => String, { description: 'order_hash будущего заказа (зашит в мету заявления).' })
   public readonly order_hash!: string;

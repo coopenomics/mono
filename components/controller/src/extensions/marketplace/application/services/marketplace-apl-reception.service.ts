@@ -100,7 +100,7 @@ import type { PaymentMethodDomainEntity } from '~/domain/payment-method/entities
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
-import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { presentSaleUnit } from '../shared/packaging.util';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -324,16 +324,17 @@ export class MarketplaceAplReceptionService {
     const transmitter = input.chairman_account ?? input.reception.created_by_operator_account;
     const fact_quantity = fact?.fact_quantity ?? input.order.quantity;
     const fact_unit_price = fact?.fact_unit_price ?? input.order.price_per_unit;
-    const total_amount = (
-      fact_quantity * Number.parseFloat(fact_unit_price)
-    ).toFixed(4);
     // Артикул/наименование/единица — из оферты заказа: акт несёт реальный СКУ и
     // данные товара, а не заглушку фабрики. Оферта могла быть снята — тогда
     // подставляем безопасные значения по самому заказу.
     const offer = await this.offerRepo.findById(input.order.offer_id);
-    // Акт приёма-передачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в
-    // базовые: количество = число единиц заказа, цена — за единицу заказа,
-    // подпись единицы = ярлык фасовки («упаковка 8 шт» / «100 г» / «кг»).
+    // Эпик 18: акт ведётся в единицах отпуска. По мере — количество в базовой
+    // единице, цена за базовую единицу. Упаковкой — количество = число упаковок,
+    // единица = «упак. 0,5 л», цена = за упаковку; сумма — от числа упаковок.
+    const pres = offer
+      ? presentSaleUnit(fact_quantity, offer.unit_of_measure, input.order.package_size)
+      : { units: fact_quantity, unitLabel: '' };
+    const total_amount = (pres.units * Number.parseFloat(fact_unit_price)).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
@@ -345,14 +346,12 @@ export class MarketplaceAplReceptionService {
       braname: input.reception.braname,
       accept_braname: input.reception.braname,
       reception_id: input.reception.id,
-      fact_quantity,
+      fact_quantity: pres.units,
       total_amount,
       supplier_account: input.reception.offerer_account,
       sku: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
-      unit_of_measurement: offer
-        ? marketplaceOrderUnitLabel(offer.unit_of_measure)
-        : '',
+      unit_of_measurement: pres.unitLabel,
       unit_cost: fact_unit_price,
       currency: this.assetConfig.symbol,
       // Тело документа сохраняется в стор: председателю при закрывающей

@@ -4,7 +4,8 @@ import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { computeOrderHash } from '../shared/order-hash.util';
-import { assertValidQuantity, toQuantityAsset } from '../shared/quantity.util';
+import { toQuantityAsset } from '../shared/quantity.util';
+import { resolveSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   type MarketplaceNewOrderForSupplierEvent,
@@ -44,8 +45,17 @@ export interface MarketplaceOrderCreateInputDto {
   orderer_account: string;
   /** ID Offer'а из marketplace_offer. */
   offer_id: string;
-  /** Кол-во единиц (целое, >= 1, <= Offer.quantity_available для non-unlimited). */
+  /**
+   * Заказываемое количество. При отпуске по мере — количество в базовой
+   * единице (кг/л/шт, дробное для веса/объёма). При отпуске упаковкой (Эпик 18)
+   * — целое число упаковок выбранного варианта `package_id`.
+   */
   quantity: number;
+  /**
+   * Выбранная упаковка каталога (Эпик 18) — обязательна при отпуске упаковкой,
+   * не передаётся при отпуске по мере.
+   */
+  package_id?: string | null;
   /** ПВЗ получения (branch.name). Story 2.3 валидирует existence в C++. */
   delivery_braname: string;
   /**
@@ -152,10 +162,13 @@ export class MarketplaceOrderCreateService {
         `Предложение не активно (статус «${offer.status}»). Заказ оформить нельзя.`
       );
     }
-    assertValidQuantity(input.quantity, offer.unit_of_measure);
-    if (!offer.unlimited_flag && offer.quantity_available < input.quantity) {
+    // Эпик 18: разрешаем способ отпуска в базовое количество/цену/упаковку.
+    // По мере — quantity как базовое количество; упаковкой — quantity как число
+    // упаковок, базовое = число × содержимое, цена — за упаковку.
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
+    if (!offer.unlimited_flag && offer.quantity_available < resolved.baseQuantity) {
       throw new BadRequestException(
-        `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
+        `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
       );
     }
 
@@ -163,14 +176,17 @@ export class MarketplaceOrderCreateService {
     const order_hash =
       input.order_hash ?? computeOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = this.deriveOfferHash(offer.id);
-    const total_cost_amount = this.computeTotalCostAmount(offer.price_per_unit, input.quantity);
-    const unit_price_asset = this.formatAsset(offer.price_per_unit);
+    // Стоимость: по мере — цена×базовое количество; упаковкой — цена×число упаковок.
+    const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
+    const total_cost_amount = this.computeTotalCostAmount(resolved.unitPrice, saleUnitCount);
+    const unit_price_asset = this.formatAsset(resolved.unitPrice);
+    const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // ── 3. Optimistic counter (синхронно ДО chain submit) ──────────
-    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, input.quantity);
+    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
     this.logger.debug(
-      `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${input.quantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
+      `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${resolved.baseQuantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
     );
 
     // ── 4. Chain submit createorder с compensating-rollback ────────
@@ -184,8 +200,9 @@ export class MarketplaceOrderCreateService {
         offer_hash,
         offerer: offer.supplier_account,
         delivery_braname: input.delivery_braname,
-        quantity: toQuantityAsset(input.quantity, offer.unit_of_measure),
+        quantity: toQuantityAsset(resolved.baseQuantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
+        package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
         convert_statement: input.convert_statement,
@@ -199,7 +216,7 @@ export class MarketplaceOrderCreateService {
         error.stack
       );
       try {
-        await this.offerCounters.onOrderRolledBack(offer.id, input.quantity);
+        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
       } catch (compErr: any) {
         // Counter rollback fail на compensating-path — критическая
         // несогласованность; alert + manual reconciliation.
@@ -228,9 +245,10 @@ export class MarketplaceOrderCreateService {
       offer_hash,
       supplier_account: offer.supplier_account,
       delivery_braname: input.delivery_braname,
-      quantity: input.quantity,
+      quantity: resolved.baseQuantity,
       unit_of_measure: offer.unit_of_measure,
-      price_per_unit: offer.price_per_unit,
+      price_per_unit: resolved.unitPrice,
+      package_size: resolved.packageSize,
       total_cost: locked_amount,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,
@@ -256,7 +274,7 @@ export class MarketplaceOrderCreateService {
         order_hash,
         supplier_account: offer.supplier_account,
         orderer_account: input.orderer_account,
-        quantity: input.quantity,
+        quantity: resolved.baseQuantity,
         total_cost: locked_amount,
       };
       this.eventBus.emit(MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT, newOrderEvent);

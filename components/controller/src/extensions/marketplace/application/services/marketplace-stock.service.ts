@@ -10,7 +10,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { computeStockOrderHash } from '../shared/order-hash.util';
-import { assertValidQuantity, toQuantityAsset } from '../shared/quantity.util';
+import { toQuantityAsset } from '../shared/quantity.util';
+import { resolveSaleUnit } from '../shared/packaging.util';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
@@ -39,7 +40,7 @@ import {
 import {
   MarketplaceInventoryOwnerships,
 } from '../../domain/entities/marketplace-inventory.types';
-import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferStatuses, MarketplaceSaleForms } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
@@ -73,7 +74,13 @@ export interface MarketplaceStockOrderCreateInput {
   orderer_account: string;
   /** Оффер кооператива (stock_braname non-null). */
   offer_id: string;
+  /**
+   * По мере — количество в базовой единице; упаковкой (Эпик 18) — целое число
+   * упаковок выбранного `package_id`.
+   */
   quantity: number;
+  /** Выбранная упаковка каталога (Эпик 18) — обязательна при отпуске упаковкой. */
+  package_id?: string | null;
   /** Грань «заказ заказчика» — общий id строк одного оформления/предложения. */
   checkout_id?: string | null;
   /** Предвычисленный order_hash из заявления о конвертации (см. order-create). */
@@ -209,6 +216,10 @@ export class MarketplaceStockService {
           category_id: origin.category_id,
           price_per_unit: this.normalizePrice(price),
           unit_of_measure: origin.unit_of_measure,
+          // Обезличенный остаток продаётся по мере (по цене прибытия/с уценкой),
+          // упаковочный отпуск на остаток не переносим (Эпик 18).
+          sale_form: MarketplaceSaleForms.BY_MEASURE,
+          packages: [],
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
@@ -328,19 +339,22 @@ export class MarketplaceStockService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(`Предложение не активно (статус «${offer.status}»).`);
     }
-    assertValidQuantity(input.quantity, offer.unit_of_measure);
-    if (offer.quantity_available < input.quantity) {
+    // Эпик 18: способ отпуска → базовое количество/цена/упаковка (как в order-create).
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
+    if (offer.quantity_available < resolved.baseQuantity) {
       throw new BadRequestException(
-        `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
+        `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
       );
     }
 
     const order_hash =
       input.order_hash ?? computeStockOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = createHash('sha256').update(`offer:${offer.id}`).digest('hex');
-    const priceFloat = Number.parseFloat(offer.price_per_unit);
-    const total_cost = (priceFloat * input.quantity).toFixed(this.assetConfig.decimals);
+    const priceFloat = Number.parseFloat(resolved.unitPrice);
+    const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
+    const total_cost = (priceFloat * saleUnitCount).toFixed(this.assetConfig.decimals);
     const unit_price_asset = `${priceFloat.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
+    const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // Заказ из остатка фондируется из членского кошелька. Если передано
@@ -362,7 +376,7 @@ export class MarketplaceStockService {
     }
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
-    await this.offerCounters.onOrderBlocked(offer.id, input.quantity);
+    await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
 
     let txHash: string;
     try {
@@ -372,8 +386,9 @@ export class MarketplaceStockService {
         order_hash,
         offer_hash,
         delivery_braname: offer.stock_braname,
-        quantity: toQuantityAsset(input.quantity, offer.unit_of_measure),
+        quantity: toQuantityAsset(resolved.baseQuantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
+        package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
       });
@@ -387,7 +402,7 @@ export class MarketplaceStockService {
         error.stack
       );
       try {
-        await this.offerCounters.onOrderRolledBack(offer.id, input.quantity);
+        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
       } catch (compErr: any) {
         this.logger.error(
           `createStockOrder: compensating onOrderRolledBack упал (offer=${offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
@@ -411,9 +426,10 @@ export class MarketplaceStockService {
       offer_hash,
       supplier_account: input.coopname, // продавец — кооператив (маркер stock-ордера)
       delivery_braname: offer.stock_braname,
-      quantity: input.quantity,
+      quantity: resolved.baseQuantity,
       unit_of_measure: offer.unit_of_measure,
-      price_per_unit: offer.price_per_unit,
+      price_per_unit: resolved.unitPrice,
+      package_size: resolved.packageSize,
       total_cost,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,
@@ -428,7 +444,7 @@ export class MarketplaceStockService {
     // овер-резерв; падение здесь — рассинхрон counters↔позиции, компенсируем
     // отменой заказа на цепи.
     try {
-      await this.inventoryRepo.reserveStock(input.coopname, offer.id, input.quantity, order.id);
+      await this.inventoryRepo.reserveStock(input.coopname, offer.id, resolved.baseQuantity, order.id);
     } catch (error: any) {
       this.logger.error(
         `createStockOrder: резерв позиций не удался (order=${order.id}) — компенсирующая отмена. ${error.message}`
@@ -439,7 +455,7 @@ export class MarketplaceStockService {
           orderer: input.orderer_account,
           order_hash,
         });
-        await this.offerCounters.onOrderUnblocked(offer.id, input.quantity);
+        await this.offerCounters.onOrderUnblocked(offer.id, resolved.baseQuantity);
         await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', 'Недостаточно свободного остатка на складе');
       } catch (compErr: any) {
         this.logger.error(

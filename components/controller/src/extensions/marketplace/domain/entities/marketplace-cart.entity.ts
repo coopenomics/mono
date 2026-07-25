@@ -12,6 +12,8 @@ export class MarketplaceCartItemDomainEntity {
   public readonly cart_id: string;
   public readonly coopname: string;
   public readonly offer_id: string;
+  /** Выбранная упаковка (Эпик 18); пустая строка при отпуске по мере. */
+  public readonly package_id: string;
   public readonly quantity: number;
   public readonly created_at: Date;
   public readonly updated_at: Date;
@@ -21,6 +23,7 @@ export class MarketplaceCartItemDomainEntity {
     this.cart_id = props.cart_id;
     this.coopname = props.coopname;
     this.offer_id = props.offer_id;
+    this.package_id = props.package_id ?? '';
     this.quantity = props.quantity;
     this.created_at = props.created_at;
     this.updated_at = props.updated_at;

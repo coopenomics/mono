@@ -82,9 +82,20 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'varchar', length: 16, default: MarketplaceUnitsOfMeasure.PIECE })
   public unit_of_measure!: MarketplaceUnitOfMeasure;
 
-  // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer)
+  // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer).
+  // Эпик 18: цена за единицу отпуска — за базовую единицу при отпуске по мере,
+  // за упаковку при упаковочном (package_size > 0).
   @Column({ type: 'numeric', precision: 18, scale: 4 })
   public price_per_unit!: string;
+
+  /**
+   * Содержимое упаковки в базовой единице, снапшот выбранной упаковки оффера
+   * (Эпик 18). 0 = отпуск по мере (price_per_unit за базовую единицу); >0 =
+   * упаковкой (price_per_unit за упаковку, quantity кратно package_size).
+   * `synchronize:true` создаёт колонку с default 0.
+   */
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
+  public package_size!: number;
 
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;

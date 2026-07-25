@@ -37,6 +37,8 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public readonly quantity: number;
   public readonly unit_of_measure: MarketplaceUnitOfMeasure;
   public readonly price_per_unit: string;
+  /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
+  public readonly package_size: number;
   public readonly total_cost: string;
   /** Членский взнос, включённый в стоимость заказа — on-chain mirror (см. MarketplaceOrderProps). */
   public membership_fee: string | null;
@@ -96,6 +98,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.quantity = props.quantity;
     this.unit_of_measure = props.unit_of_measure;
     this.price_per_unit = props.price_per_unit;
+    this.package_size = props.package_size;
     this.total_cost = props.total_cost;
     this.membership_fee = props.membership_fee;
     this.cycle_id = props.cycle_id;

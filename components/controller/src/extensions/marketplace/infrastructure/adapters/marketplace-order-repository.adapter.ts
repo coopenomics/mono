@@ -73,6 +73,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       quantity: input.quantity,
       unit_of_measure: input.unit_of_measure,
       price_per_unit: input.price_per_unit,
+      package_size: input.package_size,
       total_cost: input.total_cost,
       cycle_id: input.cycle_id,
       checkout_id: input.checkout_id ?? null,

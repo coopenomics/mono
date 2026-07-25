@@ -8,6 +8,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import { resolveSaleUnit, presentSaleUnit } from '../shared/packaging.util';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceCartDomainEntity } from '../../domain/entities/marketplace-cart.entity';
 import { MarketplaceCartDTO, MarketplaceCartItemDTO } from '../dto/marketplace-cart.dto';
@@ -46,12 +47,12 @@ export class MarketplaceCartService {
 
   async addToCart(
     scope: CartScope,
-    input: { offer_id: string; quantity: number; delivery_braname?: string | null }
+    input: { offer_id: string; quantity: number; package_id?: string | null; delivery_braname?: string | null }
   ): Promise<MarketplaceCartDTO> {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
-    }
     const offer = await this.requireActiveOffer(scope.coopname, input.offer_id);
+    // Эпик 18: валидация количества и выбора упаковки под способ отпуска оффера
+    // (по мере — дробное базовое; упаковкой — целое число упаковок).
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
 
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
 
@@ -67,25 +68,24 @@ export class MarketplaceCartService {
       await this.cartRepo.setDeliveryBraname(cart.id, targetKu);
     }
 
-    await this.cartRepo.upsertItem(cart.id, scope.coopname, offer.id, input.quantity);
+    await this.cartRepo.upsertItem(cart.id, scope.coopname, offer.id, resolved.packageId ?? '', input.quantity);
     return this.getCart(scope);
   }
 
   async updateItem(
     scope: CartScope,
-    input: { offer_id: string; quantity: number }
+    input: { offer_id: string; quantity: number; package_id?: string | null }
   ): Promise<MarketplaceCartDTO> {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
-    }
+    const offer = await this.requireActiveOffer(scope.coopname, input.offer_id);
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
-    await this.cartRepo.setItemQuantity(cart.id, input.offer_id, input.quantity);
+    await this.cartRepo.setItemQuantity(cart.id, input.offer_id, resolved.packageId ?? '', input.quantity);
     return this.getCart(scope);
   }
 
-  async removeItem(scope: CartScope, offer_id: string): Promise<MarketplaceCartDTO> {
+  async removeItem(scope: CartScope, offer_id: string, package_id?: string | null): Promise<MarketplaceCartDTO> {
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
-    await this.cartRepo.removeItem(cart.id, offer_id);
+    await this.cartRepo.removeItem(cart.id, offer_id, package_id ?? '');
     return this.getCart(scope);
   }
 
@@ -154,16 +154,36 @@ export class MarketplaceCartService {
     const items = await Promise.all(
       cart.items.map(async (item) => {
         const offer = offerById.get(item.offer_id) ?? null;
-        const price = offer ? Number.parseFloat(offer.price_per_unit) : null;
-        const lineTotalNum = price !== null ? price * item.quantity : null;
-        const available = offer
-          ? cart.delivery_braname
-            ? this.offerDeliversTo(offer, cart.delivery_braname)
-            : true
-          : false;
+        // Эпик 18: цена единицы отпуска и сумма строки под способ отпуска.
+        // Упаковкой — цена за упаковку × число упаковок; по мере — цена базовой
+        // единицы × количество. Если выбранная упаковка исчезла из оффера,
+        // позиция помечается недоступной.
+        const pkg =
+          offer && item.package_id
+            ? (offer.packages ?? []).find((p) => p.id === item.package_id) ?? null
+            : null;
+        const packageMissing = Boolean(item.package_id) && !pkg;
+        const unitPrice = offer
+          ? pkg
+            ? Number.parseFloat(pkg.price)
+            : Number.parseFloat(offer.price_per_unit)
+          : null;
+        const saleUnitPrice = pkg ? pkg.price : offer?.price_per_unit ?? null;
+        const packageSize = pkg?.size ?? 0;
+        const lineTotalNum = unitPrice !== null && !packageMissing ? unitPrice * item.quantity : null;
+        const available =
+          offer && !packageMissing
+            ? cart.delivery_braname
+              ? this.offerDeliversTo(offer, cart.delivery_braname)
+              : true
+            : false;
         if (available && lineTotalNum !== null) {
           totalCost += lineTotalNum;
         }
+        const packageLabel =
+          offer && pkg
+            ? presentSaleUnit(item.quantity * packageSize, offer.unit_of_measure, packageSize).unitLabel
+            : null;
         // Обложка товара — первое изображение оффера (как и в каталоге). URL
         // подписан и TTL-ограничен; строим тем же сервисом, что field-резолвер
         // images, чтобы в корзине было фото имущества, а не заглушка.
@@ -172,10 +192,13 @@ export class MarketplaceCartService {
         return new MarketplaceCartItemDTO({
           id: item.id,
           offer_id: item.offer_id,
+          package_id: item.package_id || null,
+          package_label: packageLabel,
+          sale_form: offer?.sale_form ?? null,
           quantity: item.quantity,
           product_name: offer?.product_name ?? null,
           unit_of_measure: offer?.unit_of_measure ?? null,
-          price_per_unit: offer?.price_per_unit ?? null,
+          price_per_unit: saleUnitPrice,
           line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
           image_url: imageUrl,
           available_on_current_ku: available,

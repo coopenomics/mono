@@ -17,15 +17,44 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
-import { MARKETPLACE_OFFER_MAX_IMAGES } from '../../domain/entities/marketplace-offer.types';
+import {
+  MARKETPLACE_OFFER_MAX_IMAGES,
+  MARKETPLACE_OFFER_MAX_PACKAGES,
+} from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceBarcodeStrategyEnum,
   MarketplaceOfferStatusEnum,
+  MarketplaceSaleFormEnum,
   MarketplaceUnitOfMeasureEnum,
 } from './marketplace-offer.dto';
 
 /** Технический предел числа КУ поставки на один Offer. */
 const MARKETPLACE_OFFER_MAX_DELIVERY_POINTS = 100;
+
+@InputType('MarketplaceOfferPackageInput')
+export class MarketplaceOfferPackageInputDTO {
+  @Field(() => Float, {
+    description: 'Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт).',
+  })
+  @IsNumber()
+  @Min(0)
+  public readonly size!: number;
+
+  @Field(() => String, { description: 'Цена за одну упаковку (numeric-строка, до 4 знаков).' })
+  @Matches(/^\d+(\.\d{1,4})?$/)
+  public readonly price!: string;
+
+  @Field(() => String, { nullable: true, description: 'Подпись упаковки («Пакет 0,5 л»).' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  public readonly label?: string | null;
+
+  @Field(() => Boolean, { nullable: true, description: 'Упаковка по умолчанию (для витрины).' })
+  @IsOptional()
+  @IsBoolean()
+  public readonly is_default?: boolean;
+}
 
 @InputType('MarketplaceOfferDeliveryPointInput')
 export class MarketplaceOfferDeliveryPointInputDTO {
@@ -86,7 +115,7 @@ export class MarketplaceCreateOfferInputDTO {
 
   @Field(() => String, {
     description:
-      'Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков.',
+      'Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки.',
   })
   @Matches(/^\d+(\.\d{1,4})?$/)
   public price_per_unit!: string;
@@ -96,6 +125,28 @@ export class MarketplaceCreateOfferInputDTO {
   })
   @IsEnum(MarketplaceUnitOfMeasureEnum)
   public unit_of_measure!: MarketplaceUnitOfMeasureEnum;
+
+  @Field(() => MarketplaceSaleFormEnum, {
+    nullable: true,
+    description:
+      'Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). ' +
+      'При упаковкой обязателен непустой список упаковок.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceSaleFormEnum)
+  public sale_form?: MarketplaceSaleFormEnum;
+
+  @Field(() => [MarketplaceOfferPackageInputDTO], {
+    nullable: true,
+    description:
+      'Каталог упаковок при отпуске упаковкой (у каждой своя цена). Обязателен и непуст при sale_form = packaged.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_PACKAGES)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferPackageInputDTO)
+  public packages?: MarketplaceOfferPackageInputDTO[];
 
   @Field(() => Float, { nullable: true })
   @IsOptional()
@@ -190,6 +241,25 @@ export class MarketplaceUpdateOfferInputDTO {
   @IsOptional()
   @IsEnum(MarketplaceUnitOfMeasureEnum)
   public unit_of_measure?: MarketplaceUnitOfMeasureEnum;
+
+  @Field(() => MarketplaceSaleFormEnum, {
+    nullable: true,
+    description: 'Способ отпуска. Если передан packaged — требуется непустой список packages.',
+  })
+  @IsOptional()
+  @IsEnum(MarketplaceSaleFormEnum)
+  public sale_form?: MarketplaceSaleFormEnum;
+
+  @Field(() => [MarketplaceOfferPackageInputDTO], {
+    nullable: true,
+    description: 'Каталог упаковок. Если передан — полностью заменяет текущий набор.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MARKETPLACE_OFFER_MAX_PACKAGES)
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceOfferPackageInputDTO)
+  public packages?: MarketplaceOfferPackageInputDTO[];
 
   @Field(() => Float, { nullable: true })
   @IsOptional()

@@ -39,6 +39,8 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { presentSaleUnit } from '../shared/packaging.util';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { toQuantityAsset } from '../shared/quantity.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
@@ -517,6 +519,8 @@ export class MarketplaceIssuanceService {
       unit_of_measurement: offer
         ? marketplaceOrderUnitLabel(offer.unit_of_measure)
         : '',
+      unit_of_measure: offer?.unit_of_measure,
+      package_size: input.order.package_size,
       transmitter: input.transmitter,
       actual_quantity: input.actual_quantity,
       unit_price,
@@ -570,15 +574,25 @@ export class MarketplaceIssuanceService {
     supplier_account: string;
     offer_id: string;
     product_title: string;
-    /** Готовый ярлык единицы заказа (фасовки). */
+    /** Ярлык базовой единицы (fallback для отпуска по мере/остатка). */
     unit_of_measurement: string;
+    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
+    unit_of_measure?: MarketplaceUnitOfMeasure;
+    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
+    package_size?: number;
     transmitter: string;
     actual_quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
-    // Акт выдачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в базовые:
-    // количество = число единиц заказа, цена — за единицу заказа.
-    const total_amount = (p.actual_quantity * Number.parseFloat(p.unit_price)).toFixed(4);
+    // Эпик 18: акт ведётся в единицах отпуска. По мере — количество в базовой
+    // единице, цена за базовую единицу. Упаковкой — количество = число упаковок,
+    // единица = «упак. 0,5 л», цена = за упаковку; сумма считается от числа
+    // упаковок (иначе на некруглой упаковке разъезжается копейка).
+    const packageSize = p.package_size ?? 0;
+    const pres = p.unit_of_measure
+      ? presentSaleUnit(p.actual_quantity, p.unit_of_measure, packageSize)
+      : { units: p.actual_quantity, unitLabel: p.unit_of_measurement };
+    const total_amount = (pres.units * Number.parseFloat(p.unit_price)).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
       coopname: p.coopname,
@@ -590,12 +604,12 @@ export class MarketplaceIssuanceService {
       transmitter: p.transmitter,
       braname: p.delivery_braname,
       accept_braname: p.delivery_braname,
-      fact_quantity: p.actual_quantity,
+      fact_quantity: pres.units,
       total_amount,
       supplier_account: p.supplier_account,
       sku: p.offer_id,
       product_title: p.product_title,
-      unit_of_measurement: p.unit_of_measurement,
+      unit_of_measurement: pres.unitLabel,
       unit_cost: p.unit_price,
       currency: this.assetConfig.symbol,
       // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
