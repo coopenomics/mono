@@ -51,10 +51,37 @@ inline void check_quantity(const eosio::asset& quantity) {
   eosio::check(quantity.amount > 0, "Количество должно быть больше нуля");
 }
 
-/// Стоимость = количество × цена-за-базовую-единицу / 10^precision(количества),
-/// округление half-up. Цена — money-asset в _root_govern_symbol; результат — в
-/// её символе. int128 против переполнения (крупные партии: тонны × цена).
-inline eosio::asset calc_cost(const eosio::asset& quantity, const eosio::asset& unit_price) {
+/// Валидация упаковочного отпуска. `package_size` — содержимое одной упаковки
+/// в базовой единице (той же, что и количество). package_size.amount == 0 —
+/// отпуск «по мере» (весовой/наливной/поштучный): проверок нет, цена за
+/// базовую единицу. package_size.amount > 0 — упаковочный отпуск: символ
+/// упаковки равен символу количества, размер положителен, а количество кратно
+/// упаковке (заказать/выдать можно только целое число упаковок).
+inline void check_packaging(const eosio::asset& quantity, const eosio::asset& package_size) {
+  if (package_size.amount == 0) return;  // отпуск по мере
+  eosio::check(package_size.is_valid() && package_size.symbol == quantity.symbol,
+               "Единица упаковки не совпадает с единицей количества");
+  eosio::check(package_size.amount > 0, "Размер упаковки должен быть больше нуля");
+  eosio::check(quantity.amount % package_size.amount == 0,
+               "Количество должно быть кратно размеру упаковки");
+}
+
+/// Стоимость заказа. Два режима отпуска (Эпик 18):
+///  - по мере (package_size.amount == 0): `unit_price` — цена за базовую
+///    единицу; cost = количество × цена / 10^precision(количества), half-up.
+///  - упаковкой (package_size.amount > 0): `unit_price` — цена за упаковку;
+///    cost = (количество / размер_упаковки) × цена. Деление точное —
+///    кратность гарантирует `check_packaging`, копейка не округляется.
+/// Цена — money-asset в _root_govern_symbol; результат — в её символе.
+/// int128 против переполнения (крупные партии: тонны × цена).
+inline eosio::asset calc_cost(const eosio::asset& quantity, const eosio::asset& unit_price,
+                              const eosio::asset& package_size = eosio::asset(0, _unit_piece)) {
+  if (package_size.amount > 0) {
+    const int64_t packages = quantity.amount / package_size.amount;  // точно (кратность — check_packaging)
+    const uint128_t total = static_cast<uint128_t>(packages) *
+                            static_cast<uint128_t>(unit_price.amount);
+    return eosio::asset(static_cast<int64_t>(total), unit_price.symbol);
+  }
   int64_t scale = 1;
   for (uint8_t i = 0; i < quantity.symbol.precision(); ++i) scale *= 10;
   const uint128_t num = static_cast<uint128_t>(quantity.amount) *

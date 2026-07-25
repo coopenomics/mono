@@ -58,6 +58,7 @@ void marketplace::signiss2(eosio::name coopname,
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
   eosio::check(actual_quantity.symbol == o.quantity.symbol,
                "Единица измерения фактического количества не совпадает с заказом");
+  Marketplace::check_packaging(actual_quantity, o.package_size);  // Эпик 18: упаковочный — выдаём целыми упаковками
   eosio::check(o.status == OrderStatus::READY_TO_RECEIVE,
                "Заказ не готов к выдаче");
   eosio::check(is_empty_document(o.issue_act_signiss2),
@@ -72,7 +73,8 @@ void marketplace::signiss2(eosio::name coopname,
   // Факт считается от скорректированной оператором цены (actual_unit_price),
   // а не от цены заказа (o.unit_price): оператор мог снизить/поднять цену на
   // месте (испорчена упаковка, замена позиции и т. п.).
-  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price);
+  // При упаковочном отпуске actual_unit_price — скорректированная цена упаковки.
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 

@@ -125,7 +125,8 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
 
   eosio::asset quantity = asset(0, _unit_piece);              ///< заказанное количество (asset с символом единицы KG/LTR/PCS, Эпик 17)
   eosio::asset actual_quantity = asset(0, _unit_piece);       ///< фактически выданное (signiss2); до signiss2 == quantity
-  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за одну базовую единицу (кг/литр/штуку)
+  eosio::asset package_size = asset(0, _unit_piece);          ///< Эпик 18: содержимое упаковки в базовой единице. 0 = отпуск по мере (unit_price за базовую единицу); >0 = упаковкой (unit_price за упаковку, quantity/actual_quantity кратны package_size)
+  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за единицу отпуска: за базовую единицу (кг/литр/штуку) при package_size==0, либо за упаковку при package_size>0
   eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price / 10^precision (заблокированная сумма)
   eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price / 10^precision (после signiss2)
 

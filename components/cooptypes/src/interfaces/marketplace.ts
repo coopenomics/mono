@@ -50,6 +50,7 @@ export interface ICreateOrder {
   delivery_braname: IName
   quantity: IAsset
   unit_price: IAsset
+  package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
   convert_statement: IDocument2
@@ -63,6 +64,7 @@ export interface IStockOrder {
   delivery_braname: IName
   quantity: IAsset
   unit_price: IAsset
+  package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
 }
@@ -287,6 +289,7 @@ export interface IOrder {
   current_warehouse_braname: IName
   quantity: IAsset
   actual_quantity: IAsset
+  package_size: IAsset
   unit_price: IAsset
   total_cost: IAsset
   fact_cost: IAsset

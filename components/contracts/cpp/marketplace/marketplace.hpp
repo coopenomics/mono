@@ -96,6 +96,7 @@ public:
                                       eosio::name delivery_braname,
                                       eosio::asset quantity,
                                       eosio::asset unit_price,
+                                      eosio::asset package_size,
                                       uint32_t warranty_period_secs,
                                       checksum256 batch_hash,
                                       document2 convert_statement);
@@ -122,6 +123,7 @@ public:
                                      eosio::name delivery_braname,
                                      eosio::asset quantity,
                                      eosio::asset unit_price,
+                                     eosio::asset package_size,
                                      uint32_t warranty_period_secs,
                                      checksum256 batch_hash);
 

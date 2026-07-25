@@ -47,6 +47,7 @@ void marketplace::submretrn(eosio::name coopname,
                "По этому заказу уже открыто заявление на возврат");
   eosio::check(actual_quantity.symbol == o.actual_quantity.symbol,
                "Единица измерения возврата не совпадает с заказом");
+  Marketplace::check_packaging(actual_quantity, o.package_size);  // Эпик 18: упаковочный — возвращаем целыми упаковками
   eosio::check(actual_quantity <= o.actual_quantity,
                "Нельзя вернуть больше единиц, чем было выдано");
   eosio::check(o.warranty_period_secs > 0,
@@ -56,7 +57,7 @@ void marketplace::submretrn(eosio::name coopname,
   eosio::check(now < o.warranty_until,
                "Гарантийный срок по заказу истёк");
 
-  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, o.unit_price);
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, o.unit_price, o.package_size);
 
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);

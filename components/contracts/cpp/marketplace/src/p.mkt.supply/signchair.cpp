@@ -49,6 +49,7 @@ void marketplace::signchair(eosio::name coopname,
                "Заказ не готов к приёмке кооперативом");
   eosio::check(actual_quantity.symbol == o.quantity.symbol,
                "Единица измерения фактического количества не совпадает с заказом");
+  Marketplace::check_packaging(actual_quantity, o.package_size);  // Эпик 18: упаковочный — принимаем целыми упаковками
 
   // Авторизация подписи: signer должен быть в trusted списке приёмного КУ.
   auto branch = get_branch_or_fail(coopname, o.accept_braname);
@@ -58,7 +59,8 @@ void marketplace::signchair(eosio::name coopname,
   verify_document_or_fail(act, { o.offerer, signer });
 
   // Итоговая стоимость к получению поставщиком — от скорректированного факта.
-  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price);
+  // При упаковочном отпуске actual_unit_price — скорректированная цена упаковки.
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма приёмки должна быть больше нуля");
 
