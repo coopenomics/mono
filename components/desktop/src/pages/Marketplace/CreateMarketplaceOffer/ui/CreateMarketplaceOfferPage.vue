@@ -378,7 +378,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               .offer-preview__pricerow
                 .offer-preview__pricebox
                   span.offer-preview__price {{ formattedPrice }}
-                  span.offer-preview__per за {{ orderUnitLabel }}
+                  span.offer-preview__per за {{ previewUnitLabel }}
                 BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
               p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
@@ -823,24 +823,50 @@ async function loadKuOptions(): Promise<void> {
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
 
+// Упаковка по умолчанию (для отправки и превью) — то, что реально увидит и
+// закажет заказчик при отпуске упаковкой.
+const defaultPackage = computed(() =>
+  form.value.packages.find((p) => p.is_default) ?? form.value.packages[0] ?? null
+);
+
+// Цена в превью: по мере — form.price_per_unit (поле «Цена за ед.»); упаковкой
+// — цена упаковки по умолчанию. form.price_per_unit при упаковочном отпуске
+// скрыт и может хранить неактуальное значение с прошлого переключения режима
+// («по мере» → «упаковкой») или восстановленного черновика — использовать его
+// в превью для упаковочного оффера нельзя (инцидент 2026-07-25: превью
+// показывало «1 RUB за л» вместо реальной цены упаковки «100 RUB»).
+const previewPriceStr = computed(() =>
+  form.value.sale_form === MarketplaceSaleForm.PACKAGED
+    ? (defaultPackage.value?.price ?? '').trim().replace(',', '.')
+    : priceNumberStr.value
+);
+// Подпись единицы отпуска в превью: по мере — базовая единица («л»);
+// упаковкой — размер упаковки по умолчанию («упак. 1 л»), а не базовая
+// единица — заказчик покупает целыми упаковками, не по цене за литр/кг.
+const previewUnitLabel = computed(() => {
+  if (form.value.sale_form !== MarketplaceSaleForm.PACKAGED) return orderUnitLabel.value;
+  const size = defaultPackage.value?.size;
+  return size ? `упак. ${String(size).replace('.', ',')} ${orderUnitLabel.value}` : orderUnitLabel.value;
+});
+
 // Цена с учётом взноса — то, что реально увидит и заплатит пайщик.
 const priceWithFee = computed<number | null>(() => {
-  if (!priceNumberStr.value) return null;
-  const n = Number(priceNumberStr.value);
+  if (!previewPriceStr.value) return null;
+  const n = Number(previewPriceStr.value);
   if (Number.isNaN(n)) return null;
   return feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
 });
 // В превью крупно — своя цена поставщика (без взноса).
 const formattedPrice = computed(() => {
-  if (!priceNumberStr.value) return '—';
-  const n = Number(priceNumberStr.value);
+  if (!previewPriceStr.value) return '—';
+  const n = Number(previewPriceStr.value);
   if (Number.isNaN(n)) return '—';
   return formatAsset2Digits(`${n} ${governSymbol.value}`);
 });
 const priceWithFeeHint = computed(() => {
   if (priceWithFee.value == null || feePercent.value <= 0) return '';
   const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
-  return `Цена для заказчика: ${formatted} за ${orderUnitLabel.value}`;
+  return `Цена для заказчика: ${formatted} за ${previewUnitLabel.value}`;
 });
 
 const stockEmpty = computed(
@@ -1143,8 +1169,7 @@ async function onSubmit(): Promise<void> {
     }));
     // price_per_unit при упаковочном отпуске backend выводит из упаковки по
     // умолчанию; шлём цену дефолт-упаковки, чтобы удовлетворить валидацию DTO.
-    const def = f.packages.find((p) => p.is_default) ?? f.packages[0];
-    pricePerUnit = def.price.trim().replace(',', '.');
+    pricePerUnit = (defaultPackage.value?.price ?? '').trim().replace(',', '.');
   }
 
   const payload: MarketplaceCreateOfferPayload = {
