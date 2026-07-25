@@ -160,7 +160,17 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
 
           //- ───────── Редактор упаковок ─────────
           .offer-wizard__packages(v-if='form.sale_form === "packaged"')
+            .offer-wizard__hint(v-if='form.packages.length > 1')
+              | Кружок слева — упаковка по умолчанию (первой видна в каталоге).
             .offer-wizard__pkg-row(v-for='(pkg, i) in form.packages', :key='i')
+              q-radio.offer-wizard__pkg-default(
+                :model-value='defaultPackageIndex',
+                :val='i',
+                color='primary',
+                dense,
+                aria-label='Сделать упаковкой по умолчанию',
+                @update:model-value='setDefaultPackage(i)'
+              )
               q-input.offer-wizard__pkg-size(
                 v-model.number='pkg.size',
                 :label='`Содержимое, ${orderUnitLabel}`',
@@ -188,13 +198,6 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 dense,
                 no-error-icon,
                 hide-bottom-space
-              )
-              q-radio(
-                :model-value='defaultPackageIndex',
-                :val='i',
-                color='primary',
-                label='По умолч.',
-                @update:model-value='setDefaultPackage(i)'
               )
               BaseButton(
                 variant='ghost',
@@ -1369,6 +1372,10 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
+  }
+
+  &__pkg-default {
+    flex-shrink: 0;
   }
 
   &__pkg-size {
