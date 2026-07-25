@@ -124,7 +124,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               map-options
             )
             q-input(
-              v-if='form.sale_form !== "packaged"',
+              v-if='form.sale_form !== MarketplaceSaleForm.PACKAGED',
               v-model='form.price_per_unit',
               :label='priceLabel',
               outlined,
@@ -140,26 +140,26 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             .offer-wizard__qty-mode
               button.offer-wizard__qty-mode-label(
                 type='button',
-                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === "by_measure" }',
-                @click='onSelectSaleForm("by_measure")'
+                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === MarketplaceSaleForm.BY_MEASURE }',
+                @click='onSelectSaleForm(MarketplaceSaleForm.BY_MEASURE)'
               ) По мере
               q-toggle.offer-wizard__qty-toggle(
-                :model-value='form.sale_form === "packaged"',
+                :model-value='form.sale_form === MarketplaceSaleForm.PACKAGED',
                 color='primary',
                 dense,
                 aria-label='По мере или упаковкой',
-                @update:model-value='(v) => onSelectSaleForm(v ? "packaged" : "by_measure")'
+                @update:model-value='(v) => onSelectSaleForm(v ? MarketplaceSaleForm.PACKAGED : MarketplaceSaleForm.BY_MEASURE)'
               )
               button.offer-wizard__qty-mode-label(
                 type='button',
-                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === "packaged" }',
-                @click='onSelectSaleForm("packaged")'
+                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === MarketplaceSaleForm.PACKAGED }',
+                @click='onSelectSaleForm(MarketplaceSaleForm.PACKAGED)'
               ) Упаковкой
-            .offer-wizard__hint(v-if='form.sale_form === "by_measure"') Заказчик указывает произвольное количество; цена — за {{ orderUnitLabel }}.
+            .offer-wizard__hint(v-if='form.sale_form === MarketplaceSaleForm.BY_MEASURE') Заказчик указывает произвольное количество; цена — за {{ orderUnitLabel }}.
             .offer-wizard__hint(v-else) Товар отпускается целыми упаковками, у каждой своя цена. Заказчик выбирает упаковку и число упаковок.
 
             //- ───────── Редактор упаковок — внутри той же карточки ─────────
-            .offer-wizard__packages(v-if='form.sale_form === "packaged"')
+            .offer-wizard__packages(v-if='form.sale_form === MarketplaceSaleForm.PACKAGED')
               .offer-wizard__hint(v-if='form.packages.length > 1')
                 | Кружок слева — упаковка по умолчанию (первой видна в каталоге).
               .offer-wizard__pkg-row(v-for='(pkg, i) in form.packages', :key='i')
@@ -460,9 +460,10 @@ import type {
   MarketplaceCreateOfferFormState,
   MarketplaceCreateOfferPayload,
   MarketplaceOfferImageUpload,
-  MarketplaceSaleForm,
-  MarketplaceUnitOfMeasure,
 } from '../types';
+// Значения (не только типы) — реальные GraphQL-enum'ы, используются в
+// шаблоне и коде как MarketplaceSaleForm.PACKAGED/MarketplaceUnitOfMeasure.KG.
+import { MarketplaceSaleForm, MarketplaceUnitOfMeasure } from '../types';
 
 /**
  * Story 3.2 / 4.7: многошаговый мастер публикации Offer'а (по канону
@@ -687,8 +688,8 @@ const form = ref<MarketplaceCreateOfferFormState>({
   description: '',
   category_id: null,
   price_per_unit: '',
-  unit_of_measure: 'piece',
-  sale_form: 'by_measure',
+  unit_of_measure: MarketplaceUnitOfMeasure.PIECE,
+  sale_form: MarketplaceSaleForm.BY_MEASURE,
   packages: [],
   quantity_available: 1,
   unlimited_flag: false,
@@ -729,7 +730,7 @@ const orderUnitLabel = computed(() => marketplaceOrderUnitLabel(form.value.unit_
 const priceLabel = computed(() => `Цена за ${orderUnitLabel.value}`);
 
 // Эпик 18: шаг ввода содержимого упаковки — штука неделима (1), вес/объём дробный.
-const unitStep = computed(() => (form.value.unit_of_measure === 'piece' ? 1 : 0.001));
+const unitStep = computed(() => (form.value.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001));
 
 // Индекс упаковки «по умолчанию» (для radio); -1 если не задана.
 const defaultPackageIndex = computed(() => form.value.packages.findIndex((p) => p.is_default));
@@ -755,9 +756,9 @@ function removePackage(index: number): void {
 
 // Переключение способа отпуска: при первом переходе к «упаковкой» заводим
 // одну пустую упаковку, чтобы редактор не был пустым.
-function onSelectSaleForm(form_value: 'by_measure' | 'packaged'): void {
+function onSelectSaleForm(form_value: MarketplaceSaleForm): void {
   form.value.sale_form = form_value;
-  if (form_value === 'packaged' && form.value.packages.length === 0) {
+  if (form_value === MarketplaceSaleForm.PACKAGED && form.value.packages.length === 0) {
     addPackage();
   }
 }
@@ -1091,7 +1092,7 @@ async function onSubmit(): Promise<void> {
   // Эпик 18: при отпуске упаковкой — валидируем каталог упаковок и собираем его.
   let packagesPayload: MarketplaceCreateOfferPayload['packages'];
   let pricePerUnit = priceNumberStr.value;
-  if (f.sale_form === 'packaged') {
+  if (f.sale_form === MarketplaceSaleForm.PACKAGED) {
     if (f.packages.length === 0) {
       FailAlert(new Error('Добавьте хотя бы одну упаковку.'));
       return;
@@ -1175,7 +1176,7 @@ async function prefillForEdit(id: string): Promise<void> {
       category_id: offer.category_id != null ? Number(offer.category_id) : null,
       price_per_unit: formatPriceForInput(offer.price_per_unit),
       unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
-      sale_form: (offer.sale_form as MarketplaceSaleForm) ?? 'by_measure',
+      sale_form: (offer.sale_form as MarketplaceSaleForm) ?? MarketplaceSaleForm.BY_MEASURE,
       packages: (offer.packages ?? []).map((p) => ({
         id: p.id,
         size: p.size,

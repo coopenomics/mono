@@ -6,7 +6,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { applyMembershipFee } from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { marketplaceOrderUnitLabel, MarketplaceSaleForm, MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
 
 // Минимально необходимый набор полей оффера для добавления в корзину —
@@ -59,13 +59,13 @@ const quantity = ref<number>(1);
 const selectedPackageId = ref<string | null>(null);
 const submitting = ref<boolean>(false);
 
-const isPackaged = computed(() => props.offer?.sale_form === 'packaged');
+const isPackaged = computed(() => props.offer?.sale_form === MarketplaceSaleForm.PACKAGED);
 const unitLabel = computed(() =>
   marketplaceOrderUnitLabel(props.offer?.unit_of_measure),
 );
 // Шаг ввода: по мере — штука целая (1), вес/объём дробный (0.001); упаковкой — целое.
 const quantityStep = computed(() =>
-  isPackaged.value || props.offer?.unit_of_measure === 'piece' ? 1 : 0.001,
+  isPackaged.value || props.offer?.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001,
 );
 
 const packageOptions = computed(() =>

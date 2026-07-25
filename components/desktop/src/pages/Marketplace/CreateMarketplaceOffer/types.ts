@@ -13,10 +13,9 @@ export interface MarketplaceOfferDeliveryPoint {
   min_supply_volume: number;
 }
 
-export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
-
-/** Способ отпуска (Эпик 18): по мере (by_measure) или упаковкой (packaged). */
-export type MarketplaceSaleForm = 'by_measure' | 'packaged';
+// Реальные GraphQL-enum'ы (Zeus), не собственные строки — сервер сериализует
+// enum именем варианта ('KG'/'PACKAGED'), не JS-значением backend'а.
+export { MarketplaceUnitOfMeasure, MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
 
 /** Строка упаковки в форме оффера (Эпик 18): содержимое + цена за упаковку. */
 export interface MarketplaceOfferPackageForm {

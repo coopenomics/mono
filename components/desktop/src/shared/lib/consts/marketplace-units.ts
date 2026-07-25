@@ -1,16 +1,25 @@
+import { Zeus } from '@coopenomics/sdk';
+
 /**
- * Единицы измерения товара Стола заказов — единый источник для всех
- * marketplace-экранов (создание оферты, модерация, мои предложения, каталог).
+ * Единицы измерения и способ отпуска товара Стола заказов — единый источник
+ * для всех marketplace-экранов (создание оферты, модерация, мои предложения,
+ * каталог, корзина, заказы).
  *
- * Канон-значения (`piece`/`kg`/`liter`) совпадают с backend-enum
- * `unit_of_measure` — это БАЗОВАЯ единица измерения. «Упаковка» единицей не
- * является: заказ упаковками/фасовками задаётся размером единицы заказа
- * (`order_unit_size`), например `piece` + 8 = упаковка из 8 штук. Русские
- * подписи держим здесь, чтобы «liter» не утекало в UI на английском и подписи
- * не расходились между страницами (раньше карта дублировалась в
- * ChairmanModeration и в CreateMarketplaceOffer).
+ * Значения — РЕАЛЬНЫЕ GraphQL-enum'ы из Zeus (`Zeus.MarketplaceUnitOfMeasure`,
+ * `Zeus.MarketplaceSaleForm`), а не собственные строки: сервер сериализует
+ * enum именем варианта (`KG`, `PACKAGED`), а не JS-значением backend'а
+ * (`kg`, `packaged`) — свой строковый union здесь расходится с проводом и
+ * ловится либо ошибкой валидации на mutation, либо молчаливым непопаданием
+ * сравнения на чтении. Базовая единица (кг/л/шт) — отдельная характеристика
+ * от способа отпуска (по мере/упаковкой, Эпик 18); «упаковка» сама по себе
+ * не единица измерения. Русские подписи держим здесь, чтобы не расходились
+ * между страницами.
  */
-export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
+export const MarketplaceUnitOfMeasure = Zeus.MarketplaceUnitOfMeasure;
+export type MarketplaceUnitOfMeasure = Zeus.MarketplaceUnitOfMeasure;
+
+export const MarketplaceSaleForm = Zeus.MarketplaceSaleForm;
+export type MarketplaceSaleForm = Zeus.MarketplaceSaleForm;
 
 interface MarketplaceUnitDef {
   value: MarketplaceUnitOfMeasure;
@@ -21,9 +30,9 @@ interface MarketplaceUnitDef {
 }
 
 const MARKETPLACE_UNITS: readonly MarketplaceUnitDef[] = [
-  { value: 'piece', label: 'шт.', short: 'шт' },
-  { value: 'kg', label: 'кг', short: 'кг' },
-  { value: 'liter', label: 'литр', short: 'л' },
+  { value: MarketplaceUnitOfMeasure.PIECE, label: 'шт.', short: 'шт' },
+  { value: MarketplaceUnitOfMeasure.KG, label: 'кг', short: 'кг' },
+  { value: MarketplaceUnitOfMeasure.LITER, label: 'литр', short: 'л' },
 ];
 
 /** Опции для q-select при создании/редактировании оферты. */
