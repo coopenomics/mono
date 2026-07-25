@@ -139,9 +139,7 @@ const loadParentProject = async () => {
 
   try {
     // Ищем родительский проект в store
-    const existingParent = projectStore.projects.items.find(
-      p => p.project_hash === props.project?.parent_hash
-    );
+    const existingParent = projectStore.getProject(props.project.parent_hash);
 
     if (existingParent) {
       parentProject.value = existingParent;

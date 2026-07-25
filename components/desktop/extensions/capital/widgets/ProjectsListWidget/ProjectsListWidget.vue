@@ -94,6 +94,7 @@ import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
+import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
 
 const props = defineProps<{
   coopname?: string;
@@ -122,8 +123,13 @@ const nextPage = ref(1);
 const lastPage = ref(1);
 
 // Используем computed для projects, чтобы всегда получать актуальные данные из store
-// Это предотвращает конфликты и "передергивание" списка при разворачивании проектов
-const projects = computed(() => projectStore.projects);
+// Фильтр isProject — защита от кратковременного попадания компонента в items
+// (раньше loadProject добавлял любой hash в начало списка мастерской)
+const projects = computed(() => {
+  const raw = projectStore.projects;
+  const items = (raw.items || []).filter((p) => isProject(p));
+  return { ...raw, items };
+});
 
 // Проверяем, применены ли фильтры
 const hasFiltersApplied = computed(() => {

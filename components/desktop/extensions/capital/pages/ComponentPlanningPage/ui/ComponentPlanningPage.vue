@@ -32,31 +32,26 @@ const permissions = computed((): IProjectPermissions | null => {
 // splice — реактивный watcher ниже подхватит свежий объект.
 const loadProject = async () => {
   try {
-    await projectStore.loadProject({
+    const loaded = await projectStore.loadProject({
       hash: projectHash.value,
     });
-    const foundProject = projectStore.projects.items.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
+    project.value =
+      (loaded as IProject | undefined) ??
+      projectStore.getProject(projectHash.value) ??
+      null;
   } catch (error) {
     console.error('Ошибка при загрузке компонента:', error);
     FailAlert('Не удалось загрузить компонент');
   }
 };
 
-// Watcher для синхронизации локального состояния с store.
-// {deep: true} обязателен: store обновляет items через splice (мутация in-place),
-// без deep watcher не срабатывает при изменении полей внутри объекта проекта
-// (например is_planed после setPlan), и компонент остаётся со старым значением.
-watch(() => projectStore.projects.items, (newItems) => {
-  if (newItems && projectHash.value) {
-    const foundProject = newItems.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
-  }
-}, { deep: true });
+// Синхронизация с кэшем entities (компонент не лежит в items мастерской)
+watch(
+  () => projectStore.entities[projectHash.value],
+  (entity) => {
+    if (entity) project.value = entity;
+  },
+);
 
 // Watcher для изменения projectHash
 watch(projectHash, async (newHash, oldHash) => {

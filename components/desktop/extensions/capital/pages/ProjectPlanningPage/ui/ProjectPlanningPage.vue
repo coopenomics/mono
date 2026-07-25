@@ -57,14 +57,13 @@ const loadProject = async () => {
   if (!projectHash.value) return;
 
   try {
-    // Загружаем проект (уже включает компоненты через projectSelector)
-    await projectStore.loadProject({
+    const loaded = await projectStore.loadProject({
       hash: projectHash.value,
     });
-
-    // После загрузки ищем его в store
-    const foundProject = projectStore.projects.items.find(p => p.project_hash === projectHash.value);
-    project.value = foundProject || null;
+    project.value =
+      (loaded as IProject | undefined) ??
+      projectStore.getProject(projectHash.value) ??
+      null;
   } catch (error) {
     console.error('Ошибка при загрузке проекта с компонентами:', error);
     FailAlert('Не удалось загрузить проект с компонентами');
@@ -72,18 +71,13 @@ const loadProject = async () => {
   }
 };
 
-// Watcher для синхронизации локального состояния с store.
-// {deep: true} обязателен: store обновляет items через splice (мутация in-place);
-// без deep watcher не реагирует на изменения полей внутри объекта проекта
-// (is_planed/plan/components после setPlan и т.д.).
-watch(() => projectStore.projects.items, (newItems) => {
-  if (newItems && projectHash.value) {
-    const foundProject = newItems.find(p => p.project_hash === projectHash.value);
-    if (foundProject) {
-      project.value = foundProject;
-    }
-  }
-}, { deep: true });
+// Синхронизация с кэшем / списком мастерской
+watch(
+  () => projectStore.entities[projectHash.value],
+  (entity) => {
+    if (entity) project.value = entity;
+  },
+);
 
 // Watcher для изменения projectHash
 watch(projectHash, async (newHash, oldHash) => {
