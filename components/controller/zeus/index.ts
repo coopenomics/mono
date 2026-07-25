@@ -7656,7 +7656,9 @@ export type ValueTypes = {
 	delivery_braname?: string | undefined | null | Variable<any, string>,
 	/** Идентификатор предложения. */
 	offer_id: string | Variable<any, string>,
-	/** Количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). Не указывается при отпуске по мере. */
+	package_id?: string | undefined | null | Variable<any, string>,
+	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number | Variable<any, string>
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -8047,12 +8049,18 @@ export type ValueTypes = {
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
+	/** Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?:boolean | `@${string}`,
+	/** Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере. */
+	package_label?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в корзине. */
 	product_name?:boolean | `@${string}`,
-	/** Количество единиц в корзине. */
+	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity?:boolean | `@${string}`,
+	/** Способ отпуска предложения: by_measure | packaged. */
+	sale_form?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -8169,6 +8177,8 @@ export type ValueTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** order_hash будущего заказа (зашит в мету заявления). */
 	order_hash?:boolean | `@${string}`,
+	/** Упаковка позиции (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCheckoutSignableLine']?: Omit<ValueTypes["MarketplaceCheckoutSignableLine"], "...on MarketplaceCheckoutSignableLine">
 }>;
@@ -8178,6 +8188,8 @@ export type ValueTypes = {
 	offer_id: string | Variable<any, string>,
 	/** order_hash будущего заказа — тот же, что в мете заявления. */
 	order_hash: string | Variable<any, string>,
+	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
+	package_id?: string | undefined | null | Variable<any, string>,
 	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
 	signed_statement: ValueTypes["MarketplaceConvertStatementSignedInput"] | Variable<any, string>
 };
@@ -8327,10 +8339,14 @@ export type ValueTypes = {
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null | Variable<any, string>,
-	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Обязателен и непуст при sale_form = packaged. */
+	packages?: Array<ValueTypes["MarketplaceOfferPackageInput"]> | undefined | null | Variable<any, string>,
+	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string | Variable<any, string>,
 	product_name: string | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
+	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
+	sale_form?: ValueTypes["MarketplaceSaleForm"] | undefined | null | Variable<any, string>,
 	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
 	shelf_life_days: number | Variable<any, string>,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
@@ -8880,6 +8896,8 @@ export type ValueTypes = {
 	images?:ValueTypes["MarketplaceOfferImage"],
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере. */
+	packages?:ValueTypes["MarketplaceOfferPackage"],
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit?:boolean | `@${string}`,
 	product_name?:boolean | `@${string}`,
@@ -8889,6 +8907,8 @@ export type ValueTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
+	sale_form?:boolean | `@${string}`,
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
 	shelf_life_days?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -8960,6 +8980,32 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferModerationEvent']?: Omit<ValueTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
 }>;
+	["MarketplaceOfferPackage"]: AliasType<{
+	/** Идентификатор упаковки в каталоге предложения. */
+	id?:boolean | `@${string}`,
+	/** Упаковка по умолчанию (для витрины и сортировки). */
+	is_default?:boolean | `@${string}`,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?:boolean | `@${string}`,
+	/** Цена за одну упаковку (numeric-строка). */
+	price?:boolean | `@${string}`,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size?:boolean | `@${string}`,
+	/** Порядок показа упаковки в карточке. */
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceOfferPackage']?: Omit<ValueTypes["MarketplaceOfferPackage"], "...on MarketplaceOfferPackage">
+}>;
+	["MarketplaceOfferPackageInput"]: {
+	/** Упаковка по умолчанию (для витрины). */
+	is_default?: boolean | undefined | null | Variable<any, string>,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null | Variable<any, string>,
+	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
+	price: string | Variable<any, string>,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number | Variable<any, string>
+};
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -9290,7 +9336,9 @@ export type ValueTypes = {
 	/** Убрать позицию из корзины. */
 ["MarketplaceRemoveFromCartInput"]: {
 	/** Идентификатор предложения позиции. */
-	offer_id: string | Variable<any, string>
+	offer_id: string | Variable<any, string>,
+	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
+	package_id?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceRepublishOfferInput"]: {
 	id: string | Variable<any, string>
@@ -9664,6 +9712,8 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -9998,7 +10048,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceTrusteeWeight']?: Omit<ValueTypes["MarketplaceTrusteeWeight"], "...on MarketplaceTrusteeWeight">
 }>;
-	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно размером единицы заказа. */
+	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Количество и цена ведутся прямо в ней. */
 ["MarketplaceUnitOfMeasure"]:MarketplaceUnitOfMeasure;
 	["MarketplaceUnpublishStockInput"]: {
 	/** Опубликованные позиции остатка, снимаемые с витрины. */
@@ -10014,7 +10064,9 @@ export type ValueTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string | Variable<any, string>,
-	/** Новое количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). */
+	package_id?: string | undefined | null | Variable<any, string>,
+	/** Новое количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number | Variable<any, string>
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -10027,9 +10079,13 @@ export type ValueTypes = {
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ValueTypes["MarketplaceOfferImageUploadInput"]> | undefined | null | Variable<any, string>,
 	pack_size?: number | undefined | null | Variable<any, string>,
+	/** Каталог упаковок. Если передан — полностью заменяет текущий набор. */
+	packages?: Array<ValueTypes["MarketplaceOfferPackageInput"]> | undefined | null | Variable<any, string>,
 	price_per_unit?: string | undefined | null | Variable<any, string>,
 	product_name?: string | undefined | null | Variable<any, string>,
 	quantity_available?: number | undefined | null | Variable<any, string>,
+	/** Способ отпуска. Если передан packaged — требуется непустой список packages. */
+	sale_form?: ValueTypes["MarketplaceSaleForm"] | undefined | null | Variable<any, string>,
 	/** Срок годности имущества в днях (основа списания скоропорта). */
 	shelf_life_days?: number | undefined | null | Variable<any, string>,
 	unit_of_measure?: ValueTypes["MarketplaceUnitOfMeasure"] | undefined | null | Variable<any, string>,
@@ -20700,7 +20756,9 @@ export type ResolverInputTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). Не указывается при отпуске по мере. */
+	package_id?: string | undefined | null,
+	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -21077,12 +21135,18 @@ export type ResolverInputTypes = {
 	max_available?:boolean | `@${string}`,
 	/** Идентификатор предложения. */
 	offer_id?:boolean | `@${string}`,
+	/** Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?:boolean | `@${string}`,
+	/** Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере. */
+	package_label?:boolean | `@${string}`,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?:boolean | `@${string}`,
 	/** Название товара из предложения — для отображения в корзине. */
 	product_name?:boolean | `@${string}`,
-	/** Количество единиц в корзине. */
+	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity?:boolean | `@${string}`,
+	/** Способ отпуска предложения: by_measure | packaged. */
+	sale_form?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -21191,6 +21255,8 @@ export type ResolverInputTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** order_hash будущего заказа (зашит в мету заявления). */
 	order_hash?:boolean | `@${string}`,
+	/** Упаковка позиции (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
@@ -21199,6 +21265,8 @@ export type ResolverInputTypes = {
 	offer_id: string,
 	/** order_hash будущего заказа — тот же, что в мете заявления. */
 	order_hash: string,
+	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
+	package_id?: string | undefined | null,
 	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
 	signed_statement: ResolverInputTypes["MarketplaceConvertStatementSignedInput"]
 };
@@ -21344,10 +21412,14 @@ export type ResolverInputTypes = {
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
-	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Обязателен и непуст при sale_form = packaged. */
+	packages?: Array<ResolverInputTypes["MarketplaceOfferPackageInput"]> | undefined | null,
+	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
+	sale_form?: ResolverInputTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
 	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
@@ -21887,6 +21959,8 @@ export type ResolverInputTypes = {
 	images?:ResolverInputTypes["MarketplaceOfferImage"],
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?:boolean | `@${string}`,
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере. */
+	packages?:ResolverInputTypes["MarketplaceOfferPackage"],
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit?:boolean | `@${string}`,
 	product_name?:boolean | `@${string}`,
@@ -21896,6 +21970,8 @@ export type ResolverInputTypes = {
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
+	sale_form?:boolean | `@${string}`,
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
 	shelf_life_days?:boolean | `@${string}`,
 	status?:boolean | `@${string}`,
@@ -21963,6 +22039,31 @@ export type ResolverInputTypes = {
 	status?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceOfferPackage"]: AliasType<{
+	/** Идентификатор упаковки в каталоге предложения. */
+	id?:boolean | `@${string}`,
+	/** Упаковка по умолчанию (для витрины и сортировки). */
+	is_default?:boolean | `@${string}`,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?:boolean | `@${string}`,
+	/** Цена за одну упаковку (numeric-строка). */
+	price?:boolean | `@${string}`,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size?:boolean | `@${string}`,
+	/** Порядок показа упаковки в карточке. */
+	sort_order?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceOfferPackageInput"]: {
+	/** Упаковка по умолчанию (для витрины). */
+	is_default?: boolean | undefined | null,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null,
+	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
+	price: string,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number
+};
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -22277,7 +22378,9 @@ export type ResolverInputTypes = {
 	/** Убрать позицию из корзины. */
 ["MarketplaceRemoveFromCartInput"]: {
 	/** Идентификатор предложения позиции. */
-	offer_id: string
+	offer_id: string,
+	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
+	package_id?: string | undefined | null
 };
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
@@ -22640,6 +22743,8 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -22959,7 +23064,7 @@ export type ResolverInputTypes = {
 	weight?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно размером единицы заказа. */
+	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Количество и цена ведутся прямо в ней. */
 ["MarketplaceUnitOfMeasure"]:MarketplaceUnitOfMeasure;
 	["MarketplaceUnpublishStockInput"]: {
 	/** Опубликованные позиции остатка, снимаемые с витрины. */
@@ -22974,7 +23079,9 @@ export type ResolverInputTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). */
+	package_id?: string | undefined | null,
+	/** Новое количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -22987,9 +23094,13 @@ export type ResolverInputTypes = {
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ResolverInputTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	pack_size?: number | undefined | null,
+	/** Каталог упаковок. Если передан — полностью заменяет текущий набор. */
+	packages?: Array<ResolverInputTypes["MarketplaceOfferPackageInput"]> | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска. Если передан packaged — требуется непустой список packages. */
+	sale_form?: ResolverInputTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях (основа списания скоропорта). */
 	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: ResolverInputTypes["MarketplaceUnitOfMeasure"] | undefined | null,
@@ -33355,7 +33466,9 @@ export type ModelTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). Не указывается при отпуске по мере. */
+	package_id?: string | undefined | null,
+	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -33713,12 +33826,18 @@ export type ModelTypes = {
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
+	/** Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?: string | undefined | null,
+	/** Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере. */
+	package_label?: string | undefined | null,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?: string | undefined | null,
 	/** Название товара из предложения — для отображения в корзине. */
 	product_name?: string | undefined | null,
-	/** Количество единиц в корзине. */
+	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number,
+	/** Способ отпуска предложения: by_measure | packaged. */
+	sale_form?: string | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null
 };
@@ -33818,7 +33937,9 @@ export type ModelTypes = {
 	/** Идентификатор предложения позиции корзины. */
 	offer_id: string,
 	/** order_hash будущего заказа (зашит в мету заявления). */
-	order_hash: string
+	order_hash: string,
+	/** Упаковка позиции (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?: string | undefined | null
 };
 	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
 ["MarketplaceCheckoutSignedLineInput"]: {
@@ -33826,6 +33947,8 @@ export type ModelTypes = {
 	offer_id: string,
 	/** order_hash будущего заказа — тот же, что в мете заявления. */
 	order_hash: string,
+	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
+	package_id?: string | undefined | null,
 	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
 	signed_statement: ModelTypes["MarketplaceConvertStatementSignedInput"]
 };
@@ -33966,10 +34089,14 @@ export type ModelTypes = {
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
-	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Обязателен и непуст при sale_form = packaged. */
+	packages?: Array<ModelTypes["MarketplaceOfferPackageInput"]> | undefined | null,
+	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
+	sale_form?: ModelTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
 	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
@@ -34480,6 +34607,8 @@ export type ModelTypes = {
 	images: Array<ModelTypes["MarketplaceOfferImage"]>,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере. */
+	packages: Array<ModelTypes["MarketplaceOfferPackage"]>,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit: string,
 	product_name: string,
@@ -34489,6 +34618,8 @@ export type ModelTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: ModelTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
+	sale_form: ModelTypes["MarketplaceSaleForm"],
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
 	shelf_life_days: number,
 	status: ModelTypes["MarketplaceOfferStatus"],
@@ -34551,6 +34682,30 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Новый статус предложения. */
 	status: ModelTypes["MarketplaceOfferStatus"]
+};
+	["MarketplaceOfferPackage"]: {
+		/** Идентификатор упаковки в каталоге предложения. */
+	id: string,
+	/** Упаковка по умолчанию (для витрины и сортировки). */
+	is_default: boolean,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null,
+	/** Цена за одну упаковку (numeric-строка). */
+	price: string,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number,
+	/** Порядок показа упаковки в карточке. */
+	sort_order: number
+};
+	["MarketplaceOfferPackageInput"]: {
+	/** Упаковка по умолчанию (для витрины). */
+	is_default?: boolean | undefined | null,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null,
+	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
+	price: string,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number
 };
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
@@ -34846,7 +35001,9 @@ export type ModelTypes = {
 	/** Убрать позицию из корзины. */
 ["MarketplaceRemoveFromCartInput"]: {
 	/** Идентификатор предложения позиции. */
-	offer_id: string
+	offer_id: string,
+	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
+	package_id?: string | undefined | null
 };
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
@@ -35195,6 +35352,7 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 	/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -35507,7 +35665,9 @@ export type ModelTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 	/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). */
+	package_id?: string | undefined | null,
+	/** Новое количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -35520,9 +35680,13 @@ export type ModelTypes = {
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<ModelTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	pack_size?: number | undefined | null,
+	/** Каталог упаковок. Если передан — полностью заменяет текущий набор. */
+	packages?: Array<ModelTypes["MarketplaceOfferPackageInput"]> | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска. Если передан packaged — требуется непустой список packages. */
+	sale_form?: ModelTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях (основа списания скоропорта). */
 	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
@@ -47040,7 +47204,9 @@ export type GraphQLTypes = {
 	delivery_braname?: string | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
-	/** Количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). Не указывается при отпуске по мере. */
+	package_id?: string | undefined | null,
+	/** Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); при отпуске упаковкой — целое число упаковок. */
 	quantity: number
 };
 	/** Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку. */
@@ -47432,12 +47598,18 @@ export type GraphQLTypes = {
 	max_available?: number | undefined | null,
 	/** Идентификатор предложения. */
 	offer_id: string,
+	/** Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?: string | undefined | null,
+	/** Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере. */
+	package_label?: string | undefined | null,
 	/** Цена за одну единицу заказа на текущий момент. */
 	price_per_unit?: string | undefined | null,
 	/** Название товара из предложения — для отображения в корзине. */
 	product_name?: string | undefined | null,
-	/** Количество единиц в корзине. */
+	/** Количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number,
+	/** Способ отпуска предложения: by_measure | packaged. */
+	sale_form?: string | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: string | undefined | null,
 	['...on MarketplaceCartItem']: Omit<GraphQLTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
@@ -47554,6 +47726,8 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** order_hash будущего заказа (зашит в мету заявления). */
 	order_hash: string,
+	/** Упаковка позиции (при отпуске упаковкой); null — отпуск по мере. */
+	package_id?: string | undefined | null,
 	['...on MarketplaceCheckoutSignableLine']: Omit<GraphQLTypes["MarketplaceCheckoutSignableLine"], "...on MarketplaceCheckoutSignableLine">
 };
 	/** Подписанное заявление о конвертации паевого взноса по одной позиции корзины (из превью marketplaceCheckoutSignablePayloads). */
@@ -47562,6 +47736,8 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** order_hash будущего заказа — тот же, что в мете заявления. */
 	order_hash: string,
+	/** Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере. */
+	package_id?: string | undefined | null,
 	/** Подписанное заказчиком заявление о конвертации паевого взноса. */
 	signed_statement: GraphQLTypes["MarketplaceConvertStatementSignedInput"]
 };
@@ -47711,10 +47887,14 @@ export type GraphQLTypes = {
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	/** Размер упаковки для стратегии «по упаковке» (обязателен при PER_PACKAGE). */
 	pack_size?: number | undefined | null,
-	/** Цена за одну единицу заказа (фасовку). numeric как string, до 4 знаков. */
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Обязателен и непуст при sale_form = packaged. */
+	packages?: Array<GraphQLTypes["MarketplaceOfferPackageInput"]> | undefined | null,
+	/** Цена за базовую единицу товара (кг/л/шт) при отпуске по мере. numeric как string, до 4 знаков. При отпуске упаковкой цена задаётся у каждой упаковки. */
 	price_per_unit: string,
 	product_name: string,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска: по мере (by_measure, по умолчанию) или упаковкой (packaged). При упаковкой обязателен непустой список упаковок. */
+	sale_form?: GraphQLTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях. По нему рассчитывается списание скоропорта со склада. 0 — имущество без срока годности (не списывается). */
 	shelf_life_days: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
@@ -48266,6 +48446,8 @@ export type GraphQLTypes = {
 	images: Array<GraphQLTypes["MarketplaceOfferImage"]>,
 	/** Размер упаковки для стратегии «по упаковке» (целое число > 0) */
 	pack_size?: number | undefined | null,
+	/** Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере. */
+	packages: Array<GraphQLTypes["MarketplaceOfferPackage"]>,
 	/** Цена за одну единицу заказа (фасовку). numeric как string. */
 	price_per_unit: string,
 	product_name: string,
@@ -48275,6 +48457,8 @@ export type GraphQLTypes = {
 	reject_reason?: string | undefined | null,
 	rejected_at?: GraphQLTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
+	sale_form: GraphQLTypes["MarketplaceSaleForm"],
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
 	shelf_life_days: number,
 	status: GraphQLTypes["MarketplaceOfferStatus"],
@@ -48344,6 +48528,32 @@ export type GraphQLTypes = {
 	/** Новый статус предложения. */
 	status: GraphQLTypes["MarketplaceOfferStatus"],
 	['...on MarketplaceOfferModerationEvent']: Omit<GraphQLTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
+};
+	["MarketplaceOfferPackage"]: {
+	__typename: "MarketplaceOfferPackage",
+	/** Идентификатор упаковки в каталоге предложения. */
+	id: string,
+	/** Упаковка по умолчанию (для витрины и сортировки). */
+	is_default: boolean,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null,
+	/** Цена за одну упаковку (numeric-строка). */
+	price: string,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number,
+	/** Порядок показа упаковки в карточке. */
+	sort_order: number,
+	['...on MarketplaceOfferPackage']: Omit<GraphQLTypes["MarketplaceOfferPackage"], "...on MarketplaceOfferPackage">
+};
+	["MarketplaceOfferPackageInput"]: {
+		/** Упаковка по умолчанию (для витрины). */
+	is_default?: boolean | undefined | null,
+	/** Подпись упаковки («Пакет 0,5 л»). */
+	label?: string | undefined | null,
+	/** Цена за одну упаковку (numeric-строка, до 4 знаков). */
+	price: string,
+	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
+	size: number
 };
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
@@ -48675,7 +48885,9 @@ export type GraphQLTypes = {
 	/** Убрать позицию из корзины. */
 ["MarketplaceRemoveFromCartInput"]: {
 		/** Идентификатор предложения позиции. */
-	offer_id: string
+	offer_id: string,
+	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
+	package_id?: string | undefined | null
 };
 	["MarketplaceRepublishOfferInput"]: {
 		id: string
@@ -49049,6 +49261,8 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+["MarketplaceSaleForm"]: MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
 		/** Имя пункта выдачи (branch.name) нового КУ доставки. */
@@ -49383,7 +49597,7 @@ export type GraphQLTypes = {
 	weight: number,
 	['...on MarketplaceTrusteeWeight']: Omit<GraphQLTypes["MarketplaceTrusteeWeight"], "...on MarketplaceTrusteeWeight">
 };
-	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно размером единицы заказа. */
+	/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Количество и цена ведутся прямо в ней. */
 ["MarketplaceUnitOfMeasure"]: MarketplaceUnitOfMeasure;
 	["MarketplaceUnpublishStockInput"]: {
 		/** Опубликованные позиции остатка, снимаемые с витрины. */
@@ -49399,7 +49613,9 @@ export type GraphQLTypes = {
 ["MarketplaceUpdateCartItemInput"]: {
 		/** Идентификатор предложения позиции. */
 	offer_id: string,
-	/** Новое количество единиц (> 0; для штук — целое). */
+	/** Выбранная упаковка (при отпуске упаковкой). */
+	package_id?: string | undefined | null,
+	/** Новое количество: базовое (по мере) или число упаковок (упаковкой). */
 	quantity: number
 };
 	["MarketplaceUpdateOfferInput"]: {
@@ -49412,9 +49628,13 @@ export type GraphQLTypes = {
 	/** Изображения товара (base64). Если передано — полностью заменяет текущий набор. До 8 файлов, каждый ≤ 10 МБ, JPEG/PNG/WEBP. */
 	images?: Array<GraphQLTypes["MarketplaceOfferImageUploadInput"]> | undefined | null,
 	pack_size?: number | undefined | null,
+	/** Каталог упаковок. Если передан — полностью заменяет текущий набор. */
+	packages?: Array<GraphQLTypes["MarketplaceOfferPackageInput"]> | undefined | null,
 	price_per_unit?: string | undefined | null,
 	product_name?: string | undefined | null,
 	quantity_available?: number | undefined | null,
+	/** Способ отпуска. Если передан packaged — требуется непустой список packages. */
+	sale_form?: GraphQLTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Срок годности имущества в днях (основа списания скоропорта). */
 	shelf_life_days?: number | undefined | null,
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
@@ -55113,6 +55333,11 @@ export enum MarketplaceReturnClaimStatus {
 	REJECTED_AT_VISIT = "REJECTED_AT_VISIT",
 	REJECTED_REMOTELY = "REJECTED_REMOTELY"
 }
+/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
+export enum MarketplaceSaleForm {
+	BY_MEASURE = "BY_MEASURE",
+	PACKAGED = "PACKAGED"
+}
 /** Вариант доставки партии на КУ: A — поставщик везёт лично, B — экспедитор по ТТН. */
 export enum MarketplaceShipmentDeliveryVariant {
 	EXPEDITOR = "EXPEDITOR",
@@ -55144,7 +55369,7 @@ export enum MarketplaceSupplierStatus {
 	PENDING = "PENDING",
 	REJECTED = "REJECTED"
 }
-/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно размером единицы заказа. */
+/** Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. Количество и цена ведутся прямо в ней. */
 export enum MarketplaceUnitOfMeasure {
 	KG = "KG",
 	LITER = "LITER",
@@ -55782,6 +56007,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListWriteoffProposalsInput"]: ValueTypes["MarketplaceListWriteoffProposalsInput"];
 	["MarketplaceOfferDeliveryPointInput"]: ValueTypes["MarketplaceOfferDeliveryPointInput"];
 	["MarketplaceOfferImageUploadInput"]: ValueTypes["MarketplaceOfferImageUploadInput"];
+	["MarketplaceOfferPackageInput"]: ValueTypes["MarketplaceOfferPackageInput"];
 	["MarketplaceOfferStatus"]: ValueTypes["MarketplaceOfferStatus"];
 	["MarketplaceOrderIssuanceFactDiffState"]: ValueTypes["MarketplaceOrderIssuanceFactDiffState"];
 	["MarketplaceOrderStatus"]: ValueTypes["MarketplaceOrderStatus"];
@@ -55801,6 +56027,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
 	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
 	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
+	["MarketplaceSaleForm"]: ValueTypes["MarketplaceSaleForm"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];

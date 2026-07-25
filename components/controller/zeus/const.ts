@@ -954,6 +954,8 @@ export const AllTypesProps: Record<string,any> = {
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
 		images:"MarketplaceOfferImageUploadInput",
+		packages:"MarketplaceOfferPackageInput",
+		sale_form:"MarketplaceSaleForm",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceCreateOrderProposalLineInput:{
@@ -1082,6 +1084,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceOfferImageUploadInput:{
 
 	},
+	MarketplaceOfferPackageInput:{
+
+	},
 	MarketplaceOfferStatus: "enum" as const,
 	MarketplaceOrderIssuanceFactDiffState: "enum" as const,
 	MarketplaceOrderStatus: "enum" as const,
@@ -1126,6 +1131,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceReturnStatementSignedMetaDocumentInput:{
 
 	},
+	MarketplaceSaleForm: "enum" as const,
 	MarketplaceSetCartDeliveryPointInput:{
 
 	},
@@ -1197,6 +1203,8 @@ export const AllTypesProps: Record<string,any> = {
 		barcode_strategy:"MarketplaceBarcodeStrategy",
 		delivery_points:"MarketplaceOfferDeliveryPointInput",
 		images:"MarketplaceOfferImageUploadInput",
+		packages:"MarketplaceOfferPackageInput",
+		sale_form:"MarketplaceSaleForm",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceUpdateWriteoffDraftInput:{
@@ -4971,9 +4979,12 @@ export const ReturnTypes: Record<string,any> = {
 		line_total:"String",
 		max_available:"Float",
 		offer_id:"String",
+		package_id:"String",
+		package_label:"String",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity:"Float",
+		sale_form:"String",
 		unit_of_measure:"String"
 	},
 	MarketplaceCategory:{
@@ -5029,7 +5040,8 @@ export const ReturnTypes: Record<string,any> = {
 		amount:"String",
 		document:"GeneratedDocument",
 		offer_id:"String",
-		order_hash:"String"
+		order_hash:"String",
+		package_id:"String"
 	},
 	MarketplaceConsolidatedRequest:{
 		accepted_at:"DateTime",
@@ -5190,6 +5202,7 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		images:"MarketplaceOfferImage",
 		pack_size:"Int",
+		packages:"MarketplaceOfferPackage",
 		price_per_unit:"String",
 		product_name:"String",
 		quantity_available:"Float",
@@ -5198,6 +5211,7 @@ export const ReturnTypes: Record<string,any> = {
 		reject_reason:"String",
 		rejected_at:"DateTime",
 		rejected_by:"String",
+		sale_form:"MarketplaceSaleForm",
 		shelf_life_days:"Int",
 		status:"MarketplaceOfferStatus",
 		stock_braname:"String",
@@ -5227,6 +5241,14 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceOfferModerationEvent:{
 		offer_id:"String",
 		status:"MarketplaceOfferStatus"
+	},
+	MarketplaceOfferPackage:{
+		id:"String",
+		is_default:"Boolean",
+		label:"String",
+		price:"String",
+		size:"Float",
+		sort_order:"Int"
 	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
