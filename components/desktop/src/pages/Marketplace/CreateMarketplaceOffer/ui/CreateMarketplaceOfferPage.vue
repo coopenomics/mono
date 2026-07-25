@@ -196,23 +196,24 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
                 label='По умолч.',
                 @update:model-value='setDefaultPackage(i)'
               )
-              q-btn(
-                flat,
-                round,
-                dense,
-                icon='delete_outline',
-                :disable='form.packages.length <= 1',
+              BaseButton(
+                variant='ghost',
+                icon-only,
+                size='sm',
+                :disabled='form.packages.length <= 1',
                 aria-label='Убрать упаковку',
                 @click='removePackage(i)'
               )
-            q-btn.offer-wizard__pkg-add(
-              flat,
-              dense,
-              icon='add',
-              label='Добавить упаковку',
-              color='primary',
+                template(#icon-left)
+                  q-icon(name='delete_outline', size='18px')
+            BaseButton.offer-wizard__pkg-add(
+              variant='ghost',
+              size='sm',
               @click='addPackage'
             )
+              template(#icon-left)
+                q-icon(name='add', size='16px')
+              span.q-ml-sm Добавить упаковку
 
           .offer-wizard__qty-group
             .offer-wizard__field-label Наличие
@@ -1353,6 +1354,37 @@ onBeforeUnmount(() => {
       font-weight: 500;
       color: var(--p-ink-3);
     }
+  }
+
+  // Редактор упаковок (Эпик 18): список строк, паттерн как у &__ku-row —
+  // flex-строка с фиксированной шириной узких полей и растущей подписью.
+  &__packages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__pkg-row {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__pkg-size {
+    flex: 1 1 140px;
+  }
+
+  &__pkg-price {
+    flex: 1 1 160px;
+  }
+
+  &__pkg-label {
+    flex: 2 1 200px;
+  }
+
+  &__pkg-add {
+    align-self: flex-start;
   }
 
   &__cards {
