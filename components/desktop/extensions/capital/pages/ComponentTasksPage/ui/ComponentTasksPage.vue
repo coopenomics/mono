@@ -1,6 +1,5 @@
 <template lang="pug">
-div
-
+.component-tasks-page
   // Таблица задач компонента
   IssuesListWidget(
     :project-hash='projectHash',
@@ -84,4 +83,9 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Заполняет page-surface, чтобы IssuesListWidget мог взять height: 100%
+.component-tasks-page {
+  height: 100%;
+  min-height: 100%;
+}
 </style>

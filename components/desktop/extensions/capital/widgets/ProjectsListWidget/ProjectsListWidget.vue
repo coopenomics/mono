@@ -330,6 +330,7 @@ const columns = [
   flex-direction: column;
   gap: var(--p-3);
   padding: var(--p-4);
+  background: var(--p-surface);
 
   .skel {
     height: var(--p-7);

@@ -173,7 +173,7 @@ const handleIssueUpdated = (issue: unknown) => {
   flex-shrink: 0;
   border-top: 1px solid var(--p-line);
   padding-top: var(--p-3);
-  background: var(--p-canvas);
+  background: var(--p-surface);
 }
 
 .capital-sidebar-mobile-compact {

@@ -1,6 +1,6 @@
 <template lang="pug">
-div.column.flex-1.min-h-0.min-w-0.no-wrap
-  // Меню вкладок — сразу под шапкой, без внешних отступов
+.project-page-shell.column.flex-1.min-h-0.min-w-0.no-wrap
+  // Меню вкладок — сразу под шапкой, без внешних отступов (chrome на canvas)
   PageTabs(
     v-if="project && !isIssueRoute"
     :tabs="projectTabs"
@@ -47,7 +47,8 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
       .skel.skel--text(v-for="i in 3", :key="i")
 
   // Мобильный layout — сайдбар только на «Описание»
-  div.column.col.flex-1.min-h-0.min-w-0(
+  // page-surface: контент на --p-surface, табы остаются на canvas
+  .page-surface.column.col.flex-1.min-h-0.min-w-0(
     v-else-if="isMobileLayout"
   )
     .q-px-md(v-if="showSidebar")
@@ -67,8 +68,8 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
       div.col.min-h-0.overflow-auto.min-w-0
         router-view
 
-  // Десктоп «Описание»: название + сайдбар управления + контент
-  div.column.col.flex-1.min-h-0.min-w-0(
+  // Десктоп «Описание»: название + сайдбар управления + контент на surface
+  .page-surface.column.col.flex-1.min-h-0.min-w-0(
     v-else-if="showSidebar"
   )
     .q-px-md
@@ -98,8 +99,8 @@ div.column.flex-1.min-h-0.min-w-0.no-wrap
           div.col.min-h-0.overflow-auto.min-w-0
             router-view
 
-  // Остальные вкладки — контент на всю ширину
-  div.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
+  // Остальные вкладки — контент на всю ширину, тоже surface
+  .page-surface.column.col.flex-1.min-h-0.min-w-0.relative-position(v-else)
     div.col.min-h-0.overflow-auto.min-w-0
       router-view
 </template>
@@ -302,11 +303,37 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Оболочка заполняет вьюпорт под топбаром — единая высота surface на всех вкладках
+.project-page-shell {
+  height: calc(100vh - var(--p-topbar-h));
+  max-height: calc(100vh - var(--p-topbar-h));
+  overflow: hidden;
+}
+
+// Рабочая плоскость страницы проекта: контент на --p-surface,
+// табы/шапка остаются на --p-canvas (канон canvas → surface)
+.page-surface {
+  background: var(--p-surface);
+
+  // Вкладки уже на surface — вложенные q-card дают «карточку в карточке»
+  // (скругления/бордер срезают плоскость). Сглаживаем только здесь:
+  // те же виджеты вне оболочки (трекер, списки и т.п.) сохраняют карточный вид.
+  :deep(.q-card) {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 // Каркас первичной загрузки: повторяет раскладку «сайдбар + контент»
 .project-page-skeleton {
   display: flex;
   gap: var(--p-4);
   padding: var(--p-4);
+  background: var(--p-surface);
+  flex: 1;
+  min-height: 0;
 
   &__side {
     width: 300px;

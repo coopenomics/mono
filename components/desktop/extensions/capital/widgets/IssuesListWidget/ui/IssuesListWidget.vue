@@ -1,5 +1,8 @@
 <template lang="pug">
-div
+// Одна surface-плоскость: «+ Добавить» и список на одном фоне.
+// --fill: на вкладке задач тянется на высоту page-surface (без 100vh-скролла).
+// Вложенный compact — без --fill, белое-на-белом визуально невидимо.
+.list-surface(:class="{ 'list-surface--fill': !compact }")
   //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
   .issues-scroll-area(v-if='!compact')
     // Полоска-добавлялка перед списком задач
@@ -38,7 +41,7 @@ div
           span Нет задач
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
-  div(v-else)
+  template(v-else)
     // Полоска-добавлялка перед списком задач
     CreateIssueButton(:project-hash='projectHash', row)
 
@@ -284,14 +287,28 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-// table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
-// контент: длинный title распирает строку шире контейнера, actions-блок
-// уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
+// Рабочая плоскость списка: button+table на --p-surface, без рамки —
+// при вложении в другую surface визуально сливается
+.list-surface {
+  background: var(--p-surface);
+}
+
+// На вкладке задач — заполняет page-surface, скролл внутри (не 100vh)
+.list-surface--fill {
+  height: 100%;
+  min-height: 100%;
+}
+
+// Высота от родителя (page-surface), не от 100vh — иначе лишний скролл
+// под топбаром + табами
 .issues-scroll-area {
-  height: calc(100vh - 55px);
+  height: 100%;
   overflow-y: auto;
 }
 
+// table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
+// контент: длинный title распирает строку шире контейнера, actions-блок
+// уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
 .q-table {
   table-layout: fixed;
   width: 100%;
