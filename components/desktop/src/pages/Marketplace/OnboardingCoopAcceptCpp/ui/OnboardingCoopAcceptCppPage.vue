@@ -39,6 +39,12 @@ const router = useRouter();
 const systemStore = useSystemStore();
 const coopname = computed(() => systemStore.info?.coopname || '');
 
+// Кнопки шагов 3–4 активны только после принятия Советом обоих положений
+// (1–2 completed). Сами пункты списка видны всегда — disabled лишь действие.
+const extraStepsLocked = computed(
+  () => !coopname.value || !isCompleted.value,
+);
+
 // id доп.шага = имя маршрута стола, куда ведём.
 const EXTRA_STEPS = computed<ICouncilOnboardingExtraStep[]>(() => [
   {
@@ -47,7 +53,7 @@ const EXTRA_STEPS = computed<ICouncilOnboardingExtraStep[]>(() => [
     description:
       'Кооперативные участки создаются юридически вне системы, а здесь добавляются уже оформленные участки с их председателями. Без хотя бы одного участка пунктам выдачи не на чем работать.',
     actionLabel: 'Перейти к участкам',
-    disabled: !coopname.value,
+    disabled: extraStepsLocked.value,
   },
   {
     id: 'marketplace-issuance-points',
@@ -55,12 +61,12 @@ const EXTRA_STEPS = computed<ICouncilOnboardingExtraStep[]>(() => [
     description:
       'Отметьте нужные кооперативные участки как пункты выдачи заказов и задайте режим их работы — тогда пайщики смогут выбирать ПВЗ при заказе.',
     actionLabel: 'Перейти к ПВЗ',
-    disabled: !coopname.value,
+    disabled: extraStepsLocked.value,
   },
 ]);
 
 function onExtraAction(step: ICouncilOnboardingExtraStep): void {
-  if (!coopname.value) return;
+  if (extraStepsLocked.value) return;
   void router.push({ name: step.id, params: { coopname: coopname.value } });
 }
 
