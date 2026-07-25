@@ -7,7 +7,7 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   acceptOrdersBatch,
@@ -119,7 +119,6 @@ interface SupplierParty {
   productName: string;
   deliveryBraname: string;
   pvzName: string;
-  unitLabel: string;
   /** Базовая единица (сырое значение) — для пересчёта «Итого» в упаковки (Эпик 18). */
   unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
   /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в партии (смешанные не считаем упаковками). */
@@ -151,7 +150,6 @@ const parties = computed<SupplierParty[]>(() => {
         productName: o.product_name || 'Товар по предложению',
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
         unitOfMeasure: o.unit_of_measure,
         packageSize: o.package_size,
         orders: [],
@@ -353,8 +351,6 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
         hide-order-count,
-        :volume-label='`Объём партии: ${p.totalUnits}×${p.unitLabel}`',
-        :target-label='hasTarget(p) ? `цель — от ${p.minVolume}×${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
         :members='[]',

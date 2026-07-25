@@ -7,7 +7,7 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type {
   MarketplaceOrderStatusView,
@@ -84,7 +84,6 @@ interface CollectiveParty {
   offer_id: string;
   productName: string;
   pvzName: string;
-  unitLabel: string;
   /** Базовая единица (сырое значение) — для пересчёта «Ваш вклад» в упаковки (Эпик 18). */
   unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
   /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в своих заказах партии. */
@@ -120,7 +119,6 @@ const parties = computed<CollectiveParty[]>(() => {
         offer_id: o.offer_id,
         productName: o.product_name || 'Товар по предложению',
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure),
         unitOfMeasure: o.unit_of_measure,
         packageSize: o.package_size,
         orders: [],
@@ -259,8 +257,6 @@ q-page.collective(role="region", aria-label="Коллективный заказ
         :stage-status="p.stageStatus",
         :order-count="p.orders.length",
         hide-order-count,
-        :volume-label="`Накоплено: ${accumulated(p)}×${p.unitLabel}`",
-        :target-label="hasTarget(p) ? `цель — от ${p.groupMinVolume}×${p.unitLabel}` : ''",
         :progress="progressRatio(p)",
         :bar-color="barColor(p)",
         :members="[]",
