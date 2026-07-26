@@ -25,30 +25,19 @@ const store = useOperatorBranchStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 
-type InventoryStatus = MarketplaceInventoryItemView['status']
-
-const statusFilter = ref<InventoryStatus[]>([])
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(false)
 
-const statusOptions: { label: string; value: InventoryStatus }[] = [
-  { label: 'Принято', value: Zeus.MarketplaceInventoryStatus.RECEIVED },
-  { label: 'Промаркировано', value: Zeus.MarketplaceInventoryStatus.LABELED },
-  { label: 'Выдано пайщику', value: Zeus.MarketplaceInventoryStatus.ISSUED },
-  { label: 'Возврат на склад', value: Zeus.MarketplaceInventoryStatus.RETURNED },
-  { label: 'Списано', value: Zeus.MarketplaceInventoryStatus.WRITTEN_OFF },
+// Склад — это «что сейчас физически лежит на полке», не история движений.
+// Выданное пайщику и списанное уже не на полке — им место в будущей истории
+// заказов, не здесь. Поэтому фильтр не выбирается оператором, а зашит: только
+// 3 состояния, которые вообще бывают «на складе».
+const ON_SHELF_STATUSES = [
+  Zeus.MarketplaceInventoryStatus.RECEIVED,
+  Zeus.MarketplaceInventoryStatus.LABELED,
+  Zeus.MarketplaceInventoryStatus.RETURNED,
 ]
-
-function isStatusActive(value: InventoryStatus): boolean {
-  return statusFilter.value.includes(value)
-}
-
-function toggleStatus(value: InventoryStatus): void {
-  statusFilter.value = isStatusActive(value)
-    ? statusFilter.value.filter((s) => s !== value)
-    : [...statusFilter.value, value]
-}
 
 // Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
 function ordererName(row: MarketplaceInventoryItemView): string {
@@ -60,7 +49,6 @@ function ordererName(row: MarketplaceInventoryItemView): string {
 const filteredRows = computed(() => {
   const q = search.value.trim().toLowerCase()
   return items.value.filter((row) => {
-    if (statusFilter.value.length && !statusFilter.value.includes(row.status)) return false
     if (q) {
       const hay = [
         row.orderer_name,
@@ -111,7 +99,7 @@ async function load(): Promise<void> {
   }
   loading.value = true
   try {
-    items.value = await listInventory({ braname: braname.value.trim() })
+    items.value = await listInventory({ braname: braname.value.trim(), statuses: ON_SHELF_STATUSES })
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
@@ -283,16 +271,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       placeholder='Поиск: заказчик, товар, полка, штрих-код',
       clearable
     )
-    .warehouse__chips
-      .chip(
-        v-for='opt in statusOptions',
-        :key='opt.value',
-        :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
-        role='button',
-        tabindex='0',
-        @click='toggleStatus(opt.value)',
-        @keydown.enter='toggleStatus(opt.value)'
-      ) {{ opt.label }}
 
     TableSkeleton(
       v-if='loading && !items.length',
@@ -365,7 +343,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     EmptyState(
       v-else,
       title='На складе пусто',
-      body='Здесь появятся принятые позиции участка. Проверьте фильтры состояния и поиск.'
+      body='Здесь появятся принятые позиции участка. Проверьте поиск.'
     )
       template(#icon)
         q-icon(name='inventory_2', size='48px')
@@ -385,19 +363,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
-
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-
-    .chip {
-      cursor: pointer;
-      user-select: none;
-      height: 28px;
-      padding: 0 12px;
-    }
-  }
 
   &__search {
     max-width: 420px;
