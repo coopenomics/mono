@@ -5494,12 +5494,15 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"String",
 		orderer_account:"String",
+		package_size:"Float",
 		photos:"MarketplaceReturnClaimPhoto",
+		product_name:"String",
 		reason_text:"String",
 		request_hash:"String",
 		status:"MarketplaceReturnClaimStatus",
 		submretrn_tx_hash:"String",
 		supplier_account:"String",
+		unit_of_measure:"String",
 		updated_at:"DateTime"
 	},
 	MarketplaceReturnClaimDecisionEntry:{
@@ -5678,8 +5681,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_expired:"Boolean",
 		key:"String",
 		lots_count:"Int",
+		package_size:"Float",
 		quantity:"String",
-		reason:"String"
+		reason:"String",
+		unit_of_measure:"String"
 	},
 	MarketplaceWriteoffConfirmationGroup:{
 		authorized_at:"String",
@@ -5725,8 +5730,10 @@ export const ReturnTypes: Record<string,any> = {
 		branch_name:"String",
 		executed:"Boolean",
 		inventory_ids:"String",
+		package_size:"Float",
 		quantity:"String",
-		reason:"String"
+		reason:"String",
+		unit_of_measure:"String"
 	},
 	MarketplaceWriteoffStatusChangedEvent:{
 		proposal_id:"String",

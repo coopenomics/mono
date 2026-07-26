@@ -6,6 +6,7 @@ import { FailAlert } from 'src/shared/api';
 import { BaseButton, BaseSelect, BaseBadge, CardListSkeleton, type BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { listMyReturnClaims, type MarketplaceReturnClaimView } from '../api';
 import { fetchMyOrders } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
@@ -48,12 +49,15 @@ const orderOptions = computed(() => {
   );
   return eligibleOrders.value
     .filter((o) => !openOrderIds.has(o.id))
-    .map((o) => ({
-      value: o.id,
-      // total_cost_with_fee — как в «Мои заказы»: заказчику показываем сумму,
-      // которую он реально заплатил (с членским взносом), не себестоимость.
-      label: `Заказ ${o.id.slice(0, 8)} · ${o.quantity} ед. · ${Number(o.total_cost_with_fee).toLocaleString('ru-RU')} ₽`,
-    }));
+    .map((o) => {
+      const saleUnit = marketplaceOrderSaleUnit(o.quantity, o.unit_of_measure, o.package_size);
+      return {
+        value: o.id,
+        // total_cost_with_fee — как в «Мои заказы»: заказчику показываем сумму,
+        // которую он реально заплатил (с членским взносом), не себестоимость.
+        label: `Заказ ${o.id.slice(0, 8)} · ${saleUnit.units}×${saleUnit.unitLabel} · ${Number(o.total_cost_with_fee).toLocaleString('ru-RU')} ₽`,
+      };
+    });
 });
 
 const activeClaims = computed(() =>
@@ -116,6 +120,11 @@ function onSubmitted(): void {
   selectedOrderId.value = null;
   void load();
   void loadEligibleOrders();
+}
+
+function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
+  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function humanStatus(status: MarketplaceReturnClaimView['status']): string {
@@ -210,7 +219,7 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
     q-list(v-if="activeClaims.length > 0", bordered, separator)
       q-item(v-for="c in activeClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
-          q-item-label.text-weight-medium {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+          q-item-label.text-weight-medium {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
           q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }} · подано {{ formatDate(c.created_at) }}
           q-item-label(caption) {{ c.reason_text.slice(0, 120) }}{{ c.reason_text.length > 120 ? '…' : '' }}
         q-item-section(side)
@@ -222,7 +231,7 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
     q-list(v-if="archiveClaims.length > 0", bordered, separator)
       q-item(v-for="c in archiveClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
-          q-item-label {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+          q-item-label {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
           q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }}
           q-item-label.returns__restored(v-if="c.ledger_snapshot", caption) Восстановлено на программный кошелёк: {{ c.ledger_snapshot.amount }} ₽
         q-item-section(side)

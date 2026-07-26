@@ -5,6 +5,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -104,6 +105,11 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false;
   }
+}
+
+function candidateQuantityLabel(c: MarketplaceWriteoffCandidateView): string {
+  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
@@ -291,7 +297,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     )
       template(#body-cell-quantity="props")
         q-td.text-right(:props="props")
-          div {{ props.row.quantity }}
+          div {{ candidateQuantityLabel(props.row) }}
           .t-muted.t-sm(v-if="props.row.lots_count > 1") из {{ props.row.lots_count }} партий
       template(#body-cell-state="props")
         q-td(:props="props")

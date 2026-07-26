@@ -17,9 +17,16 @@ import type {
  * у переданного `urlResolver` (имплементация знает про bucket file-storage —
  * resolver просто проксирует на `MarketplaceReturnClaimService.getPhotoReadUrl`).
  */
+export interface MarketplaceReturnClaimDisplayFields {
+  product_name?: string | null;
+  unit_of_measure?: string | null;
+  package_size?: number | null;
+}
+
 export async function toMarketplaceReturnClaimDTO(
   claim: MarketplaceReturnClaimDomainEntity,
-  urlResolver: (bucket_key: string) => Promise<string>
+  urlResolver: (bucket_key: string) => Promise<string>,
+  display?: MarketplaceReturnClaimDisplayFields
 ): Promise<MarketplaceReturnClaimDTO> {
   const photos = await Promise.all(claim.photos.map((p) => toPhotoDTO(p, urlResolver)));
   const inspection = claim.on_site_inspection
@@ -32,6 +39,9 @@ export async function toMarketplaceReturnClaimDTO(
     request_hash: claim.request_hash,
     order_id: claim.order_id,
     order_hash: claim.order_hash,
+    product_name: display?.product_name ?? null,
+    unit_of_measure: display?.unit_of_measure ?? null,
+    package_size: display?.package_size ?? null,
     orderer_account: claim.orderer_account,
     delivery_braname: claim.delivery_braname,
     supplier_account: claim.supplier_account,

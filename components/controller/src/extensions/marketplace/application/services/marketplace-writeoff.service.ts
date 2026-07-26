@@ -109,6 +109,8 @@ export interface MarketplaceWriteoffCandidateView {
   braname: string;
   branch_name: string;
   asset_title: string;
+  unit_of_measure: string | null;
+  package_size: number | null;
   /** Суммарное количество по всем партиям агрегата. */
   quantity: string;
   /** Суммарная стоимость по всем партиям агрегата. */
@@ -129,7 +131,9 @@ export interface MarketplaceWriteoffConfirmationGroup {
   cycle_started_at: string;
   authorized_at: string | null;
   protocol_doc: unknown;
-  items: MarketplaceWriteoffProposalItem[];
+  items: Array<
+    MarketplaceWriteoffProposalItem & { unit_of_measure: string | null; package_size: number | null }
+  >;
   total_amount: string;
 }
 
@@ -236,6 +240,47 @@ export class MarketplaceWriteoffService {
   }
 
   /**
+   * Базовая единица измерения + содержимое упаковки (Эпик 18) для строк
+   * списания/кандидатов — по первой партии каждой строки: inventory → offer
+   * (published_offer_id либо через заказ) для unit_of_measure, заказ →
+   * package_size (упаковка — атрибут заказа, не оффера). Ключ карты — id
+   * первой партии строки; дедуп по нему экономит запросы при повторных
+   * позициях одного склада/заказа.
+   */
+  async resolveItemDisplayMap(
+    items: { inventory_ids: string[] }[]
+  ): Promise<Map<string, { unit_of_measure: string | null; package_size: number | null }>> {
+    const map = new Map<string, { unit_of_measure: string | null; package_size: number | null }>();
+    const invIds = [...new Set(items.map((it) => it.inventory_ids[0]).filter((id): id is string => Boolean(id)))];
+    await Promise.all(
+      invIds.map(async (invId) => {
+        map.set(invId, await this.resolveItemDisplay(invId));
+      })
+    );
+    return map;
+  }
+
+  private async resolveItemDisplay(
+    invId: string
+  ): Promise<{ unit_of_measure: string | null; package_size: number | null }> {
+    const EMPTY = { unit_of_measure: null, package_size: null };
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv) return EMPTY;
+    let offerId = inv.published_offer_id;
+    let package_size: number | null = null;
+    if (inv.order_id) {
+      const order = await this.orderRepo.findById(inv.order_id);
+      if (order) {
+        offerId = offerId ?? order.offer_id;
+        package_size = order.package_size || null;
+      }
+    }
+    if (!offerId) return { unit_of_measure: null, package_size };
+    const offer = await this.offerRepo.findById(offerId);
+    return { unit_of_measure: offer?.unit_of_measure ?? null, package_size };
+  }
+
+  /**
    * Кандидаты на списание для admin-стола: все позиции на складах кооператива.
    * Председатель выделяет нужные и создаёт из них черновик — вручную можно
    * списать как просроченный скоропорт (флаг is_expired), так и ещё годное
@@ -324,6 +369,8 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
+        unit_of_measure: null,
+        package_size: null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
         reason: g.reason,
@@ -331,6 +378,12 @@ export class MarketplaceWriteoffService {
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
       });
+    }
+    const display = await this.resolveItemDisplayMap(result);
+    for (const r of result) {
+      const d = display.get(r.inventory_ids[0] ?? '');
+      r.unit_of_measure = d?.unit_of_measure ?? null;
+      r.package_size = d?.package_size ?? null;
     }
     // Просроченное — наверх (первоочередные кандидаты), затем остальное.
     result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
@@ -351,6 +404,7 @@ export class MarketplaceWriteoffService {
       coopname,
       statuses: ['PENDING_CONFIRMATION'],
     });
+    const display = await this.resolveItemDisplayMap(items.flatMap((p) => p.items));
     const groups: MarketplaceWriteoffConfirmationGroup[] = [];
     const branchNameCache = new Map<string, string>();
     for (const p of items) {
@@ -365,7 +419,12 @@ export class MarketplaceWriteoffService {
           name = branch.name || bn;
           branchNameCache.set(bn, name);
         }
-        const groupItems = p.items.filter((it) => it.braname === bn && !it.executed);
+        const groupItems = p.items
+          .filter((it) => it.braname === bn && !it.executed)
+          .map((it) => {
+            const d = display.get(it.inventory_ids[0] ?? '');
+            return { ...it, unit_of_measure: d?.unit_of_measure ?? null, package_size: d?.package_size ?? null };
+          });
         groups.push({
           proposal_id: p.id,
           proposal_hash: p.proposal_hash,

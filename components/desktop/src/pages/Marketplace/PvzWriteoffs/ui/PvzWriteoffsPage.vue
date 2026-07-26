@@ -4,6 +4,7 @@ import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { DocumentViewerDialog } from 'src/shared/ui/domain/DocumentViewerDialog';
@@ -44,6 +45,11 @@ function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
 }
 
 // Позиция-агрегат несёт список партий; стабильный ключ строки — наименование+состояние.
+function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | null; package_size?: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(it.quantity) || 0, it.unit_of_measure, it.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function itemRowKey(it: { asset_title: string; reason: string }): string {
   return `${it.asset_title}|${it.reason}`;
 }
@@ -126,7 +132,7 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
         :rows-per-page-options="[0]"
       )
         template(#body-cell-quantity="props")
-          q-td.text-right(:props="props") {{ props.row.quantity }}
+          q-td.text-right(:props="props") {{ itemQuantityLabel(props.row) }}
         template(#body-cell-amount="props")
           q-td.text-right(:props="props") {{ formatAsset2Digits(props.row.amount) }}
 

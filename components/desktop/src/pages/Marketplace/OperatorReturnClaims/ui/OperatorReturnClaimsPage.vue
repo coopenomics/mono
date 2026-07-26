@@ -8,6 +8,7 @@ import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/Operator
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -86,6 +87,11 @@ function onDecided(): void {
  * `unknown`, конвертируем в строку через `String()` и парсим — формат
  * сервера ISO 8601, поэтому `new Date(<iso>)` валиден.
  */
+function claimQuantityLabel(c: MarketplaceReturnClaimView): string {
+  const saleUnit = marketplaceOrderSaleUnit(c.actual_quantity, c.unit_of_measure, c.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function formatDateTime(value: unknown): string {
   if (value === null || value === undefined) return '—';
   const parsed = new Date(String(value));
@@ -162,7 +168,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
         q-item(v-for='c in pendingClaims', :key='c.id')
           q-item-section
             q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
-            q-item-label(caption) {{ c.actual_quantity }} ед. · {{ c.fact_cost }} ₽
+            q-item-label(caption) {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
             q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
             q-item-label(caption, v-if='c.defect_category')
               | Категория: {{ defectCategoryLabel(c.defect_category) }}

@@ -21,6 +21,7 @@ import {
   MarketplaceReturnClaimSignablePayloadInputDTO,
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
+import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -30,6 +31,10 @@ import {
   MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
   MarketplaceBranchOwnershipService,
 } from '../services/marketplace-branch-ownership.service';
+import {
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -60,7 +65,9 @@ export class MarketplaceReturnClaimResolver {
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
-    private readonly branchOwnership: MarketplaceBranchOwnershipService
+    private readonly branchOwnership: MarketplaceBranchOwnershipService,
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
   @Query(() => GeneratedDocumentDTO, {
@@ -207,7 +214,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceReturnClaimDTO[]> {
     const claims = await this.service.listByOrderer(config.coopname, member.username);
-    return Promise.all(claims.map((c) => this.toClaimDTO(c)));
+    return this.toClaimDTOs(claims);
   }
 
   @Query(() => [MarketplaceReturnClaimDTO], {
@@ -238,7 +245,7 @@ export class MarketplaceReturnClaimResolver {
       config.coopname,
       data.delivery_braname
     );
-    return Promise.all(claims.map((c) => this.toClaimDTO(c)));
+    return this.toClaimDTOs(claims);
   }
 
   @Query(() => MarketplaceReturnClaimDTO, {
@@ -304,7 +311,28 @@ export class MarketplaceReturnClaimResolver {
   private async toClaimDTO(
     claim: Awaited<ReturnType<MarketplaceReturnClaimService['findById']>>
   ): Promise<MarketplaceReturnClaimDTO> {
-    return toMarketplaceReturnClaimDTO(claim, (key) => this.service.getPhotoReadUrl(key));
+    const display = await this.orderDisplay.enrichByOrderIds([claim.order_id]);
+    return toMarketplaceReturnClaimDTO(
+      claim,
+      (key) => this.service.getPhotoReadUrl(key),
+      display.get(claim.order_id)
+    );
+  }
+
+  /** Батч-обогащение товаром/единицей/упаковкой — один запрос заказов на весь список. */
+  private async toClaimDTOs(
+    claims: MarketplaceReturnClaimDomainEntity[]
+  ): Promise<MarketplaceReturnClaimDTO[]> {
+    const display = await this.orderDisplay.enrichByOrderIds(claims.map((c) => c.order_id));
+    return Promise.all(
+      claims.map((c) =>
+        toMarketplaceReturnClaimDTO(
+          c,
+          (key) => this.service.getPhotoReadUrl(key),
+          display.get(c.order_id)
+        )
+      )
+    );
   }
 
   private async toResultDTO(

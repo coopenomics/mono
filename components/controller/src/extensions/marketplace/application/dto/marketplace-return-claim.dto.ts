@@ -377,6 +377,19 @@ export class MarketplaceReturnClaimDTO {
   @Field() public readonly order_id!: string;
   @Field() public readonly order_hash!: string;
 
+  @Field(() => String, { nullable: true, description: 'Наименование товара исходного заказа.' })
+  public readonly product_name!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  public readonly unit_of_measure!: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере.',
+  })
+  public readonly package_size!: number | null;
+
   @Field({ description: 'Аккаунт пайщика-заявителя.' })
   public readonly orderer_account!: string;
 
