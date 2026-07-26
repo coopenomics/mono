@@ -108,7 +108,7 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
     }
   };
   add('created', 'create', 'shopping_cart', 'Заказ оформлен', o.created_at);
-  add('accepted', 'sign', 'inventory_2', 'Принят поставщиком', o.accepted_at);
+  add('accepted', 'sign', 'inventory_2', 'Ожидает отгрузки', o.accepted_at);
   add('opened', 'system', 'lock_open', 'Выдача открыта на пункте', o.chairman_signed_at);
   add('received', 'sign', 'check_circle', 'Заказ получен', o.received_at);
   add('cancelled', 'reject', 'cancel', 'Заказ отменён', o.cancelled_at);
