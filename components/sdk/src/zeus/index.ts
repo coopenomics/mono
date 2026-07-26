@@ -2974,7 +2974,13 @@ export type ValueTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -12317,7 +12323,13 @@ export type ResolverInputTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -21403,7 +21415,13 @@ export type ModelTypes = {
 	event_type: ModelTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string,
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: ModelTypes["JSON"] | undefined | null,
@@ -31111,7 +31129,13 @@ export type GraphQLTypes = {
 	event_type: GraphQLTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string,
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: GraphQLTypes["JSON"] | undefined | null,
