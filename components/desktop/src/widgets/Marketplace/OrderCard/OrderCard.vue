@@ -1,5 +1,69 @@
 <template>
+  <!-- Горизонтальная строка (списки вроде «Мои заказы»): вся сводка заказа в
+       один ряд на всю ширину — так порядок сверху вниз читается однозначно,
+       без «квадратиков» в сетке, где непонятно, что новее. -->
+  <div
+    v-if="layout === 'row'"
+    class="order-row"
+    :class="[`order-row--${order.status}`, { 'order-row--openable': openable }]"
+    @click="onCardClick"
+  >
+    <div class="order-row__main">
+      <div class="order-row__title-line">
+        <span class="order-row__title">{{ order.title }}</span>
+        <BaseBadge :variant="order.statusVariant" class="order-row__status">
+          {{ order.statusLabel }}
+        </BaseBadge>
+      </div>
+      <div class="order-row__sub">
+        <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
+        <span class="order-row__sep" aria-hidden="true">·</span>
+        <span>{{ formatDate(order.createdAt) }}</span>
+      </div>
+    </div>
+
+    <div class="order-row__fact">
+      <div class="order-row__fact-label">Кол-во</div>
+      <div class="order-row__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
+    </div>
+
+    <div class="order-row__fact">
+      <div class="order-row__fact-label">Сумма</div>
+      <div class="order-row__fact-value order-row__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
+      <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
+    </div>
+
+    <div
+      v-if="order.pvzName || order.pvz"
+      class="order-row__pvz"
+      :class="{ 'order-row__pvz--mappable': hasMap }"
+      @click.stop="hasMap && emit('map', order)"
+    >
+      <q-icon name="place" size="16px" class="order-row__pvz-icon" />
+      <div class="order-row__pvz-text">
+        <div v-if="order.pvzName" class="order-row__pvz-name">{{ order.pvzName }}</div>
+        <div v-if="order.pvz" class="order-row__pvz-addr">{{ order.pvz }}</div>
+      </div>
+      <q-icon v-if="hasMap" name="map" size="14px" class="order-row__pvz-map" />
+    </div>
+
+    <div v-if="actionsForRole.length || $slots.actions" class="order-row__actions" @click.stop>
+      <slot name="actions" :order="order" :role="role">
+        <BaseButton
+          v-for="a in actionsForRole"
+          :key="a.key"
+          :variant="actionVariant(a)"
+          size="sm"
+          @click="emit('action', { key: a.key, order })"
+        >
+          {{ a.label }}
+        </BaseButton>
+      </slot>
+    </div>
+  </div>
+
   <BaseCard
+    v-else
     class="order-card"
     :class="[`order-card--${order.status}`, { 'order-card--openable': openable }]"
     @click="onCardClick"
@@ -128,6 +192,9 @@ const props = defineProps({
   // Карточка кликабельна: клик по телу открывает детальную страницу заказа
   // (эмитит `open`). Кнопки действий клик не перехватывают (@click.stop).
   openable: { type: Boolean, default: false },
+  // 'card' — плитка в сетке (по умолчанию); 'row' — строка на всю ширину
+  // списка (см. «Мои заказы») — та же модель и действия, другая раскладка.
+  layout: { type: String as PropType<'card' | 'row'>, default: 'card' },
 })
 
 const emit = defineEmits<{
@@ -391,6 +458,171 @@ function formatPrice(v: number) {
     margin-top: var(--p-4, 16px);
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
+  }
+}
+
+// Строчная раскладка (layout="row"): вся сводка заказа в один ряд на всю
+// ширину списка. Тот же hairline-border/no-shadow инвариант, что и у карточки.
+.order-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-3, 12px) var(--p-6, 24px);
+  padding: var(--p-4, 16px) var(--p-5, 20px);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md, 12px);
+  background: var(--p-surface);
+
+  &--openable {
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--p-ink-3);
+    }
+  }
+
+  // Заголовок + номер/дата — тянется, отдаёт место остальным колонкам первым.
+  &__main {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  &__title-line {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+  }
+
+  &__title {
+    min-width: 0;
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-h3, -0.01em);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__status {
+    flex-shrink: 0;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--p-1, 4px) var(--p-2, 8px);
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__num {
+    font-family: var(--p-mono);
+    letter-spacing: 0;
+  }
+
+  &__sep {
+    color: var(--p-ink-3);
+  }
+
+  // Кол-во/Сумма — компактные колонки фиксированной ширины, не тянутся.
+  &__fact {
+    flex: 0 0 auto;
+    min-width: 88px;
+  }
+
+  &__fact-label {
+    font-size: var(--p-fs-eyebrow, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    margin-bottom: 2px;
+  }
+
+  &__fact-value {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink);
+    white-space: nowrap;
+
+    &--money {
+      font-weight: 700;
+      font-feature-settings: 'tnum' 1;
+    }
+  }
+
+  &__fee-note {
+    font-size: var(--p-fs-body-sm, 12px);
+    color: var(--p-ink-3);
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  // ПВЗ — своя колонка, тянется меньше, чем заголовок, но больше фактов.
+  &__pvz {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-2, 8px);
+    flex: 1 1 200px;
+    min-width: 0;
+
+    &--mappable {
+      cursor: pointer;
+      border-radius: var(--p-r-sm, 8px);
+      margin: calc(-1 * var(--p-2, 8px));
+      padding: var(--p-2, 8px);
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: var(--p-surface-2);
+      }
+
+      .order-row__pvz-addr {
+        color: var(--p-primary);
+      }
+    }
+  }
+
+  &__pvz-icon {
+    color: var(--p-ink-3);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &__pvz-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__pvz-name {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-addr {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  &__pvz-map {
+    color: var(--p-primary);
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--p-2, 8px);
+    flex: 0 0 auto;
+    margin-left: auto;
   }
 }
 </style>

@@ -348,6 +348,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
             :key="o.id",
             :order="toCardModel(o)",
             role="orderer",
+            layout="row",
             openable,
             @action="onCardAction",
             @open="openDetail",
@@ -359,6 +360,7 @@ q-page.orders(role="region", aria-label="Мои заказы")
           :key="o.id",
           :order="toCardModel(o)",
           role="orderer",
+          layout="row",
           openable,
           @action="onCardAction",
           @open="openDetail",
@@ -393,14 +395,13 @@ q-page.orders(role="region", aria-label="Мои заказы")
     }
   }
 
-  // Сетка карточек: auto-fill по 280px-трекам, растянутым до 1fr. Одиночные
-  // заказы теперь сливаются в один grid (renderRows) — раскладываются в 2+
-  // колонки; одинокая карточка не «размазывается» на всю ширину (пустые треки
-  // auto-fill сохраняются), а заполняет свой трек ~ширины колонки.
+  // Список строк на всю ширину (OrderCard layout="row"), не сетка плиток:
+  // сверху вниз — от самого нового к самому старому, порядок читается
+  // однозначно (в 2-колоночной сетке было неясно, что новее).
   &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
   }
 
   // Список групп заказов-агрегатов: вертикальный ритм между группами.
