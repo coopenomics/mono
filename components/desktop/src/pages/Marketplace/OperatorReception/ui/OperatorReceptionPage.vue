@@ -545,15 +545,18 @@ async function onQrScanned(code: string): Promise<void> {
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола выдачи) через
-// query `handoff`: подхватываем, запускаем приёмку и стираем параметр, чтобы
-// повторный показ того же кода снова сработал и обновление страницы не зациклило.
-function consumeHandoffQuery(): void {
+// query `handoff`. Стираем параметр ТОЛЬКО ПОСЛЕ обработки (await, не
+// fire-and-forget): если на первом заходе на стол страницу успевает пересобрать
+// раньше, чем откроется диалог, код всё ещё в query и повторный маунт подхватит
+// его снова. Стерев раньше (было раньше), при таком пересборе результат
+// сканирования терялся безвозвратно и приходилось сканировать вручную второй раз.
+async function consumeHandoffQuery(): Promise<void> {
   const code = route.query[HANDOFF_QUERY];
   if (typeof code !== 'string' || !code) return;
+  await onQrScanned(code);
   const rest = { ...route.query };
   delete rest[HANDOFF_QUERY];
   void router.replace({ query: rest });
-  void onQrScanned(code);
 }
 
 // Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
@@ -687,7 +690,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  consumeHandoffQuery();
+  await consumeHandoffQuery();
 });
 </script>
 

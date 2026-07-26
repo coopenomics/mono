@@ -255,7 +255,7 @@ function startPickupIssuance(): void {
   startOpen(pickupOrders.value);
 }
 
-function onQrScanned(code: string): void {
+async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
   const token = decodeScannedCode(code, coopname.value);
   if (!token) {
@@ -284,7 +284,7 @@ function onQrScanned(code: string): void {
   // Заказы не обязательны: пайщик мог «просто зайти» — оператор предложит
   // ему имущество со склада кооператива (докладка, requirement 76).
   pickupAccount.value = token.account;
-  void resolvePickup();
+  await resolvePickup();
 }
 
 /**
@@ -293,9 +293,11 @@ function onQrScanned(code: string): void {
  * нечего открывать — показываем резолв-окно с докладкой со склада (req. 76).
  */
 async function resolvePickup(): Promise<void> {
-  // Код мог прийти с универсального сканера сразу после навигации — лента
-  // могла не успеть загрузиться, без неё резолв «у пайщика ничего нет».
-  if (!items.value.length && !loading.value) await load();
+  // Код мог прийти сразу после кросс-роутинга с другого стола — лента ещё не
+  // успела загрузиться (или это самый первый заход, ленты вообще нет). Ждём
+  // актуальную ленту всегда, а не только когда она пуста: пустой список не
+  // отличить от «ещё не загрузился» и «загрузился, но у пайщика правда пусто».
+  if (!loading.value) await load();
   if (pickupToIssueCount.value > 0) {
     startOpen(pickupOrders.value);
     return;
@@ -304,15 +306,19 @@ async function resolvePickup(): Promise<void> {
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола приёмки) через
-// query `handoff`: подхватываем, запускаем выдачу и стираем параметр, чтобы
-// повторный показ того же кода снова сработал и обновление не зациклило.
-function consumeHandoffQuery(): void {
+// query `handoff`. Стираем параметр ТОЛЬКО ПОСЛЕ того, как код реально обработан
+// (await, не fire-and-forget): если на первом заходе на стол страницу успевает
+// пересобрать (догрузка чанка/стора выдачи ещё не была на этой вкладке в сессии)
+// раньше, чем откроется диалог, — код всё ещё в query и повторный маунт подхватит
+// его снова. Если стереть раньше (было раньше), при таком пересборе результат
+// сканирования терялся безвозвратно и приходилось сканировать вручную второй раз.
+async function consumeHandoffQuery(): Promise<void> {
   const code = route.query[HANDOFF_QUERY];
   if (typeof code !== 'string' || !code) return;
+  await onQrScanned(code);
   const rest = { ...route.query };
   delete rest[HANDOFF_QUERY];
   void router.replace({ query: rest });
-  onQrScanned(code);
 }
 
 function onOpened(): void {
@@ -339,7 +345,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  consumeHandoffQuery();
+  await consumeHandoffQuery();
 });
 </script>
 
