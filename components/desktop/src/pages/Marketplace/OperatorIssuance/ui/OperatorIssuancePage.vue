@@ -15,7 +15,7 @@ import {
   decodeScannedCode,
   HandoffTokenKind,
   handoffStageRoute,
-  HANDOFF_QUERY,
+  useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
 import {
@@ -41,6 +41,7 @@ import IssueActOpenDialog from './IssueActOpenDialog.vue';
 const route = useRoute();
 const router = useRouter();
 const store = useOperatorBranchStore();
+const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
@@ -274,10 +275,10 @@ async function onQrScanned(code: string): Promise<void> {
   // не нужно знать, кто пришёл. Ведём его на «Ожидаемые поставки» с тем же кодом —
   // целевой стол сам откроет приёмку.
   if (token.kind !== HandoffTokenKind.Receive) {
+    handoffSignal.post(code);
     void router.push({
       name: handoffStageRoute('reception'),
       params: { coopname: coopname.value },
-      query: { [HANDOFF_QUERY]: code },
     });
     return;
   }
@@ -287,38 +288,42 @@ async function onQrScanned(code: string): Promise<void> {
   await resolvePickup();
 }
 
+const PICKUP_RESOLVE_RETRIES = 2;
+const PICKUP_RESOLVE_DELAY_MS = 600;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Резолв отсканированного кода получения: есть позиции «к выдаче» — сразу
  * открываем полную выдачу (промежуточное окно «Открыть выдачу» — лишний клик);
  * нечего открывать — показываем резолв-окно с докладкой со склада (req. 76).
+ *
+ * Несколько попыток с паузой, а не один отказ: лента собирается из composite-
+ * entity (БД + блокчейн-снапшот), парсер догоняет цепь с лагом — код передачи
+ * заказчик может показать раньше, чем лента отразит актуальный статус заказа.
  */
 async function resolvePickup(): Promise<void> {
-  // Код мог прийти сразу после кросс-роутинга с другого стола — лента ещё не
-  // успела загрузиться (или это самый первый заход, ленты вообще нет). Ждём
-  // актуальную ленту всегда, а не только когда она пуста: пустой список не
-  // отличить от «ещё не загрузился» и «загрузился, но у пайщика правда пусто».
-  if (!loading.value) await load();
-  if (pickupToIssueCount.value > 0) {
-    startOpen(pickupOrders.value);
-    return;
+  for (let attempt = 0; attempt <= PICKUP_RESOLVE_RETRIES; attempt += 1) {
+    if (!loading.value) await load();
+    if (pickupToIssueCount.value > 0) {
+      startOpen(pickupOrders.value);
+      return;
+    }
+    if (attempt < PICKUP_RESOLVE_RETRIES) await wait(PICKUP_RESOLVE_DELAY_MS);
   }
   pickupDialogOpen.value = true;
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола приёмки) через
-// query `handoff`. Стираем параметр ТОЛЬКО ПОСЛЕ того, как код реально обработан
-// (await, не fire-and-forget): если на первом заходе на стол страницу успевает
-// пересобрать (догрузка чанка/стора выдачи ещё не была на этой вкладке в сессии)
-// раньше, чем откроется диалог, — код всё ещё в query и повторный маунт подхватит
-// его снова. Если стереть раньше (было раньше), при таком пересборе результат
-// сканирования терялся безвозвратно и приходилось сканировать вручную второй раз.
-async function consumeHandoffQuery(): Promise<void> {
-  const code = route.query[HANDOFF_QUERY];
-  if (typeof code !== 'string' || !code) return;
+// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
+// query-параметр живёт в истории роутера, и его нужно было стирать сразу после
+// чтения, а `router.replace` для этого не дожидался (fire-and-forget). Если
+// страница успевала пересобраться в промежутке (первый заход на стол в сессии —
+// догрузка чанка/стора КУ), код уже был стёрт из URL и терялся безвозвратно.
+// Стор переживает переход между страницами как есть — терять нечего.
+async function consumeHandoffSignal(): Promise<void> {
+  const code = handoffSignal.consume();
+  if (!code) return;
   await onQrScanned(code);
-  const rest = { ...route.query };
-  delete rest[HANDOFF_QUERY];
-  void router.replace({ query: rest });
 }
 
 function onOpened(): void {
@@ -327,8 +332,8 @@ function onOpened(): void {
 
 watch(braname, () => void load());
 
-// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
-watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+// Повторный заход с новым кодом (универсальный сканер уже на этом столе).
+watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
 
 // Realtime: заказчик подтвердил получение в своём кабинете (READY_TO_RECEIVE →
 // RECEIVED) — карточка уходит со стола сама; оператор у стойки видит подпись
@@ -345,7 +350,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  await consumeHandoffQuery();
+  await consumeHandoffSignal();
 });
 </script>
 

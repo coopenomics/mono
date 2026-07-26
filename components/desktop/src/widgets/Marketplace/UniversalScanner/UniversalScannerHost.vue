@@ -6,7 +6,7 @@ import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { FailAlert } from 'src/shared/api';
 import { BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { resolveHandoffTarget, HANDOFF_QUERY } from 'src/shared/lib/marketplace';
+import { resolveHandoffTarget, useMarketplaceHandoffSignal } from 'src/shared/lib/marketplace';
 import { useUniversalScanner } from './useUniversalScanner';
 
 /**
@@ -25,6 +25,7 @@ const ACTION = 'marketplaceUniversalScan';
 const router = useRouter();
 const system = useSystemStore();
 const actions = useActionsStore();
+const handoffSignal = useMarketplaceHandoffSignal();
 const { isOpen, open, close } = useUniversalScanner();
 
 function onScanned(code: string): void {
@@ -39,10 +40,10 @@ function onScanned(code: string): void {
     return;
   }
   close();
+  handoffSignal.post(code);
   void router.push({
     name: target.routeName,
     params: { coopname },
-    query: { [HANDOFF_QUERY]: code },
   });
 }
 

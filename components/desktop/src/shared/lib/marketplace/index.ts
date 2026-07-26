@@ -14,10 +14,10 @@ export {
 export {
   resolveHandoffTarget,
   handoffStageRoute,
-  HANDOFF_QUERY,
   type HandoffStage,
   type HandoffRouteTarget,
 } from './handoff-routing';
+export { useMarketplaceHandoffSignal } from './handoff-signal';
 export { useActsPreview } from './useActsPreview';
 export {
   getMembershipFeePercent,

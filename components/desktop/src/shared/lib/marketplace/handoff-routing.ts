@@ -38,8 +38,8 @@ export function handoffStageRoute(stage: HandoffStage): string {
 /**
  * Куда ведёт отсканированный код. Возвращает `null`, если код не распознан как
  * токен передачи или выписан для другого кооператива — вызывающий показывает
- * ошибку. Имя query-параметра, через который целевая страница подхватывает код
- * и сама открывает приёмку/выдачу, — `HANDOFF_QUERY`.
+ * ошибку. Сам код на целевой стол передаётся не через URL, а через
+ * `useMarketplaceHandoffSignal` (см. её doc-комментарий, почему не query).
  */
 export function resolveHandoffTarget(
   coopname: string,
@@ -52,10 +52,3 @@ export function resolveHandoffTarget(
     token.kind === HandoffTokenKind.Receive ? 'issuance' : 'reception';
   return { routeName: STAGE_ROUTE[stage], stage };
 }
-
-/**
- * Имя query-параметра, в котором отсканированный код прилетает на целевой стол
- * (приёмки/выдачи). Страница читает его при появлении, запускает свой сценарий
- * скана и стирает параметр (чтобы повторный показ того же кода снова сработал).
- */
-export const HANDOFF_QUERY = 'handoff';

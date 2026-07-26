@@ -18,7 +18,7 @@ import {
   HandoffTokenKind,
   groupAplReceptions,
   handoffStageRoute,
-  HANDOFF_QUERY,
+  useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
@@ -60,6 +60,7 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
 const route = useRoute();
 const router = useRouter();
 const store = useOperatorBranchStore();
+const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceAplReceptionView[]>([]);
@@ -537,26 +538,23 @@ async function onQrScanned(code: string): Promise<void> {
   // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
   // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
   // заказов» с тем же кодом — целевой стол сам откроет выдачу.
+  handoffSignal.post(code);
   void router.push({
     name: handoffStageRoute('issuance'),
     params: { coopname: coopname.value },
-    query: { [HANDOFF_QUERY]: code },
   });
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола выдачи) через
-// query `handoff`. Стираем параметр ТОЛЬКО ПОСЛЕ обработки (await, не
-// fire-and-forget): если на первом заходе на стол страницу успевает пересобрать
-// раньше, чем откроется диалог, код всё ещё в query и повторный маунт подхватит
-// его снова. Стерев раньше (было раньше), при таком пересборе результат
-// сканирования терялся безвозвратно и приходилось сканировать вручную второй раз.
-async function consumeHandoffQuery(): Promise<void> {
-  const code = route.query[HANDOFF_QUERY];
-  if (typeof code !== 'string' || !code) return;
+// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
+// query-параметр нужно было стирать сразу после чтения, а `router.replace` для
+// этого не дожидался (fire-and-forget). Если страница успевала пересобраться в
+// промежутке (первый заход на стол в сессии — догрузка чанка/стора КУ), код уже
+// был стёрт из URL и терялся безвозвратно. Стор переживает переход как есть.
+async function consumeHandoffSignal(): Promise<void> {
+  const code = handoffSignal.consume();
+  if (!code) return;
   await onQrScanned(code);
-  const rest = { ...route.query };
-  delete rest[HANDOFF_QUERY];
-  void router.replace({ query: rest });
 }
 
 // Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
@@ -663,8 +661,8 @@ async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptio
 
 watch(braname, () => void load());
 
-// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
-watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+// Повторный заход с новым кодом (универсальный сканер уже на этом столе).
+watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
 
 // Realtime вместо поллинга: статус акта меняет поставщик со своего устройства
 // (подписал приёмку → PENDING_CHAIRMAN_RECEPTION_SIGN, у оператора сама
@@ -690,7 +688,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  await consumeHandoffQuery();
+  await consumeHandoffSignal();
 });
 </script>
 
