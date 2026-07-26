@@ -882,6 +882,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAidStatementSignablePayloadInput:{
 
 	},
+	MarketplaceAnnounceOrderReadyInput:{
+
+	},
 	MarketplaceAplReceptionByIdInput:{
 
 	},
@@ -1843,6 +1846,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceAddToCart:{
 			input:"MarketplaceAddToCartInput"
+		},
+		marketplaceAnnounceOrderReady:{
+			data:"MarketplaceAnnounceOrderReadyInput"
 		},
 		marketplaceApproveOffer:{
 			input:"MarketplaceApproveOfferInput"
@@ -5296,6 +5302,7 @@ export const ReturnTypes: Record<string,any> = {
 		group_accumulated_quantity:"Float",
 		group_min_volume:"Float",
 		id:"String",
+		is_ready_announced:"Boolean",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",
 		membership_fee:"String",
@@ -6048,6 +6055,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceAddAvailableCategoryTypes:"MarketplaceAvailableCategory",
 		marketplaceAddSupplier:"MarketplaceSupplier",
 		marketplaceAddToCart:"MarketplaceCart",
+		marketplaceAnnounceOrderReady:"MarketplaceOrder",
 		marketplaceApproveOffer:"MarketplaceOffer",
 		marketplaceApproveReturnVisit:"MarketplaceReturnClaimResult",
 		marketplaceApproveSupplier:"MarketplaceSupplier",

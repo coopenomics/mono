@@ -1,5 +1,5 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
-import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
@@ -14,6 +14,7 @@ import {
 } from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
+  MarketplaceAnnounceOrderReadyInputDTO,
   MarketplaceIssueActPayloadInputDTO,
   MarketplaceListIssuancesByBranameInputDTO,
 } from '../dto/marketplace-issuance.dto';
@@ -107,6 +108,54 @@ export class MarketplaceIssuanceResolver {
       data.actual_unit_price
     );
     return toGeneratedDocumentDTO(doc);
+  }
+
+  @Mutation(() => MarketplaceOrderDTO, {
+    name: 'marketplaceAnnounceOrderReady',
+    description:
+      'Объявить заказ готовым к выдаче на пункте (кнопка «Объявить выдачу»). ' +
+      'Заказчику уходит уведомление «приходите заберите», в его кабинете заказ ' +
+      'помечается «Готово к выдаче». Статус заказа не меняется — сама выдача ' +
+      'по-прежнему оформляется при приходе заказчика.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Issuance', 'sign:first')
+  async marketplaceAnnounceOrderReady(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceAnnounceOrderReadyInputDTO
+  ): Promise<MarketplaceOrderDTO> {
+    const coopname = config.coopname;
+    const roles = member.marketplace_roles as MarketplaceRole[];
+
+    const order = await this.orderRepo.findById(data.order_id);
+    if (!order || order.coopname !== coopname) {
+      throw new NotFoundException('Заказ не найден.');
+    }
+    // Ownership: оператор только с `read:own-KU` обязан быть членом КУ выдачи
+    // заказа, иначе можно объявить готовым чужой заказ по подставленному id.
+    if (!canAccess(roles, 'Issuance', 'read:all')) {
+      const isMember = await this.kuChairmanService.isMemberOfBranch(
+        coopname,
+        order.delivery_braname,
+        member.username
+      );
+      if (!isMember) {
+        throw new ForbiddenException(
+          'Объявить готовность к выдаче можно только по участку, на котором вы являетесь председателем или доверенным лицом.'
+        );
+      }
+    }
+
+    const updated = await this.service.announceReady({
+      coopname,
+      order_id: data.order_id,
+      operator_account: member.username,
+    });
+    const display = await this.displayService.enrich([updated], {
+      withParticipantNames: true,
+      withWarehouseQuantity: true,
+    });
+    return toMarketplaceOrderDTO(updated, display.get(updated.id));
   }
 
   @Query(() => [MarketplaceOrderDTO], {

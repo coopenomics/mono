@@ -7,6 +7,8 @@ export * as RetryKUGeocode from './retryKUGeocode'
 /** Оформить заказ по предложению и заблокировать средства */
 /** Отменить свой заказ до приёма поставщиком */
 export * as CancelOrder from './cancelOrder'
+
+export * as AnnounceOrderReady from './announceOrderReady'
 /** Эпик 15: поставщик принимает к поставке выбранные заказы (offer × КУ) единым массивом */
 export * as AcceptOrdersBatch from './acceptOrdersBatch'
 /** Эпик 15: поставщик отклоняет выбранные активные заказы — средства разблокируются */

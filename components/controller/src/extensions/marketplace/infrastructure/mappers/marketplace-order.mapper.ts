@@ -39,6 +39,7 @@ export class MarketplaceOrderMapper {
       create_tx: row.create_tx,
       current_warehouse_braname: row.current_warehouse_braname,
       issuance_fact: row.issuance_fact,
+      ready_announced_at: row.ready_announced_at,
       chairman_signed_at: row.chairman_signed_at,
       chairman_account: row.chairman_account,
       signiss1_tx_hash: row.signiss1_tx_hash,

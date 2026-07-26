@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   type MarketplaceOrderStatusChangedEvent,
@@ -446,6 +446,17 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       this.emitStatusChanged(updated, before.status);
     }
     return updated;
+  }
+
+  async applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity> {
+    // Идемпотентно: повторное объявление не сдвигает исходный момент — гейт и
+    // единственный push живут в сервисе (announceReady), здесь только запись.
+    await this.repo.update(
+      { id, ready_announced_at: IsNull() },
+      { ready_announced_at: new Date() } as Record<string, unknown>
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
   }
 
   async applyIssuanceFinalized(

@@ -66,6 +66,13 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   public current_warehouse_braname: string | null;
   /** Story 6.3 / FR23-24: снапшот фактической выдачи после `signiss2`. */
   public issuance_fact: MarketplaceOrderIssuanceFactSnapshot | null;
+  /**
+   * Момент ручного объявления готовности к выдаче оператором КУ («Объявить
+   * выдачу» на столе ПВЗ). Backend-only сигнал, ортогональный подписям: статус
+   * остаётся ACCEPTED_TO_COOP, но заказчику уходит push «приходите» и в его
+   * кабинете загорается «Готово к выдаче». null — ещё не объявлено.
+   */
+  public ready_announced_at: Date | null;
   /** Story 6.1 / FR21: момент открытия выдачи председателем КУ (`signiss1`). */
   public chairman_signed_at: Date | null;
   public chairman_account: string | null;
@@ -115,6 +122,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
     this.create_tx = props.create_tx;
     this.current_warehouse_braname = props.current_warehouse_braname;
     this.issuance_fact = props.issuance_fact;
+    this.ready_announced_at = props.ready_announced_at;
     this.chairman_signed_at = props.chairman_signed_at;
     this.chairman_account = props.chairman_account;
     this.signiss1_tx_hash = props.signiss1_tx_hash;
@@ -248,6 +256,15 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
    */
   public get awaits_chairman_issue_open(): boolean {
     return this.status === 'ACCEPTED_TO_COOP' && this.chairman_signed_at === null;
+  }
+
+  /**
+   * Оператор объявил заказ готовым к выдаче (кнопка «Объявить выдачу» на столе
+   * ПВЗ). Признак ортогонален статусу: заказ ещё ACCEPTED_TO_COOP, но заказчику
+   * уже показано «Готово к выдаче» и отправлен push.
+   */
+  public get is_ready_announced(): boolean {
+    return this.ready_announced_at !== null;
   }
 
   /**

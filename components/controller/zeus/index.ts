@@ -7678,6 +7678,10 @@ export type ValueTypes = {
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string | Variable<any, string>
 };
+	["MarketplaceAnnounceOrderReadyInput"]: {
+	/** Заказ, который объявляется готовым к выдаче на пункте. */
+	order_id: ValueTypes["ID"] | Variable<any, string>
+};
 	["MarketplaceAplReception"]: AliasType<{
 	/** КУ-получатель партии. */
 	braname?:boolean | `@${string}`,
@@ -9099,6 +9103,8 @@ export type ValueTypes = {
 	group_min_volume?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
 	id?:boolean | `@${string}`,
+	/** Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ещё не готов к получению. */
+	is_ready_announced?:boolean | `@${string}`,
 	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
 	issuance_fact?:ValueTypes["MarketplaceOrderIssuanceFactSnapshot"],
 	/** Текстовая причина последнего изменения статуса. */
@@ -10821,6 +10827,7 @@ marketplaceAddAvailableCategories?: [{	input: ValueTypes["AddAvailableCategories
 marketplaceAddAvailableCategoryTypes?: [{	input: ValueTypes["AddAvailableCategoryTypesInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceAddSupplier?: [{	input: ValueTypes["MarketplaceAddSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ValueTypes["MarketplaceAddToCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
+marketplaceAnnounceOrderReady?: [{	data: ValueTypes["MarketplaceAnnounceOrderReadyInput"] | Variable<any, string>},ValueTypes["MarketplaceOrder"]],
 marketplaceApproveOffer?: [{	input: ValueTypes["MarketplaceApproveOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ValueTypes["MarketplaceApproveReturnVisitInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
@@ -20801,6 +20808,10 @@ export type ResolverInputTypes = {
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string
 };
+	["MarketplaceAnnounceOrderReadyInput"]: {
+	/** Заказ, который объявляется готовым к выдаче на пункте. */
+	order_id: ResolverInputTypes["ID"]
+};
 	["MarketplaceAplReception"]: AliasType<{
 	/** КУ-получатель партии. */
 	braname?:boolean | `@${string}`,
@@ -22177,6 +22188,8 @@ export type ResolverInputTypes = {
 	group_min_volume?:boolean | `@${string}`,
 	/** Идентификатор заказа. */
 	id?:boolean | `@${string}`,
+	/** Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ещё не готов к получению. */
+	is_ready_announced?:boolean | `@${string}`,
 	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
 	issuance_fact?:ResolverInputTypes["MarketplaceOrderIssuanceFactSnapshot"],
 	/** Текстовая причина последнего изменения статуса. */
@@ -23840,6 +23853,7 @@ marketplaceAddAvailableCategories?: [{	input: ResolverInputTypes["AddAvailableCa
 marketplaceAddAvailableCategoryTypes?: [{	input: ResolverInputTypes["AddAvailableCategoryTypesInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceAddSupplier?: [{	input: ResolverInputTypes["MarketplaceAddSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
 marketplaceAddToCart?: [{	input: ResolverInputTypes["MarketplaceAddToCartInput"]},ResolverInputTypes["MarketplaceCart"]],
+marketplaceAnnounceOrderReady?: [{	data: ResolverInputTypes["MarketplaceAnnounceOrderReadyInput"]},ResolverInputTypes["MarketplaceOrder"]],
 marketplaceApproveOffer?: [{	input: ResolverInputTypes["MarketplaceApproveOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceApproveReturnVisit?: [{	data: ResolverInputTypes["MarketplaceApproveReturnVisitInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
 marketplaceApproveSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMemberInput"]},ResolverInputTypes["MarketplaceSupplier"]],
@@ -33534,6 +33548,10 @@ export type ModelTypes = {
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string
 };
+	["MarketplaceAnnounceOrderReadyInput"]: {
+	/** Заказ, который объявляется готовым к выдаче на пункте. */
+	order_id: ModelTypes["ID"]
+};
 	["MarketplaceAplReception"]: {
 		/** КУ-получатель партии. */
 	braname: string,
@@ -34839,6 +34857,8 @@ export type ModelTypes = {
 	group_min_volume?: number | undefined | null,
 	/** Идентификатор заказа. */
 	id: string,
+	/** Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ещё не готов к получению. */
+	is_ready_announced: boolean,
 	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
 	issuance_fact?: ModelTypes["MarketplaceOrderIssuanceFactSnapshot"] | undefined | null,
 	/** Текстовая причина последнего изменения статуса. */
@@ -36933,6 +36953,8 @@ export type ModelTypes = {
 	marketplaceAddSupplier: ModelTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: ModelTypes["MarketplaceCart"],
+	/** Объявить заказ готовым к выдаче на пункте (кнопка «Объявить выдачу»). Заказчику уходит уведомление «приходите заберите», в его кабинете заказ помечается «Готово к выдаче». Статус заказа не меняется — сама выдача по-прежнему оформляется при приходе заказчика. */
+	marketplaceAnnounceOrderReady: ModelTypes["MarketplaceOrder"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -47298,6 +47320,10 @@ export type GraphQLTypes = {
 	/** Кооперативный участок, средства которого распределены получателю. */
 	braname: string
 };
+	["MarketplaceAnnounceOrderReadyInput"]: {
+		/** Заказ, который объявляется готовым к выдаче на пункте. */
+	order_id: GraphQLTypes["ID"]
+};
 	["MarketplaceAplReception"]: {
 	__typename: "MarketplaceAplReception",
 	/** КУ-получатель партии. */
@@ -48721,6 +48747,8 @@ export type GraphQLTypes = {
 	group_min_volume?: number | undefined | null,
 	/** Идентификатор заказа. */
 	id: string,
+	/** Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ещё не готов к получению. */
+	is_ready_announced: boolean,
 	/** Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ). */
 	issuance_fact?: GraphQLTypes["MarketplaceOrderIssuanceFactSnapshot"] | undefined | null,
 	/** Текстовая причина последнего изменения статуса. */
@@ -50949,6 +50977,8 @@ export type GraphQLTypes = {
 	marketplaceAddSupplier: GraphQLTypes["MarketplaceSupplier"],
 	/** Добавить товар в корзину (с привязкой корзины к пункту выдачи). */
 	marketplaceAddToCart: GraphQLTypes["MarketplaceCart"],
+	/** Объявить заказ готовым к выдаче на пункте (кнопка «Объявить выдачу»). Заказчику уходит уведомление «приходите заберите», в его кабинете заказ помечается «Готово к выдаче». Статус заказа не меняется — сама выдача по-прежнему оформляется при приходе заказчика. */
+	marketplaceAnnounceOrderReady: GraphQLTypes["MarketplaceOrder"],
 	/** Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin) */
 	marketplaceApproveOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества. */
@@ -56033,6 +56063,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceAddSupplierInput"]: ValueTypes["MarketplaceAddSupplierInput"];
 	["MarketplaceAddToCartInput"]: ValueTypes["MarketplaceAddToCartInput"];
 	["MarketplaceAidStatementSignablePayloadInput"]: ValueTypes["MarketplaceAidStatementSignablePayloadInput"];
+	["MarketplaceAnnounceOrderReadyInput"]: ValueTypes["MarketplaceAnnounceOrderReadyInput"];
 	["MarketplaceAplReceptionByIdInput"]: ValueTypes["MarketplaceAplReceptionByIdInput"];
 	["MarketplaceAplReceptionFactEntryInput"]: ValueTypes["MarketplaceAplReceptionFactEntryInput"];
 	["MarketplaceAplReceptionSignedDocumentInput"]: ValueTypes["MarketplaceAplReceptionSignedDocumentInput"];

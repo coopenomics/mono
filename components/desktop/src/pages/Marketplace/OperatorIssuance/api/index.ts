@@ -41,6 +41,24 @@ export async function listIssuancesByBraname(
   return result as MarketplaceOrderIssuanceView[];
 }
 
+/** Объявление готовности к выдаче: строго из SDK (IInput['data']). */
+export type AnnounceOrderReadyInput = Mutations.Marketplace.AnnounceOrderReady.IInput['data'];
+
+/**
+ * Оператор объявляет заказ готовым к выдаче («Объявить выдачу»). Заказчику
+ * уходит уведомление «приходите заберите»; статус заказа не меняется, сама
+ * выдача оформляется позже при приходе заказчика. Мутация на один заказ —
+ * карточка получателя вызывает её циклом по своим позициям.
+ */
+export async function announceOrderReady(order_id: string): Promise<MarketplaceOrderIssuanceView> {
+  const data: AnnounceOrderReadyInput = { order_id };
+  const { [Mutations.Marketplace.AnnounceOrderReady.name]: result } = await client.Mutation(
+    Mutations.Marketplace.AnnounceOrderReady.mutation,
+    { variables: { data } },
+  );
+  return result as MarketplaceOrderIssuanceView;
+}
+
 /**
  * Превью акта выдачи для подписи ОПЕРАТОРОМ КУ первой подписью (signiss1).
  * Оператор подписывает его и кладёт в бандл (createStockProposal) — на цепь акт
