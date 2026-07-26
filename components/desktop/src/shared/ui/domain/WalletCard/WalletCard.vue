@@ -64,11 +64,13 @@ const resolvedIcon = computed(
 );
 
 const progStyle = computed<CSSProperties>(() => {
-  // Нейтральная карточка (или без программы) — приглушённая иконка без акцента.
+  // Нейтральная карточка (или без программы) — иконка на surface-3,
+  // не на canvas-2: иначе в dark icon-tile сливается с фоном карточки
+  // (surface #141416 ≈ canvas-2 #111113).
   if (props.neutral || !props.program) {
     return {
-      '--prog-bg': 'var(--p-canvas-2)',
-      '--prog-fg': 'var(--p-ink-2)',
+      '--prog-bg': 'var(--p-surface-3)',
+      '--prog-fg': 'var(--p-ink-1)',
     } as CSSProperties;
   }
   return {

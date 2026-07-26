@@ -1,17 +1,18 @@
 <template lang="pug">
-.projects-info
-  .project-link(
+.project-component-info
+  .project-component-info__parent(
     v-if='parentTitle',
     @click.stop='navigateToProject(parentHash)'
   )
-    q-icon(name='fa-regular fa-folder', size='xs').q-mr-xs
-    span.list-item-title {{ parentTitle }}
-  .component-link(
+    q-icon(name='folder', size='16px')
+    span {{ parentTitle }}
+  .project-component-info__child(
     v-if='title',
+    :class='{ "project-component-info__child--nested": !!parentTitle }',
     @click.stop='navigateToComponent(projectHash)'
   )
-    q-icon(name='fa-regular fa-file-code', size='xs').q-mr-xs
-    span.list-item-title {{ title }}
+    q-icon(name='description', size='16px')
+    span {{ title }}
 </template>
 
 <script lang="ts" setup>
@@ -28,72 +29,71 @@ const { parentHash, projectHash } = defineProps<Props>();
 
 const router = useRouter();
 
-// Функция навигации к проекту (родительскому)
 const navigateToProject = (hash?: string) => {
   if (hash) {
     router.push({
       name: 'project-description',
       params: { project_hash: hash },
-      query: { _useHistoryBack: 'true' }
+      query: { _useHistoryBack: 'true' },
     });
   }
 };
 
-// Функция навигации к компоненту
 const navigateToComponent = (hash?: string) => {
   if (hash) {
     router.push({
       name: 'component-description',
       params: { project_hash: hash },
-      query: { _useHistoryBack: 'true' }
+      query: { _useHistoryBack: 'true' },
     });
   }
 };
 </script>
 
 <style lang="scss" scoped>
-.projects-info {
-  .component-link {
-    display: block;
-    cursor: pointer;
-    margin-bottom: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+.project-component-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  min-width: 0;
+}
 
-    margin-left: 16px;
-    border-left: 2px solid #666;
+.project-component-info__parent,
+.project-component-info__child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  min-width: 0;
+  padding: var(--p-1) var(--p-2);
+  border-radius: var(--p-r-sm);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+  color: var(--p-ink);
+  font-size: var(--p-fs-body);
+  font-weight: 500;
 
-    &:hover {
-      background-color: rgba(25, 118, 210, 0.08);
-    }
-
-    .component-title {
-      font-size: 0.875rem;
-      font-weight: 500;
-      word-wrap: break-word;
-      white-space: normal;
-      line-height: 1.3;
-    }
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .project-link {
-    display: block;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    .project-title {
-      font-size: 0.875rem;
-      word-wrap: break-word;
-      white-space: normal;
-      line-height: 1.3;
-    }
+  &:hover {
+    background-color: var(--p-surface-2);
+    color: var(--p-primary);
   }
+
+  .q-icon {
+    flex-shrink: 0;
+    color: var(--p-ink-3);
+  }
+}
+
+.project-component-info__child--nested {
+  margin-left: var(--p-4);
+  padding-left: var(--p-3);
+  border-left: 2px solid var(--p-line);
+  border-radius: 0 var(--p-r-sm) var(--p-r-sm) 0;
 }
 </style>

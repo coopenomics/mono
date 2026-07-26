@@ -69,6 +69,8 @@ import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
 
 interface Props {
   issueHash: string;
+  /** Явный hash проекта/компонента — обязателен на вложенных списках мастерской, где в URL нет project_hash */
+  projectHash?: string;
   estimate?: number | null;
   fact?: number | null;
   readonly?: boolean;
@@ -81,29 +83,57 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const projectHash = computed(() => route.params.project_hash as string);
+/** Prop приоритетнее роута: на projects-list route.params.project_hash пуст */
+const resolvedProjectHash = computed(
+  () => props.projectHash || (route.params.project_hash as string) || ''
+);
 
-const { debounceSave } = useUpdateIssue();
+const { saveImmediately } = useUpdateIssue();
 const issueStore = useIssueStore();
 
 const menuOpen = ref(false);
 const estimateInput = ref<number>(props.estimate ?? 0);
+/** Оптимистичное значение — сразу в чипе, пока стор не догонит */
+const optimisticEstimate = ref<number | null>(null);
+const isSaving = ref(false);
+
+const displayEstimate = computed(
+  () => optimisticEstimate.value ?? props.estimate ?? 0
+);
 
 watch(
   () => props.estimate,
   (v) => {
     estimateInput.value = v ?? 0;
+    if (optimisticEstimate.value != null && optimisticEstimate.value === (v ?? 0)) {
+      optimisticEstimate.value = null;
+    }
   }
 );
 
+// Закрытие меню кликом снаружи часто не даёт blur на input — сохраняем явно
+watch(menuOpen, (open, wasOpen) => {
+  if (wasOpen && !open) {
+    void saveEstimate();
+  }
+});
+
 const isReadonly = computed(() => props.readonly);
 
+/** Легаси: пока бэкенд не отдаёт факт — при отсутствии факта показываем план. */
+const effectiveFact = computed(() => {
+  const fact = Number(props.fact) || 0;
+  if (fact > 0) return fact;
+  return Number(displayEstimate.value) || 0;
+});
+
 const hasEstimate = computed(
-  () => props.estimate != null && !Number.isNaN(props.estimate) && (props.estimate as number) > 0
+  () =>
+    displayEstimate.value != null &&
+    !Number.isNaN(displayEstimate.value) &&
+    displayEstimate.value > 0
 );
-const hasFact = computed(
-  () => props.fact != null && !Number.isNaN(props.fact) && (props.fact as number) > 0
-);
+const hasFact = computed(() => effectiveFact.value > 0);
 const hasAny = computed(() => hasEstimate.value || hasFact.value);
 
 function formatHours(h: number | null | undefined): string {
@@ -118,36 +148,34 @@ function formatHours(h: number | null | undefined): string {
 
 const inlineLabel = computed(() => {
   if (hasFact.value && hasEstimate.value) {
-    return `${formatHours(props.fact)} / ${formatHours(props.estimate)}`;
+    return `${formatHours(effectiveFact.value)} / ${formatHours(displayEstimate.value)}`;
   }
-  if (hasFact.value) return formatHours(props.fact);
-  if (hasEstimate.value) return formatHours(props.estimate);
+  if (hasFact.value) return formatHours(effectiveFact.value);
+  if (hasEstimate.value) return formatHours(displayEstimate.value);
   return '';
 });
 
 const factDisplay = computed(() =>
-  hasFact.value ? formatHours(props.fact) : '—'
+  Number(props.fact) > 0 ? formatHours(props.fact) : '—'
 );
 
 const progressValue = computed(() => {
   if (!hasEstimate.value) return 0;
-  const ratio = (props.fact ?? 0) / (props.estimate ?? 1);
+  const ratio = effectiveFact.value / (displayEstimate.value || 1);
   return Math.min(1, Math.max(0, ratio));
 });
 
 const progressColor = computed(() => {
   if (!hasEstimate.value) return 'grey-6';
-  const fact = props.fact ?? 0;
-  const est = props.estimate ?? 0;
+  const fact = effectiveFact.value;
+  const est = displayEstimate.value;
   if (fact > est + 1e-6) return 'warning';
   return 'primary';
 });
 
 const progressLabel = computed(() => {
   if (!hasEstimate.value) return '';
-  const fact = props.fact ?? 0;
-  const est = props.estimate ?? 0;
-  return `${formatHours(fact)} из ${formatHours(est)}`;
+  return `${formatHours(effectiveFact.value)} из ${formatHours(displayEstimate.value)}`;
 });
 
 const tooltipText = computed(() => {
@@ -162,15 +190,31 @@ const saveEstimate = async () => {
   const next = Number(estimateInput.value) || 0;
   const current = Number(props.estimate ?? 0);
   if (next === current) return;
+  // blur + закрытие меню часто стреляют подряд — не дублируем уже отправленное
+  if (optimisticEstimate.value === next) return;
+
+  const projectHash = resolvedProjectHash.value;
+  if (!projectHash) {
+    console.error('IssueTimeChip: projectHash is empty, cannot save estimate');
+    estimateInput.value = current;
+    return;
+  }
+
+  optimisticEstimate.value = next;
+  isSaving.value = true;
   try {
-    await debounceSave(
+    // Discrete-действие (как смена статуса) — без debounce 2с
+    await saveImmediately(
       { issue_hash: props.issueHash, estimate: next },
-      projectHash.value
+      projectHash
     );
-    await issueStore.updateIssueByHash(projectHash.value, props.issueHash);
+    await issueStore.updateIssueByHash(projectHash, props.issueHash);
   } catch (error) {
     console.error('IssueTimeChip: failed to save estimate', error);
+    optimisticEstimate.value = null;
     estimateInput.value = current;
+  } finally {
+    isSaving.value = false;
   }
 };
 </script>

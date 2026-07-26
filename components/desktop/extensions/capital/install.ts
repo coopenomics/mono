@@ -537,7 +537,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               agreements: agreementsBase,
               requiresAuth: true,
             },
-            children: [],
+            children: [
+              {
+                path: ':project_hash',
+                name: 'voting-detail',
+                component: markRaw(ComponentVotingPage),
+                meta: {
+                  title: 'Голосование',
+                  icon: 'how_to_vote',
+                  roles: [],
+                  agreements: agreementsBase,
+                  requiresAuth: true,
+                  hidden: true,
+                },
+              },
+            ],
           },
           {
             path: 'results',

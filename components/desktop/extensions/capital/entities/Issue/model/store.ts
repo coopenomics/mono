@@ -66,6 +66,11 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
   };
 
   const addIssue = (projectHash: string, issueData: IIssue) => {
+    if (!projectHash) {
+      console.warn('issueStore.addIssue: empty projectHash, skip cache write');
+      return;
+    }
+
     const projectIssues = issuesByProject.value[projectHash];
     if (!projectIssues) {
       // Если для проекта еще нет данных, инициализируем пустой массив
@@ -84,8 +89,8 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     );
 
     if (existingIndex !== -1) {
-      // Заменяем существующую задачу
-      projectIssues.items[existingIndex] = issueData;
+      // splice — гарантирует реактивность массива в Pinia
+      projectIssues.items.splice(existingIndex, 1, issueData);
     } else {
       // Добавляем новую задачу в начало списка
       projectIssues.items = [issueData, ...projectIssues.items];

@@ -1,82 +1,66 @@
 <template lang="pug">
-q-card(flat)
-  q-table(
-    :rows='projects?.items || []',
-    :columns='columns',
-    row-key='project_hash',
-    :pagination='pagination',
-    @request='onRequest',
-    flat,
-    square,
-    hide-pagination,
-    hide-header,
-    no-data-label='Нет проектов на голосовании'
+.voting-projects
+  .voting-projects__skel(v-if='loading && !rows.length')
+    .skel(v-for='i in 3', :key='i')
+
+  EmptyState(
+    v-else-if='!loading && !rows.length',
+    title='Нет проектов на голосовании',
+    body='Когда компоненты перейдут к этапу голосования, они появятся в этом списке.'
   )
-    template(#body='tableProps')
-      q-tr(
-        :props='tableProps'
-      )
-        q-td(style='width: 35px')
-          ExpandToggleButton(
-            :expanded='expanded[tableProps.row.project_hash]',
-            @click='handleToggleExpand(tableProps.row.project_hash)'
-          )
-        q-td
+    template(#icon)
+      q-icon(name='how_to_vote')
 
-          ProjectComponentInfo(
-            :title='tableProps.row.title'
-            :parent-title='tableProps.row.parent_title'
-            :project-hash='tableProps.row.project_hash'
-            :parent-hash='tableProps.row.parent_hash'
-          )
-        q-td.text-right
-          .row.q-gutter-sm.justify-end
+  .voting-projects__items(v-else)
+    .voting-projects__card(
+      v-for='project in rows',
+      :key='project.project_hash',
+      role='button',
+      tabindex='0',
+      @click='openProject(project.project_hash)',
+      @keydown.enter.prevent='openProject(project.project_hash)',
+      @keydown.space.prevent='openProject(project.project_hash)'
+    )
+      .voting-projects__icon
+        q-icon(name='how_to_vote', size='22px')
 
-            ColorCard(:color='getDeadlineCardColor(tableProps.row.status)')
-              .card-label Голосование до
-              .card-value {{ getDeadlineCardText(tableProps.row.status, tableProps.row.voting?.voting_deadline) }}
-            ColorCard(:color='getVotingStatus(tableProps.row.status).color')
-              .card-label Статус
-              .card-value {{ getVotingStatus(tableProps.row.status).text }}
-            ColorCard(color='blue')
-              .card-label На распределении
-              .card-value {{ formatAsset2Digits(tableProps.row.voting?.amounts?.total_voting_pool || '0') }}
-            ColorCard(color='purple', v-if='!isVotingCompleted(tableProps.row)')
-              .card-label Голосующая сумма
-              .card-value {{ formatAsset2Digits(tableProps.row.voting?.amounts?.active_voting_amount || '0') }}
+      .voting-projects__body
+        .voting-projects__title-row
+          span.voting-projects__title {{ project.title }}
+          BaseBadge(:variant='getVotingStatusVariant(project.status)')
+            | {{ getVotingStatusText(project.status) }}
 
-      // Слот для дополнительного контента проекта
-      q-tr.q-virtual-scroll--with-prev(
-        no-hover,
-        v-if='expanded[tableProps.row.project_hash]',
-        :key='`e_${tableProps.row.project_hash}`'
-      )
-        q-td(colspan='100%', style='padding: 0px !important')
-          slot(name='project-content', :project='tableProps.row')
+        .voting-projects__sub.t-sm.t-muted(v-if='project.parent_title')
+          | {{ project.parent_title }}
 
-  // Слот для дополнительного контента
-  slot
+        .voting-projects__facts
+          .voting-projects__fact(v-if='project.voting?.voting_deadline')
+            q-icon(name='event', size='16px')
+            span до {{ formatDeadline(project.voting.voting_deadline) }}
+          .voting-projects__fact
+            q-icon(name='account_balance', size='16px')
+            span.t-mono {{ formatAsset2Digits(project.voting?.amounts?.total_voting_pool || '0') }}
+
+      .voting-projects__go
+        span.t-sm Открыть
+        q-icon(name='arrow_forward', size='18px')
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useProjectStore } from '../../entities/Project/model';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
 import { Zeus } from '@coopenomics/sdk';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { EmptyState, BaseBadge } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { ProjectComponentInfo } from '../../shared/ui/ProjectComponentInfo';
 
 interface Props {
   coopname: string;
-  expanded: Record<string, boolean>;
 }
 
 interface Emits {
-  (e: 'toggle-expand', value: string): void;
-  (e: 'project-click', value: string): void;
+  (e: 'open-project', value: string): void;
   (e: 'data-loaded', value: string[]): void;
-  (e: 'projects-loaded', value: any[]): void;
 }
 
 const props = defineProps<Props>();
@@ -92,134 +76,34 @@ const pagination = ref({
 });
 
 const projects = computed(() => projectStore.projects);
+const rows = computed(() => projects.value?.items || []);
 
-// Проверка, завершено ли голосование для проекта
-const isVotingCompleted = (project: any) => {
-  if (!project) return false;
-
-  const status = String(project.status);
-  const voting = project.voting;
-
-  if (status === Zeus.ProjectStatus.RESULT || status === 'RESULT') return true;
-  if (voting && voting.votes_received === voting.total_voters) return true;
-
-  return false;
-};
-
-// Определение статуса голосования
-const getVotingStatus = (status: string) => {
+const getVotingStatusText = (status: string) => {
   const projectStatus = status as Zeus.ProjectStatus;
-  if (projectStatus === Zeus.ProjectStatus.VOTING) {
-    return { text: 'Активно', color: 'green' as const };
-  } else if (projectStatus === Zeus.ProjectStatus.RESULT || projectStatus === Zeus.ProjectStatus.CANCELLED) {
-    return { text: 'Завершено', color: 'orange' as const };
+  if (projectStatus === Zeus.ProjectStatus.VOTING) return 'Активно';
+  if (
+    projectStatus === Zeus.ProjectStatus.RESULT ||
+    projectStatus === Zeus.ProjectStatus.CANCELLED
+  ) {
+    return 'Завершено';
   }
-  return { text: 'Неизвестно', color: 'grey' as const };
+  return 'Неизвестно';
 };
 
-// Определение цвета для карточки "Голосование до"
-const getDeadlineCardColor = (status: string) => {
+const getVotingStatusVariant = (status: string): BaseBadgeVariant => {
   const projectStatus = status as Zeus.ProjectStatus;
-  if (projectStatus === Zeus.ProjectStatus.RESULT || projectStatus === Zeus.ProjectStatus.CANCELLED) {
-    return 'red' as const; // Завершено - красный
+  if (projectStatus === Zeus.ProjectStatus.VOTING) return 'pos';
+  if (
+    projectStatus === Zeus.ProjectStatus.RESULT ||
+    projectStatus === Zeus.ProjectStatus.CANCELLED
+  ) {
+    return 'warn';
   }
-  return 'blue' as const; // Активно - синий
+  return 'neutral';
 };
 
-// Определение текста для карточки "Голосование до"
-const getDeadlineCardText = (status: string, deadline?: string) => {
-  const projectStatus = status as Zeus.ProjectStatus;
-  const formattedDeadline = formatVotingDeadline(deadline);
-
-  if (projectStatus === Zeus.ProjectStatus.RESULT || projectStatus === Zeus.ProjectStatus.CANCELLED) {
-    return `${formattedDeadline}`;
-  }
-  return formattedDeadline;
-};
-
-// // Склонение слова "участник"
-// const getContributorWord = (count: number) => {
-//   const lastDigit = count % 10;
-//   const lastTwoDigits = count % 100;
-
-//   if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-//     return 'участников';
-//   }
-
-//   if (lastDigit === 1) {
-//     return 'участник';
-//   }
-
-//   if (lastDigit >= 2 && lastDigit <= 4) {
-//     return 'участника';
-//   }
-
-//   return 'участников';
-// };
-
-// Колонки таблицы
-const columns = [
-  {
-    name: 'expand',
-    label: '',
-    align: 'left' as const,
-    field: '',
-  },
-  {
-    name: 'title',
-    label: 'Проект',
-    align: 'left' as const,
-    field: 'title',
-  },
-  {
-    name: 'voting',
-    label: 'Голосование',
-    align: 'right' as const,
-    field: 'voting',
-  },
-];
-
-const onRequest = async (props: any) => {
-  loading.value = true;
-
-  try {
-    await projectStore.loadProjects({
-      filter: {
-        coopname: props.coopname,
-        has_voting: true, // Фильтр для проектов с голосованиями
-      },
-      options: {
-        page: props.pagination.page,
-        limit: props.pagination.rowsPerPage,
-        sortOrder: 'DESC',
-      },
-    });
-
-    // Обновляем пагинацию
-    pagination.value.rowsNumber = projects.value.totalCount;
-
-    // Эмитим загруженные хэши проектов для очистки expanded состояния
-    const projectHashes = projects.value?.items.map(p => p.project_hash) || [];
-    emit('data-loaded', projectHashes);
-
-    // Эмитим полные объекты проектов для автоматического раскрытия активных голосований
-    const loadedProjects = projects.value?.items || [];
-    emit('projects-loaded', loadedProjects);
-  } catch (error) {
-    console.error('Error loading voting projects:', error);
-  } finally {
-    loading.value = false;
-  }
-};
-
-
-const handleToggleExpand = (projectHash: string) => {
-  emit('toggle-expand', projectHash);
-};
-
-const formatVotingDeadline = (deadline?: string) => {
-  if (!deadline) return 'Не указано';
-
+const formatDeadline = (deadline?: string) => {
+  if (!deadline) return '—';
   try {
     const date = new Date(deadline);
     return date.toLocaleDateString('ru-RU', {
@@ -234,36 +118,189 @@ const formatVotingDeadline = (deadline?: string) => {
   }
 };
 
-// Загружаем данные при монтировании
+const openProject = (projectHash: string) => {
+  emit('open-project', projectHash);
+};
+
+const loadProjects = async () => {
+  loading.value = true;
+  try {
+    await projectStore.loadProjects({
+      filter: {
+        coopname: props.coopname,
+        has_voting: true,
+      },
+      options: {
+        page: pagination.value.page,
+        limit: pagination.value.rowsPerPage,
+        sortOrder: 'DESC',
+      },
+    });
+
+    pagination.value.rowsNumber = projects.value.totalCount;
+    emit(
+      'data-loaded',
+      projects.value?.items.map((p) => p.project_hash) || [],
+    );
+  } catch (error) {
+    console.error('Error loading voting projects:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
-  console.log('onMounted', props.coopname)
-  onRequest({
-    pagination: pagination.value,
-    coopname: props.coopname,
-  });
+  loadProjects();
 });
 
-// Перезагружаем при изменении coopname
-watch(() => props.coopname, () => {
-  onRequest({
-    pagination: pagination.value,
-    coopname: props.coopname,
-  });
-});
+watch(
+  () => props.coopname,
+  () => {
+    loadProjects();
+  },
+);
 </script>
 
 <style lang="scss" scoped>
-
-.card-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--p-ink);
-  margin-bottom: var(--p-2);
+.voting-projects {
+  min-width: 0;
 }
 
-.card-label {
+.voting-projects__skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+
+  .skel {
+    height: 88px;
+    border-radius: var(--p-r-md);
+  }
+}
+
+.voting-projects__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+}
+
+.voting-projects__card {
+  display: flex;
+  align-items: center;
+  gap: var(--p-4);
+  padding: var(--p-4) var(--p-5);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+
+  &:hover {
+    background: var(--p-canvas-2);
+    border-color: var(--p-primary-line);
+
+    .voting-projects__go {
+      color: var(--p-primary);
+    }
+
+    .voting-projects__icon {
+      background: var(--p-primary-soft);
+      color: var(--p-primary);
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--p-focus-ring);
+  }
+}
+
+.voting-projects__icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface-3);
+  color: var(--p-ink-1);
+  box-shadow: inset 0 0 0 1px var(--p-line-1);
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.voting-projects__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.voting-projects__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+  min-width: 0;
+}
+
+.voting-projects__title {
+  font-weight: 600;
   font-size: var(--p-fs-body);
+  color: var(--p-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.voting-projects__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voting-projects__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-4);
+}
+
+.voting-projects__fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
   color: var(--p-ink-2);
-  margin-bottom: var(--p-1);
+  font-size: var(--p-fs-sm, 13px);
+
+  .q-icon {
+    color: var(--p-ink-3);
+  }
+}
+
+.voting-projects__go {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  font-weight: 500;
+  transition: color 0.12s ease;
+}
+
+@media (max-width: 640px) {
+  .voting-projects__go span {
+    display: none;
+  }
+
+  .voting-projects__card {
+    gap: var(--p-3);
+    padding: var(--p-3) var(--p-4);
+  }
 }
 </style>

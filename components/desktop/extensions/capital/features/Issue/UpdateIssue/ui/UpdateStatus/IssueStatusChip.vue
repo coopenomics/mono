@@ -59,6 +59,8 @@ import {
 interface Props {
   modelValue: Zeus.IssueStatus;
   issueHash: string;
+  /** Явный hash проекта/компонента — на вложенных списках мастерской в URL нет project_hash */
+  projectHash?: string;
   readonly?: boolean;
   allowedTransitions?: string[];
 }
@@ -72,7 +74,9 @@ const emit = defineEmits<{
 }>();
 
 const route = useRoute();
-const projectHash = computed(() => route.params.project_hash as string);
+const resolvedProjectHash = computed(
+  () => props.projectHash || (route.params.project_hash as string) || ''
+);
 
 const { saveImmediately } = useUpdateIssue();
 const issueStore = useIssueStore();
@@ -138,11 +142,11 @@ const handleStatusChange = async (option: {
     // 2) Сохраняем без debounce — статус это discrete действие, не текстовый ввод.
     await saveImmediately(
       { issue_hash: props.issueHash, status: option.value },
-      projectHash.value
+      resolvedProjectHash.value
     );
     // 3) Перезагружаем задачу для свежих permissions/allowed_transitions.
     //    Watch на props.modelValue сбросит optimisticStatus, когда придёт новое значение.
-    await issueStore.updateIssueByHash(projectHash.value, props.issueHash);
+    await issueStore.updateIssueByHash(resolvedProjectHash.value, props.issueHash);
   } catch (error) {
     console.error('IssueStatusChip: failed to update status', error);
     optimisticStatus.value = null;

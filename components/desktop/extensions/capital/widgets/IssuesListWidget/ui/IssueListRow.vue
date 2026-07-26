@@ -33,14 +33,16 @@
     .cell-time
       IssueTimeChip(
         :issue-hash='issue.issue_hash'
+        :project-hash='issue.project_hash'
         :estimate='issue.estimate'
-        :fact='legacyFactHours'
+        :fact='Number(issue.fact) || 0'
         :readonly='!canChangeEstimate'
       )
     .cell-side
       IssueStatusChip(
         :model-value='issue.status'
         :issue-hash='issue.issue_hash'
+        :project-hash='issue.project_hash'
         :readonly='!issue.permissions.can_change_status'
         :allowed-transitions='issue.permissions.allowed_status_transitions'
       )
@@ -80,13 +82,6 @@ const priorityLabel = computed(() => props.issue.priority || '—');
 const canChangeEstimate = computed(
   () => !!props.issue.permissions?.can_set_estimate
 );
-
-/** Легаси: пока бэкенд не отдаёт факт из учёта — при отсутствии факта показываем план (как на странице задачи). */
-const legacyFactHours = computed(() => {
-  const estimate = Number(props.issue?.estimate) || 0;
-  const fact = Number(props.issue?.fact) || 0;
-  return fact > 0 ? fact : estimate;
-});
 </script>
 
 <style lang="scss" scoped>
