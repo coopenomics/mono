@@ -9,18 +9,20 @@
     @click="onCardClick"
   >
     <div class="order-row__main">
-      <div class="order-row__title-line">
-        <span class="order-row__title">{{ order.title }}</span>
-        <BaseBadge :variant="order.statusVariant" class="order-row__status">
-          {{ order.statusLabel }}
-        </BaseBadge>
-      </div>
+      <div class="order-row__title">{{ order.title }}</div>
       <div class="order-row__sub">
         <span class="order-row__num">№&nbsp;{{ order.shortId ?? order.id }}</span>
         <span class="order-row__sep" aria-hidden="true">·</span>
         <span>{{ formatDate(order.createdAt) }}</span>
       </div>
     </div>
+
+    <!-- Отдельный флекс-элемент строки (не внутри __main) — центрируется по
+         высоте всей строки через align-items:center, а не жмётся к верху
+         вровень с заголовком. -->
+    <BaseBadge :variant="order.statusVariant" class="order-row__status">
+      {{ order.statusLabel }}
+    </BaseBadge>
 
     <div class="order-row__fact">
       <div class="order-row__fact-label">Кол-во</div>
@@ -488,12 +490,6 @@ function formatPrice(v: number) {
     min-width: 0;
   }
 
-  &__title-line {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--p-2, 8px);
-  }
-
   &__title {
     min-width: 0;
     font-size: var(--p-fs-h3, 15px);
@@ -503,9 +499,10 @@ function formatPrice(v: number) {
     overflow-wrap: anywhere;
   }
 
+  // Прямой ребёнок .order-row (не внутри __main) — align-items:center строки
+  // центрирует его по всей высоте, а не вровень с верхней строкой заголовка.
   &__status {
     flex-shrink: 0;
-    margin-left: auto;
     white-space: nowrap;
   }
 
