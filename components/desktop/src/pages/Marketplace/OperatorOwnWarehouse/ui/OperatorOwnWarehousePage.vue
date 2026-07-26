@@ -10,6 +10,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
@@ -42,6 +43,13 @@ const ON_SHELF_STATUSES = [
 // Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
 function ordererName(row: MarketplaceInventoryItemView): string {
   return row.orderer_name?.trim() || row.orderer_account_snapshot
+}
+
+// «4» без единицы измерения непонятно, чего именно — штук, кг, упаковок.
+// Тот же формат, что и в «Остатке кооператива» ниже на этой странице.
+function quantityLabel(row: MarketplaceInventoryItemView): string {
+  const saleUnit = marketplaceOrderSaleUnit(row.quantity_per_label, row.unit_of_measure, row.package_size)
+  return `${saleUnit.units}×${saleUnit.unitLabel}`
 }
 
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
@@ -85,7 +93,7 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Полка', class: 'col-shelf', cell: 'text' },
   { label: 'Товар', cell: 'text' },
   { label: 'Заказчик', class: 'col-orderer', cell: 'text' },
-  { label: 'Ед.', class: 'col-qty', cell: 'text', cellWidth: '40px' },
+  { label: 'Кол-во', class: 'col-qty', cell: 'text', cellWidth: '120px' },
   { label: 'Штрих-код', class: 'col-barcode', cell: 'text' },
   { label: 'Состояние', class: 'col-status', cell: 'badge' },
   { label: 'Годен до', class: 'col-expiry', cell: 'text', cellWidth: '120px' },
@@ -287,7 +295,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
               th.col-shelf Полка
               th.col-product Товар
               th.col-orderer Заказчик
-              th.col-qty Ед.
+              th.col-qty Кол-во
               th.col-barcode Штрих-код
               th.col-status Состояние
               th.col-expiry Годен до
@@ -314,7 +322,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
                   span.warehouse__orderer-name {{ ordererName(row) }}
                   AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
 
-              td.col-qty {{ row.quantity_per_label }}
+              td.col-qty {{ quantityLabel(row) }}
 
               //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
               td.col-barcode
@@ -402,12 +410,12 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 .table-scroll {
   overflow-x: auto;
 }
-// Сумма ширин колонок (1146px) = min-width таблицы: при table-layout:fixed колонки
+// Сумма ширин колонок = min-width таблицы: при table-layout:fixed колонки
 // не схлопываются (товар не «зажат»), а на узких экранах включается горизонтальный
 // скролл вместо наезжающих друг на друга колонок.
 .table {
   table-layout: fixed;
-  min-width: 1306px;
+  min-width: 1380px;
 }
 
 .col-shelf {
@@ -420,7 +428,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   width: 200px;
 }
 .col-qty {
-  width: 56px;
+  width: 130px;
   text-align: right;
 }
 .col-barcode {
