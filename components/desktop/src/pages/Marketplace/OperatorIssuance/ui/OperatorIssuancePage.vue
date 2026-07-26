@@ -12,7 +12,7 @@ import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
-  decodeHandoffToken,
+  decodeScannedCode,
   HandoffTokenKind,
   handoffStageRoute,
   HANDOFF_QUERY,
@@ -257,10 +257,12 @@ function startPickupIssuance(): void {
 
 function onQrScanned(code: string): void {
   scanDialogOpen.value = false;
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname.value);
   if (!token) {
     FailAlert(
-      new Error('Нераспознанный код. Отсканируйте код получения заказчика, код поставщика или QR с ТТН.'),
+      new Error(
+        'Нераспознанный код. Отсканируйте код получения заказчика, код поставщика, QR с ТТН или введите логин пайщика.',
+      ),
     );
     return;
   }

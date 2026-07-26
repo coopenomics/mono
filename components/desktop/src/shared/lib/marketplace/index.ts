@@ -2,6 +2,7 @@ export {
   HandoffTokenKind,
   encodeHandoffToken,
   decodeHandoffToken,
+  decodeScannedCode,
   type HandoffToken,
 } from './handoff-token';
 export {

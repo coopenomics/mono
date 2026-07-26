@@ -78,3 +78,23 @@ export function decodeHandoffToken(raw: string): HandoffToken | null {
   }
   return { kind: kind as HandoffTokenKind, coopname, account: ref };
 }
+
+/** Формат аккаунта EOSIO: `a-z`, `1-5`, `.`, максимум 12 символов. */
+const ACCOUNT_NAME_RE = /(^[a-z1-5.]{1,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/;
+
+/**
+ * Разобрать то, что дал оператор в ручном вводе (без камеры): либо
+ * структурированный код передачи, либо голый логин пайщика со слов человека.
+ * Pickup/shipment коды — генерируемые строки, их не продиктуешь, а свой логин
+ * каждый пайщик знает — поэтому голый логин трактуется как код получения
+ * (заказчик здесь), это единственный сценарий, реалистичный для устного ввода.
+ * Худший случай ошибки — на столе выдачи не находится позиций пайщика, и
+ * оператор просто предложит ему докладку со склада (см. `resolvePickup`).
+ */
+export function decodeScannedCode(raw: string, coopname: string): HandoffToken | null {
+  const structured = decodeHandoffToken(raw);
+  if (structured) return structured;
+  const value = raw.trim();
+  if (!ACCOUNT_NAME_RE.test(value)) return null;
+  return { kind: HandoffTokenKind.Receive, coopname, account: value };
+}

@@ -13,7 +13,7 @@
  * виду кода, а кнопки на самих столах приёмки/выдачи запускают свою стадию сразу.
  */
 
-import { decodeHandoffToken, HandoffTokenKind } from './handoff-token';
+import { decodeScannedCode, HandoffTokenKind } from './handoff-token';
 
 /** Стадия стола ПВЗ, на которую ведёт код передачи. */
 export type HandoffStage = 'reception' | 'issuance';
@@ -45,7 +45,7 @@ export function resolveHandoffTarget(
   coopname: string,
   code: string,
 ): HandoffRouteTarget | null {
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname);
   if (!token) return null;
   if (token.coopname && token.coopname !== coopname) return null;
   const stage: HandoffStage =

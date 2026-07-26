@@ -14,7 +14,7 @@ import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
-  decodeHandoffToken,
+  decodeScannedCode,
   HandoffTokenKind,
   groupAplReceptions,
   handoffStageRoute,
@@ -513,10 +513,12 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
 
 async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname.value);
   if (!token) {
     FailAlert(
-      new Error('Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика или QR с ТТН экспедитора.'),
+      new Error(
+        'Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика, QR с ТТН экспедитора или введите логин пайщика.',
+      ),
     );
     return;
   }
