@@ -11,6 +11,7 @@ import type {
   MarketplaceReturnClaimOnSiteInspectionDTO,
   MarketplaceReturnClaimPhotoDTO,
 } from '../dto/marketplace-return-claim.dto';
+import type { MarketplaceUnitOfMeasureEnum } from '../dto/marketplace-offer.dto';
 
 /**
  * Преобразование domain → GraphQL DTO. Подписанные URL фотографий запрашиваются
@@ -19,7 +20,7 @@ import type {
  */
 export interface MarketplaceReturnClaimDisplayFields {
   product_name?: string | null;
-  unit_of_measure?: string | null;
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   package_size?: number | null;
 }
 

@@ -33584,7 +33584,7 @@ export type ModelTypes = {
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
 	fact_quantity: number,
@@ -33889,7 +33889,7 @@ export type ModelTypes = {
 	/** Способ отпуска предложения: по мере или упаковкой. */
 	sale_form?: ModelTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
 	["MarketplaceCategory"]: {
 		display_name: string,
@@ -34376,7 +34376,7 @@ export type ModelTypes = {
 	shipment_id: string,
 	status: ModelTypes["MarketplaceInventoryStatus"],
 	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceInventoryMutationResult"]: {
@@ -35268,7 +35268,7 @@ export type ModelTypes = {
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: ModelTypes["DateTime"]
 };
 	/** Запись о решении председателя по заявлению на возврат. */
@@ -35625,7 +35625,7 @@ export type ModelTypes = {
 	/** Предложенное количество единиц. */
 	quantity: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Цена за единицу на момент предложения. */
 	unit_price: string
 };
@@ -35817,7 +35817,7 @@ export type ModelTypes = {
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
 	["MarketplaceWriteoffConfirmationGroup"]: {
 		/** Когда совет авторизовал проект (ISO). */
@@ -35901,7 +35901,7 @@ export type ModelTypes = {
 	/** Причина списания (срок годности, повреждение и т.п.). */
 	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null
+	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
 	["MarketplaceWriteoffProposalStatus"]:MarketplaceWriteoffProposalStatus;
 	["MarketplaceWriteoffProposalTrigger"]:MarketplaceWriteoffProposalTrigger;
@@ -47351,7 +47351,7 @@ export type GraphQLTypes = {
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceAplReceptionFactEntry']: Omit<GraphQLTypes["MarketplaceAplReceptionFactEntry"], "...on MarketplaceAplReceptionFactEntry">
 };
 	["MarketplaceAplReceptionFactEntryInput"]: {
@@ -47685,7 +47685,7 @@ export type GraphQLTypes = {
 	/** Способ отпуска предложения: по мере или упаковкой. */
 	sale_form?: GraphQLTypes["MarketplaceSaleForm"] | undefined | null,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceCartItem']: Omit<GraphQLTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
 };
 	["MarketplaceCategory"]: {
@@ -48226,7 +48226,7 @@ export type GraphQLTypes = {
 	shipment_id: string,
 	status: GraphQLTypes["MarketplaceInventoryStatus"],
 	/** Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе. */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceInventoryItem']: Omit<GraphQLTypes["MarketplaceInventoryItem"], "...on MarketplaceInventoryItem">
 };
@@ -49185,7 +49185,7 @@ export type GraphQLTypes = {
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
 	['...on MarketplaceReturnClaim']: Omit<GraphQLTypes["MarketplaceReturnClaim"], "...on MarketplaceReturnClaim">
 };
@@ -49580,7 +49580,7 @@ export type GraphQLTypes = {
 	/** Предложенное количество единиц. */
 	quantity: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	/** Цена за единицу на момент предложения. */
 	unit_price: string,
 	['...on MarketplaceStockProposalItem']: Omit<GraphQLTypes["MarketplaceStockProposalItem"], "...on MarketplaceStockProposalItem">
@@ -49794,7 +49794,7 @@ export type GraphQLTypes = {
 	/** Причина-кандидат (по умолчанию — истёк срок годности). */
 	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceWriteoffCandidate']: Omit<GraphQLTypes["MarketplaceWriteoffCandidate"], "...on MarketplaceWriteoffCandidate">
 };
 	["MarketplaceWriteoffConfirmationGroup"]: {
@@ -49886,7 +49886,7 @@ export type GraphQLTypes = {
 	/** Причина списания (срок годности, повреждение и т.п.). */
 	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
-	unit_of_measure?: string | undefined | null,
+	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceWriteoffProposalItem']: Omit<GraphQLTypes["MarketplaceWriteoffProposalItem"], "...on MarketplaceWriteoffProposalItem">
 };
 	/** Состояние проекта решения совета о списании скоропорта на пути от черновика до итогового списания. */

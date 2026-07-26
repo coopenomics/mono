@@ -35,6 +35,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -109,7 +110,7 @@ export interface MarketplaceWriteoffCandidateView {
   braname: string;
   branch_name: string;
   asset_title: string;
-  unit_of_measure: string | null;
+  unit_of_measure: MarketplaceUnitOfMeasure | null;
   package_size: number | null;
   /** Суммарное количество по всем партиям агрегата. */
   quantity: string;
@@ -132,7 +133,7 @@ export interface MarketplaceWriteoffConfirmationGroup {
   authorized_at: string | null;
   protocol_doc: unknown;
   items: Array<
-    MarketplaceWriteoffProposalItem & { unit_of_measure: string | null; package_size: number | null }
+    MarketplaceWriteoffProposalItem & { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }
   >;
   total_amount: string;
 }
@@ -249,8 +250,8 @@ export class MarketplaceWriteoffService {
    */
   async resolveItemDisplayMap(
     items: { inventory_ids: string[] }[]
-  ): Promise<Map<string, { unit_of_measure: string | null; package_size: number | null }>> {
-    const map = new Map<string, { unit_of_measure: string | null; package_size: number | null }>();
+  ): Promise<Map<string, { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }>> {
+    const map = new Map<string, { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }>();
     const invIds = [...new Set(items.map((it) => it.inventory_ids[0]).filter((id): id is string => Boolean(id)))];
     await Promise.all(
       invIds.map(async (invId) => {
@@ -262,7 +263,7 @@ export class MarketplaceWriteoffService {
 
   private async resolveItemDisplay(
     invId: string
-  ): Promise<{ unit_of_measure: string | null; package_size: number | null }> {
+  ): Promise<{ unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }> {
     const EMPTY = { unit_of_measure: null, package_size: null };
     const inv = await this.inventoryRepo.findById(invId);
     if (!inv) return EMPTY;

@@ -1,5 +1,5 @@
 import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
-import { MarketplaceSaleFormEnum } from './marketplace-offer.dto';
+import { MarketplaceSaleFormEnum, MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
  * Эпик 16: позиция корзины с обогащением для UI. Реквизиты товара
@@ -43,11 +43,11 @@ export class MarketplaceCartItemDTO {
   })
   public readonly product_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара (штука, килограмм, литр).',
   })
-  public readonly unit_of_measure!: string | null;
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => String, {
     nullable: true,

@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
 import { MarketplaceShipmentTTNDataDTO } from './marketplace-shipment.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceAplReceptionVariantEnum {
   IN_PERSON = 'A',
@@ -47,11 +48,11 @@ export class MarketplaceAplReceptionFactEntryDTO {
   })
   product_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара по этой позиции (штука, килограмм, литр).',
   })
-  unit_of_measure!: string | null;
+  unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => Float, {
     nullable: true,
@@ -307,7 +308,11 @@ export interface MarketplaceAplReceptionDisplayFields {
   offerer_name?: string | null;
   lineByOrderId?: Map<
     string,
-    { product_name: string | null; unit_of_measure: string | null; package_size: number | null }
+    {
+      product_name: string | null;
+      unit_of_measure: MarketplaceUnitOfMeasureEnum | null;
+      package_size: number | null;
+    }
   >;
 }
 

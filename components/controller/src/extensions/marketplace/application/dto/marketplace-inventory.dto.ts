@@ -11,6 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceBarcodeFormatEnum {
   CODE128 = 'CODE128',
@@ -103,11 +104,11 @@ export class MarketplaceInventoryItemDTO {
   })
   orderer_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе.',
   })
-  unit_of_measure!: string | null;
+  unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => Float, {
     nullable: true,

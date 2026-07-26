@@ -4885,7 +4885,7 @@ export const ReturnTypes: Record<string,any> = {
 		order_id:"String",
 		package_size:"Float",
 		product_name:"String",
-		unit_of_measure:"String"
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
@@ -4986,7 +4986,7 @@ export const ReturnTypes: Record<string,any> = {
 		product_name:"String",
 		quantity:"Float",
 		sale_form:"MarketplaceSaleForm",
-		unit_of_measure:"String"
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceCategory:{
 		display_name:"String",
@@ -5155,7 +5155,7 @@ export const ReturnTypes: Record<string,any> = {
 		shelf:"String",
 		shipment_id:"String",
 		status:"MarketplaceInventoryStatus",
-		unit_of_measure:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
 	},
 	MarketplaceInventoryMutationResult:{
@@ -5504,7 +5504,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceReturnClaimStatus",
 		submretrn_tx_hash:"String",
 		supplier_account:"String",
-		unit_of_measure:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
 	},
 	MarketplaceReturnClaimDecisionEntry:{
@@ -5616,7 +5616,7 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		product_name:"String",
 		quantity:"Float",
-		unit_of_measure:"String",
+		unit_of_measure:"MarketplaceUnitOfMeasure",
 		unit_price:"String"
 	},
 	MarketplaceStockProposalResolvedEvent:{
@@ -5686,7 +5686,7 @@ export const ReturnTypes: Record<string,any> = {
 		package_size:"Float",
 		quantity:"String",
 		reason:"String",
-		unit_of_measure:"String"
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceWriteoffConfirmationGroup:{
 		authorized_at:"String",
@@ -5735,7 +5735,7 @@ export const ReturnTypes: Record<string,any> = {
 		package_size:"Float",
 		quantity:"String",
 		reason:"String",
-		unit_of_measure:"String"
+		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceWriteoffStatusChangedEvent:{
 		proposal_id:"String",

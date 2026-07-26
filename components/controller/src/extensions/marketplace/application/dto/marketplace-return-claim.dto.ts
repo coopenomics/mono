@@ -29,6 +29,7 @@ import {
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
  * Эпик 7: GraphQL enum'ы статуса заявления и категории дефекта. Регистрируются
@@ -380,8 +381,8 @@ export class MarketplaceReturnClaimDTO {
   @Field(() => String, { nullable: true, description: 'Наименование товара исходного заказа.' })
   public readonly product_name!: string | null;
 
-  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
-  public readonly unit_of_measure!: string | null;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => Float, {
     nullable: true,

@@ -6,6 +6,7 @@ import {
   MarketplaceWriteoffProposalStatuses,
   MarketplaceWriteoffProposalTriggers,
 } from '../../domain/entities/marketplace-writeoff-proposal.types';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceWriteoffProposalStatusEnum {
   DRAFT = 'DRAFT',
@@ -42,8 +43,8 @@ export class MarketplaceWriteoffProposalItemDTO {
   branch_name?: string | null;
   @Field({ description: 'Наименование позиции или артикул из карточки имущества.' })
   asset_title!: string;
-  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
-  unit_of_measure?: string | null;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   @Field(() => Float, {
     nullable: true,
     description:
@@ -205,8 +206,8 @@ export class MarketplaceWriteoffCandidateDTO {
   branch_name!: string;
   @Field({ description: 'Наименование позиции (из карточки имущества).' })
   asset_title!: string;
-  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
-  unit_of_measure?: string | null;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   @Field(() => Float, {
     nullable: true,
     description:

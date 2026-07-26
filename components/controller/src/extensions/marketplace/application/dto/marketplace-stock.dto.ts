@@ -13,6 +13,7 @@ import {
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 
@@ -337,8 +338,8 @@ export class MarketplaceStockProposalItemDTO {
   @Field(() => String, { description: 'Наименование товара.' })
   product_name!: string;
 
-  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
-  unit_of_measure!: string | null;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 }
 
 @ObjectType('MarketplaceStockProposal')
