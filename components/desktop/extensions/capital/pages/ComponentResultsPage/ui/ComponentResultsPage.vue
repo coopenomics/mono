@@ -55,7 +55,7 @@
               :balance='formatMoneyAmount(project.fact.total)',
               :symbol='governSymbol',
               balance-label='100%',
-              icon='account_balance'
+              icon='donut_large'
             )
 
       //- Секция 2: участники и действия

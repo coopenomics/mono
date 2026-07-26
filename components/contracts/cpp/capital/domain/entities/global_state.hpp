@@ -65,25 +65,43 @@ namespace Capital {
 namespace State {
 
 /**
-  * @brief Значение binary_extension<asset> или ноль с символом @p sym, если поле
-  *        ещё не материализовано (старая запись, созданная до добавления
-  *        program_expense_* через binary_extension).
+  * @brief Значение binary_extension<asset> или ноль с символом @p sym.
+  *
+  * Поле ещё не материализовано (старая запись до program_expense_*) → ноль с @p sym.
+  * Битая запись: материализованный asset с пустым/чужим символом и amount==0
+  * (типичный след default-constructed asset() после инцидента 2026-06-16) → тоже ноль с @p sym.
+  * Ненулевая сумма с чужим символом — ошибка данных, не маскируем.
   */
 inline asset ext_or_zero(const eosio::binary_extension<asset>& v, const eosio::symbol& sym) {
-  return v.has_value() ? v.value() : asset(0, sym);
+  if (!v.has_value()) {
+    return asset(0, sym);
+  }
+  const asset &a = v.value();
+  if (a.symbol == sym) {
+    return a;
+  }
+  eosio::check(a.amount == 0,
+               "program_expense_* содержит ненулевую сумму с несовместимым символом");
+  return asset(0, sym);
 }
 
 /**
   * @brief Обновляет глобальное состояние новыми значениями.
   *
-  * @param gs Новое глобальное состояние.
+  * Полное присваивание `s = gs` сохраняет битые program_expense_* (asset с пустым
+  * символом). Нормализуем их через ext_or_zero, чтобы последующие invest/topup
+  * сами лечили хвост binary_extension.
   */
 inline void update_global_state(const global_state& gs){
   global_state_table global_state_inst(_capital, _capital.value);
   auto itr = global_state_inst.find(gs.coopname.value);
   check(itr != global_state_inst.end(), "Глобальное состояние не найдено");
+  const asset pool     = ext_or_zero(gs.program_expense_pool, _root_govern_symbol);
+  const asset reserved = ext_or_zero(gs.program_expense_reserved, _root_govern_symbol);
   global_state_inst.modify(itr, _capital, [&](auto& s) {
       s = gs;
+      s.program_expense_pool     = pool;
+      s.program_expense_reserved = reserved;
   });
 }
     
@@ -119,6 +137,7 @@ inline void topup_program_expense_pool(eosio::name coopname, const asset &amount
   auto itr = global_state_inst.find(coopname.value);
   eosio::check(itr != global_state_inst.end(), "Контракт не инициализирован");
   eosio::check(amount.is_valid() && amount.amount > 0, "Сумма пополнения должна быть положительной");
+  eosio::check(amount.symbol == _root_govern_symbol, "Символ суммы пополнения должен совпадать с символом программы");
   eosio::check(itr->global_available_invest_pool >= amount,
                "Недостаточно свободных инвестиций программы для пополнения пула расходов");
 

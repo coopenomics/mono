@@ -10,114 +10,125 @@ BaseDialog(
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .create-form
-    .field-group
-      .t-eyebrow.t-muted.q-mb-sm Цель и параметры
-      BaseInput(
-        v-model='form.description',
-        label='Цель расходов',
-        placeholder='Например: «Закупка хостинга и канцелярии на июнь»',
-        required
-      )
-      BaseInput(
-        v-model='form.deadline',
-        type='date',
-        label='Срок исполнения (в срок до)',
-        required
-      )
+    section.create-form__section
+      h3.create-form__section-label.t-eyebrow Цель и параметры
+      .create-form__fields
+        BaseInput(
+          v-model='form.description',
+          label='Цель расходов',
+          placeholder='Например: «Закупка хостинга и канцелярии на июнь»',
+          required
+        )
+        BaseInput(
+          v-model='form.deadline',
+          type='date',
+          label='Срок исполнения (в срок до)',
+          required
+        )
 
-    .field-group
-      .field-group__head
-        .t-eyebrow.t-muted Строки расходов
+    section.create-form__section
+      .create-form__section-head
+        h3.create-form__section-label.t-eyebrow Строки расходов
         BaseButton(variant='ghost', size='sm', @click='addItem')
           template(#icon-left)
-            q-icon(name='add', size='16px')
+            q-icon(name='add', size='18px')
           | Добавить позицию
 
-      .empty-items(v-if='!form.items.length')
-        EmptyState(
-          title='Нет позиций',
-          body='Добавьте хотя бы одну строку расхода: получатель + способ + сумма.'
-        )
-          template(#icon)
-            q-icon(name='playlist_add', size='40px')
+      EmptyState(
+        v-if='!form.items.length',
+        title='Нет позиций',
+        body='Добавьте хотя бы одну строку расхода: получатель, способ оплаты и сумма.'
+      )
+        template(#icon)
+          q-icon(name='playlist_add', size='40px')
 
-      .items
-        .item-card(v-for='(item, idx) in form.items', :key='idx')
-          .item-card__head
-            .t-sm Позиция №{{ idx + 1 }}
-            BaseButton(variant='ghost', size='sm', icon-only, aria-label='Удалить позицию', @click='removeItem(idx)')
+      .create-form__items(v-else)
+        .create-form__item(v-for='(item, idx) in form.items', :key='idx')
+          .create-form__item-head
+            span.create-form__item-title Позиция №{{ idx + 1 }}
+            BaseButton(
+              variant='ghost',
+              size='sm',
+              icon-only,
+              aria-label='Удалить позицию',
+              @click='removeItem(idx)'
+            )
               template(#icon-left)
                 q-icon(name='delete_outline', size='18px')
-          .row.q-col-gutter-sm
-            .col-12.col-md-6
-              BaseSelect(
-                v-model='item.recipient_type',
-                :options='recipientTypeOptions',
-                label='Тип получателя',
-                @update:model-value='onRecipientTypeChange(item)'
-              )
-            .col-12.col-md-6
-              BaseSelect(
-                v-model='item.mechanics',
-                :options='mechanicsOptions',
-                label='Способ оплаты',
-                disabled
-              )
-            .col-12.col-md-6(v-if='item.recipient_type === Zeus.ExpenseRecipientType.MEMBER')
-              //- Аванс под отчёт выдаётся только физическим лицам — организации и ИП
-              //- получают оплату по счёту (тип «Организация/ИП»).
-              UserSearchSelector.base-select(
+
+          .create-form__item-grid
+            BaseSelect(
+              v-model='item.recipient_type',
+              :options='recipientTypeOptions',
+              label='Тип получателя',
+              @update:model-value='onRecipientTypeChange(item)'
+            )
+            BaseSelect(
+              v-model='item.mechanics',
+              :options='mechanicsOptions',
+              label='Способ оплаты',
+              disabled
+            )
+
+            .create-form__span(
+              v-if='item.recipient_type === Zeus.ExpenseRecipientType.MEMBER'
+            )
+              UserSearchSelector(
                 v-model='item.recipient_account',
                 label='Пайщик-получатель (по ФИО)',
-                outlined,
-                dense,
-                reserve-hint-space,
                 :types='["individual"]',
                 @update:model-value='item.payment_method_id = null'
               )
-            .col-12.col-md-6(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
-              BaseInput(
-                v-model='item.recipient_name',
-                label='Название организации',
-                placeholder='Например: ООО «Хостинг-центр»',
-                required
-              )
-            .col-12.col-md-6
-              BaseInput(
-                v-model='item.amount',
-                label='Сумма (план)',
-                :placeholder='amountPlaceholder',
-                required
-              )
-            .col-12
+
+            BaseInput(
+              v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG',
+              v-model='item.recipient_name',
+              label='Название организации',
+              placeholder='Например: ООО «Хостинг-центр»',
+              required
+            )
+
+            AmountInput(
+              :model-value='amountAsNumber(item.amount)',
+              label='Сумма (план)',
+              :symbol='symbol',
+              :precision='precision',
+              placeholder='1000',
+              @update:model-value='(v) => onAmountChange(item, v)'
+            )
+
+            .create-form__span
               BaseInput(
                 v-model='item.description',
                 label='Что оплачиваем',
                 placeholder='Своими словами: что это за расход и зачем',
                 required
               )
-            .col-12(v-if='item.recipient_type === Zeus.ExpenseRecipientType.SELF')
+
+            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.SELF')
               PaymentMethodSelect(
                 v-model='item.payment_method_id',
                 :username='session.username',
                 hint='Реквизиты фиксируются на момент подачи — на них придёт выплата',
                 required
               )
-            .col-12(v-if='item.recipient_type === Zeus.ExpenseRecipientType.MEMBER')
+            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.MEMBER')
               PaymentMethodSelect(
                 v-model='item.payment_method_id',
                 :username='item.recipient_account?.trim() || ""',
                 :hint='item.recipient_account?.trim() ? "Реквизиты фиксируются на момент подачи" : "Сначала укажите аккаунт пайщика-получателя"',
+                :empty-message='item.recipient_account?.trim() ? "У выбранного пайщика нет сохранённых реквизитов." : "Сначала укажите аккаунт пайщика-получателя."',
                 required
               )
-            .col-12(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
+
+            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
               BaseInput(
                 v-model='item.requisites',
                 label='Реквизиты получателя',
                 placeholder='ИНН, р/с, БИК',
                 required
               )
-            .col-12(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
+            .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
               BaseInput(
                 v-model='item.payment_purpose',
                 label='Назначение платежа',
@@ -125,15 +136,25 @@ BaseDialog(
                 required
               )
 
+    WalletCard(
+      v-if='totalPlanned > 0',
+      compact,
+      program='blagorost',
+      title='Итого по позициям',
+      :balance='totalPlannedFormatted',
+      :symbol='symbol',
+      balance-label='план',
+      icon='receipt_long'
+    )
+
   template(#footer)
-    .footer-bar
-      BaseButton(variant='ghost', @click='close') Отмена
-      BaseButton(
-        variant='primary',
-        :loading='submitting',
-        :disabled='!canSubmit',
-        @click='submitForm'
-      ) Подать на одобрение
+    BaseButton(variant='ghost', :disabled='submitting', @click='close') Отмена
+    BaseButton(
+      variant='primary',
+      :loading='submitting',
+      :disabled='!canSubmit',
+      @click='submitForm'
+    ) Подать на одобрение
 </template>
 
 <script setup lang="ts">
@@ -147,11 +168,14 @@ import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseSelect } from 'src/shared/ui/base/BaseSelect';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { AmountInput } from 'src/shared/ui/domain/AmountInput';
+import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import type {
@@ -168,10 +192,8 @@ const emit = defineEmits<{
 const system = useSystemStore();
 const session = useSessionStore();
 
-const amountPlaceholder = computed(() => {
-  const symbol = system.info?.symbols?.root_govern_symbol ?? 'RUB';
-  return `1000 (${symbol})`;
-});
+const symbol = computed(() => system.info?.symbols?.root_govern_symbol ?? 'RUB');
+const precision = computed(() => system.info?.symbols?.root_govern_precision ?? 4);
 
 const form = reactive({
   description: '',
@@ -180,6 +202,25 @@ const form = reactive({
 });
 
 const submitting = ref(false);
+
+function amountAsNumber(raw: string): number | null {
+  if (!raw?.trim()) return null;
+  const n = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+function onAmountChange(item: ExpenseCreateDraftItem, value: number | null): void {
+  item.amount = value == null ? '' : String(value);
+}
+
+const totalPlanned = computed(() =>
+  form.items.reduce((sum, it) => sum + (amountAsNumber(it.amount) ?? 0), 0),
+);
+
+const totalPlannedFormatted = computed(() => {
+  const asset = formatToAsset(totalPlanned.value, symbol.value, precision.value);
+  return formatAsset2Digits(asset).replace(/\s*[A-Z]{3,7}\s*$/, '').trim() || '0,00';
+});
 
 // Черновик формы переживает перезаход: каждое изменение зеркалится в
 // localStorage (ключ задаёт потребитель), восстановление — на маунте
@@ -203,6 +244,7 @@ function clearDraft(): void {
 
 onMounted(() => {
   restoreDraft();
+  if (!form.items.length) addItem();
   watch(
     form,
     () => {
@@ -244,6 +286,7 @@ const canSubmit = computed(
     form.items.every(
       (i) =>
         i.amount.trim() &&
+        (amountAsNumber(i.amount) ?? 0) > 0 &&
         i.description.trim() &&
         (i.recipient_type !== Zeus.ExpenseRecipientType.MEMBER || i.recipient_account?.trim()) &&
         (i.recipient_type === Zeus.ExpenseRecipientType.ORG
@@ -308,17 +351,17 @@ async function submitForm(): Promise<void> {
     submitting.value = true;
 
     const expense_hash = await generateUniqueHash();
-    const symbol = system.info.symbols.root_govern_symbol;
-    const precision = system.info.symbols.root_govern_precision;
+    const assetSymbol = symbol.value;
+    const assetPrecision = precision.value;
     const totalAmount = form.items.reduce((sum, it) => sum + parseFloat(it.amount || '0'), 0);
-    const total_amount = formatToAsset(totalAmount, symbol, precision);
+    const total_amount = formatToAsset(totalAmount, assetSymbol, assetPrecision);
 
     // Полные реквизиты в документ подставляет сервер по payment_method_id;
     // фронт знает только сокращённое представление.
     const itemsForDoc = form.items.map((it, idx) => ({
       number: String(idx + 1),
       description: it.description,
-      amount: formatToAsset(it.amount, symbol, precision),
+      amount: formatToAsset(it.amount, assetSymbol, assetPrecision),
       recipient_type: it.recipient_type,
       mechanics: it.mechanics,
       recipient_name: it.recipient_name ?? '',
@@ -363,7 +406,7 @@ async function submitForm(): Promise<void> {
       recipient_type: it.recipient_type,
       recipient: resolveRecipient(it, session.username),
       description: it.description,
-      planned_amount: formatToAsset(it.amount, symbol, precision),
+      planned_amount: formatToAsset(it.amount, assetSymbol, assetPrecision),
       payment_method_id: it.payment_method_id ?? undefined,
       requisites: it.requisites || undefined,
       payment_purpose: it.payment_purpose || undefined,
@@ -382,6 +425,7 @@ async function submitForm(): Promise<void> {
     form.description = '';
     form.deadline = '';
     form.items = [];
+    addItem();
     emit('created');
     close();
   } catch (e) {
@@ -396,50 +440,89 @@ async function submitForm(): Promise<void> {
 .create-form {
   display: flex;
   flex-direction: column;
+  gap: var(--p-5);
+  min-width: 0;
+}
+
+.create-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+  padding: var(--p-4) var(--p-5);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+  min-width: 0;
+}
+
+.create-form__section-label {
+  margin: 0;
+  color: var(--p-ink-3);
+}
+
+.create-form__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+}
+
+.create-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  min-width: 0;
+}
+
+.create-form__items {
+  display: flex;
+  flex-direction: column;
   gap: var(--p-4);
 }
 
-.field-group {
+.create-form__item {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
-}
-
-.field-group__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
-}
-
-.items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.item-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-  padding: var(--p-3);
+  padding: var(--p-4);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   background: var(--p-surface);
+  min-width: 0;
 }
 
-.item-card__head {
+.create-form__item-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--p-2);
 }
 
-.footer-bar {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--p-2);
-  padding: var(--p-3) var(--p-4);
-  border-top: 1px solid var(--p-line);
+.create-form__item-title {
+  font-size: var(--p-fs-body-sm);
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.create-form__item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--p-3);
+  min-width: 0;
+}
+
+.create-form__span {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .create-form__section {
+    padding: var(--p-3) var(--p-4);
+  }
+
+  .create-form__item-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -89,13 +89,7 @@ const formattedCoordinator = computed(() => {
   return formatAsset2Digits(`${value} ${governSymbol.value}`);
 });
 
-const formattedContributor = computed(() => {
-  if (!contributorStore.self) return '0.00';
-  const value = contributorStore.self?.contributed_as_contributor || '0';
-  return formatAsset2Digits(`${value} ${governSymbol.value}`);
-});
-
-// Сумма всех вкладов по ролям
+// Сумма взносов по ролям (без «получено из Благороста» — это прирост, не взнос)
 const totalContributions = computed(() => {
   if (!contributorStore.self) return '0.00';
 
@@ -105,7 +99,6 @@ const totalContributions = computed(() => {
     contributorStore.self?.contributed_as_author || '0',
     contributorStore.self?.contributed_as_coordinator || '0',
     contributorStore.self?.contributed_as_propertor || '0',
-    contributorStore.self?.contributed_as_contributor || '0',
   ];
 
   const total = contributions.reduce((sum, contribution) => {
@@ -115,7 +108,7 @@ const totalContributions = computed(() => {
   return formatAsset2Digits(`${total} ${governSymbol.value}`);
 });
 
-// Массив вкладов по ролям для отображения
+// Взносы, которые участник сам внёс по ролям
 const roleContributions = computed(() => {
   if (!contributorStore.self) return [];
 
@@ -144,12 +137,6 @@ const roleContributions = computed(() => {
       value: formattedCoordinator.value,
       icon: 'campaign',
     },
-    {
-      key: 'contributor',
-      name: 'Получено в Благорост',
-      value: formattedContributor.value,
-      icon: 'local_florist',
-    },
   ];
 });
 
@@ -159,8 +146,8 @@ const roleContributions = computed(() => {
  */
 const reloadProfileData = async () => {
   try {
-    // Для профиля перезагружаем данные участника
-    await contributorStore.loadContributor({ username });
+    // self — то, что рисует страница; loadContributor пишет в другой ref
+    await contributorStore.loadSelf({ username });
   } catch (error) {
     console.warn('Ошибка при перезагрузке данных профиля в poll:', error);
   }
@@ -174,7 +161,7 @@ const handleFieldUpdated = () => {
 // Настраиваем poll обновление данных
 const { start: startProfilePoll, stop: stopProfilePoll } = useDataPoller(
   reloadProfileData,
-  { interval: POLL_INTERVALS.SLOW, immediate: false }
+  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
 );
 
 // Проверяем при монтировании

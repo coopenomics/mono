@@ -181,9 +181,9 @@ function formatDeadline(deadline?: string) {
   if (!deadline) return '—';
   try {
     const date = new Date(deadline);
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
@@ -380,8 +380,34 @@ onBeforeUnmount(() => {
 
 .voting-page__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--p-3);
+  align-items: stretch;
+
+  :deep(.wallet) {
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  :deep(.wallet__body) {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  :deep(.wallet__main) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  :deep(.wallet__amount) {
+    flex-shrink: 0;
+  }
+
+  :deep(.wallet__metric-val) {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .voting-page__panel {

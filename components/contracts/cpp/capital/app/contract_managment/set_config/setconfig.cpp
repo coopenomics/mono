@@ -34,14 +34,27 @@ void capital::setconfig(eosio::name coopname, Capital::config config) {
   Capital::global_state_table global_state_inst(_self, _self.value);
   auto itr = global_state_inst.find(coopname.value);
 
+  // CDT binary_extension::operator<< всегда пишет value_or() — для пустого
+  // поля это T() = asset() с пустым символом. Поэтому program_expense_* нельзя
+  // оставлять «не заданными»: при первой же записи state они материализуются
+  // как «0 » без RUB и ломают topup/reserve (attempt to add asset with different symbol).
+  const asset zero_rub = asset(0, _root_govern_symbol);
+
   if (itr == global_state_inst.end()) {
     global_state_inst.emplace(coopname, [&](auto& s) {
       s.coopname = coopname;
       s.config = config;
+      s.program_expense_pool = zero_rub;
+      s.program_expense_reserved = zero_rub;
     });
   } else {
     global_state_inst.modify(itr, coopname, [&](auto& s) {
       s.config = config;
+      // Лечим уже записанные битые нули с пустым символом (после reboot/старых деплоев).
+      s.program_expense_pool =
+          Capital::State::ext_or_zero(s.program_expense_pool, _root_govern_symbol);
+      s.program_expense_reserved =
+          Capital::State::ext_or_zero(s.program_expense_reserved, _root_govern_symbol);
     });
   }
 }

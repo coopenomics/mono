@@ -21,29 +21,26 @@
       @keydown.enter.prevent='openProject(project.project_hash)',
       @keydown.space.prevent='openProject(project.project_hash)'
     )
-      .voting-projects__icon
-        q-icon(name='how_to_vote', size='22px')
-
-      .voting-projects__body
+      .voting-projects__main
         .voting-projects__title-row
           span.voting-projects__title {{ project.title }}
           BaseBadge(:variant='getVotingStatusVariant(project.status)')
             | {{ getVotingStatusText(project.status) }}
 
-        .voting-projects__sub.t-sm.t-muted(v-if='project.parent_title')
-          | {{ project.parent_title }}
+        .voting-projects__sub(v-if='project.parent_title')
+          q-icon(name='folder', size='14px')
+          span.t-sm.t-muted {{ project.parent_title }}
 
-        .voting-projects__facts
-          .voting-projects__fact(v-if='project.voting?.voting_deadline')
-            q-icon(name='event', size='16px')
-            span до {{ formatDeadline(project.voting.voting_deadline) }}
-          .voting-projects__fact
-            q-icon(name='account_balance', size='16px')
-            span.t-mono {{ formatAsset2Digits(project.voting?.amounts?.total_voting_pool || '0') }}
+      .voting-projects__meta
+        .voting-projects__meta-item(v-if='project.voting?.voting_deadline')
+          span.voting-projects__meta-label.t-eyebrow До
+          span.voting-projects__meta-value {{ formatDeadline(project.voting.voting_deadline) }}
+        .voting-projects__meta-item
+          span.voting-projects__meta-label.t-eyebrow Пул
+          span.voting-projects__meta-value.t-mono {{ formatPool(project) }}
 
       .voting-projects__go
-        span.t-sm Открыть
-        q-icon(name='arrow_forward', size='18px')
+        q-icon(name='chevron_right', size='22px')
 </template>
 
 <script lang="ts" setup>
@@ -107,15 +104,18 @@ const formatDeadline = (deadline?: string) => {
   try {
     const date = new Date(deadline);
     return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
+      day: '2-digit',
       month: 'short',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
   } catch {
     return deadline;
   }
+};
+
+const formatPool = (project: { voting?: { amounts?: { total_voting_pool?: string } } }) => {
+  return formatAsset2Digits(project.voting?.amounts?.total_voting_pool || '0');
 };
 
 const openProject = (projectHash: string) => {
@@ -172,7 +172,7 @@ watch(
   gap: var(--p-3);
 
   .skel {
-    height: 88px;
+    height: 72px;
     border-radius: var(--p-r-md);
   }
 }
@@ -180,13 +180,14 @@ watch(
 .voting-projects__items {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
+  gap: var(--p-2);
 }
 
 .voting-projects__card {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--p-4);
+  gap: var(--p-5);
   padding: var(--p-4) var(--p-5);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
@@ -202,11 +203,11 @@ watch(
 
     .voting-projects__go {
       color: var(--p-primary);
+      background: var(--p-primary-soft);
     }
 
-    .voting-projects__icon {
-      background: var(--p-primary-soft);
-      color: var(--p-primary);
+    .voting-projects__meta-value {
+      color: var(--p-ink);
     }
   }
 
@@ -216,28 +217,11 @@ watch(
   }
 }
 
-.voting-projects__icon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--p-r-sm);
-  background: var(--p-surface-3);
-  color: var(--p-ink-1);
-  box-shadow: inset 0 0 0 1px var(--p-line-1);
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
-}
-
-.voting-projects__body {
-  flex: 1 1 auto;
-  min-width: 0;
+.voting-projects__main {
   display: flex;
   flex-direction: column;
-  gap: var(--p-2);
+  gap: var(--p-1);
+  min-width: 0;
 }
 
 .voting-projects__title-row {
@@ -251,6 +235,7 @@ watch(
 .voting-projects__title {
   font-weight: 600;
   font-size: var(--p-fs-body);
+  letter-spacing: -0.01em;
   color: var(--p-ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -259,48 +244,94 @@ watch(
 }
 
 .voting-projects__sub {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.voting-projects__facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--p-4);
-}
-
-.voting-projects__fact {
   display: inline-flex;
   align-items: center;
   gap: var(--p-1);
-  color: var(--p-ink-2);
-  font-size: var(--p-fs-sm, 13px);
+  min-width: 0;
 
   .q-icon {
+    flex-shrink: 0;
     color: var(--p-ink-3);
   }
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.voting-projects__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-5);
+  flex-shrink: 0;
+}
+
+.voting-projects__meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 5.5rem;
+}
+
+.voting-projects__meta-label {
+  color: var(--p-ink-3);
+}
+
+.voting-projects__meta-value {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-ink-1);
+  white-space: nowrap;
+  transition: color 0.12s ease;
 }
 
 .voting-projects__go {
   flex-shrink: 0;
-  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  display: flex;
   align-items: center;
-  gap: var(--p-1);
+  justify-content: center;
+  border-radius: var(--p-r-sm);
   color: var(--p-ink-3);
-  font-weight: 500;
-  transition: color 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background-color 0.12s ease;
 }
 
-@media (max-width: 640px) {
-  .voting-projects__go span {
-    display: none;
-  }
-
+@media (max-width: 720px) {
   .voting-projects__card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'main go'
+      'meta meta';
     gap: var(--p-3);
     padding: var(--p-3) var(--p-4);
+  }
+
+  .voting-projects__main {
+    grid-area: main;
+  }
+
+  .voting-projects__meta {
+    grid-area: meta;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: var(--p-4);
+    padding-top: var(--p-2);
+    border-top: 1px solid var(--p-line);
+  }
+
+  .voting-projects__meta-item {
+    align-items: flex-start;
+  }
+
+  .voting-projects__go {
+    grid-area: go;
   }
 }
 </style>

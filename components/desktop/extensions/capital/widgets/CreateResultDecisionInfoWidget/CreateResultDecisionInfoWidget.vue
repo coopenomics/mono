@@ -63,23 +63,11 @@
         span {{ previewOpen ? 'Скрыть текст результата' : 'Показать текст результата' }}
 
       .decision-result__preview-body(v-if='previewOpen')
-        template(v-if='parsedResult?.kind === "v2"')
-          .result-markdown
-            Editor(
-              :model-value='parsedResult.markdown',
-              readonly,
-              :min-height='160',
-              :padded='false',
-              placeholder=''
-            )
-          .result-diff-blocks(v-if='parsedResult.diffHtmlBlocks.length')
-            .result-diff-viewer(
-              v-for='(block, idx) in parsedResult.diffHtmlBlocks',
-              :key='idx',
-              v-html='block'
-            )
-        template(v-else-if='parsedResult?.kind === "legacy_html"')
-          .result-viewer(v-html='parsedResult.html')
+        ResultPreviewCard(
+          v-if='resultUsername && projectHash',
+          :username='resultUsername',
+          :project-hash='projectHash'
+        )
         .banner.banner--info(v-else)
           q-icon.banner__icon(name='info', size='20px')
           .banner__body Текст результата ещё не сформирован.
@@ -90,7 +78,6 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
-import { Editor } from 'src/shared/ui/Editor';
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useSystemStore } from 'src/entities/System/model';
@@ -98,10 +85,7 @@ import { useResultStore } from 'app/extensions/capital/entities/Result/model';
 import type { IResult } from 'app/extensions/capital/entities/Result/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useCommitStore } from 'app/extensions/capital/entities/Commit/model';
-import {
-  parseCapitalResultData,
-  type ParsedResultData,
-} from 'app/extensions/capital/shared/lib/resultDocumentPayload';
+import { ResultPreviewCard } from 'app/extensions/capital/features/Result/PreviewResult/ui';
 import { Zeus } from '@coopenomics/sdk';
 
 interface Props {
@@ -140,6 +124,7 @@ const sharePercent = ref('');
 const contributionAmount = ref('');
 const debtAmount = ref('');
 const projectHash = ref('');
+const resultUsername = ref('');
 const issues = ref<IssueLink[]>([]);
 
 const governSymbol = computed(
@@ -158,12 +143,6 @@ const shortResultHash = computed(() => {
   const hash = result.value?.result_hash || statementMeta.value?.result_hash;
   if (!hash) return '';
   return hash.length > 12 ? `${hash.slice(0, 8)}…${hash.slice(-4)}` : hash;
-});
-
-const parsedResult = computed<ParsedResultData | null>(() => {
-  const d = result.value?.data;
-  if (typeof d !== 'string' || !d.trim()) return null;
-  return parseCapitalResultData(d);
 });
 
 function parseMeta(raw: unknown): StatementMeta | null {
@@ -240,6 +219,7 @@ async function loadDetails() {
   error.value = null;
   issues.value = [];
   projectHash.value = '';
+  resultUsername.value = '';
   result.value = null;
 
   try {
@@ -264,6 +244,8 @@ async function loadDetails() {
     if (!username) {
       throw new Error('В решении не указан заявитель');
     }
+
+    resultUsername.value = username;
 
     await resultStore.loadResults({
       filter: { username },
@@ -473,34 +455,7 @@ watch(
 }
 
 .decision-result__preview-body {
-  padding: var(--p-4);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface);
   min-width: 0;
   overflow: hidden;
-}
-
-.result-markdown {
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.result-diff-blocks {
-  border-top: 1px solid var(--p-line);
-  margin-top: var(--p-3);
-  padding-top: var(--p-3);
-}
-
-.result-diff-viewer {
-  overflow-x: auto;
-  max-width: 100%;
-  word-wrap: break-word;
-}
-
-.result-viewer {
-  overflow-x: hidden;
-  word-wrap: break-word;
-  max-width: 100%;
 }
 </style>

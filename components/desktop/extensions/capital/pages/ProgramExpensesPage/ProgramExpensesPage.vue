@@ -66,7 +66,7 @@ q-page.program-expenses-page(v-else)
   )
   TopupProgramExpensePoolDialog(
     v-model='topupOpen',
-    @topped-up='refresh'
+    @topped-up='onToppedUp'
   )
 </template>
 
@@ -122,17 +122,34 @@ const expenseWallet = computed(() => ledger2Store.getWalletByName(PROGRAM_EXPENS
 const expensePool = computed(() => splitAsset(expenseWallet.value?.available));
 
 const loading = ref(false);
+
+/** Parser → PG обычно отстаёт от блока на 1–3с; ранний refetch вернёт пулы до topup. */
+const POST_CHAIN_REFETCH_MS = 3500;
+
 async function refresh(): Promise<void> {
   try {
     loading.value = true;
     await Promise.all([
-      store.loadProgramExpenses({ coopname: coopname.value }),
+      store.loadProgramExpenses({
+        coopname: coopname.value,
+        options: { page: 1, limit: 100, sortBy: 'createdAt', sortOrder: 'DESC' },
+      }),
       configStore.loadState({ coopname: coopname.value }),
       ledger2Store.loadWallets(coopname.value),
     ]);
   } finally {
     loading.value = false;
   }
+}
+
+/** После topup обновляем оба пула с задержкой (инвест-пул + w.cap.pgexp). */
+function onToppedUp(): void {
+  setTimeout(() => {
+    void Promise.all([
+      configStore.loadState({ coopname: coopname.value }),
+      ledger2Store.loadWallets(coopname.value),
+    ]);
+  }, POST_CHAIN_REFETCH_MS);
 }
 
 onMounted(() => {

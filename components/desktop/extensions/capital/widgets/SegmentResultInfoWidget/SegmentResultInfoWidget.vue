@@ -72,9 +72,6 @@
         )
 
   .result-detail__preview(v-if='canViewResult')
-    .result-detail__role-head
-      q-icon(name='description', size='18px')
-      span Результат интеллектуальной деятельности
     ResultPreviewCard(
       :username='props.segment.username',
       :project-hash='props.segment.project_hash'
@@ -170,11 +167,6 @@ const hasVotingData = (segment: any) => {
 .result-detail__preview {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
-  padding: var(--p-3);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  background: var(--p-surface);
   min-width: 0;
 }
 </style>

@@ -291,15 +291,15 @@ watch(
 .result-segments__metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--p-4);
-  padding-top: var(--p-1);
+  gap: var(--p-6) var(--p-7);
+  padding-top: var(--p-2);
 }
 
 .result-segments__metric {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 100px;
+  min-width: 120px;
 
   .t-mono {
     font-weight: 600;

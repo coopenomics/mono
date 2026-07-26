@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,6 +11,8 @@ import { QuantityUtils } from '~/shared/utils/quantity.utils';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
+import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
+import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
 
@@ -30,17 +32,48 @@ const RECIPIENT_ORG = 2;
  *
  * Идемпотентность: hash платежа = item_hash; повторный sync (replay/форк)
  * платежей-дублей не создаёт.
+ *
+ * OnModuleInit — heal для AUTHORIZED СЗ без платежей (в т.ч. после бага
+ * `if (entity.id)` / id=0, когда listener не видел items).
  */
 @Injectable()
-export class ExpensePaymentsListener {
+export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
     @Inject(PAYMENT_REPOSITORY)
     private readonly payments: PaymentRepository,
     @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
     private readonly snapshots: Repository<ExpenseRequisiteSnapshotTypeormEntity>,
+    @InjectRepository(ExpenseProposalTypeormEntity)
+    private readonly proposalEntities: Repository<ExpenseProposalTypeormEntity>,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(ExpensePaymentsListener.name);
+  }
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.healMissingPayments();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Heal исходящих платежей по AUTHORIZED СЗ не выполнен: ${message}`);
+    }
+  }
+
+  /**
+   * Досоздаёт платежи для уже авторизованных СЗ, если listener раньше их пропустил.
+   * Идемпотентно: create пропускает позиции с существующим payment.hash = item_hash.
+   */
+  private async healMissingPayments(): Promise<void> {
+    const rows = await this.proposalEntities.find({
+      where: { status: ExpenseProposalStatus.AUTHORIZED, present: true },
+    });
+    if (!rows.length) return;
+
+    this.logger.log(`Heal платежей: проверка ${rows.length} AUTHORIZED СЗ`);
+    for (const row of rows) {
+      const entity = ExpenseProposalMapper.toDomain(row);
+      await this.handleProposalSynced({ entity, blockNum: entity.block_num ?? 0 });
+    }
   }
 
   @OnEvent('entitysynced::expense::proposals')

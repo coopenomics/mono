@@ -33,7 +33,10 @@ export function useCreateProgramExpense() {
       statement: payload.statement,
     } as any);
 
-    await store.loadProgramExpenses({ coopname: info.coopname });
+    await store.loadProgramExpenses({
+      coopname: info.coopname,
+      options: { page: 1, limit: 100, sortBy: 'createdAt', sortOrder: 'DESC' },
+    });
     return result;
   }
 
