@@ -1,87 +1,78 @@
 <template lang="pug">
-q-card(flat, style='margin-left: 20px; ')
+.result-segments
+  .result-segments__skel(v-if='loading && !rows.length')
+    .skel(v-for='i in 3', :key='i')
 
-  // Таблица сегментов проекта
-  q-table(
-    :rows='allSegments',
-    :columns='columns',
-    row-key='username',
-    :loading='loading',
-    flat,
-    square,
-    hide-header,
-    :no-data-label='hasSegments ? "Нет сегментов в этом проекте" : "Загрузка..."'
+  EmptyState(
+    v-else-if='!loading && !rows.length',
+    title='Нет участников',
+    body='Сегменты появятся после формирования результатов по проекту.'
   )
-    template(#body='tableProps')
-      q-tr(
-        :props='tableProps',
-        @click='handleSegmentClick(tableProps.row.username)'
-        style='cursor: pointer'
+    template(#icon)
+      q-icon(name='group')
+
+  .result-segments__items(v-else)
+    .result-segments__item(v-for='segment in rows', :key='segment.username')
+      .result-segments__row(
+        role='button',
+        tabindex='0',
+        @click='handleSegmentClick(segment.username)',
+        @keydown.enter.prevent='handleSegmentClick(segment.username)',
+        @keydown.space.prevent='handleSegmentClick(segment.username)'
       )
-        q-td(style='width: 35px')
-          ExpandToggleButton(
-            :expanded='expanded[tableProps.row.username]',
-            @click='handleToggleExpand(tableProps.row.username)'
+        ExpandToggleButton(
+          :expanded='!!expanded[segment.username]',
+          @click='handleToggleExpand(segment.username)'
+        )
+
+        .result-segments__main
+          .result-segments__name {{ segment.display_name }}
+          .result-segments__roles
+            BaseBadge(v-if='segment.is_author', variant='info') Соавтор
+            BaseBadge(v-if='segment.is_creator', variant='neutral') Исполнитель
+            BaseBadge(v-if='segment.is_coordinator', variant='info') Координатор
+            BaseBadge(v-if='segment.is_contributor', variant='pos') Участник
+
+          .result-segments__metrics(
+            v-if='segment.status !== Zeus.SegmentStatus.GENERATION'
           )
-        q-td
-          .participant-info
-            .participant-name {{ tableProps.row.display_name }}
-            .participant-roles
-              RoleBadges(
-                :segment='tableProps.row',
-                mode='chips',
-                size='sm'
-              )
-            div(v-if='tableProps.row.status !== Zeus.SegmentStatus.GENERATION').row
-              div.q-pa-sm.col-md-4.col-sm-12
-                ColorCard(color='blue')
-                  .card-label Стоимость Генерации ({{ calculateGeneration(tableProps.row).share }}%)
-                  .card-value {{ formatAsset2Digits(`${calculateGeneration(tableProps.row).amount} ${info.symbols.root_govern_symbol}`) }}
+            .result-segments__metric
+              span.t-sm.t-muted Генерация
+              span.t-mono {{ formatMetric(calculateGeneration(segment).amount) }}
+              span.t-sm.t-muted {{ calculateGeneration(segment).share }}%
+            .result-segments__metric
+              span.t-sm.t-muted Благорост
+              span.t-mono {{ formatMetric(calculateBlagorost(segment).amount) }}
+              span.t-sm.t-muted {{ calculateBlagorost(segment).share }}%
+            .result-segments__metric
+              span.t-sm.t-muted Всего
+              span.t-mono {{ formatMetric(segment.intellectual_cost) }}
+              span.t-sm.t-muted {{ Number(segment.share_percent || 0).toFixed(2) }}%
 
-              div.q-pa-sm.col-md-4.col-sm-12
-                ColorCard(color='teal')
-                  .card-label Стоимость Благороста ({{ calculateBlagorost(tableProps.row).share }}%)
-                  .card-value {{ formatAsset2Digits(`${calculateBlagorost(tableProps.row).amount} ${info.symbols.root_govern_symbol}`) }}
+        .result-segments__side(@click.stop)
+          BaseBadge(:variant='statusVariant(segment)') {{ shortStatus(segment) }}
+          slot(name='actions', :segment='segment')
 
-              div.q-pa-sm.col-md-4.col-sm-12
-                ColorCard(color='purple')
-                  .card-label Всего ({{ tableProps.row.share_percent.toFixed(2) }}%)
-                  .card-value {{ formatAsset2Digits(`${tableProps.row.intellectual_cost} ${info.symbols.root_govern_symbol}`) }}
-
-            slot(name='actions' :segment='tableProps.row')
-
-
-
-
-
-
-              //- ColorCard(color='blue')
-              //-   .card-label Имущественный Взнос
-              //-   .card-value {{ formatAsset2Digits(`${tableProps.row.investor_base || 0} ${info.symbols.root_govern_symbol}`) }}
-
-      // Слот для дополнительного контента (детали сегмента)
-      q-tr.q-virtual-scroll--with-prev(
-        no-hover,
-        v-if='expanded[tableProps.row.username]',
-        :key='`e_${tableProps.row.username}`'
-      )
-        q-td(colspan='100%').expanded-row
-
-          SegmentResultInfoWidget(:segment='tableProps.row')
+      .result-segments__details(v-if='expanded[segment.username]')
+        SegmentResultInfoWidget(:segment='segment')
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useSegmentStore, type ISegment } from 'app/extensions/capital/entities/Segment/model';
+import {
+  useSegmentStore,
+  type ISegment,
+} from 'app/extensions/capital/entities/Segment/model';
 import { SegmentResultInfoWidget } from '../SegmentResultInfoWidget';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert } from 'src/shared/api';
-import { ColorCard } from 'src/shared/ui/ColorCard/ui';
-import { formatAsset2Digits } from 'src/shared/lib/utils';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useSystemStore } from 'src/entities/System/model';
 import { Zeus } from '@coopenomics/sdk';
-import { RoleBadges } from '../../shared/ui/RoleBadges';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { EmptyState, BaseBadge } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { getSegmentStatusLabel } from 'app/extensions/capital/shared/lib/segmentStatus';
 
 interface Props {
   projectHash: string;
@@ -104,52 +95,26 @@ const { info } = useSystemStore();
 
 const loading = ref(false);
 
-// Колонки таблицы
-const columns = [
-  {
-    name: 'expand',
-    label: '',
-    align: 'left' as const,
-    field: '',
-  },
-  {
-    name: 'participant',
-    label: 'Участник',
-    align: 'left' as const,
-    field: 'username',
-  },
-  {
-    name: 'actions',
-    label: 'Действия',
-    align: 'right' as const,
-    field: '',
-  },
-];
+const rows = computed(
+  () => segmentStore.getSegmentsByProject(props.projectHash)?.items || [],
+);
 
-// Все сегменты проекта
-const allSegments = computed(() => {
-  return segmentStore.getSegmentsByProject(props.projectHash)?.items || [];
-});
+const governSymbol = computed(
+  () => info.symbols?.root_govern_symbol || 'RUB',
+);
 
-// Проверка наличия сегментов
-const hasSegments = computed(() => {
-  return allSegments.value.length > 0;
-});
-
-// Расчет суммы и доли "Генерация"
 const calculateGeneration = (segment: ISegment) => {
-  const amount = (
+  const amount =
     parseFloat(segment.creator_base || '0') +
     parseFloat(segment.author_base || '0') +
     parseFloat(segment.direct_creator_bonus || '0') +
     parseFloat(segment.equal_author_bonus || '0') +
     parseFloat(segment.coordinator_base || '0') +
     parseFloat(segment.property_base || '0') +
-    parseFloat(segment.voting_bonus || '0')
-  );
+    parseFloat(segment.voting_bonus || '0');
 
   const total = parseFloat(props.project?.fact?.total?.split(' ')[0] || '1');
-  const share = (amount / total) * 100;
+  const share = total > 0 ? (amount / total) * 100 : 0;
 
   return {
     amount,
@@ -157,11 +122,10 @@ const calculateGeneration = (segment: ISegment) => {
   };
 };
 
-// Расчет суммы и доли "Благорост"
 const calculateBlagorost = (segment: ISegment) => {
   const amount = parseFloat(segment.contributor_bonus || '0');
   const total = parseFloat(props.project?.fact?.total?.split(' ')[0] || '1');
-  const share = (amount / total) * 100;
+  const share = total > 0 ? (amount / total) * 100 : 0;
 
   return {
     amount,
@@ -169,10 +133,57 @@ const calculateBlagorost = (segment: ISegment) => {
   };
 };
 
-// Загрузка всех сегментов проекта
+const formatMetric = (amount: string | number) => {
+  const value = parseFloat(String(amount || '0'));
+  return formatAsset2Digits(`${value} ${governSymbol.value}`);
+};
+
+const shortStatus = (segment: ISegment) => {
+  if (segment.is_completed) return 'Получен';
+  switch (segment.status) {
+    case Zeus.SegmentStatus.GENERATION:
+      return 'Расчёт';
+    case Zeus.SegmentStatus.READY:
+      return 'Готов';
+    case Zeus.SegmentStatus.STATEMENT:
+      return 'На рассмотрении';
+    case Zeus.SegmentStatus.APPROVED:
+      return 'Одобрен';
+    case Zeus.SegmentStatus.AUTHORIZED:
+      return 'Подпись пайщика';
+    case Zeus.SegmentStatus.ACT1:
+      return 'Подпись председателя';
+    case Zeus.SegmentStatus.CONTRIBUTED:
+      return 'Принят';
+    case Zeus.SegmentStatus.FINALIZED:
+      return 'Завершён';
+    default:
+      return getSegmentStatusLabel(segment.status, segment.is_completed, segment);
+  }
+};
+
+const statusVariant = (segment: ISegment): BaseBadgeVariant => {
+  if (segment.is_completed) return 'pos';
+  switch (segment.status) {
+    case Zeus.SegmentStatus.GENERATION:
+      return 'warn';
+    case Zeus.SegmentStatus.READY:
+      return 'info';
+    case Zeus.SegmentStatus.STATEMENT:
+    case Zeus.SegmentStatus.APPROVED:
+    case Zeus.SegmentStatus.AUTHORIZED:
+    case Zeus.SegmentStatus.ACT1:
+      return 'info';
+    case Zeus.SegmentStatus.CONTRIBUTED:
+    case Zeus.SegmentStatus.FINALIZED:
+      return 'pos';
+    default:
+      return 'neutral';
+  }
+};
+
 const loadProjectSegments = async () => {
   loading.value = true;
-
   try {
     await segmentStore.loadSegments({
       filter: {
@@ -181,13 +192,15 @@ const loadProjectSegments = async () => {
       },
       options: {
         page: 1,
-        limit: 1000, // Увеличиваем лимит для получения всех сегментов
+        limit: 1000,
         sortOrder: 'ASC',
       },
     });
 
-    // Эмитим загруженные username для очистки expanded состояния
-    const usernames = segmentStore.getSegmentsByProject(props.projectHash)?.items.map((s: any) => s.username) || [];
+    const usernames =
+      segmentStore
+        .getSegmentsByProject(props.projectHash)
+        ?.items.map((s: any) => s.username) || [];
     emit('data-loaded', usernames);
   } catch (error) {
     console.error('Ошибка при загрузке сегментов проекта:', error);
@@ -205,65 +218,121 @@ const handleToggleExpand = (username: string) => {
   emit('toggle-expand', username);
 };
 
-// Загружаем данные при монтировании
 onMounted(async () => {
   await loadProjectSegments();
 });
 
-// Перезагружаем при изменении projectHash
-watch(() => props.projectHash, async () => {
-  await loadProjectSegments();
-});
-
+watch(
+  () => props.projectHash,
+  async () => {
+    await loadProjectSegments();
+  },
+);
 </script>
 
 <style lang="scss" scoped>
-.result-header {
-  padding: 16px 0;
+.result-segments {
+  min-width: 0;
 }
 
-.card-sub-value {
-  font-size: 0.75rem;
-  opacity: 0.7;
-  margin-top: -2px;
-}
-
-.participant-info {
+.result-segments__skel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--p-3);
+  padding: var(--p-4) 0;
+
+  .skel {
+    height: 72px;
+  }
 }
 
-.participant-name {
-  font-weight: 500;
-  color: #1976d2;
-  font-size: 1rem;
-}
-
-.participant-roles {
+.result-segments__items {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
 }
 
-.participant-actions {
-  margin-top: 8px;
+.result-segments__item {
+  border-bottom: 1px solid var(--p-line);
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
-.expanded-row {
-  padding-left: 0 !important;
+.result-segments__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+  padding: var(--p-4) 0;
+  min-width: 0;
+  cursor: pointer;
 }
 
-.card-value {
-  font-size: 16px;
+.result-segments__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.result-segments__name {
   font-weight: 500;
+  font-size: var(--p-fs-body);
   color: var(--p-ink);
-  margin-bottom: var(--p-2);
 }
 
-.card-label {
-  font-size: var(--p-fs-body);
-  color: var(--p-ink-2);
-  margin-bottom: var(--p-1);
+.result-segments__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-1);
+}
+
+.result-segments__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-4);
+  padding-top: var(--p-1);
+}
+
+.result-segments__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+
+  .t-mono {
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+}
+
+.result-segments__side {
+  flex: 0 1 200px;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-2);
+}
+
+.result-segments__details {
+  padding: 0 0 var(--p-4) var(--p-8);
+}
+
+@media (max-width: 640px) {
+  .result-segments__row {
+    flex-wrap: wrap;
+  }
+
+  .result-segments__side {
+    flex: 1 1 100%;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .result-segments__details {
+    padding-left: var(--p-4);
+  }
 }
 </style>

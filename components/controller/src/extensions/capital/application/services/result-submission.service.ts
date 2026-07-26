@@ -38,7 +38,6 @@ import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import {
   CommitDomainEntity,
-  type ICommitContributionFeedbackData,
   type ICommitGitData,
 } from '../../domain/entities/commit.entity';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
@@ -463,22 +462,9 @@ export class ResultSubmissionService {
                 diffHtmlBlocks.push(`<div class="commit-content">\n${this.renderGitDiffHtml(gitData)}\n</div>`);
                 break;
               }
-              case 'contribution_feedback': {
-                const fb = content.data as ICommitContributionFeedbackData;
-                const starsPart =
-                  Number.isInteger(fb.satisfaction_stars) && fb.satisfaction_stars >= 1 && fb.satisfaction_stars <= 5
-                    ? `<p><strong>Оценка работы:</strong> ${this.escapeHtml(String(fb.satisfaction_stars))} / 5</p>`
-                    : '';
-                const reviewPart = fb.review_text.trim()
-                  ? `<p><strong>Отзыв:</strong> ${this.escapeHtml(fb.review_text).replace(/\n/g, '<br/>')}</p>`
-                  : '';
-                if (starsPart || reviewPart) {
-                  diffHtmlBlocks.push(
-                    `<div class="commit-content contribution-feedback">${starsPart}${reviewPart}</div>`
-                  );
-                }
+              // Оценка и отзыв — только на коммите для приёмки мастером, не в юридический РИД
+              case 'contribution_feedback':
                 break;
-              }
               case 'committed_issues': {
                 const issues = (content.data as { issues?: Array<{ title?: string; issue_hash?: string }> })?.issues;
                 if (issues?.length) {

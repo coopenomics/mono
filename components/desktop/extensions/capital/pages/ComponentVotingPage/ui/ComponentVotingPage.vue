@@ -20,44 +20,45 @@
     template(v-else)
       //- Секция 1: контекст и сводка
       section.voting-page__section.voting-page__section--info
-        .voting-page__head(v-if='isStandaloneVoting && project')
-          .voting-page__title-row
-            h2.voting-page__title {{ project.title }}
-            BaseBadge(:variant='statusVariant') {{ statusLabel }}
-          .voting-page__parent.t-sm.t-muted(v-if='project.parent_title')
-            q-icon(name='folder', size='14px')
-            span {{ project.parent_title }}
+        .voting-page__panel.voting-page__panel--summary
+          .voting-page__head(v-if='isStandaloneVoting && project')
+            .voting-page__title-row
+              h2.voting-page__title {{ project.title }}
+              BaseBadge(:variant='statusVariant') {{ statusLabel }}
+            .voting-page__parent.t-sm.t-muted(v-if='project.parent_title')
+              q-icon(name='folder', size='14px')
+              span {{ project.parent_title }}
 
-        .voting-page__metrics(v-if='project && project.voting?.amounts')
-          WalletCard(
-            v-if='isStandaloneVoting || project.voting?.voting_deadline',
-            compact,
-            neutral,
-            title='Голосование до',
-            :balance='formatDeadline(project.voting?.voting_deadline)',
-            symbol='',
-            balance-label='срок',
-            icon='event'
-          )
-          WalletCard(
-            compact,
-            neutral,
-            title='На распределении',
-            :balance='formatMoneyAmount(project.voting.amounts.total_voting_pool)',
-            :symbol='governSymbol',
-            balance-label='пул',
-            icon='account_balance'
-          )
-          WalletCard(
-            v-if='!isVotingCompleted(project)',
-            compact,
-            neutral,
-            title='Голосующая сумма',
-            :balance='formatMoneyAmount(project.voting.amounts.active_voting_amount)',
-            :symbol='governSymbol',
-            balance-label='ваш голос',
-            icon='payments'
-          )
+          .voting-page__metrics(v-if='project && project.voting?.amounts')
+            WalletCard(
+              v-if='isStandaloneVoting || project.voting?.voting_deadline',
+              compact,
+              neutral,
+              title='Голосование до',
+              :balance='formatDeadline(project.voting?.voting_deadline)',
+              symbol='',
+              balance-label='срок',
+              icon='event'
+            )
+            WalletCard(
+              compact,
+              neutral,
+              title='На распределении',
+              :balance='formatMoneyAmount(project.voting.amounts.total_voting_pool)',
+              :symbol='governSymbol',
+              balance-label='пул',
+              icon='account_balance'
+            )
+            WalletCard(
+              v-if='!isVotingCompleted(project)',
+              compact,
+              neutral,
+              title='Голосующая сумма',
+              :balance='formatMoneyAmount(project.voting.amounts.active_voting_amount)',
+              :symbol='governSymbol',
+              balance-label='ваш голос',
+              icon='payments'
+            )
 
       //- Секция 2: голосование / результаты — отдельная плоскость
       section.voting-page__section.voting-page__section--vote
@@ -389,6 +390,13 @@ onBeforeUnmount(() => {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
   background: var(--p-surface-2);
+
+  &--summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4);
+    padding: var(--p-5);
+  }
 }
 
 @media (max-width: 768px) {
@@ -402,6 +410,10 @@ onBeforeUnmount(() => {
 
   .voting-page__panel {
     padding: var(--p-1) var(--p-4);
+
+    &--summary {
+      padding: var(--p-4);
+    }
   }
 }
 </style>

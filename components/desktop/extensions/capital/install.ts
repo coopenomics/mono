@@ -559,12 +559,26 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(ProjectsResultsPage),
             meta: {
               title: 'Результаты',
-              icon: 'fa-solid fa-chart-line',
+              icon: 'assessment',
               roles: [],
               agreements: agreementsBase,
               requiresAuth: true,
             },
-            children: [],
+            children: [
+              {
+                path: ':project_hash',
+                name: 'results-detail',
+                component: markRaw(ComponentResultsPage),
+                meta: {
+                  title: 'Результаты',
+                  icon: 'assessment',
+                  roles: [],
+                  agreements: agreementsBase,
+                  requiresAuth: true,
+                  hidden: true,
+                },
+              },
+            ],
           },
 
           {

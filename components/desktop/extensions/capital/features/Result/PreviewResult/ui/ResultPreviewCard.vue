@@ -1,50 +1,39 @@
 <template lang="pug">
-div.result-preview-card(flat, v-if='showResult')
-  div
-    .row.justify-center.items-center.q-mb-sm
-      .col-auto.q-pr-sm
-        q-icon(name='description', size='md', color='orange')
-      .col-auto
-        .text-h6 Результат интеллектуальной деятельности
+div.result-preview-card(v-if='showResult')
+  template(v-if='loading')
+    .text-center.q-pa-md
+      q-spinner(color='primary', size='40px')
+      .q-mt-sm Загрузка результата...
 
-    .q-pa-sm
-      template(v-if='loading')
-        .text-center.q-pa-md
-          q-spinner(color='primary', size='40px')
-          .q-mt-sm Загрузка результата...
+  template(v-else-if='error')
+    .banner.banner--neg
+      q-icon.banner__icon(name='error', size='20px')
+      .banner__body {{ error }}
 
-      template(v-else-if='error')
-        q-banner.bg-negative.text-white.rounded-borders
-          template(#avatar)
-            q-icon(name='error', color='white')
-          | {{ error }}
+  template(v-else-if='result && result.data && parsed')
+    template(v-if="parsed.kind === 'v2'")
+      .result-markdown
+        Editor(
+          :model-value='parsed.markdown',
+          readonly,
+          :min-height='200',
+          :padded='false',
+          placeholder=''
+        )
+      .result-diff-blocks(v-if='parsed.diffHtmlBlocks.length')
+        .result-diff-viewer(
+          v-for='(block, idx) in parsed.diffHtmlBlocks',
+          :key='idx',
+          v-html='block'
+        )
+    template(v-else)
+      .result-viewer(v-html='parsed.html')
 
-      template(v-else-if='result && result.data && parsed')
-        q-card.q-mt-sm(flat)
-          q-card-section.q-pa-none
-            template(v-if="parsed.kind === 'v2'")
-              .result-markdown.q-px-sm.q-pt-sm
-                Editor(
-                  :model-value='parsed.markdown',
-                  readonly,
-                  :min-height='200',
-                  :padded='false',
-                  placeholder=''
-                )
-              .result-diff-blocks(v-if='parsed.diffHtmlBlocks.length')
-                .result-diff-viewer(
-                  v-for='(block, idx) in parsed.diffHtmlBlocks',
-                  :key='idx',
-                  v-html='block'
-                )
-            template(v-else)
-              .result-viewer(v-html='parsed.html')
-
-      template(v-else)
-        q-banner.bg-info.text-white.rounded-borders
-          template(#avatar)
-            q-icon(name='info', color='white')
-          | Текст результата ещё не сгенерирован. Нажмите кнопку "Пересчитать результат" для генерации.
+  template(v-else)
+    .banner.banner--info
+      q-icon.banner__icon(name='info', size='20px')
+      .banner__body
+        | Текст результата ещё не сгенерирован. Нажмите кнопку «Пересчитать результат» для генерации.
 </template>
 
 <script lang="ts" setup>
