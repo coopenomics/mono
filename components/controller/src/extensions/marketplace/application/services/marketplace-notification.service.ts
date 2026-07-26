@@ -283,9 +283,15 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
-        kuName: event.braname,
+        kuName,
         coopname: event.coopname,
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
