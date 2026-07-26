@@ -26,6 +26,8 @@ export interface MarketplaceReturnClaimCreateInput {
   expected_resolution: MarketplaceReturnClaimExpectedResolution;
   actual_quantity: number;
   fact_cost: string;
+  /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата. */
+  fee_refund: string;
   photos: MarketplaceReturnClaimPhoto[];
   /** Подписанное пайщиком заявление (1104) — для последующей со-подписи председателем. */
   statement: ISignedDocumentDomainInterface | null;

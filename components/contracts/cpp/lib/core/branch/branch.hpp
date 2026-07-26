@@ -64,4 +64,30 @@ inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
   ).send();
 }
 
+/**
+ * @brief Inline-вызов branch::retfee от контракта-источника — точная
+ * инверсия accrue: членский взнос возвращается из общего кошелька КУ в пул
+ * взносов «Стола заказов» (o.brn.retfee, username = braname).
+ *
+ * Нужен при гарантийном возврате имущества: пайщику возвращается полная
+ * уплаченная сумма, включая членский взнос, а не только стоимость имущества.
+ * Вторую ногу (пул → членский кошелёк заказчика) делает контракт-источник
+ * своей операцией возврата взноса — прямой перевод между кошельком КУ и
+ * кошельком пайщика невозможен (walletop держит один username на обе стороны).
+ *
+ * Средства должны физически быть в общем кошельке КУ: если участок уже
+ * распределил или потратил их, вызов падает с человекочитаемым текстом —
+ * председатель сначала пополняет общий кошелёк.
+ */
+inline void retfee(eosio::name actor, eosio::name coopname, eosio::name braname,
+                   eosio::asset amount,
+                   eosio::checksum256 process_hash, std::string memo) {
+  eosio::action(
+    eosio::permission_level{actor, "active"_n},
+    _branch,
+    "retfee"_n,
+    std::make_tuple(coopname, braname, actor, amount, process_hash, memo)
+  ).send();
+}
+
 } // namespace Branch

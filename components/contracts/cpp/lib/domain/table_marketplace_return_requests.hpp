@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/asset.hpp>
+#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -71,7 +72,21 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   checksum256 original_consume_op_id;                         ///< ссылка на оригинальный o.mkt.consum (для journal трассировки compensating forward; см. d6 A4)
 
   eosio::asset actual_quantity = asset(0, _unit_piece);       ///< возвращаемое количество (asset единицы; по умолчанию = order.actual_quantity, может быть меньше)
-  eosio::asset fact_cost = asset(0, _root_govern_symbol);     ///< возвращаемая сумма (actual_quantity * unit_price / 10^precision)
+  eosio::asset fact_cost = asset(0, _root_govern_symbol);     ///< возвращаемая стоимость имущества (actual_quantity * unit_price / 10^precision)
+
+  /**
+   * Доля членского взноса, приходящаяся на возвращаемое имущество. Считается
+   * при подаче заявления пропорционально возвращаемому количеству от взноса,
+   * фактически принятого кооперативом на выдаче заказа. При приёме возврата
+   * возвращается пайщику вместе со стоимостью имущества — из общего кошелька
+   * участка, куда взнос ушёл на выдаче (o.brn.retfee + o.mkt.refund).
+   * Возврат при полном количестве возвращает пайщику ровно ту сумму, которую
+   * он заплатил за заказ.
+   *
+   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
+   * старых заявлений эквивалентно «взнос не возвращается».
+   */
+  eosio::binary_extension<eosio::asset> fee_refund;
 
   std::string reason_text;                                    ///< причина обращения (≤ 500 символов)
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images

@@ -59,6 +59,27 @@ void marketplace::submretrn(eosio::name coopname,
 
   const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, o.unit_price, o.package_size);
 
+  // Доля членского взноса, приходящаяся на возвращаемое имущество. Возврат —
+  // полный: пайщику возвращается и стоимость имущества, и уплаченный за него
+  // взнос, иначе гарантийный возврат обходился бы ему в размер взноса.
+  //
+  // База — взнос, фактически принятый кооперативом на выдаче: при недовыдаче
+  // signiss2 пересчитал его пропорционально факту (излишек уже вернулся
+  // пайщику через o.mkt.refund), поэтому здесь берём ту же пропорцию, а затем
+  // масштабируем по доле возвращаемого количества. При возврате всего
+  // выданного количества доля равна принятому взносу целиком.
+  const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
+  eosio::asset fee_refund = eosio::asset(0, _root_govern_symbol);
+  if (locked_fee.amount > 0 && o.total_cost.amount > 0 && o.actual_quantity.amount > 0) {
+    const int64_t accepted_fee =
+        static_cast<int64_t>(static_cast<uint128_t>(locked_fee.amount) *
+                             o.fact_cost.amount / o.total_cost.amount);
+    fee_refund = eosio::asset(
+        static_cast<int64_t>(static_cast<uint128_t>(accepted_fee) *
+                             actual_quantity.amount / o.actual_quantity.amount),
+        _root_govern_symbol);
+  }
+
   // Создание return_request entity
   return_requests_index requests(_marketplace, coopname.value);
   uint64_t request_id = requests.available_primary_key();
@@ -73,6 +94,7 @@ void marketplace::submretrn(eosio::name coopname,
     // (подбор по journal с process_hash=order.hash + operation_code=o.mkt.consum).
     r.actual_quantity       = actual_quantity;
     r.fact_cost             = fact_cost;
+    r.fee_refund            = fee_refund;
     r.reason_text           = reason_text;
     r.photos                = photos;
     r.status                = ReturnStatus::PENDING_REVIEW;

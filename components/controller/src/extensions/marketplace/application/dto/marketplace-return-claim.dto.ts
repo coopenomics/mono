@@ -416,7 +416,14 @@ export class MarketplaceReturnClaimDTO {
   public readonly expected_resolution!: MarketplaceReturnClaimExpectedResolution;
 
   @Field(() => Float) public readonly actual_quantity!: number;
-  @Field() public readonly fact_cost!: string;
+  @Field({ description: 'Возвращаемая стоимость имущества.' })
+  public readonly fact_cost!: string;
+
+  @Field({ description: 'Возвращаемая часть членского взноса, уплаченного за это имущество.' })
+  public readonly fee_refund!: string;
+
+  @Field({ description: 'Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом.' })
+  public readonly total_refund!: string;
 
   @Field(() => [MarketplaceReturnClaimPhotoDTO], { description: 'Фотографии товара, приложенные пайщиком.' })
   public readonly photos!: MarketplaceReturnClaimPhotoDTO[];

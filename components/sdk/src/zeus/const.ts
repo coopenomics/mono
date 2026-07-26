@@ -5497,6 +5497,7 @@ export const ReturnTypes: Record<string,any> = {
 		delivery_braname:"String",
 		expected_resolution:"MarketplaceReturnClaimExpectedResolution",
 		fact_cost:"String",
+		fee_refund:"String",
 		id:"String",
 		ledger_snapshot:"MarketplaceReturnClaimLedgerSnapshot",
 		on_site_inspection:"MarketplaceReturnClaimOnSiteInspection",
@@ -5511,6 +5512,7 @@ export const ReturnTypes: Record<string,any> = {
 		status:"MarketplaceReturnClaimStatus",
 		submretrn_tx_hash:"String",
 		supplier_account:"String",
+		total_refund:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		updated_at:"DateTime"
 	},

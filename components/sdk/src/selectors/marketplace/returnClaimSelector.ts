@@ -82,6 +82,8 @@ const rawClaimSelector = {
   expected_resolution: true,
   actual_quantity: true,
   fact_cost: true,
+  fee_refund: true,
+  total_refund: true,
   photos: rawPhotoSelector,
   submretrn_tx_hash: true,
   decision_log: rawDecisionEntrySelector,

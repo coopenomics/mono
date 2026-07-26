@@ -13,6 +13,7 @@
 #include "src/delweight.cpp"
 #include "src/distribute.cpp"
 #include "src/editbranch.cpp"
+#include "src/retfee.cpp"
 #include "src/setweight.cpp"
 #include "src/spendconfirm.cpp"
 #include "src/spenddecline.cpp"

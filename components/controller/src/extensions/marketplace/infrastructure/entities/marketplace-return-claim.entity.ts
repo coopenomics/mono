@@ -82,6 +82,15 @@ export class MarketplaceReturnClaimEntity {
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public fact_cost!: string;
 
+  /**
+   * Возвращаемая доля членского взноса. Гарантийный возврат возвращает пайщику
+   * полную уплаченную сумму: стоимость имущества (fact_cost) и уплаченный за
+   * него взнос. Значение фиксируется при подаче заявления той же формулой, что
+   * и в контракте; у заявлений, поданных до введения возврата взноса, — 0.
+   */
+  @Column({ type: 'numeric', precision: 24, scale: 4, default: 0 })
+  public fee_refund!: string;
+
   @Column({ type: 'jsonb' })
   public photos!: MarketplaceReturnClaimPhoto[];
 

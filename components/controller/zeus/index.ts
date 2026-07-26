@@ -9544,7 +9544,10 @@ export type ValueTypes = {
 	/** КУ доставки исходного заказа (куда подаётся заявление). */
 	delivery_braname?:boolean | `@${string}`,
 	expected_resolution?:boolean | `@${string}`,
+	/** Возвращаемая стоимость имущества. */
 	fact_cost?:boolean | `@${string}`,
+	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
+	fee_refund?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
 	ledger_snapshot?:ValueTypes["MarketplaceReturnClaimLedgerSnapshot"],
@@ -9570,6 +9573,8 @@ export type ValueTypes = {
 	submretrn_tx_hash?:boolean | `@${string}`,
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account?:boolean | `@${string}`,
+	/** Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом. */
+	total_refund?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
@@ -22615,7 +22620,10 @@ export type ResolverInputTypes = {
 	/** КУ доставки исходного заказа (куда подаётся заявление). */
 	delivery_braname?:boolean | `@${string}`,
 	expected_resolution?:boolean | `@${string}`,
+	/** Возвращаемая стоимость имущества. */
 	fact_cost?:boolean | `@${string}`,
+	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
+	fee_refund?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
 	ledger_snapshot?:ResolverInputTypes["MarketplaceReturnClaimLedgerSnapshot"],
@@ -22641,6 +22649,8 @@ export type ResolverInputTypes = {
 	submretrn_tx_hash?:boolean | `@${string}`,
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account?:boolean | `@${string}`,
+	/** Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом. */
+	total_refund?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
@@ -35267,7 +35277,10 @@ export type ModelTypes = {
 	/** КУ доставки исходного заказа (куда подаётся заявление). */
 	delivery_braname: string,
 	expected_resolution: ModelTypes["MarketplaceReturnClaimExpectedResolution"],
+	/** Возвращаемая стоимость имущества. */
 	fact_cost: string,
+	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
+	fee_refund: string,
 	id: string,
 	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
 	ledger_snapshot?: ModelTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,
@@ -35293,6 +35306,8 @@ export type ModelTypes = {
 	submretrn_tx_hash: string,
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account: string,
+	/** Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом. */
+	total_refund: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: ModelTypes["DateTime"]
@@ -49194,7 +49209,10 @@ export type GraphQLTypes = {
 	/** КУ доставки исходного заказа (куда подаётся заявление). */
 	delivery_braname: string,
 	expected_resolution: GraphQLTypes["MarketplaceReturnClaimExpectedResolution"],
+	/** Возвращаемая стоимость имущества. */
 	fact_cost: string,
+	/** Возвращаемая часть членского взноса, уплаченного за это имущество. */
+	fee_refund: string,
 	id: string,
 	/** Снапшот compensating-forward (только при ACCEPTED_AT_VISIT). */
 	ledger_snapshot?: GraphQLTypes["MarketplaceReturnClaimLedgerSnapshot"] | undefined | null,
@@ -49220,6 +49238,8 @@ export type GraphQLTypes = {
 	submretrn_tx_hash: string,
 	/** Поставщик исходного заказа (для будущего возврата поставщику). */
 	supplier_account: string,
+	/** Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом. */
+	total_refund: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],

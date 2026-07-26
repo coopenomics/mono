@@ -219,7 +219,7 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
     q-list(v-if="activeClaims.length > 0", bordered, separator)
       q-item(v-for="c in activeClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
-          q-item-label.text-weight-medium {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
+          q-item-label.text-weight-medium {{ claimQuantityLabel(c) }} · {{ c.total_refund }} ₽
           q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }} · подано {{ formatDate(c.created_at) }}
           q-item-label(caption) {{ c.reason_text.slice(0, 120) }}{{ c.reason_text.length > 120 ? '…' : '' }}
         q-item-section(side)
@@ -231,7 +231,7 @@ q-page.returns(role="region", aria-label="Гарантийный возврат"
     q-list(v-if="archiveClaims.length > 0", bordered, separator)
       q-item(v-for="c in archiveClaims", :key="c.id", clickable, @click="openDetails(c)")
         q-item-section
-          q-item-label {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
+          q-item-label {{ claimQuantityLabel(c) }} · {{ c.total_refund }} ₽
           q-item-label(caption) Заказ {{ c.order_id.slice(0, 8) }}
           q-item-label.returns__restored(v-if="c.ledger_snapshot", caption) Восстановлено на программный кошелёк: {{ c.ledger_snapshot.amount }} ₽
         q-item-section(side)

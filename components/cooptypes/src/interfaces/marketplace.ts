@@ -320,6 +320,8 @@ export interface IReturnRequest {
   original_consume_op_id: IChecksum256
   actual_quantity: IAsset
   fact_cost: IAsset
+  /** Возвращаемая доля членского взноса (binary_extension; у старых заявлений отсутствует). */
+  fee_refund?: IAsset
   reason_text: string
   photos: IChecksum256[]
   status: IName

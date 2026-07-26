@@ -112,6 +112,7 @@ namespace operations {
   namespace branch {
     inline constexpr eosio::name DISTRIBUTE_PERSONAL = "o.brn.person"_n;  ///< Распределение доверенному/председателю КУ при ручном распределении председателем (TRANSFER w.brn.pool → w.brn.person, без Dr/Cr — внутри 86). Доля = вес/Σвесов из реестра весов branch::weights; вторая нога двухходовки после o.brn.release.
     inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Зачисление 100% членского взноса в общий кошелёк КУ при финализации заказа (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname КУ). Вызывается branch::accrue инлайн от контракта-источника.
+    inline constexpr eosio::name RETURN_FEE_FROM_COMMON = "o.brn.retfee"_n; ///< Возврат членского взноса из общего кошелька КУ при гарантийном возврате имущества (TRANSFER w.brn.common → w.mkt.fee, без Dr/Cr — внутри 86; username = braname КУ). Точная инверсия DISTRIBUTE_COMMON: взнос идёт обратно тем же путём, каким пришёл. Первая нога двухходовки возврата — вторая (w.mkt.fee → w.mkt.member заказчика) выполняется существующей MEMBERSHIP_FEE_REFUND. Прямой TRANSFER w.brn.common[braname] → w.mkt.member[пайщик] невозможен: walletop держит один username на обе стороны, поэтому транзит через COOPERATIVE-пул w.mkt.fee (тот же приём, что в REFUSAL_PENALTY и RELEASE_FROM_COMMON). Вызывается branch::retfee инлайн от контракта-источника.
     inline constexpr eosio::name RELEASE_FROM_COMMON = "o.brn.release"_n; ///< Изъятие из общего кошелька КУ в транзитный пул ручного распределения (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname). Первая нога двухходовки распределения: один username на операцию — поэтому common→person идёт через COOPERATIVE-транзит w.brn.pool.
     inline constexpr eosio::name SPEND_COMMON        = "o.brn.spend"_n;   ///< Оплата расхода кооперативного участка из общего кошелька (BURN с w.brn.common, Dr 86 / Cr 51 — выплата с расчётного счёта по реквизитам, после подтверждения кассиром). Плановый резерв расходов контролирует бэкенд; путь использования включается с шасси расходов.
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром; НДФЛ получатель платит сам).
@@ -484,6 +485,18 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::MARKETPLACE_FEE_POOL, ledger2_wallets::BRANCH_COMMON,
     0, 0,
     "Членский взнос в общий кошелёк кооперативного участка" },
+
+  // 13a². p.brn.fees: Возврат членского взноса из общего кошелька КУ при
+  //      гарантийном возврате имущества (TRANSFER w.brn.common → w.mkt.fee,
+  //      без Dr/Cr — внутри 86; username = braname). Точная инверсия
+  //      DISTRIBUTE_COMMON: взнос возвращается тем же путём, каким пришёл.
+  //      Вторую ногу (w.mkt.fee → w.mkt.member заказчика) делает существующая
+  //      MEMBERSHIP_FEE_REFUND — пайщику возвращается полная уплаченная сумма,
+  //      а не только стоимость имущества.
+  { operations::branch::RETURN_FEE_FROM_COMMON, processes::branch::FEES, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_COMMON, ledger2_wallets::MARKETPLACE_FEE_POOL,
+    0, 0,
+    "Возврат членского взноса из общего кошелька кооперативного участка" },
 
   // 13b-1. p.brn.fees: Изъятие из общего кошелька КУ на ручное распределение
   //      (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname).

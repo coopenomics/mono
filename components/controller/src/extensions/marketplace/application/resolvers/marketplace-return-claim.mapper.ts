@@ -52,6 +52,12 @@ export async function toMarketplaceReturnClaimDTO(
     expected_resolution: claim.expected_resolution,
     actual_quantity: claim.actual_quantity,
     fact_cost: claim.fact_cost,
+    fee_refund: claim.fee_refund,
+    // Полная сумма возврата — то, что пайщик реально получит обратно; считаем
+    // здесь, чтобы каждый клиент не складывал две суммы самостоятельно.
+    total_refund: (
+      Number.parseFloat(claim.fact_cost) + Number.parseFloat(claim.fee_refund)
+    ).toFixed(4),
     photos,
     submretrn_tx_hash: claim.submretrn_tx_hash,
     decision_log: claim.decision_log.map(toDecisionEntryDTO),

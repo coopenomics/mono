@@ -286,6 +286,7 @@ export class MarketplaceReturnClaimService {
     });
 
     const fact_cost = this.computeFactCost(order, actual_quantity);
+    const fee_refund = this.computeFeeRefund(order, actual_quantity);
 
     // Сначала кладём фото в bucket, чтобы on-chain submit мог опереться
     // на их sha256-хеши.
@@ -343,6 +344,7 @@ export class MarketplaceReturnClaimService {
       expected_resolution: MarketplaceReturnClaimExpectedResolutions.FUNDS_RETURN,
       actual_quantity,
       fact_cost,
+      fee_refund,
       photos,
       statement: input.signed_statement as ISignedDocumentDomainInterface,
       submretrn_tx_hash: txHash,
@@ -766,6 +768,27 @@ export class MarketplaceReturnClaimService {
   private computeFactCost(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
     const unitPrice = Number.parseFloat(order.price_per_unit);
     return (actual_quantity * unitPrice).toFixed(4);
+  }
+
+  /**
+   * Доля членского взноса, возвращаемая вместе с имуществом. Зеркало формулы
+   * контракта (submretrn): взнос, фактически принятый кооперативом на выдаче,
+   * масштабированный по доле возвращаемого количества. При возврате всего
+   * выданного количества возвращается принятый взнос целиком — пайщик получает
+   * обратно ровно ту сумму, которую заплатил за заказ.
+   *
+   * Значение здесь — read-model для UI и документа заявления; фактическое
+   * движение средств делает контракт своей копией расчёта.
+   */
+  private computeFeeRefund(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
+    const lockedFee = Number.parseFloat(order.membership_fee ?? '0');
+    const totalCost = Number.parseFloat(order.total_cost);
+    const issuedQty = order.issuance_fact?.actual_quantity ?? 0;
+    const issuedCost = Number.parseFloat(order.issuance_fact?.fact_cost ?? '0');
+    if (!(lockedFee > 0) || !(totalCost > 0) || !(issuedQty > 0)) return '0.0000';
+
+    const acceptedFee = (lockedFee * issuedCost) / totalCost;
+    return ((acceptedFee * actual_quantity) / issuedQty).toFixed(4);
   }
 
   private computeRequestHash(input: {

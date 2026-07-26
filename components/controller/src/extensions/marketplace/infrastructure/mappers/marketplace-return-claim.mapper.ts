@@ -20,6 +20,7 @@ export class MarketplaceReturnClaimMapper {
       expected_resolution: row.expected_resolution,
       actual_quantity: row.actual_quantity,
       fact_cost: row.fact_cost,
+      fee_refund: row.fee_refund,
       photos: row.photos,
       statement: row.statement,
       submretrn_tx_hash: row.submretrn_tx_hash,

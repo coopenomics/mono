@@ -69,7 +69,7 @@ function formatDateTime(value: unknown): string {
 TakeoverDialog(
   :model-value="modelValue"
   :title="claim ? `Заявление ${claim.id.slice(0, 8)} — ${statusLabelMap[claim.status]}` : 'Заявление'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${claim.fact_cost} ₽` : ''"
+  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${claim.total_refund} ₽` : ''"
   :kind="statusKind"
   cancel-label="Закрыть"
   confirm-label="Готово"

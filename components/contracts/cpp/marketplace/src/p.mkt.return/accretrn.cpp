@@ -54,6 +54,36 @@ void marketplace::accretrn(eosio::name coopname,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
 
+  // Возврат членского взноса, уплаченного за возвращаемое имущество: пайщик
+  // получает обратно полную сумму заказа, а не только стоимость имущества.
+  //
+  // Взнос ушёл в общий кошелёк участка на выдаче (o.brn.common), поэтому
+  // возвращается тем же путём в обратную сторону, двумя ногами внутри счёта 86
+  // (новых бухгалтерских проводок нет — деньги не покидают целевое
+  // финансирование, а перекладываются обратно между кошельками):
+  //   1) o.brn.retfee  — общий кошелёк участка → пул взносов «Стола заказов»;
+  //   2) o.mkt.refund  — пул взносов → членский кошелёк заказчика.
+  // Прямой перевод между кошельком участка и кошельком пайщика невозможен:
+  // walletop держит один username на обе стороны, отсюда транзит через пул.
+  //
+  // Порядок важен: инлайн-действия исполняются в порядке отправки, поэтому
+  // сперва отправляем пополнение пула участком и только затем списание из него.
+  // Если участок уже распределил или потратил взнос, branch::retfee остановит
+  // приём возврата человекочитаемой ошибкой — сначала пополнение общего кошелька.
+  const eosio::asset fee_refund = r.fee_refund.has_value()
+      ? r.fee_refund.value()
+      : eosio::asset(0, _root_govern_symbol);
+
+  if (fee_refund.amount > 0) {
+    Branch::retfee(_marketplace, coopname, braname, fee_refund, r.hash,
+                   Marketplace::Memo::get_return_fee_from_common_memo(r.id, r.original_order_id));
+
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                   fee_refund, r.orderer, r.hash,
+                   Marketplace::Memo::get_return_fee_to_member_memo(r.id, r.original_order_id));
+  }
+
   // Со-подписанное заявление доводит запись реестра документов до «решён»
   // (тот же doc_hash, что у newsubmitted в submretrn; новая версия с двумя
   // подписями) в пакете процесса заказа (package = order_hash).

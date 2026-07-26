@@ -270,6 +270,15 @@ export interface IAccrue {
   memo: string
 }
 
+export interface IRetfee {
+  coopname: IName
+  braname: IName
+  source_contract: IName
+  amount: IAsset
+  process_hash: IChecksum256
+  memo: string
+}
+
 export interface IDistribute {
   coopname: IName
   braname: IName

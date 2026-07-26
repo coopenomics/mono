@@ -135,6 +135,19 @@ public:
                                  std::string memo);
 
   /**
+   * @brief Возврат членских взносов КУ из общего кошелька участка обратно в
+   * пул взносов программы-источника (o.brn.retfee) — инверсия accrue.
+   * Вызывается inline контрактом-источником (marketplace) при гарантийном
+   * возврате имущества, чтобы пайщику вернулась полная уплаченная сумма.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void retfee(eosio::name coopname, eosio::name braname,
+                                 eosio::name source_contract,
+                                 eosio::asset amount,
+                                 eosio::checksum256 process_hash,
+                                 std::string memo);
+
+  /**
    * @brief Ручное распределение средств общего кошелька КУ между
    * председателем и доверенными по весам реестра: команда председателя,
    * сумма раскладывается по весам (o.brn.release + o.brn.person), остаток
