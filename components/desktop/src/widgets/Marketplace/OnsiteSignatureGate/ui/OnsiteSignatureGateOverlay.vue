@@ -4,7 +4,7 @@ import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { type ReceptionGroup, computeStockProposalCharges } from 'src/shared/lib/marketplace';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
@@ -61,6 +61,15 @@ function proposalLineCost(i: { quantity: number; unit_price: string }): string {
   return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
 }
 
+function receptionLineQuantity(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
+function proposalItemQuantity(i: { quantity: number; unit_of_measure: string | null }): string {
+  return marketplaceQuantityLabel(i.quantity, i.unit_of_measure);
+}
+
 function proposalCharges(p: { id: string; total_cost: string }) {
   return computeStockProposalCharges(p.total_cost, proposalSums.value[p.id]);
 }
@@ -115,7 +124,7 @@ BaseDialog(
         tbody
           tr(v-for='l in g.lines', :key='l.key')
             td {{ l.productName }}
-            td.num {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+            td.num {{ receptionLineQuantity(l) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
@@ -161,7 +170,7 @@ BaseDialog(
         tbody
           tr(v-for='i in p.items', :key='i.offer_id')
             td {{ i.product_name }}
-            td.num {{ i.quantity }}
+            td.num {{ proposalItemQuantity(i) }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
           tr(v-if='proposalCharges(p).member > 0')

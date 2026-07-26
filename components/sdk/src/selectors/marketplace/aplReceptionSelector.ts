@@ -20,6 +20,7 @@ const rawFactEntrySelector = {
   fact_unit_price: true,
   product_name: true,
   unit_of_measure: true,
+  package_size: true,
 }
 
 const _validateFactEntry: MakeAllFieldsRequired<ValueTypes['MarketplaceAplReceptionFactEntry']> =

@@ -4883,6 +4883,7 @@ export const ReturnTypes: Record<string,any> = {
 		fact_quantity:"Float",
 		fact_unit_price:"String",
 		order_id:"String",
+		package_size:"Float",
 		product_name:"String",
 		unit_of_measure:"String"
 	},
@@ -5610,6 +5611,7 @@ export const ReturnTypes: Record<string,any> = {
 		offer_id:"String",
 		product_name:"String",
 		quantity:"Float",
+		unit_of_measure:"String",
 		unit_price:"String"
 	},
 	MarketplaceStockProposalResolvedEvent:{

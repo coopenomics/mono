@@ -10,7 +10,7 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { marketplaceQuantityLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
@@ -225,7 +225,7 @@ interface DeliveryLine {
   key: string;
   productName: string;
   unit: string;
-  orderUnitSize: string | null;
+  packageSize: number | null;
   quantity: number;
   // Экспедиторская упаковка: сколько коробок суммарно по товару (если поставка
   // идёт по ТТН и упаковка задана). 0 — упаковка неизвестна, коробки не показываем.
@@ -245,6 +245,11 @@ const unitsPerBoxByOrder = computed(() => {
   return m;
 });
 
+function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
@@ -256,12 +261,13 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
     if (ex) {
       ex.quantity += qty;
       ex.boxes += boxes;
+      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else
       map.set(key, {
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure ?? '',
-        orderUnitSize: null,
+        packageSize: o.package_size ?? null,
         quantity: qty,
         boxes,
       });
@@ -746,7 +752,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         ul.reception__card-items(v-if='g.lines.length')
           li.reception__card-item(v-for='l in g.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+            span.reception__card-qty {{ lineQuantityLabel(l) }}
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
@@ -792,7 +798,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           li.reception__card-item(v-for='l in d.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
             span.reception__card-qty
-              | {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+              | {{ lineQuantityLabel(l) }}
               span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')

@@ -381,6 +381,7 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
   unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
+  package_size?: number | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;

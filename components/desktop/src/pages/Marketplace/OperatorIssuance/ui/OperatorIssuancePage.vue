@@ -9,7 +9,7 @@ import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
   decodeHandoffToken,
@@ -64,7 +64,7 @@ interface IssuanceLine {
   /** Заказано пайщиком; больше quantity — недопоставка, показываем рядом. */
   orderedQuantity: number;
   unit: MarketplaceOrderIssuanceView['unit_of_measure'];
-  orderUnitSize: string | null;
+  packageSize: number | null;
   total: string;
   status: string;
 }
@@ -98,6 +98,11 @@ function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number
   return { qty, ordered, total: qty * unitPriceWithFee };
 }
 
+function lineQuantityLabel(qty: number, l: { unit: MarketplaceOrderIssuanceView['unit_of_measure']; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(qty, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
   const map = new Map<string, IssuanceLine>();
   for (const o of orders) {
@@ -113,6 +118,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
       ex.quantity += qty;
       ex.orderedQuantity += ordered;
       ex.total = (Number.parseFloat(ex.total) + total).toFixed(4);
+      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else {
       map.set(key, {
         key,
@@ -120,7 +126,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
         quantity: qty,
         orderedQuantity: ordered,
         unit: o.unit_of_measure,
-        orderUnitSize: null,
+        packageSize: o.package_size ?? null,
         total: total.toFixed(4),
         status: o.status,
       });
@@ -351,9 +357,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
             BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
 
         //- Ждут получения — выдача открыта, ждём подпись заказчика.
@@ -363,9 +369,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
             BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
@@ -401,9 +407,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
           .issuance__resolve-item-meta
-            | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+            | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
             span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-              |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+              |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
         BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
       //- Открываем выдачу разом по всем готовым позициям пайщика — одна операция.

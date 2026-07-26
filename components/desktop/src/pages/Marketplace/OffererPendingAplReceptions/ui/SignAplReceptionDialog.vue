@@ -6,7 +6,7 @@ import { BaseButton, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchSupplierSignablePayloads,
@@ -55,6 +55,11 @@ const variantLabel = computed(() =>
 );
 
 const deliveriesCount = computed(() => props.group?.receptions.length ?? 0);
+
+function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
 
 // Снятые оператором при приёмке позиции (факт = 0) — некондиция. Подписывая
 // поставку, поставщик той же подписью подтверждает их отмену: заказчику полный
@@ -196,7 +201,7 @@ BaseDialog(
         tbody
           tr(v-for="l in acceptedLines", :key="l.key")
             td {{ l.productName }}
-            td.num {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+            td.num {{ lineQuantityLabel(l) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr

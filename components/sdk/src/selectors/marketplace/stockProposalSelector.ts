@@ -50,6 +50,7 @@ export const marketplaceStockProposalSelector = Selector('MarketplaceStockPropos
     quantity: true,
     unit_price: true,
     product_name: true,
+    unit_of_measure: true,
   },
   status: true,
   total_cost: true,

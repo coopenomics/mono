@@ -1,4 +1,4 @@
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 
 /**
@@ -35,8 +35,11 @@ export interface ShipmentOrderLine {
   id: string;
   cycle_id: string;
   title: string;
+  /** Количество в базовой единице — для расчёта коробок ТТН (штук в коробке считаются от базовой единицы). */
   quantity: number;
-  unit: string;
+  /** Кол-во + подпись для показа поставщику (пакет-осведомлённо, Эпик 18). */
+  units: number;
+  unitLabel: string;
   sum: number;
 }
 
@@ -69,12 +72,14 @@ export function groupAcceptedByKu(orders: MarketplaceOrderView[]): ShipmentKuBuc
       };
       byKu.set(o.delivery_braname, bucket);
     }
+    const saleUnit = marketplaceOrderSaleUnit(o.quantity, o.unit_of_measure, o.package_size);
     bucket.lines.push({
       id: o.id,
       cycle_id: o.cycle_id,
       title: o.product_name || 'Товар по предложению',
       quantity: o.quantity,
-      unit: marketplaceOrderUnitLabel(o.unit_of_measure),
+      units: saleUnit.units,
+      unitLabel: saleUnit.unitLabel,
       sum: parseFloat(o.total_cost) || 0,
     });
   }

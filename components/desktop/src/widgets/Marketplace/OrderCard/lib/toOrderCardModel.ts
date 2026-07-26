@@ -37,8 +37,6 @@ export interface OrderCardSource {
   product_name?: string | null;
   quantity: number;
   unit_of_measure?: string | null;
-  /** Размер единицы заказа (фасовки) в базовых единицах — для подписи «100 г»/«упаковка 8 шт». */
-  order_unit_size?: string | null;
   /** Содержимое упаковки в базовой единице (Эпик 18); 0/null — отпуск по мере. */
   package_size?: number | null;
   total_cost: string;

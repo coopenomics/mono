@@ -7,7 +7,7 @@ import { AccountBadge } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useActsPreview, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
   fetchChairmanSignablePayloads,
@@ -66,6 +66,11 @@ const variantLabel = computed(() =>
 );
 
 const deliveriesCount = computed(() => props.group?.receptions.length ?? 0);
+
+function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
 
 async function loadPreview(): Promise<void> {
   if (!props.group) return;
@@ -167,7 +172,7 @@ BaseDialog(
       tbody
         tr(v-for="l in group.lines", :key="l.key")
           td {{ l.productName }}
-          td.num {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+          td.num {{ lineQuantityLabel(l) }}
           td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
       tfoot
         tr

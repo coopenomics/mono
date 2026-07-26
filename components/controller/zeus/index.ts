@@ -7725,6 +7725,8 @@ export type ValueTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -9945,6 +9947,8 @@ export type ValueTypes = {
 	product_name?:boolean | `@${string}`,
 	/** Предложенное количество единиц. */
 	quantity?:boolean | `@${string}`,
+	/** Базовая единица измерения товара (штука, килограмм, литр). */
+	unit_of_measure?:boolean | `@${string}`,
 	/** Цена за единицу на момент предложения. */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -20825,6 +20829,8 @@ export type ResolverInputTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?:boolean | `@${string}`,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -22969,6 +22975,8 @@ export type ResolverInputTypes = {
 	product_name?:boolean | `@${string}`,
 	/** Предложенное количество единиц. */
 	quantity?:boolean | `@${string}`,
+	/** Базовая единица измерения товара (штука, килограмм, литр). */
+	unit_of_measure?:boolean | `@${string}`,
 	/** Цена за единицу на момент предложения. */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -33535,6 +33543,8 @@ export type ModelTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
+	package_size?: number | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -35568,6 +35578,8 @@ export type ModelTypes = {
 	product_name: string,
 	/** Предложенное количество единиц. */
 	quantity: number,
+	/** Базовая единица измерения товара (штука, килограмм, литр). */
+	unit_of_measure?: string | undefined | null,
 	/** Цена за единицу на момент предложения. */
 	unit_price: string
 };
@@ -47280,6 +47292,8 @@ export type GraphQLTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
+	package_size?: number | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
 	product_name?: string | undefined | null,
 	/** Базовая единица измерения товара по этой позиции (штука, килограмм, литр). */
@@ -49501,6 +49515,8 @@ export type GraphQLTypes = {
 	product_name: string,
 	/** Предложенное количество единиц. */
 	quantity: number,
+	/** Базовая единица измерения товара (штука, килограмм, литр). */
+	unit_of_measure?: string | undefined | null,
 	/** Цена за единицу на момент предложения. */
 	unit_price: string,
 	['...on MarketplaceStockProposalItem']: Omit<GraphQLTypes["MarketplaceStockProposalItem"], "...on MarketplaceStockProposalItem">

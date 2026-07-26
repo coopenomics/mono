@@ -6,7 +6,7 @@ import { BaseBadge, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { debounce } from 'quasar';
 import { groupAplReceptions, useMarketplaceRealtime, type ReceptionGroup } from 'src/shared/lib/marketplace';
@@ -71,6 +71,11 @@ const VARIANT_LABEL: Record<string, string> = {
   A: 'Очная приёмка',
   B: 'Через экспедитора',
 };
+function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function variantLabel(v: string): string {
   return VARIANT_LABEL[v] ?? v;
 }
@@ -170,7 +175,7 @@ q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
       ul.offerer-apl__items(v-if='g.lines.length')
         li.offerer-apl__item(v-for='l in g.lines', :key='l.key')
           span.offerer-apl__prod {{ l.productName }}
-          span.offerer-apl__qty {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+          span.offerer-apl__qty {{ lineQuantityLabel(l) }}
       .offerer-apl__summary
         span.offerer-apl__summary-label Сумма приёмки
         span.offerer-apl__amount {{ formatAsset2Digits(g.totalAmount) }} ₽

@@ -452,6 +452,7 @@ export class MarketplaceAplReceptionResolver {
             {
               product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
               unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
+              package_size: displayByOrderId.get(f.order_id)?.package_size ?? null,
             },
           ])
         ),

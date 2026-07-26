@@ -336,6 +336,9 @@ export class MarketplaceStockProposalItemDTO {
 
   @Field(() => String, { description: 'Наименование товара.' })
   product_name!: string;
+
+  @Field(() => String, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure!: string | null;
 }
 
 @ObjectType('MarketplaceStockProposal')
@@ -394,6 +397,7 @@ export function toMarketplaceStockProposalDTO(
     item.quantity = i.quantity;
     item.unit_price = i.unit_price;
     item.product_name = i.product_name;
+    item.unit_of_measure = i.unit_of_measure ?? null;
     return item;
   });
   dto.status = e.status as MarketplaceStockProposalStatusEnum;

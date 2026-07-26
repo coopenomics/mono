@@ -53,6 +53,12 @@ export class MarketplaceAplReceptionFactEntryDTO {
   })
   unit_of_measure!: string | null;
 
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице.',
+  })
+  package_size!: number | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -301,7 +307,7 @@ export interface MarketplaceAplReceptionDisplayFields {
   offerer_name?: string | null;
   lineByOrderId?: Map<
     string,
-    { product_name: string | null; unit_of_measure: string | null }
+    { product_name: string | null; unit_of_measure: string | null; package_size: number | null }
   >;
 }
 
@@ -327,6 +333,7 @@ export function toMarketplaceAplReceptionDTO(
     const line = display?.lineByOrderId?.get(f.order_id);
     entry.product_name = line?.product_name ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
+    entry.package_size = line?.package_size ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

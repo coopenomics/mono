@@ -376,6 +376,7 @@ export class MarketplaceStockProposalService {
       quantity: line.actual_quantity,
       unit_price: line.actual_unit_price,
       product_name: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measure: offer?.unit_of_measure ?? null,
       order_hash: order.order_hash,
       signiss1_act: line.signiss1_act,
     };
@@ -467,6 +468,7 @@ export class MarketplaceStockProposalService {
         quantity: line.quantity,
         unit_price: offer.price_per_unit,
         product_name: offer.product_name,
+        unit_of_measure: offer.unit_of_measure,
         order_hash: line.order_hash,
         signiss1_act: line.signiss1_act,
       });
