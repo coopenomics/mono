@@ -13,6 +13,7 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
+import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import {
   MarketplaceStockService,
   MARKETPLACE_STOCK_SERVICE,
@@ -61,7 +62,8 @@ export class MarketplaceStockResolver {
     @Inject(MARKETPLACE_STOCK_PROPOSAL_SERVICE)
     private readonly proposalService: MarketplaceStockProposalService,
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
   // ── Остаток и публикация ─────────────────────────────────────────────
@@ -80,7 +82,18 @@ export class MarketplaceStockResolver {
     const branames = await this.resolveBranames(member, braname, 'Stock');
     if (branames.length === 0) return [];
     const list = await this.stockService.listStock(config.coopname, branames);
-    return list.map(toMarketplaceInventoryItemDTO);
+    // Единица измерения + package_size (Эпик 18) — «витрина на месте»:
+    // остаток показывается в той же упаковке, в которой партия принята на
+    // склад (см. resolveStockPackageSize для уже опубликованных офферов
+    // остатка — здесь тот же батч, но по СЫРЫМ позициям до публикации).
+    const display = await this.orderDisplay.enrichByOrderIds(list.map((i) => i.order_id));
+    return list.map((item) => {
+      const dto = toMarketplaceInventoryItemDTO(item);
+      const d = display.get(item.order_id);
+      dto.unit_of_measure = d?.unit_of_measure ?? null;
+      dto.package_size = d?.package_size ?? null;
+      return dto;
+    });
   }
 
   @Mutation(() => [MarketplaceOfferDTO], {

@@ -5,6 +5,7 @@ import { client } from 'src/shared/api/client';
 import { BaseDialog, BaseButton, BaseBadge } from 'src/shared/ui/base';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 
 /**
  * Выбор имущества со склада кооператива для докладки в выдачу («это не пришло —
@@ -19,6 +20,9 @@ export interface StockPickLine {
   product_name: string;
   price_per_unit: string;
   quantity: number;
+  unit_of_measure: string | null;
+  /** Размер упаковки, в которой партия принята на склад (Эпик 18) — для показа «как витрины на месте». */
+  stock_package_size: number | null;
 }
 
 type CoopStockOffer = {
@@ -27,6 +31,8 @@ type CoopStockOffer = {
   price_per_unit: string;
   quantity_available: number;
   stock_braname: string | null;
+  unit_of_measure: string | null;
+  stock_package_size: number | null;
 };
 
 const props = defineProps<{
@@ -72,6 +78,11 @@ async function loadOffers(): Promise<void> {
   }
 }
 
+function availableLabel(o: CoopStockOffer): string {
+  const saleUnit = marketplaceOrderSaleUnit(o.quantity_available, o.unit_of_measure, o.stock_package_size);
+  return `свободно ${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function bump(offer: CoopStockOffer, delta: number): void {
   const current = quantities.value[offer.id] ?? 0;
   const next = Math.max(0, Math.min(offer.quantity_available, current + delta));
@@ -86,6 +97,8 @@ function confirmAdd(): void {
       product_name: l.offer.product_name,
       price_per_unit: l.offer.price_per_unit,
       quantity: l.quantity,
+      unit_of_measure: l.offer.unit_of_measure,
+      stock_package_size: l.offer.stock_package_size,
     })),
   );
   quantities.value = {};
@@ -123,7 +136,7 @@ BaseDialog(
         .stock-pick__info
           span.stock-pick__name {{ o.product_name }}
           span.stock-pick__meta
-            | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · свободно {{ o.quantity_available }}
+            | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · {{ availableLabel(o) }}
         .stock-pick__qty
           BaseButton(
             variant="ghost"

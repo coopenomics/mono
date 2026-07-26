@@ -109,6 +109,13 @@ export class MarketplaceInventoryItemDTO {
   })
   unit_of_measure!: string | null;
 
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18) — как позиция принята на склад. Null/0 — отпуск по мере.',
+  })
+  package_size!: number | null;
+
   @Field(() => String, {
     nullable: true,
     description: 'Наименование пункта выдачи (КУ), где лежит имущество. Для показа в списках вместо служебного имени участка.',
@@ -327,6 +334,7 @@ export function toMarketplaceInventoryItemDTO(
   // (резолвер списка) батчем по заказам — не хранятся снимком. По умолчанию null.
   dto.orderer_name = null;
   dto.unit_of_measure = null;
+  dto.package_size = null;
   dto.delivery_point_name = null;
   dto.delivery_point_address = null;
   dto.shelf = e.shelf;

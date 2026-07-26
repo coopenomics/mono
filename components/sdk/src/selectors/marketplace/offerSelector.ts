@@ -38,6 +38,7 @@ const rawOfferSelector = {
   barcode_strategy: true,
   pack_size: true,
   stock_braname: true,
+  stock_package_size: true,
   status: true,
   approved_by: true,
   approved_at: true,

@@ -4,6 +4,7 @@ import { date } from 'quasar';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   listStock,
@@ -73,6 +74,11 @@ function toggle(id: string): void {
   if (next.has(id)) next.delete(id);
   else next.add(id);
   selected.value = next;
+}
+
+function quantityLabel(i: MarketplaceInventoryItemView): string {
+  const saleUnit = marketplaceOrderSaleUnit(i.quantity_per_label, i.unit_of_measure, i.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function expiryLabel(i: MarketplaceInventoryItemView): string {
@@ -160,7 +166,7 @@ BaseCard.coop-stock(v-if='loading || items.length')
                 @update:model-value='toggle(i.id)'
               )
             td {{ i.product_name_snapshot }}
-            td.num {{ i.quantity_per_label }}
+            td.num {{ quantityLabel(i) }}
             td.num {{ i.arrival_price ? formatAsset2Digits(i.arrival_price) + ' ₽' : '—' }}
             td {{ expiryLabel(i) }}
             td

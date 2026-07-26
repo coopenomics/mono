@@ -51,6 +51,8 @@ export interface MarketplaceInventoryListFilter {
   free_only?: boolean;
   /** Только опубликованный (published_offer_id IS NOT NULL) либо только неопубликованный (false). */
   published?: boolean;
+  /** Все партии, слитые в конкретный оффер остатка (докладка/витрина). */
+  published_offer_id?: string;
 }
 
 /**

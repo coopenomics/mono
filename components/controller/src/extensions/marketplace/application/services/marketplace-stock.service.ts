@@ -260,6 +260,25 @@ export class MarketplaceStockService {
     return touched;
   }
 
+  /**
+   * Размер упаковки, в которой остаток фактически принимался на склад
+   * (Эпик 18) — для показа докладки «как витрины на месте»: столько же
+   * упаковок, сколько поставщик передал по акту, не голое число базовых
+   * единиц. Оффер остатка — агрегат произвольного числа партий приёмки
+   * (`groupByOriginOffer`), поэтому берём package_size их исходных заказов;
+   * если партии разнофасовочные (или без заказа — легаси/докладка вручную) —
+   * null, честно откатываемся к отображению по мере (тот же гвард, что и в
+   * агрегации «Входящие заказы»/«Коллективный заказ»).
+   */
+  async resolveStockPackageSize(coopname: string, published_offer_id: string): Promise<number | null> {
+    const rows = await this.inventoryRepo.list({ coopname, published_offer_id });
+    const orderIds = [...new Set(rows.map((r) => r.order_id).filter((id): id is string => Boolean(id)))];
+    if (orderIds.length === 0) return null;
+    const orders = await Promise.all(orderIds.map((id) => this.orderRepo.findById(id)));
+    const sizes = new Set(orders.map((o) => o?.package_size || null));
+    return sizes.size === 1 ? [...sizes][0] : null;
+  }
+
   /** Снятие свободных позиций с публикации (зарезервированные не трогаем). */
   async unpublishStock(input: MarketplaceStockUnpublishInput): Promise<number> {
     const positions = await this.loadFreeStockPositions(input.coopname, input.inventory_ids);

@@ -12,7 +12,7 @@ import {
   computeIssuanceDiff,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
   getChairmanSignablePayload,
   getStockIssuancePayloads,
@@ -92,6 +92,10 @@ const restockTotal = computed(() =>
 
 function restockLineSum(l: StockPickLine): string {
   return (Number.parseFloat(l.price_per_unit) * l.quantity).toFixed(4);
+}
+function restockLineQuantityLabel(l: StockPickLine): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit_of_measure, l.stock_package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 function onAddRestock(lines: StockPickLine[]): void {
   const map = new Map(restockLines.value.map((l) => [l.offer_id, { ...l }]));
@@ -445,7 +449,7 @@ BaseDialog(
         .issue-act__restock-row(v-for="l in restockLines", :key="l.offer_id")
           .issue-act__restock-info
             span.issue-act__restock-name {{ l.product_name }}
-            span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ l.quantity }}
+            span.issue-act__restock-meta {{ formatAsset2Digits(l.price_per_unit) }} ₽ × {{ restockLineQuantityLabel(l) }}
           .issue-act__restock-right
             span.issue-act__restock-sum {{ formatAsset2Digits(restockLineSum(l)) }} ₽
             BaseButton(variant="ghost", @click="removeRestock(l.offer_id)")

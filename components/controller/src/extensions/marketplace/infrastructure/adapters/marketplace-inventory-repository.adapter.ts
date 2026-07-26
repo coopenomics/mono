@@ -133,6 +133,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     if (filter.published !== undefined) {
       where.published_offer_id = filter.published ? Not(IsNull()) : IsNull();
     }
+    if (filter.published_offer_id) where.published_offer_id = filter.published_offer_id;
     const rows = await this.repo.find({ where, order: { received_at: 'DESC', created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
