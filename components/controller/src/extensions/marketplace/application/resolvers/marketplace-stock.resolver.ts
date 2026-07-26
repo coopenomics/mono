@@ -112,6 +112,7 @@ export class MarketplaceStockResolver {
       operator_account: member.username,
       inventory_ids: data.inventory_ids,
       price_per_unit: data.price_per_unit ?? null,
+      warranty_days: data.warranty_days ?? null,
     });
     return offers.map(toMarketplaceOfferDTO);
   }

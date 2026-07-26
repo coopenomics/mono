@@ -61,6 +61,13 @@ export interface MarketplaceStockPublishInput {
    * позиции; указана меньше цены прибытия — уценка (requirement 76, решение 12).
    */
   price_per_unit?: string | null;
+  /**
+   * Срок гарантийного возврата (дней) для этой публикации — оператор ПВЗ
+   * задаёт его сам (не наследует от исходного товара автоматически): скоропорт
+   * вроде молока по докладке обычно возвращать нельзя, срок = 0. Не указан —
+   * переносим срок исходного товара.
+   */
+  warranty_days?: number | null;
 }
 
 export interface MarketplaceStockUnpublishInput {
@@ -225,7 +232,7 @@ export class MarketplaceStockService {
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
           delivery_points: [{ braname, min_supply_volume: 1 }],
           shelf_life_days: origin.shelf_life_days,
-          warranty_days: origin.warranty_days,
+          warranty_days: input.warranty_days ?? origin.warranty_days,
           barcode_strategy: origin.barcode_strategy,
           pack_size: origin.pack_size,
           images: origin.images,
@@ -236,6 +243,9 @@ export class MarketplaceStockService {
         coopOffer = await this.offerRepo.applyUpdate(coopOffer.id, {
           quantity_available: coopOffer.quantity_available + qty,
           ...(input.price_per_unit ? { price_per_unit: this.normalizePrice(input.price_per_unit) } : {}),
+          ...(input.warranty_days !== undefined && input.warranty_days !== null
+            ? { warranty_days: input.warranty_days }
+            : {}),
           status: MarketplaceOfferStatuses.ACTIVE,
         });
       }

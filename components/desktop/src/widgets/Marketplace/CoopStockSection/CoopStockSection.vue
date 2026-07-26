@@ -26,6 +26,9 @@ const selected = ref<Set<string>>(new Set());
 
 const publishDialogOpen = ref(false);
 const publishPrice = ref('');
+// Скоропорт с докладки обычно не возвращают — 0 дней безопасный дефолт;
+// оператор ПВЗ переопределяет на своё усмотрение перед публикацией.
+const publishWarrantyDays = ref('0');
 const publishing = ref(false);
 
 async function reload(): Promise<void> {
@@ -88,6 +91,7 @@ function expiryLabel(i: MarketplaceInventoryItemView): string {
 function openPublishDialog(): void {
   // Префилл цены — цена прибытия первой выбранной позиции (база уценки).
   publishPrice.value = selectedFree.value.find((i) => i.arrival_price)?.arrival_price ?? '';
+  publishWarrantyDays.value = '0';
   publishDialogOpen.value = true;
 }
 
@@ -97,6 +101,7 @@ async function confirmPublish(): Promise<void> {
     await publishStock({
       inventory_ids: selectedFree.value.map((i) => i.id),
       price_per_unit: publishPrice.value ? publishPrice.value : null,
+      warranty_days: publishWarrantyDays.value !== '' ? Number(publishWarrantyDays.value) : null,
     });
     SuccessAlert('Остаток опубликован в каталоге предложением от кооператива.');
     publishDialogOpen.value = false;
@@ -187,6 +192,12 @@ BaseDialog(
       label='Цена за единицу, ₽',
       type='number',
       hint='Пусто — по цене прибытия каждой позиции'
+    )
+    BaseInput(
+      v-model='publishWarrantyDays',
+      label='Срок гарантийного возврата, дней',
+      type='number',
+      hint='0 — вернуть нельзя (обычно для скоропорта)'
     )
     .coop-stock__publish-actions
       BaseButton(variant='ghost', @click='publishDialogOpen = false') Отменить

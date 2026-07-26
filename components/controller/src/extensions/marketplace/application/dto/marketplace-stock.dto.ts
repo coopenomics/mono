@@ -46,6 +46,16 @@ export class MarketplacePublishStockInputDTO {
   @IsOptional()
   @IsString()
   price_per_unit?: string | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Срок гарантийного возврата в днях для этой публикации. Пусто — переносится срок исходного товара (обычно 0, если поставщик/модератор его не устанавливали).',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  warranty_days?: number | null;
 }
 
 @InputType('MarketplaceUnpublishStockInput')

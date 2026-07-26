@@ -3,7 +3,7 @@ import { computed, onMounted, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { type ReceptionGroup, computeStockProposalCharges } from 'src/shared/lib/marketplace';
+import { type ReceptionGroup } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
@@ -26,7 +26,6 @@ const {
   signingKey,
   supplierTasks,
   proposalTasks,
-  proposalSums,
   refresh,
   signSupplier,
   cancelSupplier,
@@ -68,10 +67,6 @@ function receptionLineQuantity(l: { quantity: number; unit: string; packageSize:
 
 function proposalItemQuantity(i: { quantity: number; unit_of_measure: string | null }): string {
   return marketplaceQuantityLabel(i.quantity, i.unit_of_measure);
-}
-
-function proposalCharges(p: { id: string; total_cost: string }) {
-  return computeStockProposalCharges(p.total_cost, proposalSums.value[p.id]);
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
@@ -173,14 +168,10 @@ BaseDialog(
             td.num {{ proposalItemQuantity(i) }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
-          tr(v-if='proposalCharges(p).member > 0')
-            td Спишется с кошелька членских взносов «Стола заказов»
-            td.num
-            td.num {{ formatAsset2Digits(proposalCharges(p).member.toFixed(4)) }} ₽
           tr
-            td Спишется с главного паевого кошелька
+            td К оплате
             td.num
-            td.num {{ formatAsset2Digits(proposalCharges(p).share.toFixed(4)) }} ₽
+            td.num {{ formatAsset2Digits(p.total_cost) }} ₽
 
       .onsite-gate__foot
         BaseButton(

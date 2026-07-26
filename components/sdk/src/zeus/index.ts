@@ -9299,7 +9299,9 @@ export type ValueTypes = {
 	/** Позиции свободного остатка склада для публикации в каталог. */
 	inventory_ids: Array<string> | Variable<any, string>,
 	/** Цена за единицу при публикации. Пусто — цена прибытия; меньше цены прибытия — уценка. */
-	price_per_unit?: string | undefined | null | Variable<any, string>
+	price_per_unit?: string | undefined | null | Variable<any, string>,
+	/** Срок гарантийного возврата в днях для этой публикации. Пусто — переносится срок исходного товара (обычно 0, если поставщик/модератор его не устанавливали). */
+	warranty_days?: number | undefined | null | Variable<any, string>
 };
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: AliasType<{
@@ -22374,7 +22376,9 @@ export type ResolverInputTypes = {
 	/** Позиции свободного остатка склада для публикации в каталог. */
 	inventory_ids: Array<string>,
 	/** Цена за единицу при публикации. Пусто — цена прибытия; меньше цены прибытия — уценка. */
-	price_per_unit?: string | undefined | null
+	price_per_unit?: string | undefined | null,
+	/** Срок гарантийного возврата в днях для этой публикации. Пусто — переносится срок исходного товара (обычно 0, если поставщик/модератор его не устанавливали). */
+	warranty_days?: number | undefined | null
 };
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: AliasType<{
@@ -35030,7 +35034,9 @@ export type ModelTypes = {
 	/** Позиции свободного остатка склада для публикации в каталог. */
 	inventory_ids: Array<string>,
 	/** Цена за единицу при публикации. Пусто — цена прибытия; меньше цены прибытия — уценка. */
-	price_per_unit?: string | undefined | null
+	price_per_unit?: string | undefined | null,
+	/** Срок гарантийного возврата в днях для этой публикации. Пусто — переносится срок исходного товара (обычно 0, если поставщик/модератор его не устанавливали). */
+	warranty_days?: number | undefined | null
 };
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: {
@@ -48942,7 +48948,9 @@ export type GraphQLTypes = {
 		/** Позиции свободного остатка склада для публикации в каталог. */
 	inventory_ids: Array<string>,
 	/** Цена за единицу при публикации. Пусто — цена прибытия; меньше цены прибытия — уценка. */
-	price_per_unit?: string | undefined | null
+	price_per_unit?: string | undefined | null,
+	/** Срок гарантийного возврата в днях для этой публикации. Пусто — переносится срок исходного товара (обычно 0, если поставщик/модератор его не устанавливали). */
+	warranty_days?: number | undefined | null
 };
 	/** Поставка ожидает подписи поставщика на пункте приёмки. */
 ["MarketplaceReceptionPendingSignEvent"]: {
