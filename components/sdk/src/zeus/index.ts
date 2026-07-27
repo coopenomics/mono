@@ -3102,6 +3102,20 @@ export type ValueTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null | Variable<any, string>
 };
+	["CapitalMetricComponentRollup"]: AliasType<{
+	/** Сумма фактов метрик */
+	fact_sum?:boolean | `@${string}`,
+	/** Число активных метрик */
+	metrics_count?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Сумма целей метрик */
+	target_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricComponentRollup']?: Omit<ValueTypes["CapitalMetricComponentRollup"], "...on CapitalMetricComponentRollup">
+}>;
 	/** Запись журнала вкладов в метрику */
 ["CapitalMetricContribution"]: AliasType<{
 	/** Дата создания записи */
@@ -3164,6 +3178,58 @@ export type ValueTypes = {
 	period_start?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMetricSeriesPoint']?: Omit<ValueTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+}>;
+	["CapitalMetricSuperposition"]: AliasType<{
+	/** Rollup планов/фактов по дочерним компонентам */
+	components?:ValueTypes["CapitalMetricComponentRollup"],
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Метрики в суперпозиции */
+	items?:ValueTypes["CapitalMetricSuperpositionItem"],
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperposition']?: Omit<ValueTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
+}>;
+	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive?:boolean | `@${string}`,
+	/** Факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity?:boolean | `@${string}`,
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Цель */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionItem']?: Omit<ValueTypes["CapitalMetricSuperpositionItem"], "...on CapitalMetricSuperpositionItem">
 }>;
 	["CapitalMetricWave"]: AliasType<{
 	/** Прогнозный коридор */
@@ -6610,6 +6676,12 @@ export type ValueTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
 };
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string | Variable<any, string>
+};
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>,
@@ -7308,6 +7380,8 @@ export type ValueTypes = {
 ["MembershipExitStatus"]:MembershipExitStatus;
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]:MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
 	/** Период агрегации ряда метрики */
@@ -8966,6 +9040,7 @@ capitalIssueMetricBindings?: [{	data: ValueTypes["GetIssueMetricBindingsInput"] 
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ValueTypes["GetMetricSeriesInput"] | Variable<any, string>},ValueTypes["CapitalMetricSeries"]],
+capitalMetricSuperposition?: [{	data: ValueTypes["GetMetricSuperpositionInput"] | Variable<any, string>},ValueTypes["CapitalMetricSuperposition"]],
 capitalMetricWave?: [{	data: ValueTypes["GetMetricWaveInput"] | Variable<any, string>},ValueTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
@@ -12843,6 +12918,19 @@ export type ResolverInputTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	["CapitalMetricComponentRollup"]: AliasType<{
+	/** Сумма фактов метрик */
+	fact_sum?:boolean | `@${string}`,
+	/** Число активных метрик */
+	metrics_count?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Сумма целей метрик */
+	target_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Запись журнала вкладов в метрику */
 ["CapitalMetricContribution"]: AliasType<{
 	/** Дата создания записи */
@@ -12901,6 +12989,56 @@ export type ResolverInputTypes = {
 	period_end?:boolean | `@${string}`,
 	/** Начало периода (UTC) */
 	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperposition"]: AliasType<{
+	/** Rollup планов/фактов по дочерним компонентам */
+	components?:ResolverInputTypes["CapitalMetricComponentRollup"],
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Метрики в суперпозиции */
+	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive?:boolean | `@${string}`,
+	/** Факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity?:boolean | `@${string}`,
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Цель */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalMetricWave"]: AliasType<{
@@ -16273,6 +16411,12 @@ export type ResolverInputTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ResolverInputTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
 	metric_hash: string,
@@ -16945,6 +17089,8 @@ export type ResolverInputTypes = {
 ["MembershipExitStatus"]:MembershipExitStatus;
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]:MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]:MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
 	/** Период агрегации ряда метрики */
@@ -18538,6 +18684,7 @@ capitalIssueMetricBindings?: [{	data: ResolverInputTypes["GetIssueMetricBindings
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ResolverInputTypes["GetMetricSeriesInput"]},ResolverInputTypes["CapitalMetricSeries"]],
+capitalMetricSuperposition?: [{	data: ResolverInputTypes["GetMetricSuperpositionInput"]},ResolverInputTypes["CapitalMetricSuperposition"]],
 capitalMetricWave?: [{	data: ResolverInputTypes["GetMetricWaveInput"]},ResolverInputTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
@@ -22316,6 +22463,18 @@ export type ModelTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	["CapitalMetricComponentRollup"]: {
+		/** Сумма фактов метрик */
+	fact_sum: number,
+	/** Число активных метрик */
+	metrics_count: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Сумма целей метрик */
+	target_sum: number
+};
 	/** Запись журнала вкладов в метрику */
 ["CapitalMetricContribution"]: {
 		/** Дата создания записи */
@@ -22372,6 +22531,54 @@ export type ModelTypes = {
 	period_end: ModelTypes["DateTime"],
 	/** Начало периода (UTC) */
 	period_start: ModelTypes["DateTime"]
+};
+	["CapitalMetricSuperposition"]: {
+		/** Rollup планов/фактов по дочерним компонентам */
+	components: Array<ModelTypes["CapitalMetricComponentRollup"]>,
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Метрики в суперпозиции */
+	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number
+};
+	["CapitalMetricSuperpositionItem"]: {
+		/** Текущая метка волны */
+	current_label: ModelTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: ModelTypes["WavePhase"],
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive: ModelTypes["MetricDriveDirection"],
+	/** Факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity: number,
+	/** Режим ряда */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Цель */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	["CapitalMetricWave"]: {
 		/** Прогнозный коридор */
@@ -25653,6 +25860,12 @@ export type ModelTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ModelTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
 	["GetMetricWaveInput"]: {
 	/** Хеш метрики */
 	metric_hash: string,
@@ -26290,6 +26503,7 @@ export type ModelTypes = {
 };
 	["MembershipExitStatus"]:MembershipExitStatus;
 	["MetricContributionSource"]:MetricContributionSource;
+	["MetricDriveDirection"]:MetricDriveDirection;
 	["MetricSeriesMode"]:MetricSeriesMode;
 	["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	["MetricStatus"]:MetricStatus;
@@ -28411,6 +28625,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: ModelTypes["CapitalMetricSeries"],
+	/** Суперпозиция метрик и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperposition: ModelTypes["CapitalMetricSuperposition"],
 	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
 
 Требуемые роли: chairman, member, user.  */
@@ -32453,6 +32671,20 @@ export type GraphQLTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	["CapitalMetricComponentRollup"]: {
+	__typename: "CapitalMetricComponentRollup",
+	/** Сумма фактов метрик */
+	fact_sum: number,
+	/** Число активных метрик */
+	metrics_count: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Сумма целей метрик */
+	target_sum: number,
+	['...on CapitalMetricComponentRollup']: Omit<GraphQLTypes["CapitalMetricComponentRollup"], "...on CapitalMetricComponentRollup">
+};
 	/** Запись журнала вкладов в метрику */
 ["CapitalMetricContribution"]: {
 	__typename: "CapitalMetricContribution",
@@ -32515,6 +32747,58 @@ export type GraphQLTypes = {
 	/** Начало периода (UTC) */
 	period_start: GraphQLTypes["DateTime"],
 	['...on CapitalMetricSeriesPoint']: Omit<GraphQLTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+};
+	["CapitalMetricSuperposition"]: {
+	__typename: "CapitalMetricSuperposition",
+	/** Rollup планов/фактов по дочерним компонентам */
+	components: Array<GraphQLTypes["CapitalMetricComponentRollup"]>,
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Метрики в суперпозиции */
+	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number,
+	['...on CapitalMetricSuperposition']: Omit<GraphQLTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
+};
+	["CapitalMetricSuperpositionItem"]: {
+	__typename: "CapitalMetricSuperpositionItem",
+	/** Текущая метка волны */
+	current_label: GraphQLTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: GraphQLTypes["WavePhase"],
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive: GraphQLTypes["MetricDriveDirection"],
+	/** Факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity: number,
+	/** Режим ряда */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Цель */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalMetricSuperpositionItem']: Omit<GraphQLTypes["CapitalMetricSuperpositionItem"], "...on CapitalMetricSuperpositionItem">
 };
 	["CapitalMetricWave"]: {
 	__typename: "CapitalMetricWave",
@@ -35961,6 +36245,12 @@ export type GraphQLTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: GraphQLTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionInput"]: {
+		/** Период агрегации для волновой фазы */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
 	["GetMetricWaveInput"]: {
 		/** Хеш метрики */
 	metric_hash: string,
@@ -36659,6 +36949,8 @@ export type GraphQLTypes = {
 ["MembershipExitStatus"]: MembershipExitStatus;
 	/** Источник вклада в метрику */
 ["MetricContributionSource"]: MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]: MetricDriveDirection;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]: MetricSeriesMode;
 	/** Период агрегации ряда метрики */
@@ -38939,6 +39231,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: GraphQLTypes["CapitalMetricSeries"],
+	/** Суперпозиция метрик и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperposition: GraphQLTypes["CapitalMetricSuperposition"],
 	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
 
 Требуемые роли: chairman, member, user.  */
@@ -41366,6 +41662,12 @@ export enum MetricContributionSource {
 	ISSUE_REOPEN = "ISSUE_REOPEN",
 	MANUAL = "MANUAL"
 }
+/** Направление вклада метрики в общую динамику */
+export enum MetricDriveDirection {
+	DOWN = "DOWN",
+	FLAT = "FLAT",
+	UP = "UP"
+}
 /** Режим ряда метрики: скорость или уровень значения */
 export enum MetricSeriesMode {
 	LEVEL = "LEVEL",
@@ -41808,6 +42110,7 @@ type ZEUS_VARIABLES = {
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
 	["GetMetricSeriesInput"]: ValueTypes["GetMetricSeriesInput"];
+	["GetMetricSuperpositionInput"]: ValueTypes["GetMetricSuperpositionInput"];
 	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
@@ -41846,6 +42149,7 @@ type ZEUS_VARIABLES = {
 	["MembershipExitDecisionGenerateDocumentInput"]: ValueTypes["MembershipExitDecisionGenerateDocumentInput"];
 	["MembershipExitStatus"]: ValueTypes["MembershipExitStatus"];
 	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
+	["MetricDriveDirection"]: ValueTypes["MetricDriveDirection"];
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
 	["MetricSeriesPeriod"]: ValueTypes["MetricSeriesPeriod"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];

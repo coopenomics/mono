@@ -14,6 +14,9 @@
 
   .planning-page__section(v-if='project')
     ComponentMetricsPanel(:project-hash='project.project_hash')
+
+  .planning-page__section(v-if='project')
+    MetricSuperpositionPanel(:project-hash='project.project_hash')
 </template>
 
 <script lang="ts" setup>
@@ -27,6 +30,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
 import { FailAlert } from 'src/shared/api';
 import { ComponentMetricsPanel } from 'app/extensions/capital/features/Metric/ManageComponentMetrics';
+import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
 
 const route = useRoute();
 const projectStore = useProjectStore();

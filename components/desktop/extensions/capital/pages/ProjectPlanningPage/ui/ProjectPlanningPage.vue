@@ -15,6 +15,9 @@
     .planning-page__skel(v-else)
       .skel(v-for='i in 6', :key='i')
 
+  .planning-page__section(v-if='project')
+    MetricSuperpositionPanel(:project-hash='project.project_hash')
+
   //- Планы по каждому компоненту
   .planning-page__section(
     v-for='component in components',
@@ -39,6 +42,7 @@ import type {
 } from 'app/extensions/capital/entities/Project/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
+import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
 import { FailAlert } from 'src/shared/api';
 
 const route = useRoute();

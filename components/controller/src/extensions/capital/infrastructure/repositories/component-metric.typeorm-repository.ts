@@ -42,6 +42,23 @@ export class ComponentMetricTypeormRepository implements ComponentMetricReposito
     return entities.map(ComponentMetricMapper.toDomain);
   }
 
+  async findByProjectHashes(
+    projectHashes: string[],
+    status?: MetricStatus
+  ): Promise<ComponentMetricDomainEntity[]> {
+    if (projectHashes.length === 0) return [];
+    const normalized = projectHashes.map((h) => h.toLowerCase());
+    const qb = this.repo
+      .createQueryBuilder('m')
+      .where('m.project_hash IN (:...hashes)', { hashes: normalized })
+      .orderBy('m._created_at', 'ASC');
+    if (status) {
+      qb.andWhere('m.status = :status', { status });
+    }
+    const entities = await qb.getMany();
+    return entities.map(ComponentMetricMapper.toDomain);
+  }
+
   async update(metric: ComponentMetricDomainEntity): Promise<ComponentMetricDomainEntity> {
     await this.repo.save(ComponentMetricMapper.toEntity(metric));
     const updated = await this.repo.findOne({ where: { _id: metric._id } });

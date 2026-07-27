@@ -22,8 +22,11 @@ import { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
 import { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
 import { MetricWaveOutputDTO } from '../dto/metrics/metric-wave.dto';
 import { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input.dto';
-// register GraphQL enums WaveLabel / WavePhase
+import { MetricSuperpositionOutputDTO } from '../dto/metrics/metric-superposition.dto';
+import { GetMetricSuperpositionInputDTO } from '../dto/metrics/get-metric-superposition-input.dto';
+// register GraphQL enums WaveLabel / WavePhase / MetricDriveDirection
 import '../../domain/enums/wave-label.enum';
+import '../../domain/enums/metric-drive-direction.enum';
 
 const paginatedMetricContributionsResult = createPaginationResult(
   MetricContributionOutputDTO,
@@ -163,5 +166,18 @@ export class ComponentMetricResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<MetricWaveOutputDTO> {
     return this.componentMetricService.getMetricWave(data, currentUser);
+  }
+
+  @Query(() => MetricSuperpositionOutputDTO, {
+    name: 'capitalMetricSuperposition',
+    description: 'Суперпозиция метрик и rollup планов/фактов по компонентам',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async getMetricSuperposition(
+    @Args('data', { type: () => GetMetricSuperpositionInputDTO }) data: GetMetricSuperpositionInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MetricSuperpositionOutputDTO> {
+    return this.componentMetricService.getMetricSuperposition(data, currentUser);
   }
 }

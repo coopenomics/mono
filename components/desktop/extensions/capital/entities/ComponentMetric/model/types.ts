@@ -61,3 +61,11 @@ export type IGetMetricWaveOutput =
   Queries.Capital.GetMetricWave.IOutput[typeof Queries.Capital.GetMetricWave.name];
 
 export type IMetricWave = Zeus.ModelTypes['CapitalMetricWave'];
+
+export type IGetMetricSuperpositionInput =
+  Queries.Capital.GetMetricSuperposition.IInput['data'];
+
+export type IGetMetricSuperpositionOutput =
+  Queries.Capital.GetMetricSuperposition.IOutput[typeof Queries.Capital.GetMetricSuperposition.name];
+
+export type IMetricSuperposition = Zeus.ModelTypes['CapitalMetricSuperposition'];

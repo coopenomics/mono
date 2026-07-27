@@ -665,6 +665,9 @@ export const AllTypesProps: Record<string,any> = {
 		period:"MetricSeriesPeriod",
 		to:"DateTime"
 	},
+	GetMetricSuperpositionInput:{
+		period:"MetricSeriesPeriod"
+	},
 	GetMetricWaveInput:{
 		period:"MetricSeriesPeriod"
 	},
@@ -760,6 +763,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	MembershipExitStatus: "enum" as const,
 	MetricContributionSource: "enum" as const,
+	MetricDriveDirection: "enum" as const,
 	MetricSeriesMode: "enum" as const,
 	MetricSeriesPeriod: "enum" as const,
 	MetricStatus: "enum" as const,
@@ -1674,6 +1678,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalMetricSeries:{
 			data:"GetMetricSeriesInput"
+		},
+		capitalMetricSuperposition:{
+			data:"GetMetricSuperpositionInput"
 		},
 		capitalMetricWave:{
 			data:"GetMetricWaveInput"
@@ -2939,6 +2946,13 @@ export const ReturnTypes: Record<string,any> = {
 		reference_id:"String",
 		title:"String"
 	},
+	CapitalMetricComponentRollup:{
+		fact_sum:"Float",
+		metrics_count:"Int",
+		project_hash:"String",
+		project_title:"String",
+		target_sum:"Float"
+	},
 	CapitalMetricContribution:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -2969,6 +2983,32 @@ export const ReturnTypes: Record<string,any> = {
 		ideal_cumulative:"Float",
 		period_end:"DateTime",
 		period_start:"DateTime"
+	},
+	CapitalMetricSuperposition:{
+		components:"CapitalMetricComponentRollup",
+		disclaimer:"String",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		items:"CapitalMetricSuperpositionItem",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionItem:{
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		drive:"MetricDriveDirection",
+		fact:"Float",
+		metric_hash:"String",
+		project_hash:"String",
+		project_title:"String",
+		recent_velocity:"Float",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
 	},
 	CapitalMetricWave:{
 		corridor:"CapitalWaveCorridor",
@@ -4841,6 +4881,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
 		capitalMetricSeries:"CapitalMetricSeries",
+		capitalMetricSuperposition:"CapitalMetricSuperposition",
 		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",

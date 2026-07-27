@@ -5,6 +5,10 @@ export interface ComponentMetricRepository {
   create(metric: ComponentMetricDomainEntity): Promise<ComponentMetricDomainEntity>;
   findByMetricHash(metricHash: string): Promise<ComponentMetricDomainEntity | null>;
   findByProjectHash(projectHash: string, status?: MetricStatus): Promise<ComponentMetricDomainEntity[]>;
+  findByProjectHashes(
+    projectHashes: string[],
+    status?: MetricStatus
+  ): Promise<ComponentMetricDomainEntity[]>;
   update(metric: ComponentMetricDomainEntity): Promise<ComponentMetricDomainEntity>;
 }
 
