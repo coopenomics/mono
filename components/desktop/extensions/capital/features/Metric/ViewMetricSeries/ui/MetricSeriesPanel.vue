@@ -1,143 +1,357 @@
 <template lang="pug">
 .metric-series
-  .metric-series__toolbar
-    BaseSelect(
-      v-model='period',
-      :options='periodOptions',
-      label='Период'
-    )
-    .metric-series__manual
-      BaseInput(
-        v-model='manualDelta',
-        type='number',
-        label='Ручной вклад'
-      )
-      BaseButton(
-        variant='secondary',
-        size='sm',
-        :loading='isLogging',
-        @click='logContribution'
-      ) Записать
+  .metric-series__view(v-if='series && series.points.length')
+    .metric-series__chart(v-show='chartMode === "accumulation"')
+      .metric-series__hint Факт и прогноз к цели
+      ClientOnly
+        template(#default)
+          component.metric-series__apex(
+            :is='ApexChart',
+            type='line',
+            height='240',
+            :options='accumulationOptions',
+            :series='accumulationSeries'
+          )
+        template(#fallback)
+          .metric-series__skel-chart
 
-  .metric-series__dashboard(v-if='series && series.points.length')
-    .metric-series__card
-      .metric-series__card-head
-        .metric-series__label Накопление
-        .metric-series__hint Факт к цели по периодам
-      svg.metric-series__svg(
-        :viewBox='`0 0 ${svgW} ${svgH}`',
-        preserveAspectRatio='none'
-      )
-        line.metric-series__target(
-          :x1='pad',
-          :y1='yOf(series.target_value)',
-          :x2='svgW - pad',
-          :y2='yOf(series.target_value)'
-        )
-        polyline.metric-series__ideal(
-          v-if='idealPoints',
-          :points='idealPoints'
-        )
-        polyline.metric-series__cum(
-          :points='cumPoints'
-        )
-      .metric-series__legend
-        span.metric-series__leg.metric-series__leg--fact Факт
-        span.metric-series__leg.metric-series__leg--ideal(v-if='hasIdeal') План
-        span.metric-series__leg.metric-series__leg--target Цель {{ series.target_value }}
+    .metric-series__chart(v-show='chartMode === "dynamics"')
+      .metric-series__hint Изменения и прогноз динамики
+      ClientOnly
+        template(#default)
+          component.metric-series__apex(
+            :is='ApexChart',
+            type='line',
+            height='240',
+            :options='dynamicsOptions',
+            :series='dynamicsSeries'
+          )
+        template(#fallback)
+          .metric-series__skel-chart
 
-    .metric-series__card
-      MetricWavePanel(
-        :metric-hash='metricHash',
-        :period='period',
-        :deltas='series.points.map((p) => p.delta)'
-      )
+    .metric-series__footer
+      .metric-series__modes
+        button.metric-series__mode(
+          v-for='mode in chartModes',
+          :key='mode.value',
+          type='button',
+          :class='{ "metric-series__mode--active": chartMode === mode.value }',
+          @click='chartMode = mode.value'
+        ) {{ mode.label }}
+      .metric-series__period
+        BaseSelect(
+          v-model='period',
+          :options='periodOptions',
+          placeholder='Период'
+        )
 
   .metric-series__empty(v-else-if='!isLoading')
-    EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой или внесите ручной вклад')
+    EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой метрики')
       template(#icon)
         q-icon(name='timeline', size='28px')
 
   .metric-series__skel(v-if='isLoading')
     .skel
-    .skel
 </template>
 
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+/**
+ * Два графика: накопление и динамика. Волновая разметка только в API (`getMetricWave`);
+ * здесь рисуем факт + линии прогноза. Правила проекции — `lib/projectMetricForecast.ts`.
+ */
+import { computed, defineAsyncComponent, ref, toRef } from 'vue';
+import { useQuasar } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
-import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base';
+import type { ApexOptions } from 'apexcharts';
+import { BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { ClientOnly } from 'src/shared/ui/ClientOnly';
 import { useMetricSeries } from '../model';
-import MetricWavePanel from './MetricWavePanel.vue';
+import { formatPeriodLabel } from '../lib/formatPeriodLabel';
+import { metricChartPalette } from '../lib/metricChartTheme';
+import {
+  buildSparseTooltip,
+  formatMetric,
+  isLevelSeriesMode,
+  padForecastSeries,
+  projectAccumulationPath,
+  projectDynamicsPath,
+  roundMetric,
+  scenarioPathsFromWave,
+} from '../lib/projectMetricForecast';
+
+type ChartMode = 'accumulation' | 'dynamics';
 
 const props = defineProps<{
   metricHash: string;
 }>();
 
-const emit = defineEmits<{
-  updated: [];
-}>();
-
+const $q = useQuasar();
 const metricHashRef = toRef(props, 'metricHash');
 const {
   series,
+  wave,
   isLoading,
-  isLogging,
   period,
-  manualDelta,
-  logContribution,
-} = useMetricSeries(() => metricHashRef.value, () => emit('updated'));
+} = useMetricSeries(() => metricHashRef.value);
+
+const chartMode = ref<ChartMode>('accumulation');
+
+const chartModes: { label: string; value: ChartMode }[] = [
+  { label: 'Накопление', value: 'accumulation' },
+  { label: 'Динамика', value: 'dynamics' },
+];
 
 const periodOptions = [
+  { label: '1 мин', value: Zeus.MetricSeriesPeriod.MINUTE },
+  { label: '5 мин', value: Zeus.MetricSeriesPeriod.MINUTE_5 },
+  { label: '15 мин', value: Zeus.MetricSeriesPeriod.MINUTE_15 },
+  { label: 'Час', value: Zeus.MetricSeriesPeriod.HOUR },
   { label: 'День', value: Zeus.MetricSeriesPeriod.DAY },
   { label: 'Неделя', value: Zeus.MetricSeriesPeriod.WEEK },
   { label: 'Месяц', value: Zeus.MetricSeriesPeriod.MONTH },
 ];
 
-const svgW = 320;
-const svgH = 192;
-const pad = 10;
+const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'));
 
-const yMax = computed(() => {
+const histCategories = computed(() => {
   const s = series.value;
-  if (!s?.points.length) return 1;
-  const vals = s.points.flatMap((p) => [
-    p.cumulative,
-    p.ideal_cumulative ?? 0,
-    s.target_value,
-  ]);
-  const max = Math.max(...vals, 1);
-  return max * 1.05;
+  if (!s?.points.length) return [];
+  return s.points.map((p) => formatPeriodLabel(p.period_start, period.value));
 });
 
-const yOf = (v: number) => {
-  const max = yMax.value || 1;
-  return svgH - pad - ((Math.max(v, 0) / max) * (svgH - pad * 2));
-};
-
-const xOf = (i: number, n: number) => {
-  if (n <= 1) return svgW / 2;
-  return pad + (i / (n - 1)) * (svgW - pad * 2);
-};
-
-const cumPoints = computed(() => {
-  const s = series.value;
-  if (!s?.points.length) return '';
-  return s.points
-    .map((p, i) => `${xOf(i, s.points.length)},${yOf(p.cumulative)}`)
-    .join(' ');
-});
+const forecastCategories = computed(() => [...histCategories.value, '→', '→→']);
 
 const hasIdeal = computed(() =>
   !!series.value?.points.some((p) => p.ideal_cumulative != null),
 );
 
-const idealPoints = computed(() => {
+const levelMode = computed(() =>
+  isLevelSeriesMode(series.value?.series_mode, wave.value),
+);
+
+const scenarios = computed(() => scenarioPathsFromWave(wave.value));
+
+const lastFact = computed(() => {
+  const pts = series.value?.points;
+  if (!pts?.length) return series.value?.fact ?? 0;
+  return pts[pts.length - 1].cumulative;
+});
+
+const lastLevelForDynamics = computed(() => {
+  if (!levelMode.value) return 0;
+  const values = wave.value?.values;
+  if (values?.length) return values[values.length - 1];
+  return lastFact.value;
+});
+
+const baseChartOptions = computed((): ApexOptions => {
+  void $q.dark.isActive;
+  const p = metricChartPalette();
+
+  return {
+    chart: {
+      background: 'transparent',
+      foreColor: p.ink2,
+      toolbar: { show: false },
+      zoom: { enabled: false },
+      fontFamily: 'inherit',
+      animations: { enabled: true, speed: 300 },
+    },
+    theme: { mode: $q.dark.isActive ? 'dark' : 'light' },
+    grid: {
+      borderColor: p.line,
+      strokeDashArray: 3,
+      padding: { left: 8, right: 8 },
+    },
+    dataLabels: { enabled: false },
+    legend: {
+      position: 'bottom',
+      horizontalAlign: 'left',
+      fontSize: '12px',
+      labels: { colors: p.ink3 },
+      markers: { size: 4 },
+    },
+    yaxis: {
+      labels: {
+        style: { colors: p.ink3, fontSize: '11px' },
+        formatter: (v: number) => formatMetric(v),
+      },
+    },
+    tooltip: {
+      theme: $q.dark.isActive ? 'dark' : 'light',
+      shared: true,
+      intersect: false,
+      custom: buildSparseTooltip(),
+    },
+  };
+});
+
+function xaxisFor(categories: string[]): ApexOptions['xaxis'] {
+  const p = metricChartPalette();
+  return {
+    categories,
+    labels: {
+      style: { colors: p.ink3, fontSize: '11px' },
+      rotate: 0,
+      hideOverlappingLabels: true,
+    },
+    axisBorder: { color: p.line },
+    axisTicks: { color: p.line },
+    tooltip: { enabled: false },
+  };
+}
+
+const accumulationSeries = computed(() => {
   const s = series.value;
-  if (!s?.points.length || !hasIdeal.value) return '';
-  return s.points
-    .map((p, i) => `${xOf(i, s.points.length)},${yOf(p.ideal_cumulative ?? 0)}`)
-    .join(' ');
+  if (!s?.points.length) return [];
+  const factData = s.points.map((p) => roundMetric(p.cumulative));
+  const result: { name: string; data: Array<number | null> }[] = [
+    {
+      name: 'Факт',
+      data: [...factData, null, null],
+    },
+  ];
+  if (hasIdeal.value) {
+    result.push({
+      name: 'План',
+      data: [
+        ...s.points.map((p) =>
+          p.ideal_cumulative == null ? null : roundMetric(p.ideal_cumulative),
+        ),
+        null,
+        null,
+      ],
+    });
+  }
+
+  const level = levelMode.value;
+  for (const sc of scenarios.value) {
+    const projected = projectAccumulationPath(sc.path, lastFact.value, {
+      levelMode: level,
+    });
+    result.push({
+      name: sc.label,
+      data: padForecastSeries(factData, projected),
+    });
+  }
+
+  return result;
+});
+
+const accumulationOptions = computed((): ApexOptions => {
+  void $q.dark.isActive;
+  const p = metricChartPalette();
+  const target = series.value?.target_value ?? 0;
+  const colors = [p.primary, p.ink3, p.pos, p.ink2, p.neg, p.warn, p.primary, p.ink2];
+  const dash = accumulationSeries.value.map((_, i) => (i === 0 ? 0 : 6));
+  const widths = accumulationSeries.value.map((_, i) => (i === 0 ? 2 : 1.5));
+
+  return {
+    ...baseChartOptions.value,
+    colors: colors.slice(0, Math.max(accumulationSeries.value.length, 1)),
+    stroke: {
+      width: widths,
+      curve: 'smooth',
+      dashArray: dash,
+    },
+    markers: { size: 0, hover: { size: 5 } },
+    xaxis: xaxisFor(forecastCategories.value),
+    annotations: {
+      yaxis: [
+        {
+          y: target,
+          borderColor: p.warn,
+          strokeDashArray: 4,
+          label: {
+            text: `Цель ${target}`,
+            style: {
+              color: p.warn,
+              background: 'transparent',
+              fontSize: '11px',
+            },
+            position: 'right',
+            offsetX: 0,
+          },
+        },
+      ],
+    },
+  };
+});
+
+const dynamicsSeries = computed(() => {
+  const s = series.value;
+  if (!s?.points.length) return [];
+  const hist = s.points.map((p) => roundMetric(p.delta));
+  const result: {
+    name: string;
+    type: 'bar' | 'line';
+    data: Array<number | null>;
+  }[] = [
+    {
+      name: 'Изменение',
+      type: 'bar',
+      data: [...hist, null, null],
+    },
+  ];
+
+  const level = levelMode.value;
+  for (const sc of scenarios.value) {
+    const projected = projectDynamicsPath(sc.path, lastLevelForDynamics.value, {
+      levelMode: level,
+    });
+    result.push({
+      name: sc.label,
+      type: 'line',
+      data: padForecastSeries(hist, projected),
+    });
+  }
+
+  return result;
+});
+
+const dynamicsOptions = computed((): ApexOptions => {
+  void $q.dark.isActive;
+  const p = metricChartPalette();
+  const deltas = series.value?.points.map((pt) => pt.delta) ?? [];
+  const absMax = Math.max(...deltas.map((d) => Math.abs(d)), 1);
+  const n = dynamicsSeries.value.length;
+  const colors = [p.primary, p.pos, p.ink2, p.neg, p.warn, p.primary, p.ink3];
+  const dash = dynamicsSeries.value.map((_, i) => (i === 0 ? 0 : 5));
+  const widths = dynamicsSeries.value.map((_, i) => (i === 0 ? 0 : 1.5));
+
+  return {
+    ...baseChartOptions.value,
+    chart: {
+      ...baseChartOptions.value.chart,
+      type: 'line',
+    },
+    colors: colors.slice(0, Math.max(n, 1)),
+    stroke: {
+      width: widths,
+      curve: 'straight',
+      dashArray: dash,
+    },
+    plotOptions: {
+      bar: {
+        borderRadius: 2,
+        columnWidth: '55%',
+        colors: {
+          ranges: [
+            { from: -absMax * 10, to: -0.000001, color: p.neg },
+            { from: 0, to: absMax * 10, color: p.primary },
+          ],
+        },
+      },
+    },
+    markers: { size: 0, hover: { size: 5 } },
+    xaxis: xaxisFor(forecastCategories.value),
+    tooltip: {
+      theme: $q.dark.isActive ? 'dark' : 'light',
+      shared: true,
+      intersect: false,
+      custom: buildSparseTooltip({ signed: true }),
+    },
+  };
 });
 </script>
 
@@ -146,53 +360,102 @@ const idealPoints = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
-  padding-top: var(--p-2);
-  border-top: 1px solid var(--p-line);
-  margin-top: var(--p-2);
 }
 
-.metric-series__toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: var(--p-2);
-  align-items: end;
-}
-
-.metric-series__manual {
+.metric-series__view {
   display: flex;
-  gap: var(--p-2);
-  align-items: end;
-}
-
-.metric-series__dashboard {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex-direction: column;
   gap: var(--p-3);
 }
 
-@media (max-width: 720px) {
-  .metric-series__dashboard {
-    grid-template-columns: 1fr;
-  }
+.metric-series__footer {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2);
+  min-height: 32px;
 }
 
-.metric-series__card {
+.metric-series__modes {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--p-1);
+  min-width: 0;
+  height: 32px;
+}
+
+.metric-series__mode {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0 var(--p-2);
+  height: 32px;
+  font: inherit;
+  font-size: var(--p-fs-caption);
+  color: var(--p-ink-3);
+  cursor: pointer;
+  border-radius: var(--p-r-sm);
+}
+
+.metric-series__mode:hover {
+  color: var(--p-ink-2);
+}
+
+.metric-series__mode--active {
+  color: var(--p-ink);
+  font-weight: 600;
+  background: var(--p-surface-3, var(--p-line));
+}
+
+.metric-series__period {
+  width: 120px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.metric-series__period :deep(.q-field) {
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+}
+
+.metric-series__period :deep(.q-field__bottom) {
+  display: none;
+}
+
+.metric-series__period :deep(.q-field__control),
+.metric-series__period :deep(.q-field--dense .q-field__control) {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px;
+}
+
+.metric-series__period :deep(.q-field__marginal),
+.metric-series__period :deep(.q-field__native),
+.metric-series__period :deep(.q-field__prefix),
+.metric-series__period :deep(.q-field__suffix),
+.metric-series__period :deep(.q-field__input) {
+  height: 32px;
+  min-height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 32px;
+}
+
+.metric-series__chart {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
   min-width: 0;
-}
-
-.metric-series__card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.metric-series__label {
-  font-size: var(--p-fs-caption);
-  color: var(--p-ink);
-  font-weight: 600;
+  padding: var(--p-2);
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-sm);
 }
 
 .metric-series__hint {
@@ -200,76 +463,23 @@ const idealPoints = computed(() => {
   color: var(--p-ink-3);
 }
 
-.metric-series__svg {
+.metric-series__apex {
   width: 100%;
-  height: 192px;
-  background: var(--p-surface-2);
+  min-height: 240px;
+}
+
+.metric-series__skel-chart {
+  height: 240px;
   border-radius: var(--p-r-sm);
-}
-
-.metric-series__cum {
-  fill: none;
-  stroke: var(--p-primary);
-  stroke-width: 2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.metric-series__ideal {
-  fill: none;
-  stroke: var(--p-ink-3);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 3;
-}
-
-.metric-series__target {
-  stroke: var(--p-warn);
-  stroke-width: 1;
-  stroke-dasharray: 2 2;
-}
-
-.metric-series__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--p-2) var(--p-3);
-  font-size: var(--p-fs-caption);
-  color: var(--p-ink-3);
-}
-
-.metric-series__leg::before {
-  content: '';
-  display: inline-block;
-  width: 10px;
-  height: 2px;
-  margin-right: var(--p-1);
-  vertical-align: middle;
-  background: currentColor;
-}
-
-.metric-series__leg--fact::before {
-  background: var(--p-primary);
-}
-
-.metric-series__leg--ideal::before {
-  background: var(--p-ink-3);
-}
-
-.metric-series__leg--target::before {
-  background: var(--p-warn);
+  background: var(--p-surface-3, var(--p-surface-2));
 }
 
 .metric-series__empty {
   padding: var(--p-2) 0;
 }
 
-.metric-series__skel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--p-3);
-}
-
 .metric-series__skel .skel {
-  height: 192px;
+  height: 240px;
   border-radius: var(--p-r-sm);
   background: var(--p-surface-2);
 }

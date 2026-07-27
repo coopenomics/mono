@@ -1,7 +1,70 @@
+/**
+ * Волновой прогноз метрики (под капотом UI).
+ *
+ * Модель (упрощённый Эллиотт на две ноги):
+ * - Точка 0 = старт ряда (не нумеруется).
+ * - Волна 1 = первый значимый экстремум по тренду.
+ * - Коррекция: уровни 0.382 / 0.5 / 0.618 отхода от хода 0→1.
+ * - Следующий импульс: от уровня коррекции × 1.618 амплитуды волны 1.
+ *
+ * На каком ряде строится:
+ * - MetricSeriesMode.RATE — на Δ за период (счётчики вроде «новые пользователи»).
+ * - MetricSeriesMode.LEVEL — на уровне значения (может откатываться).
+ *
+ * Затухание / «стоим на месте»:
+ * - recentActivityScore → [0..1] по энергии последних периодов.
+ * - activity≈0 → коридор схлопывается в [last, last] (плоский прогноз на факте).
+ * - activity→1 → полный волновой сценарий; малое действие — частичный разгон.
+ *   (если долго нет ±, вероятность «выстрела» считаем нулевой — не тянем вверх/вниз.)
+ *
+ * UI не рисует свинги/фибо-сетку: только сценарии коридора
+ * (на UI сейчас base = 0.5→1.618), которые фронт проецирует
+ * на накопление и динамику (см. desktop projectMetricForecast.ts).
+ */
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
 
-/** Классические Фибо-уровни для сетки и норм волн */
-export const FIB_RATIOS = [0.236, 0.382, 0.5, 0.618, 1.0, 1.618, 2.618] as const;
+/** Основные ретрейсменты коррекции после волны 1 */
+export const CORRECTION_RATIOS = [0.382, 0.5, 0.618] as const;
+
+/** Удлинение следующего импульса от дна коррекции */
+export const IMPULSE_EXTENSION = 1.618;
+
+/**
+ * Энергия движения за последние lookback периодов → [0..1].
+ * 0 — ряд стоит (LEVEL: уровень не меняется / RATE: Δ≈0);
+ * 1 — есть заметная активность (полный волновой разгон).
+ */
+export function recentActivityScore(
+  values: number[],
+  mode: MetricSeriesMode,
+  lookback = 4
+): number {
+  if (values.length < 2) return 0;
+  const n = Math.min(lookback, values.length - 1);
+  let energy = 0;
+  const start = values.length - n;
+  for (let i = start; i < values.length; i++) {
+    if (mode === MetricSeriesMode.RATE) {
+      energy += Math.abs(values[i]);
+    } else {
+      energy += Math.abs(values[i] - values[i - 1]);
+    }
+  }
+  const peak = Math.max(...values.map((v) => Math.abs(v)), 1e-9);
+  // «полная» активность: суммарный ход порядка 15% пика на каждый период lookback
+  const full = peak * 0.15 * n;
+  return Math.max(0, Math.min(1, energy / full));
+}
+
+/** Смешивает волновой путь к плоскому [last,last] при низкой активности. */
+export function blendPathWithActivity(
+  path: number[],
+  last: number,
+  activity: number
+): number[] {
+  const a = Math.max(0, Math.min(1, activity));
+  return path.map((v) => last + (v - last) * a);
+}
 
 export enum WaveLabel {
   W1 = 'W1',
@@ -19,18 +82,6 @@ export enum WavePhase {
   CORRECTION = 'CORRECTION',
 }
 
-const IMPULSE_SEQUENCE: WaveLabel[] = [
-  WaveLabel.W1,
-  WaveLabel.W2,
-  WaveLabel.W3,
-  WaveLabel.W4,
-  WaveLabel.W5,
-];
-
-const CORRECTION_SEQUENCE: WaveLabel[] = [WaveLabel.WA, WaveLabel.WB, WaveLabel.WC];
-
-const FULL_CYCLE: WaveLabel[] = [...IMPULSE_SEQUENCE, ...CORRECTION_SEQUENCE];
-
 export interface WaveSwing {
   index: number;
   value: number;
@@ -43,13 +94,13 @@ export interface FibLevel {
 }
 
 export interface ForecastCorridor {
-  /** Горизонт прогноза в периодах */
   periods_ahead: number;
-  /** Прогноз значений анализируемого ряда (скорость или уровень) */
+  /** Сценарий мелкой коррекции 0.382 → импульс 1.618: [correction, impulse] */
   optimistic: number[];
+  /** Сценарий 0.5 → импульс 1.618 */
   base: number[];
+  /** Сценарий глубокой коррекции 0.618 → импульс 1.618 */
   pessimistic: number[];
-  /** Оценка числа периодов до цели по накопленному факту; null если цель уже достигнута / недостижима */
   eta_optimistic_periods: number | null;
   eta_base_periods: number | null;
   eta_pessimistic_periods: number | null;
@@ -59,310 +110,225 @@ export interface WaveMarkupResult {
   series_kind: MetricSeriesMode;
   current_label: WaveLabel;
   current_phase: WavePhase;
+  /** Только завершённые волны: W1 на конце первой, W2 на дне коррекции (если есть) */
   swings: WaveSwing[];
-  /** Подпись волны на каждой точке ряда (между свингами — текущая незакрытая) */
   point_labels: Array<WaveLabel | null>;
+  /** Уровни коррекции 0.382 / 0.5 / 0.618 от хода 0→1 */
   fib_levels: FibLevel[];
   corridor: ForecastCorridor;
   disclaimer: string;
+  /** Старт отсчёта волны (точка 0), не подписывается на графике */
+  origin: { index: number; value: number } | null;
+  wave1_amplitude: number;
 }
 
 export interface AnalyzeWaveInput {
-  /** Ряд для разметки: Δ (rate) или уровень (level) */
   values: number[];
   series_mode: MetricSeriesMode;
-  /** Текущий накопленный fact (для ETA) */
   fact: number;
   target_value: number;
-  /** Сколько периодов вперёд рисовать коридор */
   periods_ahead?: number;
 }
 
 export const WAVE_DISCLAIMER =
   'Рабочая разметка, пересматривается с каждой новой точкой — не установленный факт.';
 
-function phaseOf(label: WaveLabel): WavePhase {
-  return IMPULSE_SEQUENCE.includes(label) ? WavePhase.IMPULSE : WavePhase.CORRECTION;
+function emptyCorridor(periodsAhead: number): ForecastCorridor {
+  return {
+    periods_ahead: periodsAhead,
+    optimistic: [],
+    base: [],
+    pessimistic: [],
+    eta_optimistic_periods: null,
+    eta_base_periods: null,
+    eta_pessimistic_periods: null,
+  };
 }
 
 /**
- * Zigzag-свинги: локальные экстремумы с минимальным относительным ходом.
- * При коротком ряде — стартовая и последняя точки как зачатки волн.
+ * Ищет конец волны 1: первый значимый локальный экстремум по тренду от старта.
+ * Точка 0 = values[0], точка 1 = этот экстремум (не старт ряда).
  */
-export function detectSwings(values: number[]): Array<{ index: number; value: number }> {
-  if (values.length === 0) return [];
-  if (values.length === 1) return [{ index: 0, value: values[0] }];
+export function findWave1End(
+  values: number[]
+): { origin: { index: number; value: number }; wave1: { index: number; value: number } } | null {
+  if (values.length < 2) return null;
 
+  const origin = { index: 0, value: values[0] };
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(max - min, Math.abs(max), Math.abs(min), 1e-9);
   const threshold = range * 0.08;
 
-  const raw: Array<{ index: number; value: number; kind: 'high' | 'low' }> = [];
-  raw.push({
-    index: 0,
-    value: values[0],
-    kind: values[1] >= values[0] ? 'low' : 'high',
-  });
-
-  for (let i = 1; i < values.length - 1; i++) {
-    const prev = values[i - 1];
-    const cur = values[i];
-    const next = values[i + 1];
-    const isHigh = cur >= prev && cur >= next;
-    const isLow = cur <= prev && cur <= next;
-    if (isHigh) raw.push({ index: i, value: cur, kind: 'high' });
-    if (isLow) raw.push({ index: i, value: cur, kind: 'low' });
-  }
-
-  raw.push({
-    index: values.length - 1,
-    value: values[values.length - 1],
-    kind: values[values.length - 1] >= values[values.length - 2] ? 'high' : 'low',
-  });
-
-  // Сжимаем: чередование high/low и порог хода
-  const filtered: Array<{ index: number; value: number }> = [];
-  for (const pivot of raw) {
-    if (filtered.length === 0) {
-      filtered.push({ index: pivot.index, value: pivot.value });
-      continue;
+  // Направление первой волны — куда ушёл первый заметный ход
+  let trend = 0;
+  for (let i = 1; i < values.length; i++) {
+    const move = values[i] - origin.value;
+    if (Math.abs(move) >= threshold) {
+      trend = Math.sign(move);
+      break;
     }
-    const last = filtered[filtered.length - 1];
-    if (pivot.index === last.index) continue;
-    const move = Math.abs(pivot.value - last.value);
-    if (move < threshold && pivot.index !== values.length - 1) {
-      // обновляем экстремум того же направления
-      const goingUp = pivot.value > last.value;
-      const prevPrev = filtered.length >= 2 ? filtered[filtered.length - 2] : null;
-      if (prevPrev) {
-        const wasUp = last.value > prevPrev.value;
-        if (goingUp === wasUp) {
-          filtered[filtered.length - 1] = { index: pivot.index, value: pivot.value };
-        }
+  }
+  if (trend === 0) {
+    // Весь ряд в шуме — берём глобальный экстремум как конец W1
+    let bestIdx = 0;
+    for (let i = 1; i < values.length; i++) {
+      if (Math.abs(values[i] - origin.value) > Math.abs(values[bestIdx] - origin.value)) {
+        bestIdx = i;
       }
-      continue;
     }
-    filtered.push({ index: pivot.index, value: pivot.value });
+    if (bestIdx === 0) return null;
+    return { origin, wave1: { index: bestIdx, value: values[bestIdx] } };
   }
 
-  // Убираем подряд идущие в одном направлении — оставляем крайний
-  const swings: Array<{ index: number; value: number }> = [];
-  for (const p of filtered) {
-    if (swings.length < 2) {
-      swings.push(p);
-      continue;
+  // Первый локальный экстремум в сторону тренда после набора амплитуды
+  let extremeIdx = 0;
+  let extremeVal = origin.value;
+  for (let i = 1; i < values.length; i++) {
+    const v = values[i];
+    const improved = trend > 0 ? v >= extremeVal : v <= extremeVal;
+    if (improved) {
+      extremeIdx = i;
+      extremeVal = v;
     }
-    const a = swings[swings.length - 2];
-    const b = swings[swings.length - 1];
-    const dirPrev = Math.sign(b.value - a.value);
-    const dirNext = Math.sign(p.value - b.value);
-    if (dirPrev !== 0 && dirNext === dirPrev) {
-      swings[swings.length - 1] = p;
-    } else {
-      swings.push(p);
+
+    const amp = Math.abs(extremeVal - origin.value);
+    if (amp < threshold) continue;
+
+    // Разворот: следующий бар против тренда относительно экстремума
+    if (i < values.length - 1) {
+      const next = values[i + 1];
+      const reversing = trend > 0 ? next < extremeVal : next > extremeVal;
+      if (reversing && extremeIdx > 0) {
+        return { origin, wave1: { index: extremeIdx, value: extremeVal } };
+      }
     }
   }
 
-  return swings;
+  // Импульс ещё идёт — конец W1 = текущий экстремум по тренду
+  if (extremeIdx > 0 && Math.abs(extremeVal - origin.value) >= threshold) {
+    return { origin, wave1: { index: extremeIdx, value: extremeVal } };
+  }
+
+  return null;
 }
 
-function labelSwings(swings: Array<{ index: number; value: number }>): WaveSwing[] {
-  return swings.map((s, i) => ({
-    ...s,
-    label: FULL_CYCLE[i % FULL_CYCLE.length],
+/**
+ * Дно/вершина коррекции (волна 2): первый значимый экстремум против тренда после W1.
+ */
+export function findWave2End(
+  values: number[],
+  origin: { index: number; value: number },
+  wave1: { index: number; value: number }
+): { index: number; value: number } | null {
+  if (wave1.index >= values.length - 1) return null;
+
+  const amp = wave1.value - origin.value;
+  const trend = Math.sign(amp) || 1;
+  const absAmp = Math.abs(amp);
+  if (absAmp < 1e-12) return null;
+
+  const minRetrace = absAmp * 0.236;
+  let extremeIdx = wave1.index;
+  let extremeVal = wave1.value;
+  let found = false;
+
+  for (let i = wave1.index + 1; i < values.length; i++) {
+    const v = values[i];
+    const deeper = trend > 0 ? v <= extremeVal : v >= extremeVal;
+    if (deeper) {
+      extremeIdx = i;
+      extremeVal = v;
+      found = true;
+    }
+
+    const retraced = Math.abs(wave1.value - extremeVal);
+    if (!found || retraced < minRetrace) continue;
+
+    // Разворот обратно по тренду = коррекция локально завершена
+    if (i < values.length - 1) {
+      const next = values[i + 1];
+      const bounce = trend > 0 ? next > extremeVal : next < extremeVal;
+      if (bounce) {
+        return { index: extremeIdx, value: extremeVal };
+      }
+    }
+  }
+
+  // Коррекция ещё идёт — фиксируем текущий экстремум против тренда, если уже заметный
+  if (found && Math.abs(wave1.value - extremeVal) >= minRetrace) {
+    return { index: extremeIdx, value: extremeVal };
+  }
+
+  return null;
+}
+
+/** Уровни коррекции от хода 0→1 */
+export function buildCorrectionLevels(
+  originValue: number,
+  wave1Value: number
+): FibLevel[] {
+  const amp = wave1Value - originValue;
+  if (Math.abs(amp) < 1e-12) return [];
+
+  return CORRECTION_RATIOS.map((ratio) => ({
+    ratio,
+    value: wave1Value - amp * ratio,
   }));
+}
+
+/** Цель следующего импульса: от уровня коррекции × 1.618 амплитуды W1 */
+export function impulseTargetFromCorrection(
+  correctionValue: number,
+  originValue: number,
+  wave1Value: number,
+  extension = IMPULSE_EXTENSION
+): number {
+  const amp = wave1Value - originValue;
+  const trend = Math.sign(amp) || 1;
+  return correctionValue + trend * Math.abs(amp) * extension;
+}
+
+function etaPeriods(
+  fact: number,
+  target: number,
+  impulseAdd: number
+): number | null {
+  if (fact >= target) return 0;
+  const remaining = target - fact;
+  // Если импульсная нога не двигает факт к цели (откат / против цели) — ETA нет
+  if (impulseAdd === 0) return null;
+  if (Math.sign(remaining) !== Math.sign(impulseAdd)) return null;
+  return Math.max(1, Math.ceil(Math.abs(remaining) / Math.abs(impulseAdd)));
 }
 
 function buildPointLabels(
   length: number,
-  swings: WaveSwing[]
+  wave1Idx: number,
+  wave2Idx: number | null
 ): Array<WaveLabel | null> {
   const labels: Array<WaveLabel | null> = Array(length).fill(null);
-  if (swings.length === 0) return labels;
-
-  for (let i = 0; i < swings.length; i++) {
-    const start = swings[i].index;
-    const end = i + 1 < swings.length ? swings[i + 1].index : length;
-    const label = swings[i].label;
-    for (let j = start; j < end; j++) {
-      labels[j] = label;
-    }
-    labels[start] = label;
+  for (let i = 0; i <= wave1Idx && i < length; i++) {
+    labels[i] = WaveLabel.W1;
   }
-  // последняя точка — текущая незакрытая волна (последний свинг)
-  labels[length - 1] = swings[swings.length - 1].label;
+  if (wave2Idx != null) {
+    for (let i = wave1Idx + 1; i <= wave2Idx && i < length; i++) {
+      labels[i] = WaveLabel.W2;
+    }
+    for (let i = wave2Idx + 1; i < length; i++) {
+      labels[i] = WaveLabel.W3;
+    }
+  }
   return labels;
 }
 
 /**
- * Фибо-сетка от базы последнего импульсного хода (W1→текущий экстремум или W1→W5).
- */
-export function buildFibLevels(swings: WaveSwing[]): FibLevel[] {
-  if (swings.length < 2) return [];
-
-  // Ищем старт W1 в последнем импульсном цикле
-  let startIdx = 0;
-  for (let i = swings.length - 1; i >= 0; i--) {
-    if (swings[i].label === WaveLabel.W1) {
-      startIdx = i;
-      break;
-    }
-  }
-  const start = swings[startIdx];
-  const end = swings[swings.length - 1];
-  const span = end.value - start.value;
-  if (Math.abs(span) < 1e-12) return [];
-
-  return FIB_RATIOS.map((ratio) => ({
-    ratio,
-    value: start.value + span * ratio,
-  }));
-}
-
-function wave1Amplitude(swings: WaveSwing[]): number | null {
-  const w1 = swings.findIndex((s) => s.label === WaveLabel.W1);
-  if (w1 < 0 || w1 + 1 >= swings.length) {
-    if (swings.length >= 2) {
-      return Math.abs(swings[1].value - swings[0].value);
-    }
-    return null;
-  }
-  return Math.abs(swings[w1 + 1].value - swings[w1].value);
-}
-
-function meanAbsStep(values: number[]): number {
-  if (values.length < 2) {
-    return Math.max(Math.abs(values[0] ?? 0), 1);
-  }
-  let sum = 0;
-  for (let i = 1; i < values.length; i++) {
-    sum += Math.abs(values[i] - values[i - 1]);
-  }
-  return Math.max(sum / (values.length - 1), 1e-9);
-}
-
-/**
- * Нормы следующего шага относительно амплитуды W1 (модель Фибо, не статистика).
- * optimistic / base / pessimistic — множители ожидаемого |хода| за период.
- */
-function stepMultipliers(current: WaveLabel): { opt: number; base: number; pess: number } {
-  switch (current) {
-    case WaveLabel.W1:
-      return { opt: 1.0, base: 0.8, pess: 0.5 };
-    case WaveLabel.W2:
-      // коррекция ~0.5–0.618 W1
-      return { opt: 0.382, base: 0.5, pess: 0.618 };
-    case WaveLabel.W3:
-      // обычно самая сильная ~1.618 W1
-      return { opt: 1.618, base: 1.0, pess: 0.618 };
-    case WaveLabel.W4:
-      return { opt: 0.236, base: 0.382, pess: 0.5 };
-    case WaveLabel.W5:
-      return { opt: 1.0, base: 0.618, pess: 0.382 };
-    case WaveLabel.WA:
-      return { opt: 0.618, base: 0.5, pess: 0.382 };
-    case WaveLabel.WB:
-      return { opt: 0.5, base: 0.382, pess: 0.236 };
-    case WaveLabel.WC:
-      return { opt: 1.0, base: 0.618, pess: 0.382 };
-    default:
-      return { opt: 1.0, base: 0.618, pess: 0.382 };
-  }
-}
-
-function expectedDirection(swings: WaveSwing[], current: WaveLabel): number {
-  // Импульсные нечётные / A,C — по тренду первой волны; чётные и B — против
-  const withTrend = [WaveLabel.W1, WaveLabel.W3, WaveLabel.W5, WaveLabel.WA, WaveLabel.WC];
-  let trend = 1;
-  if (swings.length >= 2) {
-    const w1 = swings.find((s) => s.label === WaveLabel.W1) ?? swings[0];
-    const next = swings.find((s) => s.index > w1.index) ?? swings[1];
-    trend = Math.sign(next.value - w1.value) || 1;
-  }
-  return withTrend.includes(current) ? trend : -trend;
-}
-
-function projectCorridor(
-  values: number[],
-  swings: WaveSwing[],
-  current: WaveLabel,
-  seriesMode: MetricSeriesMode,
-  fact: number,
-  target: number,
-  periodsAhead: number
-): ForecastCorridor {
-  const amp = wave1Amplitude(swings) ?? meanAbsStep(values);
-  const mult = stepMultipliers(current);
-  const dir = expectedDirection(swings, current);
-  const last = values.length ? values[values.length - 1] : 0;
-
-  const makeSeries = (periodStep: number): number[] => {
-    const out: number[] = [];
-    let v = last;
-    for (let i = 0; i < periodsAhead; i++) {
-      if (seriesMode === MetricSeriesMode.RATE) {
-        // для скорости прогнозируем сам Δ; шаг = amp * multiplier * dir / типичная длина волны (~3 периода)
-        out.push(periodStep);
-      } else {
-        v += periodStep;
-        out.push(v);
-      }
-    }
-    return out;
-  };
-
-  const perPeriod = (m: number) => (dir * amp * m) / 3;
-
-  const optimistic = makeSeries(perPeriod(mult.opt));
-  const base = makeSeries(perPeriod(mult.base));
-  const pessimistic = makeSeries(perPeriod(mult.pess));
-
-  const eta = (projected: number[], m: number): number | null => {
-    if (fact >= target) return 0;
-    const remaining = target - fact;
-    if (seriesMode === MetricSeriesMode.RATE) {
-      // интегрируем ожидаемые Δ
-      let acc = 0;
-      for (let i = 0; i < projected.length; i++) {
-        acc += projected[i];
-        if (acc >= remaining) return i + 1;
-      }
-      const step = perPeriod(m);
-      if (step <= 0) return null;
-      return projected.length + Math.ceil((remaining - acc) / step);
-    }
-    // level: когда прогнозный уровень >= target (или <= для нисходящей цели)
-    for (let i = 0; i < projected.length; i++) {
-      if (remaining >= 0 && projected[i] >= target) return i + 1;
-      if (remaining < 0 && projected[i] <= target) return i + 1;
-    }
-    const step = perPeriod(m);
-    if (step === 0) return null;
-    const lastProj = projected[projected.length - 1] ?? last;
-    const need = target - lastProj;
-    if (Math.sign(need) !== Math.sign(step) && Math.sign(need) !== 0) return null;
-    return projected.length + Math.ceil(Math.abs(need) / Math.abs(step));
-  };
-
-  return {
-    periods_ahead: periodsAhead,
-    optimistic,
-    base,
-    pessimistic,
-    eta_optimistic_periods: eta(optimistic, mult.opt),
-    eta_base_periods: eta(base, mult.base),
-    eta_pessimistic_periods: eta(pessimistic, mult.pess),
-  };
-}
-
-/**
- * Разметка волны 5/3 + Фибо-сетка + прогнозный коридор.
- * Чистая функция: без БД, модель априори, с первой точки.
+ * Разметка 0→1→2: коррекция по 0.382/0.5/0.618 и следующий импульс ×1.618.
+ * Точка 0 не нумеруется; W1 — на конце первой волны; W2 — на конце коррекции.
  */
 export function analyzeWave(input: AnalyzeWaveInput): WaveMarkupResult {
   const values = input.values;
-  const periodsAhead = input.periods_ahead ?? 8;
+  const periodsAhead = 2;
 
   if (values.length === 0) {
     return {
@@ -372,42 +338,146 @@ export function analyzeWave(input: AnalyzeWaveInput): WaveMarkupResult {
       swings: [],
       point_labels: [],
       fib_levels: [],
-      corridor: {
-        periods_ahead: periodsAhead,
-        optimistic: [],
-        base: [],
-        pessimistic: [],
-        eta_optimistic_periods: null,
-        eta_base_periods: null,
-        eta_pessimistic_periods: null,
-      },
+      corridor: emptyCorridor(periodsAhead),
       disclaimer: WAVE_DISCLAIMER,
+      origin: null,
+      wave1_amplitude: 0,
     };
   }
 
-  const rawSwings = detectSwings(values);
-  const swings = labelSwings(rawSwings);
-  const current_label = swings[swings.length - 1]?.label ?? WaveLabel.W1;
-  const point_labels = buildPointLabels(values.length, swings);
-  const fib_levels = buildFibLevels(swings);
-  const corridor = projectCorridor(
-    values,
-    swings,
-    current_label,
-    input.series_mode,
-    input.fact,
-    input.target_value,
-    periodsAhead
-  );
+  if (values.length === 1) {
+    return {
+      series_kind: input.series_mode,
+      current_label: WaveLabel.W1,
+      current_phase: WavePhase.IMPULSE,
+      swings: [],
+      point_labels: [WaveLabel.W1],
+      fib_levels: [],
+      corridor: emptyCorridor(periodsAhead),
+      disclaimer: WAVE_DISCLAIMER,
+      origin: { index: 0, value: values[0] },
+      wave1_amplitude: 0,
+    };
+  }
+
+  const found = findWave1End(values);
+  if (!found) {
+    return {
+      series_kind: input.series_mode,
+      current_label: WaveLabel.W1,
+      current_phase: WavePhase.IMPULSE,
+      swings: [],
+      point_labels: values.map(() => WaveLabel.W1),
+      fib_levels: [],
+      corridor: emptyCorridor(periodsAhead),
+      disclaimer: WAVE_DISCLAIMER,
+      origin: { index: 0, value: values[0] },
+      wave1_amplitude: 0,
+    };
+  }
+
+  const { origin, wave1 } = found;
+  const amp = wave1.value - origin.value;
+  const absAmp = Math.abs(amp);
+  const fib_levels = buildCorrectionLevels(origin.value, wave1.value);
+  const wave2 = findWave2End(values, origin, wave1);
+
+  const swings: WaveSwing[] = [
+    { index: wave1.index, value: wave1.value, label: WaveLabel.W1 },
+  ];
+  if (wave2) {
+    swings.push({ index: wave2.index, value: wave2.value, label: WaveLabel.W2 });
+  }
+
+  const current_label = wave2 ? WaveLabel.W2 : WaveLabel.W1;
+  const current_phase = wave2 ? WavePhase.CORRECTION : WavePhase.IMPULSE;
+  // Если после W2 уже пошли выше/ниже — фаза следующего импульса
+  let phase = current_phase;
+  let label = current_label;
+  if (wave2 && wave2.index < values.length - 1) {
+    const last = values[values.length - 1];
+    const trend = Math.sign(amp) || 1;
+    const resumed = trend > 0 ? last > wave2.value : last < wave2.value;
+    if (resumed) {
+      phase = WavePhase.IMPULSE;
+      label = WaveLabel.W3;
+    }
+  }
+
+  const scenarioPath = (ratio: number): number[] => {
+    const correction = wave1.value - amp * ratio;
+    const impulseFrom = (from: number) =>
+      impulseTargetFromCorrection(from, origin.value, wave1.value);
+    const last = values[values.length - 1];
+
+    // Уже в следующем импульсе после W2 — тянем к цели 1.618 от дна коррекции
+    if (phase === WavePhase.IMPULSE && label === WaveLabel.W3 && wave2) {
+      const target = impulseFrom(wave2.value);
+      return [last, target];
+    }
+
+    // В коррекции: сначала до уровня ретрейса (может быть «вниз»), затем импульс.
+    // Если цена уже глубже сценария — стартуем от текущего к импульсу.
+    if (phase === WavePhase.CORRECTION) {
+      const trend = Math.sign(amp) || 1;
+      const pastCorrection =
+        trend > 0 ? last <= correction : last >= correction;
+      if (pastCorrection) {
+        return [last, impulseFrom(last)];
+      }
+      return [correction, impulseFrom(correction)];
+    }
+
+    // Волна 1 / ещё без W2 — полный сценарий коррекция → импульс
+    return [correction, impulseFrom(correction)];
+  };
+
+  const optimistic = scenarioPath(0.382);
+  const base = scenarioPath(0.5);
+  const pessimistic = scenarioPath(0.618);
+
+  const last = values[values.length - 1];
+  const activity = recentActivityScore(values, input.series_mode);
+  const damp = (path: number[]) => blendPathWithActivity(path, last, activity);
+
+  // Прирост к факту по модулю хода импульсной ноги сценария (может быть «откат» на первой точке)
+  const signedImpulseAdd = (path: number[]) => {
+    if (path.length < 2) return absAmp * IMPULSE_EXTENSION * activity;
+    return path[1] - path[0];
+  };
+
+  const corridor: ForecastCorridor = {
+    periods_ahead: periodsAhead,
+    optimistic: damp(optimistic),
+    base: damp(base),
+    pessimistic: damp(pessimistic),
+    eta_optimistic_periods: etaPeriods(
+      input.fact,
+      input.target_value,
+      signedImpulseAdd(damp(optimistic))
+    ),
+    eta_base_periods: etaPeriods(
+      input.fact,
+      input.target_value,
+      signedImpulseAdd(damp(base))
+    ),
+    eta_pessimistic_periods: etaPeriods(
+      input.fact,
+      input.target_value,
+      signedImpulseAdd(damp(pessimistic))
+    ),
+  };
 
   return {
     series_kind: input.series_mode,
-    current_label,
-    current_phase: phaseOf(current_label),
+    current_label: label,
+    current_phase: phase,
     swings,
-    point_labels,
+    point_labels: buildPointLabels(values.length, wave1.index, wave2?.index ?? null),
     fib_levels,
     corridor,
     disclaimer: WAVE_DISCLAIMER,
+    origin,
+    wave1_amplitude: absAmp,
   };
 }

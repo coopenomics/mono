@@ -41676,6 +41676,10 @@ export enum MetricSeriesMode {
 /** Период агрегации ряда метрики */
 export enum MetricSeriesPeriod {
 	DAY = "DAY",
+	HOUR = "HOUR",
+	MINUTE = "MINUTE",
+	MINUTE_15 = "MINUTE_15",
+	MINUTE_5 = "MINUTE_5",
 	MONTH = "MONTH",
 	WEEK = "WEEK"
 }

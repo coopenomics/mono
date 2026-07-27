@@ -24,6 +24,24 @@ export interface BuildMetricSeriesOptions {
   deadline?: Date | null;
 }
 
+function startOfUtcMinute(d: Date): Date {
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes())
+  );
+}
+
+/** Начало N-минутного бакета (N=5 → :00/:05/:10…; N=15 → :00/:15/:30/:45) */
+function startOfUtcMinuteBucket(d: Date, bucketMinutes: number): Date {
+  const start = startOfUtcMinute(d);
+  const floored = Math.floor(start.getUTCMinutes() / bucketMinutes) * bucketMinutes;
+  start.setUTCMinutes(floored, 0, 0);
+  return start;
+}
+
+function startOfUtcHour(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours()));
+}
+
 function startOfUtcDay(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
@@ -43,20 +61,49 @@ function startOfUtcMonth(d: Date): Date {
 
 function addPeriod(start: Date, period: MetricSeriesPeriod): Date {
   const next = new Date(start.getTime());
-  if (period === MetricSeriesPeriod.DAY) {
-    next.setUTCDate(next.getUTCDate() + 1);
-  } else if (period === MetricSeriesPeriod.WEEK) {
-    next.setUTCDate(next.getUTCDate() + 7);
-  } else {
-    next.setUTCMonth(next.getUTCMonth() + 1);
+  switch (period) {
+    case MetricSeriesPeriod.MINUTE:
+      next.setUTCMinutes(next.getUTCMinutes() + 1);
+      break;
+    case MetricSeriesPeriod.MINUTE_5:
+      next.setUTCMinutes(next.getUTCMinutes() + 5);
+      break;
+    case MetricSeriesPeriod.MINUTE_15:
+      next.setUTCMinutes(next.getUTCMinutes() + 15);
+      break;
+    case MetricSeriesPeriod.HOUR:
+      next.setUTCHours(next.getUTCHours() + 1);
+      break;
+    case MetricSeriesPeriod.DAY:
+      next.setUTCDate(next.getUTCDate() + 1);
+      break;
+    case MetricSeriesPeriod.WEEK:
+      next.setUTCDate(next.getUTCDate() + 7);
+      break;
+    case MetricSeriesPeriod.MONTH:
+      next.setUTCMonth(next.getUTCMonth() + 1);
+      break;
   }
   return next;
 }
 
 function periodStartOf(d: Date, period: MetricSeriesPeriod): Date {
-  if (period === MetricSeriesPeriod.DAY) return startOfUtcDay(d);
-  if (period === MetricSeriesPeriod.WEEK) return startOfUtcWeek(d);
-  return startOfUtcMonth(d);
+  switch (period) {
+    case MetricSeriesPeriod.MINUTE:
+      return startOfUtcMinute(d);
+    case MetricSeriesPeriod.MINUTE_5:
+      return startOfUtcMinuteBucket(d, 5);
+    case MetricSeriesPeriod.MINUTE_15:
+      return startOfUtcMinuteBucket(d, 15);
+    case MetricSeriesPeriod.HOUR:
+      return startOfUtcHour(d);
+    case MetricSeriesPeriod.DAY:
+      return startOfUtcDay(d);
+    case MetricSeriesPeriod.WEEK:
+      return startOfUtcWeek(d);
+    case MetricSeriesPeriod.MONTH:
+      return startOfUtcMonth(d);
+  }
 }
 
 function idealAt(

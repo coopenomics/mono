@@ -533,7 +533,7 @@ export class ComponentMetricService {
     if (phase === WavePhase.IMPULSE && upwardLabels.includes(label) && recentVelocity > 0) {
       return MetricDriveDirection.UP;
     }
-    if (phase === WavePhase.CORRECTION || recentVelocity < 0) {
+    if (phase === WavePhase.CORRECTION || label === WaveLabel.W2 || recentVelocity < 0) {
       return MetricDriveDirection.DOWN;
     }
     if (recentVelocity > 0) {
@@ -544,12 +544,28 @@ export class ComponentMetricService {
 
   private defaultSeriesFrom(to: Date, period: MetricSeriesPeriod): Date {
     const from = new Date(to.getTime());
-    if (period === MetricSeriesPeriod.DAY) {
-      from.setUTCDate(from.getUTCDate() - 29);
-    } else if (period === MetricSeriesPeriod.WEEK) {
-      from.setUTCDate(from.getUTCDate() - 7 * 11);
-    } else {
-      from.setUTCMonth(from.getUTCMonth() - 11);
+    switch (period) {
+      case MetricSeriesPeriod.MINUTE:
+        from.setUTCMinutes(from.getUTCMinutes() - 59);
+        break;
+      case MetricSeriesPeriod.MINUTE_5:
+        from.setUTCMinutes(from.getUTCMinutes() - 5 * 47);
+        break;
+      case MetricSeriesPeriod.MINUTE_15:
+        from.setUTCMinutes(from.getUTCMinutes() - 15 * 31);
+        break;
+      case MetricSeriesPeriod.HOUR:
+        from.setUTCHours(from.getUTCHours() - 47);
+        break;
+      case MetricSeriesPeriod.DAY:
+        from.setUTCDate(from.getUTCDate() - 29);
+        break;
+      case MetricSeriesPeriod.WEEK:
+        from.setUTCDate(from.getUTCDate() - 7 * 11);
+        break;
+      case MetricSeriesPeriod.MONTH:
+        from.setUTCMonth(from.getUTCMonth() - 11);
+        break;
     }
     return from;
   }

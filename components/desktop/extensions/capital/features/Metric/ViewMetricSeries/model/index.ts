@@ -3,54 +3,42 @@ import { Zeus } from '@coopenomics/sdk';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
 import type {
   IMetricSeries,
-  ILogMetricContributionInput,
+  IMetricWave,
 } from 'app/extensions/capital/entities/ComponentMetric/model';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 
-export function useMetricSeries(
-  metricHash: () => string,
-  onUpdated?: () => void,
-) {
+/**
+ * На UI сейчас только два сценария коридора текущего периода:
+ * optimistic (0.382) и base/скромный (0.5).
+ * Пессимистичный 0.618 и мульти-ТФ волны не грузим — веер не нужен.
+ */
+export function useMetricSeries(metricHash: () => string) {
   const series = ref<IMetricSeries | null>(null);
+  const wave = ref<IMetricWave | null>(null);
   const isLoading = ref(false);
-  const isLogging = ref(false);
   const period = ref(Zeus.MetricSeriesPeriod.WEEK);
-  const manualDelta = ref<number | string>(1);
 
   const loadSeries = async () => {
     const hash = metricHash();
     if (!hash) return;
     isLoading.value = true;
     try {
-      series.value = await api.getMetricSeries({
-        metric_hash: hash,
-        period: period.value,
-      });
+      const [nextSeries, nextWave] = await Promise.all([
+        api.getMetricSeries({
+          metric_hash: hash,
+          period: period.value,
+        }),
+        api.getMetricWave({
+          metric_hash: hash,
+          period: period.value,
+        }),
+      ]);
+      series.value = nextSeries;
+      wave.value = nextWave;
     } catch (error) {
       FailAlert(error);
     } finally {
       isLoading.value = false;
-    }
-  };
-
-  const logContribution = async () => {
-    const hash = metricHash();
-    const delta = Number(manualDelta.value);
-    if (!hash || !Number.isFinite(delta) || delta === 0) return;
-    isLogging.value = true;
-    try {
-      const data: ILogMetricContributionInput = {
-        metric_hash: hash,
-        delta,
-      };
-      await api.logMetricContribution(data);
-      SuccessAlert('Вклад записан');
-      await loadSeries();
-      onUpdated?.();
-    } catch (error) {
-      FailAlert(error);
-    } finally {
-      isLogging.value = false;
     }
   };
 
@@ -64,11 +52,9 @@ export function useMetricSeries(
 
   return {
     series,
+    wave,
     isLoading,
-    isLogging,
     period,
-    manualDelta,
     loadSeries,
-    logContribution,
   };
 }

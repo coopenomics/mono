@@ -79,6 +79,10 @@ const projectHashRef = toRef(props, 'projectHash');
 const { data, isLoading, period } = useMetricSuperposition(() => projectHashRef.value);
 
 const periodOptions = [
+  { label: '1 мин', value: Zeus.MetricSeriesPeriod.MINUTE },
+  { label: '5 мин', value: Zeus.MetricSeriesPeriod.MINUTE_5 },
+  { label: '15 мин', value: Zeus.MetricSeriesPeriod.MINUTE_15 },
+  { label: 'Час', value: Zeus.MetricSeriesPeriod.HOUR },
   { label: 'День', value: Zeus.MetricSeriesPeriod.DAY },
   { label: 'Неделя', value: Zeus.MetricSeriesPeriod.WEEK },
   { label: 'Месяц', value: Zeus.MetricSeriesPeriod.MONTH },

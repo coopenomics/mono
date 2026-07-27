@@ -13,19 +13,7 @@
           text-color='white',
           label='архив'
         )
-        BaseButton(
-          v-if='metric.status !== archivedStatus',
-          variant='ghost',
-          size='sm',
-          :icon-only='true',
-          :aria-label='expandedHash === metric.metric_hash ? "Свернуть ряд" : "Показать ряд"',
-          @click='toggleExpand(metric.metric_hash)'
-        )
-          template(#icon-left)
-            q-icon(
-              :name='expandedHash === metric.metric_hash ? "expand_less" : "show_chart"',
-              size='16px'
-            )
+
       .metric-item__progress
         .metric-item__values
           span.metric-item__fact {{ metric.fact }}
@@ -38,11 +26,8 @@
           rounded
           size='6px'
         )
-      MetricSeriesPanel(
-        v-if='expandedHash === metric.metric_hash',
-        :metric-hash='metric.metric_hash',
-        @updated='loadMetrics'
-      )
+
+      MetricSeriesPanel(:metric-hash='metric.metric_hash')
 
   .metrics-panel__empty(v-else-if='!isLoading && !metricList.length')
     EmptyState(title='Метрики не заданы — откройте «План»')
@@ -54,9 +39,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { EmptyState } from 'src/shared/ui/base';
 import { MetricSeriesPanel } from '../../ViewMetricSeries';
 import { useManageComponentMetrics } from '../model';
 
@@ -70,7 +55,6 @@ const {
   loadMetrics,
 } = useManageComponentMetrics(props.projectHash);
 
-const expandedHash = ref<string | null>(null);
 const archivedStatus = Zeus.MetricStatus.ARCHIVED;
 
 const metricList = computed(() =>
@@ -80,10 +64,6 @@ const metricList = computed(() =>
 const progressValue = (metric: { fact: number; target_value: number }) => {
   if (!metric.target_value) return 0;
   return Math.min(metric.fact / metric.target_value, 1);
-};
-
-const toggleExpand = (metricHash: string) => {
-  expandedHash.value = expandedHash.value === metricHash ? null : metricHash;
 };
 
 onMounted(async () => {
@@ -128,7 +108,7 @@ onMounted(async () => {
   border-radius: var(--p-r-md);
   display: flex;
   flex-direction: column;
-  gap: var(--p-2);
+  gap: var(--p-3);
 }
 
 .metric-item__header {
@@ -152,6 +132,7 @@ onMounted(async () => {
 
 .metric-item__values {
   display: flex;
+  flex-wrap: wrap;
   font-size: var(--p-fs-caption);
   color: var(--p-ink-2);
 }

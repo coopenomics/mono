@@ -1,15 +1,18 @@
 import {
   analyzeWave,
-  detectSwings,
-  buildFibLevels,
+  findWave1End,
+  findWave2End,
+  buildCorrectionLevels,
+  impulseTargetFromCorrection,
   WaveLabel,
   WavePhase,
   WAVE_DISCLAIMER,
+  IMPULSE_EXTENSION,
 } from './wave-markup';
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
 
-describe('wave-markup (562-34 stage 3)', () => {
-  it('с одной точки даёт W1 и дисклеймер', () => {
+describe('wave-markup (0→1→2 + fib scenarios)', () => {
+  it('с одной точки — импульс без свингов W1 на старте', () => {
     const result = analyzeWave({
       values: [3],
       series_mode: MetricSeriesMode.RATE,
@@ -19,55 +22,89 @@ describe('wave-markup (562-34 stage 3)', () => {
 
     expect(result.current_label).toBe(WaveLabel.W1);
     expect(result.current_phase).toBe(WavePhase.IMPULSE);
+    expect(result.swings).toHaveLength(0);
     expect(result.disclaimer).toBe(WAVE_DISCLAIMER);
-    expect(result.corridor.base.length).toBe(8);
-    expect(result.corridor.eta_base_periods).not.toBeNull();
   });
 
-  it('размечает импульс 1-2-3 на колебательном ряде скорости', () => {
-    // подъём → коррекция → сильный подъём
-    const values = [1, 4, 5, 2, 1, 6, 9, 10];
-    const swings = detectSwings(values);
-    expect(swings.length).toBeGreaterThanOrEqual(3);
+  it('волна 1 заканчивается на первом максимуме, не на старте', () => {
+    // старт 0 → рост до 10 → коррекция до 4
+    const values = [0, 3, 7, 10, 8, 5, 4];
+    const found = findWave1End(values);
+    expect(found).not.toBeNull();
+    expect(found!.origin.index).toBe(0);
+    expect(found!.wave1.index).toBe(3);
+    expect(found!.wave1.value).toBe(10);
+
+    const w2 = findWave2End(values, found!.origin, found!.wave1);
+    expect(w2).not.toBeNull();
+    expect(w2!.value).toBe(4);
 
     const result = analyzeWave({
       values,
       series_mode: MetricSeriesMode.RATE,
-      fact: values.reduce((a, b) => a + b, 0),
+      fact: 20,
       target_value: 100,
     });
 
-    expect(result.swings[0].label).toBe(WaveLabel.W1);
-    expect(result.swings.map((s) => s.label).slice(0, 3)).toEqual([
-      WaveLabel.W1,
-      WaveLabel.W2,
-      WaveLabel.W3,
-    ]);
-    expect(result.fib_levels.length).toBeGreaterThan(0);
+    expect(result.swings[0]).toMatchObject({
+      index: 3,
+      value: 10,
+      label: WaveLabel.W1,
+    });
+    expect(result.swings[1]?.label).toBe(WaveLabel.W2);
+    expect(result.fib_levels.map((l) => l.ratio)).toEqual([0.382, 0.5, 0.618]);
   });
 
-  it('строит Фибо-уровни от базы импульса', () => {
-    const swings = [
-      { index: 0, value: 0, label: WaveLabel.W1 },
-      { index: 2, value: 10, label: WaveLabel.W2 },
-      { index: 4, value: 6, label: WaveLabel.W3 },
-    ];
-    const levels = buildFibLevels(swings);
-    const r618 = levels.find((l) => l.ratio === 0.618);
-    // база W1=0 → крайний свинг=6 → 0.618 * 6
-    expect(r618?.value).toBeCloseTo(3.708, 5);
+  it('уровни коррекции 0.382/0.5/0.618 от хода 0→1', () => {
+    const levels = buildCorrectionLevels(0, 10);
+    expect(levels.find((l) => l.ratio === 0.382)?.value).toBeCloseTo(6.18, 5);
+    expect(levels.find((l) => l.ratio === 0.5)?.value).toBeCloseTo(5, 5);
+    expect(levels.find((l) => l.ratio === 0.618)?.value).toBeCloseTo(3.82, 5);
   });
 
-  it('для level-режима ETA смотрит на прогноз уровня', () => {
+  it('импульс от коррекции = C + 1.618 × амплитуда W1', () => {
+    const target = impulseTargetFromCorrection(5, 0, 10);
+    expect(target).toBeCloseTo(5 + 10 * IMPULSE_EXTENSION, 5);
+  });
+
+  it('коридор — три сценария [коррекция, импульс]', () => {
     const result = analyzeWave({
-      values: [10, 12, 11, 15],
+      values: [0, 2, 5, 10, 7],
       series_mode: MetricSeriesMode.LEVEL,
-      fact: 15,
+      fact: 7,
       target_value: 40,
-      periods_ahead: 5,
     });
 
-    expect(result.series_kind).toBe(MetricSeriesMode.LEVEL);
-    expect(result.corridor.eta_optimistic_periods).not.toBeNull();
+    expect(result.corridor.optimistic).toHaveLength(2);
+    expect(result.corridor.base).toHaveLength(2);
+    expect(result.corridor.pessimistic).toHaveLength(2);
+    // мелкая коррекция выше глубокой (восходящий тренд)
+    expect(result.corridor.optimistic[0]).toBeGreaterThan(result.corridor.pessimistic[0]);
+    expect(result.corridor.eta_base_periods).not.toBeNull();
+  });
+
+  it('при застое LEVEL прогноз плоский на последнем факте', () => {
+    // рывок был, потом несколько периодов без движения
+    const values = [0, 0, 20, 20, 20, 20, 20];
+    const result = analyzeWave({
+      values,
+      series_mode: MetricSeriesMode.LEVEL,
+      fact: 20,
+      target_value: 65,
+    });
+    const last = 20;
+    expect(result.corridor.base[0]).toBeCloseTo(last, 5);
+    expect(result.corridor.base[1]).toBeCloseTo(last, 5);
+  });
+
+  it('при свежем движении LEVEL коридор не плоский', () => {
+    const values = [0, 0, 0, 0, 20];
+    const result = analyzeWave({
+      values,
+      series_mode: MetricSeriesMode.LEVEL,
+      fact: 20,
+      target_value: 65,
+    });
+    expect(result.corridor.base[0]).not.toBeCloseTo(20, 1);
   });
 });
