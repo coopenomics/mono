@@ -7,7 +7,6 @@
     .metric-item(v-for='metric in metricList', :key='metric.metric_hash')
       .metric-item__header
         .metric-item__title {{ metric.title }}
-        .metric-item__unit.t-mono {{ metric.unit }}
         q-badge(
           v-if='metric.status === archivedStatus',
           color='grey-5',
@@ -143,12 +142,6 @@ onMounted(async () => {
   font-size: var(--p-fs-body-sm);
   font-weight: 500;
   color: var(--p-ink);
-}
-
-.metric-item__unit {
-  font-size: var(--p-fs-caption);
-  color: var(--p-ink-2);
-  font-family: var(--p-mono);
 }
 
 .metric-item__progress {

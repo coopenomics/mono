@@ -19,9 +19,11 @@
         @click='logContribution'
       ) Записать
 
-  .metric-series__charts(v-if='series && series.points.length')
-    .metric-series__block
-      .metric-series__label Burn-up
+  .metric-series__dashboard(v-if='series && series.points.length')
+    .metric-series__card
+      .metric-series__card-head
+        .metric-series__label Накопление
+        .metric-series__hint Факт к цели по периодам
       svg.metric-series__svg(
         :viewBox='`0 0 ${svgW} ${svgH}`',
         preserveAspectRatio='none'
@@ -42,27 +44,13 @@
       .metric-series__legend
         span.metric-series__leg.metric-series__leg--fact Факт
         span.metric-series__leg.metric-series__leg--ideal(v-if='hasIdeal') План
-        span.metric-series__leg.metric-series__leg--target Цель {{ series.target_value }} {{ series.unit }}
+        span.metric-series__leg.metric-series__leg--target Цель {{ series.target_value }}
 
-    .metric-series__block
-      .metric-series__label Скорость (Δ / период)
-      .metric-series__bars
-        .metric-series__bar-col(
-          v-for='(p, i) in series.points',
-          :key='i'
-        )
-          .metric-series__bar-track
-            .metric-series__bar(
-              :style='barStyle(p.delta)',
-              :class='{ "metric-series__bar--neg": p.delta < 0 }'
-            )
-          .metric-series__bar-val.t-mono {{ formatDelta(p.delta) }}
-
-    .metric-series__block
-      .metric-series__label Волна
+    .metric-series__card
       MetricWavePanel(
         :metric-hash='metricHash',
-        :period='period'
+        :period='period',
+        :deltas='series.points.map((p) => p.delta)'
       )
 
   .metric-series__empty(v-else-if='!isLoading')
@@ -71,6 +59,7 @@
         q-icon(name='timeline', size='28px')
 
   .metric-series__skel(v-if='isLoading')
+    .skel
     .skel
 </template>
 
@@ -106,8 +95,8 @@ const periodOptions = [
 ];
 
 const svgW = 320;
-const svgH = 96;
-const pad = 8;
+const svgH = 192;
+const pad = 10;
 
 const yMax = computed(() => {
   const s = series.value;
@@ -150,19 +139,6 @@ const idealPoints = computed(() => {
     .map((p, i) => `${xOf(i, s.points.length)},${yOf(p.ideal_cumulative ?? 0)}`)
     .join(' ');
 });
-
-const maxAbsDelta = computed(() => {
-  const s = series.value;
-  if (!s?.points.length) return 1;
-  return Math.max(...s.points.map((p) => Math.abs(p.delta)), 1);
-});
-
-const barStyle = (delta: number) => {
-  const h = Math.max((Math.abs(delta) / maxAbsDelta.value) * 100, delta === 0 ? 2 : 8);
-  return { height: `${h}%` };
-};
-
-const formatDelta = (d: number) => (d > 0 ? `+${d}` : `${d}`);
 </script>
 
 <style lang="scss" scoped>
@@ -188,27 +164,45 @@ const formatDelta = (d: number) => (d > 0 ? `+${d}` : `${d}`);
   align-items: end;
 }
 
-.metric-series__charts {
-  display: flex;
-  flex-direction: column;
+.metric-series__dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--p-3);
 }
 
-.metric-series__block {
+@media (max-width: 720px) {
+  .metric-series__dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-series__card {
   display: flex;
   flex-direction: column;
-  gap: var(--p-1);
+  gap: var(--p-2);
+  min-width: 0;
+}
+
+.metric-series__card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .metric-series__label {
   font-size: var(--p-fs-caption);
-  color: var(--p-ink-2);
-  font-weight: 500;
+  color: var(--p-ink);
+  font-weight: 600;
+}
+
+.metric-series__hint {
+  font-size: var(--p-fs-caption);
+  color: var(--p-ink-3);
 }
 
 .metric-series__svg {
   width: 100%;
-  height: 96px;
+  height: 192px;
   background: var(--p-surface-2);
   border-radius: var(--p-r-sm);
 }
@@ -236,7 +230,8 @@ const formatDelta = (d: number) => (d > 0 ? `+${d}` : `${d}`);
 
 .metric-series__legend {
   display: flex;
-  gap: var(--p-3);
+  flex-wrap: wrap;
+  gap: var(--p-2) var(--p-3);
   font-size: var(--p-fs-caption);
   color: var(--p-ink-3);
 }
@@ -263,59 +258,18 @@ const formatDelta = (d: number) => (d > 0 ? `+${d}` : `${d}`);
   background: var(--p-warn);
 }
 
-.metric-series__bars {
-  display: flex;
-  gap: 2px;
-  align-items: flex-end;
-  height: 72px;
-  padding: var(--p-2);
-  background: var(--p-surface-2);
-  border-radius: var(--p-r-sm);
-  overflow-x: auto;
-}
-
-.metric-series__bar-col {
-  flex: 1 0 12px;
-  min-width: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  gap: 2px;
-}
-
-.metric-series__bar-track {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.metric-series__bar {
-  width: 70%;
-  max-width: 16px;
-  background: var(--p-primary);
-  border-radius: 2px 2px 0 0;
-  min-height: 2px;
-}
-
-.metric-series__bar--neg {
-  background: var(--p-neg);
-}
-
-.metric-series__bar-val {
-  font-size: 9px;
-  color: var(--p-ink-3);
-  line-height: 1;
-}
-
 .metric-series__empty {
   padding: var(--p-2) 0;
 }
 
+.metric-series__skel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--p-3);
+}
+
 .metric-series__skel .skel {
-  height: 96px;
+  height: 192px;
   border-radius: var(--p-r-sm);
   background: var(--p-surface-2);
 }
