@@ -5,7 +5,7 @@ import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
@@ -168,9 +168,12 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       .returns__list(v-if='pendingClaims.length > 0')
         BaseCard.returns__item(v-for='c in pendingClaims', :key='c.id')
           .returns__item-top
+            q-icon.returns__item-icon(name='assignment_return', size='24px')
             .returns__item-info
               .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
-              .returns__item-meta {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
+              .returns__item-facts
+                BaseChip(variant='neutral', size='sm') {{ claimQuantityLabel(c) }}
+                BaseChip(variant='neutral', size='sm') {{ c.fact_cost }} ₽
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
           .returns__item-body
             .returns__item-photos(v-if='c.photos.length')
@@ -200,9 +203,11 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       .returns__list(v-if='approvedClaims.length > 0')
         BaseCard.returns__item(v-for='c in approvedClaims', :key='c.id')
           .returns__item-top
+            q-icon.returns__item-icon(name='assignment_return', size='24px')
             .returns__item-info
               .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
-              .returns__item-meta Возврат на сумму {{ c.fact_cost }} ₽
+              .returns__item-facts
+                BaseChip(variant='neutral', size='sm') Возврат {{ c.fact_cost }} ₽
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
           .returns__item-body
             .returns__item-photos(v-if='c.photos.length')
@@ -234,9 +239,11 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       .returns__list(v-if='archiveClaims.length > 0')
         BaseCard.returns__item(v-for='c in archiveClaims', :key='c.id')
           .returns__item-top
+            q-icon.returns__item-icon(name='assignment_return', size='24px')
             .returns__item-info
               .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_name || c.orderer_account }}
-              .returns__item-meta(v-if='c.ledger_snapshot') {{ c.ledger_snapshot.amount }} ₽ восстановлено
+              .returns__item-facts(v-if='c.ledger_snapshot')
+                BaseChip(variant='neutral', size='sm') {{ c.ledger_snapshot.amount }} ₽ восстановлено
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
       EmptyState(v-else-if='!loading', title='Архив пуст')
         template(#icon)
@@ -277,25 +284,32 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
 
   // Одна карточка на заявление вместо плотного q-item-ряда: причина возврата
   // и фото нуждаются в собственном пространстве, а не втиснуты в одну строку
-  // с кнопкой решения (см. review 2026-07-27).
+  // с кнопкой решения (см. review 2026-07-27). Ритм — как у карточки
+  // «Гарантийный возврат» на столе заказчика: иконка-якорь + заголовок +
+  // факты-чипы сверху, тело с воздухом, hairline перед действием.
   &__item {
     display: flex;
     flex-direction: column;
-    gap: var(--p-3, 12px);
+    gap: var(--p-5, 20px);
   }
 
   &__item-top {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
     gap: var(--p-3, 12px);
+  }
+
+  &__item-icon {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
   }
 
   &__item-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--p-2, 8px);
     min-width: 0;
+    flex: 1 1 auto;
   }
 
   &__item-title {
@@ -305,10 +319,10 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     overflow-wrap: anywhere;
   }
 
-  &__item-meta {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
-    font-variant-numeric: tabular-nums;
+  &__item-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
   }
 
   // Фото — крупным якорем слева, текст (причина/категория) — справа: было
