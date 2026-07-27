@@ -102,7 +102,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--p-6);
   min-width: 0;
-  padding: var(--p-4) 0;
+  /* Как q-pa-md / описание компонента — контент не на всю ширину без полей */
+  padding: var(--p-4);
 }
 
 .planning-page__section {
@@ -116,8 +117,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
-  /* Как горизонтальный паддинг ячеек .table (20px) — заголовок не «прилипает» к краю */
-  padding: 0 var(--p-5);
 }
 
 .planning-page__title {
@@ -131,6 +130,5 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
-  padding: var(--p-3);
 }
 </style>
