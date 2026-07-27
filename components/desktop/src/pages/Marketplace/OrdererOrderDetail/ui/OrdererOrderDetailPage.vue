@@ -18,7 +18,7 @@ import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
+import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
 import { cancelOrder, fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
@@ -95,12 +95,14 @@ const warrantyActive = computed(
 );
 // Строка для DataRow — как «Сумма заказа»/«Количество» выше по странице:
 // подпись + значение, а не текст, зажатый внутрь бейджа рядом с кнопкой.
-const warrantyRowValue = computed(() => {
-  if (!order.value?.warranty_until) return null;
-  return warrantyActive.value
-    ? `Возврат возможен до ${formatDate(order.value.warranty_until)}`
-    : `Истёк ${formatDate(order.value.warranty_until)}`;
-});
+const warrantyRowValue = computed(() =>
+  order.value?.warranty_until ? formatDate(order.value.warranty_until) : null,
+);
+// Возврат допустим по факту выдачи — если выдано меньше заказанного, вернуть
+// можно только фактически полученное (backend отклонит запрос сверх этого).
+const maxReturnQuantity = computed(
+  () => issuanceFact.value?.actual_quantity ?? order.value?.quantity ?? 0,
+);
 const orderReturnClaims = computed(() =>
   returnClaims.value.filter((c) => c.order_id === orderId.value),
 );
@@ -176,9 +178,11 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
 });
 
 function formatDate(value: unknown): string {
-  // Время с бэкенда в UTC — показываем в локальном поясе пользователя.
+  // Время с бэкенда в UTC — показываем в настроенном поясе платформы (по
+  // умолчанию МСК, см. getTimezone()/env.TIMEZONE) и подписываем его явно:
+  // «27.07.2026 19:33» без пояса неоднозначно для пайщика.
   const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm');
-  return out || '—';
+  return out ? `${out} ${getTimezoneLabel()}` : '—';
 }
 
 function formatPrice(value: string | null | undefined): string {
@@ -361,7 +365,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
           .t-h3 Гарантийный возврат
         DataRow(
           v-if="warrantyRowValue"
-          label="Гарантийный срок"
+          label="Гарантийный срок возврата до"
           :value="warrantyRowValue"
         )
         .t-muted(v-else) Гарантийный возврат по этому заказу не предусмотрен.
@@ -389,6 +393,8 @@ q-page.order-detail(role="region", aria-label="Заказ")
     SubmitReturnClaimDialog(
       v-model="submitReturnDialogOpen",
       :order-id="orderId",
+      :max-quantity="maxReturnQuantity",
+      :unit-of-measure="order?.unit_of_measure ?? null",
       @submitted="loadReturnClaims"
     )
 
