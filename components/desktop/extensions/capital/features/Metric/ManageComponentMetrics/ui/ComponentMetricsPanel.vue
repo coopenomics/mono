@@ -2,51 +2,6 @@
 .metrics-panel
   .metrics-panel__head
     .metrics-panel__title Метрики компонента
-    BaseButton(
-      v-if='!showForm',
-      variant='ghost',
-      size='sm',
-      @click='showForm = true'
-    )
-      template(#icon-left)
-        q-icon(name='add', size='16px')
-      | Добавить
-
-  .metrics-panel__form(v-if='showForm')
-    .row.q-col-gutter-sm
-      .col-12
-        BaseInput(
-          v-model='form.title',
-          label='Название метрики',
-          placeholder='Например: Выручка, Пользователи'
-        )
-      .col-6
-        BaseInput(
-          v-model='form.unit',
-          label='Единица измерения',
-          placeholder='руб, шт, %'
-        )
-      .col-6
-        BaseInput(
-          v-model='form.target_value',
-          label='Целевое значение',
-          type='number'
-        )
-      .col-12
-        BaseSelect(
-          v-model='form.series_mode',
-          :options='seriesModeOptions',
-          label='Режим накопления'
-        )
-    .metrics-panel__form-actions
-      BaseButton(variant='ghost', size='sm', @click='cancelForm') Отмена
-      BaseButton(
-        variant='primary',
-        size='sm',
-        :loading='isSubmitting',
-        :disabled='!canCreate',
-        @click='handleCreate'
-      ) Создать
 
   .metrics-panel__list(v-if='!isLoading && metricList.length')
     .metric-item(v-for='metric in metricList', :key='metric.metric_hash')
@@ -72,16 +27,6 @@
               :name='expandedHash === metric.metric_hash ? "expand_less" : "show_chart"',
               size='16px'
             )
-        BaseButton(
-          v-if='metric.status !== archivedStatus',
-          variant='ghost',
-          size='sm',
-          :icon-only='true',
-          aria-label='Архивировать',
-          @click='handleArchive(metric.metric_hash)'
-        )
-          template(#icon-left)
-            q-icon(name='archive', size='16px')
       .metric-item__progress
         .metric-item__values
           span.metric-item__fact {{ metric.fact }}
@@ -100,8 +45,8 @@
         @updated='loadMetrics'
       )
 
-  .metrics-panel__empty(v-else-if='!isLoading && !metricList.length && !showForm')
-    EmptyState(title='Метрики не добавлены')
+  .metrics-panel__empty(v-else-if='!isLoading && !metricList.length')
+    EmptyState(title='Метрики не заданы — откройте «План»')
       template(#icon)
         q-icon(name='bar_chart', size='32px')
 
@@ -112,7 +57,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { MetricSeriesPanel } from '../../ViewMetricSeries';
 import { useManageComponentMetrics } from '../model';
 
@@ -121,29 +66,16 @@ const props = defineProps<{
 }>();
 
 const {
-  form,
-  isSubmitting,
   isLoading,
   metrics,
   loadMetrics,
-  createMetric,
-  archiveMetric,
-  resetForm,
 } = useManageComponentMetrics(props.projectHash);
 
-const showForm = ref(false);
 const expandedHash = ref<string | null>(null);
 const archivedStatus = Zeus.MetricStatus.ARCHIVED;
 
-const metricList = computed(() => metrics());
-
-const seriesModeOptions = [
-  { label: 'Скорость (Δ за период)', value: Zeus.MetricSeriesMode.RATE },
-  { label: 'Уровень значения', value: Zeus.MetricSeriesMode.LEVEL },
-];
-
-const canCreate = computed(() =>
-  !!form.value.title.trim() && !!form.value.unit.trim() && form.value.target_value > 0,
+const metricList = computed(() =>
+  metrics().filter((m) => m.status !== archivedStatus),
 );
 
 const progressValue = (metric: { fact: number; target_value: number }) => {
@@ -153,20 +85,6 @@ const progressValue = (metric: { fact: number; target_value: number }) => {
 
 const toggleExpand = (metricHash: string) => {
   expandedHash.value = expandedHash.value === metricHash ? null : metricHash;
-};
-
-const cancelForm = () => {
-  showForm.value = false;
-  resetForm();
-};
-
-const handleCreate = async () => {
-  await createMetric();
-  showForm.value = false;
-};
-
-const handleArchive = async (metricHash: string) => {
-  await archiveMetric(metricHash);
 };
 
 onMounted(async () => {
@@ -191,21 +109,6 @@ onMounted(async () => {
   font-size: var(--p-fs-body-sm);
   font-weight: 600;
   color: var(--p-ink);
-}
-
-.metrics-panel__form {
-  padding: var(--p-4);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.metrics-panel__form-actions {
-  display: flex;
-  gap: var(--p-2);
-  justify-content: flex-end;
 }
 
 .metrics-panel__list {
