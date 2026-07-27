@@ -5,8 +5,8 @@ import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseBadge, BaseButton, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { returnClaimStatusVariant } from '../../OrdererReturnClaims';
@@ -167,13 +167,9 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       .t-h3 Ждут удалённого рассмотрения ({{ pendingClaims.length }})
       .returns__list(v-if='pendingClaims.length > 0')
         BaseCard.returns__item(v-for='c in pendingClaims', :key='c.id')
-          .returns__item-top
-            q-icon.returns__item-icon(name='assignment_return', size='24px')
-            .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
-              .returns__item-facts
-                BaseChip(variant='neutral', size='sm') {{ claimQuantityLabel(c) }}
-                BaseChip(variant='neutral', size='sm') {{ c.fact_cost }} ₽
+          .returns__item-head
+            q-icon.returns__item-icon(name='assignment_return', size='22px')
+            .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
           .returns__item-body
             .returns__item-photos(v-if='c.photos.length')
@@ -185,10 +181,15 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
                 rel='noopener'
               )
                 img(:src='p.url', :alt='`Фото ${i + 1}`')
-            .returns__item-text
-              .returns__item-reason {{ c.reason_text }}
-              .returns__item-category(v-if='c.defect_category')
-                | Категория: {{ defectCategoryLabel(c.defect_category) }}
+            .returns__item-data
+              DataRow(label='Количество к возврату', :value='claimQuantityLabel(c)')
+              DataRow(label='Сумма возврата', :value='`${c.fact_cost} ₽`')
+              DataRow(label='Причина возврата', :value='c.reason_text')
+              DataRow(
+                v-if='c.defect_category',
+                label='Категория дефекта',
+                :value='defectCategoryLabel(c.defect_category)'
+              )
           .returns__item-actions
             BaseButton(variant='primary', size='sm', @click='startRemote(c)')
               template(#icon-left)
@@ -202,12 +203,9 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       .t-h3 Ожидают очного визита ({{ approvedClaims.length }})
       .returns__list(v-if='approvedClaims.length > 0')
         BaseCard.returns__item(v-for='c in approvedClaims', :key='c.id')
-          .returns__item-top
-            q-icon.returns__item-icon(name='assignment_return', size='24px')
-            .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
-              .returns__item-facts
-                BaseChip(variant='neutral', size='sm') Возврат {{ c.fact_cost }} ₽
+          .returns__item-head
+            q-icon.returns__item-icon(name='assignment_return', size='22px')
+            .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
           .returns__item-body
             .returns__item-photos(v-if='c.photos.length')
@@ -219,12 +217,20 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
                 rel='noopener'
               )
                 img(:src='p.url', :alt='`Фото ${i + 1}`')
-            .returns__item-text
-              .returns__item-reason {{ c.reason_text }}
-              .returns__item-category(v-if='c.defect_category')
-                | Категория: {{ defectCategoryLabel(c.defect_category) }}
-              .returns__item-approved.t-muted(v-if='c.decision_log.length > 0')
-                | Одобрено {{ formatDateTime(c.decision_log[c.decision_log.length - 1].at) }}
+            .returns__item-data
+              DataRow(label='Количество к возврату', :value='claimQuantityLabel(c)')
+              DataRow(label='Сумма возврата', :value='`${c.fact_cost} ₽`')
+              DataRow(label='Причина возврата', :value='c.reason_text')
+              DataRow(
+                v-if='c.defect_category',
+                label='Категория дефекта',
+                :value='defectCategoryLabel(c.defect_category)'
+              )
+              DataRow(
+                v-if='c.decision_log.length > 0',
+                label='Одобрено',
+                :value='formatDateTime(c.decision_log[c.decision_log.length - 1].at)'
+              )
           .returns__item-actions
             BaseButton(variant='secondary', size='sm', @click='startOnSite(c)')
               template(#icon-left)
@@ -237,13 +243,13 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     section.returns__section
       .t-h3 Архив ({{ archiveClaims.length }})
       .returns__list(v-if='archiveClaims.length > 0')
-        BaseCard.returns__item(v-for='c in archiveClaims', :key='c.id')
-          .returns__item-top
-            q-icon.returns__item-icon(name='assignment_return', size='24px')
-            .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_name || c.orderer_account }}
-              .returns__item-facts(v-if='c.ledger_snapshot')
-                BaseChip(variant='neutral', size='sm') {{ c.ledger_snapshot.amount }} ₽ восстановлено
+        BaseCard.returns__item.returns__item--compact(v-for='c in archiveClaims', :key='c.id')
+          .returns__item-head
+            q-icon.returns__item-icon(name='assignment_return', size='22px')
+            .returns__item-title
+              | Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_name || c.orderer_account }}
+              span.returns__item-meta(v-if='c.ledger_snapshot')
+                | · {{ c.ledger_snapshot.amount }} ₽ восстановлено
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
       EmptyState(v-else-if='!loading', title='Архив пуст')
         template(#icon)
@@ -282,18 +288,18 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     gap: var(--p-3, 12px);
   }
 
-  // Одна карточка на заявление вместо плотного q-item-ряда: причина возврата
-  // и фото нуждаются в собственном пространстве, а не втиснуты в одну строку
-  // с кнопкой решения (см. review 2026-07-27). Ритм — как у карточки
-  // «Гарантийный возврат» на столе заказчика: иконка-якорь + заголовок +
-  // факты-чипы сверху, тело с воздухом, hairline перед действием.
+  // Одна карточка на заявление. Шапка (иконка+заголовок+статус) — hairline —
+  // тело: фото-колонка слева + мини-таблица фактов (DataRow: label|value,
+  // built-in hairline между строками) — hairline — действие справа. Раньше
+  // факты лежали чипами вперемешку с фото и текстом без всякой сетки —
+  // читалось как случайный набор элементов (см. review 2026-07-27).
   &__item {
     display: flex;
     flex-direction: column;
-    gap: var(--p-5, 20px);
+    gap: var(--p-4, 16px);
   }
 
-  &__item-top {
+  &__item-head {
     display: flex;
     align-items: center;
     gap: var(--p-3, 12px);
@@ -304,62 +310,40 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     color: var(--p-ink-3);
   }
 
-  &__item-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-2, 8px);
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
   &__item-title {
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: var(--p-fs-h3, 15px);
     font-weight: 600;
     color: var(--p-ink);
     overflow-wrap: anywhere;
   }
 
-  &__item-facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
+  &__item-meta {
+    margin-left: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 400;
+    color: var(--p-ink-3);
   }
 
-  // Фото — крупным якорем слева, текст (причина/категория) — справа: было
-  // фото-миниатюра под текстом отдельной строкой, читалось разрозненно
-  // (см. review 2026-07-27).
   &__item-body {
     display: flex;
     align-items: flex-start;
     gap: var(--p-4, 16px);
+    padding-top: var(--p-4, 16px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__item-photos {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: var(--p-2, 8px);
     flex: 0 0 auto;
   }
 
-  &__item-text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1, 4px);
-    min-width: 0;
+  &__item-data {
     flex: 1 1 auto;
-    padding-top: 2px;
-  }
-
-  &__item-reason {
-    font-size: var(--p-fs-body, 14px);
-    color: var(--p-ink);
-    overflow-wrap: anywhere;
-  }
-
-  &__item-category,
-  &__item-approved {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-3);
+    min-width: 0;
   }
 
   &__item-actions {
@@ -367,6 +351,11 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     justify-content: flex-end;
     padding-top: var(--p-3, 12px);
     border-top: 1px solid var(--p-line);
+  }
+
+  // Архивная карточка — без тела/действия, только строка шапки чуть плотнее.
+  &__item--compact {
+    gap: 0;
   }
 
   &__thumb {
