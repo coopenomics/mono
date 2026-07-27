@@ -5,7 +5,7 @@ import { Dialog, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
-import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
+import { ActivityTimeline, DataRow, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import {
@@ -93,6 +93,14 @@ const warrantyUntil = computed(() =>
 const warrantyActive = computed(
   () => warrantyUntil.value !== null && warrantyUntil.value.getTime() > Date.now(),
 );
+// Строка для DataRow — как «Сумма заказа»/«Количество» выше по странице:
+// подпись + значение, а не текст, зажатый внутрь бейджа рядом с кнопкой.
+const warrantyRowValue = computed(() => {
+  if (!order.value?.warranty_until) return null;
+  return warrantyActive.value
+    ? `Возврат возможен до ${formatDate(order.value.warranty_until)}`
+    : `Истёк ${formatDate(order.value.warranty_until)}`;
+});
 const orderReturnClaims = computed(() =>
   returnClaims.value.filter((c) => c.order_id === orderId.value),
 );
@@ -351,21 +359,22 @@ q-page.order-detail(role="region", aria-label="Заказ")
       BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
         template(#head)
           .t-h3 Гарантийный возврат
-        BaseBadge.order-detail__return-window.q-mb-sm(v-if="warrantyUntil", :variant="warrantyActive ? 'info' : 'neutral'")
-          q-icon(:name="warrantyActive ? 'schedule' : 'event_busy'", size="12px")
-          | {{ warrantyActive ? `Возврат возможен до ${formatDate(order.warranty_until)}` : `Гарантия истекла ${formatDate(order.warranty_until)}` }}
-        .order-detail__return(v-if="displayedReturnClaim")
-          BaseBadge(:variant="returnClaimStatusVariant(displayedReturnClaim.status)")
-            | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
-          BaseButton(variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
-          BaseButton(v-if="canSubmitReturn", variant="secondary", size="sm", @click="openSubmitReturn") Подать новое заявление
-        template(v-else-if="canSubmitReturn")
-          BaseButton(variant="secondary", @click="openSubmitReturn")
+        DataRow(
+          v-if="warrantyRowValue"
+          label="Гарантийный срок"
+          :value="warrantyRowValue"
+        )
+        .t-muted(v-else) Гарантийный возврат по этому заказу не предусмотрен.
+
+        .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
+          template(v-if="displayedReturnClaim")
+            BaseBadge(:variant="returnClaimStatusVariant(displayedReturnClaim.status)")
+              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
+            BaseButton(variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
+          BaseButton(v-if="canSubmitReturn", variant="secondary", size="sm", @click="openSubmitReturn")
             template(#icon-left)
-              q-icon(name="assignment", size="18px")
-            | Подать заявление на возврат
-        .t-muted(v-else-if="!warrantyUntil")
-          | Гарантийный возврат по этому заказу не предусмотрен.
+              q-icon(name="assignment", size="16px")
+            | {{ displayedReturnClaim ? 'Подать новое заявление' : 'Подать заявление на возврат' }}
 
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
@@ -530,20 +539,12 @@ q-page.order-detail(role="region", aria-label="Заказ")
     }
   }
 
-  &__return-window {
-    align-self: flex-start;
-
-    :deep(.q-icon) {
-      margin-right: 4px;
-      vertical-align: -1px;
-    }
-  }
-
-  &__return {
+  &__return-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--p-3, 12px);
+    margin-top: var(--p-3, 12px);
   }
 
   &__actions {
