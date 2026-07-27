@@ -7,12 +7,9 @@
     .metric-item(v-for='metric in metricList', :key='metric.metric_hash')
       .metric-item__header
         .metric-item__title {{ metric.title }}
-        q-badge(
-          v-if='metric.status === archivedStatus',
-          color='grey-5',
-          text-color='white',
-          label='архив'
-        )
+        .metric-item__marks
+          BaseBadge(v-if='metric.status === archivedStatus', variant='neutral') архив
+          BaseBadge(:variant='seriesModeVariant(metric.series_mode)') {{ seriesModeLabel(metric.series_mode) }}
 
       .metric-item__progress
         .metric-item__values
@@ -41,7 +38,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { MetricSeriesPanel } from '../../ViewMetricSeries';
 import { useManageComponentMetrics } from '../model';
 
@@ -60,6 +57,15 @@ const archivedStatus = Zeus.MetricStatus.ARCHIVED;
 const metricList = computed(() =>
   metrics().filter((m) => m.status !== archivedStatus),
 );
+
+/** Как в «Плане»: RATE — дельты, LEVEL — абсолютное значение. */
+const seriesModeLabel = (mode: Zeus.ModelTypes['MetricSeriesMode']) =>
+  mode === Zeus.MetricSeriesMode.LEVEL ? 'Уровень' : 'Изменения';
+
+const seriesModeVariant = (
+  mode: Zeus.ModelTypes['MetricSeriesMode'],
+): 'info' | 'accent' =>
+  mode === Zeus.MetricSeriesMode.LEVEL ? 'accent' : 'info';
 
 const progressValue = (metric: { fact: number; target_value: number }) => {
   if (!metric.target_value) return 0;
@@ -119,9 +125,18 @@ onMounted(async () => {
 
 .metric-item__title {
   flex: 1;
+  min-width: 0;
   font-size: var(--p-fs-body-sm);
   font-weight: 500;
   color: var(--p-ink);
+}
+
+.metric-item__marks {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .metric-item__progress {

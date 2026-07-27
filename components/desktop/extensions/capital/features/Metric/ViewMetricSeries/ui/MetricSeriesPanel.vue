@@ -2,7 +2,6 @@
 .metric-series
   .metric-series__view(v-if='series && series.points.length')
     .metric-series__chart(v-show='chartMode === "accumulation"')
-      .metric-series__hint Факт и прогноз к цели
       ClientOnly
         template(#default)
           component.metric-series__apex(
@@ -16,7 +15,6 @@
           .metric-series__skel-chart
 
     .metric-series__chart(v-show='chartMode === "dynamics"')
-      .metric-series__hint Изменения и прогноз динамики
       ClientOnly
         template(#default)
           component.metric-series__apex(
@@ -37,7 +35,9 @@
           type='button',
           :class='{ "metric-series__mode--active": chartMode === mode.value }',
           @click='chartMode = mode.value'
-        ) {{ mode.label }}
+        )
+          | {{ mode.label }}
+          q-tooltip {{ mode.hint }}
       .metric-series__period
         BaseSelect(
           v-model='period',
@@ -56,8 +56,9 @@
 
 <script setup lang="ts">
 /**
- * Два графика: накопление и динамика. Волновая разметка только в API (`getMetricWave`);
- * здесь рисуем факт + линии прогноза. Правила проекции — `lib/projectMetricForecast.ts`.
+ * Два графика: накопление (RATE) / уровень (LEVEL) и динамика.
+ * Волновая разметка только в API (`getMetricWave`); здесь — факт + прогноз.
+ * Правила проекции — `lib/projectMetricForecast.ts`.
  */
 import { computed, defineAsyncComponent, ref, toRef } from 'vue';
 import { useQuasar } from 'quasar';
@@ -96,11 +97,6 @@ const {
 
 const chartMode = ref<ChartMode>('accumulation');
 
-const chartModes: { label: string; value: ChartMode }[] = [
-  { label: 'Накопление', value: 'accumulation' },
-  { label: 'Динамика', value: 'dynamics' },
-];
-
 const periodOptions = [
   { label: '1 мин', value: Zeus.MetricSeriesPeriod.MINUTE },
   { label: '5 мин', value: Zeus.MetricSeriesPeriod.MINUTE_5 },
@@ -128,6 +124,22 @@ const hasIdeal = computed(() =>
 const levelMode = computed(() =>
   isLevelSeriesMode(series.value?.series_mode, wave.value),
 );
+
+/** RATE — накопление дельт; LEVEL — текущий уровень (вес и т.п.). */
+const chartModes = computed(() => [
+  {
+    label: levelMode.value ? 'Уровень' : 'Накопление',
+    value: 'accumulation' as ChartMode,
+    hint: levelMode.value
+      ? 'Уровень и прогноз к цели'
+      : 'Накопление и прогноз к цели',
+  },
+  {
+    label: 'Динамика',
+    value: 'dynamics' as ChartMode,
+    hint: 'Изменения и прогноз динамики',
+  },
+]);
 
 const scenarios = computed(() => scenarioPathsFromWave(wave.value));
 
@@ -449,18 +461,10 @@ const dynamicsOptions = computed((): ApexOptions => {
 }
 
 .metric-series__chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
   min-width: 0;
   padding: var(--p-2);
   background: var(--p-surface-2);
   border-radius: var(--p-r-sm);
-}
-
-.metric-series__hint {
-  font-size: var(--p-fs-caption);
-  color: var(--p-ink-3);
 }
 
 .metric-series__apex {
