@@ -400,6 +400,12 @@ export class MarketplaceReturnClaimDTO {
   @Field(() => String, { nullable: true, description: 'ФИО (или наименование организации) пайщика-заявителя.' })
   public readonly orderer_name!: string | null;
 
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Гарантийный срок возврата исходного заказа (если установлен предложением).',
+  })
+  public readonly warranty_until!: Date | null;
+
   @Field({ description: 'КУ доставки исходного заказа (куда подаётся заявление).' })
   public readonly delivery_braname!: string;
 

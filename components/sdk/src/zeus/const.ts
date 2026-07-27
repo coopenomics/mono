@@ -5515,7 +5515,8 @@ export const ReturnTypes: Record<string,any> = {
 		supplier_account:"String",
 		total_refund:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
-		updated_at:"DateTime"
+		updated_at:"DateTime",
+		warranty_until:"DateTime"
 	},
 	MarketplaceReturnClaimDecisionEntry:{
 		at:"DateTime",

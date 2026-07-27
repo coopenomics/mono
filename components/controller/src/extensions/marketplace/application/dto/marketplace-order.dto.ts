@@ -400,6 +400,7 @@ export interface MarketplaceOrderDisplayFields {
   group_min_volume?: number | null;
   warehouse_quantity?: number | null;
   warehouse_shelves?: string[] | null;
+  warranty_until?: Date | null;
 }
 
 /**

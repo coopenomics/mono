@@ -9580,6 +9580,8 @@ export type ValueTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
+	/** Гарантийный срок возврата исходного заказа (если установлен предложением). */
+	warranty_until?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceReturnClaim']?: Omit<ValueTypes["MarketplaceReturnClaim"], "...on MarketplaceReturnClaim">
 }>;
@@ -22668,6 +22670,8 @@ export type ResolverInputTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 	updated_at?:boolean | `@${string}`,
+	/** Гарантийный срок возврата исходного заказа (если установлен предложением). */
+	warranty_until?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Запись о решении председателя по заявлению на возврат. */
@@ -35336,7 +35340,9 @@ export type ModelTypes = {
 	total_refund: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	updated_at: ModelTypes["DateTime"]
+	updated_at: ModelTypes["DateTime"],
+	/** Гарантийный срок возврата исходного заказа (если установлен предложением). */
+	warranty_until?: ModelTypes["DateTime"] | undefined | null
 };
 	/** Запись о решении председателя по заявлению на возврат. */
 ["MarketplaceReturnClaimDecisionEntry"]: {
@@ -49281,6 +49287,8 @@ export type GraphQLTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	updated_at: GraphQLTypes["DateTime"],
+	/** Гарантийный срок возврата исходного заказа (если установлен предложением). */
+	warranty_until?: GraphQLTypes["DateTime"] | undefined | null,
 	['...on MarketplaceReturnClaim']: Omit<GraphQLTypes["MarketplaceReturnClaim"], "...on MarketplaceReturnClaim">
 };
 	/** Запись о решении председателя по заявлению на возврат. */

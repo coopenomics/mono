@@ -179,6 +179,7 @@ export class MarketplaceOrderDisplayService {
         warehouse_shelves: opts?.withWarehouseQuantity
           ? (shelvesByOrderId.get(order.id) ?? null)
           : null,
+        warranty_until: order.warranty_until ?? null,
       });
     }
     return result;
