@@ -394,8 +394,8 @@ defineExpose({
 }
 
 .plan-dialog__metric-mode {
-  flex: 0 0 108px;
-  width: 108px;
+  flex: 0 0 86px;
+  width: 86px;
 }
 
 .plan-dialog__metrics-hint {
