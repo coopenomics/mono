@@ -93,9 +93,8 @@ const warrantyUntil = computed(() =>
 const warrantyActive = computed(
   () => warrantyUntil.value !== null && warrantyUntil.value.getTime() > Date.now(),
 );
-// Значение для .order-detail__fact — тот же паттерн подпись-сверху/значение-
-// снизу, что и «Сумма заказа»/«Количество» выше по странице (DataRow с его
-// широкой grid-парой label|value смотрелся разъехавшимся на одиночной строке).
+// Дата гарантийного срока — форматированная строка для подписи в hero-блоке
+// возврата ниже (returnSecondaryText), не отдельная строка сама по себе.
 const warrantyRowValue = computed(() =>
   order.value?.warranty_until ? formatDate(order.value.warranty_until) : null,
 );
@@ -124,6 +123,28 @@ const canSubmitReturn = computed(
 );
 // Что показать в блоке возврата: открытая заявка приоритетнее архивной.
 const displayedReturnClaim = computed(() => openReturnClaim.value ?? latestArchivedReturnClaim.value);
+
+// Иконка+заголовок+подпись — единая композиция «что сейчас с возвратом»
+// (как .onsite-gate__head рядом: иконка слева, жирная строка состояния,
+// под ней приглушённая деталь). Статус заявления, если она есть, выносится
+// в BaseBadge отдельно — здесь заголовок общий («Заявление на возврат»),
+// чтобы не дублировать один и тот же текст дважды.
+const returnHeroIcon = computed(() => {
+  if (displayedReturnClaim.value) return 'inventory_2';
+  if (canSubmitReturn.value) return 'event_available';
+  return 'event_busy';
+});
+const returnPrimaryText = computed(() => {
+  if (displayedReturnClaim.value) return 'Заявление на возврат';
+  if (canSubmitReturn.value) return 'Гарантийный возврат доступен';
+  return warrantyUntil.value ? 'Гарантийный срок истёк' : 'Гарантийный возврат не предусмотрен';
+});
+const returnSecondaryText = computed(() => {
+  if (!warrantyRowValue.value) return '';
+  return displayedReturnClaim.value || canSubmitReturn.value
+    ? `Гарантийный срок — до ${warrantyRowValue.value}`
+    : warrantyRowValue.value;
+});
 
 // requirement b6: заказчику показываем цену С членским взносом (как в
 // каталоге) — order.total_cost_with_fee уже посчитан бэком (total_cost +
@@ -365,17 +386,25 @@ q-page.order-detail(role="region", aria-label="Заказ")
         template(#head)
           .t-h3 Гарантийный возврат
         .order-detail__return
-          .order-detail__fact(v-if="warrantyRowValue")
-            .order-detail__fact-label Гарантийный срок возврата до
-            .order-detail__fact-value {{ warrantyRowValue }}
-          .t-muted(v-else) Гарантийный возврат по этому заказу не предусмотрен.
+          .order-detail__return-hero
+            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
+            .order-detail__return-text
+              .order-detail__return-primary {{ returnPrimaryText }}
+              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
+            BaseBadge.order-detail__return-badge(
+              v-if="displayedReturnClaim"
+              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
+            )
+              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
 
           .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
-            template(v-if="displayedReturnClaim")
-              BaseBadge(:variant="returnClaimStatusVariant(displayedReturnClaim.status)")
-                | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
-              BaseButton(variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
-            BaseButton(v-if="canSubmitReturn", variant="secondary", size="sm", @click="openSubmitReturn")
+            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
+            BaseButton(
+              v-if="canSubmitReturn"
+              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
+              size="sm"
+              @click="openSubmitReturn"
+            )
               template(#icon-left)
                 q-icon(name="assignment", size="16px")
               | {{ displayedReturnClaim ? 'Подать новое заявление' : 'Подать заявление на возврат' }}
@@ -548,14 +577,55 @@ q-page.order-detail(role="region", aria-label="Заказ")
   &__return {
     display: flex;
     flex-direction: column;
+    gap: var(--p-4, 16px);
+  }
+
+  // Иконка + жирная строка состояния + приглушённая деталь снизу — тот же
+  // приём, что и .onsite-gate__head (гейт подписи): визуальный якорь слева,
+  // иерархия размером/весом текста, а не бейджем-предложением.
+  &__return-hero {
+    display: flex;
+    align-items: center;
     gap: var(--p-3, 12px);
+    min-width: 0;
+  }
+
+  &__return-icon {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
+  }
+
+  &__return-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  &__return-primary {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__return-secondary {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__return-badge {
+    flex: 0 0 auto;
   }
 
   &__return-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--p-3, 12px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__actions {

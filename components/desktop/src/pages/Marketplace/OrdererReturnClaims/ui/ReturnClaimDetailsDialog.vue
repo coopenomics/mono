@@ -78,8 +78,6 @@ TakeoverDialog(
           .q-mt-sm {{ claim.reason_text }}
           .q-mt-sm.text-caption.text-grey(v-if="claim.defect_category")
             | Категория дефекта: {{ defectCategoryLabel(claim.defect_category) }}
-          .q-mt-sm.text-caption.text-grey
-            | Якорный hash on-chain: {{ claim.request_hash.slice(0, 16) }}…
 
       q-card(flat bordered).q-mb-md
         q-card-section
