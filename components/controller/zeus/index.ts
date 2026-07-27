@@ -7848,8 +7848,8 @@ export type ValueTypes = {
 	braname: string | Variable<any, string>,
 	/** Идентификатор заявления. */
 	claim_id: string | Variable<any, string>,
-	/** Комментарий председателя (обязательно, 1-500 символов). */
-	comment: string | Variable<any, string>
+	/** Комментарий председателя (опционально при приглашении на осмотр, до 500 символов). */
+	comment?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceAssignInventoryShelfInput"]: {
 	/** Позиция склада, для которой назначается полка. */
@@ -20993,8 +20993,8 @@ export type ResolverInputTypes = {
 	braname: string,
 	/** Идентификатор заявления. */
 	claim_id: string,
-	/** Комментарий председателя (обязательно, 1-500 символов). */
-	comment: string
+	/** Комментарий председателя (опционально при приглашении на осмотр, до 500 символов). */
+	comment?: string | undefined | null
 };
 	["MarketplaceAssignInventoryShelfInput"]: {
 	/** Позиция склада, для которой назначается полка. */
@@ -33746,8 +33746,8 @@ export type ModelTypes = {
 	braname: string,
 	/** Идентификатор заявления. */
 	claim_id: string,
-	/** Комментарий председателя (обязательно, 1-500 символов). */
-	comment: string
+	/** Комментарий председателя (опционально при приглашении на осмотр, до 500 символов). */
+	comment?: string | undefined | null
 };
 	["MarketplaceAssignInventoryShelfInput"]: {
 	/** Позиция склада, для которой назначается полка. */
@@ -47547,8 +47547,8 @@ export type GraphQLTypes = {
 	braname: string,
 	/** Идентификатор заявления. */
 	claim_id: string,
-	/** Комментарий председателя (обязательно, 1-500 символов). */
-	comment: string
+	/** Комментарий председателя (опционально при приглашении на осмотр, до 500 символов). */
+	comment?: string | undefined | null
 };
 	["MarketplaceAssignInventoryShelfInput"]: {
 		/** Позиция склада, для которой назначается полка. */

@@ -97,7 +97,8 @@ export interface MarketplaceApproveReturnVisitInput {
   chairman_account: string;
   braname: string;
   claim_id: string;
-  comment: string;
+  /** Опционально: одобрение (в отличие от отказа) не обязано мотивироваться. */
+  comment?: string;
 }
 
 export interface MarketplaceRejectReturnRemoteInput {
@@ -386,8 +387,8 @@ export class MarketplaceReturnClaimService {
   async approveReturnVisit(
     input: MarketplaceApproveReturnVisitInput
   ): Promise<MarketplaceReturnClaimResult> {
-    if (!input.comment || input.comment.trim().length === 0) {
-      throw new BadRequestException('Укажите комментарий к одобрению.');
+    if (input.comment && input.comment.length > 500) {
+      throw new BadRequestException('Комментарий не может быть длиннее 500 символов.');
     }
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
@@ -426,7 +427,7 @@ export class MarketplaceReturnClaimService {
       decision: 'approve_visit',
       by_chairman_account: input.chairman_account,
       braname: input.braname,
-      comment: input.comment,
+      comment: input.comment?.trim() ?? '',
       at: new Date(),
       tx_hash: txHash,
     };

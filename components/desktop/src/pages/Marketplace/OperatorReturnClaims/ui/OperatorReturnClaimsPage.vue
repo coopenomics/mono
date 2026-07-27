@@ -9,6 +9,7 @@ import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 's
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusVariant } from '../../OrdererReturnClaims';
 import {
   listReturnClaimsByBraname,
@@ -183,7 +184,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
                 img(:src='p.url', :alt='`Фото ${i + 1}`')
             .returns__item-data
               DataRow(label='Количество к возврату', :value='claimQuantityLabel(c)')
-              DataRow(label='Сумма возврата', :value='`${c.fact_cost} ₽`')
+              DataRow(label='Сумма возврата', :value='`${formatAsset2Digits(c.fact_cost)} ₽`')
               DataRow(label='Причина возврата', :value='c.reason_text')
               DataRow(
                 v-if='c.defect_category',
@@ -219,7 +220,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
                 img(:src='p.url', :alt='`Фото ${i + 1}`')
             .returns__item-data
               DataRow(label='Количество к возврату', :value='claimQuantityLabel(c)')
-              DataRow(label='Сумма возврата', :value='`${c.fact_cost} ₽`')
+              DataRow(label='Сумма возврата', :value='`${formatAsset2Digits(c.fact_cost)} ₽`')
               DataRow(label='Причина возврата', :value='c.reason_text')
               DataRow(
                 v-if='c.defect_category',
@@ -249,7 +250,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
             .returns__item-title
               | Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_name || c.orderer_account }}
               span.returns__item-meta(v-if='c.ledger_snapshot')
-                | · {{ c.ledger_snapshot.amount }} ₽ восстановлено
+                | · {{ formatAsset2Digits(c.ledger_snapshot.amount) }} ₽ восстановлено
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
       EmptyState(v-else-if='!loading', title='Архив пуст')
         template(#icon)

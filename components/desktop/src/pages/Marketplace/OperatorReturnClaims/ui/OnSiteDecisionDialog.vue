@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
-import { fileToBase64 } from 'src/shared/lib/utils';
+import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
   acceptReturnAtVisit,
   rejectReturnAtVisit,
@@ -115,7 +115,7 @@ async function confirm(): Promise<void> {
         inspection_photos: photos.value.length > 0 ? photos.value : undefined,
       });
       SuccessAlert(
-        `Возврат принят. На программный кошелёк заказчика восстановлено ${props.claim.fact_cost} ₽.`,
+        `Возврат принят. На программный кошелёк заказчика восстановлено ${formatAsset2Digits(props.claim.fact_cost)} ₽.`,
       );
     } else {
       await rejectReturnAtVisit({
@@ -164,7 +164,7 @@ const decisionOptions = [
 TakeoverDialog(
   :model-value="modelValue"
   :title="claim ? `Очный осмотр по заявлению ${claim.id.slice(0, 8)}` : 'Очный осмотр'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_account} · возврат на ${claim.fact_cost} ₽` : ''"
+  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_name || claim.orderer_account} · возврат на ${formatAsset2Digits(claim.fact_cost)} ₽` : ''"
   :kind="kind"
   :confirm-label="confirmLabel"
   cancel-label="Закрыть"
@@ -236,7 +236,7 @@ TakeoverDialog(
           type="radio"
         )
         q-banner.q-mt-md(v-if="decision === DECISION_ACCEPT" rounded class="bg-positive text-white")
-          | Восстановим {{ claim.fact_cost }} ₽ на программный кошелёк заказчика. Имущество вернётся на склад участка.
+          | Восстановим {{ formatAsset2Digits(claim.fact_cost) }} ₽ на программный кошелёк заказчика. Имущество вернётся на склад участка.
         q-banner.q-mt-md(v-else rounded class="bg-warning text-dark")
           | Имущество остаётся у заказчика. Движений по средствам нет.
 </template>

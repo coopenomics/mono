@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import {
   defectCategoryLabel,
   returnClaimStatusLabel,
@@ -55,7 +56,7 @@ function formatDateTime(value: unknown): string {
 TakeoverDialog(
   :model-value="modelValue"
   :title="claim ? `Заявление ${claim.id.slice(0, 8)} — ${returnClaimStatusLabel(claim.status)}` : 'Заявление'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${claim.total_refund} ₽` : ''"
+  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${formatAsset2Digits(claim.total_refund)} ₽` : ''"
   :kind="statusKind"
   cancel-label="Закрыть"
   confirm-label="Готово"
@@ -113,7 +114,7 @@ TakeoverDialog(
           .text-subtitle1 Возврат принят
           .q-mt-sm
             | Восстановлено на программный кошелёк Стола Заказов:
-            strong.q-ml-xs {{ claim.ledger_snapshot.amount }} ₽
+            strong.q-ml-xs {{ formatAsset2Digits(claim.ledger_snapshot.amount) }} ₽
           .text-caption.q-mt-sm
             | Композитная транзакция accretrn: {{ claim.ledger_snapshot.tx_hash }}
           .text-caption

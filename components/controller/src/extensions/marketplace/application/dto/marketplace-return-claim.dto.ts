@@ -179,10 +179,13 @@ export class MarketplaceApproveReturnVisitInputDTO {
   @IsString()
   public readonly braname!: string;
 
-  @Field({ description: 'Комментарий председателя (обязательно, 1-500 символов).' })
+  @Field({
+    nullable: true,
+    description: 'Комментарий председателя (опционально при приглашении на осмотр, до 500 символов).',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  public readonly comment!: string;
+  public readonly comment?: string;
 }
 
 @InputType('MarketplaceRejectReturnRemoteInput')
