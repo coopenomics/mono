@@ -376,11 +376,17 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${event.braname}`;
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${kuName}`;
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
         decisionHuman,
-        brananame: event.braname,
+        brananame: kuName,
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: '',
