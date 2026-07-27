@@ -192,6 +192,12 @@ export class ComponentMetricService {
     }
     await this.assertCanEditIssueMetrics(project, issue, currentUser);
 
+    if (issue.status === IssueStatus.DONE) {
+      throw new Error(
+        'Нельзя изменять привязки метрик у выполненной задачи: вклад зафиксирован при переводе в статус «Выполнена»'
+      );
+    }
+
     for (const item of data.bindings) {
       const metric = await this.metricRepository.findByMetricHash(item.metric_hash);
       if (!metric) {

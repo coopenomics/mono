@@ -138,3 +138,46 @@ describe('ComponentMetricService.handleIssueStatusTransition (562-34)', () => {
     expect(contributionRepository.createMany).toHaveBeenCalledWith([]);
   });
 });
+
+describe('ComponentMetricService.setIssueMetricBindings (562-34)', () => {
+  it('бросает ошибку при изменении привязок у задачи в DONE', async () => {
+    const issueRepository = {
+      findByIssueHash: jest.fn().mockResolvedValue({
+        issue_hash: 'issue-1',
+        project_hash: 'project-1',
+        status: IssueStatus.DONE,
+      }),
+    };
+    const projectRepository = {
+      findByHash: jest.fn().mockResolvedValue({ project_hash: 'project-1' }),
+    };
+    const permissionsService = {
+      calculateProjectPermissions: jest.fn().mockResolvedValue({ can_manage_issues: true }),
+      calculateIssuePermissions: jest.fn().mockResolvedValue({ can_edit_issue: true }),
+    };
+    const bindingRepository = {
+      replaceForIssue: jest.fn(),
+    };
+
+    const service = new ComponentMetricService(
+      {} as ComponentMetricRepository,
+      bindingRepository as unknown as IssueMetricBindingRepository,
+      {} as MetricContributionRepository,
+      projectRepository as unknown as ProjectRepository,
+      issueRepository as unknown as IssueRepository,
+      permissionsService as unknown as PermissionsService
+    );
+
+    await expect(
+      service.setIssueMetricBindings(
+        {
+          issue_hash: 'issue-1',
+          bindings: [{ metric_hash: 'metric-a', delta: 5 }],
+        },
+        { username: 'ant' } as never
+      )
+    ).rejects.toThrow(/выполненной задачи/);
+
+    expect(bindingRepository.replaceForIssue).not.toHaveBeenCalled();
+  });
+});
