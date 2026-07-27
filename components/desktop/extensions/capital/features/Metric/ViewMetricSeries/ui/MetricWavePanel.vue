@@ -2,7 +2,7 @@
 .metric-wave(v-if='wave')
   .metric-wave__head
     .metric-wave__phase
-      span.metric-wave__badge Волна {{ wave.current_label }}
+      span.metric-wave__badge Волна {{ displayLabel }}
       span.metric-wave__phase-label {{ phaseLabel }}
     .metric-wave__eta(v-if='wave.corridor.eta_base_periods != null')
       span.t-mono ~{{ wave.corridor.eta_base_periods }}
@@ -40,7 +40,7 @@
       :key='"lb-" + s.index',
       :x='xOf(s.index, wave.values.length)',
       :y='yOf(s.value) - 6'
-    ) {{ s.label }}
+    ) {{ s.label.replace(/^W/, '') }}
 
   .metric-wave__disclaimer
     q-icon(name='info', size='14px')
@@ -70,6 +70,11 @@ const pad = 10;
 const phaseLabel = computed(() => {
   if (!wave.value) return '';
   return wave.value.current_phase === Zeus.WavePhase.IMPULSE ? 'импульс' : 'коррекция';
+});
+
+const displayLabel = computed(() => {
+  const raw = wave.value?.current_label ?? '';
+  return raw.replace(/^W/, '');
 });
 
 const allY = computed(() => {
