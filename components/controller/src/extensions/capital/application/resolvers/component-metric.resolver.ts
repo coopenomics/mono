@@ -126,10 +126,10 @@ export class ComponentMetricResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getMetricContributions(
-    @Args('data') data: GetMetricContributionsInputDTO,
-    @Args('options', { nullable: true }) options: PaginationInputDTO | undefined,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
+    @Args('data', { type: () => GetMetricContributionsInputDTO }) data: GetMetricContributionsInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO,
+    @CurrentUser() currentUser?: MonoAccountDomainInterface
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
-    return this.componentMetricService.getMetricContributions(data.metric_hash, options, currentUser);
+    return this.componentMetricService.getMetricContributions(data.metric_hash, options, currentUser!);
   }
 }

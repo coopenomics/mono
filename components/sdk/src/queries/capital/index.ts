@@ -2,6 +2,8 @@ export * as GetCapitalCandidates from './getCapitalCandidates'
 
 export * as GetCommit from './getCommit'
 
+export * as GetComponentMetrics from './getComponentMetrics'
+
 export * as GetCommits from './getCommits'
 
 export * as GetContributor from './getContributor'
@@ -28,9 +30,13 @@ export * as GetInvests from './getInvests'
 
 export * as GetIssue from './getIssue'
 
+export * as GetIssueMetricBindings from './getIssueMetricBindings'
+
 export * as GetIssueLogs from './getIssueLogs'
 
 export * as GetIssues from './getIssues'
+
+export * as GetMetricContributions from './getMetricContributions'
 
 export * as GetOnboardingState from './getOnboardingState'
 

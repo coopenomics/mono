@@ -1743,6 +1743,10 @@ export type ValueTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string | Variable<any, string>,
@@ -2394,6 +2398,19 @@ export type ValueTypes = {
 	referer?: string | undefined | null | Variable<any, string>
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null | Variable<any, string>,
+	/** Количество часов (> 0) */
+	hours: number | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>,
+	/** Имя пользователя-исполнителя */
+	username: string | Variable<any, string>
+};
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
 	braname?:boolean | `@${string}`,
@@ -2506,6 +2523,43 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Нефинансовая метрика компонента */
+["CapitalComponentMetric"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал метрику */
+	created_by?:boolean | `@${string}`,
+	/** Срок достижения цели */
+	deadline?:boolean | `@${string}`,
+	/** Фактическое значение (сумма вкладов) */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Режим ряда: скорость или уровень */
+	series_mode?:boolean | `@${string}`,
+	/** Статус метрики */
+	status?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalComponentMetric']?: Omit<ValueTypes["CapitalComponentMetric"], "...on CapitalComponentMetric">
+}>;
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: AliasType<{
 	/** Процент голосования авторов */
@@ -2769,6 +2823,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: AliasType<{
 	/** Дата создания записи */
@@ -2921,6 +2982,27 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalIssueLinkedGitCommit']?: Omit<ValueTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 }>;
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Плановый вклад задачи в метрику */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalIssueMetricBinding']?: Omit<ValueTypes["CapitalIssueMetricBinding"], "...on CapitalIssueMetricBinding">
+}>;
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: AliasType<{
 	/** Список допустимых статусов для перехода */
@@ -2962,10 +3044,14 @@ export type ValueTypes = {
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
 	_id?:boolean | `@${string}`,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Дата создания записи */
 	created_at?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
 	/** ID сущности */
 	entity_id?:boolean | `@${string}`,
 	/** Тип сущности к которой относится событие */
@@ -2974,7 +3060,7 @@ export type ValueTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -2982,6 +3068,8 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalLog']?: Omit<ValueTypes["CapitalLog"], "...on CapitalLog">
 }>;
@@ -3006,6 +3094,35 @@ export type ValueTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null | Variable<any, string>
 };
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Хеш записи вклада */
+	contribution_hash?:boolean | `@${string}`,
+	/** Величина вклада */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Момент вклада */
+	occurred_at?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Источник вклада */
+	source?:boolean | `@${string}`,
+	/** Кто зафиксировал вклад */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricContribution']?: Omit<ValueTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -3029,6 +3146,13 @@ export type ValueTypes = {
 	question: string | Variable<any, string>,
 	step: ValueTypes["CapitalOnboardingStep"] | Variable<any, string>,
 	title?: string | undefined | null | Variable<any, string>
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
 };
 	["CapitalProgramExpense"]: AliasType<{
 	callback?:ValueTypes["CapitalProgramExpenseCallback"],
@@ -3494,6 +3618,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalResult']?: Omit<ValueTypes["CapitalResult"], "...on CapitalResult">
 }>;
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: AliasType<{
 	/** Дата создания записи */
@@ -3628,6 +3759,15 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: AliasType<{
 	/** Дата создания записи */
@@ -3661,6 +3801,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalState']?: Omit<ValueTypes["CapitalState"], "...on CapitalState">
 }>;
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: AliasType<{
 	/** Дата создания записи */
@@ -3816,6 +3963,35 @@ export type ValueTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: AliasType<{
+	/** Идентификатор сессии */
+	_id?:boolean | `@${string}`,
+	/** Хеш участника */
+	contributor_hash?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds?:boolean | `@${string}`,
+	/** Сессия на паузе */
+	is_paused?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Название задачи */
+	issue_title?:boolean | `@${string}`,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?:boolean | `@${string}`,
+	/** Хеш проекта */
+	project_hash?:boolean | `@${string}`,
+	/** Время старта */
+	started_at?:boolean | `@${string}`,
+	/** Время остановки (null если открыта) */
+	stopped_at?:boolean | `@${string}`,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalTimerSession']?: Omit<ValueTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+}>;
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string | Variable<any, string>,
@@ -4430,6 +4606,22 @@ export type ValueTypes = {
 	project_hash: string | Variable<any, string>,
 	/** Имя пользователя */
 	username: string | Variable<any, string>
+};
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Срок достижения цели */
+	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Хеш компонента */
+	project_hash: string | Variable<any, string>,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Целевое значение */
+	target_value: number | Variable<any, string>,
+	/** Название метрики */
+	title: string | Variable<any, string>,
+	/** Единица измерения */
+	unit: string | Variable<any, string>
 };
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
@@ -6163,6 +6355,12 @@ export type ValueTypes = {
 	/** Хеш истории для получения */
 	story_hash: string | Variable<any, string>
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string | Variable<any, string>,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null | Variable<any, string>,
@@ -6216,6 +6414,10 @@ export type ValueTypes = {
 	["GetInvestInput"]: {
 	/** ID инвестиции */
 	_id: string | Variable<any, string>
+};
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>
 };
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
@@ -6289,6 +6491,10 @@ export type ValueTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -6463,6 +6669,12 @@ export type ValueTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -6636,6 +6848,14 @@ export type ValueTypes = {
 ["LogEntityType"]:LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number | Variable<any, string>,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string | Variable<any, string>,
@@ -6964,6 +7184,12 @@ export type ValueTypes = {
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]:MetricContributionSource;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]:MetricSeriesMode;
+	/** Статус метрики компонента */
+["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -7029,7 +7255,9 @@ authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ValueTypes["CloseProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ValueTypes["CompleteProcessStepInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -7037,6 +7265,7 @@ capitalCompleteRegistration?: [{	data: ValueTypes["CompleteCapitalRegistrationIn
 capitalCompleteVoting?: [{	data: ValueTypes["CompleteVotingInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalConvertSegment?: [{	data: ValueTypes["ConvertSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalCreateCommit?: [{	data: ValueTypes["CreateCommitInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalCreateComponentMetric?: [{	data: ValueTypes["CreateComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCreateCycle?: [{	data: ValueTypes["CreateCycleInput"] | Variable<any, string>},ValueTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -7082,14 +7311,18 @@ capitalGenerateResultContributionAct?: [{	data: ValueTypes["ResultContributionAc
 capitalGenerateResultContributionDecision?: [{	data: ValueTypes["ResultContributionDecisionGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ValueTypes["ResultContributionStatementGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ValueTypes["ImportContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalLogMetricContribution?: [{	data: ValueTypes["LogMetricContributionInput"] | Variable<any, string>},ValueTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ValueTypes["MakeClearanceInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ValueTypes["MoveCapitalIssueToComponentInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ValueTypes["OpenProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalPauseTimer?: [{	data: ValueTypes["CapitalPauseTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalPushResult?: [{	data: ValueTypes["PushResultInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ValueTypes["SetMasterInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetPlan?: [{	data: ValueTypes["SetPlanInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -7097,10 +7330,13 @@ capitalSignActAsChairman?: [{	data: ValueTypes["SignActAsChairmanInput"] | Varia
 capitalSignActAsContributor?: [{	data: ValueTypes["SignActAsContributorInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ValueTypes["StartProcessInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ValueTypes["StartProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalStartTimer?: [{	data: ValueTypes["CapitalStartTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalStartVoting?: [{	data: ValueTypes["StartVotingInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalStopProject?: [{	data: ValueTypes["StopProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalStopTimer?: [{	data: ValueTypes["CapitalStopTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ValueTypes["SubmitVoteInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ValueTypes["CapitalTopupProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalUpdateComponentMetric?: [{	data: ValueTypes["UpdateComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ValueTypes["UpdateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalUpdateProcessTemplate?: [{	data: ValueTypes["UpdateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ValueTypes["UpdateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
@@ -7626,6 +7862,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalLogsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
+}>;
+	["PaginatedCapitalMetricContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalMetricContribution"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalMetricContributionsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"], "...on PaginatedCapitalMetricContributionsPaginationResult">
 }>;
 	["PaginatedCapitalProgramExpensesPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -8574,6 +8822,7 @@ candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null |
 capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCandidatesPaginationResult"]],
 capitalCommit?: [{	data: ValueTypes["GetCapitalCommitByHashInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ValueTypes["CapitalCommitFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCommitsPaginationResult"]],
+capitalComponentMetrics?: [{	data: ValueTypes["GetComponentMetricsInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalContributor?: [{	data: ValueTypes["GetContributorInput"] | Variable<any, string>},ValueTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ValueTypes["CapitalContributorFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ValueTypes["CapitalCycleFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -8581,6 +8830,7 @@ capitalDebt?: [{	data: ValueTypes["GetDebtInput"] | Variable<any, string>},Value
 capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ValueTypes["ExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessTemplate?: [{	id: string | Variable<any, string>},ValueTypes["ProcessTemplate"]],
@@ -8588,7 +8838,9 @@ capitalGetProcessTemplates?: [{	project_hash?: string | undefined | null | Varia
 capitalInvest?: [{	data: ValueTypes["GetInvestInput"] | Variable<any, string>},ValueTypes["CapitalInvest"]],
 capitalInvests?: [{	filter?: ValueTypes["CapitalInvestFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ValueTypes["GetCapitalIssueByHashInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalIssueMetricBindings?: [{	data: ValueTypes["GetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -9612,6 +9864,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ValueTypes["IssueMetricBindingItemInput"]> | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -10062,6 +10320,20 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	matrixRoomId: string | Variable<any, string>,
 	startsAt: ValueTypes["DateTime"] | Variable<any, string>,
 	title: string | Variable<any, string>
+};
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>,
+	/** Режим ряда */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Целевое значение */
+	target_value?: number | undefined | null | Variable<any, string>,
+	/** Название метрики */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Единица измерения */
+	unit?: string | undefined | null | Variable<any, string>
 };
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
@@ -11122,6 +11394,10 @@ export type ResolverInputTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]:ApprovalStatus;
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -11750,6 +12026,19 @@ export type ResolverInputTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
 	braname?:boolean | `@${string}`,
@@ -11859,6 +12148,42 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Нефинансовая метрика компонента */
+["CapitalComponentMetric"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал метрику */
+	created_by?:boolean | `@${string}`,
+	/** Срок достижения цели */
+	deadline?:boolean | `@${string}`,
+	/** Фактическое значение (сумма вкладов) */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Режим ряда: скорость или уровень */
+	series_mode?:boolean | `@${string}`,
+	/** Статус метрики */
+	status?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: AliasType<{
 	/** Процент голосования авторов */
@@ -12117,6 +12442,13 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: AliasType<{
 	/** Дата создания записи */
@@ -12265,6 +12597,26 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Плановый вклад задачи в метрику */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: AliasType<{
 	/** Список допустимых статусов для перехода */
@@ -12305,10 +12657,14 @@ export type ResolverInputTypes = {
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
 	_id?:boolean | `@${string}`,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Дата создания записи */
 	created_at?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
 	/** ID сущности */
 	entity_id?:boolean | `@${string}`,
 	/** Тип сущности к которой относится событие */
@@ -12317,7 +12673,7 @@ export type ResolverInputTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -12325,6 +12681,8 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Фильтр для поиска логов событий */
@@ -12348,6 +12706,34 @@ export type ResolverInputTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Хеш записи вклада */
+	contribution_hash?:boolean | `@${string}`,
+	/** Величина вклада */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Момент вклада */
+	occurred_at?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Источник вклада */
+	source?:boolean | `@${string}`,
+	/** Кто зафиксировал вклад */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -12370,6 +12756,13 @@ export type ResolverInputTypes = {
 	question: string,
 	step: ResolverInputTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: AliasType<{
 	callback?:ResolverInputTypes["CapitalProgramExpenseCallback"],
@@ -12821,6 +13214,13 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: AliasType<{
 	/** Дата создания записи */
@@ -12954,6 +13354,15 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: AliasType<{
 	/** Дата создания записи */
@@ -12986,6 +13395,13 @@ export type ResolverInputTypes = {
 	program_membership_funded?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: AliasType<{
 	/** Дата создания записи */
@@ -13137,6 +13553,34 @@ export type ResolverInputTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: AliasType<{
+	/** Идентификатор сессии */
+	_id?:boolean | `@${string}`,
+	/** Хеш участника */
+	contributor_hash?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds?:boolean | `@${string}`,
+	/** Сессия на паузе */
+	is_paused?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Название задачи */
+	issue_title?:boolean | `@${string}`,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?:boolean | `@${string}`,
+	/** Хеш проекта */
+	project_hash?:boolean | `@${string}`,
+	/** Время старта */
+	started_at?:boolean | `@${string}`,
+	/** Время остановки (null если открыта) */
+	stopped_at?:boolean | `@${string}`,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string,
@@ -13736,6 +14180,22 @@ export type ResolverInputTypes = {
 	project_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
@@ -15434,6 +15894,12 @@ export type ResolverInputTypes = {
 	/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ResolverInputTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -15487,6 +15953,10 @@ export type ResolverInputTypes = {
 	["GetInvestInput"]: {
 	/** ID инвестиции */
 	_id: string
+};
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string
 };
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
@@ -15560,6 +16030,10 @@ export type ResolverInputTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -15729,6 +16203,12 @@ export type ResolverInputTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -15891,6 +16371,14 @@ export type ResolverInputTypes = {
 ["LogEntityType"]:LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -16209,6 +16697,12 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]:MetricContributionSource;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]:MetricSeriesMode;
+	/** Статус метрики компонента */
+["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -16272,7 +16766,9 @@ authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},Resol
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
+capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ResolverInputTypes["CloseProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ResolverInputTypes["CompleteProcessStepInput"]},ResolverInputTypes["ProcessInstance"]],
@@ -16280,6 +16776,7 @@ capitalCompleteRegistration?: [{	data: ResolverInputTypes["CompleteCapitalRegist
 capitalCompleteVoting?: [{	data: ResolverInputTypes["CompleteVotingInput"]},ResolverInputTypes["Transaction"]],
 capitalConvertSegment?: [{	data: ResolverInputTypes["ConvertSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalCreateCommit?: [{	data: ResolverInputTypes["CreateCommitInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalCreateComponentMetric?: [{	data: ResolverInputTypes["CreateComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCreateCycle?: [{	data: ResolverInputTypes["CreateCycleInput"]},ResolverInputTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
@@ -16325,14 +16822,18 @@ capitalGenerateResultContributionAct?: [{	data: ResolverInputTypes["ResultContri
 capitalGenerateResultContributionDecision?: [{	data: ResolverInputTypes["ResultContributionDecisionGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ResolverInputTypes["ResultContributionStatementGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ResolverInputTypes["ImportContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalLogMetricContribution?: [{	data: ResolverInputTypes["LogMetricContributionInput"]},ResolverInputTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ResolverInputTypes["MakeClearanceInput"]},ResolverInputTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ResolverInputTypes["MoveCapitalIssueToComponentInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ResolverInputTypes["OpenProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalPauseTimer?: [{	data: ResolverInputTypes["CapitalPauseTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalPushResult?: [{	data: ResolverInputTypes["PushResultInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},ResolverInputTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
+capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ResolverInputTypes["SetMasterInput"]},ResolverInputTypes["Transaction"]],
 capitalSetPlan?: [{	data: ResolverInputTypes["SetPlanInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ResolverInputTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"]},ResolverInputTypes["CapitalProject"]],
@@ -16340,10 +16841,13 @@ capitalSignActAsChairman?: [{	data: ResolverInputTypes["SignActAsChairmanInput"]
 capitalSignActAsContributor?: [{	data: ResolverInputTypes["SignActAsContributorInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ResolverInputTypes["StartProcessInput"]},ResolverInputTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ResolverInputTypes["StartProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalStartTimer?: [{	data: ResolverInputTypes["CapitalStartTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalStartVoting?: [{	data: ResolverInputTypes["StartVotingInput"]},ResolverInputTypes["Transaction"]],
 capitalStopProject?: [{	data: ResolverInputTypes["StopProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalStopTimer?: [{	data: ResolverInputTypes["CapitalStopTimerInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ResolverInputTypes["SubmitVoteInput"]},ResolverInputTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ResolverInputTypes["CapitalTopupProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
+capitalUpdateComponentMetric?: [{	data: ResolverInputTypes["UpdateComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ResolverInputTypes["UpdateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalUpdateProcessTemplate?: [{	data: ResolverInputTypes["UpdateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ResolverInputTypes["UpdateStoryInput"]},ResolverInputTypes["CapitalStory"]],
@@ -16841,6 +17345,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["CapitalLog"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedCapitalMetricContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalMetricContribution"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -17755,6 +18270,7 @@ candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined 
 capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCandidatesPaginationResult"]],
 capitalCommit?: [{	data: ResolverInputTypes["GetCapitalCommitByHashInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ResolverInputTypes["CapitalCommitFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCommitsPaginationResult"]],
+capitalComponentMetrics?: [{	data: ResolverInputTypes["GetComponentMetricsInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalContributor?: [{	data: ResolverInputTypes["GetContributorInput"]},ResolverInputTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ResolverInputTypes["CapitalContributorFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ResolverInputTypes["CapitalCycleFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -17762,6 +18278,7 @@ capitalDebt?: [{	data: ResolverInputTypes["GetDebtInput"]},ResolverInputTypes["C
 capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ResolverInputTypes["ExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessTemplate?: [{	id: string},ResolverInputTypes["ProcessTemplate"]],
@@ -17769,7 +18286,9 @@ capitalGetProcessTemplates?: [{	project_hash?: string | undefined | null},Resolv
 capitalInvest?: [{	data: ResolverInputTypes["GetInvestInput"]},ResolverInputTypes["CapitalInvest"]],
 capitalInvests?: [{	filter?: ResolverInputTypes["CapitalInvestFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ResolverInputTypes["GetCapitalIssueByHashInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalIssueMetricBindings?: [{	data: ResolverInputTypes["GetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
@@ -18769,6 +19288,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ResolverInputTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -19204,6 +19729,20 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	matrixRoomId: string,
 	startsAt: ResolverInputTypes["DateTime"],
 	title: string
+};
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Режим ряда */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название метрики */
+	title?: string | undefined | null,
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
@@ -20246,6 +20785,10 @@ export type ModelTypes = {
 	username?: string | undefined | null
 };
 	["ApprovalStatus"]:ApprovalStatus;
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 	/** Идентификатор акта */
 	act_id: string,
@@ -20849,6 +21392,19 @@ export type ModelTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
 	["CapitalCandidate"]: {
 		about?: string | undefined | null,
 	braname?: string | undefined | null,
@@ -20954,6 +21510,41 @@ export type ModelTypes = {
 	status?: ModelTypes["CommitStatus"] | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	/** Нефинансовая метрика компонента */
+["CapitalComponentMetric"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал метрику */
+	created_by: string,
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Фактическое значение (сумма вкладов) */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда: скорость или уровень */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Статус метрики */
+	status: ModelTypes["MetricStatus"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: {
@@ -21208,6 +21799,13 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: {
 		/** Дата создания записи */
@@ -21352,6 +21950,25 @@ export type ModelTypes = {
 	html_url: string,
 	username: string
 };
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Плановый вклад задачи в метрику */
+	delta: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean
+};
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: {
 		/** Список допустимых статусов для перехода */
@@ -21391,10 +22008,14 @@ export type ModelTypes = {
 ["CapitalLog"]: {
 		/** Внутренний идентификатор */
 	_id: string,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
 	/** Название кооператива */
 	coopname: string,
 	/** Дата создания записи */
 	created_at: ModelTypes["DateTime"],
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
 	/** ID сущности */
 	entity_id?: string | undefined | null,
 	/** Тип сущности к которой относится событие */
@@ -21403,14 +22024,16 @@ export type ModelTypes = {
 	event_type: ModelTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: ModelTypes["JSON"] | undefined | null,
 	/** Хеш проекта или компонента */
 	project_hash?: string | undefined | null,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
-	reference_id?: string | undefined | null
+	reference_id?: string | undefined | null,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string
 };
 	/** Фильтр для поиска логов событий */
 ["CapitalLogFilterInput"]: {
@@ -21433,6 +22056,33 @@ export type ModelTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Хеш записи вклада */
+	contribution_hash: string,
+	/** Величина вклада */
+	delta: number,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Момент вклада */
+	occurred_at: ModelTypes["DateTime"],
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Источник вклада */
+	source: ModelTypes["MetricContributionSource"],
+	/** Кто зафиксировал вклад */
+	username: string
+};
 	["CapitalOnboardingState"]: {
 		blagorost_offer_template_done: boolean,
 	blagorost_provision_done: boolean,
@@ -21454,6 +22104,13 @@ export type ModelTypes = {
 	question: string,
 	step: ModelTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: {
 		callback?: ModelTypes["CapitalProgramExpenseCallback"] | undefined | null,
@@ -21891,6 +22548,13 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: {
 		/** Дата создания записи */
@@ -22023,6 +22687,15 @@ export type ModelTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: {
 		/** Дата создания записи */
@@ -22053,6 +22726,13 @@ export type ModelTypes = {
 	program_membership_distributed: string,
 	/** Общая сумма членских взносов по программе */
 	program_membership_funded: string
+};
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: {
@@ -22199,6 +22879,33 @@ export type ModelTypes = {
 	project_hash?: string | undefined | null,
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
+};
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: {
+		/** Идентификатор сессии */
+	_id: string,
+	/** Хеш участника */
+	contributor_hash: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds: number,
+	/** Сессия на паузе */
+	is_paused: boolean,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Название задачи */
+	issue_title?: string | undefined | null,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш проекта */
+	project_hash: string,
+	/** Время старта */
+	started_at: ModelTypes["DateTime"],
+	/** Время остановки (null если открыта) */
+	stopped_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms: number
 };
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
@@ -22781,6 +23488,22 @@ export type ModelTypes = {
 	project_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	["CreateCycleInput"]: {
 	/** Дата окончания цикла (ISO 8601) */
@@ -24433,6 +25156,12 @@ export type ModelTypes = {
 	/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ModelTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -24486,6 +25215,10 @@ export type ModelTypes = {
 	["GetInvestInput"]: {
 	/** ID инвестиции */
 	_id: string
+};
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string
 };
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
@@ -24559,6 +25292,10 @@ export type ModelTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -24721,6 +25458,12 @@ export type ModelTypes = {
 };
 	["InstanceStatus"]:InstanceStatus;
 	["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["IssuePriority"]:IssuePriority;
 	["IssueStatus"]:IssueStatus;
 	/** The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
@@ -24868,6 +25611,14 @@ export type ModelTypes = {
 };
 	["LogEntityType"]:LogEntityType;
 	["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -25174,6 +25925,9 @@ export type ModelTypes = {
 	total: string
 };
 	["MembershipExitStatus"]:MembershipExitStatus;
+	["MetricContributionSource"]:MetricContributionSource;
+	["MetricSeriesMode"]:MetricSeriesMode;
+	["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: {
 		key: string,
 	label: string,
@@ -25251,10 +26005,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: ModelTypes["CapitalTimeEntry"],
 	/** Одобрение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: ModelTypes["CapitalCommit"],
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalArchiveComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Расчет голосов в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -25283,6 +26045,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalCreateCommit: ModelTypes["CapitalCommit"],
+	/** Создание нефинансовой метрики на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Создание цикла в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -25463,6 +26229,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: ModelTypes["Transaction"],
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalLogMetricContribution: ModelTypes["CapitalMetricContribution"],
 	/** Подписание приложения в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -25475,6 +26245,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalOpenProject: ModelTypes["CapitalProject"],
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
+	capitalPauseTimer: ModelTypes["CapitalTimerSession"],
 	/** Внесение результата в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -25491,10 +26265,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: ModelTypes["Transaction"],
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
+	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
 	capitalSetConfig: ModelTypes["Transaction"],
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalSetIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
 	/** Установка мастера проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -25519,6 +26301,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStartProject: ModelTypes["CapitalProject"],
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
+	capitalStartTimer: ModelTypes["CapitalTimerSession"],
 	/** Запуск голосования в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -25527,6 +26313,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStopProject: ModelTypes["CapitalProject"],
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
+	capitalStopTimer?: ModelTypes["CapitalTimeEntry"] | undefined | null,
 	/** Голосование в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -25535,6 +26325,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: ModelTypes["Transaction"],
+	/** Обновление метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalUpdateComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -26317,6 +27111,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["CapitalLog"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedCapitalMetricContributionsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalMetricContribution"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -27186,6 +27990,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCommits: ModelTypes["PaginatedCapitalCommitsPaginationResult"],
+	/** Список метрик компонента с фактом
+
+Требуемые роли: chairman, member, user.  */
+	capitalComponentMetrics: Array<ModelTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: ModelTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -27202,6 +28010,10 @@ export type ModelTypes = {
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: ModelTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: ModelTypes["ProcessInstance"] | undefined | null,
 	/** Получение экземпляров процессов для проекта */
@@ -27218,10 +28030,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssue?: ModelTypes["CapitalIssue"] | undefined | null,
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
+	capitalIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
 	/** Получение списка задач кооператива с фильтрацией
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: ModelTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricContributions: ModelTypes["PaginatedCapitalMetricContributionsPaginationResult"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -28404,6 +29224,12 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ModelTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -28821,6 +29647,20 @@ export type ModelTypes = {
 	matrixRoomId: string,
 	startsAt: ModelTypes["DateTime"],
 	title: string
+};
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Режим ряда */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название метрики */
+	title?: string | undefined | null,
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
@@ -29879,6 +30719,10 @@ export type GraphQLTypes = {
 };
 	/** Статус одобрения в системе CHAIRMAN */
 ["ApprovalStatus"]: ApprovalStatus;
+	["ArchiveComponentMetricInput"]: {
+		/** Хеш метрики */
+	metric_hash: string
+};
 	["AssetContributionActGenerateDocumentInput"]: {
 		/** Идентификатор акта */
 	act_id: string,
@@ -30530,6 +31374,19 @@ export type GraphQLTypes = {
 		referer?: string | undefined | null
 };
 	["CandidateStatus"]: CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
 	["CapitalCandidate"]: {
 	__typename: "CapitalCandidate",
 	about?: string | undefined | null,
@@ -30641,6 +31498,43 @@ export type GraphQLTypes = {
 	status?: GraphQLTypes["CommitStatus"] | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	/** Нефинансовая метрика компонента */
+["CapitalComponentMetric"]: {
+	__typename: "CapitalComponentMetric",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал метрику */
+	created_by: string,
+	/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Фактическое значение (сумма вкладов) */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда: скорость или уровень */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Статус метрики */
+	status: GraphQLTypes["MetricStatus"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalComponentMetric']: Omit<GraphQLTypes["CapitalComponentMetric"], "...on CapitalComponentMetric">
 };
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: {
@@ -30905,6 +31799,13 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
 };
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: {
 	__typename: "CapitalInvest",
@@ -31057,6 +31958,27 @@ export type GraphQLTypes = {
 	username: string,
 	['...on CapitalIssueLinkedGitCommit']: Omit<GraphQLTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 };
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: {
+	__typename: "CapitalIssueMetricBinding",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Плановый вклад задачи в метрику */
+	delta: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	['...on CapitalIssueMetricBinding']: Omit<GraphQLTypes["CapitalIssueMetricBinding"], "...on CapitalIssueMetricBinding">
+};
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: {
 	__typename: "CapitalIssuePermissions",
@@ -31099,10 +32021,14 @@ export type GraphQLTypes = {
 	__typename: "CapitalLog",
 	/** Внутренний идентификатор */
 	_id: string,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
 	/** Название кооператива */
 	coopname: string,
 	/** Дата создания записи */
 	created_at: GraphQLTypes["DateTime"],
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
 	/** ID сущности */
 	entity_id?: string | undefined | null,
 	/** Тип сущности к которой относится событие */
@@ -31111,7 +32037,7 @@ export type GraphQLTypes = {
 	event_type: GraphQLTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: GraphQLTypes["JSON"] | undefined | null,
@@ -31119,6 +32045,8 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?: string | undefined | null,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string,
 	['...on CapitalLog']: Omit<GraphQLTypes["CapitalLog"], "...on CapitalLog">
 };
 	/** Фильтр для поиска логов событий */
@@ -31141,6 +32069,35 @@ export type GraphQLTypes = {
 	show_components_logs?: boolean | undefined | null,
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
+};
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: {
+	__typename: "CapitalMetricContribution",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Хеш записи вклада */
+	contribution_hash: string,
+	/** Величина вклада */
+	delta: number,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Момент вклада */
+	occurred_at: GraphQLTypes["DateTime"],
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Источник вклада */
+	source: GraphQLTypes["MetricContributionSource"],
+	/** Кто зафиксировал вклад */
+	username: string,
+	['...on CapitalMetricContribution']: Omit<GraphQLTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
 };
 	["CapitalOnboardingState"]: {
 	__typename: "CapitalOnboardingState",
@@ -31165,6 +32122,13 @@ export type GraphQLTypes = {
 	question: string,
 	step: GraphQLTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: {
 	__typename: "CapitalProgramExpense",
@@ -31630,6 +32594,13 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalResult']: Omit<GraphQLTypes["CapitalResult"], "...on CapitalResult">
 };
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: {
 	__typename: "CapitalSegment",
@@ -31764,6 +32735,15 @@ export type GraphQLTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: {
 	__typename: "CapitalState",
@@ -31796,6 +32776,13 @@ export type GraphQLTypes = {
 	/** Общая сумма членских взносов по программе */
 	program_membership_funded: string,
 	['...on CapitalState']: Omit<GraphQLTypes["CapitalState"], "...on CapitalState">
+};
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: {
@@ -31951,6 +32938,35 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
+};
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: {
+	__typename: "CapitalTimerSession",
+	/** Идентификатор сессии */
+	_id: string,
+	/** Хеш участника */
+	contributor_hash: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds: number,
+	/** Сессия на паузе */
+	is_paused: boolean,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Название задачи */
+	issue_title?: string | undefined | null,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш проекта */
+	project_hash: string,
+	/** Время старта */
+	started_at: GraphQLTypes["DateTime"],
+	/** Время остановки (null если открыта) */
+	stopped_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms: number,
+	['...on CapitalTimerSession']: Omit<GraphQLTypes["CapitalTimerSession"], "...on CapitalTimerSession">
 };
 	["CapitalTopupProgramExpenseInput"]: {
 		/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
@@ -32566,6 +33582,22 @@ export type GraphQLTypes = {
 	project_hash: string,
 	/** Имя пользователя */
 	username: string
+};
+	["CreateComponentMetricInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	["CreateCycleInput"]: {
 		/** Дата окончания цикла (ISO 8601) */
@@ -34299,6 +35331,12 @@ export type GraphQLTypes = {
 		/** Хеш истории для получения */
 	story_hash: string
 };
+	["GetComponentMetricsInput"]: {
+		/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: GraphQLTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 		/** ID участника */
 	_id?: string | undefined | null,
@@ -34352,6 +35390,10 @@ export type GraphQLTypes = {
 	["GetInvestInput"]: {
 		/** ID инвестиции */
 	_id: string
+};
+	["GetIssueMetricBindingsInput"]: {
+		/** Хеш задачи */
+	issue_hash: string
 };
 	["GetLedger2HistoryInput"]: {
 		/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
@@ -34425,6 +35467,10 @@ export type GraphQLTypes = {
 	["GetMeetsInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+		/** Хеш метрики */
+	metric_hash: string
 };
 	["GetOneCoopDocumentsInput"]: {
 		/** Номер блока, начиная с которого извлекать документы */
@@ -34599,6 +35645,12 @@ export type GraphQLTypes = {
 ["InstanceStatus"]: InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]: InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+		/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]: IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -34772,6 +35824,14 @@ export type GraphQLTypes = {
 ["LogEntityType"]: LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]: LogEventType;
+	["LogMetricContributionInput"]: {
+		/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 		/** Электронная почта */
 	email: string,
@@ -35100,6 +36160,12 @@ export type GraphQLTypes = {
 };
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]: MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]: MetricContributionSource;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]: MetricSeriesMode;
+	/** Статус метрики компонента */
+["MetricStatus"]: MetricStatus;
 	["MissingRequisiteField"]: {
 	__typename: "MissingRequisiteField",
 	key: string,
@@ -35182,10 +36248,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: GraphQLTypes["CapitalTimeEntry"],
 	/** Одобрение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: GraphQLTypes["CapitalCommit"],
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalArchiveComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Расчет голосов в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -35214,6 +36288,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalCreateCommit: GraphQLTypes["CapitalCommit"],
+	/** Создание нефинансовой метрики на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Создание цикла в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -35394,6 +36472,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: GraphQLTypes["Transaction"],
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalLogMetricContribution: GraphQLTypes["CapitalMetricContribution"],
 	/** Подписание приложения в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -35406,6 +36488,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalOpenProject: GraphQLTypes["CapitalProject"],
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
+	capitalPauseTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Внесение результата в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -35422,10 +36508,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: GraphQLTypes["Transaction"],
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
+	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
 	capitalSetConfig: GraphQLTypes["Transaction"],
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalSetIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
 	/** Установка мастера проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -35450,6 +36544,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStartProject: GraphQLTypes["CapitalProject"],
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
+	capitalStartTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Запуск голосования в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -35458,6 +36556,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStopProject: GraphQLTypes["CapitalProject"],
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
+	capitalStopTimer?: GraphQLTypes["CapitalTimeEntry"] | undefined | null,
 	/** Голосование в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -35466,6 +36568,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: GraphQLTypes["Transaction"],
+	/** Обновление метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalUpdateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -36302,6 +37408,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedCapitalLogsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
+};
+	["PaginatedCapitalMetricContributionsPaginationResult"]: {
+	__typename: "PaginatedCapitalMetricContributionsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalMetricContribution"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalMetricContributionsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"], "...on PaginatedCapitalMetricContributionsPaginationResult">
 };
 	["PaginatedCapitalProgramExpensesPaginationResult"]: {
 	__typename: "PaginatedCapitalProgramExpensesPaginationResult",
@@ -37266,6 +38384,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCommits: GraphQLTypes["PaginatedCapitalCommitsPaginationResult"],
+	/** Список метрик компонента с фактом
+
+Требуемые роли: chairman, member, user.  */
+	capitalComponentMetrics: Array<GraphQLTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: GraphQLTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -37282,6 +38404,10 @@ export type GraphQLTypes = {
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: GraphQLTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: GraphQLTypes["ProcessInstance"] | undefined | null,
 	/** Получение экземпляров процессов для проекта */
@@ -37298,10 +38424,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssue?: GraphQLTypes["CapitalIssue"] | undefined | null,
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
+	capitalIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
 	/** Получение списка задач кооператива с фильтрацией
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: GraphQLTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricContributions: GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -38535,6 +39669,12 @@ export type GraphQLTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+		/** Полный список привязок задачи к метрикам */
+	bindings: Array<GraphQLTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -38985,6 +40125,20 @@ export type GraphQLTypes = {
 	matrixRoomId: string,
 	startsAt: GraphQLTypes["DateTime"],
 	title: string
+};
+	["UpdateComponentMetricInput"]: {
+		/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Режим ряда */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название метрики */
+	title?: string | undefined | null,
+	/** Единица измерения */
+	unit?: string | undefined | null
 };
 	["UpdateEntrepreneurDataInput"]: {
 		/** Дата рождения */
@@ -39695,6 +40849,22 @@ export enum MembershipExitStatus {
 	COMPLETED = "COMPLETED",
 	PENDING = "PENDING"
 }
+/** Источник вклада в метрику */
+export enum MetricContributionSource {
+	ISSUE_DONE = "ISSUE_DONE",
+	ISSUE_REOPEN = "ISSUE_REOPEN",
+	MANUAL = "MANUAL"
+}
+/** Режим ряда метрики: скорость или уровень значения */
+export enum MetricSeriesMode {
+	LEVEL = "LEVEL",
+	RATE = "RATE"
+}
+/** Статус метрики компонента */
+export enum MetricStatus {
+	ACTIVE = "ACTIVE",
+	ARCHIVED = "ARCHIVED"
+}
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
 	COUNCIL = "COUNCIL",
@@ -39918,6 +41088,7 @@ type ZEUS_VARIABLES = {
 	["AnswerInput"]: ValueTypes["AnswerInput"];
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
+	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
 	["AssetContributionActGenerateDocumentInput"]: ValueTypes["AssetContributionActGenerateDocumentInput"];
 	["AssetContributionActSignedDocumentInput"]: ValueTypes["AssetContributionActSignedDocumentInput"];
 	["AssetContributionActSignedMetaDocumentInput"]: ValueTypes["AssetContributionActSignedMetaDocumentInput"];
@@ -39934,17 +41105,23 @@ type ZEUS_VARIABLES = {
 	["CancelRequestInput"]: ValueTypes["CancelRequestInput"];
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];
+	["CapitalAddWorklogInput"]: ValueTypes["CapitalAddWorklogInput"];
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
+	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
 	["CapitalLogFilterInput"]: ValueTypes["CapitalLogFilterInput"];
 	["CapitalOnboardingStep"]: ValueTypes["CapitalOnboardingStep"];
 	["CapitalOnboardingStepInput"]: ValueTypes["CapitalOnboardingStepInput"];
+	["CapitalPauseTimerInput"]: ValueTypes["CapitalPauseTimerInput"];
 	["CapitalProjectFilter"]: ValueTypes["CapitalProjectFilter"];
+	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
 	["CapitalSegmentFilter"]: ValueTypes["CapitalSegmentFilter"];
+	["CapitalStartTimerInput"]: ValueTypes["CapitalStartTimerInput"];
+	["CapitalStopTimerInput"]: ValueTypes["CapitalStopTimerInput"];
 	["CapitalStoryContentFormat"]: ValueTypes["CapitalStoryContentFormat"];
 	["CapitalStoryFilter"]: ValueTypes["CapitalStoryFilter"];
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
@@ -39981,6 +41158,7 @@ type ZEUS_VARIABLES = {
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateChildOrderInput"]: ValueTypes["CreateChildOrderInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
+	["CreateComponentMetricInput"]: ValueTypes["CreateComponentMetricInput"];
 	["CreateCycleInput"]: ValueTypes["CreateCycleInput"];
 	["CreateDebtInput"]: ValueTypes["CreateDebtInput"];
 	["CreateDepositPaymentInput"]: ValueTypes["CreateDepositPaymentInput"];
@@ -40078,6 +41256,7 @@ type ZEUS_VARIABLES = {
 	["GetCapitalIssueLogsInput"]: ValueTypes["GetCapitalIssueLogsInput"];
 	["GetCapitalLogsInput"]: ValueTypes["GetCapitalLogsInput"];
 	["GetCapitalStoryByHashInput"]: ValueTypes["GetCapitalStoryByHashInput"];
+	["GetComponentMetricsInput"]: ValueTypes["GetComponentMetricsInput"];
 	["GetContributorInput"]: ValueTypes["GetContributorInput"];
 	["GetDebtInput"]: ValueTypes["GetDebtInput"];
 	["GetDocumentsInput"]: ValueTypes["GetDocumentsInput"];
@@ -40086,6 +41265,7 @@ type ZEUS_VARIABLES = {
 	["GetExtensionsInput"]: ValueTypes["GetExtensionsInput"];
 	["GetInstallationStatusInput"]: ValueTypes["GetInstallationStatusInput"];
 	["GetInvestInput"]: ValueTypes["GetInvestInput"];
+	["GetIssueMetricBindingsInput"]: ValueTypes["GetIssueMetricBindingsInput"];
 	["GetLedger2HistoryInput"]: ValueTypes["GetLedger2HistoryInput"];
 	["GetLedger2PostingsInput"]: ValueTypes["GetLedger2PostingsInput"];
 	["GetLedgerHistoryInput"]: ValueTypes["GetLedgerHistoryInput"];
@@ -40093,6 +41273,7 @@ type ZEUS_VARIABLES = {
 	["GetMaxOriginServerTsForRoomInput"]: ValueTypes["GetMaxOriginServerTsForRoomInput"];
 	["GetMeetInput"]: ValueTypes["GetMeetInput"];
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
+	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
@@ -40109,6 +41290,7 @@ type ZEUS_VARIABLES = {
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
+	["IssueMetricBindingItemInput"]: ValueTypes["IssueMetricBindingItemInput"];
 	["IssuePriority"]: ValueTypes["IssuePriority"];
 	["IssueStatus"]: ValueTypes["IssueStatus"];
 	["JSON"]: ValueTypes["JSON"];
@@ -40117,6 +41299,7 @@ type ZEUS_VARIABLES = {
 	["ListUtcDatesWithNewRoomMessagesInput"]: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"];
 	["LogEntityType"]: ValueTypes["LogEntityType"];
 	["LogEventType"]: ValueTypes["LogEventType"];
+	["LogMetricContributionInput"]: ValueTypes["LogMetricContributionInput"];
 	["LoginInput"]: ValueTypes["LoginInput"];
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
@@ -40127,6 +41310,9 @@ type ZEUS_VARIABLES = {
 	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
 	["MembershipExitDecisionGenerateDocumentInput"]: ValueTypes["MembershipExitDecisionGenerateDocumentInput"];
 	["MembershipExitStatus"]: ValueTypes["MembershipExitStatus"];
+	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
+	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
+	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
@@ -40223,6 +41409,7 @@ type ZEUS_VARIABLES = {
 	["SendAgreementInput"]: ValueTypes["SendAgreementInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
+	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];
@@ -40255,6 +41442,7 @@ type ZEUS_VARIABLES = {
 	["UpdateBankAccountInput"]: ValueTypes["UpdateBankAccountInput"];
 	["UpdateCallTranscriptionMemoInput"]: ValueTypes["UpdateCallTranscriptionMemoInput"];
 	["UpdateChatCoopCalendarEventInput"]: ValueTypes["UpdateChatCoopCalendarEventInput"];
+	["UpdateComponentMetricInput"]: ValueTypes["UpdateComponentMetricInput"];
 	["UpdateEntrepreneurDataInput"]: ValueTypes["UpdateEntrepreneurDataInput"];
 	["UpdateIndividualDataInput"]: ValueTypes["UpdateIndividualDataInput"];
 	["UpdateIssueInput"]: ValueTypes["UpdateIssueInput"];
