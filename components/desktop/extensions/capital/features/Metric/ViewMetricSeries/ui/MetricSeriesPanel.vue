@@ -1,0 +1,314 @@
+<template lang="pug">
+.metric-series
+  .metric-series__toolbar
+    BaseSelect(
+      v-model='period',
+      :options='periodOptions',
+      label='Период'
+    )
+    .metric-series__manual
+      BaseInput(
+        v-model='manualDelta',
+        type='number',
+        label='Ручной вклад'
+      )
+      BaseButton(
+        variant='secondary',
+        size='sm',
+        :loading='isLogging',
+        @click='logContribution'
+      ) Записать
+
+  .metric-series__charts(v-if='series && series.points.length')
+    .metric-series__block
+      .metric-series__label Burn-up
+      svg.metric-series__svg(
+        :viewBox='`0 0 ${svgW} ${svgH}`',
+        preserveAspectRatio='none'
+      )
+        line.metric-series__target(
+          :x1='pad',
+          :y1='yOf(series.target_value)',
+          :x2='svgW - pad',
+          :y2='yOf(series.target_value)'
+        )
+        polyline.metric-series__ideal(
+          v-if='idealPoints',
+          :points='idealPoints'
+        )
+        polyline.metric-series__cum(
+          :points='cumPoints'
+        )
+      .metric-series__legend
+        span.metric-series__leg.metric-series__leg--fact Факт
+        span.metric-series__leg.metric-series__leg--ideal(v-if='hasIdeal') План
+        span.metric-series__leg.metric-series__leg--target Цель {{ series.target_value }} {{ series.unit }}
+
+    .metric-series__block
+      .metric-series__label Скорость (Δ / период)
+      .metric-series__bars
+        .metric-series__bar-col(
+          v-for='(p, i) in series.points',
+          :key='i'
+        )
+          .metric-series__bar-track
+            .metric-series__bar(
+              :style='barStyle(p.delta)',
+              :class='{ "metric-series__bar--neg": p.delta < 0 }'
+            )
+          .metric-series__bar-val.t-mono {{ formatDelta(p.delta) }}
+
+  .metric-series__empty(v-else-if='!isLoading')
+    EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой или внесите ручной вклад')
+      template(#icon)
+        q-icon(name='timeline', size='28px')
+
+  .metric-series__skel(v-if='isLoading')
+    .skel
+</template>
+
+<script setup lang="ts">
+import { computed, toRef } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
+import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { useMetricSeries } from '../model';
+
+const props = defineProps<{
+  metricHash: string;
+}>();
+
+const emit = defineEmits<{
+  updated: [];
+}>();
+
+const metricHashRef = toRef(props, 'metricHash');
+const {
+  series,
+  isLoading,
+  isLogging,
+  period,
+  manualDelta,
+  logContribution,
+} = useMetricSeries(() => metricHashRef.value, () => emit('updated'));
+
+const periodOptions = [
+  { label: 'День', value: Zeus.MetricSeriesPeriod.DAY },
+  { label: 'Неделя', value: Zeus.MetricSeriesPeriod.WEEK },
+  { label: 'Месяц', value: Zeus.MetricSeriesPeriod.MONTH },
+];
+
+const svgW = 320;
+const svgH = 96;
+const pad = 8;
+
+const yMax = computed(() => {
+  const s = series.value;
+  if (!s?.points.length) return 1;
+  const vals = s.points.flatMap((p) => [
+    p.cumulative,
+    p.ideal_cumulative ?? 0,
+    s.target_value,
+  ]);
+  const max = Math.max(...vals, 1);
+  return max * 1.05;
+});
+
+const yOf = (v: number) => {
+  const max = yMax.value || 1;
+  return svgH - pad - ((Math.max(v, 0) / max) * (svgH - pad * 2));
+};
+
+const xOf = (i: number, n: number) => {
+  if (n <= 1) return svgW / 2;
+  return pad + (i / (n - 1)) * (svgW - pad * 2);
+};
+
+const cumPoints = computed(() => {
+  const s = series.value;
+  if (!s?.points.length) return '';
+  return s.points
+    .map((p, i) => `${xOf(i, s.points.length)},${yOf(p.cumulative)}`)
+    .join(' ');
+});
+
+const hasIdeal = computed(() =>
+  !!series.value?.points.some((p) => p.ideal_cumulative != null),
+);
+
+const idealPoints = computed(() => {
+  const s = series.value;
+  if (!s?.points.length || !hasIdeal.value) return '';
+  return s.points
+    .map((p, i) => `${xOf(i, s.points.length)},${yOf(p.ideal_cumulative ?? 0)}`)
+    .join(' ');
+});
+
+const maxAbsDelta = computed(() => {
+  const s = series.value;
+  if (!s?.points.length) return 1;
+  return Math.max(...s.points.map((p) => Math.abs(p.delta)), 1);
+});
+
+const barStyle = (delta: number) => {
+  const h = Math.max((Math.abs(delta) / maxAbsDelta.value) * 100, delta === 0 ? 2 : 8);
+  return { height: `${h}%` };
+};
+
+const formatDelta = (d: number) => (d > 0 ? `+${d}` : `${d}`);
+</script>
+
+<style lang="scss" scoped>
+.metric-series {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding-top: var(--p-2);
+  border-top: 1px solid var(--p-line);
+  margin-top: var(--p-2);
+}
+
+.metric-series__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--p-2);
+  align-items: end;
+}
+
+.metric-series__manual {
+  display: flex;
+  gap: var(--p-2);
+  align-items: end;
+}
+
+.metric-series__charts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+}
+
+.metric-series__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+}
+
+.metric-series__label {
+  font-size: var(--p-fs-caption);
+  color: var(--p-ink-2);
+  font-weight: 500;
+}
+
+.metric-series__svg {
+  width: 100%;
+  height: 96px;
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-sm);
+}
+
+.metric-series__cum {
+  fill: none;
+  stroke: var(--p-primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.metric-series__ideal {
+  fill: none;
+  stroke: var(--p-ink-3);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.metric-series__target {
+  stroke: var(--p-warn);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.metric-series__legend {
+  display: flex;
+  gap: var(--p-3);
+  font-size: var(--p-fs-caption);
+  color: var(--p-ink-3);
+}
+
+.metric-series__leg::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  margin-right: var(--p-1);
+  vertical-align: middle;
+  background: currentColor;
+}
+
+.metric-series__leg--fact::before {
+  background: var(--p-primary);
+}
+
+.metric-series__leg--ideal::before {
+  background: var(--p-ink-3);
+}
+
+.metric-series__leg--target::before {
+  background: var(--p-warn);
+}
+
+.metric-series__bars {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 72px;
+  padding: var(--p-2);
+  background: var(--p-surface-2);
+  border-radius: var(--p-r-sm);
+  overflow-x: auto;
+}
+
+.metric-series__bar-col {
+  flex: 1 0 12px;
+  min-width: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: 2px;
+}
+
+.metric-series__bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.metric-series__bar {
+  width: 70%;
+  max-width: 16px;
+  background: var(--p-primary);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.metric-series__bar--neg {
+  background: var(--p-neg);
+}
+
+.metric-series__bar-val {
+  font-size: 9px;
+  color: var(--p-ink-3);
+  line-height: 1;
+}
+
+.metric-series__empty {
+  padding: var(--p-2) 0;
+}
+
+.metric-series__skel .skel {
+  height: 96px;
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface-2);
+}
+</style>

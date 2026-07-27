@@ -39,3 +39,17 @@ export type ISetIssueMetricBindingsOutput =
   Mutations.Capital.SetIssueMetricBindings.IOutput[typeof Mutations.Capital.SetIssueMetricBindings.name];
 
 export type IIssueMetricBinding = Zeus.ModelTypes['CapitalIssueMetricBinding'];
+
+export type IGetMetricSeriesInput =
+  Queries.Capital.GetMetricSeries.IInput['data'];
+
+export type IGetMetricSeriesOutput =
+  Queries.Capital.GetMetricSeries.IOutput[typeof Queries.Capital.GetMetricSeries.name];
+
+export type IMetricSeries = Zeus.ModelTypes['CapitalMetricSeries'];
+
+export type ILogMetricContributionInput =
+  Mutations.Capital.LogMetricContribution.IInput['data'];
+
+export type ILogMetricContributionOutput =
+  Mutations.Capital.LogMetricContribution.IOutput[typeof Mutations.Capital.LogMetricContribution.name];

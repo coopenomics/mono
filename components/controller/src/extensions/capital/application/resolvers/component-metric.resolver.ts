@@ -18,6 +18,8 @@ import { GetIssueMetricBindingsInputDTO } from '../dto/metrics/get-issue-metric-
 import { MetricContributionOutputDTO } from '../dto/metrics/metric-contribution.dto';
 import { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contribution-input.dto';
 import { GetMetricContributionsInputDTO } from '../dto/metrics/get-metric-contributions-input.dto';
+import { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
+import { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
 
 const paginatedMetricContributionsResult = createPaginationResult(
   MetricContributionOutputDTO,
@@ -131,5 +133,18 @@ export class ComponentMetricResolver {
     @CurrentUser() currentUser?: MonoAccountDomainInterface
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
     return this.componentMetricService.getMetricContributions(data.metric_hash, options, currentUser!);
+  }
+
+  @Query(() => MetricSeriesOutputDTO, {
+    name: 'capitalMetricSeries',
+    description: 'Временной ряд метрики: накопление и скорость по периодам',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async getMetricSeries(
+    @Args('data', { type: () => GetMetricSeriesInputDTO }) data: GetMetricSeriesInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MetricSeriesOutputDTO> {
+    return this.componentMetricService.getMetricSeries(data, currentUser);
   }
 }

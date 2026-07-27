@@ -660,6 +660,11 @@ export const AllTypesProps: Record<string,any> = {
 	GetMetricContributionsInput:{
 
 	},
+	GetMetricSeriesInput:{
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		to:"DateTime"
+	},
 	GetOneCoopDocumentsInput:{
 
 	},
@@ -753,6 +758,7 @@ export const AllTypesProps: Record<string,any> = {
 	MembershipExitStatus: "enum" as const,
 	MetricContributionSource: "enum" as const,
 	MetricSeriesMode: "enum" as const,
+	MetricSeriesPeriod: "enum" as const,
 	MetricStatus: "enum" as const,
 	ModerateRequestInput:{
 
@@ -1662,6 +1668,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalMetricContributions:{
 			data:"GetMetricContributionsInput",
 			options:"PaginationInput"
+		},
+		capitalMetricSeries:{
+			data:"GetMetricSeriesInput"
 		},
 		capitalProgramExpense:{
 
@@ -2931,6 +2940,23 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		source:"MetricContributionSource",
 		username:"String"
+	},
+	CapitalMetricSeries:{
+		fact:"Float",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		points:"CapitalMetricSeriesPoint",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricSeriesPoint:{
+		cumulative:"Float",
+		delta:"Float",
+		ideal_cumulative:"Float",
+		period_end:"DateTime",
+		period_start:"DateTime"
 	},
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
@@ -4771,6 +4797,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
+		capitalMetricSeries:"CapitalMetricSeries",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",

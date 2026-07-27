@@ -38,6 +38,8 @@ export * as GetIssues from './getIssues'
 
 export * as GetMetricContributions from './getMetricContributions'
 
+export * as GetMetricSeries from './getMetricSeries'
+
 export * as GetOnboardingState from './getOnboardingState'
 
 export * as GetOpenTimer from './getOpenTimer'

@@ -13,6 +13,8 @@ export interface MetricContributionRepository {
     metricHash: string,
     options?: PaginationInputDomainInterface
   ): Promise<PaginationResultDomainInterface<MetricContributionDomainEntity>>;
+  /** Все вклады метрики по возрастанию occurred_at (для ряда burn-up / скорости) */
+  findChronologicalByMetricHash(metricHash: string): Promise<MetricContributionDomainEntity[]>;
   /** Сумма вкладов issue_done по задаче (для reverse при reopen) */
   sumIssueDoneDeltaByIssueAndMetric(issueHash: string, metricHash: string): Promise<number>;
 }

@@ -3123,6 +3123,40 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMetricContribution']?: Omit<ValueTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
 }>;
+	["CapitalMetricSeries"]: AliasType<{
+	/** Текущий накопленный факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Точки ряда */
+	points?:ValueTypes["CapitalMetricSeriesPoint"],
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSeries']?: Omit<ValueTypes["CapitalMetricSeries"], "...on CapitalMetricSeries">
+}>;
+	["CapitalMetricSeriesPoint"]: AliasType<{
+	/** Накопленный факт на конец периода */
+	cumulative?:boolean | `@${string}`,
+	/** Сумма вкладов за период (скорость) */
+	delta?:boolean | `@${string}`,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?:boolean | `@${string}`,
+	/** Конец периода, не включая (UTC) */
+	period_end?:boolean | `@${string}`,
+	/** Начало периода (UTC) */
+	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSeriesPoint']?: Omit<ValueTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -6496,6 +6530,16 @@ export type ValueTypes = {
 	/** Хеш метрики */
 	metric_hash: string | Variable<any, string>
 };
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>,
+	/** Период агрегации ряда */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
+};
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
 	block_from: number | Variable<any, string>,
@@ -7188,6 +7232,8 @@ export type ValueTypes = {
 ["MetricContributionSource"]:MetricContributionSource;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -8841,6 +8887,7 @@ capitalIssue?: [{	data: ValueTypes["GetCapitalIssueByHashInput"] | Variable<any,
 capitalIssueMetricBindings?: [{	data: ValueTypes["GetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
+capitalMetricSeries?: [{	data: ValueTypes["GetMetricSeriesInput"] | Variable<any, string>},ValueTypes["CapitalMetricSeries"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -12734,6 +12781,38 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalMetricSeries"]: AliasType<{
+	/** Текущий накопленный факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Точки ряда */
+	points?:ResolverInputTypes["CapitalMetricSeriesPoint"],
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSeriesPoint"]: AliasType<{
+	/** Накопленный факт на конец периода */
+	cumulative?:boolean | `@${string}`,
+	/** Сумма вкладов за период (скорость) */
+	delta?:boolean | `@${string}`,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?:boolean | `@${string}`,
+	/** Конец периода, не включая (UTC) */
+	period_end?:boolean | `@${string}`,
+	/** Начало периода (UTC) */
+	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -16035,6 +16114,16 @@ export type ResolverInputTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ResolverInputTypes["DateTime"] | undefined | null
+};
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
 	block_from: number,
@@ -16701,6 +16790,8 @@ export type ResolverInputTypes = {
 ["MetricContributionSource"]:MetricContributionSource;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]:MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
@@ -18289,6 +18380,7 @@ capitalIssue?: [{	data: ResolverInputTypes["GetCapitalIssueByHashInput"]},Resolv
 capitalIssueMetricBindings?: [{	data: ResolverInputTypes["GetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
+capitalMetricSeries?: [{	data: ResolverInputTypes["GetMetricSeriesInput"]},ResolverInputTypes["CapitalMetricSeries"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
@@ -22083,6 +22175,36 @@ export type ModelTypes = {
 	/** Кто зафиксировал вклад */
 	username: string
 };
+	["CapitalMetricSeries"]: {
+		/** Текущий накопленный факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Точки ряда */
+	points: Array<ModelTypes["CapitalMetricSeriesPoint"]>,
+	/** Режим ряда */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
+};
+	["CapitalMetricSeriesPoint"]: {
+		/** Накопленный факт на конец периода */
+	cumulative: number,
+	/** Сумма вкладов за период (скорость) */
+	delta: number,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?: number | undefined | null,
+	/** Конец периода, не включая (UTC) */
+	period_end: ModelTypes["DateTime"],
+	/** Начало периода (UTC) */
+	period_start: ModelTypes["DateTime"]
+};
 	["CapitalOnboardingState"]: {
 		blagorost_offer_template_done: boolean,
 	blagorost_provision_done: boolean,
@@ -25297,6 +25419,16 @@ export type ModelTypes = {
 	/** Хеш метрики */
 	metric_hash: string
 };
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ModelTypes["DateTime"] | undefined | null
+};
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
 	block_from: number,
@@ -25927,6 +26059,7 @@ export type ModelTypes = {
 	["MembershipExitStatus"]:MembershipExitStatus;
 	["MetricContributionSource"]:MetricContributionSource;
 	["MetricSeriesMode"]:MetricSeriesMode;
+	["MetricSeriesPeriod"]:MetricSeriesPeriod;
 	["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: {
 		key: string,
@@ -28042,6 +28175,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricContributions: ModelTypes["PaginatedCapitalMetricContributionsPaginationResult"],
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSeries: ModelTypes["CapitalMetricSeries"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -32099,6 +32236,40 @@ export type GraphQLTypes = {
 	username: string,
 	['...on CapitalMetricContribution']: Omit<GraphQLTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
 };
+	["CapitalMetricSeries"]: {
+	__typename: "CapitalMetricSeries",
+	/** Текущий накопленный факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Точки ряда */
+	points: Array<GraphQLTypes["CapitalMetricSeriesPoint"]>,
+	/** Режим ряда */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalMetricSeries']: Omit<GraphQLTypes["CapitalMetricSeries"], "...on CapitalMetricSeries">
+};
+	["CapitalMetricSeriesPoint"]: {
+	__typename: "CapitalMetricSeriesPoint",
+	/** Накопленный факт на конец периода */
+	cumulative: number,
+	/** Сумма вкладов за период (скорость) */
+	delta: number,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?: number | undefined | null,
+	/** Конец периода, не включая (UTC) */
+	period_end: GraphQLTypes["DateTime"],
+	/** Начало периода (UTC) */
+	period_start: GraphQLTypes["DateTime"],
+	['...on CapitalMetricSeriesPoint']: Omit<GraphQLTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+};
 	["CapitalOnboardingState"]: {
 	__typename: "CapitalOnboardingState",
 	blagorost_offer_template_done: boolean,
@@ -35472,6 +35643,16 @@ export type GraphQLTypes = {
 		/** Хеш метрики */
 	metric_hash: string
 };
+	["GetMetricSeriesInput"]: {
+		/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: GraphQLTypes["DateTime"] | undefined | null
+};
 	["GetOneCoopDocumentsInput"]: {
 		/** Номер блока, начиная с которого извлекать документы */
 	block_from: number,
@@ -36164,6 +36345,8 @@ export type GraphQLTypes = {
 ["MetricContributionSource"]: MetricContributionSource;
 	/** Режим ряда метрики: скорость или уровень значения */
 ["MetricSeriesMode"]: MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]: MetricSeriesPeriod;
 	/** Статус метрики компонента */
 ["MetricStatus"]: MetricStatus;
 	["MissingRequisiteField"]: {
@@ -38436,6 +38619,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricContributions: GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"],
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSeries: GraphQLTypes["CapitalMetricSeries"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -40860,6 +41047,12 @@ export enum MetricSeriesMode {
 	LEVEL = "LEVEL",
 	RATE = "RATE"
 }
+/** Период агрегации ряда метрики */
+export enum MetricSeriesPeriod {
+	DAY = "DAY",
+	MONTH = "MONTH",
+	WEEK = "WEEK"
+}
 /** Статус метрики компонента */
 export enum MetricStatus {
 	ACTIVE = "ACTIVE",
@@ -41274,6 +41467,7 @@ type ZEUS_VARIABLES = {
 	["GetMeetInput"]: ValueTypes["GetMeetInput"];
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
+	["GetMetricSeriesInput"]: ValueTypes["GetMetricSeriesInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
@@ -41312,6 +41506,7 @@ type ZEUS_VARIABLES = {
 	["MembershipExitStatus"]: ValueTypes["MembershipExitStatus"];
 	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
 	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
+	["MetricSeriesPeriod"]: ValueTypes["MetricSeriesPeriod"];
 	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["ModerateRequestInput"]: ValueTypes["ModerateRequestInput"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];

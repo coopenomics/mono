@@ -92,6 +92,16 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
     );
   }
 
+  async findChronologicalByMetricHash(
+    metricHash: string
+  ): Promise<MetricContributionDomainEntity[]> {
+    const entities = await this.repo.find({
+      where: { metric_hash: metricHash.toLowerCase() },
+      order: { occurred_at: 'ASC' },
+    });
+    return entities.map(MetricContributionMapper.toDomain);
+  }
+
   async sumIssueDoneDeltaByIssueAndMetric(issueHash: string, metricHash: string): Promise<number> {
     const result = await this.repo
       .createQueryBuilder('c')

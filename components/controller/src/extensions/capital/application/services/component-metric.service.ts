@@ -19,9 +19,11 @@ import { ComponentMetricDomainEntity } from '../../domain/entities/component-met
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
 import { MetricContributionDomainEntity } from '../../domain/entities/metric-contribution.entity';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
+import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
+import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
@@ -29,14 +31,16 @@ import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-compon
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
 import type { SetIssueMetricBindingsInputDTO } from '../dto/metrics/set-issue-metric-bindings-input.dto';
 import type { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contribution-input.dto';
+import type { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
 import type { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
 import type { IssueMetricBindingOutputDTO } from '../dto/metrics/issue-metric-binding.dto';
 import type { MetricContributionOutputDTO } from '../dto/metrics/metric-contribution.dto';
+import type { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
 import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 
 /**
- * Сервис нефинансовых метрик компонента (волновой планер, этап 1).
- * Off-chain: метрика → привязки задач → журнал вкладов.
+ * Сервис нефинансовых метрик компонента (волновой планер).
+ * Off-chain: метрика → привязки задач → журнал вкладов → ряд burn-up/скорости.
  */
 @Injectable()
 export class ComponentMetricService {
@@ -299,6 +303,72 @@ export class ComponentMetricService {
       totalPages: result.totalPages,
       currentPage: result.currentPage,
     };
+  }
+
+  /**
+   * Временной ряд метрики: накопление (burn-up) и Δ за период (скорость).
+   */
+  async getMetricSeries(
+    data: GetMetricSeriesInputDTO,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<MetricSeriesOutputDTO> {
+    const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
+    if (!metric) {
+      throw new Error(`Метрика ${data.metric_hash} не найдена`);
+    }
+    const project = await this.projectRepository.findByHash(metric.project_hash);
+    if (!project) {
+      throw new Error(`Компонент ${metric.project_hash} не найден`);
+    }
+    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
+    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
+      throw new Error('Нет прав на просмотр ряда метрики');
+    }
+
+    const period = data.period ?? MetricSeriesPeriod.WEEK;
+    const to = data.to ? new Date(data.to) : new Date();
+    const from = data.from ? new Date(data.from) : this.defaultSeriesFrom(to, period);
+
+    const contributions = await this.contributionRepository.findChronologicalByMetricHash(
+      data.metric_hash
+    );
+    const fact = contributions.reduce((sum, c) => sum + c.delta, 0);
+    const planStart = metric._created_at ? new Date(metric._created_at) : from;
+
+    const points = buildMetricSeries(
+      contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at })),
+      {
+        period,
+        from,
+        to,
+        target_value: metric.target_value,
+        plan_start: planStart,
+        deadline: metric.deadline ? new Date(metric.deadline) : null,
+      }
+    );
+
+    return {
+      metric_hash: metric.metric_hash,
+      title: metric.title,
+      unit: metric.unit,
+      target_value: metric.target_value,
+      series_mode: metric.series_mode,
+      period,
+      fact,
+      points,
+    };
+  }
+
+  private defaultSeriesFrom(to: Date, period: MetricSeriesPeriod): Date {
+    const from = new Date(to.getTime());
+    if (period === MetricSeriesPeriod.DAY) {
+      from.setUTCDate(from.getUTCDate() - 29);
+    } else if (period === MetricSeriesPeriod.WEEK) {
+      from.setUTCDate(from.getUTCDate() - 7 * 11);
+    } else {
+      from.setUTCMonth(from.getUTCMonth() - 11);
+    }
+    return from;
   }
 
   /**

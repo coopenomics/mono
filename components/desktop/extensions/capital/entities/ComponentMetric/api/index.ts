@@ -13,6 +13,10 @@ import type {
   IGetIssueMetricBindingsOutput,
   ISetIssueMetricBindingsInput,
   ISetIssueMetricBindingsOutput,
+  IGetMetricSeriesInput,
+  IGetMetricSeriesOutput,
+  ILogMetricContributionInput,
+  ILogMetricContributionOutput,
 } from '../model';
 
 async function getComponentMetrics(
@@ -75,6 +79,26 @@ async function setIssueMetricBindings(
   return result;
 }
 
+async function getMetricSeries(
+  data: IGetMetricSeriesInput,
+): Promise<IGetMetricSeriesOutput> {
+  const { [Queries.Capital.GetMetricSeries.name]: result } =
+    await client.Query(Queries.Capital.GetMetricSeries.query, {
+      variables: { data },
+    });
+  return result;
+}
+
+async function logMetricContribution(
+  data: ILogMetricContributionInput,
+): Promise<ILogMetricContributionOutput> {
+  const { [Mutations.Capital.LogMetricContribution.name]: result } =
+    await client.Mutation(Mutations.Capital.LogMetricContribution.mutation, {
+      variables: { data },
+    });
+  return result;
+}
+
 export const api = {
   getComponentMetrics,
   createComponentMetric,
@@ -82,4 +106,6 @@ export const api = {
   archiveComponentMetric,
   getIssueMetricBindings,
   setIssueMetricBindings,
+  getMetricSeries,
+  logMetricContribution,
 };

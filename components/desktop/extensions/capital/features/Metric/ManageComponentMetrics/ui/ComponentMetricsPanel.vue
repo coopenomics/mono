@@ -64,6 +64,19 @@
           variant='ghost',
           size='sm',
           :icon-only='true',
+          :aria-label='expandedHash === metric.metric_hash ? "Свернуть ряд" : "Показать ряд"',
+          @click='toggleExpand(metric.metric_hash)'
+        )
+          template(#icon-left)
+            q-icon(
+              :name='expandedHash === metric.metric_hash ? "expand_less" : "show_chart"',
+              size='16px'
+            )
+        BaseButton(
+          v-if='metric.status !== archivedStatus',
+          variant='ghost',
+          size='sm',
+          :icon-only='true',
           aria-label='Архивировать',
           @click='handleArchive(metric.metric_hash)'
         )
@@ -81,6 +94,11 @@
           rounded
           size='6px'
         )
+      MetricSeriesPanel(
+        v-if='expandedHash === metric.metric_hash',
+        :metric-hash='metric.metric_hash',
+        @updated='loadMetrics'
+      )
 
   .metrics-panel__empty(v-else-if='!isLoading && !metricList.length && !showForm')
     EmptyState(title='Метрики не добавлены')
@@ -95,6 +113,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base';
+import { MetricSeriesPanel } from '../../ViewMetricSeries';
 import { useManageComponentMetrics } from '../model';
 
 const props = defineProps<{
@@ -113,6 +132,7 @@ const {
 } = useManageComponentMetrics(props.projectHash);
 
 const showForm = ref(false);
+const expandedHash = ref<string | null>(null);
 const archivedStatus = Zeus.MetricStatus.ARCHIVED;
 
 const metricList = computed(() => metrics());
@@ -129,6 +149,10 @@ const canCreate = computed(() =>
 const progressValue = (metric: { fact: number; target_value: number }) => {
   if (!metric.target_value) return 0;
   return Math.min(metric.fact / metric.target_value, 1);
+};
+
+const toggleExpand = (metricHash: string) => {
+  expandedHash.value = expandedHash.value === metricHash ? null : metricHash;
 };
 
 const cancelForm = () => {
