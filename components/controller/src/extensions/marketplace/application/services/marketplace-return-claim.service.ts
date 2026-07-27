@@ -218,7 +218,6 @@ export class MarketplaceReturnClaimService {
     order_id: string;
     actual_quantity?: number;
     reason_text?: string;
-    defect_category?: MarketplaceReturnClaimDefectCategory | null;
   }): Promise<DocumentDomainEntity> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const quantity = this.resolveActualQuantity(order, input.actual_quantity);
@@ -227,7 +226,6 @@ export class MarketplaceReturnClaimService {
       orderer: input.orderer_account,
       actual_quantity: quantity,
       reason_text: input.reason_text,
-      defect_category: input.defect_category ?? undefined,
     });
   }
 
@@ -834,13 +832,21 @@ export class MarketplaceReturnClaimService {
     orderer: string;
     actual_quantity: number;
     reason_text?: string;
-    defect_category?: string | null;
   }): Promise<DocumentDomainEntity> {
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
     // Артикул/наименование/единица/цена — из заказа и его оферты, не из
     // заглушки фабрики (см. review 2026-07-27: заглушка возвращала одни и те
     // же тестовые данные независимо от order_id).
     const offer = await this.offerRepo.findById(input.order.offer_id);
+    // Категория дефекта в MVP не собирается формой (см. Story 7.1) и в
+    // документ не попадает — на заявке (claim.defect_category) поле
+    // остаётся про запас на будущее, но в тело подписываемого документа
+    // не прокидывается вообще (не как null, не как пропущенный ключ):
+    // отсутствующее необязательное поле в meta ловило рассинхрон между
+    // GraphQL/JSON-транспортом клиенту (роняет undefined-ключи) и MongoDB
+    // (материализует их в null) — client-side canonicalize(meta) давал
+    // разные meta_hash при подписи и при повторном чтении для со-подписи
+    // председателя («Хэш метаданных не совпадает», см. review 2026-07-27).
     const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
@@ -849,15 +855,6 @@ export class MarketplaceReturnClaimService {
       order_hash: input.order.order_hash,
       braname: input.order.delivery_braname,
       reason_text: input.reason_text ?? '',
-      // ВАЖНО: null, не undefined. `meta` этого документа проходит и через
-      // GraphQL/JSON (клиенту на подпись), и через MongoDB (стор черновика —
-      // председателю на со-подпись); оба транспорта по-разному обходятся с
-      // ключом со значением undefined (JSON его молча роняет, БД — сохраняет
-      // как null), из-за чего client-side canonicalize(meta) давал РАЗНЫЕ
-      // meta_hash при первой подписи и при повторном чтении для со-подписи
-      // («Хэш метаданных не совпадает», см. review 2026-07-27). null
-      // сериализуется одинаково в обоих местах.
-      defect_category: input.defect_category ?? null,
       actual_quantity: input.actual_quantity,
       fact_cost,
       sku: input.order.offer_id,

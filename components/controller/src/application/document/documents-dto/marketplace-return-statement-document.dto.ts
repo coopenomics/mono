@@ -82,11 +82,6 @@ class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommo
   @IsString()
   reason_text!: string;
 
-  @Field(() => String, { nullable: true, description: 'Необязательная категория дефекта (пересортица, истёкший срок и т.п.).' })
-  @IsOptional()
-  @IsString()
-  defect_category?: string | null;
-
   @Field(() => Float, { description: 'Фактическое количество единиц к возврату.' })
   @IsNumber()
   @Min(1)

@@ -87,7 +87,6 @@ export class MarketplaceReturnClaimResolver {
       order_id: data.order_id,
       actual_quantity: data.actual_quantity,
       reason_text: data.reason_text,
-      defect_category: data.defect_category,
     });
     return toGeneratedDocumentDTO(doc);
   }

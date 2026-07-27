@@ -65,7 +65,6 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
       fact_cost: data.fact_cost,
       actual_quantity: String(data.actual_quantity),
       reason_text: data.reason_text,
-      defect_category: data.defect_category,
       branch,
     }
 

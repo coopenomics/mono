@@ -1124,7 +1124,7 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceReturnClaimSignablePayloadInput:{
-		defect_category:"MarketplaceReturnClaimDefectCategory"
+
 	},
 	MarketplaceReturnClaimStatus: "enum" as const,
 	MarketplaceReturnStatementSignedInput:{

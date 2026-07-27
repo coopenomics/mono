@@ -159,14 +159,6 @@ export class MarketplaceReturnClaimSignablePayloadInputDTO {
   @IsOptional()
   @IsString()
   public readonly reason_text?: string;
-
-  @Field(() => MarketplaceReturnClaimDefectCategoryEnum, {
-    nullable: true,
-    description: 'Категория дефекта (опционально, дублируется в meta документа).',
-  })
-  @IsOptional()
-  @IsEnum(MarketplaceReturnClaimDefectCategoryEnum)
-  public readonly defect_category?: MarketplaceReturnClaimDefectCategory;
 }
 
 @InputType('MarketplaceApproveReturnVisitInput')

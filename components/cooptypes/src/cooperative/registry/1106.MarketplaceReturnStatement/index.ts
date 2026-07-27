@@ -31,17 +31,6 @@ export interface Action extends IGenerate, IDocDataRef {
   braname?: string
   /** Краткое описание причины возврата (1-2000 симв.). */
   reason_text: string
-  /**
-   * Необязательная категория дефекта (механическое повреждение,
-   * пересортица, несоответствие сроку годности и т.п.). Всегда `null`, а не
-   * `undefined`, когда не указана: meta-объект документа проходит через
-   * JSON (GraphQL-транспорт клиенту) и MongoDB (стор черновиков для
-   * со-подписи председателя) — оба места по-разному теряют/восстанавливают
-   * ключи с `undefined`, из-за чего client-side canonicalize(meta) при
-   * первой подписи и при повторном чтении для со-подписи давал разный
-   * meta_hash (см. review 2026-07-27). `null` сериализуется одинаково везде.
-   */
-  defect_category?: string | null
   /** Фактически возвращаемое количество единиц. */
   actual_quantity: number
   /** Стоимость возвращаемой части (4 знака после запятой). */
@@ -79,13 +68,12 @@ export interface Model {
   actual_quantity: string
   /** Краткое описание причины возврата. */
   reason_text: string
-  defect_category?: string | null
   branch?: IOrganizationData
 }
 
 export const title = 'Заявление о гарантийном возврате имущества'
 export const description = 'Форма заявления пайщика о гарантийном возврате имущества по ЦПП «Стол заказов»'
-export const context = '<style>\nh1 {\n  margin: 0px;\n  text-align: center;\n}\nh3 {\n  margin: 0px;\n  padding-top: 15px;\n}\n.about {\n  padding: 20px;\n}\n.about p {\n  margin: 0px;\n}\n.digital-document {\n  padding: 20px;\n}\n.digital-document p {\n  margin: 0 0 6px;\n}\n.subheader {\n  padding-bottom: 20px;\n}\ntable {\n  width: 100%;\n  border-collapse: collapse;\n}\nth, td {\n  border: 1px solid currentColor;\n  padding: 8px;\n  text-align: left;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\nth {\n  width: 30%;\n}\n</style>\n\n<div class="digital-document">\n  <div style="text-align: right; margin-bottom: 24px;">\n    <p style="margin: 0px !important">{% trans \'v_soviet\' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>\n    <p style="margin: 0px !important">{% trans \'from\' %} {{ user.full_name_or_short_name }}</p>\n  </div>\n\n  <div style="text-align: center">\n    <h1 class="header">{% trans \'statement\' %}</h1>\n    <p class="subheader">{% trans \'statement_subheader\', program.name %}</p>\n  </div>\n\n  {% if coop.is_branched %}\n  <p>{% trans \'branched_return\', branch.short_name, vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% else %}\n  <p>{% trans \'unbranched_return\', vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% endif %}\n\n  <table>\n    <tbody>\n      <tr>\n        <th>№</th>\n        <td>1</td>\n      </tr>\n      <tr>\n        <th>{% trans \'article\' %}</th>\n        <td>{{ request.hash }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'asset_title\' %}</th>\n        <td>{{ request.title }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'form_of_asset\' %}</th>\n        <td>{% trans \'form_of_asset_type\' %}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_of_measurement\' %}</th>\n        <td>{{ request.unit_of_measurement }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'units_returned\' %}</th>\n        <td>{{ actual_quantity }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_cost\', request.currency %}</th>\n        <td>{{ request.unit_cost }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'fact_cost\', request.currency %}</th>\n        <td>{{ fact_cost }}</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <p>{% trans \'reason_label\' %}</p>\n  <p>{{ reason_text }}</p>\n  {% if defect_category %}\n  <p>{% trans \'defect_category_label\' %}: {{ defect_category }}</p>\n  {% endif %}\n\n  <p>{% trans \'signature\' %}</p>\n  <p>{{ user.full_name_or_short_name }}</p>\n  <p>{{ meta.created_at }}</p>\n</div>\n'
+export const context = '<style>\nh1 {\n  margin: 0px;\n  text-align: center;\n}\nh3 {\n  margin: 0px;\n  padding-top: 15px;\n}\n.about {\n  padding: 20px;\n}\n.about p {\n  margin: 0px;\n}\n.digital-document {\n  padding: 20px;\n}\n.digital-document p {\n  margin: 0 0 6px;\n}\n.subheader {\n  padding-bottom: 20px;\n}\ntable {\n  width: 100%;\n  border-collapse: collapse;\n}\nth, td {\n  border: 1px solid currentColor;\n  padding: 8px;\n  text-align: left;\n  word-wrap: break-word;\n  overflow-wrap: break-word;\n}\nth {\n  width: 30%;\n}\n</style>\n\n<div class="digital-document">\n  <div style="text-align: right; margin-bottom: 24px;">\n    <p style="margin: 0px !important">{% trans \'v_soviet\' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>\n    <p style="margin: 0px !important">{% trans \'from\' %} {{ user.full_name_or_short_name }}</p>\n  </div>\n\n  <div style="text-align: center">\n    <h1 class="header">{% trans \'statement\' %}</h1>\n    <p class="subheader">{% trans \'statement_subheader\', program.name %}</p>\n  </div>\n\n  {% if coop.is_branched %}\n  <p>{% trans \'branched_return\', branch.short_name, vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% else %}\n  <p>{% trans \'unbranched_return\', vars.full_abbr_genitive, vars.name, program.name %}</p>\n  {% endif %}\n\n  <table>\n    <tbody>\n      <tr>\n        <th>№</th>\n        <td>1</td>\n      </tr>\n      <tr>\n        <th>{% trans \'article\' %}</th>\n        <td>{{ request.hash }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'asset_title\' %}</th>\n        <td>{{ request.title }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'form_of_asset\' %}</th>\n        <td>{% trans \'form_of_asset_type\' %}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_of_measurement\' %}</th>\n        <td>{{ request.unit_of_measurement }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'units_returned\' %}</th>\n        <td>{{ actual_quantity }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'unit_cost\', request.currency %}</th>\n        <td>{{ request.unit_cost }}</td>\n      </tr>\n      <tr>\n        <th>{% trans \'fact_cost\', request.currency %}</th>\n        <td>{{ fact_cost }}</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <p>{% trans \'reason_label\' %}</p>\n  <p>{{ reason_text }}</p>\n\n  <p>{% trans \'signature\' %}</p>\n  <p>{{ user.full_name_or_short_name }}</p>\n  <p>{{ meta.created_at }}</p>\n</div>\n'
 
 export const translations = {
   ru: {
@@ -105,7 +93,6 @@ export const translations = {
     unit_cost: 'Стоимость Единицы, {0}',
     fact_cost: 'Сумма возврата, {0}',
     reason_label: 'Причина обращения:',
-    defect_category_label: 'Категория дефекта',
   },
 }
 
@@ -144,5 +131,4 @@ export const exampleData = {
   fact_cost: '425.0000',
   actual_quantity: '5',
   reason_text: 'При вскрытии упаковки обнаружена пересортица: вместо сахарного песка молоко с истёкшим сроком годности.',
-  defect_category: 'Пересортица',
 }

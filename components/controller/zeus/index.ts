@@ -9667,8 +9667,6 @@ export type ValueTypes = {
 	["MarketplaceReturnClaimSignablePayloadInput"]: {
 	/** Возвращаемое количество (если не указано — выданное количество). */
 	actual_quantity?: number | undefined | null | Variable<any, string>,
-	/** Категория дефекта (опционально, дублируется в meta документа). */
-	defect_category?: ValueTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null | Variable<any, string>,
 	/** Идентификатор заказа, по которому готовится заявление. */
 	order_id: string | Variable<any, string>,
 	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
@@ -9714,8 +9712,6 @@ export type ValueTypes = {
 	created_at: string | Variable<any, string>,
 	/** Код валюты расчёта (например «RUB»). */
 	currency: string | Variable<any, string>,
-	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
-	defect_category?: string | undefined | null | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,
 	/** Стоимость возвращаемой части (4 знака после запятой). */
@@ -22751,8 +22747,6 @@ export type ResolverInputTypes = {
 	["MarketplaceReturnClaimSignablePayloadInput"]: {
 	/** Возвращаемое количество (если не указано — выданное количество). */
 	actual_quantity?: number | undefined | null,
-	/** Категория дефекта (опционально, дублируется в meta документа). */
-	defect_category?: ResolverInputTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
 	order_id: string,
 	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
@@ -22797,8 +22791,6 @@ export type ResolverInputTypes = {
 	created_at: string,
 	/** Код валюты расчёта (например «RUB»). */
 	currency: string,
-	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
-	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Стоимость возвращаемой части (4 знака после запятой). */
@@ -35414,8 +35406,6 @@ export type ModelTypes = {
 	["MarketplaceReturnClaimSignablePayloadInput"]: {
 	/** Возвращаемое количество (если не указано — выданное количество). */
 	actual_quantity?: number | undefined | null,
-	/** Категория дефекта (опционально, дублируется в meta документа). */
-	defect_category?: ModelTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
 	order_id: string,
 	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
@@ -35458,8 +35448,6 @@ export type ModelTypes = {
 	created_at: string,
 	/** Код валюты расчёта (например «RUB»). */
 	currency: string,
-	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
-	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Стоимость возвращаемой части (4 знака после запятой). */
@@ -49373,8 +49361,6 @@ export type GraphQLTypes = {
 	["MarketplaceReturnClaimSignablePayloadInput"]: {
 		/** Возвращаемое количество (если не указано — выданное количество). */
 	actual_quantity?: number | undefined | null,
-	/** Категория дефекта (опционально, дублируется в meta документа). */
-	defect_category?: GraphQLTypes["MarketplaceReturnClaimDefectCategory"] | undefined | null,
 	/** Идентификатор заказа, по которому готовится заявление. */
 	order_id: string,
 	/** Причина обращения, как её сформулировал пайщик (попадает в текст заявления). */
@@ -49420,8 +49406,6 @@ export type GraphQLTypes = {
 	created_at: string,
 	/** Код валюты расчёта (например «RUB»). */
 	currency: string,
-	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
-	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
 	doc_data_hash?: string | undefined | null,
 	/** Стоимость возвращаемой части (4 знака после запятой). */
