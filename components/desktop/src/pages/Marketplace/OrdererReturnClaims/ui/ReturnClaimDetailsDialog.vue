@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { defectCategoryLabel, type MarketplaceReturnClaimView } from '../api';
+import { defectCategoryLabel, returnClaimStatusLabel, type MarketplaceReturnClaimView } from '../api';
 
 /**
  * Story 7.1-7.4 — детали заявления для пайщика: текущий статус, причина,
@@ -24,14 +24,6 @@ const decisionLabelMap: Record<string, string> = {
   reject_remote: 'Отказано удалённо',
   accept_at_visit: 'Возврат принят на очном осмотре',
   reject_at_visit: 'Отказано на очном осмотре',
-};
-
-const statusLabelMap: Record<MarketplaceReturnClaimView['status'], string> = {
-  PENDING_CHAIRMAN_REVIEW: 'На рассмотрении председателя',
-  APPROVED_FOR_VISIT: 'Очный визит одобрен',
-  ACCEPTED_AT_VISIT: 'Возврат принят',
-  REJECTED_REMOTELY: 'Отказано удалённо',
-  REJECTED_AT_VISIT: 'Отказано на месте',
 };
 
 const statusKind = computed<'info' | 'success' | 'warning' | 'danger'>(() => {
@@ -68,7 +60,7 @@ function formatDateTime(value: unknown): string {
 <template lang="pug">
 TakeoverDialog(
   :model-value="modelValue"
-  :title="claim ? `Заявление ${claim.id.slice(0, 8)} — ${statusLabelMap[claim.status]}` : 'Заявление'"
+  :title="claim ? `Заявление ${claim.id.slice(0, 8)} — ${returnClaimStatusLabel(claim.status)}` : 'Заявление'"
   :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · ${claim.actual_quantity} ед. · ${claim.total_refund} ₽` : ''"
   :kind="statusKind"
   cancel-label="Закрыть"

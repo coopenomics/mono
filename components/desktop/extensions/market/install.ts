@@ -12,7 +12,6 @@ import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
 import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode'
-import { OrdererReturnClaimsPage } from 'src/pages/Marketplace/OrdererReturnClaims'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
@@ -279,22 +278,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
                 hidden: true,
-              },
-              children: [],
-            },
-            {
-              // Эпик 7 / Story 7.1: orderer-стол гарантийных возвратов. Здесь
-              // пайщик подаёт заявление по выданному заказу в гарантийный срок,
-              // прилагает фото товара и подписывает заявление (registry_id=1104).
-              path: 'returns',
-              name: 'marketplace-returns',
-              component: markRaw(OrdererReturnClaimsPage),
-              meta: {
-                title: 'Гарантийные возвраты',
-                icon: 'fa-solid fa-rotate-left',
-                requires: 'Order:create',
-                requiresAuth: true,
-                agreements: agreementsBase,
               },
               children: [],
             },

@@ -22,6 +22,15 @@ import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import { cancelOrder, fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
+import {
+  SubmitReturnClaimDialog,
+  ReturnClaimDetailsDialog,
+  listMyReturnClaims,
+  returnClaimStatusLabel,
+  returnClaimStatusVariant,
+  OPEN_RETURN_CLAIM_STATUSES,
+  type MarketplaceReturnClaimView,
+} from '../../OrdererReturnClaims';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -30,6 +39,11 @@ import { fetchOffer } from '../../MarketplaceOfferDetail/api';
  * выдачи. Управление (отмена до акцепта, «Подписать и получить» на этапе
  * выдачи) — здесь же, дублируя действия карточки. Источник заказа —
  * `marketplaceGetOrder`; обложка догружается из оферты по `offer_id`.
+ *
+ * Гарантийный возврат живёт тоже здесь (не отдельным разделом меню): пока
+ * заказ RECEIVED и не истёк `warranty_until`, доступна подача заявления;
+ * статус уже поданной заявки виден рядом — заказчик отслеживает возврат в
+ * контексте самого заказа, а не переключаясь на отдельный стол.
  *
  * Live-обновления — realtime: статус ИМЕННО ЭТОГО заказа сменился →
  * персональный ws-сигнал, карточка тихо перечитывается (чужие заказы
@@ -47,6 +61,14 @@ const loading = ref(false);
 
 const receiveDialogOpen = ref(false);
 
+// Гарантийный возврат: подача заявления и его статус живут прямо на странице
+// заказа (не отдельным разделом меню) — заказчик видит срок и действие там же,
+// где остальную хронологию, вместо отдельного стола с select'ом заказа.
+const returnClaims = ref<MarketplaceReturnClaimView[]>([]);
+const submitReturnDialogOpen = ref(false);
+const returnDetailsDialogOpen = ref(false);
+const selectedReturnClaim = ref<MarketplaceReturnClaimView | null>(null);
+
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
 const unitShort = computed(() =>
   marketplaceOrderUnitLabel(order.value?.unit_of_measure),
@@ -61,6 +83,36 @@ const orderSaleUnit = computed(() =>
     : { units: 0, unitLabel: '' },
 );
 const cancellable = computed(() => order.value?.status === 'ACTIVE');
+
+// Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна
+// warranty_until — то же поле, которое ПВЗ-оператор устанавливает при
+// публикации оффера (Offer.warranty_days), контракт фиксирует на выдаче.
+const warrantyUntil = computed(() =>
+  order.value?.warranty_until ? new Date(String(order.value.warranty_until)) : null,
+);
+const warrantyActive = computed(
+  () => warrantyUntil.value !== null && warrantyUntil.value.getTime() > Date.now(),
+);
+const orderReturnClaims = computed(() =>
+  returnClaims.value.filter((c) => c.order_id === orderId.value),
+);
+// Открытая заявка блокирует подачу новой — backend всё равно отклонит повтор.
+const openReturnClaim = computed(
+  () => orderReturnClaims.value.find((c) => OPEN_RETURN_CLAIM_STATUSES.has(c.status)) ?? null,
+);
+// Архивная (решённая) заявка — последняя по дате подачи, чтобы показать её
+// исход, даже если по этому же заказу уже можно подать новую.
+const latestArchivedReturnClaim = computed(() => {
+  const archived = orderReturnClaims.value
+    .filter((c) => !OPEN_RETURN_CLAIM_STATUSES.has(c.status))
+    .sort((a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime());
+  return archived[0] ?? null;
+});
+const canSubmitReturn = computed(
+  () => order.value?.status === 'RECEIVED' && warrantyActive.value && !openReturnClaim.value,
+);
+// Что показать в блоке возврата: открытая заявка приоритетнее архивной.
+const displayedReturnClaim = computed(() => openReturnClaim.value ?? latestArchivedReturnClaim.value);
 
 // requirement b6: заказчику показываем цену С членским взносом (как в
 // каталоге) — order.total_cost_with_fee уже посчитан бэком (total_cost +
@@ -158,6 +210,23 @@ function goReceive(): void {
   receiveDialogOpen.value = true;
 }
 
+async function loadReturnClaims(): Promise<void> {
+  try {
+    returnClaims.value = await listMyReturnClaims();
+  } catch {
+    // Некритично для страницы заказа — без данных просто не покажем блок возврата.
+  }
+}
+
+function openSubmitReturn(): void {
+  submitReturnDialogOpen.value = true;
+}
+
+function openReturnDetails(claim: MarketplaceReturnClaimView): void {
+  selectedReturnClaim.value = claim;
+  returnDetailsDialogOpen.value = true;
+}
+
 function confirmCancel(): void {
   const o = order.value;
   if (!o) return;
@@ -180,6 +249,7 @@ function confirmCancel(): void {
 
 onMounted(() => {
   void load();
+  void loadReturnClaims();
   void getMembershipFeePercent()
     .then((p) => {
       feePercent.value = p;
@@ -198,6 +268,9 @@ useMarketplaceRealtime(
     MarketplaceOrderStatusChangedEvent: (event) => {
       if (event.order_id === orderId.value) reloadLive();
     },
+    // Председатель решил по заявлению (в т.ч. пока пайщик стоит у стойки на
+    // очном осмотре) — вердикт обновляется сразу, без перезахода на страницу.
+    MarketplaceReturnClaimStatusChangedEvent: () => void loadReturnClaims(),
   },
   { onResync: () => reloadLive() }
 );
@@ -275,6 +348,23 @@ q-page.order-detail(role="region", aria-label="Заказ")
               td.text-right {{ formatPrice(String(totalWithFee)) }}
               td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
+      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
+        template(#head)
+          .t-h3 Гарантийный возврат
+        .order-detail__return(v-if="displayedReturnClaim")
+          BaseBadge(:variant="returnClaimStatusVariant(displayedReturnClaim.status)")
+            | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
+          BaseButton(variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
+          BaseButton(v-if="canSubmitReturn", variant="secondary", size="sm", @click="openSubmitReturn") Подать новое заявление
+        template(v-else-if="canSubmitReturn")
+          .t-muted.q-mb-sm Гарантийный срок действует до {{ formatDate(order.warranty_until) }}.
+          BaseButton(variant="secondary", @click="openSubmitReturn")
+            template(#icon-left)
+              q-icon(name="assignment", size="18px")
+            | Подать заявление на возврат
+        .t-muted(v-else)
+          | {{ warrantyUntil ? `Гарантийный срок истёк ${formatDate(order.warranty_until)}.` : 'Гарантийный возврат по этому заказу не предусмотрен.' }}
+
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
           .t-h3 Хронология
@@ -284,6 +374,17 @@ q-page.order-detail(role="region", aria-label="Заказ")
         BaseButton(variant="danger", @click="confirmCancel") Отменить заказ
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+    SubmitReturnClaimDialog(
+      v-model="submitReturnDialogOpen",
+      :order-id="orderId",
+      @submitted="loadReturnClaims"
+    )
+
+    ReturnClaimDetailsDialog(
+      v-model="returnDetailsDialogOpen",
+      :claim="selectedReturnClaim"
+    )
 </template>
 
 <style scoped lang="scss">
@@ -425,6 +526,13 @@ q-page.order-detail(role="region", aria-label="Заказ")
       color: var(--p-ink-3);
       font-weight: 600;
     }
+  }
+
+  &__return {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--p-3, 12px);
   }
 
   &__actions {
