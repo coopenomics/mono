@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { Classes, Zeus } from '@coopenomics/sdk';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { BaseButton, BaseCard, BaseInput, BaseSelect, type BaseSelectOption } from 'src/shared/ui/base';
+import { FileUploader, type FileUploaderError } from 'src/shared/ui/domain';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { fileToBase64 } from 'src/shared/lib/utils';
 import {
@@ -20,9 +22,9 @@ type DefectCategory = Zeus.MarketplaceReturnClaimDefectCategory;
  *
  *  1. Описание дефекта (reason_text, defect_category, actual_quantity).
  *  2. Загрузка фото (1-10 файлов, image/jpeg|png|webp до 10 МБ каждое) —
- *     UI кодирует содержимое в base64 и отправляет вместе с mutation,
- *     backend кладёт в bucket `stol-zakazov:images` и публикует sha256
- *     хеши on-chain параметром `photos[]` submretrn.
+ *     файлы копятся как `File[]` через канон `FileUploader`; в base64 (для
+ *     bucket `stol-zakazov:images` + sha256 on-chain `photos[]` submretrn)
+ *     кодируются одним пакетом непосредственно перед подписью.
  *  3. Подпись заявления (registry_id=1106, MarketplaceReturnStatement):
  *     backend возвращает preview HTML + hash; пайщик подписывает
  *     приватным ключом из useGlobalStore и шлёт результат вместе с
@@ -34,7 +36,8 @@ type DefectCategory = Zeus.MarketplaceReturnClaimDefectCategory;
  * параметре submretrn → двусторонняя сверка backend ↔ on-chain.
  */
 
-const DEFECT_CATEGORIES: Array<{ value: DefectCategory; label: string }> = [
+const DEFECT_CATEGORY_OPTIONS: BaseSelectOption[] = [
+  { value: '', label: 'Категория не указана' },
   { value: Zeus.MarketplaceReturnClaimDefectCategory.BROKEN, label: 'Повреждено / сломано' },
   { value: Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED, label: 'Истёк срок годности' },
   { value: Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED, label: 'Не соответствует описанию' },
@@ -64,7 +67,7 @@ const step = ref<Step>(STEP_DESCRIBE);
 const reasonText = ref<string>('');
 const defectCategory = ref<DefectCategory | ''>('');
 const actualQuantity = ref<number | null>(null);
-const photos = ref<ReturnClaimPhotoUploadInput[]>([]);
+const selectedFiles = ref<File[]>([]);
 const previewHtml = ref<string>('');
 const previewLoading = ref(false);
 // Документ, который реально подписывается — генерируется ОДИН раз вместе с
@@ -82,7 +85,7 @@ watch(
       reasonText.value = '';
       defectCategory.value = '';
       actualQuantity.value = null;
-      photos.value = [];
+      selectedFiles.value = [];
       previewHtml.value = '';
       signableDocument.value = null;
     }
@@ -90,28 +93,16 @@ watch(
   { immediate: false },
 );
 
-async function onFilesPicked(files: readonly File[] | File[]): Promise<void> {
-  const list = Array.from(files);
-  if (photos.value.length + list.length > 10) {
-    FailAlert(new Error('Можно приложить не более 10 фотографий.'));
-    return;
-  }
-  for (const file of list) {
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      FailAlert(new Error(`Файл «${file.name}»: поддерживаются JPEG, PNG, WEBP.`));
-      continue;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      FailAlert(new Error(`Файл «${file.name}»: размер превышает 10 МБ.`));
-      continue;
-    }
-    const base64 = await fileToBase64(file);
-    photos.value.push({ base64, mime_type: file.type });
-  }
+function onQuantityInput(value: string | number | null): void {
+  actualQuantity.value = value === null || value === '' ? null : Number(value);
 }
 
-function removePhoto(index: number): void {
-  photos.value.splice(index, 1);
+function onDefectCategoryInput(value: string | number | null): void {
+  defectCategory.value = (value as DefectCategory | '') ?? '';
+}
+
+function onUploadError(error: FileUploaderError): void {
+  FailAlert(new Error(error.message));
 }
 
 async function loadPreview(): Promise<void> {
@@ -152,7 +143,7 @@ function goToPhotos(): void {
 }
 
 async function goToSign(): Promise<void> {
-  if (photos.value.length === 0) {
+  if (selectedFiles.value.length === 0) {
     FailAlert(new Error('Приложите хотя бы одну фотографию товара.'));
     return;
   }
@@ -183,6 +174,12 @@ async function confirm(): Promise<void> {
   try {
     const signer = new Classes.Document(wifKey);
     const signed = await signer.signDocument(signableDocument.value, globalStore.username, 1);
+    const photos: ReturnClaimPhotoUploadInput[] = await Promise.all(
+      selectedFiles.value.map(async (file) => ({
+        base64: await fileToBase64(file),
+        mime_type: file.type,
+      })),
+    );
 
     await createReturnClaim({
       order_id: props.orderId,
@@ -190,7 +187,7 @@ async function confirm(): Promise<void> {
       defect_category: defectCategory.value || undefined,
       actual_quantity: actualQuantity.value ?? undefined,
       signed_statement: signed,
-      photos: photos.value,
+      photos,
     });
 
     SuccessAlert('Заявление подано. Председатель кооперативного участка рассмотрит обращение.');
@@ -221,7 +218,7 @@ const confirmLabel = computed(() => {
 const confirmDisabled = computed(() => {
   if (submitting.value) return true;
   if (step.value === STEP_DESCRIBE) return !reasonText.value.trim();
-  if (step.value === STEP_PHOTOS) return photos.value.length === 0;
+  if (step.value === STEP_PHOTOS) return selectedFiles.value.length === 0;
   return !signableDocument.value;
 });
 </script>
@@ -248,79 +245,62 @@ TakeoverDialog(
         active-color="primary" done-color="positive"
       )
         q-step(:name="STEP_DESCRIBE" title="Описание" icon="edit" :done="step !== STEP_DESCRIBE")
-          q-banner.q-mb-md(rounded class="bg-primary text-white")
-            | Опишите, что не так с полученным товаром. Это сообщение увидит председатель кооперативного участка при удалённом рассмотрении.
-          q-input(
+          .banner.banner--info.q-mb-md
+            q-icon.banner__icon(name="info", size="20px")
+            .banner__body
+              | Опишите, что не так с полученным товаром. Это сообщение увидит председатель кооперативного участка при удалённом рассмотрении.
+          BaseInput(
             v-model="reasonText"
-            outlined
             type="textarea"
             label="Причина возврата"
             counter
             maxlength="2000"
             autogrow
           )
-          q-select(
-            v-model="defectCategory"
-            :options="DEFECT_CATEGORIES"
+          BaseSelect.q-mt-md(
+            :model-value="defectCategory"
+            @update:model-value="onDefectCategoryInput"
+            :options="DEFECT_CATEGORY_OPTIONS"
             label="Категория дефекта (опционально)"
-            map-options
-            emit-value
-            option-label="label"
-            option-value="value"
-            outlined
-            dense
-            clearable
-          ).q-mt-md
-          q-input(
-            v-model.number="actualQuantity"
-            outlined
-            dense
+          )
+          BaseInput.q-mt-md(
+            :model-value="actualQuantity"
+            @update:model-value="onQuantityInput"
             type="number"
-            min="1"
             label="Возвращаемое количество единиц (опционально)"
             hint="Если пусто — возвращается всё фактически выданное количество."
-          ).q-mt-md
+          )
 
         q-step(:name="STEP_PHOTOS" title="Фото" icon="image" :done="step === STEP_SIGN")
-          q-banner.q-mb-md(rounded class="bg-info text-white")
-            | Приложите от 1 до 10 фотографий товара (JPEG, PNG, WEBP, до 10 МБ каждое). Хеши файлов будут записаны в блокчейн как доказательная база.
-          q-file(
-            label="Выбрать фотографии"
-            outlined
-            dense
+          .banner.banner--info.q-mb-md
+            q-icon.banner__icon(name="info", size="20px")
+            .banner__body
+              | Приложите от 1 до 10 фотографий товара (JPEG, PNG, WEBP, до 10 МБ каждое). Хеши файлов будут записаны в блокчейн как доказательная база.
+          FileUploader(
+            v-model="selectedFiles"
             multiple
             accept="image/jpeg,image/png,image/webp"
-            :model-value="null"
-            @update:model-value="onFilesPicked"
+            :max-size="10 * 1024 * 1024"
+            :max-files="10"
+            title="Перетащите фото или нажмите для выбора"
+            @error="onUploadError"
           )
-          .row.q-gutter-sm.q-mt-md(v-if="photos.length > 0")
-            q-chip(
-              v-for="(p, i) in photos" :key="i"
-              :label="`Фото ${i + 1} · ${p.mime_type.replace('image/', '').toUpperCase()}`"
-              removable
-              color="primary"
-              text-color="white"
-              @remove="removePhoto(i)"
-            )
-          .text-grey.q-mt-md(v-else)
-            | Фотографий пока нет.
           .row.q-mt-md
-            q-btn(flat no-caps label="Назад к описанию" @click="backStep")
+            BaseButton(variant="ghost" @click="backStep") Назад к описанию
 
         q-step(:name="STEP_SIGN" title="Подпись" icon="draw")
-          q-card(v-if="previewLoading" flat bordered).q-pa-md
-            q-spinner(color="primary" size="32px")
-            .q-ml-md Формирую предварительное заявление…
-          q-card(v-else-if="previewHtml" flat bordered).mp-return-submit__preview
-            q-card-section.q-pa-md
-              .text-caption.text-grey Превью заявления (registry_id=1106)
-            q-separator
-            q-card-section.q-pa-md
-              div(v-html="previewHtml")
-          q-card(v-else flat bordered).q-pa-md
-            .text-negative Не удалось сформировать предварительный документ.
+          BaseCard.mp-return-submit__preview-card(v-if="previewLoading")
+            .mp-return-submit__loading
+              q-spinner(color="primary" size="32px")
+              span Формирую предварительное заявление…
+          BaseCard.mp-return-submit__preview(v-else-if="previewHtml")
+            template(#head)
+              .t-sm.t-muted Превью заявления (registry_id=1106)
+            div(v-html="previewHtml")
+          BaseCard.mp-return-submit__preview-card(v-else)
+            .t-muted Не удалось сформировать предварительный документ.
           .row.q-mt-md
-            q-btn(flat no-caps label="Назад к фото" @click="backStep")
+            BaseButton(variant="ghost" @click="backStep") Назад к фото
 </template>
 
 <style scoped lang="scss">
@@ -328,6 +308,17 @@ TakeoverDialog(
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
+
+  &__preview-card {
+    padding: var(--p-4, 16px);
+  }
+
+  &__loading {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    color: var(--p-ink-2);
+  }
 
   &__preview {
     max-height: 50vh;

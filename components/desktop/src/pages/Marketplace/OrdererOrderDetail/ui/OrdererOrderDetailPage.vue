@@ -351,19 +351,21 @@ q-page.order-detail(role="region", aria-label="Заказ")
       BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
         template(#head)
           .t-h3 Гарантийный возврат
+        BaseBadge.order-detail__return-window.q-mb-sm(v-if="warrantyUntil", :variant="warrantyActive ? 'info' : 'neutral'")
+          q-icon(:name="warrantyActive ? 'schedule' : 'event_busy'", size="12px")
+          | {{ warrantyActive ? `Возврат возможен до ${formatDate(order.warranty_until)}` : `Гарантия истекла ${formatDate(order.warranty_until)}` }}
         .order-detail__return(v-if="displayedReturnClaim")
           BaseBadge(:variant="returnClaimStatusVariant(displayedReturnClaim.status)")
             | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
           BaseButton(variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
           BaseButton(v-if="canSubmitReturn", variant="secondary", size="sm", @click="openSubmitReturn") Подать новое заявление
         template(v-else-if="canSubmitReturn")
-          .t-muted.q-mb-sm Гарантийный срок действует до {{ formatDate(order.warranty_until) }}.
           BaseButton(variant="secondary", @click="openSubmitReturn")
             template(#icon-left)
               q-icon(name="assignment", size="18px")
             | Подать заявление на возврат
-        .t-muted(v-else)
-          | {{ warrantyUntil ? `Гарантийный срок истёк ${formatDate(order.warranty_until)}.` : 'Гарантийный возврат по этому заказу не предусмотрен.' }}
+        .t-muted(v-else-if="!warrantyUntil")
+          | Гарантийный возврат по этому заказу не предусмотрен.
 
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
@@ -525,6 +527,15 @@ q-page.order-detail(role="region", aria-label="Заказ")
       font-size: var(--p-fs-body-sm);
       color: var(--p-ink-3);
       font-weight: 600;
+    }
+  }
+
+  &__return-window {
+    align-self: flex-start;
+
+    :deep(.q-icon) {
+      margin-right: 4px;
+      vertical-align: -1px;
     }
   }
 
