@@ -14,7 +14,7 @@
       :readonly='readonly',
       :suffix='metric.unit',
       dense,
-      @update:model-value='(v) => onDeltaChange(metric.metric_hash, v)'
+      @update:model-value='(v) => handleDeltaChange(metric.metric_hash, v)'
     )
 </template>
 
@@ -38,6 +38,11 @@ const {
   loadAll,
   onDeltaChange,
 } = useBindIssueMetrics(props.issueHash, props.projectHash);
+
+const handleDeltaChange = (metricHash: string, value: string | number | null) => {
+  if (props.readonly) return;
+  onDeltaChange(metricHash, value);
+};
 
 onMounted(async () => {
   await loadAll();
