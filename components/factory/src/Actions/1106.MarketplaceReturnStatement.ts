@@ -29,7 +29,21 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
     const user = await this.getUser(data.username, data.block_num)
     const commonUser = this.getCommonUser(user)
 
-    const request = await this.getRequest(Number(data.order_id), data.block_num)
+    // Артикул/наименование/единица/цена — напрямую из Action (заказ+оферта на
+    // стороне controller'а), а не из getRequest(): та заглушка возвращает
+    // фиксированные тестовые данные независимо от order_id (см. review
+    // 2026-07-27 — во всех заявлениях показывало «Молоко Бурёнка» и цену 1000).
+    const request: MarketplaceReturnStatement.Model['request'] = {
+      hash: data.sku,
+      title: data.product_title,
+      unit_of_measurement: data.unit_of_measurement,
+      units: data.actual_quantity,
+      unit_cost: data.unit_cost,
+      total_cost: data.fact_cost,
+      currency: data.currency,
+      type: 'receive',
+      program_id: 0,
+    }
 
     if (coop.is_branched && !data.braname)
       throw new Error('Branch name is required')

@@ -96,6 +96,26 @@ class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommo
   @IsString()
   fact_cost!: string;
 
+  @Field({ description: 'Артикул (SKU) товара — идентификатор предложения исходного заказа.' })
+  @IsString()
+  sku!: string;
+
+  @Field({ description: 'Наименование товара из предложения.' })
+  @IsString()
+  product_title!: string;
+
+  @Field({ description: 'Единица измерения (например «литры», «кг», «шт.»).' })
+  @IsString()
+  unit_of_measurement!: string;
+
+  @Field({ description: 'Стоимость базовой единицы товара (4 знака после запятой).' })
+  @IsString()
+  unit_cost!: string;
+
+  @Field({ description: 'Код валюты расчёта (например «RUB»).' })
+  @IsString()
+  currency!: string;
+
   @Field({
     nullable: true,
     description: 'Хэш приватного payload документа (если приватные данные хранятся отдельно).',

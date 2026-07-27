@@ -23,6 +23,10 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
 import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import {
   MARKETPLACE_RETURN_CLAIM_REPOSITORY,
   type MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
@@ -30,6 +34,11 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceReturnClaimImagesService } from './marketplace-return-claim-images.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
@@ -159,8 +168,12 @@ export class MarketplaceReturnClaimService {
     private readonly claimRepo: MarketplaceReturnClaimDomainRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
@@ -765,9 +778,24 @@ export class MarketplaceReturnClaimService {
     return requested;
   }
 
+  /**
+   * Эффективная цена за базовую единицу (кг/л/шт), выведенная из фактической
+   * выдачи (issuedCost/issuedQty), а не из `order.price_per_unit` напрямую:
+   * при отпуске упаковкой (Эпик 18) `price_per_unit` — цена ЗА УПАКОВКУ, а
+   * `actual_quantity` возврата — всегда в базовых единицах, так что прямое
+   * произведение было бы неверным для packaged-офферов (review 2026-07-27 —
+   * заявление показывало заведомо несвязанные «стоимость единицы»/«сумма
+   * возврата»). Та же пропорция, что и в computeFeeRefund ниже.
+   */
+  private effectiveUnitCost(order: MarketplaceOrderDomainEntity): number {
+    const issuedQty = order.issuance_fact?.actual_quantity ?? order.quantity;
+    const issuedCost = Number.parseFloat(order.issuance_fact?.fact_cost ?? order.total_cost);
+    if (!(issuedQty > 0)) return Number.parseFloat(order.price_per_unit);
+    return issuedCost / issuedQty;
+  }
+
   private computeFactCost(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
-    const unitPrice = Number.parseFloat(order.price_per_unit);
-    return (actual_quantity * unitPrice).toFixed(4);
+    return (this.effectiveUnitCost(order) * actual_quantity).toFixed(4);
   }
 
   /**
@@ -808,6 +836,10 @@ export class MarketplaceReturnClaimService {
     defect_category?: string | null;
   }): Promise<DocumentDomainEntity> {
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
+    // Артикул/наименование/единица/цена — из заказа и его оферты, не из
+    // заглушки фабрики (см. review 2026-07-27: заглушка возвращала одни и те
+    // же тестовые данные независимо от order_id).
+    const offer = await this.offerRepo.findById(input.order.offer_id);
     const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
@@ -819,6 +851,11 @@ export class MarketplaceReturnClaimService {
       defect_category: input.defect_category ?? undefined,
       actual_quantity: input.actual_quantity,
       fact_cost,
+      sku: input.order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
+      unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
+      currency: this.assetConfig.symbol,
       skip_save: true,
     };
     return this.documentDomainService.generateDocument({ data: action });

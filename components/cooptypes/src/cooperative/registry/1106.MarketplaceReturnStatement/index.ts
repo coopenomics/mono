@@ -40,6 +40,16 @@ export interface Action extends IGenerate, IDocDataRef {
   actual_quantity: number
   /** Стоимость возвращаемой части (4 знака после запятой). */
   fact_cost: string
+  /** Артикул (SKU) товара — id предложения, по которому был оформлен заказ. */
+  sku: string
+  /** Наименование товара из предложения. */
+  product_title: string
+  /** Единица измерения (человеко-читаемая: «литры», «кг», «шт.» и т.п.). */
+  unit_of_measurement: string
+  /** Стоимость базовой единицы товара (4 знака после запятой). */
+  unit_cost: string
+  /** Код валюты (напр. RUB). */
+  currency: string
 }
 
 export type Meta = IMetaDocument & Action

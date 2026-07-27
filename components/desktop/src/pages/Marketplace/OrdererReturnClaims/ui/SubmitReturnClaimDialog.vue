@@ -293,8 +293,6 @@ TakeoverDialog(
               q-spinner(color="primary" size="32px")
               span Формирую предварительное заявление…
           BaseCard.mp-return-submit__preview(v-else-if="previewHtml")
-            template(#head)
-              .t-sm.t-muted Превью заявления (registry_id=1106)
             div(v-html="previewHtml")
           BaseCard.mp-return-submit__preview-card(v-else)
             .t-muted Не удалось сформировать предварительный документ.

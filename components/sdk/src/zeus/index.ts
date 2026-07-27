@@ -9708,6 +9708,8 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Дата и время создания документа */
 	created_at: string | Variable<any, string>,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string | Variable<any, string>,
 	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
 	defect_category?: string | undefined | null | Variable<any, string>,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
@@ -9724,16 +9726,24 @@ export type ValueTypes = {
 	order_hash: string | Variable<any, string>,
 	/** Идентификатор заказа, по которому подаётся возврат. */
 	order_id: string | Variable<any, string>,
+	/** Наименование товара из предложения. */
+	product_title: string | Variable<any, string>,
 	/** Причина обращения, как её сформулировал пайщик. */
 	reason_text: string | Variable<any, string>,
 	/** ID документа в реестре */
 	registry_id: number | Variable<any, string>,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean | Variable<any, string>,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string | Variable<any, string>,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string | Variable<any, string>,
 	/** Название документа */
 	title: string | Variable<any, string>,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string | Variable<any, string>,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string | Variable<any, string>,
 	/** Имя пользователя, создавшего документ */
 	username: string | Variable<any, string>,
 	/** Версия генератора, использованного для создания документа */
@@ -22777,6 +22787,8 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
 	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
 	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
@@ -22793,16 +22805,24 @@ export type ResolverInputTypes = {
 	order_hash: string,
 	/** Идентификатор заказа, по которому подаётся возврат. */
 	order_id: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
 	/** Причина обращения, как её сформулировал пайщик. */
 	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -35424,6 +35444,8 @@ export type ModelTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
 	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
 	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
@@ -35440,16 +35462,24 @@ export type ModelTypes = {
 	order_hash: string,
 	/** Идентификатор заказа, по которому подаётся возврат. */
 	order_id: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
 	/** Причина обращения, как её сформулировал пайщик. */
 	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
@@ -49372,6 +49402,8 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Дата и время создания документа */
 	created_at: string,
+	/** Код валюты расчёта (например «RUB»). */
+	currency: string,
 	/** Необязательная категория дефекта (пересортица, истёкший срок и т.п.). */
 	defect_category?: string | undefined | null,
 	/** Хэш приватного payload документа (если приватные данные хранятся отдельно). */
@@ -49388,16 +49420,24 @@ export type GraphQLTypes = {
 	order_hash: string,
 	/** Идентификатор заказа, по которому подаётся возврат. */
 	order_id: string,
+	/** Наименование товара из предложения. */
+	product_title: string,
 	/** Причина обращения, как её сформулировал пайщик. */
 	reason_text: string,
 	/** ID документа в реестре */
 	registry_id: number,
 	/** Сформировать документ без сохранения (preview-режим). */
 	skip_save: boolean,
+	/** Артикул (SKU) товара — идентификатор предложения исходного заказа. */
+	sku: string,
 	/** Часовой пояс, в котором был создан документ */
 	timezone: string,
 	/** Название документа */
 	title: string,
+	/** Стоимость базовой единицы товара (4 знака после запятой). */
+	unit_cost: string,
+	/** Единица измерения (например «литры», «кг», «шт.»). */
+	unit_of_measurement: string,
 	/** Имя пользователя, создавшего документ */
 	username: string,
 	/** Версия генератора, использованного для создания документа */
