@@ -24,7 +24,10 @@ export type MarketplaceReturnClaimView =
 // и в блоке гарантийного возврата на странице конкретного заказа (DRY:
 // один источник статус→текст/цвет вместо дублирования в двух местах).
 const RETURN_CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceReturnClaimStatus, string> = {
-  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: 'На рассмотрении председателя',
+  // Заказчику не важно, кто именно решает (председатель КУ, не совет) —
+  // достаточно факта «на рассмотрении»; уточнение роли только путает
+  // (см. review 2026-07-27: «со вето путать не надо»).
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: 'На рассмотрении',
   [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: 'Очный визит одобрен',
   [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_AT_VISIT]: 'Возврат принят',
   [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: 'Отказано удалённо',
@@ -56,6 +59,19 @@ export const OPEN_RETURN_CLAIM_STATUSES = new Set<MarketplaceReturnClaimView['st
   Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW,
   Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT,
 ]);
+
+// Гуманизация решений из decision_log — используется и в деталях заявления,
+// и в хронологии заказа (DRY: один источник вместо двух локальных карт).
+const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
+  approve_visit: 'Председатель пригласил на очный осмотр',
+  reject_remote: 'Отказано удалённо',
+  accept_at_visit: 'Возврат принят на очном осмотре',
+  reject_at_visit: 'Отказано на очном осмотре',
+};
+
+export function returnClaimDecisionLabel(decision: string): string {
+  return RETURN_CLAIM_DECISION_LABELS[decision] ?? decision;
+}
 
 export type MarketplaceReturnClaimResultView =
   Mutations.Marketplace.CreateReturnClaim.IOutput['marketplaceCreateReturnClaim'];

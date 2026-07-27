@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { defectCategoryLabel, returnClaimStatusLabel, type MarketplaceReturnClaimView } from '../api';
+import {
+  defectCategoryLabel,
+  returnClaimStatusLabel,
+  returnClaimDecisionLabel,
+  type MarketplaceReturnClaimView,
+} from '../api';
 
 /**
  * Story 7.1-7.4 — детали заявления для пайщика: текущий статус, причина,
@@ -19,13 +24,6 @@ const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
 }>();
 
-const decisionLabelMap: Record<string, string> = {
-  approve_visit: 'Председатель пригласил на очный осмотр',
-  reject_remote: 'Отказано удалённо',
-  accept_at_visit: 'Возврат принят на очном осмотре',
-  reject_at_visit: 'Отказано на очном осмотре',
-};
-
 const statusKind = computed<'info' | 'success' | 'warning' | 'danger'>(() => {
   if (!props.claim) return 'info';
   switch (props.claim.status) {
@@ -40,10 +38,6 @@ const statusKind = computed<'info' | 'success' | 'warning' | 'danger'>(() => {
       return 'info';
   }
 });
-
-function humanDecision(decision: string): string {
-  return decisionLabelMap[decision] ?? decision;
-}
 
 function close(): void {
   emit('update:modelValue', false);
@@ -95,7 +89,7 @@ TakeoverDialog(
           q-timeline(layout="dense" color="primary").q-mt-sm
             q-timeline-entry(
               v-for="entry in claim.decision_log" :key="entry.tx_hash"
-              :title="humanDecision(entry.decision)"
+              :title="returnClaimDecisionLabel(entry.decision)"
               :subtitle="`${entry.by_chairman_account} · КУ ${entry.braname} · ${formatDateTime(entry.at)}`"
               :color="entry.decision === 'accept_at_visit' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' ? 'negative' : 'primary'"
             )

@@ -28,6 +28,7 @@ import {
   listMyReturnClaims,
   returnClaimStatusLabel,
   returnClaimStatusVariant,
+  returnClaimDecisionLabel,
   OPEN_RETURN_CLAIM_STATUSES,
   type MarketplaceReturnClaimView,
 } from '../../OrdererReturnClaims';
@@ -196,7 +197,34 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
   add('opened', 'system', 'lock_open', 'Выдача открыта на пункте', o.chairman_signed_at);
   add('received', 'sign', 'check_circle', 'Заказ получен', o.received_at);
   add('cancelled', 'reject', 'cancel', 'Заказ отменён', o.cancelled_at);
-  return events;
+
+  // Гарантийный возврат — часть истории заказа, не только текущий статус в
+  // карточке выше: подача заявления и каждое решение председателя тоже
+  // попадают в общую хронологию.
+  for (const claim of orderReturnClaims.value) {
+    add(
+      `return-submitted-${claim.id}`,
+      'create',
+      'assignment_return',
+      'Заявление на гарантийный возврат подано',
+      claim.created_at,
+    );
+    for (const entry of claim.decision_log) {
+      const isReject = entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit';
+      add(
+        `return-decision-${claim.id}-${entry.tx_hash}`,
+        isReject ? 'reject' : 'sign',
+        isReject ? 'cancel' : 'check_circle',
+        returnClaimDecisionLabel(entry.decision),
+        entry.at,
+      );
+    }
+  }
+
+  // Заказные и возвратные события идут из независимых источников — сводим в
+  // единую хронологию сортировкой по факту времени (день группирует шаблон
+  // ActivityTimeline сам, но порядок ВНУТРИ дня он не переставляет).
+  return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 });
 
 function formatDate(value: unknown): string {
