@@ -32,10 +32,13 @@ import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-compon
 import type { SetIssueMetricBindingsInputDTO } from '../dto/metrics/set-issue-metric-bindings-input.dto';
 import type { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contribution-input.dto';
 import type { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
+import type { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input.dto';
 import type { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
 import type { IssueMetricBindingOutputDTO } from '../dto/metrics/issue-metric-binding.dto';
 import type { MetricContributionOutputDTO } from '../dto/metrics/metric-contribution.dto';
 import type { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
+import type { MetricWaveOutputDTO } from '../dto/metrics/metric-wave.dto';
+import { analyzeWave, WaveLabel } from '../../domain/utils/wave-markup';
 import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 
 /**
@@ -356,6 +359,53 @@ export class ComponentMetricService {
       period,
       fact,
       points,
+    };
+  }
+
+  /**
+   * Волна 5/3 + Фибо + прогнозный коридор поверх ряда метрики (без SoT в БД).
+   */
+  async getMetricWave(
+    data: GetMetricWaveInputDTO,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<MetricWaveOutputDTO> {
+    const series = await this.getMetricSeries(
+      {
+        metric_hash: data.metric_hash,
+        period: data.period,
+      },
+      currentUser
+    );
+
+    const values =
+      series.series_mode === MetricSeriesMode.LEVEL
+        ? series.points.map((p) => p.cumulative)
+        : series.points.map((p) => p.delta);
+
+    const markup = analyzeWave({
+      values,
+      series_mode: series.series_mode,
+      fact: series.fact,
+      target_value: series.target_value,
+      periods_ahead: data.periods_ahead ?? 8,
+    });
+
+    return {
+      metric_hash: series.metric_hash,
+      title: series.title,
+      unit: series.unit,
+      target_value: series.target_value,
+      fact: series.fact,
+      series_mode: series.series_mode,
+      period: series.period,
+      values,
+      current_label: markup.current_label,
+      current_phase: markup.current_phase,
+      swings: markup.swings,
+      point_labels: markup.point_labels.map((l) => l ?? WaveLabel.W1),
+      fib_levels: markup.fib_levels,
+      corridor: markup.corridor,
+      disclaimer: markup.disclaimer,
     };
   }
 

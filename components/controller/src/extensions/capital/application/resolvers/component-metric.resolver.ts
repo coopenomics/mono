@@ -20,6 +20,10 @@ import { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contrib
 import { GetMetricContributionsInputDTO } from '../dto/metrics/get-metric-contributions-input.dto';
 import { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
 import { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
+import { MetricWaveOutputDTO } from '../dto/metrics/metric-wave.dto';
+import { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input.dto';
+// register GraphQL enums WaveLabel / WavePhase
+import '../../domain/enums/wave-label.enum';
 
 const paginatedMetricContributionsResult = createPaginationResult(
   MetricContributionOutputDTO,
@@ -146,5 +150,18 @@ export class ComponentMetricResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<MetricSeriesOutputDTO> {
     return this.componentMetricService.getMetricSeries(data, currentUser);
+  }
+
+  @Query(() => MetricWaveOutputDTO, {
+    name: 'capitalMetricWave',
+    description: 'Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async getMetricWave(
+    @Args('data', { type: () => GetMetricWaveInputDTO }) data: GetMetricWaveInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MetricWaveOutputDTO> {
+    return this.componentMetricService.getMetricWave(data, currentUser);
   }
 }

@@ -2823,6 +2823,14 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	["CapitalFibLevel"]: AliasType<{
+	/** Фибо-коэффициент */
+	ratio?:boolean | `@${string}`,
+	/** Значение уровня на ряде */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalFibLevel']?: Omit<ValueTypes["CapitalFibLevel"], "...on CapitalFibLevel">
+}>;
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -3156,6 +3164,40 @@ export type ValueTypes = {
 	period_start?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMetricSeriesPoint']?: Omit<ValueTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+}>;
+	["CapitalMetricWave"]: AliasType<{
+	/** Прогнозный коридор */
+	corridor?:ValueTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Текущий факт */
+	fact?:boolean | `@${string}`,
+	/** Фибо-сетка */
+	fib_levels?:ValueTypes["CapitalFibLevel"],
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Метка волны на каждой точке ряда */
+	point_labels?:boolean | `@${string}`,
+	/** Режим ряда, на котором построена волна */
+	series_mode?:boolean | `@${string}`,
+	/** Свинги с метками */
+	swings?:ValueTypes["CapitalWaveSwing"],
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricWave']?: Omit<ValueTypes["CapitalMetricWave"], "...on CapitalMetricWave">
 }>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
@@ -4064,6 +4106,34 @@ export type ValueTypes = {
 	voter_display_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalVote']?: Omit<ValueTypes["CapitalVote"], "...on CapitalVote">
+}>;
+	["CapitalWaveCorridor"]: AliasType<{
+	/** Базовый прогноз ряда */
+	base?:boolean | `@${string}`,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?:boolean | `@${string}`,
+	/** Оптимистичный прогноз ряда */
+	optimistic?:boolean | `@${string}`,
+	/** Горизонт прогноза в периодах */
+	periods_ahead?:boolean | `@${string}`,
+	/** Пессимистичный прогноз ряда */
+	pessimistic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalWaveCorridor']?: Omit<ValueTypes["CapitalWaveCorridor"], "...on CapitalWaveCorridor">
+}>;
+	["CapitalWaveSwing"]: AliasType<{
+	/** Индекс точки в ряде */
+	index?:boolean | `@${string}`,
+	/** Метка волны */
+	label?:boolean | `@${string}`,
+	/** Значение на экстремуме */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalWaveSwing']?: Omit<ValueTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 }>;
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string | Variable<any, string>,
@@ -6540,6 +6610,14 @@ export type ValueTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
 };
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>,
+	/** Период агрегации ряда для разметки */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null | Variable<any, string>
+};
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
 	block_from: number | Variable<any, string>,
@@ -8888,6 +8966,7 @@ capitalIssueMetricBindings?: [{	data: ValueTypes["GetIssueMetricBindingsInput"] 
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ValueTypes["GetMetricSeriesInput"] | Variable<any, string>},ValueTypes["CapitalMetricSeries"]],
+capitalMetricWave?: [{	data: ValueTypes["GetMetricWaveInput"] | Variable<any, string>},ValueTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -10741,6 +10820,10 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string | Variable<any, string>
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]:WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string | Variable<any, string>,
@@ -12489,6 +12572,13 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalFibLevel"]: AliasType<{
+	/** Фибо-коэффициент */
+	ratio?:boolean | `@${string}`,
+	/** Значение уровня на ряде */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -12811,6 +12901,39 @@ export type ResolverInputTypes = {
 	period_end?:boolean | `@${string}`,
 	/** Начало периода (UTC) */
 	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricWave"]: AliasType<{
+	/** Прогнозный коридор */
+	corridor?:ResolverInputTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Текущий факт */
+	fact?:boolean | `@${string}`,
+	/** Фибо-сетка */
+	fib_levels?:ResolverInputTypes["CapitalFibLevel"],
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Метка волны на каждой точке ряда */
+	point_labels?:boolean | `@${string}`,
+	/** Режим ряда, на котором построена волна */
+	series_mode?:boolean | `@${string}`,
+	/** Свинги с метками */
+	swings?:ResolverInputTypes["CapitalWaveSwing"],
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalOnboardingState"]: AliasType<{
@@ -13696,6 +13819,32 @@ export type ResolverInputTypes = {
 	voter?:boolean | `@${string}`,
 	/** Отображаемое имя голосующего */
 	voter_display_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalWaveCorridor"]: AliasType<{
+	/** Базовый прогноз ряда */
+	base?:boolean | `@${string}`,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?:boolean | `@${string}`,
+	/** Оптимистичный прогноз ряда */
+	optimistic?:boolean | `@${string}`,
+	/** Горизонт прогноза в периодах */
+	periods_ahead?:boolean | `@${string}`,
+	/** Пессимистичный прогноз ряда */
+	pessimistic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalWaveSwing"]: AliasType<{
+	/** Индекс точки в ряде */
+	index?:boolean | `@${string}`,
+	/** Метка волны */
+	label?:boolean | `@${string}`,
+	/** Значение на экстремуме */
+	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ChairmanOnboardingAgendaInput"]: {
@@ -16124,6 +16273,14 @@ export type ResolverInputTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ResolverInputTypes["DateTime"] | undefined | null
 };
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
+};
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
 	block_from: number,
@@ -18381,6 +18538,7 @@ capitalIssueMetricBindings?: [{	data: ResolverInputTypes["GetIssueMetricBindings
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
 capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ResolverInputTypes["GetMetricSeriesInput"]},ResolverInputTypes["CapitalMetricSeries"]],
+capitalMetricWave?: [{	data: ResolverInputTypes["GetMetricWaveInput"]},ResolverInputTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
@@ -20192,6 +20350,10 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]:WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -21891,6 +22053,12 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	["CapitalFibLevel"]: {
+		/** Фибо-коэффициент */
+	ratio: number,
+	/** Значение уровня на ряде */
+	value: number
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 	/** Имя кооператива */
@@ -22204,6 +22372,38 @@ export type ModelTypes = {
 	period_end: ModelTypes["DateTime"],
 	/** Начало периода (UTC) */
 	period_start: ModelTypes["DateTime"]
+};
+	["CapitalMetricWave"]: {
+		/** Прогнозный коридор */
+	corridor: ModelTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label: ModelTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: ModelTypes["WavePhase"],
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Текущий факт */
+	fact: number,
+	/** Фибо-сетка */
+	fib_levels: Array<ModelTypes["CapitalFibLevel"]>,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Метка волны на каждой точке ряда */
+	point_labels: Array<ModelTypes["WaveLabel"]>,
+	/** Режим ряда, на котором построена волна */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Свинги с метками */
+	swings: Array<ModelTypes["CapitalWaveSwing"]>,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values: Array<number>
 };
 	["CapitalOnboardingState"]: {
 		blagorost_offer_template_done: boolean,
@@ -23065,6 +23265,30 @@ export type ModelTypes = {
 	voter?: string | undefined | null,
 	/** Отображаемое имя голосующего */
 	voter_display_name?: string | undefined | null
+};
+	["CapitalWaveCorridor"]: {
+		/** Базовый прогноз ряда */
+	base: Array<number>,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?: number | undefined | null,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?: number | undefined | null,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?: number | undefined | null,
+	/** Оптимистичный прогноз ряда */
+	optimistic: Array<number>,
+	/** Горизонт прогноза в периодах */
+	periods_ahead: number,
+	/** Пессимистичный прогноз ряда */
+	pessimistic: Array<number>
+};
+	["CapitalWaveSwing"]: {
+		/** Индекс точки в ряде */
+	index: number,
+	/** Метка волны */
+	label: ModelTypes["WaveLabel"],
+	/** Значение на экстремуме */
+	value: number
 };
 	["ChairmanOnboardingAgendaInput"]: {
 	decision: string,
@@ -25428,6 +25652,14 @@ export type ModelTypes = {
 	period: ModelTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ModelTypes["DateTime"] | undefined | null
+};
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -28179,6 +28411,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: ModelTypes["CapitalMetricSeries"],
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricWave: ModelTypes["CapitalMetricWave"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -30145,6 +30381,8 @@ export type ModelTypes = {
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	["WaveLabel"]:WaveLabel;
+	["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -31936,6 +32174,14 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
 };
+	["CapitalFibLevel"]: {
+	__typename: "CapitalFibLevel",
+	/** Фибо-коэффициент */
+	ratio: number,
+	/** Значение уровня на ряде */
+	value: number,
+	['...on CapitalFibLevel']: Omit<GraphQLTypes["CapitalFibLevel"], "...on CapitalFibLevel">
+};
 	/** Запрос открытой сессии таймера участника */
 ["CapitalGetOpenTimerInput"]: {
 		/** Имя кооператива */
@@ -32269,6 +32515,40 @@ export type GraphQLTypes = {
 	/** Начало периода (UTC) */
 	period_start: GraphQLTypes["DateTime"],
 	['...on CapitalMetricSeriesPoint']: Omit<GraphQLTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+};
+	["CapitalMetricWave"]: {
+	__typename: "CapitalMetricWave",
+	/** Прогнозный коридор */
+	corridor: GraphQLTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label: GraphQLTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: GraphQLTypes["WavePhase"],
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Текущий факт */
+	fact: number,
+	/** Фибо-сетка */
+	fib_levels: Array<GraphQLTypes["CapitalFibLevel"]>,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Метка волны на каждой точке ряда */
+	point_labels: Array<GraphQLTypes["WaveLabel"]>,
+	/** Режим ряда, на котором построена волна */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Свинги с метками */
+	swings: Array<GraphQLTypes["CapitalWaveSwing"]>,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values: Array<number>,
+	['...on CapitalMetricWave']: Omit<GraphQLTypes["CapitalMetricWave"], "...on CapitalMetricWave">
 };
 	["CapitalOnboardingState"]: {
 	__typename: "CapitalOnboardingState",
@@ -33177,6 +33457,34 @@ export type GraphQLTypes = {
 	/** Отображаемое имя голосующего */
 	voter_display_name?: string | undefined | null,
 	['...on CapitalVote']: Omit<GraphQLTypes["CapitalVote"], "...on CapitalVote">
+};
+	["CapitalWaveCorridor"]: {
+	__typename: "CapitalWaveCorridor",
+	/** Базовый прогноз ряда */
+	base: Array<number>,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?: number | undefined | null,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?: number | undefined | null,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?: number | undefined | null,
+	/** Оптимистичный прогноз ряда */
+	optimistic: Array<number>,
+	/** Горизонт прогноза в периодах */
+	periods_ahead: number,
+	/** Пессимистичный прогноз ряда */
+	pessimistic: Array<number>,
+	['...on CapitalWaveCorridor']: Omit<GraphQLTypes["CapitalWaveCorridor"], "...on CapitalWaveCorridor">
+};
+	["CapitalWaveSwing"]: {
+	__typename: "CapitalWaveSwing",
+	/** Индекс точки в ряде */
+	index: number,
+	/** Метка волны */
+	label: GraphQLTypes["WaveLabel"],
+	/** Значение на экстремуме */
+	value: number,
+	['...on CapitalWaveSwing']: Omit<GraphQLTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 };
 	["ChairmanOnboardingAgendaInput"]: {
 		decision: string,
@@ -35652,6 +35960,14 @@ export type GraphQLTypes = {
 	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: GraphQLTypes["DateTime"] | undefined | null
+};
+	["GetMetricWaveInput"]: {
+		/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
 };
 	["GetOneCoopDocumentsInput"]: {
 		/** Номер блока, начиная с которого извлекать документы */
@@ -38623,6 +38939,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: GraphQLTypes["CapitalMetricSeries"],
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricWave: GraphQLTypes["CapitalMetricWave"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -40687,6 +41007,10 @@ export type GraphQLTypes = {
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]: WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]: WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 		/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -41244,6 +41568,22 @@ export enum UserStatus {
 	Refunding = "Refunding",
 	Registered = "Registered"
 }
+/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+export enum WaveLabel {
+	W1 = "W1",
+	W2 = "W2",
+	W3 = "W3",
+	W4 = "W4",
+	W5 = "W5",
+	WA = "WA",
+	WB = "WB",
+	WC = "WC"
+}
+/** Фаза волны: импульс или коррекция */
+export enum WavePhase {
+	CORRECTION = "CORRECTION",
+	IMPULSE = "IMPULSE"
+}
 /** Тип подписанта для нулевых форм: руководитель или представитель */
 export enum ZeroReportSignerType {
 	CHAIRMAN = "CHAIRMAN",
@@ -41468,6 +41808,7 @@ type ZEUS_VARIABLES = {
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
 	["GetMetricSeriesInput"]: ValueTypes["GetMetricSeriesInput"];
+	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];
@@ -41657,6 +41998,8 @@ type ZEUS_VARIABLES = {
 	["VoteItemInput"]: ValueTypes["VoteItemInput"];
 	["VoteOnAnnualGeneralMeetInput"]: ValueTypes["VoteOnAnnualGeneralMeetInput"];
 	["WalmoveInput"]: ValueTypes["WalmoveInput"];
+	["WaveLabel"]: ValueTypes["WaveLabel"];
+	["WavePhase"]: ValueTypes["WavePhase"];
 	["WebPushSubscriptionDataInput"]: ValueTypes["WebPushSubscriptionDataInput"];
 	["WebPushSubscriptionKeysInput"]: ValueTypes["WebPushSubscriptionKeysInput"];
 	["ZeroReportSignerType"]: ValueTypes["ZeroReportSignerType"];

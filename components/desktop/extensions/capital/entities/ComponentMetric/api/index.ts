@@ -17,6 +17,8 @@ import type {
   IGetMetricSeriesOutput,
   ILogMetricContributionInput,
   ILogMetricContributionOutput,
+  IGetMetricWaveInput,
+  IGetMetricWaveOutput,
 } from '../model';
 
 async function getComponentMetrics(
@@ -99,6 +101,16 @@ async function logMetricContribution(
   return result;
 }
 
+async function getMetricWave(
+  data: IGetMetricWaveInput,
+): Promise<IGetMetricWaveOutput> {
+  const { [Queries.Capital.GetMetricWave.name]: result } =
+    await client.Query(Queries.Capital.GetMetricWave.query, {
+      variables: { data },
+    });
+  return result;
+}
+
 export const api = {
   getComponentMetrics,
   createComponentMetric,
@@ -108,4 +120,5 @@ export const api = {
   setIssueMetricBindings,
   getMetricSeries,
   logMetricContribution,
+  getMetricWave,
 };

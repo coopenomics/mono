@@ -53,3 +53,11 @@ export type ILogMetricContributionInput =
 
 export type ILogMetricContributionOutput =
   Mutations.Capital.LogMetricContribution.IOutput[typeof Mutations.Capital.LogMetricContribution.name];
+
+export type IGetMetricWaveInput =
+  Queries.Capital.GetMetricWave.IInput['data'];
+
+export type IGetMetricWaveOutput =
+  Queries.Capital.GetMetricWave.IOutput[typeof Queries.Capital.GetMetricWave.name];
+
+export type IMetricWave = Zeus.ModelTypes['CapitalMetricWave'];

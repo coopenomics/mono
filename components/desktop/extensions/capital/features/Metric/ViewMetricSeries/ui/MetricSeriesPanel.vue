@@ -58,6 +58,13 @@
             )
           .metric-series__bar-val.t-mono {{ formatDelta(p.delta) }}
 
+    .metric-series__block
+      .metric-series__label Волна
+      MetricWavePanel(
+        :metric-hash='metricHash',
+        :period='period'
+      )
+
   .metric-series__empty(v-else-if='!isLoading')
     EmptyState(title='Пока нет точек ряда — закройте задачу с привязкой или внесите ручной вклад')
       template(#icon)
@@ -72,6 +79,7 @@ import { computed, toRef } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseButton, BaseInput, BaseSelect, EmptyState } from 'src/shared/ui/base';
 import { useMetricSeries } from '../model';
+import MetricWavePanel from './MetricWavePanel.vue';
 
 const props = defineProps<{
   metricHash: string;

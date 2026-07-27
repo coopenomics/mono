@@ -665,6 +665,9 @@ export const AllTypesProps: Record<string,any> = {
 		period:"MetricSeriesPeriod",
 		to:"DateTime"
 	},
+	GetMetricWaveInput:{
+		period:"MetricSeriesPeriod"
+	},
 	GetOneCoopDocumentsInput:{
 
 	},
@@ -1672,6 +1675,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalMetricSeries:{
 			data:"GetMetricSeriesInput"
 		},
+		capitalMetricWave:{
+			data:"GetMetricWaveInput"
+		},
 		capitalProgramExpense:{
 
 		},
@@ -2270,6 +2276,8 @@ export const AllTypesProps: Record<string,any> = {
 	WalmoveInput:{
 
 	},
+	WaveLabel: "enum" as const,
+	WavePhase: "enum" as const,
 	WebPushSubscriptionDataInput:{
 		keys:"WebPushSubscriptionKeysInput"
 	},
@@ -2825,6 +2833,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ExpenseStatus",
 		username:"String"
 	},
+	CapitalFibLevel:{
+		ratio:"Float",
+		value:"Float"
+	},
 	CapitalInvest:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -2957,6 +2969,23 @@ export const ReturnTypes: Record<string,any> = {
 		ideal_cumulative:"Float",
 		period_end:"DateTime",
 		period_start:"DateTime"
+	},
+	CapitalMetricWave:{
+		corridor:"CapitalWaveCorridor",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		disclaimer:"String",
+		fact:"Float",
+		fib_levels:"CapitalFibLevel",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		point_labels:"WaveLabel",
+		series_mode:"MetricSeriesMode",
+		swings:"CapitalWaveSwing",
+		target_value:"Float",
+		title:"String",
+		unit:"String",
+		values:"Float"
 	},
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
@@ -3346,6 +3375,20 @@ export const ReturnTypes: Record<string,any> = {
 		voted_at:"String",
 		voter:"String",
 		voter_display_name:"String"
+	},
+	CapitalWaveCorridor:{
+		base:"Float",
+		eta_base_periods:"Int",
+		eta_optimistic_periods:"Int",
+		eta_pessimistic_periods:"Int",
+		optimistic:"Float",
+		periods_ahead:"Int",
+		pessimistic:"Float"
+	},
+	CapitalWaveSwing:{
+		index:"Int",
+		label:"WaveLabel",
+		value:"Float"
 	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
@@ -4798,6 +4841,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
 		capitalMetricSeries:"CapitalMetricSeries",
+		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
