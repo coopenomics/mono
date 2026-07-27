@@ -159,16 +159,9 @@ export class GenerationService {
   }
 
   /**
-   * Зачитываем fact только по задачам, у которых работа заведомо завершена или на ревью
-   * (DONE/ON_REVIEW). Для активных/backlog-задач TimeEntry могут лежать как «предварительная оценка»
-   * (estimate-записи создаются applyExplicitEstimateToTimeEntries сразу при выставлении estimate),
-   * и считать их за факт неправильно. Остальные статусы получают fact=0.
+   * Зачитываем fact по всем задачам как сумму TimeEntry (committed + uncommitted).
+   * План (estimate) на факт не влияет — источник истины только записи учёта времени.
    */
-  private readonly FACTUAL_STATUSES: ReadonlySet<IssueStatus> = new Set([
-    IssueStatus.DONE,
-    IssueStatus.ON_REVIEW,
-  ]);
-
   private async withFactBatch<T extends { issue_hash: string; status: IssueStatus }>(
     issues: T[]
   ): Promise<
@@ -182,14 +175,9 @@ export class GenerationService {
     >
   > {
     if (issues.length === 0) return [];
-    const factualIssues = issues.filter((i) => this.FACTUAL_STATUSES.has(i.status));
-    const factMap = factualIssues.length
-      ? await this.timeEntryRepository.getFactByIssues(factualIssues.map((i) => i.issue_hash))
-      : new Map();
+    const factMap = await this.timeEntryRepository.getFactByIssues(issues.map((i) => i.issue_hash));
     return issues.map((issue) => {
-      const agg = this.FACTUAL_STATUSES.has(issue.status)
-        ? factMap.get(issue.issue_hash.toLowerCase())
-        : undefined;
+      const agg = factMap.get(issue.issue_hash.toLowerCase());
       return {
         ...issue,
         fact: agg?.fact ?? 0,
@@ -937,9 +925,7 @@ export class GenerationService {
     // Сохраняем задачу через репозиторий
     const savedIssue = await this.issueRepository.create(issueEntity);
 
-    if (data.estimate !== undefined && !hoursAlmostEqual(savedIssue.estimate ?? 0, 0)) {
-      await this.timeTrackingInteractor.applyExplicitEstimateToTimeEntries(savedIssue);
-    }
+    // 562-14: план больше не создаёт авто-билеты времени
 
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(savedIssue, currentUser);
@@ -1181,16 +1167,7 @@ export class GenerationService {
     // Сохраняем через репозиторий
     const updatedIssue = await this.issueRepository.update(issueEntity);
 
-    const estimateChanged =
-      data.estimate !== undefined &&
-      !hoursAlmostEqual(existingIssue.estimate ?? 0, updatedIssue.estimate ?? 0);
-    const creatorsChanged =
-      data.creators !== undefined &&
-      !this.creatorsSetEquals(existingIssue.creators ?? [], updatedIssue.creators ?? []);
-
-    if (estimateChanged || creatorsChanged) {
-      await this.timeTrackingInteractor.applyExplicitEstimateToTimeEntries(updatedIssue);
-    }
+    // 562-14: смена плана / creators больше не пересобирает авто-билеты
 
     // Рассчитываем права доступа для задачи
     const permissions = await this.permissionsService.calculateIssuePermissions(updatedIssue, currentUser);
@@ -1417,15 +1394,6 @@ export class GenerationService {
       options,
     });
     return document as GeneratedDocumentDTO;
-  }
-
-  private creatorsSetEquals(a: string[], b: string[]): boolean {
-    if (a.length !== b.length) return false;
-    const setA = new Set(a);
-    for (const item of b) {
-      if (!setA.has(item)) return false;
-    }
-    return true;
   }
 
 }

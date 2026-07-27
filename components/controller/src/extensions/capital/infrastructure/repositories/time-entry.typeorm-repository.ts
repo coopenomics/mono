@@ -379,6 +379,11 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     );
   }
 
+  async findById(id: string): Promise<TimeEntryDomainEntity | null> {
+    const entity = await this.repository.findOne({ where: { _id: id } });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>> {
     const result = new Map<string, IssueFactAggregate>();
     if (issueHashes.length === 0) return result;
@@ -439,7 +444,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       hours: Number(entity.hours),
       commit_hash: entity.commit_hash,
       is_committed: entity.is_committed,
-      entry_type: entity.entry_type as 'hourly' | 'estimate' | undefined,
+      entry_type: entity.entry_type as ITimeEntryDatabaseData['entry_type'],
       estimate_snapshot: entity.estimate_snapshot,
     };
     return new TimeEntryDomainEntity(databaseData);

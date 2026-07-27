@@ -4571,7 +4571,51 @@ export type ValueTypes = {
 	/** Имя аккаунта пользователя */
 	username: string | Variable<any, string>
 };
-	["CreateIssueInput"]: {
+	["CapitalAddWorklogInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+date?: string | undefined | null | Variable<any, string>,
+hours?: number | undefined | null | Variable<any, string>,
+issue_hash?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalGetOpenTimerInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalStartTimerInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+issue_hash?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalStopTimerInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalPauseTimerInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalResumeTimerInput"]: {
+coopname?: string | undefined | null | Variable<any, string>,
+username?: string | undefined | null | Variable<any, string>
+},
+["CapitalTimerSession"]: AliasType<{
+_id?:boolean | `@${string}`,
+contributor_hash?:boolean | `@${string}`,
+coopname?:boolean | `@${string}`,
+elapsed_seconds?:boolean | `@${string}`,
+is_paused?:boolean | `@${string}`,
+issue_hash?:boolean | `@${string}`,
+issue_title?:boolean | `@${string}`,
+paused_at?:boolean | `@${string}`,
+project_hash?:boolean | `@${string}`,
+started_at?:boolean | `@${string}`,
+stopped_at?:boolean | `@${string}`,
+total_paused_ms?:boolean | `@${string}`,
+__typename?: boolean | `@${string}`
+['...on CapitalTimerSession']?: Omit<ValueTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+}>,
+["CreateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null | Variable<any, string>,
 	/** Имя аккаунта кооператива */
@@ -7046,7 +7090,12 @@ capitalCreateCommit?: [{	data: ValueTypes["CreateCommitInput"] | Variable<any, s
 capitalCreateCycle?: [{	data: ValueTypes["CreateCycleInput"] | Variable<any, string>},ValueTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
+	capitalStartTimer?: [{	data: ValueTypes["CapitalStartTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+	capitalStopTimer?: [{	data: ValueTypes["CapitalStopTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
+	capitalPauseTimer?: [{	data: ValueTypes["CapitalPauseTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+	capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+	capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalCreateProcessTemplate?: [{	data: ValueTypes["CreateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ValueTypes["CreateProgramInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -8607,7 +8656,8 @@ capitalSegments?: [{	filter?: ValueTypes["CapitalSegmentFilter"] | undefined | n
 capitalState?: [{	data: ValueTypes["GetCapitalConfigInput"] | Variable<any, string>},ValueTypes["CapitalState"]],
 capitalStories?: [{	filter?: ValueTypes["CapitalStoryFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalStoriesPaginationResult"]],
 capitalStory?: [{	data: ValueTypes["GetCapitalStoryByHashInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
-capitalTimeEntries?: [{	filter?: ValueTypes["CapitalTimeEntriesFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalTimeEntriesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+	capitalTimeEntries?: [{	filter?: ValueTypes["CapitalTimeEntriesFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalTimeEntriesPaginationResult"]],
 capitalTimeEntriesByIssues?: [{	filter?: ValueTypes["CapitalTimeEntriesFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalTimeEntriesByIssuesPaginationResult"]],
 capitalTimeStats?: [{	data?: ValueTypes["CapitalTimeStatsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ValueTypes["GetVoteInput"] | Variable<any, string>},ValueTypes["CapitalVote"]],
@@ -13883,7 +13933,51 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
-	["CreateIssueInput"]: {
+	["CapitalAddWorklogInput"]: {
+coopname?: string | undefined | null,
+date?: string | undefined | null,
+hours?: number | undefined | null,
+issue_hash?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalGetOpenTimerInput"]: {
+coopname?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalStartTimerInput"]: {
+coopname?: string | undefined | null,
+issue_hash?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalStopTimerInput"]: {
+coopname?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalPauseTimerInput"]: {
+coopname?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalResumeTimerInput"]: {
+coopname?: string | undefined | null,
+username?: string | undefined | null
+},
+["CapitalTimerSession"]: AliasType<{
+_id?:boolean | `@${string}`,
+contributor_hash?:boolean | `@${string}`,
+coopname?:boolean | `@${string}`,
+elapsed_seconds?:boolean | `@${string}`,
+is_paused?:boolean | `@${string}`,
+issue_hash?:boolean | `@${string}`,
+issue_title?:boolean | `@${string}`,
+paused_at?:boolean | `@${string}`,
+project_hash?:boolean | `@${string}`,
+started_at?:boolean | `@${string}`,
+stopped_at?:boolean | `@${string}`,
+total_paused_ms?:boolean | `@${string}`,
+__typename?: boolean | `@${string}`
+['...on CapitalTimerSession']?: Omit<ResolverInputTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+}>,
+["CreateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
 	/** Имя аккаунта кооператива */
@@ -16295,7 +16389,12 @@ capitalCreateCommit?: [{	data: ResolverInputTypes["CreateCommitInput"]},Resolver
 capitalCreateCycle?: [{	data: ResolverInputTypes["CreateCycleInput"]},ResolverInputTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
-capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
+	capitalStartTimer?: [{	data: ResolverInputTypes["CapitalStartTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+	capitalStopTimer?: [{	data: ResolverInputTypes["CapitalStopTimerInput"]},ResolverInputTypes["CapitalTimeEntry"]],
+	capitalPauseTimer?: [{	data: ResolverInputTypes["CapitalPauseTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+	capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+	capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalCreateProcessTemplate?: [{	data: ResolverInputTypes["CreateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ResolverInputTypes["CreateProgramInvestInput"]},ResolverInputTypes["Transaction"]],
@@ -17794,7 +17893,8 @@ capitalSegments?: [{	filter?: ResolverInputTypes["CapitalSegmentFilter"] | undef
 capitalState?: [{	data: ResolverInputTypes["GetCapitalConfigInput"]},ResolverInputTypes["CapitalState"]],
 capitalStories?: [{	filter?: ResolverInputTypes["CapitalStoryFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalStoriesPaginationResult"]],
 capitalStory?: [{	data: ResolverInputTypes["GetCapitalStoryByHashInput"]},ResolverInputTypes["CapitalStory"]],
-capitalTimeEntries?: [{	filter?: ResolverInputTypes["CapitalTimeEntriesFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalTimeEntriesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+	capitalTimeEntries?: [{	filter?: ResolverInputTypes["CapitalTimeEntriesFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalTimeEntriesPaginationResult"]],
 capitalTimeEntriesByIssues?: [{	filter?: ResolverInputTypes["CapitalTimeEntriesFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalTimeEntriesByIssuesPaginationResult"]],
 capitalTimeStats?: [{	data?: ResolverInputTypes["CapitalTimeStatsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["CapitalTimeStats"]],
 capitalVote?: [{	data: ResolverInputTypes["GetVoteInput"]},ResolverInputTypes["CapitalVote"]],
@@ -22934,7 +23034,50 @@ export type ModelTypes = {
 	/** Имя аккаунта пользователя */
 	username: string
 };
-	["CreateIssueInput"]: {
+	["CapitalAddWorklogInput"]: {
+coopname: string,
+date?: string | undefined,
+hours: number,
+issue_hash: string,
+username: string
+},
+["CapitalGetOpenTimerInput"]: {
+coopname: string,
+username: string
+},
+["CapitalStartTimerInput"]: {
+coopname: string,
+issue_hash: string,
+username: string
+},
+["CapitalStopTimerInput"]: {
+coopname: string,
+username: string
+},
+["CapitalPauseTimerInput"]: {
+coopname: string,
+username: string
+},
+["CapitalResumeTimerInput"]: {
+coopname: string,
+username: string
+},
+["CapitalTimerSession"]: {
+_id: string,
+contributor_hash: string,
+coopname: string,
+elapsed_seconds: number,
+is_paused: boolean,
+issue_hash: string,
+issue_title?: string | undefined,
+paused_at?: any,
+project_hash: string,
+started_at: any,
+stopped_at?: any,
+total_paused_ms: number,
+__typename?: "CapitalTimerSession"
+},
+["CreateIssueInput"]: {
 	/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
 	/** Имя аккаунта кооператива */
@@ -25316,6 +25459,11 @@ export type ModelTypes = {
 	/** Создание задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: ModelTypes["CapitalTimeEntry"],
+	capitalStartTimer: ModelTypes["CapitalTimerSession"],
+	capitalStopTimer?: ModelTypes["CapitalTimeEntry"] | undefined,
+	capitalPauseTimer: ModelTypes["CapitalTimerSession"],
+	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
 	capitalCreateIssue: ModelTypes["CapitalIssue"],
 	/** Создание шаблона процесса
 
@@ -27279,6 +27427,7 @@ export type ModelTypes = {
 	/** Получение пагинированного списка записей времени
 
 Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: ModelTypes["CapitalTimerSession"] | undefined,
 	capitalTimeEntries: ModelTypes["PaginatedCapitalTimeEntriesPaginationResult"],
 	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках
 
@@ -32725,7 +32874,57 @@ export type GraphQLTypes = {
 		/** Имя аккаунта пользователя */
 	username: string
 };
-	["CreateIssueInput"]: {
+	["CapitalAddWorklogInput"]: {
+__typename?: "CapitalAddWorklogInput",
+coopname: string,
+date?: string | undefined,
+hours: number,
+issue_hash: string,
+username: string
+},
+["CapitalGetOpenTimerInput"]: {
+__typename?: "CapitalGetOpenTimerInput",
+coopname: string,
+username: string
+},
+["CapitalStartTimerInput"]: {
+__typename?: "CapitalStartTimerInput",
+coopname: string,
+issue_hash: string,
+username: string
+},
+["CapitalStopTimerInput"]: {
+__typename?: "CapitalStopTimerInput",
+coopname: string,
+username: string
+},
+["CapitalPauseTimerInput"]: {
+__typename?: "CapitalPauseTimerInput",
+coopname: string,
+username: string
+},
+["CapitalResumeTimerInput"]: {
+__typename?: "CapitalResumeTimerInput",
+coopname: string,
+username: string
+},
+["CapitalTimerSession"]: {
+__typename: "CapitalTimerSession",
+_id: string,
+contributor_hash: string,
+coopname: string,
+elapsed_seconds: number,
+is_paused: boolean,
+issue_hash: string,
+issue_title?: string | undefined,
+paused_at?: any,
+project_hash: string,
+started_at: any,
+stopped_at?: any,
+total_paused_ms: number,
+['...on CapitalTimerSession']: Omit<GraphQLTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+},
+["CreateIssueInput"]: {
 		/** Вложения задачи */
 	attachments?: Array<string> | undefined | null,
 	/** Имя аккаунта кооператива */
@@ -35253,6 +35452,11 @@ export type GraphQLTypes = {
 	/** Создание задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: GraphQLTypes["CapitalTimeEntry"],
+	capitalStartTimer: GraphQLTypes["CapitalTimerSession"],
+	capitalStopTimer?: GraphQLTypes["CapitalTimeEntry"] | undefined,
+	capitalPauseTimer: GraphQLTypes["CapitalTimerSession"],
+	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
 	capitalCreateIssue: GraphQLTypes["CapitalIssue"],
 	/** Создание шаблона процесса
 
@@ -37365,6 +37569,7 @@ export type GraphQLTypes = {
 	/** Получение пагинированного списка записей времени
 
 Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: GraphQLTypes["CapitalTimerSession"] | undefined,
 	capitalTimeEntries: GraphQLTypes["PaginatedCapitalTimeEntriesPaginationResult"],
 	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках
 
@@ -39971,6 +40176,12 @@ type ZEUS_VARIABLES = {
 	["CapitalSegmentFilter"]: ValueTypes["CapitalSegmentFilter"];
 	["CapitalStoryContentFormat"]: ValueTypes["CapitalStoryContentFormat"];
 	["CapitalStoryFilter"]: ValueTypes["CapitalStoryFilter"];
+	["CapitalAddWorklogInput"]: ValueTypes["CapitalAddWorklogInput"];
+	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
+	["CapitalStartTimerInput"]: ValueTypes["CapitalStartTimerInput"];
+	["CapitalStopTimerInput"]: ValueTypes["CapitalStopTimerInput"];
+	["CapitalPauseTimerInput"]: ValueTypes["CapitalPauseTimerInput"];
+	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
 	["CapitalTimeStatsInput"]: ValueTypes["CapitalTimeStatsInput"];
 	["CapitalTopupProgramExpenseInput"]: ValueTypes["CapitalTopupProgramExpenseInput"];

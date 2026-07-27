@@ -17,7 +17,10 @@ div.q-px-md
 
   .issue-worklog.q-mt-md(v-if="issue")
     .issue-worklog__title История рабочего времени
-    TimeEntriesWidget(:issue-hash="issue.issue_hash")
+    TimeEntriesWidget(
+      :issue-hash="issue.issue_hash"
+      :creators="issue.creators || []"
+    )
 </template>
 
 <script lang="ts" setup>

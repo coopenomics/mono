@@ -4,6 +4,7 @@ import type { ProjectRepository } from '../../domain/repositories/project.reposi
 import type { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import type { IssueRepository } from '../../domain/repositories/issue.repository';
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
+import { TimerSessionDomainEntity } from '../../domain/entities/timer-session.entity';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
@@ -15,14 +16,42 @@ import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 
 type Mocked<T> = { [K in keyof T]: jest.Mock };
 
-function makeContributor(username: string, hash: string, coopname = 'voskhod'): ContributorDomainEntity {
+function makeTimerSession(opts: {
+  _id?: string;
+  contributor_hash?: string;
+  issue_hash?: string;
+  project_hash?: string;
+  started_at: Date;
+  stopped_at?: Date | null;
+  paused_at?: Date | null;
+  total_paused_ms?: number;
+}): TimerSessionDomainEntity {
+  return new TimerSessionDomainEntity({
+    _id: opts._id ?? 't1',
+    contributor_hash: opts.contributor_hash ?? 'ant-hash',
+    issue_hash: opts.issue_hash ?? 'i1',
+    project_hash: opts.project_hash ?? 'project-hash-1',
+    coopname: 'voskhod',
+    started_at: opts.started_at,
+    stopped_at: opts.stopped_at ?? null,
+    paused_at: opts.paused_at ?? null,
+    total_paused_ms: opts.total_paused_ms ?? 0,
+  });
+}
+
+function makeContributor(
+  username: string,
+  hash: string,
+  coopname = 'voskhod',
+  hoursPerDay = 8
+): ContributorDomainEntity {
   return {
     contributor_hash: hash,
     username,
     coopname,
     display_name: username,
     status: ContributorStatus.ACTIVE,
-    hours_per_day: 8,
+    hours_per_day: hoursPerDay,
   } as unknown as ContributorDomainEntity;
 }
 
@@ -56,7 +85,7 @@ function makeEntry(opts: {
   issue_hash: string;
   hours: number;
   is_committed: boolean;
-  entry_type?: 'hourly' | 'estimate';
+  entry_type?: 'hourly' | 'estimate' | 'manual' | 'timer';
   estimate_snapshot?: number;
   commit_hash?: string;
   _id?: string;
@@ -109,6 +138,15 @@ function buildInteractor() {
     hasCommittedTimeByIssueHash: jest.fn().mockResolvedValue(false),
     updateProjectHashByIssueHash: jest.fn().mockResolvedValue(undefined),
     getFactByIssues: jest.fn().mockResolvedValue(new Map()),
+    findById: jest.fn().mockResolvedValue(null),
+  };
+
+  const timerSessionRepository = {
+    create: jest.fn().mockImplementation(async (s: any) => ({ ...s, _id: s._id || 'timer-1' })),
+    update: jest.fn().mockImplementation(async (s: any) => s),
+    findOpenByContributor: jest.fn().mockResolvedValue(null),
+    findById: jest.fn().mockResolvedValue(null),
+    findAllOpen: jest.fn().mockResolvedValue([]),
   };
 
   const contributorRepository: Partial<Mocked<ContributorRepository>> = {
@@ -144,10 +182,18 @@ function buildInteractor() {
     projectRepository as unknown as ProjectRepository,
     contributorRepository as unknown as ContributorRepository,
     issueRepository as unknown as IssueRepository,
+    timerSessionRepository as any,
     logger
   );
 
-  return { interactor, timeEntryRepository, contributorRepository, issueRepository, projectRepository };
+  return {
+    interactor,
+    timeEntryRepository,
+    contributorRepository,
+    issueRepository,
+    projectRepository,
+    timerSessionRepository,
+  };
 }
 
 function expectEntryCreate(
@@ -267,63 +313,16 @@ describe('TimeTrackingInteractor.applyExplicitEstimateToTimeEntries', () => {
 });
 
 describe('TimeTrackingInteractor.recalcDoneEstimatesForContributorProject', () => {
-  it('no-op если раскладка уже совпадает с планом', async () => {
-    const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
-    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
-    contributorRepository.findByUsernameAndCoopname!.mockImplementation(async (u: string) =>
-      makeContributor(u, `${u}-hash`)
-    );
-    const issue = makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.DONE, creators: ['ant', 'smr', 'dvl'] });
-    issueRepository.findCompletedByProjectAndCreators!.mockResolvedValue([issue]);
-    timeEntryRepository.findByIssueAndType.mockResolvedValue([
-      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 5, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-      makeEntry({ contributor_hash: 'smr-hash', issue_hash: 'i1', hours: 5, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-      makeEntry({ contributor_hash: 'dvl-hash', issue_hash: 'i1', hours: 5, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-    ]);
-    await interactor.recalcDoneEstimatesForContributorProject('ant-hash', 'project-hash-1');
-    expect(timeEntryRepository.deleteUncommittedByIssueHash).not.toHaveBeenCalled();
-    expect(timeEntryRepository.create).not.toHaveBeenCalled();
-  });
-
-  it('лечит раскладку 10/3 (баговую) обратно к 5/5/5 когда есть закоммитившие', async () => {
-    // Воспроизведение прод-сценария CC7-1 после фикса: ant закоммитил 5 ч (committed),
-    // в БД остались баговые 3.333 uncommitted у всех. Recalc должен снести их и
-    // оставить ant=0, остальным по 5.
-    const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
-    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
-    contributorRepository.findByUsernameAndCoopname!.mockImplementation(async (u: string) =>
-      makeContributor(u, `${u}-hash`)
-    );
-    const issue = makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.DONE, creators: ['ant', 'smr', 'dvl'] });
-    issueRepository.findCompletedByProjectAndCreators!.mockResolvedValue([issue]);
-    timeEntryRepository.findByIssueAndType.mockResolvedValue([
-      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 5, is_committed: true, entry_type: 'estimate', estimate_snapshot: 15 }),
-      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 3.3333333, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-      makeEntry({ contributor_hash: 'smr-hash', issue_hash: 'i1', hours: 3.3333333, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-      makeEntry({ contributor_hash: 'dvl-hash', issue_hash: 'i1', hours: 3.3333333, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15 }),
-    ]);
-
-    await interactor.recalcDoneEstimatesForContributorProject('ant-hash', 'project-hash-1');
-
-    expect(timeEntryRepository.deleteUncommittedByIssueHash).toHaveBeenCalledWith('i1');
-    expectEntryCreate(timeEntryRepository.create, { contributor_hash: 'smr-hash', hours: 5 });
-    expectEntryCreate(timeEntryRepository.create, { contributor_hash: 'dvl-hash', hours: 5 });
-    // ant не получает uncommitted (он уже закоммитил свою долю)
-    const antCreates = timeEntryRepository.create.mock.calls
-      .map((c) => c[0] as TimeEntryDomainEntity)
-      .filter((e) => e.contributor_hash === 'ant-hash');
-    expect(antCreates).toHaveLength(0);
-  });
-
-  it('пропускает задачи без estimate', async () => {
+  it('562-14: всегда no-op — авто-билеты отключены', async () => {
     const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
     contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
     issueRepository.findCompletedByProjectAndCreators!.mockResolvedValue([
-      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.DONE, creators: ['ant'] }),
+      makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.DONE, creators: ['ant', 'smr', 'dvl'] }),
     ]);
     await interactor.recalcDoneEstimatesForContributorProject('ant-hash', 'project-hash-1');
     expect(timeEntryRepository.deleteUncommittedByIssueHash).not.toHaveBeenCalled();
     expect(timeEntryRepository.create).not.toHaveBeenCalled();
+    expect(timeEntryRepository.findByIssueAndType).not.toHaveBeenCalled();
   });
 });
 
@@ -404,11 +403,8 @@ describe('TimeTrackingInteractor.commitTime', () => {
 });
 
 describe('TimeTrackingInteractor.revertEntriesForDeclinedCommit', () => {
-  it('БАГ #3: вызывает revert + нормализует раскладку по затронутой DONE-задаче', async () => {
-    const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
-    contributorRepository.findByUsernameAndCoopname!.mockImplementation(async (u: string) =>
-      makeContributor(u, `${u}-hash`)
-    );
+  it('562-14: откатывает committed, не пересобирает estimate-билеты', async () => {
+    const { interactor, timeEntryRepository } = buildInteractor();
     const reverted = makeEntry({
       contributor_hash: 'ant-hash',
       issue_hash: 'i1',
@@ -420,19 +416,12 @@ describe('TimeTrackingInteractor.revertEntriesForDeclinedCommit', () => {
     });
     timeEntryRepository.findCommittedByCommitHash.mockResolvedValue([reverted]);
     timeEntryRepository.revertCommittedEntriesByCommitHash.mockResolvedValue(1);
-    issueRepository.findByIssueHash!.mockResolvedValue(
-      makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.DONE, creators: ['ant', 'smr', 'dvl'] })
-    );
-    // После revert у ant'a 0 committed (revert убрал) — поэтому новая раскладка 5/5/5
-    timeEntryRepository.findByIssueAndType.mockResolvedValue([]);
 
     await interactor.revertEntriesForDeclinedCommit('commit-bad');
 
     expect(timeEntryRepository.revertCommittedEntriesByCommitHash).toHaveBeenCalledWith('commit-bad');
-    expect(timeEntryRepository.deleteUncommittedByIssueHash).toHaveBeenCalledWith('i1');
-    expectEntryCreate(timeEntryRepository.create, { contributor_hash: 'ant-hash', hours: 5, entry_type: 'estimate' });
-    expectEntryCreate(timeEntryRepository.create, { contributor_hash: 'smr-hash', hours: 5, entry_type: 'estimate' });
-    expectEntryCreate(timeEntryRepository.create, { contributor_hash: 'dvl-hash', hours: 5, entry_type: 'estimate' });
+    expect(timeEntryRepository.deleteUncommittedByIssueHash).not.toHaveBeenCalled();
+    expect(timeEntryRepository.create).not.toHaveBeenCalled();
   });
 
   it('идемпотентно: повторный вызов на коммит без записей — no-op', async () => {
@@ -440,22 +429,6 @@ describe('TimeTrackingInteractor.revertEntriesForDeclinedCommit', () => {
     timeEntryRepository.findCommittedByCommitHash.mockResolvedValue([]);
     await interactor.revertEntriesForDeclinedCommit('commit-already-reverted');
     expect(timeEntryRepository.revertCommittedEntriesByCommitHash).not.toHaveBeenCalled();
-    expect(timeEntryRepository.deleteUncommittedByIssueHash).not.toHaveBeenCalled();
-  });
-
-  it('не пересчитывает задачи которые больше не DONE', async () => {
-    const { interactor, timeEntryRepository, issueRepository } = buildInteractor();
-    timeEntryRepository.findCommittedByCommitHash.mockResolvedValue([
-      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 3, is_committed: true, entry_type: 'estimate', estimate_snapshot: 15, commit_hash: 'c1' }),
-    ]);
-    timeEntryRepository.revertCommittedEntriesByCommitHash.mockResolvedValue(1);
-    issueRepository.findByIssueHash!.mockResolvedValue(
-      makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
-    );
-    await interactor.revertEntriesForDeclinedCommit('c1');
-    expect(timeEntryRepository.revertCommittedEntriesByCommitHash).toHaveBeenCalled();
-    expect(timeEntryRepository.deleteUncommittedByIssueHash).not.toHaveBeenCalled();
-    expect(timeEntryRepository.create).not.toHaveBeenCalled();
   });
 });
 
@@ -487,50 +460,310 @@ describe('integration scenario: CC7-1 прод-инцидент', () => {
     });
   });
 
-  it('сценарий full lifecycle: коммит → decline → revert восстанавливает доступное время', async () => {
+  it('сценарий full lifecycle: коммит → decline → revert возвращает часы без пересборки билетов', async () => {
     const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
     contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
-    contributorRepository.findByUsernameAndCoopname!.mockImplementation(async (u: string) =>
-      makeContributor(u, `${u}-hash`)
-    );
     const doneIssue = makeIssue({ issue_hash: 'i1', estimate: 15, status: IssueStatus.DONE, creators: ['ant', 'smr', 'dvl'] });
     issueRepository.findCompletedByProjectAndCreators!.mockResolvedValue([doneIssue]);
-    issueRepository.findByIssueHash!.mockResolvedValue(doneIssue);
 
-    // 1. Стартовое состояние: 5/5/5 uncommitted
     const initial = [
-      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 5, is_committed: false, entry_type: 'estimate', estimate_snapshot: 15, _id: 'a1' }),
+      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'i1', hours: 5, is_committed: false, entry_type: 'manual', _id: 'a1' }),
     ];
     timeEntryRepository.findUncommittedByProjectAndContributor.mockResolvedValue(initial);
 
-    // 2. ant коммитит свои 5 ч
     await interactor.commitTime('ant-hash', 'project-hash-1', 5, 'commit-ant');
     expect(timeEntryRepository.commitTimeEntries).toHaveBeenCalledTimes(1);
 
-    // 3. Симулируем что в БД теперь есть committed estimate 5 ч от ant'a
     const committedEntry = makeEntry({
       contributor_hash: 'ant-hash',
       issue_hash: 'i1',
       hours: 5,
       is_committed: true,
-      entry_type: 'estimate',
-      estimate_snapshot: 15,
+      entry_type: 'manual',
       commit_hash: 'commit-ant',
     });
     timeEntryRepository.findCommittedByCommitHash.mockResolvedValue([committedEntry]);
     timeEntryRepository.revertCommittedEntriesByCommitHash.mockResolvedValue(1);
-    // После revert у ant'а 0 committed estimate → новая раскладка 5/5/5
-    timeEntryRepository.findByIssueAndType.mockResolvedValue([]);
 
-    // 4. Decline → revert
     timeEntryRepository.create.mockClear();
-    timeEntryRepository.deleteUncommittedByIssueHash.mockClear();
     await interactor.revertEntriesForDeclinedCommit('commit-ant');
 
-    // 5. После revert: 5/5/5 uncommitted
-    const creates = timeEntryRepository.create.mock.calls.map((c) => c[0] as TimeEntryDomainEntity);
-    const total = creates.reduce((s, e) => s + e.hours, 0);
-    expect(total).toBeCloseTo(15, 6);
-    expect(creates.every((e) => e.entry_type === 'estimate' && !e.is_committed)).toBe(true);
+    expect(timeEntryRepository.revertCommittedEntriesByCommitHash).toHaveBeenCalledWith('commit-ant');
+    expect(timeEntryRepository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () => {
+  it('trackTime авто-стопит таймер при исчерпании hours_per_day', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, timeEntryRepository } = buildInteractor();
+    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    // Уже 7.5 ч сегодня, лимит 8 → остаток 0.5; elapsed 2 ч → стоп с 0.5
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([
+      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'other', hours: 7.5, is_committed: false, entry_type: 'manual' }),
+    ]);
+    timerSessionRepository.findAllOpen.mockResolvedValue([
+      makeTimerSession({ started_at: new Date(Date.now() - 2 * 60 * 60 * 1000) }),
+    ]);
+
+    await interactor.trackTime();
+
+    expect(timerSessionRepository.update).toHaveBeenCalled();
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 0.5,
+      entry_type: 'timer',
+    });
+  });
+
+  it('addWorklog создаёт manual-запись на исполнителя', async () => {
+    const { interactor, timeEntryRepository, contributorRepository, issueRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 5, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+
+    await interactor.addWorklog({
+      username: 'ant',
+      coopname: 'voskhod',
+      issue_hash: 'i1',
+      hours: 2.5,
+      date: '2026-07-26',
+    });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 2.5,
+      entry_type: 'manual',
+      is_committed: false,
+    });
+  });
+
+  it('addWorklog отклоняет не-исполнителя', async () => {
+    const { interactor, contributorRepository, issueRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 5, status: IssueStatus.IN_PROGRESS, creators: ['smr'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+
+    await expect(
+      interactor.addWorklog({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1', hours: 1 })
+    ).rejects.toThrow(/исполнителю/);
+  });
+
+  it('addWorklog без исполнителей просит назначить исполнителя', async () => {
+    const { interactor, contributorRepository, issueRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: [] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+
+    await expect(
+      interactor.addWorklog({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1', hours: 1 })
+    ).rejects.toThrow(/Назначьте исполнителя/);
+  });
+
+  it('addWorklog при hours_per_day=0 не режет по суточному лимиту', async () => {
+    const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash', 'voskhod', 0));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+
+    await interactor.addWorklog({
+      username: 'ant',
+      coopname: 'voskhod',
+      issue_hash: 'i1',
+      hours: 3,
+      date: '2026-07-26',
+    });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 3,
+      entry_type: 'manual',
+    });
+  });
+
+  it('startTimer при hours_per_day=0 разрешает старт', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, issueRepository, timeEntryRepository } =
+      buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash', 'voskhod', 0));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+
+    const session = await interactor.startTimer({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1' });
+    expect(timerSessionRepository.create).toHaveBeenCalledTimes(1);
+    expect(session.issue_hash).toBe('i1');
+  });
+
+  it('addWorklog не даёт превысить hours_per_day', async () => {
+    const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([
+      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'x', hours: 7, is_committed: false, entry_type: 'manual' }),
+    ]);
+
+    await expect(
+      interactor.addWorklog({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1', hours: 2, date: '2026-07-26' })
+    ).rejects.toThrow(/суточный лимит/);
+  });
+
+  it('startTimer создаёт сессию; повторный start на ту же задачу идемпотентен', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, issueRepository, timeEntryRepository } =
+      buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+
+    const session = await interactor.startTimer({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1' });
+    expect(timerSessionRepository.create).toHaveBeenCalledTimes(1);
+    expect(session.issue_hash).toBe('i1');
+
+    timerSessionRepository.findOpenByContributor.mockResolvedValue({
+      ...session,
+      issue_hash: 'i1',
+      contributor_hash: 'ant-hash',
+      stopped_at: null,
+    });
+    timerSessionRepository.create.mockClear();
+    const again = await interactor.startTimer({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1' });
+    expect(timerSessionRepository.create).not.toHaveBeenCalled();
+    expect(again.issue_hash).toBe('i1');
+  });
+
+  it('startTimer отклоняет старт при исчерпанном суточном лимите', async () => {
+    const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([
+      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'x', hours: 8, is_committed: false, entry_type: 'timer' }),
+    ]);
+
+    await expect(
+      interactor.startTimer({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1' })
+    ).rejects.toThrow(/Суточный лимит/);
+  });
+
+  it('startTimer на другой задаче закрывает предыдущую сессию (allowEmpty)', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, issueRepository, timeEntryRepository } =
+      buildInteractor();
+    issueRepository.findByIssueHash!.mockResolvedValue(
+      makeIssue({ issue_hash: 'i2', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
+    );
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(
+      makeTimerSession({ _id: 'old', started_at: new Date(Date.now() - 1000) })
+    );
+
+    await interactor.startTimer({ username: 'ant', coopname: 'voskhod', issue_hash: 'i2' });
+
+    expect(timerSessionRepository.update).toHaveBeenCalled();
+    expect(timeEntryRepository.create).not.toHaveBeenCalled();
+    expect(timerSessionRepository.create).toHaveBeenCalled();
+  });
+
+  it('stopTimer пишет timer-запись с округлением до 0.01 ч', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, timeEntryRepository } = buildInteractor();
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(
+      makeTimerSession({ started_at: new Date(Date.now() - 90 * 60 * 1000) })
+    );
+
+    await interactor.stopTimer({ username: 'ant', coopname: 'voskhod' });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 1.5,
+      entry_type: 'timer',
+      is_committed: false,
+    });
+  });
+
+  it('stopTimer короткой сессии гасит таймер без ошибки и без записи', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, timeEntryRepository } = buildInteractor();
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(
+      makeTimerSession({ _id: 't-short', started_at: new Date(Date.now() - 500) })
+    );
+
+    const entry = await interactor.stopTimer({ username: 'ant', coopname: 'voskhod' });
+
+    expect(entry).toBeNull();
+    expect(timerSessionRepository.update).toHaveBeenCalled();
+    expect(timeEntryRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('pauseTimer ставит паузу; resumeTimer продолжает', async () => {
+    const { interactor, timerSessionRepository, contributorRepository } = buildInteractor();
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    const open = makeTimerSession({ started_at: new Date(Date.now() - 60 * 60 * 1000) });
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(open);
+    timerSessionRepository.update.mockImplementation(async (s) => s);
+
+    const paused = await interactor.pauseTimer({ username: 'ant', coopname: 'voskhod' });
+    expect(paused.paused_at).toBeTruthy();
+
+    open.paused_at = new Date(Date.now() - 10 * 60 * 1000);
+    const resumed = await interactor.resumeTimer({ username: 'ant', coopname: 'voskhod' });
+    expect(resumed.paused_at).toBeNull();
+    expect(resumed.total_paused_ms).toBeGreaterThanOrEqual(10 * 60 * 1000 - 50);
+  });
+
+  it('stopTimer после паузы не считает время паузы', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, timeEntryRepository } = buildInteractor();
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([]);
+    const session = makeTimerSession({
+      started_at: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      paused_at: new Date(Date.now() - 60 * 60 * 1000),
+    });
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(session);
+    timerSessionRepository.update.mockImplementation(async (s) => s);
+
+    await interactor.stopTimer({ username: 'ant', coopname: 'voskhod' });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 1,
+      entry_type: 'timer',
+    });
+  });
+
+  it('stopTimer режет часы по остатку hours_per_day (все проекты)', async () => {
+    const { interactor, timerSessionRepository, contributorRepository, timeEntryRepository } = buildInteractor();
+    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    contributorRepository.findOne!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    // Уже 7 ч сегодня → из 3ч elapsed пишем только 1
+    timeEntryRepository.findByContributorAndDate.mockResolvedValue([
+      makeEntry({ contributor_hash: 'ant-hash', issue_hash: 'other-proj', hours: 7, is_committed: false, entry_type: 'manual' }),
+    ]);
+    timerSessionRepository.findOpenByContributor.mockResolvedValue(
+      makeTimerSession({ started_at: new Date(Date.now() - 3 * 60 * 60 * 1000) })
+    );
+
+    await interactor.stopTimer({ username: 'ant', coopname: 'voskhod' });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 1,
+      entry_type: 'timer',
+    });
   });
 });

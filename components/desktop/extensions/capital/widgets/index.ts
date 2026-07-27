@@ -12,6 +12,7 @@ export * from './StoryWidget';
 export * from './TimeStatsWidget';
 export * from './TimeIssuesWidget';
 export * from './TimeEntriesWidget';
+export * from './ActiveTimerWidget';
 export * from './ListVotingProjectWidget';
 export * from './ProjectVotingSegmentsWidget';
 export * from './SegmentVotesWidget';

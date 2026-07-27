@@ -70,16 +70,7 @@ export class GenerationInteractor {
       );
     }
 
-    // Ленивый ремонт: перед расчётом доступного времени приводим estimate-билеты
-    // всех DONE-задач проекта к текущему составу creators. Идемпотентно — лечит
-    // расхождения, оставшиеся после прежних операций (смена creators без смены estimate,
-    // возврат задачи из DONE и обратно, удалённые билеты у сиротских задач).
-    await this.timeTrackingService.recalcDoneEstimatesForContributorProject(
-      contributor.contributor_hash,
-      data.project_hash
-    );
-
-    // Получаем доступное время для коммита
+    // Получаем доступное время для коммита (факт = uncommitted TimeEntry по DONE)
     const availableHours = await this.timeTrackingService.getAvailableCommitHours(
       contributor.contributor_hash,
       data.project_hash

@@ -308,6 +308,7 @@ import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.
 import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
 import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
 import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
+import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
 import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
 
 // GitHub (маркеры коммитов)
@@ -419,6 +420,7 @@ import { EXPENSE_REPOSITORY } from './domain/repositories/expense.repository';
 import { COMMIT_REPOSITORY } from './domain/repositories/commit.repository';
 import { STATE_REPOSITORY } from './domain/repositories/state.repository';
 import { TIME_ENTRY_REPOSITORY } from './domain/repositories/time-entry.repository';
+import { TIMER_SESSION_REPOSITORY } from './domain/repositories/timer-session.repository';
 import { SEGMENT_REPOSITORY } from './domain/repositories/segment.repository';
 
 import { ContractManagementResolver } from './application/resolvers/contract-management.resolver';
@@ -891,6 +893,10 @@ IssueIdGenerationService,
     {
       provide: TIME_ENTRY_REPOSITORY,
       useClass: TimeEntryTypeormRepository,
+    },
+    {
+      provide: TIMER_SESSION_REPOSITORY,
+      useClass: TimerSessionTypeormRepository,
     },
     {
       provide: SEGMENT_REPOSITORY,

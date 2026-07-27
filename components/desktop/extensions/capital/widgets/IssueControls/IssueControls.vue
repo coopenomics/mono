@@ -37,8 +37,8 @@ div
       @update:modelValue='handleEstimateUpdate'
     )
     UpdateEstimate(
-      :key='`fact-${legacyFactHours}`'
-      :model-value='legacyFactHours'
+      :key='`fact-${factHours}`'
+      :model-value='factHours'
       :issue-hash='issue.issue_hash'
       label='Факт (ч)'
       readonly
@@ -83,12 +83,8 @@ const emit = defineEmits<Emits>()
 
 const issueLabels = computed(() => (props.issue ? getIssueLabels(props.issue) : []))
 
-/** Легаси: пока бэкенд не отдаёт факт из учёта — при отсутствии факта показываем план. */
-const legacyFactHours = computed(() => {
-  const estimate = Number(props.issue?.estimate) || 0
-  const fact = Number(props.issue?.fact) || 0
-  return fact > 0 ? fact : estimate
-})
+/** Факт = сумма записей учёта времени. */
+const factHours = computed(() => Number(props.issue?.fact) || 0)
 
 const handleStatusUpdate = (value: any) => {
   emit('update:status', value)
