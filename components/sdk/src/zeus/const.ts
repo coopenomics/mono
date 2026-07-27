@@ -320,6 +320,34 @@ export const AllTypesProps: Record<string,any> = {
 	CreateInitialPaymentInput:{
 
 	},
+	CapitalAddWorklogInput:{
+		coopname:"String",
+		date:"String",
+		hours:"Float",
+		issue_hash:"String",
+		username:"String"
+	},
+	CapitalGetOpenTimerInput:{
+		coopname:"String",
+		username:"String"
+	},
+	CapitalStartTimerInput:{
+		coopname:"String",
+		issue_hash:"String",
+		username:"String"
+	},
+	CapitalStopTimerInput:{
+		coopname:"String",
+		username:"String"
+	},
+	CapitalPauseTimerInput:{
+		coopname:"String",
+		username:"String"
+	},
+	CapitalResumeTimerInput:{
+		coopname:"String",
+		username:"String"
+	},
 	CreateIssueInput:{
 		priority:"IssuePriority",
 		status:"IssueStatus"
@@ -774,6 +802,21 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateExpense:{
 			data:"CreateExpenseInput"
+		},
+		capitalAddWorklog:{
+			data:"CapitalAddWorklogInput"
+		},
+		capitalStartTimer:{
+			data:"CapitalStartTimerInput"
+		},
+		capitalStopTimer:{
+			data:"CapitalStopTimerInput"
+		},
+		capitalPauseTimer:{
+			data:"CapitalPauseTimerInput"
+		},
+		capitalResumeTimer:{
+			data:"CapitalResumeTimerInput"
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
@@ -1616,6 +1659,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalStory:{
 			data:"GetCapitalStoryByHashInput"
+		},
+		capitalGetOpenTimer:{
+			data:"CapitalGetOpenTimerInput"
 		},
 		capitalTimeEntries:{
 			filter:"CapitalTimeEntriesFilter",
@@ -3899,6 +3945,11 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateCycle:"CapitalCycle",
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
+		capitalAddWorklog:"CapitalTimeEntry",
+		capitalStartTimer:"CapitalTimerSession",
+		capitalStopTimer:"CapitalTimeEntry",
+		capitalPauseTimer:"CapitalTimerSession",
+		capitalResumeTimer:"CapitalTimerSession",
 		capitalCreateIssue:"CapitalIssue",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
@@ -4614,6 +4665,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalState:"CapitalState",
 		capitalStories:"PaginatedCapitalStoriesPaginationResult",
 		capitalStory:"CapitalStory",
+		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalTimeEntries:"PaginatedCapitalTimeEntriesPaginationResult",
 		capitalTimeEntriesByIssues:"PaginatedCapitalTimeEntriesByIssuesPaginationResult",
 		capitalTimeStats:"CapitalTimeStats",

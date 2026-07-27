@@ -142,6 +142,11 @@ export interface TimeEntryRepository {
    * по которым есть хотя бы одна запись; отсутствующие задачи нужно считать нулевым фактом.
    */
   getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>>;
+
+  /**
+   * Найти запись времени по id
+   */
+  findById(id: string): Promise<TimeEntryDomainEntity | null>;
 }
 
 /**

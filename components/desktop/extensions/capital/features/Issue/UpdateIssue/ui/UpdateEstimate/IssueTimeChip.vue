@@ -46,7 +46,7 @@
           .popup-label Факт, ч
           .popup-readonly-value
             | {{ factDisplay }}
-            q-tooltip Факт фиксируется автоматически из учёта рабочего времени
+            q-tooltip Факт = сумма записей учёта времени (таймер / ручной ввод)
 
         .popup-progress(v-if='hasEstimate')
           q-linear-progress(
@@ -58,7 +58,7 @@
           )
           .popup-progress-text {{ progressLabel }}
 
-        .popup-hint Факт нельзя задать вручную — он считается из учёта времени.
+        .popup-hint Факт из записей времени. Добавить — в блоке «История рабочего времени».
 </template>
 
 <script setup lang="ts">
@@ -120,12 +120,8 @@ watch(menuOpen, (open, wasOpen) => {
 
 const isReadonly = computed(() => props.readonly);
 
-/** Легаси: пока бэкенд не отдаёт факт — при отсутствии факта показываем план. */
-const effectiveFact = computed(() => {
-  const fact = Number(props.fact) || 0;
-  if (fact > 0) return fact;
-  return Number(displayEstimate.value) || 0;
-});
+/** Факт = сумма TimeEntry; без подстановки плана (562-14). */
+const effectiveFact = computed(() => Number(props.fact) || 0);
 
 const hasEstimate = computed(
   () =>
@@ -155,9 +151,7 @@ const inlineLabel = computed(() => {
   return '';
 });
 
-const factDisplay = computed(() =>
-  Number(props.fact) > 0 ? formatHours(props.fact) : '—'
-);
+const factDisplay = computed(() => formatHours(effectiveFact.value));
 
 const progressValue = computed(() => {
   if (!hasEstimate.value) return 0;

@@ -18,6 +18,11 @@
         template(#icon-left)
           q-icon(name='close')
 
+    ActiveTimerWidget(
+      :coopname='info.coopname',
+      :username='username'
+    )
+
     .row.q-col-gutter-md
       .col-12.col-md-4
         WalletCard(
@@ -87,7 +92,7 @@ import { WindowLoader } from 'src/shared/ui/Loader';
 import { BaseButton } from 'src/shared/ui/base';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { useTimeStatsStore } from 'app/extensions/capital/entities/TimeStats/model';
-import { TimeStatsWidget, TimeIssuesWidget, TimeEntriesWidget } from 'app/extensions/capital/widgets';
+import { TimeStatsWidget, TimeIssuesWidget, TimeEntriesWidget, ActiveTimerWidget } from 'app/extensions/capital/widgets';
 
 const BANNER_KEY = 'capital_tracker_banner_dismissed';
 const PROJECTS_EXPANDED_KEY = 'capital_tracker_projects_expanded';

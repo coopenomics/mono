@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
+import { TimerSessionDomainEntity } from '../../domain/entities/timer-session.entity';
 import type { ContributorProjectsTimeStatsInputDTO } from '../dto/time_tracker/project-time-stats.dto';
 import type { ContributorProjectsTimeStatsOutputDTO } from '../dto/time_tracker/project-time-stats.dto';
 import type { TimeStatsInputDTO } from '../dto/time_tracker/flexible-time-stats.dto';
 import type { FlexibleTimeStatsOutputDTO } from '../dto/time_tracker/flexible-time-stats.dto';
 import type { TimeEntryOutputDTO } from '../dto/time_tracker/time-entries.dto';
 import type { TimeEntriesByIssuesOutputDTO } from '../dto/time_tracker/time-entries-by-issues.dto';
+import type { CapitalTimerSessionOutputDTO } from '../dto/time_tracker/worklog.dto';
 import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import type { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
@@ -188,6 +190,71 @@ export class TimeTrackingService {
       totalCount: domainResult.totalCount,
       currentPage: domainResult.currentPage,
       totalPages: domainResult.totalPages,
+    };
+  }
+
+  /**
+   * Ручной worklog — факт на исполнителя задачи.
+   */
+  async addWorklog(data: {
+    username: string;
+    coopname: string;
+    issue_hash: string;
+    hours: number;
+    date?: string;
+  }): Promise<TimeEntryOutputDTO> {
+    const entity = await this.timeTrackingInteractor.addWorklog(data);
+    return this.mapTimeEntryToDTO(entity);
+  }
+
+  async startTimer(data: {
+    username: string;
+    coopname: string;
+    issue_hash: string;
+  }): Promise<CapitalTimerSessionOutputDTO> {
+    const session = await this.timeTrackingInteractor.startTimer(data);
+    return this.mapTimerSessionToDTO(session);
+  }
+
+  async stopTimer(data: { username: string; coopname: string }): Promise<TimeEntryOutputDTO | null> {
+    const entity = await this.timeTrackingInteractor.stopTimer(data);
+    return entity ? this.mapTimeEntryToDTO(entity) : null;
+  }
+
+  async pauseTimer(data: { username: string; coopname: string }): Promise<CapitalTimerSessionOutputDTO> {
+    const session = await this.timeTrackingInteractor.pauseTimer(data);
+    return this.mapTimerSessionToDTO(session);
+  }
+
+  async resumeTimer(data: { username: string; coopname: string }): Promise<CapitalTimerSessionOutputDTO> {
+    const session = await this.timeTrackingInteractor.resumeTimer(data);
+    return this.mapTimerSessionToDTO(session);
+  }
+
+  async getOpenTimer(data: {
+    username: string;
+    coopname: string;
+  }): Promise<CapitalTimerSessionOutputDTO | null> {
+    const session = await this.timeTrackingInteractor.getOpenTimer(data);
+    if (!session) return null;
+    return this.mapTimerSessionToDTO(session);
+  }
+
+  private async mapTimerSessionToDTO(session: TimerSessionDomainEntity): Promise<CapitalTimerSessionOutputDTO> {
+    const issueTitle = await this.timeTrackingInteractor.resolveIssueTitle(session.issue_hash);
+    return {
+      _id: session._id,
+      contributor_hash: session.contributor_hash,
+      issue_hash: session.issue_hash,
+      project_hash: session.project_hash,
+      coopname: session.coopname,
+      started_at: session.started_at,
+      stopped_at: session.stopped_at ?? null,
+      paused_at: session.paused_at ?? null,
+      total_paused_ms: Number(session.total_paused_ms || 0),
+      is_paused: session.isPaused,
+      elapsed_seconds: Math.floor(session.getElapsedMs() / 1000),
+      issue_title: issueTitle,
     };
   }
 

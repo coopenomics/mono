@@ -8,10 +8,9 @@
     class="full-width"
     icon="drive_file_move"
     label="Переместить"
-    :disable="!!moveDisabledReason"
+    :disable="isMoveDisabled"
     @click="openDialog"
   )
-  .text-caption.q-mt-xs.text-grey-7(v-if="moveDisabledReason") {{ moveDisabledReason }}
 
   BaseDialog(
     v-model="dialogOpen",
@@ -89,19 +88,12 @@ const hasParentProject = computed(() => {
   return Boolean(ph && ph !== EMPTY_HASH);
 });
 
-/** null = кнопка активна; иначе текст под кнопкой (почему перенос недоступен) */
-const moveDisabledReason = computed((): string | null => {
-  if (!hasParentProject.value) {
-    return 'Перенос только для задач в компоненте проекта (нужен родительский проект у компонента).';
-  }
-  if (hasConsumedLinked.value) {
-    return 'Перенос недоступен: привязанные Git-коммиты уже учтены в коммите CAPITAL.';
-  }
-  if (!props.permissions?.can_move_issue) {
-    return 'Перенос недоступен: компонент не в статусах «ожидание» или «активен», либо нет прав мастера на задачи.';
-  }
-  return null;
-});
+const isMoveDisabled = computed(
+  () =>
+    !hasParentProject.value ||
+    hasConsumedLinked.value ||
+    !props.permissions?.can_move_issue,
+);
 
 function formatTargetLabel(p: IProject): string {
   const idPart = p.id != null && p.id !== undefined ? `[#${p.id}] ` : '';
@@ -143,7 +135,7 @@ const loadTargets = async () => {
 };
 
 const openDialog = () => {
-  if (moveDisabledReason.value) return;
+  if (isMoveDisabled.value) return;
   dialogOpen.value = true;
 };
 

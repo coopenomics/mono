@@ -19,6 +19,7 @@ import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
+import { TimerSessionEntity } from '../entities/timer-session.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { ProcessTemplateTypeormEntity } from '../entities/process-template.entity';
 import { ProcessInstanceTypeormEntity } from '../entities/process-instance.entity';
@@ -54,6 +55,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       CommitTypeormEntity,
       StateTypeormEntity,
       TimeEntryEntity,
+      TimerSessionEntity,
       SegmentTypeormEntity,
       GitHubFileIndexTypeormEntity,
       GithubCommMessageCursorTypeormEntity,

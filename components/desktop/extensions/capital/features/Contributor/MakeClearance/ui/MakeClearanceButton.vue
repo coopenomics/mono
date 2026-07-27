@@ -23,23 +23,13 @@ q-btn(
         .text-caption.text-grey-7.q-mb-xs Куда отклик
         ProjectPathWidget(:project="project")
 
-      .text-body2.text-weight-medium.q-mb-sm
-        | Выберите роли участия
-
-      RoleSelector(
-        v-model="selectedRoles"
-        :roles="roleOptions"
-        :mini="true"
-      ).q-mb-md
-
-      template(v-if="shouldShowContributionField")
-        q-input(
-          v-model="contributionText"
-          type="textarea"
-          label="Опишите какой вклад вы можете внести в проект"
-          outlined
-          rows="4"
-        )
+      BaseInput(
+        v-model="contributionText"
+        type="textarea"
+        autogrow
+        label="Опишите какой вклад вы можете внести в проект"
+        required
+      )
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
@@ -52,7 +42,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { RoleSelector, type RoleOption } from 'app/extensions/capital/shared/ui';
+import { BaseInput } from 'src/shared/ui/base';
 
 interface Props {
   project: IGetProjectOutput;
@@ -76,59 +66,13 @@ const contributorStore = useContributorStore();
 
 const { respondToInvite } = useMakeClearance();
 
-// Роли участия (включая роль "ранний участник" для мини-версии)
-const roleOptions: RoleOption[] = [
-  {
-    value: 'master',
-    title: 'Мастер',
-    description: 'Управляет процессом создания результатов'
-  },
-  {
-    value: 'author',
-    title: 'Соавтор',
-    description: 'Принимает участие в постановке задания для производства результата'
-  },
-  {
-    value: 'creator',
-    title: 'Исполнитель',
-    description: 'Создает результат, вкладывая время и компетенцию'
-  },
-  {
-    value: 'investor',
-    title: 'Инвестор',
-    description: 'Вкладывает деньги в проект для производства результата'
-  },
-  {
-    value: 'coordinator',
-    title: 'Координатор',
-    description: 'Распространяет информацию и привлекает финансирование'
-  },
-  {
-    value: 'contributor',
-    title: 'Участник',
-    description: 'Получает долю в результате по условию раннего участия'
-  }
-];
-
 const dialogRef = ref();
 const contributionText = ref('');
-const selectedRoles = ref<string[]>([]);
 const isSubmitting = ref(false);
 const parentProject = ref<IGetProjectOutput | null>(null);
 
-// Показывать поле вклада только если выбрана роль мастера, автора или исполнителя
-const shouldShowContributionField = computed(() => {
-  return selectedRoles.value.includes('master') || selectedRoles.value.includes('author') || selectedRoles.value.includes('creator');
-});
+const isSubmitDisabled = computed(() => contributionText.value.trim().length === 0);
 
-// Кнопка disabled если не выбрана роль или выбрана роль требующая "О себе" и поле пустое
-const isSubmitDisabled = computed(() => {
-  const hasSelectedRoles = selectedRoles.value.length > 0;
-  const requiresContribution = shouldShowContributionField.value;
-  const hasContributionText = contributionText.value.trim().length > 0;
-
-  return !hasSelectedRoles || (requiresContribution && !hasContributionText);
-});
 
 // Функция загрузки родительского проекта
 const loadParentProject = async () => {
@@ -159,9 +103,8 @@ const loadParentProject = async () => {
 
 // Функция инициализации формы с данными из профиля
 const initializeForm = () => {
-  // Предзаполняем поле значением из "О себе" как шаблоном
+  // Предзаполняем поле значением из «О себе»
   contributionText.value = contributorStore.self?.about || '';
-  selectedRoles.value = [];
 };
 
 // Функция очистки формы
@@ -173,16 +116,14 @@ const clear = () => {
 const handleConfirmRespond = async () => {
   if (!props.project) return;
 
-  // Проверяем что выбрана хотя бы одна роль
-  if (selectedRoles.value.length === 0) {
-    FailAlert('Выберите хотя бы одну роль участия');
+  const contribution = contributionText.value.trim();
+  if (!contribution) {
+    FailAlert('Опишите вклад, который можете внести в проект');
     return;
   }
 
   isSubmitting.value = true;
   try {
-    // Формируем текст вклада
-    const contribution = contributionText.value.trim() || 'Участие в проекте';
     const projectHashes: string[] = [props.project.project_hash];
 
     // Проверяем статус родительского проекта
@@ -208,10 +149,10 @@ const handleConfirmRespond = async () => {
         throw new Error(`Проект с хэшем ${projectHash} не найден`);
       }
 
-      // Формируем мета-данные с ролями
+      // roles: [] — роли в форме отклика больше не выбираются
       const contributionWithMeta = JSON.stringify({
         text: contribution,
-        roles: selectedRoles.value
+        roles: [] as string[],
       });
 
       // Передаем объект проекта и родительский проект (если есть)
@@ -250,10 +191,9 @@ watch(() => props.project, async (newProject, oldProject) => {
   }
 }, { deep: true });
 
-// Следим за изменениями в профиле пользователя и обновляем предзаполненное значение
-watch(() => contributorStore.self?.about, (newAbout) => {
-  // Обновляем значение только если поле пустое или равно старому значению "О себе"
-  if (!contributionText.value.trim() || contributionText.value === contributorStore.self?.about) {
+// Следим за изменениями в профиле и обновляем предзаполнение, если пользователь ещё не правил текст
+watch(() => contributorStore.self?.about, (newAbout, oldAbout) => {
+  if (!contributionText.value.trim() || contributionText.value === (oldAbout || '')) {
     contributionText.value = newAbout || '';
   }
 });
