@@ -56,6 +56,10 @@ docker compose up -d
 pnpm run reboot
 ```
 
+## Вклад в проект
+
+Правила работы с ветками, Pull Request'ами и проверками качества — в [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## Разработка
 
 ### Бэкенд (controller + parser)
