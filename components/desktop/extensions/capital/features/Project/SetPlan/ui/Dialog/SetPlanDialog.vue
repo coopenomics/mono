@@ -156,7 +156,7 @@ const showMetrics = computed(
 );
 
 const seriesModeOptions = [
-  { label: 'Δ', value: Zeus.MetricSeriesMode.RATE },
+  { label: 'Измен.', value: Zeus.MetricSeriesMode.RATE },
   { label: 'Уровень', value: Zeus.MetricSeriesMode.LEVEL },
 ];
 
