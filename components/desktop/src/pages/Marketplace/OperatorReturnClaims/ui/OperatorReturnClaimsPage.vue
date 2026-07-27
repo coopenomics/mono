@@ -5,10 +5,11 @@ import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
-import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { returnClaimStatusVariant } from '../../OrdererReturnClaims';
 import {
   listReturnClaimsByBraname,
   defectCategoryLabel,
@@ -164,53 +165,66 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
 
     section.returns__section
       .t-h3 Ждут удалённого рассмотрения ({{ pendingClaims.length }})
-      q-list.returns__list(v-if='pendingClaims.length > 0', bordered, separator)
-        q-item(v-for='c in pendingClaims', :key='c.id')
-          q-item-section
-            q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
-            q-item-label(caption) {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
-            q-item-label(caption) {{ c.reason_text.slice(0, 240) }}{{ c.reason_text.length > 240 ? '…' : '' }}
-            q-item-label(caption, v-if='c.defect_category')
-              | Категория: {{ defectCategoryLabel(c.defect_category) }}
-            .returns__thumbs
-              a.returns__thumb(
-                v-for='(p, i) in c.photos',
-                :key='p.content_hash',
-                :href='p.url',
-                target='_blank',
-                rel='noopener'
-              )
-                img(:src='p.url', :alt='`Фото ${i + 1}`')
-          q-item-section(side)
+      .returns__list(v-if='pendingClaims.length > 0')
+        BaseCard.returns__item(v-for='c in pendingClaims', :key='c.id')
+          .returns__item-top
+            .returns__item-info
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+              .returns__item-meta {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
+            BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
+          .returns__item-reason {{ c.reason_text }}
+          .returns__item-category(v-if='c.defect_category')
+            | Категория: {{ defectCategoryLabel(c.defect_category) }}
+          .returns__item-thumbs(v-if='c.photos.length')
+            a.returns__thumb(
+              v-for='(p, i) in c.photos',
+              :key='p.content_hash',
+              :href='p.url',
+              target='_blank',
+              rel='noopener'
+            )
+              img(:src='p.url', :alt='`Фото ${i + 1}`')
+          .returns__item-actions
             BaseButton(variant='primary', size='sm', @click='startRemote(c)')
               template(#icon-left)
                 q-icon(name='gavel', size='16px')
               | Принять решение
-      .returns__empty(v-if='pendingClaims.length === 0 && !loading') Нет заявлений, ожидающих удалённого рассмотрения.
+      EmptyState(v-else-if='!loading', title='Нет заявлений, ожидающих удалённого рассмотрения')
+        template(#icon)
+          q-icon(name='inbox', size='40px')
 
     section.returns__section
       .t-h3 Ожидают очного визита ({{ approvedClaims.length }})
-      q-list.returns__list(v-if='approvedClaims.length > 0', bordered, separator)
-        q-item(v-for='c in approvedClaims', :key='c.id')
-          q-item-section
-            q-item-label.text-weight-medium Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
-            q-item-label(caption) Возврат на сумму {{ c.fact_cost }} ₽
-            q-item-label(caption) Дата одобрения: {{ c.decision_log.length > 0 ? formatDateTime(c.decision_log[c.decision_log.length - 1].at) : '—' }}
-          q-item-section(side)
+      .returns__list(v-if='approvedClaims.length > 0')
+        BaseCard.returns__item(v-for='c in approvedClaims', :key='c.id')
+          .returns__item-top
+            .returns__item-info
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+              .returns__item-meta Возврат на сумму {{ c.fact_cost }} ₽
+            BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
+          .returns__item-reason.t-muted(v-if='c.decision_log.length > 0')
+            | Одобрено {{ formatDateTime(c.decision_log[c.decision_log.length - 1].at) }}
+          .returns__item-actions
             BaseButton(variant='secondary', size='sm', @click='startOnSite(c)')
               template(#icon-left)
                 q-icon(name='fact_check', size='16px')
               | Очный осмотр
-      .returns__empty(v-if='approvedClaims.length === 0 && !loading') Нет заявлений, по которым ожидается очный визит.
+      EmptyState(v-else-if='!loading', title='Нет заявлений, по которым ожидается очный визит')
+        template(#icon)
+          q-icon(name='event_available', size='40px')
 
     section.returns__section
       .t-h3 Архив ({{ archiveClaims.length }})
-      q-list.returns__list(v-if='archiveClaims.length > 0', bordered, separator)
-        q-item(v-for='c in archiveClaims', :key='c.id')
-          q-item-section
-            q-item-label Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
-            q-item-label(caption) {{ humanStatus(c.status) }}{{ c.ledger_snapshot ? ` · ${c.ledger_snapshot.amount} ₽ восстановлено` : '' }}
-      .returns__empty(v-if='archiveClaims.length === 0 && !loading') Архив пуст.
+      .returns__list(v-if='archiveClaims.length > 0')
+        BaseCard.returns__item(v-for='c in archiveClaims', :key='c.id')
+          .returns__item-top
+            .returns__item-info
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
+              .returns__item-meta(v-if='c.ledger_snapshot') {{ c.ledger_snapshot.amount }} ₽ восстановлено
+            BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
+      EmptyState(v-else-if='!loading', title='Архив пуст')
+        template(#icon)
+          q-icon(name='archive', size='40px')
 
   RemoteDecisionDialog(
     v-model='remoteDialog',
@@ -236,21 +250,73 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
   &__section {
     display: flex;
     flex-direction: column;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
   }
 
-  &__empty {
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  // Одна карточка на заявление вместо плотного q-item-ряда: причина возврата
+  // и фото нуждаются в собственном пространстве, а не втиснуты в одну строку
+  // с кнопкой решения (см. review 2026-07-27).
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__item-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__item-meta {
+    font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    padding: var(--p-4, 16px);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__item-reason {
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__item-category {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__item-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
   }
 
   &__thumbs {
     display: flex;
     flex-wrap: wrap;
     gap: var(--p-2, 8px);
-    margin-top: var(--p-2, 8px);
   }
 
   &__thumb {
