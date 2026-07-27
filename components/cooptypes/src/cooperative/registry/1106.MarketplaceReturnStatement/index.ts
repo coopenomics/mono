@@ -33,9 +33,15 @@ export interface Action extends IGenerate, IDocDataRef {
   reason_text: string
   /**
    * Необязательная категория дефекта (механическое повреждение,
-   * пересортица, несоответствие сроку годности и т.п.).
+   * пересортица, несоответствие сроку годности и т.п.). Всегда `null`, а не
+   * `undefined`, когда не указана: meta-объект документа проходит через
+   * JSON (GraphQL-транспорт клиенту) и MongoDB (стор черновиков для
+   * со-подписи председателя) — оба места по-разному теряют/восстанавливают
+   * ключи с `undefined`, из-за чего client-side canonicalize(meta) при
+   * первой подписи и при повторном чтении для со-подписи давал разный
+   * meta_hash (см. review 2026-07-27). `null` сериализуется одинаково везде.
    */
-  defect_category?: string
+  defect_category?: string | null
   /** Фактически возвращаемое количество единиц. */
   actual_quantity: number
   /** Стоимость возвращаемой части (4 знака после запятой). */
@@ -73,7 +79,7 @@ export interface Model {
   actual_quantity: string
   /** Краткое описание причины возврата. */
   reason_text: string
-  defect_category?: string
+  defect_category?: string | null
   branch?: IOrganizationData
 }
 

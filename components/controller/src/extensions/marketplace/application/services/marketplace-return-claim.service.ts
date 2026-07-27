@@ -849,7 +849,15 @@ export class MarketplaceReturnClaimService {
       order_hash: input.order.order_hash,
       braname: input.order.delivery_braname,
       reason_text: input.reason_text ?? '',
-      defect_category: input.defect_category ?? undefined,
+      // ВАЖНО: null, не undefined. `meta` этого документа проходит и через
+      // GraphQL/JSON (клиенту на подпись), и через MongoDB (стор черновика —
+      // председателю на со-подпись); оба транспорта по-разному обходятся с
+      // ключом со значением undefined (JSON его молча роняет, БД — сохраняет
+      // как null), из-за чего client-side canonicalize(meta) давал РАЗНЫЕ
+      // meta_hash при первой подписи и при повторном чтении для со-подписи
+      // («Хэш метаданных не совпадает», см. review 2026-07-27). null
+      // сериализуется одинаково в обоих местах.
+      defect_category: input.defect_category ?? null,
       actual_quantity: input.actual_quantity,
       fact_cost,
       sku: input.order.offer_id,
@@ -857,7 +865,10 @@ export class MarketplaceReturnClaimService {
       unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
       unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
       currency: this.assetConfig.symbol,
-      skip_save: true,
+      // Тело документа сохраняется в стор: председателю при со-подписи на
+      // очном осмотре нужен ИСХОДНЫЙ документ (тот же порядок/состав ключей
+      // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
+      skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
   }
