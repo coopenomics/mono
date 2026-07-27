@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { Classes } from '@coopenomics/sdk';
+import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
 import { BaseInput } from 'src/shared/ui/base';
@@ -9,6 +11,7 @@ import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-unit
 import {
   acceptReturnAtVisit,
   rejectReturnAtVisit,
+  fetchChairmanReturnSignablePayload,
   defectCategoryLabel,
   type IAcceptReturnAtVisitInput,
   type MarketplaceReturnClaimView,
@@ -50,6 +53,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
   (e: 'decided'): void;
 }>();
+
+const globalStore = useGlobalStore();
 
 const decision = ref<Decision>(DECISION_ACCEPT);
 const inspectionResult = ref<string>('');
@@ -99,6 +104,11 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Не выбран кооперативный участок.'));
     return;
   }
+  const wif = decision.value === DECISION_ACCEPT ? globalStore.wif?.toString() : undefined;
+  if (decision.value === DECISION_ACCEPT && !wif) {
+    FailAlert(new Error('Приватный ключ председателя не найден. Войдите в кооператив.'));
+    return;
+  }
 
   submitting.value = true;
   try {
@@ -109,11 +119,22 @@ async function confirm(): Promise<void> {
       })),
     );
     if (decision.value === DECISION_ACCEPT) {
+      // Приём возврата требует on-chain заявление (registry_id=1104) с ДВУМЯ
+      // подписями — пайщика (наложена при подаче заявления) и председателя
+      // (со-подпись поверх того же документа, канон двухподписных актов —
+      // см. review 2026-07-27: без этого шага backend отклонял приём с
+      // ошибкой «не найдено заявление со второй подписью»).
+      const aggregate = await fetchChairmanReturnSignablePayload(props.claim.id);
+      const signer = new Classes.Document(wif!);
+      const signed_statement = await signer.signDocument(aggregate.rawDocument, globalStore.username, 2, [
+        aggregate.document,
+      ]);
       await acceptReturnAtVisit({
         claim_id: props.claim.id,
         braname: props.braname.trim(),
         inspection_result: inspectionResult.value.trim(),
         inspection_photos: inspectionPhotos.length > 0 ? inspectionPhotos : undefined,
+        signed_statement,
       });
       SuccessAlert(
         `Возврат принят. На программный кошелёк заказчика восстановлено ${formatAsset2Digits(props.claim.fact_cost)} ₽.`,

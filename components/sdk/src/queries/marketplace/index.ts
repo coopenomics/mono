@@ -56,6 +56,8 @@ export * as ListMyReturnClaims from './listMyReturnClaims'
 export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
 /** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
 export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'
+/** Эпик 7: заявление на возврат с подписью пайщика, для со-подписи председателя при приёме на очном осмотре */
+export * as ReturnClaimChairmanSignablePayload from './returnClaimChairmanSignablePayload'
 /** Эпик 8: текущий открытый черновик проекта списания (если есть) */
 export * as OpenWriteoffDraft from './openWriteoffDraft'
 /** Эпик 8: лента проектов списания скоропорта с фильтром по статусу */
