@@ -3,7 +3,7 @@ CreateDialog(
   ref="dialogRef"
   title="План"
   submit-text="Сохранить план"
-  size="lg"
+  size="xl"
   :is-submitting="isSubmitting"
   @submit="handleSubmit"
   @dialog-closed="onDialogClosed"
@@ -62,29 +62,26 @@ CreateDialog(
         :key='row.key'
       )
         .plan-dialog__metric-fields
-          q-input(
+          q-input.plan-dialog__metric-title(
             v-model='row.title'
             label='Название'
             outlined
             dense
-            class='col-grow'
           )
-          q-input(
+          q-input.plan-dialog__metric-unit(
             v-model='row.unit'
             label='Ед.'
             outlined
             dense
-            style='width: 88px'
           )
-          q-input(
+          q-input.plan-dialog__metric-target(
             v-model.number='row.target_value'
             label='Цель'
             type='number'
             outlined
             dense
-            style='width: 112px'
           )
-          q-select(
+          q-select.plan-dialog__metric-mode(
             v-model='row.series_mode'
             :options='seriesModeOptions'
             label='Режим'
@@ -92,7 +89,7 @@ CreateDialog(
             map-options
             outlined
             dense
-            style='min-width: 160px'
+            options-dense
           )
         BaseButton(
           variant='ghost'
@@ -159,7 +156,7 @@ const showMetrics = computed(
 );
 
 const seriesModeOptions = [
-  { label: 'Скорость (Δ)', value: Zeus.MetricSeriesMode.RATE },
+  { label: 'Δ', value: Zeus.MetricSeriesMode.RATE },
   { label: 'Уровень', value: Zeus.MetricSeriesMode.LEVEL },
 ];
 
@@ -375,9 +372,30 @@ defineExpose({
 .plan-dialog__metric-fields {
   flex: 1;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   gap: var(--p-2);
   min-width: 0;
+}
+
+.plan-dialog__metric-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plan-dialog__metric-unit {
+  flex: 0 0 64px;
+  width: 64px;
+}
+
+.plan-dialog__metric-target {
+  flex: 0 0 88px;
+  width: 88px;
+}
+
+.plan-dialog__metric-mode {
+  flex: 0 0 108px;
+  width: 108px;
 }
 
 .plan-dialog__metrics-hint {
