@@ -239,7 +239,7 @@ defineExpose({ reload: loadWave });
   fill: var(--p-ink-2);
   font-size: 9px;
   text-anchor: middle;
-  font-family: var(--p-mono, monospace);
+  font-family: var(--p-mono);
 }
 
 .metric-wave__disclaimer {
@@ -248,6 +248,6 @@ defineExpose({ reload: loadWave });
   gap: var(--p-1);
   font-size: var(--p-fs-caption);
   color: var(--p-ink-3);
-  line-height: var(--p-lh-caption, 1.35);
+  line-height: 1.35;
 }
 </style>

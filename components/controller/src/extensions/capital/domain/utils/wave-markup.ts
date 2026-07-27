@@ -4,19 +4,19 @@ import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
 export const FIB_RATIOS = [0.236, 0.382, 0.5, 0.618, 1.0, 1.618, 2.618] as const;
 
 export enum WaveLabel {
-  W1 = '1',
-  W2 = '2',
-  W3 = '3',
-  W4 = '4',
-  W5 = '5',
-  WA = 'A',
-  WB = 'B',
-  WC = 'C',
+  W1 = 'W1',
+  W2 = 'W2',
+  W3 = 'W3',
+  W4 = 'W4',
+  W5 = 'W5',
+  WA = 'WA',
+  WB = 'WB',
+  WC = 'WC',
 }
 
 export enum WavePhase {
-  IMPULSE = 'impulse',
-  CORRECTION = 'correction',
+  IMPULSE = 'IMPULSE',
+  CORRECTION = 'CORRECTION',
 }
 
 const IMPULSE_SEQUENCE: WaveLabel[] = [
