@@ -22,6 +22,7 @@ export interface MarketplaceReturnClaimDisplayFields {
   product_name?: string | null;
   unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   package_size?: number | null;
+  orderer_name?: string | null;
 }
 
 export async function toMarketplaceReturnClaimDTO(
@@ -44,6 +45,7 @@ export async function toMarketplaceReturnClaimDTO(
     unit_of_measure: display?.unit_of_measure ?? null,
     package_size: display?.package_size ?? null,
     orderer_account: claim.orderer_account,
+    orderer_name: display?.orderer_name ?? null,
     delivery_braname: claim.delivery_braname,
     supplier_account: claim.supplier_account,
     status: claim.status,

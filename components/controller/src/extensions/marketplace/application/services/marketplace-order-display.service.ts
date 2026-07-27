@@ -193,13 +193,19 @@ export class MarketplaceOrderDisplayService {
   /**
    * Реквизиты заказов по их идентификаторам (для позиций приёмки, где известны
    * только order_id из снапшота факта). Грузит заказы батчем и делегирует в
-   * `enrich`. Имена участников здесь не нужны — только товар/единица/ПВЗ.
+   * `enrich`. Имена участников — опционально (`withParticipantNames`): по
+   * умолчанию не резолвим (только товар/единица/ПВЗ), включаем явно там, где
+   * оператору/председателю нужно видеть «от кого» (например, лента заявлений
+   * на гарантийный возврат).
    */
-  async enrichByOrderIds(orderIds: string[]): Promise<Map<string, MarketplaceOrderDisplayFields>> {
+  async enrichByOrderIds(
+    orderIds: string[],
+    opts?: { withParticipantNames?: boolean }
+  ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const ids = [...new Set(orderIds.filter((id) => id))];
     if (ids.length === 0) return new Map();
     const orders = await this.orderRepo.findByIds(ids);
-    return this.enrich(orders);
+    return this.enrich(orders, opts);
   }
 
   /**

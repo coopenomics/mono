@@ -311,7 +311,10 @@ export class MarketplaceReturnClaimResolver {
   private async toClaimDTO(
     claim: Awaited<ReturnType<MarketplaceReturnClaimService['findById']>>
   ): Promise<MarketplaceReturnClaimDTO> {
-    const display = await this.orderDisplay.enrichByOrderIds([claim.order_id]);
+    // Имя заказчика — председатель КУ должен видеть «от кого», не сырой account.
+    const display = await this.orderDisplay.enrichByOrderIds([claim.order_id], {
+      withParticipantNames: true,
+    });
     return toMarketplaceReturnClaimDTO(
       claim,
       (key) => this.service.getPhotoReadUrl(key),
@@ -319,11 +322,14 @@ export class MarketplaceReturnClaimResolver {
     );
   }
 
-  /** Батч-обогащение товаром/единицей/упаковкой — один запрос заказов на весь список. */
+  /** Батч-обогащение товаром/единицей/упаковкой/именем заказчика — один запрос заказов на весь список. */
   private async toClaimDTOs(
     claims: MarketplaceReturnClaimDomainEntity[]
   ): Promise<MarketplaceReturnClaimDTO[]> {
-    const display = await this.orderDisplay.enrichByOrderIds(claims.map((c) => c.order_id));
+    const display = await this.orderDisplay.enrichByOrderIds(
+      claims.map((c) => c.order_id),
+      { withParticipantNames: true }
+    );
     return Promise.all(
       claims.map((c) =>
         toMarketplaceReturnClaimDTO(

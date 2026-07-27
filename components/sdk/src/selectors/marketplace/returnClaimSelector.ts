@@ -74,6 +74,7 @@ const rawClaimSelector = {
   unit_of_measure: true,
   package_size: true,
   orderer_account: true,
+  orderer_name: true,
   delivery_braname: true,
   supplier_account: true,
   status: true,

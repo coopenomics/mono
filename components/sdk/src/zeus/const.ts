@@ -5504,6 +5504,7 @@ export const ReturnTypes: Record<string,any> = {
 		order_hash:"String",
 		order_id:"String",
 		orderer_account:"String",
+		orderer_name:"String",
 		package_size:"Float",
 		photos:"MarketplaceReturnClaimPhoto",
 		product_name:"String",

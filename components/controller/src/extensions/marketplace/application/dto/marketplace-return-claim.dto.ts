@@ -394,6 +394,9 @@ export class MarketplaceReturnClaimDTO {
   @Field({ description: 'Аккаунт пайщика-заявителя.' })
   public readonly orderer_account!: string;
 
+  @Field(() => String, { nullable: true, description: 'ФИО (или наименование организации) пайщика-заявителя.' })
+  public readonly orderer_name!: string | null;
+
   @Field({ description: 'КУ доставки исходного заказа (куда подаётся заявление).' })
   public readonly delivery_braname!: string;
 

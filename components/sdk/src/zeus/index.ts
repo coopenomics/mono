@@ -9557,6 +9557,8 @@ export type ValueTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заявителя. */
 	orderer_account?:boolean | `@${string}`,
+	/** ФИО (или наименование организации) пайщика-заявителя. */
+	orderer_name?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере. */
 	package_size?:boolean | `@${string}`,
 	/** Фотографии товара, приложенные пайщиком. */
@@ -22643,6 +22645,8 @@ export type ResolverInputTypes = {
 	order_id?:boolean | `@${string}`,
 	/** Аккаунт пайщика-заявителя. */
 	orderer_account?:boolean | `@${string}`,
+	/** ФИО (или наименование организации) пайщика-заявителя. */
+	orderer_name?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере. */
 	package_size?:boolean | `@${string}`,
 	/** Фотографии товара, приложенные пайщиком. */
@@ -35310,6 +35314,8 @@ export type ModelTypes = {
 	order_id: string,
 	/** Аккаунт пайщика-заявителя. */
 	orderer_account: string,
+	/** ФИО (или наименование организации) пайщика-заявителя. */
+	orderer_name?: string | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере. */
 	package_size?: number | undefined | null,
 	/** Фотографии товара, приложенные пайщиком. */
@@ -49252,6 +49258,8 @@ export type GraphQLTypes = {
 	order_id: string,
 	/** Аккаунт пайщика-заявителя. */
 	orderer_account: string,
+	/** ФИО (или наименование организации) пайщика-заявителя. */
+	orderer_name?: string | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере. */
 	package_size?: number | undefined | null,
 	/** Фотографии товара, приложенные пайщиком. */

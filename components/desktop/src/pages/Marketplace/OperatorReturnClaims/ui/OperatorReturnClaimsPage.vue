@@ -169,21 +169,23 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
         BaseCard.returns__item(v-for='c in pendingClaims', :key='c.id')
           .returns__item-top
             .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
               .returns__item-meta {{ claimQuantityLabel(c) }} · {{ c.fact_cost }} ₽
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
-          .returns__item-reason {{ c.reason_text }}
-          .returns__item-category(v-if='c.defect_category')
-            | Категория: {{ defectCategoryLabel(c.defect_category) }}
-          .returns__item-thumbs(v-if='c.photos.length')
-            a.returns__thumb(
-              v-for='(p, i) in c.photos',
-              :key='p.content_hash',
-              :href='p.url',
-              target='_blank',
-              rel='noopener'
-            )
-              img(:src='p.url', :alt='`Фото ${i + 1}`')
+          .returns__item-body
+            .returns__item-photos(v-if='c.photos.length')
+              a.returns__thumb(
+                v-for='(p, i) in c.photos',
+                :key='p.content_hash',
+                :href='p.url',
+                target='_blank',
+                rel='noopener'
+              )
+                img(:src='p.url', :alt='`Фото ${i + 1}`')
+            .returns__item-text
+              .returns__item-reason {{ c.reason_text }}
+              .returns__item-category(v-if='c.defect_category')
+                | Категория: {{ defectCategoryLabel(c.defect_category) }}
           .returns__item-actions
             BaseButton(variant='primary', size='sm', @click='startRemote(c)')
               template(#icon-left)
@@ -199,11 +201,25 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
         BaseCard.returns__item(v-for='c in approvedClaims', :key='c.id')
           .returns__item-top
             .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_account }}
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · заказчик {{ c.orderer_name || c.orderer_account }}
               .returns__item-meta Возврат на сумму {{ c.fact_cost }} ₽
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
-          .returns__item-reason.t-muted(v-if='c.decision_log.length > 0')
-            | Одобрено {{ formatDateTime(c.decision_log[c.decision_log.length - 1].at) }}
+          .returns__item-body
+            .returns__item-photos(v-if='c.photos.length')
+              a.returns__thumb(
+                v-for='(p, i) in c.photos',
+                :key='p.content_hash',
+                :href='p.url',
+                target='_blank',
+                rel='noopener'
+              )
+                img(:src='p.url', :alt='`Фото ${i + 1}`')
+            .returns__item-text
+              .returns__item-reason {{ c.reason_text }}
+              .returns__item-category(v-if='c.defect_category')
+                | Категория: {{ defectCategoryLabel(c.defect_category) }}
+              .returns__item-approved.t-muted(v-if='c.decision_log.length > 0')
+                | Одобрено {{ formatDateTime(c.decision_log[c.decision_log.length - 1].at) }}
           .returns__item-actions
             BaseButton(variant='secondary', size='sm', @click='startOnSite(c)')
               template(#icon-left)
@@ -219,7 +235,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
         BaseCard.returns__item(v-for='c in archiveClaims', :key='c.id')
           .returns__item-top
             .returns__item-info
-              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_account }}
+              .returns__item-title Заказ {{ c.order_id.slice(0, 8) }} · {{ c.orderer_name || c.orderer_account }}
               .returns__item-meta(v-if='c.ledger_snapshot') {{ c.ledger_snapshot.amount }} ₽ восстановлено
             BaseBadge(:variant='returnClaimStatusVariant(c.status)') {{ humanStatus(c.status) }}
       EmptyState(v-else-if='!loading', title='Архив пуст')
@@ -295,13 +311,39 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     font-variant-numeric: tabular-nums;
   }
 
+  // Фото — крупным якорем слева, текст (причина/категория) — справа: было
+  // фото-миниатюра под текстом отдельной строкой, читалось разрозненно
+  // (см. review 2026-07-27).
+  &__item-body {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-4, 16px);
+  }
+
+  &__item-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+    flex: 0 0 auto;
+  }
+
+  &__item-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    min-width: 0;
+    flex: 1 1 auto;
+    padding-top: 2px;
+  }
+
   &__item-reason {
     font-size: var(--p-fs-body, 14px);
     color: var(--p-ink);
     overflow-wrap: anywhere;
   }
 
-  &__item-category {
+  &__item-category,
+  &__item-approved {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
   }
@@ -313,19 +355,18 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     border-top: 1px solid var(--p-line);
   }
 
-  &__thumbs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-  }
-
   &__thumb {
     display: inline-block;
-    width: 56px;
-    height: 56px;
+    width: 96px;
+    height: 96px;
     border: 1px solid var(--p-line);
-    border-radius: var(--p-r-xs, 6px);
+    border-radius: var(--p-r-sm, 8px);
     overflow: hidden;
+    transition: border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+
+    &:hover {
+      border-color: var(--p-primary);
+    }
 
     img {
       width: 100%;
