@@ -156,7 +156,7 @@ const showMetrics = computed(
 );
 
 const seriesModeOptions = [
-  { label: 'Измен.', value: Zeus.MetricSeriesMode.RATE },
+  { label: 'Изменения', value: Zeus.MetricSeriesMode.RATE },
   { label: 'Уровень', value: Zeus.MetricSeriesMode.LEVEL },
 ];
 
@@ -394,8 +394,8 @@ defineExpose({
 }
 
 .plan-dialog__metric-mode {
-  flex: 0 0 86px;
-  width: 86px;
+  flex: 0 0 118px;
+  width: 118px;
 }
 
 .plan-dialog__metrics-hint {
