@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
-import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import {
   acceptReturnAtVisit,
@@ -14,11 +13,14 @@ import {
 type ReturnClaimPhotoUploadInput = NonNullable<IAcceptReturnAtVisitInput['inspection_photos']>[number];
 
 /**
- * Story 7.3 / 7.4: full-screen takeover для очного осмотра. Председатель:
- *  1. Сканирует штрих-код имущества (CodeScanner) для сверки с заказом.
- *  2. Записывает результат осмотра (`inspection_result`, до 2000 симв.).
- *  3. Опционально прилагает фото осмотра (до 10 файлов, до 10 МБ каждое).
- *  4. Выбирает действие: «Принять возврат» → accretrn (compensating
+ * Story 7.3 / 7.4: full-screen takeover для очного осмотра. Открывается уже
+ * ПО КОНКРЕТНОЙ заявке — председатель попадает сюда, отсканировав QR-код
+ * возврата, который показывает пришедший пайщик (см. `OperatorReturnClaimsPage`
+ * → `decodeReturnClaimCode`), поэтому повторно сверять личность/имущество
+ * штрих-кодом здесь не нужно — заявка уже идентифицирована. Председатель:
+ *  1. Записывает результат осмотра (`inspection_result`, до 2000 симв.).
+ *  2. Опционально прилагает фото осмотра (до 10 файлов, до 10 МБ каждое).
+ *  3. Выбирает действие: «Принять возврат» → accretrn (compensating
  *     forward `o.mkt.return + o.mkt.return2` атомарно через транзит 91);
  *     «Отказать на месте» → rejretrn.
  *
@@ -43,7 +45,6 @@ const emit = defineEmits<{
 }>();
 
 const decision = ref<Decision>(DECISION_ACCEPT);
-const scannedCode = ref<string>('');
 const inspectionResult = ref<string>('');
 const photos = ref<ReturnClaimPhotoUploadInput[]>([]);
 const submitting = ref(false);
@@ -53,17 +54,12 @@ watch(
   ([visible]) => {
     if (visible) {
       decision.value = DECISION_ACCEPT;
-      scannedCode.value = '';
       inspectionResult.value = '';
       photos.value = [];
     }
   },
   { immediate: false },
 );
-
-function onScanned(code: string): void {
-  scannedCode.value = code;
-}
 
 async function onFilesPicked(files: readonly File[] | File[]): Promise<void> {
   const list = Array.from(files);
@@ -99,10 +95,6 @@ async function confirm(): Promise<void> {
     FailAlert(new Error('Не выбран кооперативный участок.'));
     return;
   }
-  if (decision.value === DECISION_ACCEPT && !scannedCode.value.trim()) {
-    FailAlert(new Error('Для приёма возврата сначала отсканируйте штрих-код имущества.'));
-    return;
-  }
 
   submitting.value = true;
   try {
@@ -111,7 +103,6 @@ async function confirm(): Promise<void> {
         claim_id: props.claim.id,
         braname: props.braname.trim(),
         inspection_result: inspectionResult.value.trim(),
-        scanned_barcode: scannedCode.value.trim() || undefined,
         inspection_photos: photos.value.length > 0 ? photos.value : undefined,
       });
       SuccessAlert(
@@ -147,12 +138,7 @@ const confirmLabel = computed(() =>
     ? 'Принять возврат и восстановить средства'
     : 'Отказать на месте',
 );
-const confirmDisabled = computed(() => {
-  if (submitting.value) return true;
-  if (!inspectionResult.value.trim()) return true;
-  if (decision.value === DECISION_ACCEPT && !scannedCode.value.trim()) return true;
-  return false;
-});
+const confirmDisabled = computed(() => submitting.value || !inspectionResult.value.trim());
 
 const decisionOptions = [
   { label: 'Принять возврат', value: DECISION_ACCEPT, color: 'positive' },
@@ -178,24 +164,7 @@ TakeoverDialog(
     .mp-return-onsite
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1 1. Сверка штрих-кода имущества
-          CodeScanner.q-mt-sm(
-            :formats="BARCODE_FORMATS"
-            idle-caption="Наведите камеру на штрих-код имущества"
-            frame-hint="Поместите штрих-код в рамку"
-            manual-label="Или введите штрих-код"
-            manual-placeholder="4600000000000"
-            manual-button="Сверить"
-            @scanned="onScanned"
-          )
-          .text-caption.text-grey.q-mt-sm
-            | Отсканируйте штрих-код имущества камерой или USB-сканером, чтобы сверить его с возвращаемым заказом.
-          .text-caption.q-mt-sm(v-if="scannedCode")
-            | Считано: <strong>{{ scannedCode }}</strong>
-
-      q-card(flat bordered).q-mb-md
-        q-card-section
-          .text-subtitle1 2. Результат осмотра
+          .text-subtitle1 1. Результат осмотра
           q-input.q-mt-sm(
             v-model="inspectionResult"
             outlined
@@ -208,7 +177,7 @@ TakeoverDialog(
 
       q-card(flat bordered).q-mb-md
         q-card-section
-          .text-subtitle1 3. Фото очного осмотра (опционально)
+          .text-subtitle1 2. Фото очного осмотра (опционально)
           q-file.q-mt-sm(
             label="Выбрать фотографии"
             outlined
@@ -229,7 +198,7 @@ TakeoverDialog(
             )
 
       q-card(flat bordered).q-pa-md
-        .text-subtitle1.q-mb-sm 4. Решение
+        .text-subtitle1.q-mb-sm 3. Решение
         q-option-group(
           v-model="decision"
           :options="decisionOptions"

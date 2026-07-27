@@ -7,7 +7,8 @@ import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
+import { useMarketplaceRealtime, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusVariant } from '../../OrdererReturnClaims';
@@ -25,9 +26,11 @@ import OnSiteDecisionDialog from './OnSiteDecisionDialog.vue';
  *
  * - PENDING_CHAIRMAN_REVIEW → RemoteDecisionDialog (одобрить очный визит /
  *   отказать удалённо).
- * - APPROVED_FOR_VISIT      → OnSiteDecisionDialog (CodeScanner +
- *   inspection_result + accept / reject; accept атомарно выполняет
- *   compensating forward `o.mkt.return + o.mkt.return2`).
+ * - APPROVED_FOR_VISIT      → OnSiteDecisionDialog (результат осмотра + фото +
+ *   accept/reject; accept атомарно выполняет compensating forward
+ *   `o.mkt.return + o.mkt.return2`). Председатель не ищет заявку в списке
+ *   вручную — сканирует QR возврата, который пайщик показывает на КУ
+ *   (см. `decodeReturnClaimCode`), и сразу попадает в решение по ней.
  */
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
@@ -40,6 +43,7 @@ const loading = ref(false);
 
 const remoteDialog = ref(false);
 const onSiteDialog = ref(false);
+const scanDialogOpen = ref(false);
 const selectedClaim = ref<MarketplaceReturnClaimView | null>(null);
 
 const pendingClaims = computed(() =>
@@ -81,6 +85,29 @@ function startOnSite(claim: MarketplaceReturnClaimView): void {
 
 function onDecided(): void {
   void load();
+}
+
+/**
+ * Пайщик, пришедший на очный осмотр, показывает QR своей заявки — председатель
+ * сканирует и сразу попадает в решение по НЕЙ, не листая список руками.
+ */
+function onQrScanned(code: string): void {
+  scanDialogOpen.value = false;
+  const claimId = decodeReturnClaimCode(code, coopname.value);
+  if (!claimId) {
+    FailAlert(new Error('Нераспознанный код. Отсканируйте QR-код возврата, который показывает пайщик.'));
+    return;
+  }
+  const claim = items.value.find((c) => c.id === claimId);
+  if (!claim) {
+    FailAlert(new Error('Заявление с этим кодом не найдено на вашем участке.'));
+    return;
+  }
+  if (claim.status !== Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT) {
+    FailAlert(new Error('По этой заявке пока не одобрен очный осмотр.'));
+    return;
+  }
+  startOnSite(claim);
 }
 
 /**
@@ -155,8 +182,16 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
       q-icon(name='storefront', size='48px')
 
   template(v-else)
+    //- Действие страницы — в шапку (канон Teleport): пайщик показывает QR
+    //- своей заявки, председатель сканирует и сразу попадает в решение по ней.
+    Teleport(to="#header-actions-host", defer)
+      BaseButton(variant='primary', size='sm', @click='scanDialogOpen = true')
+        template(#icon-left)
+          q-icon(name='qr_code_scanner', size='16px')
+        | Сканировать код
+
     PageHint(storage-key='mp:operator-returns:banner-dismissed')
-      | Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи.
+      | Рассматривайте заявления пайщиков: удалённое решение по заявке, затем очный осмотр и приём возврата на пункте выдачи. Пайщик, пришедший на осмотр, показывает QR из своей заявки — отсканируйте его кнопкой «Сканировать код» сверху.
 
     //- Канон загрузки: скелетон вместо мелькающих заглушек «пусто» на первичной загрузке.
     CardListSkeleton(
@@ -267,6 +302,12 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
     :claim='selectedClaim',
     :braname='braname',
     @decided='onDecided'
+  )
+  ScannerDialog(
+    v-model='scanDialogOpen',
+    title='Сканирование кода возврата',
+    idle-caption='Наведите камеру на QR-код, который показывает пайщик',
+    @scanned='onQrScanned'
   )
 </template>
 

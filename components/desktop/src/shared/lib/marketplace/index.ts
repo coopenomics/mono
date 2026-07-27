@@ -18,6 +18,7 @@ export {
   type HandoffRouteTarget,
 } from './handoff-routing';
 export { useMarketplaceHandoffSignal } from './handoff-signal';
+export { encodeReturnClaimCode, decodeReturnClaimCode } from './return-claim-code';
 export { useActsPreview } from './useActsPreview';
 export {
   getMembershipFeePercent,

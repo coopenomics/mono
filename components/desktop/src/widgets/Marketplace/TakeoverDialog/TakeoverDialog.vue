@@ -117,21 +117,6 @@ function onConfirm() {
   background: var(--mp-surface-0);
   color: var(--mp-on-surface);
 
-  // Тонкая 4px-полоса акцента слева — единственный источник цвета в шапке
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--q-primary);
-  }
-
-  &--success::before { background: var(--q-positive); }
-  &--warning::before { background: var(--q-warning); }
-  &--danger::before  { background: var(--q-negative); }
-
   &__bar {
     display: flex;
     align-items: center;

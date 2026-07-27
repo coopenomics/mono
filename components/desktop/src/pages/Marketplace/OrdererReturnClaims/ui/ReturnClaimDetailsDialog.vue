@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { HandoffQr } from 'src/widgets/Marketplace/HandoffQr';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
+import { encodeReturnClaimCode } from 'src/shared/lib/marketplace';
 import {
   defectCategoryLabel,
   returnClaimStatusLabel,
@@ -67,6 +69,14 @@ TakeoverDialog(
 )
   template(#default v-if="claim")
     .mp-return-details
+      q-card(flat bordered).q-mb-md(v-if="claim.status === 'APPROVED_FOR_VISIT'")
+        q-card-section.flex.flex-center.column
+          .text-subtitle1.q-mb-sm Покажите этот код на пункте выдачи
+          HandoffQr(
+            :value="encodeReturnClaimCode(claim.coopname, claim.id)"
+            caption="Председатель отсканирует его на очном осмотре — так он сразу откроет решение по вашей заявке."
+          )
+
       q-card(flat bordered).q-mb-md
         q-card-section
           .text-subtitle1 Причина обращения
