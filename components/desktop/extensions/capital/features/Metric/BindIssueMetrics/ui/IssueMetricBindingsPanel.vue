@@ -1,56 +1,42 @@
 <template lang="pug">
-.bind-metrics-panel
-  .bind-metrics-panel__head
-    .bind-metrics-panel__title Вклад в метрики
-  .bind-metrics-panel__skel(v-if='isLoading')
-    .skel(v-for='i in 3', :key='i')
-
-  template(v-else-if='activeMetrics.length')
-    .bind-metrics-panel__rows
-      .bind-metric-row(v-for='metric in activeMetrics', :key='metric.metric_hash')
-        .bind-metric-row__info
-          .bind-metric-row__name {{ metric.title }}
-          .bind-metric-row__unit.t-mono {{ metric.unit }}
-        BaseInput(
-          v-model='deltaByMetric[metric.metric_hash]',
-          type='number',
-          :label='`Δ (${metric.unit})`',
-          :suffix='metric.unit'
-        )
-    .bind-metrics-panel__actions
-      BaseButton(
-        variant='primary',
-        size='sm',
-        :loading='isSaving',
-        @click='saveBindings'
-      )
-        template(#icon-left)
-          q-icon(name='save', size='16px')
-        | Сохранить привязки
-
-  .bind-metrics-panel__empty(v-else)
-    EmptyState(title='Нет активных метрик для этого компонента')
-      template(#icon)
-        q-icon(name='bar_chart', size='28px')
+.bind-metrics(v-if='isLoading || activeMetrics.length')
+  .bind-metrics__skel(v-if='isLoading')
+    .skel(v-for='i in 2', :key='i')
+  template(v-else)
+    q-input.bind-metrics__input(
+      v-for='metric in activeMetrics',
+      :key='metric.metric_hash',
+      :model-value='deltaByMetric[metric.metric_hash] ?? ""',
+      type='number',
+      step='any',
+      standout='bg-teal text-white',
+      :label='metric.title',
+      :readonly='readonly',
+      :suffix='metric.unit',
+      dense,
+      @update:model-value='(v) => onDeltaChange(metric.metric_hash, v)'
+    )
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { BaseButton, BaseInput, EmptyState } from 'src/shared/ui/base';
 import { useBindIssueMetrics } from '../model';
 
-const props = defineProps<{
-  issueHash: string;
-  projectHash: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    issueHash: string;
+    projectHash: string;
+    readonly?: boolean;
+  }>(),
+  { readonly: false },
+);
 
 const {
   activeMetrics,
   deltaByMetric,
   isLoading,
-  isSaving,
   loadAll,
-  saveBindings,
+  onDeltaChange,
 } = useBindIssueMetrics(props.issueHash, props.projectHash);
 
 onMounted(async () => {
@@ -59,70 +45,26 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
-.bind-metrics-panel {
+.bind-metrics {
   display: flex;
   flex-direction: column;
-  gap: var(--p-3);
+  gap: var(--p-2);
+  width: 100%;
 }
 
-.bind-metrics-panel__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.bind-metrics__input {
+  width: 100%;
 }
 
-.bind-metrics-panel__title {
-  font-size: var(--p-fs-body-sm);
-  font-weight: 600;
-  color: var(--p-ink);
-}
-
-.bind-metrics-panel__skel {
+.bind-metrics__skel {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
 }
 
-.bind-metrics-panel__rows {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-3);
-}
-
-.bind-metric-row {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3);
-}
-
-.bind-metric-row__info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-1);
-  min-width: 0;
-}
-
-.bind-metric-row__name {
-  font-size: var(--p-fs-body-sm);
-  font-weight: 500;
-  color: var(--p-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.bind-metric-row__unit {
-  font-size: var(--p-fs-caption);
-  color: var(--p-ink-3);
-}
-
-.bind-metrics-panel__actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.bind-metrics-panel__empty {
-  padding: var(--p-4) 0;
+.bind-metrics__skel .skel {
+  height: 40px;
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface-2);
 }
 </style>

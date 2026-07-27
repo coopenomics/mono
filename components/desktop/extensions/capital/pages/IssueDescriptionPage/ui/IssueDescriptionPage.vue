@@ -21,13 +21,6 @@ div.q-px-md
       :issue-hash="issue.issue_hash"
       :creators="issue.creators || []"
     )
-
-  .issue-metric-bindings.q-mt-md(v-if="issue && projectHash")
-    q-separator.q-mb-md
-    IssueMetricBindingsPanel(
-      :issue-hash="issue.issue_hash"
-      :project-hash="projectHash"
-    )
 </template>
 
 <script lang="ts" setup>
@@ -35,7 +28,6 @@ import { inject } from 'vue'
 import { Editor, AutoSaveIndicator } from 'src/shared/ui'
 import { TimeEntriesWidget } from 'app/extensions/capital/widgets'
 import { ISSUE_PAGE_KEY } from '../../IssuePage/model/context'
-import { IssueMetricBindingsPanel } from 'app/extensions/capital/features/Metric/BindIssueMetrics'
 
 const ctx = inject(ISSUE_PAGE_KEY)
 if (!ctx) {
@@ -43,7 +35,6 @@ if (!ctx) {
 }
 
 const issue = ctx.issue
-const projectHash = ctx.projectHash
 const isAutoSaving = ctx.isAutoSaving
 const autoSaveError = ctx.autoSaveError
 const handleDescriptionChange = () => ctx.handleDescriptionChange()
