@@ -6,7 +6,9 @@ import { CartPage } from 'src/pages/Marketplace/Cart'
 import { OrderConfirmationPage } from 'src/pages/Marketplace/OrderConfirmation'
 import { CreateMarketplaceOfferPage } from 'src/pages/Marketplace/CreateMarketplaceOffer'
 import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
-import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
+// TODO(2026-07-28): страница снята со Стола ПВЗ, см. комментарий у закомментированного
+// route'а 'trusted-persons' ниже — импорт временно отключён, файл страницы не удалён.
+// import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
 import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
@@ -568,23 +570,29 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 agreements: agreementsBase,
               },
             },
-            {
-              // Управление доверенными лицами КУ: председатель участка (trustee)
-              // добавляет/снимает доверенных (core addTrustedAccount/
-              // deleteTrustedAccount) — они получают те же операционные права
-              // по Столу ПВЗ. Видна всем операторам КУ; правки — только
-              // председателю кооператива (auth мутаций = chairman).
-              path: 'trusted-persons',
-              name: 'marketplace-pvz-trusted-persons',
-              component: markRaw(OperatorTrustedPersonsPage),
-              meta: {
-                title: 'Доверенные лица',
-                icon: 'group',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
+            // TODO(2026-07-28): раздел «Доверенные лица» снят со Стола ПВЗ —
+            // он обходил стороной уже существующий полноценный флоу КУ
+            // (заявка → одобрение председателем → генерация и подпись
+            // документов 327/330, см. KuBranchDetailsWidget.vue), просто
+            // добавляя/снимая trusted[] участка без заявления и документа.
+            // Страница (OperatorTrustedPersonsPage.vue) и её импорт оставлены
+            // как есть — решение на будущее: либо удалить насовсем, либо
+            // перенести на «Стол председателя» отдельным ручным механизмом
+            // (участок → пайщик → срок действия/номер доверенности —
+            // полей для этого сейчас нет нигде в системе, потребует новой
+            // off-chain таблицы, см. обсуждение в истории задачи).
+            // {
+            //   path: 'trusted-persons',
+            //   name: 'marketplace-pvz-trusted-persons',
+            //   component: markRaw(OperatorTrustedPersonsPage),
+            //   meta: {
+            //     title: 'Доверенные лица',
+            //     icon: 'group',
+            //     requires: 'Warehouse:read:own-KU',
+            //     requiresAuth: true,
+            //     agreements: agreementsBase,
+            //   },
+            // },
             {
               // Экономика участка (requirement b6): ставка кооператива,
               // отсечка и веса распределения членских взносов (правки —
