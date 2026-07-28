@@ -381,6 +381,10 @@ const ariaLabel = computed(() => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
+  padding: var(--p-3) var(--p-4);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface);
 }
 
 .superposition__head {
