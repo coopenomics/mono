@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { applyMembershipFee, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
@@ -138,7 +138,15 @@ function onQuantityInput(value: string | number | null): void {
   const n = Number(value);
   // Нативные стрелки number-инпута прибавляют/отнимают сырой step (0.001) без
   // округления — квантуем, чтобы не накапливался мусор вроде «1.0001».
-  quantity.value = Number.isNaN(n) ? 0 : quantizeSaleQuantity(props.offer, n);
+  let next = Number.isNaN(n) ? 0 : quantizeSaleQuantity(props.offer, n);
+  // Поле не должно позволять набрать больше доступного остатка — клампим
+  // сразу при вводе/стрелках, не полагаясь только на disabled кнопки отправки.
+  const max = maxQuantity.value;
+  if (max !== null && next > max) {
+    next = max;
+    NotifyAlert(`Доступно не больше ${max} ${isPackaged.value ? 'упак.' : unitLabel.value}`);
+  }
+  quantity.value = next;
 }
 
 watch(
