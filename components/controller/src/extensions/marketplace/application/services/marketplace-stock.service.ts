@@ -211,8 +211,21 @@ export class MarketplaceStockService {
         input.price_per_unit ??
         group.find((p) => p.arrival_price !== null)?.arrival_price ??
         origin.price_per_unit;
-
       let coopOffer = await this.findCoopOffer(input.coopname, braname, origin.id);
+
+      // Каталог упаковок остатка сужаем до тех фасовок, что физически принимались
+      // на склад — иначе заказчик видит в диалоге ВСЕ фасовки origin-оффера
+      // поставщика (напр. и «литрушку», и «поллитрушку»), хотя на складе
+      // кооператива реально лежит только одна из них (review 2026-07-28).
+      // При повторной публикации того же оффера учитываем И уже опубликованные
+      // ранее позиции — иначе публикация новой партии стирает фасовки, уже
+      // выставленные предыдущими публикациями этого же оффера.
+      const alreadyPublished = coopOffer
+        ? await this.inventoryRepo.list({ coopname: input.coopname, published_offer_id: coopOffer.id })
+        : [];
+      const receivedPackageSizes = await this.resolveReceivedPackageSizes([...group, ...alreadyPublished]);
+      const availablePackages = this.filterReceivedPackages(origin.packages, receivedPackageSizes);
+
       if (!coopOffer) {
         const normalizedPrice = this.normalizePrice(price);
         coopOffer = await this.offerRepo.create({
@@ -234,7 +247,7 @@ export class MarketplaceStockService {
           // (считает исключительно из packages[].price) молча игнорирует
           // уценку кооператива.
           sale_form: origin.sale_form,
-          packages: this.scalePackagePrices(origin.packages, origin.price_per_unit, normalizedPrice),
+          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, normalizedPrice),
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
@@ -263,7 +276,7 @@ export class MarketplaceStockService {
           // позиции), повторная публикация должна ЛЕЧИТЬ устаревший
           // sale_form/packages, а не консервировать его навсегда.
           sale_form: origin.sale_form,
-          packages: this.scalePackagePrices(origin.packages, origin.price_per_unit, targetPrice),
+          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, targetPrice),
           ...(input.price_per_unit ? { price_per_unit: targetPrice } : {}),
           ...(input.warranty_days !== undefined && input.warranty_days !== null
             ? { warranty_days: input.warranty_days }
@@ -290,6 +303,39 @@ export class MarketplaceStockService {
       );
     }
     return touched;
+  }
+
+  /**
+   * Размеры упаковок (Эпик 18), которыми переданные позиции физически
+   * прибыли на склад, — по `package_size` их исходных заказов. Позиции без
+   * заказа/package_size (легаси, докладка вручную) в множество не попадают —
+   * тогда фильтр `filterReceivedPackages` честно откатится к полному
+   * каталогу origin (см. её комментарий).
+   */
+  private async resolveReceivedPackageSizes(
+    positions: MarketplaceInventoryDomainEntity[]
+  ): Promise<Set<number>> {
+    const orderIds = [...new Set(positions.map((p) => p.order_id).filter((id): id is string => Boolean(id)))];
+    const orders = await Promise.all(orderIds.map((id) => this.orderRepo.findById(id)));
+    return new Set(orders.map((o) => o?.package_size).filter((s): s is number => Boolean(s)));
+  }
+
+  /**
+   * Сужает каталог упаковок оффера остатка до фасовок, реально принятых на
+   * склад (`receivedSizes`) — иначе заказчик видит в диалоге «В корзину» ВСЕ
+   * фасовки origin-оффера поставщика, хотя физически на складе кооператива
+   * может лежать только часть из них. Пустой `receivedSizes` (нет
+   * заказов-провенансов — легаси/ручная докладка) или пустое пересечение
+   * (расхождение данных) — откат к полному каталогу origin, не к пустому
+   * списку: лучше показать лишний вариант, чем не дать выбрать никакой.
+   */
+  private filterReceivedPackages(
+    packages: MarketplaceOfferPackage[],
+    receivedSizes: Set<number>
+  ): MarketplaceOfferPackage[] {
+    if (receivedSizes.size === 0) return packages;
+    const filtered = packages.filter((p) => receivedSizes.has(p.size));
+    return filtered.length > 0 ? filtered : packages;
   }
 
   /**

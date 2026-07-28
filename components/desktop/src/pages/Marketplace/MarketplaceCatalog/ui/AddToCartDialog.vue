@@ -230,6 +230,8 @@ BaseDialog(
         :model-value="quantity",
         type="number",
         :step="quantityStep",
+        :min="0",
+        :max="maxQuantity ?? undefined",
         :label="isPackaged ? 'Число упаковок' : `Количество (${unitLabel})`",
         :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${isPackaged ? 'упак.' : unitLabel}` : 'Без ограничения остатка'",
         @update:model-value="onQuantityInput"
