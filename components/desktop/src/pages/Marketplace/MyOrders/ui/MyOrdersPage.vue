@@ -10,9 +10,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -20,8 +18,9 @@ import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types'
  * Story 4.6: orderer-стол «Мои заказы».
  *
  * Единый список всех заказов пайщика во всех статусах. Канон —
- * `widgets/Marketplace/OrderCard`. Управление заказом живёт прямо в карточке:
- * «Отменить» (до приёма поставщиком). Получение оформляется у стойки ПВЗ —
+ * `widgets/Marketplace/OrderCard`. Отмена заказа — только на детальной
+ * странице заказа (см. OrdererOrderDetailPage), не в карточке списка.
+ * Получение оформляется у стойки ПВЗ —
  * оператор формирует акт-бандл, пайщик подписывает его в гейте «подпись на
  * месте» (единый путь выдачи), поэтому подписи получения в этой карточке нет.
  * Клик по карточке открывает детальную страницу заказа.
@@ -249,24 +248,6 @@ async function onLoadMore(): Promise<void> {
   await load(currentPage.value + 1, true);
 }
 
-const cancelDialogOpen = ref(false);
-const cancelTargetOrder = ref<MarketplaceOrderView | null>(null);
-const cancelMessage = computed(() => {
-  const order = cancelTargetOrder.value;
-  if (!order) return '';
-  const saleUnit = marketplaceOrderSaleUnit(order.quantity, order.unit_of_measure, order.package_size);
-  return `Заказ № ${order.id.slice(0, 8)} (${saleUnit.units}×${saleUnit.unitLabel}, ${money(order.total_cost_with_fee)} ₽) будет отменён.`;
-});
-
-function confirmCancel(order: MarketplaceOrderView): void {
-  cancelTargetOrder.value = order;
-  cancelDialogOpen.value = true;
-}
-
-async function onOrderCancelled(): Promise<void> {
-  await load(1, false);
-}
-
 function openDetail(order: OrderCardModel): void {
   void router.push({
     name: 'marketplace-order-detail',
@@ -276,12 +257,6 @@ function openDetail(order: OrderCardModel): void {
 
 function goReceive(): void {
   receiveDialogOpen.value = true;
-}
-
-function onCardAction(payload: { key: string; order: OrderCardModel }): void {
-  const found = items.value.find((o) => o.id === payload.order.id);
-  if (!found) return;
-  if (payload.key === 'cancel') confirmCancel(found);
 }
 
 onMounted(() => {
@@ -350,7 +325,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
             role="orderer",
             layout="row",
             openable,
-            @action="onCardAction",
             @open="openDetail",
             @map="openMap"
           )
@@ -362,7 +336,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
           role="orderer",
           layout="row",
           openable,
-          @action="onCardAction",
           @open="openDetail",
           @map="openMap"
         )
@@ -371,13 +344,6 @@ q-page.orders(role="region", aria-label="Мои заказы")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
 
   HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
-
-  CancelOrderDialog(
-    v-model="cancelDialogOpen",
-    :order-id="cancelTargetOrder?.id ?? ''",
-    :message="cancelMessage",
-    @cancelled="onOrderCancelled"
-  )
 
   //- Карта пункта выдачи «куда ехать» — по клику на геопозицию карточки.
   BaseDialog(v-model="mapOpen", :title="mapTarget?.name || 'Пункт выдачи'")

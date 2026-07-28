@@ -387,6 +387,9 @@ q-page.order-detail(role="region", aria-label="Заказ")
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
 
+            .order-detail__hero-cancel(v-if="cancellable")
+              BaseButton(variant="danger", size="sm", @click="openCancelDialog") Отменить заказ
+
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)
           .t-h3 Где забрать
@@ -447,9 +450,6 @@ q-page.order-detail(role="region", aria-label="Заказ")
         template(#head)
           .t-h3 Хронология
         ActivityTimeline(:events="timelineEvents", group-by-date)
-
-      .order-detail__actions(v-if="cancellable")
-        BaseButton(variant="danger", @click="openCancelDialog") Отменить заказ
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
 
@@ -669,11 +669,11 @@ q-page.order-detail(role="region", aria-label="Заказ")
     border-top: 1px solid var(--p-line);
   }
 
-  &__actions {
+  // Кнопка отмены — внутри карточки товара, правый нижний угол (единственное
+  // место отмены заказа во всём Marketplace, см. review 2026-07-28).
+  &__hero-cancel {
     display: flex;
-    flex-wrap: wrap;
     justify-content: flex-end;
-    gap: var(--p-2, 8px);
   }
 }
 

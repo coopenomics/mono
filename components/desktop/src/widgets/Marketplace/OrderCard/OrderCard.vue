@@ -167,8 +167,6 @@ export interface Order {
   statusLabel: string
   /** Вариант бейджа доменного статуса. */
   statusVariant: BaseBadgeVariant
-  /** Доступна ли отмена заказчиком (только до акцепта поставщика). */
-  cancellable?: boolean
   createdAt: string | Date
   /** Наименование пункта выдачи (кооперативного участка) — основная строка ПВЗ. */
   pvzName?: string
@@ -218,9 +216,9 @@ function onCardClick(): void {
 // (order.statusLabel / order.statusVariant) из orderStatusDisplay — карточка
 // его не переводит, чтобы не было двух разных статусов на одном заказе.
 
-// Per-role набор действий по умолчанию (slot actions перебивает). Заказчик
-// (orderer) обрабатывается отдельно в actionsForRole — его действия зависят от
-// доменного `cancellable`, а не от грубого card-status.
+// Per-role набор действий по умолчанию (slot actions перебивает). У заказчика
+// (orderer) действий в карточке нет — отмена заказа живёт только на детальной
+// странице заказа (OrdererOrderDetailPage), не дублируется в списке.
 const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus, OrderAction[]>> = {
   offerer: {
     // Story 4.5: placed = ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL для individual
@@ -263,14 +261,10 @@ const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus
 const actionsForRole = computed<OrderAction[]>(() => {
   if (props.readonly) return []
   const role = props.role
-  // Заказчик: «Отменить», пока заказ отменяем (до акцепта поставщика). Подпись
-  // получения — у стойки ПВЗ в гейте «подпись на месте» (единый путь выдачи),
-  // в карточке заказа её нет. Полную карточку открывает клик по телу (openable).
-  if (role === 'orderer') {
-    const actions: OrderAction[] = []
-    if (props.order.cancellable) actions.push({ key: 'cancel', label: 'Отменить', kind: 'danger' })
-    return actions
-  }
+  // Заказчик: действий в карточке нет — отмена только на детальной странице
+  // заказа. Подпись получения — у стойки ПВЗ в гейте «подпись на месте»
+  // (единый путь выдачи). Полную карточку открывает клик по телу (openable).
+  if (role === 'orderer') return []
   return ACTIONS_PER_ROLE[role][props.order.status]
 })
 

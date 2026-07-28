@@ -96,13 +96,6 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     // грубому card-status — иначе на карточке два разных текста статуса.
     statusLabel: display.label,
     statusVariant: display.variant,
-    // Отмена заказчиком без штрафа разрешена только до акцепта поставщика
-    // (Story 4.4 — C++ guard status==ACTIVE). ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) —
-    // тот же ACTIVE on-chain, backend лишь пометил «ждём Accept поставщика».
-    cancellable:
-      o.status === 'ACTIVE' ||
-      o.status === 'ACCEPTED_PENDING_SUPPLIER' ||
-      o.status === 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL',
     createdAt: o.created_at,
     // Имя КУ — основная строка ПВЗ, адрес — вторичная. Если нет ни имени, ни
     // адреса — показываем служебный braname, чтобы ПВЗ не исчез из карточки.
