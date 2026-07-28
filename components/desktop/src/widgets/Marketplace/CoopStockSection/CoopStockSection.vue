@@ -4,6 +4,7 @@ import { date } from 'quasar';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
@@ -90,7 +91,11 @@ function expiryLabel(i: MarketplaceInventoryItemView): string {
 
 function openPublishDialog(): void {
   // Префилл цены — цена прибытия первой выбранной позиции (база уценки).
-  publishPrice.value = selectedFree.value.find((i) => i.arrival_price)?.arrival_price ?? '';
+  // Урезаем до 2 знаков (asset на цепи — precision 4, «100.0000» выглядело
+  // неотформатированным полем ввода); floorDecimalString — truncate, не
+  // round, и отдаёт точку, а не запятую — годится и на отправку в мутацию.
+  const arrivalPrice = selectedFree.value.find((i) => i.arrival_price)?.arrival_price;
+  publishPrice.value = arrivalPrice ? floorDecimalString(arrivalPrice, 2) : '';
   publishWarrantyDays.value = '0';
   publishDialogOpen.value = true;
 }

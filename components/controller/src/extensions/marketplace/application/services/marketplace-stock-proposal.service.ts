@@ -620,6 +620,14 @@ export class MarketplaceStockProposalService {
     const issuables: Array<{
       order_id: string;
       item: MarketplaceStockProposalItem;
+      /**
+       * Эпик 18: `item.quantity` — число упаковок при отпуске упаковкой (та же
+       * конвенция, что и в resolveSaleUnit), а `openIssuance` ждёт количество в
+       * БАЗОВОЙ единице. Для строки докладки берём его из только что созданного
+       * заказа (order.quantity = resolved.baseQuantity); для строки обычного
+       * заказа `item.quantity` уже в базовых единицах (buildOrderItem).
+       */
+      actual_quantity: number;
       signiss2: MarketplaceIssueActSignedDocumentInputDTO;
     }> = [];
     const createdStock: Array<{ order_id: string }> = [];
@@ -637,8 +645,9 @@ export class MarketplaceStockProposalService {
           );
         }
         if (item.order_id) {
-          // Обычный заказ — уже ACCEPTED_TO_COOP, создавать нечего.
-          issuables.push({ order_id: item.order_id, item, signiss2 });
+          // Обычный заказ — уже ACCEPTED_TO_COOP, создавать нечего; quantity уже
+          // в базовых единицах (buildOrderItem: line.actual_quantity).
+          issuables.push({ order_id: item.order_id, item, actual_quantity: item.quantity, signiss2 });
           continue;
         }
         // Докладка: средства уже в членском (конвертация выше при дефиците) — без Заявления.
@@ -652,7 +661,9 @@ export class MarketplaceStockProposalService {
           order_hash: item.order_hash,
         });
         createdStock.push({ order_id: order.id });
-        issuables.push({ order_id: order.id, item, signiss2 });
+        // order.quantity — уже resolved.baseQuantity (createStockOrder), не число
+        // упаковок из item.quantity.
+        issuables.push({ order_id: order.id, item, actual_quantity: order.quantity, signiss2 });
       }
     } catch (error) {
       for (const { order_id } of createdStock) {
@@ -674,12 +685,12 @@ export class MarketplaceStockProposalService {
 
     // ── 3) Выдача: signiss1 оператора → signiss2 пайщика (заказ RECEIVED) ────
     const order_ids: string[] = [];
-    for (const { order_id, item, signiss2 } of issuables) {
+    for (const { order_id, item, actual_quantity, signiss2 } of issuables) {
       await this.issuanceService.openIssuance({
         coopname,
         chairman_account: proposal.operator_account,
         order_id,
-        actual_quantity: item.quantity,
+        actual_quantity,
         actual_unit_price: item.unit_price,
         signed_document: item.signiss1_act as unknown as MarketplaceIssueActSignedDocumentInputDTO,
       });

@@ -687,7 +687,13 @@ export class MarketplaceIssuanceService {
     const decimals = this.assetConfig.decimals;
     const unitPrice = Number.parseFloat(actual_unit_price);
     const fact_unit_price = unitPrice.toFixed(decimals);
-    const factCostNum = actual_quantity * unitPrice;
+    // Эпик 18: actual_quantity — в БАЗОВОЙ единице, а при отпуске упаковкой
+    // actual_unit_price — цена ЗА УПАКОВКУ (см. resolveSaleUnit). Сумму считаем
+    // от числа упаковок (presentSaleUnit), как и в buildIssueActDocument/
+    // marketplace-apl-reception.service.ts — иначе fact_cost/diff_state
+    // занижаются в разы для каждого packaged-заказа.
+    const saleUnits = presentSaleUnit(actual_quantity, order.unit_of_measure, order.package_size).units;
+    const factCostNum = saleUnits * unitPrice;
     const fact_cost = factCostNum.toFixed(decimals);
     // diff_state по СТОИМОСТИ (цена могла измениться, не только количество):
     // именно стоимость определяет ветку возврата/доплаты в signiss2.

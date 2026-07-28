@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { applyMembershipFee, saleQuantityStep } from 'src/shared/lib/marketplace';
+import { applyMembershipFee, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
@@ -136,7 +136,9 @@ const canSubmit = computed(() => {
 
 function onQuantityInput(value: string | number | null): void {
   const n = Number(value);
-  quantity.value = Number.isNaN(n) ? 0 : n;
+  // Нативные стрелки number-инпута прибавляют/отнимают сырой step (0.001) без
+  // округления — квантуем, чтобы не накапливался мусор вроде «1.0001».
+  quantity.value = Number.isNaN(n) ? 0 : quantizeSaleQuantity(props.offer, n);
 }
 
 watch(
