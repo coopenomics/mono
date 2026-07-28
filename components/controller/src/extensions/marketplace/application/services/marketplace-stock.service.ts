@@ -40,7 +40,7 @@ import {
 import {
   MarketplaceInventoryOwnerships,
 } from '../../domain/entities/marketplace-inventory.types';
-import { MarketplaceOfferStatuses, MarketplaceSaleForms } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
@@ -223,10 +223,13 @@ export class MarketplaceStockService {
           category_id: origin.category_id,
           price_per_unit: this.normalizePrice(price),
           unit_of_measure: origin.unit_of_measure,
-          // Обезличенный остаток продаётся по мере (по цене прибытия/с уценкой),
-          // упаковочный отпуск на остаток не переносим (Эпик 18).
-          sale_form: MarketplaceSaleForms.BY_MEASURE,
-          packages: [],
+          // Способ отпуска остатка — ТОТ ЖЕ, что у исходного оффера партии
+          // (Эпик 18): группа позиций всегда привязана к одному origin
+          // (groupByOriginOffer), поэтому sale_form/packages однозначны и
+          // безопасны к переносу — молоко бутылками остаётся бутылками и на
+          // остатке, контрактный check_packaging не даёт дробить упаковку.
+          sale_form: origin.sale_form,
+          packages: origin.packages,
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
