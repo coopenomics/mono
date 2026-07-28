@@ -437,6 +437,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         claim_id: event.claim_id,
         order_id: '',
         returnedAmount,
+        // Готовый суффикс для in-app/push — {% if %} в теле шага Центром
+        // уведомлений не вычисляется (см. комментарий в схеме воркфлоу).
+        returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
       };
       await this.notificationSenderService.sendNotificationToUser(
