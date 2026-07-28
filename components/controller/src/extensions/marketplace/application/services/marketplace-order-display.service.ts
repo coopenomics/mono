@@ -28,6 +28,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
+import { isStockOrder } from '../shared/order-kind.util';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -113,18 +114,12 @@ export class MarketplaceOrderDisplayService {
           ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
           : Promise.resolve([]),
         opts?.withWarehouseQuantity
-          ? this.inventoryRepo.sumOnWarehouseByOrders(
-              config.coopname,
-              orders.map((o) => o.id)
-            )
+          ? this.resolveWarehouseQuantity(orders)
           : Promise.resolve(new Map<string, number>()),
         // Полки — той же опцией, что и складской остаток: оба нужны только
         // лентам выдачи («сколько есть» + «где лежит»).
         opts?.withWarehouseQuantity
-          ? this.inventoryRepo.shelvesOnWarehouseByOrders(
-              config.coopname,
-              orders.map((o) => o.id)
-            )
+          ? this.resolveWarehouseShelves(orders)
           : Promise.resolve(new Map<string, string[]>()),
       ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
@@ -273,6 +268,48 @@ export class MarketplaceOrderDisplayService {
       })
     );
     return result;
+  }
+
+  /**
+   * «Принято и не выдано» по заказу — источник физического наличия зависит от
+   * происхождения заказа. Обычный заказ (у поставщика) — приёмка на склад КУ
+   * (`sumOnWarehouseByOrders`, ownership=ORDER). Заказ ИЗ ОСТАТКА кооператива
+   * (`isStockOrder`) приёмки не имеет вообще — имущество зарезервировано
+   * прямо при создании заказа (`reserveStock`, reserved_order_id), поэтому
+   * доступность считается через `sumReservedByOrders`. Раньше здесь всегда
+   * вызывался только «обычный» путь — лента выдачи ложно показывала
+   * «Недопоставка 0 из N» на товаре, который физически уже на складе
+   * (review 2026-07-28; тот же источник бага уже чинился в
+   * `MarketplaceIssuanceService.loadAvailableOnWarehouse`).
+   */
+  private async resolveWarehouseQuantity(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, number>> {
+    const stockIds = orders.filter((o) => isStockOrder(o)).map((o) => o.id);
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    const [stockSums, regularSums] = await Promise.all([
+      stockIds.length
+        ? this.inventoryRepo.sumReservedByOrders(config.coopname, stockIds)
+        : Promise.resolve(new Map<string, number>()),
+      regularIds.length
+        ? this.inventoryRepo.sumOnWarehouseByOrders(config.coopname, regularIds)
+        : Promise.resolve(new Map<string, number>()),
+    ]);
+    return new Map([...stockSums, ...regularSums]);
+  }
+
+  /**
+   * Полки — только для обычных заказов: shelf проставляется при приёмке от
+   * поставщика. У заказа из остатка кооператива своей полки нет (резерв
+   * позиций остатка не переносит их физическую полку на заказ).
+   */
+  private async resolveWarehouseShelves(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, string[]>> {
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    return regularIds.length
+      ? this.inventoryRepo.shelvesOnWarehouseByOrders(config.coopname, regularIds)
+      : new Map();
   }
 
   /** Маппинг организации участка в отображаемые реквизиты (единый порядок fallback). */

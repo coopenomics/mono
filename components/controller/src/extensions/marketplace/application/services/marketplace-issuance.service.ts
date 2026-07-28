@@ -40,6 +40,7 @@ import {
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { presentSaleUnit } from '../shared/packaging.util';
+import { isStockOrder } from '../shared/order-kind.util';
 import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { toQuantityAsset } from '../shared/quantity.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
@@ -192,7 +193,7 @@ export class MarketplaceIssuanceService {
     // уценка) — повышение цены на выдаче открыло бы «наценку», под которую
     // нет доходной проводки (requirement 76, вопрос 4).
     if (
-      this.isStockOrder(order) &&
+      isStockOrder(order) &&
       Number.parseFloat(input.actual_unit_price) > Number.parseFloat(order.price_per_unit) + 1e-9
     ) {
       throw new ConflictException(
@@ -419,7 +420,7 @@ export class MarketplaceIssuanceService {
     // кооператива, доступная к перепредложению пайщикам после публикации.
     // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
     try {
-      if (this.isStockOrder(order)) {
+      if (isStockOrder(order)) {
         // Заказ из остатка: выданное — ISSUED, невыданный резерв возвращается
         // в свободный опубликованный остаток.
         const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(
@@ -468,15 +469,6 @@ export class MarketplaceIssuanceService {
   // ── private ──
 
   /**
-   * Заказ из остатка кооператива (requirement 76): продавец — сам кооператив.
-   * Такой заказ не имеет приёмки — выдача идёт из зарезервированных позиций
-   * обезличенного остатка.
-   */
-  private isStockOrder(order: MarketplaceOrderDomainEntity): boolean {
-    return order.supplier_account === order.coopname;
-  }
-
-  /**
    * Списание уценки по заказу из остатка (chain `markdown`, o.mkt.loss).
    * Best-effort: сбой не роняет закрытие выдачи — расход дослать можно
    * повторным вызовом (на цепи guard идемпотентности по заказу).
@@ -510,7 +502,7 @@ export class MarketplaceIssuanceService {
   private async loadAvailableOnWarehouse(
     order: MarketplaceOrderDomainEntity
   ): Promise<number> {
-    const sums = this.isStockOrder(order)
+    const sums = isStockOrder(order)
       ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
       : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
     return sums.get(order.id) ?? 0;
