@@ -4,9 +4,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { applyMembershipFee } from 'src/shared/lib/marketplace';
+import { applyMembershipFee, saleQuantityStep } from 'src/shared/lib/marketplace';
 import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
-import { marketplaceOrderUnitLabel, MarketplaceSaleForm, MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
+import { marketplaceOrderUnitLabel, MarketplaceSaleForm } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
 
 // Минимально необходимый набор полей оффера для добавления в корзину —
@@ -64,9 +64,7 @@ const unitLabel = computed(() =>
   marketplaceOrderUnitLabel(props.offer?.unit_of_measure),
 );
 // Шаг ввода: по мере — штука целая (1), вес/объём дробный (0.001); упаковкой — целое.
-const quantityStep = computed(() =>
-  isPackaged.value || props.offer?.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001,
-);
+const quantityStep = computed(() => saleQuantityStep(props.offer));
 
 // Подпись варианта в селекте — название (если задано) ВСЕГДА вместе с
 // размером упаковки, а не вместо него: заказчику нужно видеть объём сразу

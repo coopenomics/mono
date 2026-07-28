@@ -10,8 +10,14 @@ import {
 } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
-import { marketplaceOrderUnitLabel, MarketplaceSaleForm, MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
-import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import {
+  useMarketplaceRealtime,
+  getMembershipFeePercent,
+  applyMembershipFee,
+  saleQuantityStep,
+  quantizeSaleQuantity,
+} from 'src/shared/lib/marketplace';
 
 /**
  * Эпик 16 / Story 16.1 + 16.2: страница корзины заказчика и оформление.
@@ -53,20 +59,17 @@ function moneyWithFee(value: string | number | null | undefined): string {
 }
 
 // Эпик 18: упаковочная позиция — целое число упаковок; по мере — дробное в
-// базовой единице (штука неделима). Шаг задаёт stepFor.
-function isPackagedItem(item: IMarketplaceCartItem): boolean {
-  return item.sale_form === MarketplaceSaleForm.PACKAGED;
-}
+// базовой единице (штука неделима). Шаг/квантование — общий helper (см. также
+// AddToCartDialog.vue, StockRestockPanel.vue).
 function stepFor(item: IMarketplaceCartItem): number {
-  if (isPackagedItem(item)) return 1;
-  return item.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001;
+  return saleQuantityStep(item);
 }
 // Подпись единицы отпуска: упаковкой — «упак. 0,5 л» (package_label), иначе базовая.
 function saleUnitLabel(item: IMarketplaceCartItem): string {
   return item.package_label ?? unitShort(item.unit_of_measure);
 }
 function quantize(item: IMarketplaceCartItem, v: number): number {
-  return stepFor(item) === 1 ? Math.floor(v) : Math.round(v * 1000) / 1000;
+  return quantizeSaleQuantity(item, v);
 }
 
 // Низкоуровневый коммит количества (> 0). Кламп делает changeQty.

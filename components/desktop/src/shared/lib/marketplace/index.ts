@@ -32,6 +32,11 @@ export {
   type StockProposalChargeSums,
 } from './stock-proposal-charges';
 export {
+  saleQuantityStep,
+  quantizeSaleQuantity,
+  type SaleQuantityOffer,
+} from './sale-quantity-step';
+export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,
   dispatchMarketplaceEvent,

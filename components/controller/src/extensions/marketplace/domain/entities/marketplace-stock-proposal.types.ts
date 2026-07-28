@@ -44,6 +44,10 @@ export interface MarketplaceStockProposalItem {
   product_name: string;
   /** Снапшот базовой единицы измерения товара — для подписи количества пайщику. */
   unit_of_measure: MarketplaceUnitOfMeasure | null;
+  /** Выбранная упаковка каталога (Эпик 18) на момент докладки; null — отпуск по мере. */
+  package_id?: string | null;
+  /** Содержимое упаковки в базовой единице на момент докладки; 0/undefined — отпуск по мере. */
+  package_size?: number;
   /**
    * Существующий обычный заказ пайщика (ACCEPTED_TO_COOP), выдаваемый этим
    * бандлом. Пусто → строка докладки со склада (заказ родится на финализации).

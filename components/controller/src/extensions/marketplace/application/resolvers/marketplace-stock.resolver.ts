@@ -165,6 +165,8 @@ export class MarketplaceStockResolver {
       dto.order_hash = l.order_hash;
       dto.unit_price = l.unit_price;
       dto.product_name = l.product_name;
+      dto.package_id = l.package_id;
+      dto.package_size = l.package_size;
       dto.signiss1_document = new GeneratedDocumentDTO(l.signiss1_document);
       return dto;
     });
@@ -190,6 +192,7 @@ export class MarketplaceStockResolver {
       items: (data.items ?? []).map((i) => ({
         offer_id: i.offer_id,
         quantity: i.quantity,
+        package_id: i.package_id ?? null,
         order_hash: i.order_hash,
         signiss1_act: i.signiss1_act as unknown as ISignedDocumentDomainInterface,
       })),

@@ -8410,7 +8410,9 @@ export type ValueTypes = {
 	offer_id: string | Variable<any, string>,
 	/** order_hash из подготовки (marketplaceStockIssuancePayloads). */
 	order_hash: string | Variable<any, string>,
-	/** Количество единиц. */
+	/** Выбранная упаковка каталога (та же, что и в подготовке payloads) — только для отпуска упаковкой. */
+	package_id?: string | undefined | null | Variable<any, string>,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number | Variable<any, string>,
 	/** Акт приёма-передачи, подписанный оператором КУ первой подписью. */
 	signiss1_act: ValueTypes["MarketplaceIssueActSignedDocumentInput"] | Variable<any, string>
@@ -9917,13 +9919,17 @@ export type ValueTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** Детерминированный order_hash будущего заказа из остатка. */
 	order_hash?:boolean | `@${string}`,
+	/** Выбранная упаковка каталога (пусто — отпуск по мере). */
+	package_id?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара. */
 	product_name?:boolean | `@${string}`,
-	/** Количество единиц. */
+	/** Количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity?:boolean | `@${string}`,
 	/** Акт приёма-передачи к подписи оператором КУ (первая подпись). */
 	signiss1_document?:ValueTypes["GeneratedDocument"],
-	/** Цена за единицу. */
+	/** Цена за единицу отпуска (за базовую единицу либо за упаковку). */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceStockIssuanceOperatorLine']?: Omit<ValueTypes["MarketplaceStockIssuanceOperatorLine"], "...on MarketplaceStockIssuanceOperatorLine">
@@ -9976,13 +9982,17 @@ export type ValueTypes = {
 	["MarketplaceStockProposalItem"]: AliasType<{
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
+	/** Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица. */
+	package_label?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара. */
 	product_name?:boolean | `@${string}`,
-	/** Предложенное количество единиц. */
+	/** Предложенное количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
-	/** Цена за единицу на момент предложения. */
+	/** Цена за единицу отпуска на момент предложения. */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceStockProposalItem']?: Omit<ValueTypes["MarketplaceStockProposalItem"], "...on MarketplaceStockProposalItem">
@@ -9990,7 +10000,9 @@ export type ValueTypes = {
 	["MarketplaceStockProposalItemInput"]: {
 	/** Предложение кооператива из опубликованного остатка. */
 	offer_id: string | Variable<any, string>,
-	/** Количество единиц, предлагаемое пайщику. */
+	/** Выбранная упаковка каталога — только для товара с отпуском упаковкой. */
+	package_id?: string | undefined | null | Variable<any, string>,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number | Variable<any, string>
 };
 	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
@@ -21530,7 +21542,9 @@ export type ResolverInputTypes = {
 	offer_id: string,
 	/** order_hash из подготовки (marketplaceStockIssuancePayloads). */
 	order_hash: string,
-	/** Количество единиц. */
+	/** Выбранная упаковка каталога (та же, что и в подготовке payloads) — только для отпуска упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Акт приёма-передачи, подписанный оператором КУ первой подписью. */
 	signiss1_act: ResolverInputTypes["MarketplaceIssueActSignedDocumentInput"]
@@ -22991,13 +23005,17 @@ export type ResolverInputTypes = {
 	offer_id?:boolean | `@${string}`,
 	/** Детерминированный order_hash будущего заказа из остатка. */
 	order_hash?:boolean | `@${string}`,
+	/** Выбранная упаковка каталога (пусто — отпуск по мере). */
+	package_id?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара. */
 	product_name?:boolean | `@${string}`,
-	/** Количество единиц. */
+	/** Количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity?:boolean | `@${string}`,
 	/** Акт приёма-передачи к подписи оператором КУ (первая подпись). */
 	signiss1_document?:ResolverInputTypes["GeneratedDocument"],
-	/** Цена за единицу. */
+	/** Цена за единицу отпуска (за базовую единицу либо за упаковку). */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
@@ -23046,20 +23064,26 @@ export type ResolverInputTypes = {
 	["MarketplaceStockProposalItem"]: AliasType<{
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
+	/** Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица. */
+	package_label?:boolean | `@${string}`,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size?:boolean | `@${string}`,
 	/** Наименование товара. */
 	product_name?:boolean | `@${string}`,
-	/** Предложенное количество единиц. */
+	/** Предложенное количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
-	/** Цена за единицу на момент предложения. */
+	/** Цена за единицу отпуска на момент предложения. */
 	unit_price?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceStockProposalItemInput"]: {
 	/** Предложение кооператива из опубликованного остатка. */
 	offer_id: string,
-	/** Количество единиц, предлагаемое пайщику. */
+	/** Выбранная упаковка каталога — только для товара с отпуском упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
 };
 	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
@@ -34254,7 +34278,9 @@ export type ModelTypes = {
 	offer_id: string,
 	/** order_hash из подготовки (marketplaceStockIssuancePayloads). */
 	order_hash: string,
-	/** Количество единиц. */
+	/** Выбранная упаковка каталога (та же, что и в подготовке payloads) — только для отпуска упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Акт приёма-передачи, подписанный оператором КУ первой подписью. */
 	signiss1_act: ModelTypes["MarketplaceIssueActSignedDocumentInput"]
@@ -35640,13 +35666,17 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Детерминированный order_hash будущего заказа из остатка. */
 	order_hash: string,
+	/** Выбранная упаковка каталога (пусто — отпуск по мере). */
+	package_id?: string | undefined | null,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size: number,
 	/** Наименование товара. */
 	product_name: string,
-	/** Количество единиц. */
+	/** Количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Акт приёма-передачи к подписи оператором КУ (первая подпись). */
 	signiss1_document: ModelTypes["GeneratedDocument"],
-	/** Цена за единицу. */
+	/** Цена за единицу отпуска (за базовую единицу либо за упаковку). */
 	unit_price: string
 };
 	["MarketplaceStockIssuancePrepareInput"]: {
@@ -35691,19 +35721,25 @@ export type ModelTypes = {
 	["MarketplaceStockProposalItem"]: {
 		/** Предложение кооператива из остатка. */
 	offer_id: string,
+	/** Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица. */
+	package_label?: string | undefined | null,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size: number,
 	/** Наименование товара. */
 	product_name: string,
-	/** Предложенное количество единиц. */
+	/** Предложенное количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	/** Цена за единицу на момент предложения. */
+	/** Цена за единицу отпуска на момент предложения. */
 	unit_price: string
 };
 	["MarketplaceStockProposalItemInput"]: {
 	/** Предложение кооператива из опубликованного остатка. */
 	offer_id: string,
-	/** Количество единиц, предлагаемое пайщику. */
+	/** Выбранная упаковка каталога — только для товара с отпуском упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
 };
 	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
@@ -48103,7 +48139,9 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** order_hash из подготовки (marketplaceStockIssuancePayloads). */
 	order_hash: string,
-	/** Количество единиц. */
+	/** Выбранная упаковка каталога (та же, что и в подготовке payloads) — только для отпуска упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Акт приёма-передачи, подписанный оператором КУ первой подписью. */
 	signiss1_act: GraphQLTypes["MarketplaceIssueActSignedDocumentInput"]
@@ -49612,13 +49650,17 @@ export type GraphQLTypes = {
 	offer_id: string,
 	/** Детерминированный order_hash будущего заказа из остатка. */
 	order_hash: string,
+	/** Выбранная упаковка каталога (пусто — отпуск по мере). */
+	package_id?: string | undefined | null,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size: number,
 	/** Наименование товара. */
 	product_name: string,
-	/** Количество единиц. */
+	/** Количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Акт приёма-передачи к подписи оператором КУ (первая подпись). */
 	signiss1_document: GraphQLTypes["GeneratedDocument"],
-	/** Цена за единицу. */
+	/** Цена за единицу отпуска (за базовую единицу либо за упаковку). */
 	unit_price: string,
 	['...on MarketplaceStockIssuanceOperatorLine']: Omit<GraphQLTypes["MarketplaceStockIssuanceOperatorLine"], "...on MarketplaceStockIssuanceOperatorLine">
 };
@@ -49671,20 +49713,26 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceStockProposalItem",
 	/** Предложение кооператива из остатка. */
 	offer_id: string,
+	/** Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица. */
+	package_label?: string | undefined | null,
+	/** Содержимое упаковки в базовой единице (0 — отпуск по мере). */
+	package_size: number,
 	/** Наименование товара. */
 	product_name: string,
-	/** Предложенное количество единиц. */
+	/** Предложенное количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
-	/** Цена за единицу на момент предложения. */
+	/** Цена за единицу отпуска на момент предложения. */
 	unit_price: string,
 	['...on MarketplaceStockProposalItem']: Omit<GraphQLTypes["MarketplaceStockProposalItem"], "...on MarketplaceStockProposalItem">
 };
 	["MarketplaceStockProposalItemInput"]: {
 		/** Предложение кооператива из опубликованного остатка. */
 	offer_id: string,
-	/** Количество единиц, предлагаемое пайщику. */
+	/** Выбранная упаковка каталога — только для товара с отпуском упаковкой. */
+	package_id?: string | undefined | null,
+	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
 };
 	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */

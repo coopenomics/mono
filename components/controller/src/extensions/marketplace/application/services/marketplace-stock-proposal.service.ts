@@ -26,6 +26,7 @@ import type { MarketplaceConvertStatementSignedInputDTO } from '~/application/do
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 import { computeStockOrderHash, computeConvertAnchorHash } from '../shared/order-hash.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { resolveSaleUnit, type ResolvedSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_ISSUANCE_SERVICE,
   type MarketplaceIssuanceService,
@@ -67,6 +68,8 @@ import {
 export interface MarketplaceStockProposalCreateLine {
   offer_id: string;
   quantity: number;
+  /** Выбранная упаковка каталога (та же, что и в подготовке payloads); null — отпуск по мере. */
+  package_id?: string | null;
   /** Детерминированный order_hash (из payloads оператора). */
   order_hash: string;
   /** АПП-выдачи, подписанный оператором первой подписью (signiss1). */
@@ -115,6 +118,10 @@ export interface MarketplaceStockIssuanceOperatorLine {
   order_hash: string;
   unit_price: string;
   product_name: string;
+  /** Выбранная упаковка каталога (Эпик 18); null — отпуск по мере. */
+  package_id: string | null;
+  /** Содержимое упаковки в базовой единице; 0 — отпуск по мере. */
+  package_size: number;
   signiss1_document: DocumentDomainEntity;
 }
 
@@ -295,13 +302,19 @@ export class MarketplaceStockProposalService {
     return wallet?.available ? this.economyService.assetToUnits(wallet.available) : 0n;
   }
 
-  /** Валидация строки докладки: активный оффер остатка ИМЕННО этого КУ + кол-во. */
+  /**
+   * Валидация строки докладки: активный оффер остатка ИМЕННО этого КУ + кол-во.
+   * Эпик 18: `quantity` — базовое количество при отпуске по мере, число упаковок
+   * при отпуске упаковкой (тот же контракт, что и у обычного заказа — см.
+   * `resolveSaleUnit`); остаток на складе всегда сверяется в базовых единицах.
+   */
   private async validateStockLine(
     coopname: string,
     braname: string,
     offer_id: string,
-    quantity: number
-  ): Promise<MarketplaceOfferDomainEntity> {
+    quantity: number,
+    package_id: string | null | undefined
+  ): Promise<{ offer: MarketplaceOfferDomainEntity; resolved: ResolvedSaleUnit }> {
     if (!(quantity > 0)) {
       throw new BadRequestException('Количество в строке должно быть больше нуля.');
     }
@@ -317,13 +330,13 @@ export class MarketplaceStockProposalService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(`«${offer.product_name}» снят с публикации.`);
     }
-    assertValidQuantity(quantity, offer.unit_of_measure);
-    if (offer.quantity_available < quantity) {
+    const resolved = resolveSaleUnit(offer, quantity, package_id);
+    if (offer.quantity_available < resolved.baseQuantity) {
       throw new BadRequestException(
-        `«${offer.product_name}»: на складе свободно ${offer.quantity_available} ед., нельзя предложить ${quantity}.`
+        `«${offer.product_name}»: на складе свободно ${offer.quantity_available} ед., нельзя предложить ${resolved.baseQuantity}.`
       );
     }
-    return offer;
+    return { offer, resolved };
   }
 
   /**
@@ -394,18 +407,19 @@ export class MarketplaceStockProposalService {
     braname: string;
     member_account: string;
     operator_account: string;
-    items: Array<{ offer_id: string; quantity: number }>;
+    items: Array<{ offer_id: string; quantity: number; package_id?: string | null }>;
   }): Promise<MarketplaceStockIssuanceOperatorLine[]> {
     if (input.items.length === 0) {
       throw new BadRequestException('Корзина докладки пуста — добавьте позиции из остатка.');
     }
     const lines: MarketplaceStockIssuanceOperatorLine[] = [];
     for (const item of input.items) {
-      const offer = await this.validateStockLine(
+      const { offer, resolved } = await this.validateStockLine(
         input.coopname,
         input.braname,
         item.offer_id,
-        item.quantity
+        item.quantity,
+        item.package_id
       );
       const order_hash = computeStockOrderHash(input.coopname, input.member_account, offer.id);
       const signiss1_document = await this.issuanceService.generateStockIssueActDocument({
@@ -417,15 +431,19 @@ export class MarketplaceStockProposalService {
         offer_id: offer.id,
         product_title: offer.product_name,
         unit_of_measurement: marketplaceOrderUnitLabel(offer.unit_of_measure),
-        quantity: item.quantity,
-        unit_price: offer.price_per_unit,
+        unit_of_measure: offer.unit_of_measure,
+        package_size: resolved.packageSize,
+        quantity: resolved.baseQuantity,
+        unit_price: resolved.unitPrice,
       });
       lines.push({
         offer_id: offer.id,
         quantity: item.quantity,
         order_hash,
-        unit_price: offer.price_per_unit,
+        unit_price: resolved.unitPrice,
         product_name: offer.product_name,
+        package_id: resolved.packageId,
+        package_size: resolved.packageSize,
         signiss1_document,
       });
     }
@@ -449,11 +467,12 @@ export class MarketplaceStockProposalService {
     // пайщику останется одна подпись.
     const items: MarketplaceStockProposalItem[] = [];
     for (const line of input.items) {
-      const offer = await this.validateStockLine(
+      const { offer, resolved } = await this.validateStockLine(
         input.coopname,
         input.braname,
         line.offer_id,
-        line.quantity
+        line.quantity,
+        line.package_id
       );
       if (!line.order_hash) {
         throw new BadRequestException('Строка без order_hash — переформируйте докладку.');
@@ -466,9 +485,11 @@ export class MarketplaceStockProposalService {
       items.push({
         offer_id: offer.id,
         quantity: line.quantity,
-        unit_price: offer.price_per_unit,
+        unit_price: resolved.unitPrice,
         product_name: offer.product_name,
         unit_of_measure: offer.unit_of_measure,
+        package_id: resolved.packageId,
+        package_size: resolved.packageSize,
         order_hash: line.order_hash,
         signiss1_act: line.signiss1_act,
       });
@@ -626,6 +647,7 @@ export class MarketplaceStockProposalService {
           orderer_account: member_account,
           offer_id: item.offer_id,
           quantity: item.quantity,
+          package_id: item.package_id ?? null,
           checkout_id: proposal.id,
           order_hash: item.order_hash,
         });

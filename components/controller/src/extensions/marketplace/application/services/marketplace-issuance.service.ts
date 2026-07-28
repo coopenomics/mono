@@ -596,6 +596,11 @@ export class MarketplaceIssuanceService {
     product_title: string;
     /** Готовый ярлык единицы заказа (фасовки) — строит вызывающая сторона из оферты. */
     unit_of_measurement: string;
+    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
+    unit_of_measure?: MarketplaceUnitOfMeasure;
+    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
+    package_size?: number;
+    /** Количество в БАЗОВОЙ единице (не число упаковок) — как и у обычного заказа. */
     quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
@@ -611,6 +616,8 @@ export class MarketplaceIssuanceService {
       offer_id: input.offer_id,
       product_title: input.product_title,
       unit_of_measurement: input.unit_of_measurement,
+      unit_of_measure: input.unit_of_measure,
+      package_size: input.package_size,
       transmitter: input.transmitter,
       actual_quantity: input.quantity,
       unit_price: input.unit_price,

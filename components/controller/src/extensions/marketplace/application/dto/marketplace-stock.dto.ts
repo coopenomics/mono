@@ -14,6 +14,7 @@ import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
 
@@ -80,10 +81,21 @@ export class MarketplaceStockProposalItemInputDTO {
   @IsNotEmpty()
   offer_id!: string;
 
-  @Field(() => Float, { description: 'Количество единиц, предлагаемое пайщику.' })
+  @Field(() => Float, {
+    description:
+      'Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой.',
+  })
   @IsNumber()
   @Min(1)
   quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка каталога — только для товара с отпуском упаковкой.',
+  })
+  @IsOptional()
+  @IsString()
+  package_id?: string | null;
 }
 
 @InputType('MarketplaceStockIssuancePrepareInput')
@@ -113,17 +125,25 @@ export class MarketplaceStockIssuanceOperatorLineDTO {
   @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
-  @Field(() => Float, { description: 'Количество единиц.' })
+  @Field(() => Float, {
+    description: 'Количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой.',
+  })
   quantity!: number;
 
   @Field(() => String, { description: 'Детерминированный order_hash будущего заказа из остатка.' })
   order_hash!: string;
 
-  @Field(() => String, { description: 'Цена за единицу.' })
+  @Field(() => String, { description: 'Цена за единицу отпуска (за базовую единицу либо за упаковку).' })
   unit_price!: string;
 
   @Field(() => String, { description: 'Наименование товара.' })
   product_name!: string;
+
+  @Field(() => String, { nullable: true, description: 'Выбранная упаковка каталога (пусто — отпуск по мере).' })
+  package_id!: string | null;
+
+  @Field(() => Float, { description: 'Содержимое упаковки в базовой единице (0 — отпуск по мере).' })
+  package_size!: number;
 
   @Field(() => GeneratedDocumentDTO, {
     description: 'Акт приёма-передачи к подписи оператором КУ (первая подпись).',
@@ -138,10 +158,21 @@ export class MarketplaceCreateStockProposalLineInputDTO {
   @IsNotEmpty()
   offer_id!: string;
 
-  @Field(() => Float, { description: 'Количество единиц.' })
+  @Field(() => Float, {
+    description:
+      'Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой.',
+  })
   @IsNumber()
   @Min(1)
   quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка каталога (та же, что и в подготовке payloads) — только для отпуска упаковкой.',
+  })
+  @IsOptional()
+  @IsString()
+  package_id?: string | null;
 
   @Field(() => String, { description: 'order_hash из подготовки (marketplaceStockIssuancePayloads).' })
   @IsString()
@@ -339,10 +370,12 @@ export class MarketplaceStockProposalItemDTO {
   @Field(() => String, { description: 'Предложение кооператива из остатка.' })
   offer_id!: string;
 
-  @Field(() => Float, { description: 'Предложенное количество единиц.' })
+  @Field(() => Float, {
+    description: 'Предложенное количество: базовое при отпуске по мере, число упаковок — при отпуске упаковкой.',
+  })
   quantity!: number;
 
-  @Field(() => String, { description: 'Цена за единицу на момент предложения.' })
+  @Field(() => String, { description: 'Цена за единицу отпуска на момент предложения.' })
   unit_price!: string;
 
   @Field(() => String, { description: 'Наименование товара.' })
@@ -350,6 +383,12 @@ export class MarketplaceStockProposalItemDTO {
 
   @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
   unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
+
+  @Field(() => Float, { description: 'Содержимое упаковки в базовой единице (0 — отпуск по мере).' })
+  package_size!: number;
+
+  @Field(() => String, { nullable: true, description: 'Подпись единицы отпуска («упак. 0,5 л»), пусто — базовая единица.' })
+  package_label!: string | null;
 }
 
 @ObjectType('MarketplaceStockProposal')
@@ -409,6 +448,11 @@ export function toMarketplaceStockProposalDTO(
     item.unit_price = i.unit_price;
     item.product_name = i.product_name;
     item.unit_of_measure = i.unit_of_measure ?? null;
+    item.package_size = i.package_size ?? 0;
+    item.package_label =
+      i.package_size && i.unit_of_measure
+        ? `упак. ${String(i.package_size).replace('.', ',')} ${marketplaceOrderUnitLabel(i.unit_of_measure)}`
+        : null;
     return item;
   });
   dto.status = e.status as MarketplaceStockProposalStatusEnum;

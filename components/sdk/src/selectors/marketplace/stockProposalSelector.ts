@@ -32,6 +32,8 @@ export const marketplaceStockIssuanceOperatorLineSelector = Selector(
   order_hash: true,
   unit_price: true,
   product_name: true,
+  package_id: true,
+  package_size: true,
   signiss1_document: rawDocumentSelector,
 })
 
@@ -51,6 +53,8 @@ export const marketplaceStockProposalSelector = Selector('MarketplaceStockPropos
     unit_price: true,
     product_name: true,
     unit_of_measure: true,
+    package_size: true,
+    package_label: true,
   },
   status: true,
   total_cost: true,

@@ -5598,6 +5598,8 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceStockIssuanceOperatorLine:{
 		offer_id:"String",
 		order_hash:"String",
+		package_id:"String",
+		package_size:"Float",
 		product_name:"String",
 		quantity:"Float",
 		signiss1_document:"GeneratedDocument",
@@ -5625,6 +5627,8 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceStockProposalItem:{
 		offer_id:"String",
+		package_label:"String",
+		package_size:"Float",
 		product_name:"String",
 		quantity:"Float",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
