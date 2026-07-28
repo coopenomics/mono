@@ -69,3 +69,13 @@ export type IGetMetricSuperpositionOutput =
   Queries.Capital.GetMetricSuperposition.IOutput[typeof Queries.Capital.GetMetricSuperposition.name];
 
 export type IMetricSuperposition = Zeus.ModelTypes['CapitalMetricSuperposition'];
+
+export type IGetMetricSuperpositionHistoryInput =
+  Queries.Capital.GetMetricSuperpositionHistory.IInput['data'];
+
+export type IGetMetricSuperpositionHistoryOutput =
+  Queries.Capital.GetMetricSuperpositionHistory.IOutput[typeof Queries.Capital.GetMetricSuperpositionHistory.name];
+
+export type IMetricSuperpositionHistory = Zeus.ModelTypes['CapitalMetricSuperpositionHistory'];
+
+export type IMetricSuperpositionFrame = Zeus.ModelTypes['CapitalMetricSuperpositionFrame'];

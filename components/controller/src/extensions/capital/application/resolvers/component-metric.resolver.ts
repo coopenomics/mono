@@ -22,8 +22,9 @@ import { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
 import { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
 import { MetricWaveOutputDTO } from '../dto/metrics/metric-wave.dto';
 import { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input.dto';
-import { MetricSuperpositionOutputDTO } from '../dto/metrics/metric-superposition.dto';
+import { MetricSuperpositionOutputDTO, MetricSuperpositionHistoryOutputDTO } from '../dto/metrics/metric-superposition.dto';
 import { GetMetricSuperpositionInputDTO } from '../dto/metrics/get-metric-superposition-input.dto';
+import { GetMetricSuperpositionHistoryInputDTO } from '../dto/metrics/get-metric-superposition-history-input.dto';
 // register GraphQL enums WaveLabel / WavePhase / MetricDriveDirection
 import '../../domain/enums/wave-label.enum';
 import '../../domain/enums/metric-drive-direction.enum';
@@ -179,5 +180,19 @@ export class ComponentMetricResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<MetricSuperpositionOutputDTO> {
     return this.componentMetricService.getMetricSuperposition(data, currentUser);
+  }
+
+  @Query(() => MetricSuperpositionHistoryOutputDTO, {
+    name: 'capitalMetricSuperpositionHistory',
+    description: 'История суперпозиции метрик по бакетам выбранного периода',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async getMetricSuperpositionHistory(
+    @Args('data', { type: () => GetMetricSuperpositionHistoryInputDTO })
+    data: GetMetricSuperpositionHistoryInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MetricSuperpositionHistoryOutputDTO> {
+    return this.componentMetricService.getMetricSuperpositionHistory(data, currentUser);
   }
 }

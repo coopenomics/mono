@@ -14,6 +14,8 @@ const rawMetricSuperpositionItemSelector = {
   current_phase: true,
   recent_velocity: true,
   drive: true,
+  amplitude: true,
+  phase_rad: true,
 }
 
 const rawMetricComponentRollupSelector = {
@@ -32,6 +34,14 @@ const rawMetricSuperpositionSelector = {
   up_count: true,
   down_count: true,
   flat_count: true,
+  activity: true,
+  coherence: true,
+  balance: true,
+  growth: true,
+  resultant_re: true,
+  resultant_im: true,
+  resultant_magnitude: true,
+  resultant_angle: true,
   items: rawMetricSuperpositionItemSelector,
   components: rawMetricComponentRollupSelector,
   disclaimer: true,
@@ -44,4 +54,4 @@ export type metricSuperpositionModel = ModelTypes['CapitalMetricSuperposition']
 export const metricSuperpositionSelector = Selector('CapitalMetricSuperposition')(
   rawMetricSuperpositionSelector
 )
-export { rawMetricSuperpositionSelector }
+export { rawMetricSuperpositionSelector, rawMetricSuperpositionItemSelector }

@@ -3180,6 +3180,12 @@ export type ValueTypes = {
 	['...on CapitalMetricSeriesPoint']?: Omit<ValueTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
 }>;
 	["CapitalMetricSuperposition"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
 	/** Rollup планов/фактов по дочерним компонентам */
 	components?:ValueTypes["CapitalMetricComponentRollup"],
 	/** Предупреждение о характере разметки */
@@ -3190,12 +3196,22 @@ export type ValueTypes = {
 	fact_sum?:boolean | `@${string}`,
 	/** Сколько метрик нейтральны */
 	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
 	/** Метрики в суперпозиции */
 	items?:ValueTypes["CapitalMetricSuperpositionItem"],
 	/** Период агрегации */
 	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
 	/** Суммарная цель по охвату */
 	target_sum?:boolean | `@${string}`,
 	/** Сколько метрик тянут вверх */
@@ -3203,7 +3219,37 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMetricSuperposition']?: Omit<ValueTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
 }>;
+	["CapitalMetricSuperpositionFrame"]: AliasType<{
+	activity?:boolean | `@${string}`,
+	at?:boolean | `@${string}`,
+	balance?:boolean | `@${string}`,
+	coherence?:boolean | `@${string}`,
+	down_count?:boolean | `@${string}`,
+	fact_sum?:boolean | `@${string}`,
+	flat_count?:boolean | `@${string}`,
+	growth?:boolean | `@${string}`,
+	items?:ValueTypes["CapitalMetricSuperpositionItem"],
+	resultant_angle?:boolean | `@${string}`,
+	resultant_im?:boolean | `@${string}`,
+	resultant_magnitude?:boolean | `@${string}`,
+	resultant_re?:boolean | `@${string}`,
+	target_sum?:boolean | `@${string}`,
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionFrame']?: Omit<ValueTypes["CapitalMetricSuperpositionFrame"], "...on CapitalMetricSuperpositionFrame">
+}>;
+	["CapitalMetricSuperpositionHistory"]: AliasType<{
+	frames?:ValueTypes["CapitalMetricSuperpositionFrame"],
+	from?:boolean | `@${string}`,
+	period?:boolean | `@${string}`,
+	project_hash?:boolean | `@${string}`,
+	to?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionHistory']?: Omit<ValueTypes["CapitalMetricSuperpositionHistory"], "...on CapitalMetricSuperpositionHistory">
+}>;
 	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude?:boolean | `@${string}`,
 	/** Текущая метка волны */
 	current_label?:boolean | `@${string}`,
 	/** Текущая фаза */
@@ -3214,6 +3260,8 @@ export type ValueTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad?:boolean | `@${string}`,
 	/** Хеш компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Название компонента */
@@ -6676,6 +6724,12 @@ export type ValueTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
 };
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Хеш проекта или компонента для истории суперпозиции */
+	project_hash: string | Variable<any, string>
+};
 	["GetMetricSuperpositionInput"]: {
 	/** Период агрегации для волновой фазы */
 	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
@@ -9041,6 +9095,7 @@ capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null 
 capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ValueTypes["GetMetricSeriesInput"] | Variable<any, string>},ValueTypes["CapitalMetricSeries"]],
 capitalMetricSuperposition?: [{	data: ValueTypes["GetMetricSuperpositionInput"] | Variable<any, string>},ValueTypes["CapitalMetricSuperposition"]],
+capitalMetricSuperpositionHistory?: [{	data: ValueTypes["GetMetricSuperpositionHistoryInput"] | Variable<any, string>},ValueTypes["CapitalMetricSuperpositionHistory"]],
 capitalMetricWave?: [{	data: ValueTypes["GetMetricWaveInput"] | Variable<any, string>},ValueTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
@@ -12992,6 +13047,12 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalMetricSuperposition"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
 	/** Rollup планов/фактов по дочерним компонентам */
 	components?:ResolverInputTypes["CapitalMetricComponentRollup"],
 	/** Предупреждение о характере разметки */
@@ -13002,19 +13063,59 @@ export type ResolverInputTypes = {
 	fact_sum?:boolean | `@${string}`,
 	/** Сколько метрик нейтральны */
 	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
 	/** Метрики в суперпозиции */
 	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
 	/** Период агрегации */
 	period?:boolean | `@${string}`,
 	/** Хеш запрошенного проекта/компонента */
 	project_hash?:boolean | `@${string}`,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
 	/** Суммарная цель по охвату */
 	target_sum?:boolean | `@${string}`,
 	/** Сколько метрик тянут вверх */
 	up_count?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalMetricSuperpositionFrame"]: AliasType<{
+	activity?:boolean | `@${string}`,
+	at?:boolean | `@${string}`,
+	balance?:boolean | `@${string}`,
+	coherence?:boolean | `@${string}`,
+	down_count?:boolean | `@${string}`,
+	fact_sum?:boolean | `@${string}`,
+	flat_count?:boolean | `@${string}`,
+	growth?:boolean | `@${string}`,
+	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
+	resultant_angle?:boolean | `@${string}`,
+	resultant_im?:boolean | `@${string}`,
+	resultant_magnitude?:boolean | `@${string}`,
+	resultant_re?:boolean | `@${string}`,
+	target_sum?:boolean | `@${string}`,
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionFrame']?: Omit<ResolverInputTypes["CapitalMetricSuperpositionFrame"], "...on CapitalMetricSuperpositionFrame">
+}>;
+	["CapitalMetricSuperpositionHistory"]: AliasType<{
+	frames?:ResolverInputTypes["CapitalMetricSuperpositionFrame"],
+	from?:boolean | `@${string}`,
+	period?:boolean | `@${string}`,
+	project_hash?:boolean | `@${string}`,
+	to?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionHistory']?: Omit<ResolverInputTypes["CapitalMetricSuperpositionHistory"], "...on CapitalMetricSuperpositionHistory">
+}>;
 	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude?:boolean | `@${string}`,
 	/** Текущая метка волны */
 	current_label?:boolean | `@${string}`,
 	/** Текущая фаза */
@@ -13025,6 +13126,8 @@ export type ResolverInputTypes = {
 	fact?:boolean | `@${string}`,
 	/** Хеш метрики */
 	metric_hash?:boolean | `@${string}`,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad?:boolean | `@${string}`,
 	/** Хеш компонента */
 	project_hash?:boolean | `@${string}`,
 	/** Название компонента */
@@ -16411,6 +16514,12 @@ export type ResolverInputTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ResolverInputTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории суперпозиции */
+	project_hash: string
+};
 	["GetMetricSuperpositionInput"]: {
 	/** Период агрегации для волновой фазы */
 	period: ResolverInputTypes["MetricSeriesPeriod"],
@@ -18685,6 +18794,7 @@ capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined
 capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
 capitalMetricSeries?: [{	data: ResolverInputTypes["GetMetricSeriesInput"]},ResolverInputTypes["CapitalMetricSeries"]],
 capitalMetricSuperposition?: [{	data: ResolverInputTypes["GetMetricSuperpositionInput"]},ResolverInputTypes["CapitalMetricSuperposition"]],
+capitalMetricSuperpositionHistory?: [{	data: ResolverInputTypes["GetMetricSuperpositionHistoryInput"]},ResolverInputTypes["CapitalMetricSuperpositionHistory"]],
 capitalMetricWave?: [{	data: ResolverInputTypes["GetMetricWaveInput"]},ResolverInputTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
@@ -22533,7 +22643,13 @@ export type ModelTypes = {
 	period_start: ModelTypes["DateTime"]
 };
 	["CapitalMetricSuperposition"]: {
-		/** Rollup планов/фактов по дочерним компонентам */
+		/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
+	/** Rollup планов/фактов по дочерним компонентам */
 	components: Array<ModelTypes["CapitalMetricComponentRollup"]>,
 	/** Предупреждение о характере разметки */
 	disclaimer: string,
@@ -22543,19 +22659,55 @@ export type ModelTypes = {
 	fact_sum: number,
 	/** Сколько метрик нейтральны */
 	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
 	/** Метрики в суперпозиции */
 	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
 	/** Период агрегации */
 	period: ModelTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
 	/** Суммарная цель по охвату */
 	target_sum: number,
 	/** Сколько метрик тянут вверх */
 	up_count: number
 };
+	["CapitalMetricSuperpositionFrame"]: {
+	activity: number,
+	at: ModelTypes["DateTime"],
+	balance: number,
+	coherence: number,
+	down_count: number,
+	fact_sum: number,
+	flat_count: number,
+	growth: number,
+	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
+	resultant_angle: number,
+	resultant_im: number,
+	resultant_magnitude: number,
+	resultant_re: number,
+	target_sum: number,
+	up_count: number
+};
+	["CapitalMetricSuperpositionHistory"]: {
+	frames: Array<ModelTypes["CapitalMetricSuperpositionFrame"]>,
+	from: ModelTypes["DateTime"],
+	period: ModelTypes["MetricSeriesPeriod"],
+	project_hash: string,
+	to: ModelTypes["DateTime"]
+};
 	["CapitalMetricSuperpositionItem"]: {
-		/** Текущая метка волны */
+		/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude: number,
+	/** Текущая метка волны */
 	current_label: ModelTypes["WaveLabel"],
 	/** Текущая фаза */
 	current_phase: ModelTypes["WavePhase"],
@@ -22565,6 +22717,8 @@ export type ModelTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad: number,
 	/** Хеш компонента */
 	project_hash: string,
 	/** Название компонента */
@@ -25860,6 +26014,12 @@ export type ModelTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: ModelTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории суперпозиции */
+	project_hash: string
+};
 	["GetMetricSuperpositionInput"]: {
 	/** Период агрегации для волновой фазы */
 	period: ModelTypes["MetricSeriesPeriod"],
@@ -28629,6 +28789,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperposition: ModelTypes["CapitalMetricSuperposition"],
+	/** История суперпозиции метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperpositionHistory: ModelTypes["CapitalMetricSuperpositionHistory"],
 	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
 
 Требуемые роли: chairman, member, user.  */
@@ -32750,6 +32914,12 @@ export type GraphQLTypes = {
 };
 	["CapitalMetricSuperposition"]: {
 	__typename: "CapitalMetricSuperposition",
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
 	/** Rollup планов/фактов по дочерним компонентам */
 	components: Array<GraphQLTypes["CapitalMetricComponentRollup"]>,
 	/** Предупреждение о характере разметки */
@@ -32760,20 +32930,60 @@ export type GraphQLTypes = {
 	fact_sum: number,
 	/** Сколько метрик нейтральны */
 	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
 	/** Метрики в суперпозиции */
 	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
 	/** Период агрегации */
 	period: GraphQLTypes["MetricSeriesPeriod"],
 	/** Хеш запрошенного проекта/компонента */
 	project_hash: string,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
 	/** Суммарная цель по охвату */
 	target_sum: number,
 	/** Сколько метрик тянут вверх */
 	up_count: number,
 	['...on CapitalMetricSuperposition']: Omit<GraphQLTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
 };
+	["CapitalMetricSuperpositionFrame"]: {
+	__typename: "CapitalMetricSuperpositionFrame",
+	activity: number,
+	at: GraphQLTypes["DateTime"],
+	balance: number,
+	coherence: number,
+	down_count: number,
+	fact_sum: number,
+	flat_count: number,
+	growth: number,
+	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
+	resultant_angle: number,
+	resultant_im: number,
+	resultant_magnitude: number,
+	resultant_re: number,
+	target_sum: number,
+	up_count: number,
+	['...on CapitalMetricSuperpositionFrame']: Omit<GraphQLTypes["CapitalMetricSuperpositionFrame"], "...on CapitalMetricSuperpositionFrame">
+};
+	["CapitalMetricSuperpositionHistory"]: {
+	__typename: "CapitalMetricSuperpositionHistory",
+	frames: Array<GraphQLTypes["CapitalMetricSuperpositionFrame"]>,
+	from: GraphQLTypes["DateTime"],
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	project_hash: string,
+	to: GraphQLTypes["DateTime"],
+	['...on CapitalMetricSuperpositionHistory']: Omit<GraphQLTypes["CapitalMetricSuperpositionHistory"], "...on CapitalMetricSuperpositionHistory">
+};
 	["CapitalMetricSuperpositionItem"]: {
 	__typename: "CapitalMetricSuperpositionItem",
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude: number,
 	/** Текущая метка волны */
 	current_label: GraphQLTypes["WaveLabel"],
 	/** Текущая фаза */
@@ -32784,6 +32994,8 @@ export type GraphQLTypes = {
 	fact: number,
 	/** Хеш метрики */
 	metric_hash: string,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad: number,
 	/** Хеш компонента */
 	project_hash: string,
 	/** Название компонента */
@@ -36245,6 +36457,12 @@ export type GraphQLTypes = {
 	/** Конец окна ряда. По умолчанию — сейчас */
 	to?: GraphQLTypes["DateTime"] | undefined | null
 };
+	["GetMetricSuperpositionHistoryInput"]: {
+		/** Период агрегации кадров истории */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории суперпозиции */
+	project_hash: string
+};
 	["GetMetricSuperpositionInput"]: {
 		/** Период агрегации для волновой фазы */
 	period: GraphQLTypes["MetricSeriesPeriod"],
@@ -39235,6 +39453,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperposition: GraphQLTypes["CapitalMetricSuperposition"],
+	/** История суперпозиции метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperpositionHistory: GraphQLTypes["CapitalMetricSuperpositionHistory"],
 	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
 
 Требуемые роли: chairman, member, user.  */
@@ -42114,6 +42336,7 @@ type ZEUS_VARIABLES = {
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
 	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
 	["GetMetricSeriesInput"]: ValueTypes["GetMetricSeriesInput"];
+	["GetMetricSuperpositionHistoryInput"]: ValueTypes["GetMetricSuperpositionHistoryInput"];
 	["GetMetricSuperpositionInput"]: ValueTypes["GetMetricSuperpositionInput"];
 	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];

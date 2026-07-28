@@ -34,14 +34,28 @@ import type { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-co
 import type { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
 import type { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input.dto';
 import type { GetMetricSuperpositionInputDTO } from '../dto/metrics/get-metric-superposition-input.dto';
+import type { GetMetricSuperpositionHistoryInputDTO } from '../dto/metrics/get-metric-superposition-history-input.dto';
 import type { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
 import type { IssueMetricBindingOutputDTO } from '../dto/metrics/issue-metric-binding.dto';
 import type { MetricContributionOutputDTO } from '../dto/metrics/metric-contribution.dto';
 import type { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
 import type { MetricWaveOutputDTO } from '../dto/metrics/metric-wave.dto';
-import type { MetricSuperpositionOutputDTO } from '../dto/metrics/metric-superposition.dto';
-import { analyzeWave, WaveLabel, WavePhase, WAVE_DISCLAIMER } from '../../domain/utils/wave-markup';
-import { MetricDriveDirection } from '../../domain/enums/metric-drive-direction.enum';
+import type {
+  MetricSuperpositionHistoryOutputDTO,
+  MetricSuperpositionOutputDTO,
+} from '../dto/metrics/metric-superposition.dto';
+import {
+  analyzeWave,
+  WaveLabel,
+  WAVE_DISCLAIMER,
+} from '../../domain/utils/wave-markup';
+import {
+  computeSuperpositionAt,
+  defaultSuperpositionFrom,
+  listSuperpositionFrameAts,
+  type SuperpositionContributionInput,
+  type SuperpositionMetricInput,
+} from '../../domain/utils/compute-metric-superposition';
 import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 
 /**
@@ -425,77 +439,19 @@ export class ComponentMetricService {
     data: GetMetricSuperpositionInputDTO,
     currentUser: MonoAccountDomainInterface
   ): Promise<MetricSuperpositionOutputDTO> {
-    const project = await this.projectRepository.findByHash(data.project_hash);
-    if (!project) {
-      throw new Error(`Проект ${data.project_hash} не найден`);
-    }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр суперпозиции метрик');
-    }
-
-    const period = data.period ?? MetricSeriesPeriod.WEEK;
-    const children = await this.projectRepository.findComponentsByParentHash(data.project_hash);
-    const scopes = children.length > 0 ? children : [project];
-    const scopeHashes = scopes.map((s) => s.project_hash);
-    const titleByHash = new Map(
-      scopes.map((s) => [s.project_hash.toLowerCase(), s.title ?? s.project_hash] as const)
+    const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
+    const to = new Date();
+    const from = defaultSuperpositionFrom(to, ctx.period);
+    const snapshot = computeSuperpositionAt(
+      ctx.metricsInput,
+      ctx.contributionsByMetric,
+      ctx.period,
+      from,
+      to
     );
 
-    const metrics = await this.metricRepository.findByProjectHashes(scopeHashes, MetricStatus.ACTIVE);
-    const metricHashes = metrics.map((m) => m.metric_hash);
-    const factByMetric = await this.contributionRepository.sumDeltaByMetricHashes(metricHashes);
-
-    const to = new Date();
-    const from = this.defaultSeriesFrom(to, period);
-    const items: MetricSuperpositionOutputDTO['items'] = [];
-
-    for (const metric of metrics) {
-      const contributions = await this.contributionRepository.findChronologicalByMetricHash(
-        metric.metric_hash
-      );
-      const fact = factByMetric.get(metric.metric_hash.toLowerCase()) ?? 0;
-      const planStart = metric._created_at ? new Date(metric._created_at) : from;
-      const points = buildMetricSeries(
-        contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at })),
-        {
-          period,
-          from,
-          to,
-          target_value: metric.target_value,
-          plan_start: planStart,
-          deadline: metric.deadline ? new Date(metric.deadline) : null,
-        }
-      );
-      const values =
-        metric.series_mode === MetricSeriesMode.LEVEL
-          ? points.map((p) => p.cumulative)
-          : points.map((p) => p.delta);
-      const markup = analyzeWave({
-        values,
-        series_mode: metric.series_mode,
-        fact,
-        target_value: metric.target_value,
-      });
-      const recent_velocity = points.length ? points[points.length - 1].delta : 0;
-      items.push({
-        project_hash: metric.project_hash,
-        project_title: titleByHash.get(metric.project_hash.toLowerCase()) ?? metric.project_hash,
-        metric_hash: metric.metric_hash,
-        title: metric.title,
-        unit: metric.unit,
-        fact,
-        target_value: metric.target_value,
-        series_mode: metric.series_mode,
-        current_label: markup.current_label,
-        current_phase: markup.current_phase,
-        recent_velocity,
-        drive: this.driveOf(markup.current_label, markup.current_phase, recent_velocity),
-      });
-    }
-
-    const components = scopes.map((scope) => {
-      const scopeItems = items.filter(
+    const components = ctx.scopes.map((scope) => {
+      const scopeItems = snapshot.items.filter(
         (i) => i.project_hash.toLowerCase() === scope.project_hash.toLowerCase()
       );
       return {
@@ -508,66 +464,127 @@ export class ComponentMetricService {
     });
 
     return {
-      project_hash: project.project_hash,
-      period,
-      fact_sum: items.reduce((s, i) => s + i.fact, 0),
-      target_sum: items.reduce((s, i) => s + i.target_value, 0),
-      up_count: items.filter((i) => i.drive === MetricDriveDirection.UP).length,
-      down_count: items.filter((i) => i.drive === MetricDriveDirection.DOWN).length,
-      flat_count: items.filter((i) => i.drive === MetricDriveDirection.FLAT).length,
-      items,
+      project_hash: ctx.project.project_hash,
+      period: ctx.period,
+      fact_sum: snapshot.fact_sum,
+      target_sum: snapshot.target_sum,
+      up_count: snapshot.up_count,
+      down_count: snapshot.down_count,
+      flat_count: snapshot.flat_count,
+      activity: snapshot.activity,
+      coherence: snapshot.coherence,
+      balance: snapshot.balance,
+      growth: snapshot.growth,
+      resultant_re: snapshot.resultant_re,
+      resultant_im: snapshot.resultant_im,
+      resultant_magnitude: snapshot.resultant_magnitude,
+      resultant_angle: snapshot.resultant_angle,
+      items: snapshot.items,
       components,
       disclaimer: WAVE_DISCLAIMER,
     };
   }
 
-  private driveOf(
-    label: WaveLabel,
-    phase: WavePhase,
-    recentVelocity: number
-  ): MetricDriveDirection {
-    if (Math.abs(recentVelocity) < 1e-9) {
-      return MetricDriveDirection.FLAT;
+  /**
+   * История суперпозиции: кадр на каждый бакет периода в окне lookback.
+   */
+  async getMetricSuperpositionHistory(
+    data: GetMetricSuperpositionHistoryInputDTO,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<MetricSuperpositionHistoryOutputDTO> {
+    const ctx = await this.loadSuperpositionContext(data.project_hash, data.period, currentUser);
+    const to = new Date();
+    const from = defaultSuperpositionFrom(to, ctx.period);
+    const frameAts = listSuperpositionFrameAts(from, to, ctx.period);
+
+    const frames = frameAts.map((at) => {
+      const frameFrom = defaultSuperpositionFrom(at, ctx.period);
+      const snapshot = computeSuperpositionAt(
+        ctx.metricsInput,
+        ctx.contributionsByMetric,
+        ctx.period,
+        frameFrom,
+        at
+      );
+      return {
+        at,
+        activity: snapshot.activity,
+        coherence: snapshot.coherence,
+        balance: snapshot.balance,
+        growth: snapshot.growth,
+        resultant_re: snapshot.resultant_re,
+        resultant_im: snapshot.resultant_im,
+        resultant_magnitude: snapshot.resultant_magnitude,
+        resultant_angle: snapshot.resultant_angle,
+        fact_sum: snapshot.fact_sum,
+        target_sum: snapshot.target_sum,
+        up_count: snapshot.up_count,
+        down_count: snapshot.down_count,
+        flat_count: snapshot.flat_count,
+        items: snapshot.items,
+      };
+    });
+
+    return {
+      project_hash: ctx.project.project_hash,
+      period: ctx.period,
+      from,
+      to,
+      frames,
+    };
+  }
+
+  private async loadSuperpositionContext(
+    projectHash: string,
+    periodInput: MetricSeriesPeriod | undefined,
+    currentUser: MonoAccountDomainInterface
+  ) {
+    const project = await this.projectRepository.findByHash(projectHash);
+    if (!project) {
+      throw new Error(`Проект ${projectHash} не найден`);
     }
-    const upwardLabels = [WaveLabel.W1, WaveLabel.W3, WaveLabel.W5];
-    if (phase === WavePhase.IMPULSE && upwardLabels.includes(label) && recentVelocity > 0) {
-      return MetricDriveDirection.UP;
+    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
+    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
+      throw new Error('Нет прав на просмотр суперпозиции метрик');
     }
-    if (phase === WavePhase.CORRECTION || label === WaveLabel.W2 || recentVelocity < 0) {
-      return MetricDriveDirection.DOWN;
+
+    const period = periodInput ?? MetricSeriesPeriod.WEEK;
+    const children = await this.projectRepository.findComponentsByParentHash(projectHash);
+    const scopes = children.length > 0 ? children : [project];
+    const scopeHashes = scopes.map((s) => s.project_hash);
+    const titleByHash = new Map(
+      scopes.map((s) => [s.project_hash.toLowerCase(), s.title ?? s.project_hash] as const)
+    );
+
+    const metrics = await this.metricRepository.findByProjectHashes(scopeHashes, MetricStatus.ACTIVE);
+    const contributionsByMetric = new Map<string, SuperpositionContributionInput[]>();
+    for (const metric of metrics) {
+      const contributions = await this.contributionRepository.findChronologicalByMetricHash(
+        metric.metric_hash
+      );
+      contributionsByMetric.set(
+        metric.metric_hash.toLowerCase(),
+        contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at }))
+      );
     }
-    if (recentVelocity > 0) {
-      return MetricDriveDirection.UP;
-    }
-    return MetricDriveDirection.FLAT;
+
+    const metricsInput: SuperpositionMetricInput[] = metrics.map((metric) => ({
+      metric_hash: metric.metric_hash,
+      project_hash: metric.project_hash,
+      project_title: titleByHash.get(metric.project_hash.toLowerCase()) ?? metric.project_hash,
+      title: metric.title,
+      unit: metric.unit,
+      target_value: metric.target_value,
+      series_mode: metric.series_mode,
+      plan_start: metric._created_at ? new Date(metric._created_at) : null,
+      deadline: metric.deadline ? new Date(metric.deadline) : null,
+    }));
+
+    return { project, period, scopes, metricsInput, contributionsByMetric };
   }
 
   private defaultSeriesFrom(to: Date, period: MetricSeriesPeriod): Date {
-    const from = new Date(to.getTime());
-    switch (period) {
-      case MetricSeriesPeriod.MINUTE:
-        from.setUTCMinutes(from.getUTCMinutes() - 59);
-        break;
-      case MetricSeriesPeriod.MINUTE_5:
-        from.setUTCMinutes(from.getUTCMinutes() - 5 * 47);
-        break;
-      case MetricSeriesPeriod.MINUTE_15:
-        from.setUTCMinutes(from.getUTCMinutes() - 15 * 31);
-        break;
-      case MetricSeriesPeriod.HOUR:
-        from.setUTCHours(from.getUTCHours() - 47);
-        break;
-      case MetricSeriesPeriod.DAY:
-        from.setUTCDate(from.getUTCDate() - 29);
-        break;
-      case MetricSeriesPeriod.WEEK:
-        from.setUTCDate(from.getUTCDate() - 7 * 11);
-        break;
-      case MetricSeriesPeriod.MONTH:
-        from.setUTCMonth(from.getUTCMonth() - 11);
-        break;
-    }
-    return from;
+    return defaultSuperpositionFrom(to, period);
   }
 
   /**

@@ -44,6 +44,8 @@ export * as GetMetricWave from './getMetricWave'
 
 export * as GetMetricSuperposition from './getMetricSuperposition'
 
+export * as GetMetricSuperpositionHistory from './getMetricSuperpositionHistory'
+
 export * as GetOnboardingState from './getOnboardingState'
 
 export * as GetOpenTimer from './getOpenTimer'

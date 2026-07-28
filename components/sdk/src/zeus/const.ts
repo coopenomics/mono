@@ -665,6 +665,9 @@ export const AllTypesProps: Record<string,any> = {
 		period:"MetricSeriesPeriod",
 		to:"DateTime"
 	},
+	GetMetricSuperpositionHistoryInput:{
+		period:"MetricSeriesPeriod"
+	},
 	GetMetricSuperpositionInput:{
 		period:"MetricSeriesPeriod"
 	},
@@ -1681,6 +1684,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalMetricSuperposition:{
 			data:"GetMetricSuperpositionInput"
+		},
+		capitalMetricSuperpositionHistory:{
+			data:"GetMetricSuperpositionHistoryInput"
 		},
 		capitalMetricWave:{
 			data:"GetMetricWaveInput"
@@ -2985,23 +2991,57 @@ export const ReturnTypes: Record<string,any> = {
 		period_start:"DateTime"
 	},
 	CapitalMetricSuperposition:{
+		activity:"Float",
+		balance:"Float",
+		coherence:"Float",
 		components:"CapitalMetricComponentRollup",
 		disclaimer:"String",
 		down_count:"Int",
 		fact_sum:"Float",
 		flat_count:"Int",
+		growth:"Float",
 		items:"CapitalMetricSuperpositionItem",
 		period:"MetricSeriesPeriod",
 		project_hash:"String",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
 		target_sum:"Float",
 		up_count:"Int"
 	},
+	CapitalMetricSuperpositionFrame:{
+		activity:"Float",
+		at:"DateTime",
+		balance:"Float",
+		coherence:"Float",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionHistory:{
+		frames:"CapitalMetricSuperpositionFrame",
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		to:"DateTime"
+	},
 	CapitalMetricSuperpositionItem:{
+		amplitude:"Float",
 		current_label:"WaveLabel",
 		current_phase:"WavePhase",
 		drive:"MetricDriveDirection",
 		fact:"Float",
 		metric_hash:"String",
+		phase_rad:"Float",
 		project_hash:"String",
 		project_title:"String",
 		recent_velocity:"Float",
@@ -4882,6 +4922,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
 		capitalMetricSeries:"CapitalMetricSeries",
 		capitalMetricSuperposition:"CapitalMetricSuperposition",
+		capitalMetricSuperpositionHistory:"CapitalMetricSuperpositionHistory",
 		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",

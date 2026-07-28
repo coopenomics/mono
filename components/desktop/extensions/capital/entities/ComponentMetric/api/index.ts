@@ -21,6 +21,8 @@ import type {
   IGetMetricWaveOutput,
   IGetMetricSuperpositionInput,
   IGetMetricSuperpositionOutput,
+  IGetMetricSuperpositionHistoryInput,
+  IGetMetricSuperpositionHistoryOutput,
 } from '../model';
 
 async function getComponentMetrics(
@@ -123,6 +125,16 @@ async function getMetricSuperposition(
   return result;
 }
 
+async function getMetricSuperpositionHistory(
+  data: IGetMetricSuperpositionHistoryInput,
+): Promise<IGetMetricSuperpositionHistoryOutput> {
+  const { [Queries.Capital.GetMetricSuperpositionHistory.name]: result } =
+    await client.Query(Queries.Capital.GetMetricSuperpositionHistory.query, {
+      variables: { data },
+    });
+  return result;
+}
+
 export const api = {
   getComponentMetrics,
   createComponentMetric,
@@ -134,4 +146,5 @@ export const api = {
   logMetricContribution,
   getMetricWave,
   getMetricSuperposition,
+  getMetricSuperpositionHistory,
 };
