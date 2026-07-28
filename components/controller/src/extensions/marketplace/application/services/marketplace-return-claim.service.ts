@@ -27,6 +27,14 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MarketplaceInventoryOwnerships,
+  MarketplaceInventoryStatuses,
+} from '../../domain/entities/marketplace-inventory.types';
+import {
   MARKETPLACE_RETURN_CLAIM_REPOSITORY,
   type MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
@@ -171,6 +179,8 @@ export class MarketplaceReturnClaimService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(MARKETPLACE_ASSET_CONFIG)
@@ -512,8 +522,10 @@ export class MarketplaceReturnClaimService {
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'приём возврата на месте');
     // Story 7.3/FR32: считанный штрих-код фиксируется в decision_log/inspection
-    // для аудита; полноценная сверка с marketplace_inventory будет реализована
-    // вместе с canonical Inventory (Эпик 5/9).
+    // для аудита (сверка конкретной промаркированной единицы — вне MVP).
+    // Складской учёт возвращённого количества — см. restockReturnedItem ниже:
+    // отдельная позиция обезличенного остатка КУ, неопубликованная, доступная
+    // председателю к повторной публикации или списанию (review 2026-07-28).
 
     // Принятие возврата = вторая подпись председателя на заявлении пайщика
     // (тот же документ registry 1104 с двумя подписями), контракт сверяет обе.
@@ -595,6 +607,13 @@ export class MarketplaceReturnClaimService {
     this.logger.log(
       `Заявление на возврат ${claim.id} принято: compensating forward выполнен на ${claim.fact_cost} (tx=${txHash}).`
     );
+
+    // Физическое имущество возвращается на склад КУ отдельной позицией
+    // обезличенного остатка кооператива — best-effort: сбой складского учёта
+    // не должен откатывать уже проведённый на цепи compensating forward
+    // (деньги пайщику важнее бухгалтерии остатка, которую можно поправить
+    // вручную).
+    await this.restockReturnedItem(claim, input.braname, input.chairman_account, at);
 
     this.emitDecided(updated, entry);
     this.emitFinalized(updated, entry);
@@ -1009,6 +1028,84 @@ export class MarketplaceReturnClaimService {
       inspection_result: inspectionResult,
     };
     this.eventBus.emit(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT, event);
+  }
+
+  /**
+   * Возвращённое по гарантии имущество зачисляется отдельной позицией
+   * обезличенного остатка кооператива (ownership=COOP, неопубликованная,
+   * `RECEIVED`) — той же самой таблицы, что и «осталось после недовыдач и
+   * отказов» (requirement 76): председатель либо публикует её заново
+   * (`marketplacePublishStock`), либо ничего не делает — по истечении срока
+   * годности позиция подсвечивается кандидатом на списание (`is_expired`,
+   * тот же механизм, что и у обычного остатка), либо списывает вручную сразу
+   * как брак.
+   *
+   * Срок годности/цену прибытия берём с ИСХОДНОЙ позиции склада этого заказа
+   * (если она сохранилась — приёмка не удаляет строки, только меняет статус
+   * ISSUED), а не пересчитываем заново от `shelf_life_days` оффера: срок
+   * годности партии не «продлевается» тем, что она съездила к пайщику и
+   * вернулась.
+   *
+   * Best-effort: сбой здесь не должен откатывать уже проведённый на цепи
+   * compensating forward — деньги пайщику важнее бухгалтерии остатка,
+   * которую при сбое видно в логе и можно поправить вручную.
+   */
+  private async restockReturnedItem(
+    claim: MarketplaceReturnClaimDomainEntity,
+    braname: string,
+    chairman_account: string,
+    at: Date
+  ): Promise<void> {
+    try {
+      const order = await this.orderRepo.findById(claim.order_id);
+      if (!order) {
+        this.logger.warn(
+          `restockReturnedItem: заказ ${claim.order_id} не найден — возврат claim ${claim.id} не зачислен в остаток.`
+        );
+        return;
+      }
+      const offer = await this.offerRepo.findById(order.offer_id);
+      // Обычный заказ — исходная позиция несёт этот order_id напрямую; заказ
+      // из остатка (stockorder) резервирует уже существующие COOP-позиции
+      // через reserved_order_id (order_id на них не переносится, см.
+      // reserveStock/finalizeReservedIssue) — пробуем оба пути.
+      const [byOrderId, byReservedOrderId] = await Promise.all([
+        this.inventoryRepo.list({ coopname: claim.coopname, order_id: claim.order_id }),
+        this.inventoryRepo.list({ coopname: claim.coopname, reserved_order_id: claim.order_id }),
+      ]);
+      const origin = byOrderId[0] ?? byReservedOrderId[0] ?? null;
+      const arrival_price = origin?.arrival_price ?? order.price_per_unit;
+      const expiry_date =
+        origin?.expiry_date ??
+        (offer?.shelf_life_days
+          ? new Date(at.getTime() + offer.shelf_life_days * 86_400_000)
+          : null);
+
+      await this.inventoryRepo.create({
+        coopname: claim.coopname,
+        order_id: claim.order_id,
+        shipment_id: `return:${claim.id}`,
+        braname,
+        status: MarketplaceInventoryStatuses.RECEIVED,
+        product_name_snapshot: offer?.product_name ?? 'Возвращённый товар',
+        quantity_per_label: claim.actual_quantity,
+        orderer_account_snapshot: claim.orderer_account,
+        received_at: at,
+        received_by_operator_account: chairman_account,
+        expiry_date,
+        ownership: MarketplaceInventoryOwnerships.COOP,
+        arrival_price,
+      });
+
+      this.logger.log(
+        `Заявление на возврат ${claim.id}: имущество (${claim.actual_quantity} ед.) зачислено в остаток кооператива КУ ${braname}.`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `restockReturnedItem: не удалось зачислить возврат claim ${claim.id} в остаток (${message}) — сверить остаток вручную.`
+      );
+    }
   }
 }
 

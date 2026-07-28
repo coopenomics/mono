@@ -129,6 +129,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
     }
     if (filter.ownership) where.ownership = filter.ownership;
+    if (filter.reserved_order_id) where.reserved_order_id = filter.reserved_order_id;
     if (filter.free_only) where.reserved_order_id = IsNull();
     if (filter.published !== undefined) {
       where.published_offer_id = filter.published ? Not(IsNull()) : IsNull();
