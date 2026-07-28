@@ -245,6 +245,13 @@ export class MarketplaceStockService {
       } else {
         coopOffer = await this.offerRepo.applyUpdate(coopOffer.id, {
           quantity_available: coopOffer.quantity_available + qty,
+          // Ресинк способа отпуска с origin при каждой публикации — та же
+          // причина, что и в create-ветке выше: снятая-с-публикации запись
+          // остатка никуда не девается (unpublishStock только отвязывает
+          // позиции), повторная публикация должна ЛЕЧИТЬ устаревший
+          // sale_form/packages, а не консервировать его навсегда.
+          sale_form: origin.sale_form,
+          packages: origin.packages,
           ...(input.price_per_unit ? { price_per_unit: this.normalizePrice(input.price_per_unit) } : {}),
           ...(input.warranty_days !== undefined && input.warranty_days !== null
             ? { warranty_days: input.warranty_days }
