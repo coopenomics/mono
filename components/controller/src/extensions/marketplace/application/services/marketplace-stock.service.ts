@@ -40,7 +40,7 @@ import {
 import {
   MarketplaceInventoryOwnerships,
 } from '../../domain/entities/marketplace-inventory.types';
-import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferStatuses, type MarketplaceOfferPackage } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
@@ -214,6 +214,7 @@ export class MarketplaceStockService {
 
       let coopOffer = await this.findCoopOffer(input.coopname, braname, origin.id);
       if (!coopOffer) {
+        const normalizedPrice = this.normalizePrice(price);
         coopOffer = await this.offerRepo.create({
           coopname: input.coopname,
           supplier_account: input.coopname, // продавец — сам кооператив
@@ -221,15 +222,19 @@ export class MarketplaceStockService {
           product_name: origin.product_name,
           description: origin.description,
           category_id: origin.category_id,
-          price_per_unit: this.normalizePrice(price),
+          price_per_unit: normalizedPrice,
           unit_of_measure: origin.unit_of_measure,
           // Способ отпуска остатка — ТОТ ЖЕ, что у исходного оффера партии
           // (Эпик 18): группа позиций всегда привязана к одному origin
           // (groupByOriginOffer), поэтому sale_form/packages однозначны и
           // безопасны к переносу — молоко бутылками остаётся бутылками и на
           // остатке, контрактный check_packaging не даёт дробить упаковку.
+          // Цены упаковок масштабируются тем же коэффициентом, что и
+          // цена/уценка базовой единицы — иначе чекаут packaged-оффера
+          // (считает исключительно из packages[].price) молча игнорирует
+          // уценку кооператива.
           sale_form: origin.sale_form,
-          packages: origin.packages,
+          packages: this.scalePackagePrices(origin.packages, origin.price_per_unit, normalizedPrice),
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
@@ -243,6 +248,13 @@ export class MarketplaceStockService {
           stock_origin_offer_id: origin.id,
         });
       } else {
+        // Цель масштабирования упаковок — новая явная цена (uценка), иначе
+        // уже применённая ранее (coopOffer.price_per_unit): повторная
+        // публикация без изменения цены не должна сбрасывать упаковки назад
+        // к недисконтированным ценам origin.
+        const targetPrice = input.price_per_unit
+          ? this.normalizePrice(input.price_per_unit)
+          : coopOffer.price_per_unit;
         coopOffer = await this.offerRepo.applyUpdate(coopOffer.id, {
           quantity_available: coopOffer.quantity_available + qty,
           // Ресинк способа отпуска с origin при каждой публикации — та же
@@ -251,8 +263,8 @@ export class MarketplaceStockService {
           // позиции), повторная публикация должна ЛЕЧИТЬ устаревший
           // sale_form/packages, а не консервировать его навсегда.
           sale_form: origin.sale_form,
-          packages: origin.packages,
-          ...(input.price_per_unit ? { price_per_unit: this.normalizePrice(input.price_per_unit) } : {}),
+          packages: this.scalePackagePrices(origin.packages, origin.price_per_unit, targetPrice),
+          ...(input.price_per_unit ? { price_per_unit: targetPrice } : {}),
           ...(input.warranty_days !== undefined && input.warranty_days !== null
             ? { warranty_days: input.warranty_days }
             : {}),
@@ -653,6 +665,31 @@ export class MarketplaceStockService {
 
   private normalizePrice(price: string): string {
     return Number.parseFloat(price).toFixed(this.assetConfig.decimals);
+  }
+
+  /**
+   * Масштабирует цены упаковок остатка тем же коэффициентом, каким целевая
+   * цена базовой единицы (уценка/цена прибытия) отличается от origin's
+   * price_per_unit. Для sale_form=packaged чекаут (`resolveSaleUnit`) берёт
+   * цену ИСКЛЮЧИТЕЛЬНО из `packages[].price` — price_per_unit там витринный,
+   * без масштабирования уценка кооператива молча не доходила бы до цены в
+   * корзине (review 2026-07-28).
+   */
+  private scalePackagePrices(
+    packages: MarketplaceOfferPackage[],
+    originPricePerUnit: string,
+    targetPricePerUnit: string
+  ): MarketplaceOfferPackage[] {
+    const originPrice = Number.parseFloat(originPricePerUnit);
+    const targetPrice = Number.parseFloat(targetPricePerUnit);
+    if (!(originPrice > 0) || !(targetPrice > 0) || originPrice === targetPrice) {
+      return packages;
+    }
+    const ratio = targetPrice / originPrice;
+    return packages.map((p) => ({
+      ...p,
+      price: this.normalizePrice(String(Number.parseFloat(p.price) * ratio)),
+    }));
   }
 
 }
