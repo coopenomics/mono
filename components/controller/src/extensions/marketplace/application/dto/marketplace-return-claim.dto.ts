@@ -311,8 +311,14 @@ export class MarketplaceReturnClaimDecisionEntryDTO {
   @Field({ description: 'Аккаунт председателя, принявшего решение.' })
   public readonly by_chairman_account!: string;
 
+  @Field(() => String, { nullable: true, description: 'ФИО председателя, принявшего решение.' })
+  public readonly by_chairman_name!: string | null;
+
   @Field({ description: 'Кооперативный участок, под чьей юрисдикцией решение.' })
   public readonly braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Человекочитаемое название кооперативного участка.' })
+  public readonly braname_name!: string | null;
 
   @Field({ description: 'Комментарий / причина / результат осмотра.' })
   public readonly comment!: string;

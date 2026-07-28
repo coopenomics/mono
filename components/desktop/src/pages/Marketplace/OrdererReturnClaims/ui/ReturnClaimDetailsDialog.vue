@@ -101,7 +101,7 @@ TakeoverDialog(
             q-timeline-entry(
               v-for="entry in claim.decision_log" :key="entry.tx_hash"
               :title="returnClaimDecisionLabel(entry.decision)"
-              :subtitle="`${entry.by_chairman_account} · КУ ${entry.braname} · ${formatDateTime(entry.at)}`"
+              :subtitle="`${entry.by_chairman_name || entry.by_chairman_account} · КУ ${entry.braname_name || entry.braname} · ${formatDateTime(entry.at)}`"
               :color="entry.decision === 'accept_at_visit' ? 'positive' : entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit' ? 'negative' : 'primary'"
             )
               | {{ entry.comment }}

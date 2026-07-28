@@ -314,10 +314,13 @@ export class MarketplaceReturnClaimResolver {
     const display = await this.orderDisplay.enrichByOrderIds([claim.order_id], {
       withParticipantNames: true,
     });
+    const { chairmanNames, branchNames } = await this.resolveDecisionLogNames([claim]);
     return toMarketplaceReturnClaimDTO(
       claim,
       (key) => this.service.getPhotoReadUrl(key),
-      display.get(claim.order_id)
+      display.get(claim.order_id),
+      chairmanNames,
+      branchNames
     );
   }
 
@@ -329,15 +332,35 @@ export class MarketplaceReturnClaimResolver {
       claims.map((c) => c.order_id),
       { withParticipantNames: true }
     );
+    const { chairmanNames, branchNames } = await this.resolveDecisionLogNames(claims);
     return Promise.all(
       claims.map((c) =>
         toMarketplaceReturnClaimDTO(
           c,
           (key) => this.service.getPhotoReadUrl(key),
-          display.get(c.order_id)
+          display.get(c.order_id),
+          chairmanNames,
+          branchNames
         )
       )
     );
+  }
+
+  /**
+   * История решений председателя показывает участника и КУ человеко-читаемо
+   * (ФИО / название участка), не сырой account/braname — батч по всем записям
+   * decision_log сразу для списка заявлений, одним запросом на каждый вид имени.
+   */
+  private async resolveDecisionLogNames(
+    claims: MarketplaceReturnClaimDomainEntity[]
+  ): Promise<{ chairmanNames: Map<string, string | null>; branchNames: Map<string, string | null> }> {
+    const accounts = [...new Set(claims.flatMap((c) => c.decision_log.map((e) => e.by_chairman_account)))];
+    const branames = [...new Set(claims.flatMap((c) => c.decision_log.map((e) => e.braname)))];
+    const [chairmanNamesRaw, branchNames] = await Promise.all([
+      this.orderDisplay.resolveAccountNames(accounts),
+      this.orderDisplay.resolveBranchNames(branames),
+    ]);
+    return { chairmanNames: chairmanNamesRaw, branchNames };
   }
 
   private async toResultDTO(

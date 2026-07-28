@@ -29,7 +29,11 @@ export interface MarketplaceReturnClaimDisplayFields {
 export async function toMarketplaceReturnClaimDTO(
   claim: MarketplaceReturnClaimDomainEntity,
   urlResolver: (bucket_key: string) => Promise<string>,
-  display?: MarketplaceReturnClaimDisplayFields
+  display?: MarketplaceReturnClaimDisplayFields,
+  /** ФИО председателей, встречающихся в decision_log (аккаунт → имя), для истории решений. */
+  chairmanNames?: Map<string, string | null>,
+  /** Человекочитаемые названия КУ, встречающихся в decision_log, для истории решений. */
+  branchNames?: Map<string, string | null>
 ): Promise<MarketplaceReturnClaimDTO> {
   const photos = await Promise.all(claim.photos.map((p) => toPhotoDTO(p, urlResolver)));
   const inspection = claim.on_site_inspection
@@ -64,7 +68,7 @@ export async function toMarketplaceReturnClaimDTO(
     ).toFixed(4),
     photos,
     submretrn_tx_hash: claim.submretrn_tx_hash,
-    decision_log: claim.decision_log.map(toDecisionEntryDTO),
+    decision_log: claim.decision_log.map((entry) => toDecisionEntryDTO(entry, chairmanNames, branchNames)),
     on_site_inspection: inspection,
     ledger_snapshot: claim.ledger_snapshot ? toLedgerSnapshotDTO(claim.ledger_snapshot) : null,
     created_at: claim.created_at,
@@ -88,13 +92,17 @@ async function toPhotoDTO(
 }
 
 function toDecisionEntryDTO(
-  entry: MarketplaceReturnClaimDecisionLogEntry
+  entry: MarketplaceReturnClaimDecisionLogEntry,
+  chairmanNames?: Map<string, string | null>,
+  branchNames?: Map<string, string | null>
 ): MarketplaceReturnClaimDecisionEntryDTO {
   return {
     stage: entry.stage,
     decision: entry.decision,
     by_chairman_account: entry.by_chairman_account,
+    by_chairman_name: chairmanNames?.get(entry.by_chairman_account) ?? null,
     braname: entry.braname,
+    braname_name: branchNames?.get(entry.braname) ?? null,
     comment: entry.comment,
     at: new Date(entry.at),
     tx_hash: entry.tx_hash,

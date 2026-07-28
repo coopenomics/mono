@@ -205,6 +205,19 @@ export class MarketplaceOrderDisplayService {
   }
 
   /**
+   * Батч человекочитаемых названий КУ (только имя, без адреса/координат) по
+   * branames — для мест, где показывать участок нужно в одну строку рядом с
+   * ФИО участника (например история решений председателя), а не полной
+   * карточкой ПВЗ с адресом/картой.
+   */
+  async resolveBranchNames(branames: string[]): Promise<Map<string, string | null>> {
+    const byBraname = await this.resolveBranches(branames);
+    const result = new Map<string, string | null>();
+    for (const [braname, info] of byBraname) result.set(braname, info.name);
+    return result;
+  }
+
+  /**
    * Публичный одиночный резолв отображаемого имени аккаунта (ФИО/`short_name`).
    * Используется field-резолверами DTO (оферта → `supplier_name` и т.п.), чтобы
    * имя бралось живьём на бэкенде, а фронт не дозапрашивал его отдельно.

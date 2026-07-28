@@ -5521,7 +5521,9 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceReturnClaimDecisionEntry:{
 		at:"DateTime",
 		braname:"String",
+		braname_name:"String",
 		by_chairman_account:"String",
+		by_chairman_name:"String",
 		comment:"String",
 		decision:"String",
 		stage:"String",

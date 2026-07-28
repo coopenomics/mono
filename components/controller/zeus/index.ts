@@ -9593,8 +9593,12 @@ export type ValueTypes = {
 	at?:boolean | `@${string}`,
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
 	braname?:boolean | `@${string}`,
+	/** Человекочитаемое название кооперативного участка. */
+	braname_name?:boolean | `@${string}`,
 	/** Аккаунт председателя, принявшего решение. */
 	by_chairman_account?:boolean | `@${string}`,
+	/** ФИО председателя, принявшего решение. */
+	by_chairman_name?:boolean | `@${string}`,
 	/** Комментарий / причина / результат осмотра. */
 	comment?:boolean | `@${string}`,
 	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
@@ -22690,8 +22694,12 @@ export type ResolverInputTypes = {
 	at?:boolean | `@${string}`,
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
 	braname?:boolean | `@${string}`,
+	/** Человекочитаемое название кооперативного участка. */
+	braname_name?:boolean | `@${string}`,
 	/** Аккаунт председателя, принявшего решение. */
 	by_chairman_account?:boolean | `@${string}`,
+	/** ФИО председателя, принявшего решение. */
+	by_chairman_name?:boolean | `@${string}`,
 	/** Комментарий / причина / результат осмотра. */
 	comment?:boolean | `@${string}`,
 	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
@@ -35368,8 +35376,12 @@ export type ModelTypes = {
 	at: ModelTypes["DateTime"],
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
 	braname: string,
+	/** Человекочитаемое название кооперативного участка. */
+	braname_name?: string | undefined | null,
 	/** Аккаунт председателя, принявшего решение. */
 	by_chairman_account: string,
+	/** ФИО председателя, принявшего решение. */
+	by_chairman_name?: string | undefined | null,
 	/** Комментарий / причина / результат осмотра. */
 	comment: string,
 	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
@@ -49324,8 +49336,12 @@ export type GraphQLTypes = {
 	at: GraphQLTypes["DateTime"],
 	/** Кооперативный участок, под чьей юрисдикцией решение. */
 	braname: string,
+	/** Человекочитаемое название кооперативного участка. */
+	braname_name?: string | undefined | null,
 	/** Аккаунт председателя, принявшего решение. */
 	by_chairman_account: string,
+	/** ФИО председателя, принявшего решение. */
+	by_chairman_name?: string | undefined | null,
 	/** Комментарий / причина / результат осмотра. */
 	comment: string,
 	/** Тип решения: approve_visit / reject_remote / accept_at_visit / reject_at_visit. */
