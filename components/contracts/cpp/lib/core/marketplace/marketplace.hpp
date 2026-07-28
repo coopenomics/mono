@@ -228,11 +228,17 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
 
 // ── Членский взнос «Стола заказов» (requirement b6 «Экономика КУ») ──────
 
+/// Дефолтная ставка членского взноса нового кооператива — 30% (HUNDR_PERCENTS
+/// = 100%). Действует, пока председатель явно не настроит свою ставку через
+/// `setfee` (в т.ч. явный 0 — взнос осознанно отключён, это по-прежнему
+/// доступно, просто больше не подразумевается молчаливым «не настроено»).
+constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 300000;
+
 /// Единая ставка членского взноса кооператива (HUNDR_PERCENTS = 100%);
-/// 0 — взнос не настроен и не начисляется.
+/// нет явной настройки (singleton не создан) — берётся стандартный дефолт.
 inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   mkt_config_singleton cfg(_marketplace, coopname.value);
-  return cfg.exists() ? cfg.get().membership_fee_percent : 0;
+  return cfg.exists() ? cfg.get().membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT;
 }
 
 /// Сумма членского взноса от базы по ставке (целочисленно, вниз).

@@ -37,6 +37,17 @@ export const MARKETPLACE_ECONOMY_SERVICE = Symbol('MARKETPLACE_ECONOMY_SERVICE')
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1000000) = 100%. */
 const HUNDR_PERCENTS = 1_000_000;
 
+/**
+ * Дефолт ставки членского взноса нового кооператива — 30% в контрактной
+ * шкале, зеркалит `DEFAULT_MEMBERSHIP_FEE_PERCENT` из marketplace.hpp.
+ * Пока singleton `config` не создан on-chain (кооператив ещё не вызывал
+ * `setfee`), И контракт (расчёт взноса при заказе), И бэкенд (зеркальный
+ * расчёт суммы конвертации для чекаута) обязаны согласованно использовать
+ * один и тот же дефолт — иначе сумма в чекауте разойдётся с фактическим
+ * списанием on-chain.
+ */
+const DEFAULT_MEMBERSHIP_FEE_PERCENT = 300_000;
+
 /** Контракт-источник распределения в реестре весов branch::weights. */
 const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';
 
@@ -114,7 +125,9 @@ export class MarketplaceEconomyService {
 
   async getMembershipFeePercent(coopname: string): Promise<number> {
     const config = await this.chainPort.getEconomyConfig(coopname);
-    return config ? this.toHumanPercent(config.membership_fee_percent) : 0;
+    return this.toHumanPercent(
+      config ? config.membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT
+    );
   }
 
   /**
@@ -125,7 +138,7 @@ export class MarketplaceEconomyService {
    */
   async getMembershipFeeContractPercent(coopname: string): Promise<number> {
     const config = await this.chainPort.getEconomyConfig(coopname);
-    return config ? Number(config.membership_fee_percent) : 0;
+    return config ? Number(config.membership_fee_percent) : DEFAULT_MEMBERSHIP_FEE_PERCENT;
   }
 
   /** Членский взнос в минимальных единицах валюты — формула контракта. */
