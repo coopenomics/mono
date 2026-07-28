@@ -1,13 +1,15 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, debounce } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { debounce } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
+import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
 import {
   HandoffTokenKind,
   useMarketplaceRealtime,
@@ -19,7 +21,7 @@ import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
-import { cancelOrder, fetchOrder } from '../../MyOrders/api';
+import { fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
 import {
@@ -83,7 +85,23 @@ const orderSaleUnit = computed(() =>
     ? marketplaceOrderSaleUnit(order.value.quantity, order.value.unit_of_measure, order.value.package_size)
     : { units: 0, unitLabel: '' },
 );
-const cancellable = computed(() => order.value?.status === 'ACTIVE');
+// Бесплатная отмена (без штрафа) доступна, пока поставщик ещё НЕ акцептовал
+// заказ: on-chain это статус ACTIVE; ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) —
+// тот же ACTIVE on-chain, backend лишь пометил «ждём нажатия Accept
+// поставщиком» (см. marketplace-order.types.ts). После акцепта (ACCEPTED и
+// далее) контракт уже удерживает штраф при отмене — кнопку скрываем.
+const CANCELLABLE_FREE_STATUSES: ReadonlySet<string> = new Set([
+  Zeus.MarketplaceOrderStatus.ACTIVE,
+  Zeus.MarketplaceOrderStatus.ACCEPTED_PENDING_SUPPLIER,
+  Zeus.MarketplaceOrderStatus.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
+]);
+const cancellable = computed(() => !!order.value && CANCELLABLE_FREE_STATUSES.has(order.value.status));
+const cancelDialogOpen = ref(false);
+const cancelMessage = computed(() => {
+  const o = order.value;
+  if (!o) return '';
+  return `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units}×${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён.`;
+});
 
 // Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна
 // warranty_until — то же поле, которое ПВЗ-оператор устанавливает при
@@ -289,24 +307,12 @@ function openReturnDetails(claim: MarketplaceReturnClaimView): void {
   returnDetailsDialogOpen.value = true;
 }
 
-function confirmCancel(): void {
-  const o = order.value;
-  if (!o) return;
-  Dialog.create({
-    title: 'Отменить заказ?',
-    message: `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units}×${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
-    cancel: { label: 'Не отменять', flat: true },
-    ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const result = await cancelOrder(o.id);
-      SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
-      await load();
-    } catch (e) {
-      FailAlert(e);
-    }
-  });
+function openCancelDialog(): void {
+  cancelDialogOpen.value = true;
+}
+
+async function onOrderCancelled(): Promise<void> {
+  await load();
 }
 
 onMounted(() => {
@@ -443,9 +449,16 @@ q-page.order-detail(role="region", aria-label="Заказ")
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
       .order-detail__actions(v-if="cancellable")
-        BaseButton(variant="danger", @click="confirmCancel") Отменить заказ
+        BaseButton(variant="danger", @click="openCancelDialog") Отменить заказ
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+    CancelOrderDialog(
+      v-model="cancelDialogOpen",
+      :order-id="orderId",
+      :message="cancelMessage",
+      @cancelled="onOrderCancelled"
+    )
 
     SubmitReturnClaimDialog(
       v-model="submitReturnDialogOpen",

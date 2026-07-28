@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, debounce } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { debounce } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -10,9 +10,10 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { cancelOrder, fetchMyOrders } from '../api';
+import { fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
 /**
@@ -248,23 +249,22 @@ async function onLoadMore(): Promise<void> {
   await load(currentPage.value + 1, true);
 }
 
-function confirmCancel(order: MarketplaceOrderView): void {
+const cancelDialogOpen = ref(false);
+const cancelTargetOrder = ref<MarketplaceOrderView | null>(null);
+const cancelMessage = computed(() => {
+  const order = cancelTargetOrder.value;
+  if (!order) return '';
   const saleUnit = marketplaceOrderSaleUnit(order.quantity, order.unit_of_measure, order.package_size);
-  Dialog.create({
-    title: 'Отменить заказ?',
-    message: `Заказ № ${order.id.slice(0, 8)} (${saleUnit.units}×${saleUnit.unitLabel}, ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
-    cancel: { label: 'Не отменять', flat: true },
-    ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const result = await cancelOrder(order.id);
-      SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
-      await load(1, false);
-    } catch (e) {
-      FailAlert(e);
-    }
-  });
+  return `Заказ № ${order.id.slice(0, 8)} (${saleUnit.units}×${saleUnit.unitLabel}, ${money(order.total_cost_with_fee)} ₽) будет отменён.`;
+});
+
+function confirmCancel(order: MarketplaceOrderView): void {
+  cancelTargetOrder.value = order;
+  cancelDialogOpen.value = true;
+}
+
+async function onOrderCancelled(): Promise<void> {
+  await load(1, false);
 }
 
 function openDetail(order: OrderCardModel): void {
@@ -371,6 +371,13 @@ q-page.orders(role="region", aria-label="Мои заказы")
     BaseButton(variant="ghost", :loading="loading", @click="onLoadMore") Загрузить ещё
 
   HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+  CancelOrderDialog(
+    v-model="cancelDialogOpen",
+    :order-id="cancelTargetOrder?.id ?? ''",
+    :message="cancelMessage",
+    @cancelled="onOrderCancelled"
+  )
 
   //- Карта пункта выдачи «куда ехать» — по клику на геопозицию карточки.
   BaseDialog(v-model="mapOpen", :title="mapTarget?.name || 'Пункт выдачи'")
