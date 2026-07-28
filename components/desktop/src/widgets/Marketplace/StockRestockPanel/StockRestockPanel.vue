@@ -267,7 +267,7 @@ watch(
         span.restock__offer-meta(v-if='!isPackaged(o)')
           | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · свободно {{ o.quantity_available }} {{ unitLabel(o) }}
         span.restock__offer-meta(v-else-if='selectedPackage(o)')
-          | {{ formatAsset2Digits(selectedPackage(o)!.price) }} ₽ за упак. · свободно {{ maxQty(o) }} упак.
+          | {{ formatAsset2Digits(selectedPackage(o)?.price ?? '0') }} ₽ за упак. · свободно {{ maxQty(o) }} упак.
 
       BaseSelect(
         v-if='isPackaged(o)',
