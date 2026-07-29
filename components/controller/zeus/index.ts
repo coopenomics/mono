@@ -10208,6 +10208,8 @@ export type ValueTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -10249,7 +10251,8 @@ export type ValueTypes = {
 	braname: string | Variable<any, string>,
 	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
 	inventory_ids?: Array<string> | undefined | null | Variable<any, string>,
-	quantity: string | Variable<any, string>
+	quantity: string | Variable<any, string>,
+	reason: string | Variable<any, string>
 };
 	["MarketplaceWriteoffProposal"]: AliasType<{
 	authorized_at?:boolean | `@${string}`,
@@ -10297,6 +10300,8 @@ export type ValueTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Количество единиц к списанию. */
 	quantity?:boolean | `@${string}`,
+	/** Причина списания (срок годности, повреждение и т.п.). */
+	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -23280,6 +23285,8 @@ export type ResolverInputTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -23318,7 +23325,8 @@ export type ResolverInputTypes = {
 	braname: string,
 	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
 	inventory_ids?: Array<string> | undefined | null,
-	quantity: string
+	quantity: string,
+	reason: string
 };
 	["MarketplaceWriteoffProposal"]: AliasType<{
 	authorized_at?:boolean | `@${string}`,
@@ -23365,6 +23373,8 @@ export type ResolverInputTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Количество единиц к списанию. */
 	quantity?:boolean | `@${string}`,
+	/** Причина списания (срок годности, повреждение и т.п.). */
+	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -35923,6 +35933,8 @@ export type ModelTypes = {
 	package_size?: number | undefined | null,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
@@ -35958,7 +35970,8 @@ export type ModelTypes = {
 	braname: string,
 	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
 	inventory_ids?: Array<string> | undefined | null,
-	quantity: string
+	quantity: string,
+	reason: string
 };
 	["MarketplaceWriteoffProposal"]: {
 		authorized_at?: string | undefined | null,
@@ -36004,6 +36017,8 @@ export type ModelTypes = {
 	package_size?: number | undefined | null,
 	/** Количество единиц к списанию. */
 	quantity: string,
+	/** Причина списания (срок годности, повреждение и т.п.). */
+	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
@@ -49936,6 +49951,8 @@ export type GraphQLTypes = {
 	package_size?: number | undefined | null,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
+	/** Причина-кандидат (по умолчанию — истёк срок годности). */
+	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceWriteoffCandidate']: Omit<GraphQLTypes["MarketplaceWriteoffCandidate"], "...on MarketplaceWriteoffCandidate">
@@ -49976,7 +49993,8 @@ export type GraphQLTypes = {
 	braname: string,
 	/** Идентификаторы партий на складе, которые покрывает эта строка списания. */
 	inventory_ids?: Array<string> | undefined | null,
-	quantity: string
+	quantity: string,
+	reason: string
 };
 	["MarketplaceWriteoffProposal"]: {
 	__typename: "MarketplaceWriteoffProposal",
@@ -50025,6 +50043,8 @@ export type GraphQLTypes = {
 	package_size?: number | undefined | null,
 	/** Количество единиц к списанию. */
 	quantity: string,
+	/** Причина списания (срок годности, повреждение и т.п.). */
+	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceWriteoffProposalItem']: Omit<GraphQLTypes["MarketplaceWriteoffProposalItem"], "...on MarketplaceWriteoffProposalItem">

@@ -20,8 +20,9 @@ const WriteoffMemoItemSchema: JSONSchemaType<Cooperative.Registry.MarketplaceWri
     quantity: { type: 'string' },
     unit: { type: 'string' },
     amount: { type: 'string' },
+    reason: { type: 'string' },
   },
-  required: ['asset_title', 'quantity', 'unit', 'amount'],
+  required: ['asset_title', 'quantity', 'unit', 'amount', 'reason'],
   additionalProperties: true,
 }
 

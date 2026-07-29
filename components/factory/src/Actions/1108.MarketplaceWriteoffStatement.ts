@@ -53,6 +53,7 @@ export class Factory extends DocFactory<MarketplaceWriteoffStatement.Action> {
         quantity: it.quantity,
         unit: it.unit,
         amount: it.amount,
+        reason: it.reason,
       }))
 
     const combinedData: MarketplaceWriteoffStatement.Model = {

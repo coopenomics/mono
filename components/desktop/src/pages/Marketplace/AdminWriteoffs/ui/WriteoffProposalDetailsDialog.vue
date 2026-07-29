@@ -126,6 +126,7 @@ BaseDialog(
                 th Наименование
                 th.col-num Кол-во
                 th.col-num Сумма
+                th Причина
                 th Статус
             tbody
               tr(v-for="(it, idx) in proposal.items", :key="idx")
@@ -134,6 +135,7 @@ BaseDialog(
                 td {{ it.asset_title }}
                 td.col-num {{ itemQuantityLabel(it) }}
                 td.col-num {{ formatAsset2Digits(it.amount) }}
+                td {{ it.reason }}
                 td
                   BaseBadge(:variant="it.executed ? 'pos' : 'neutral'") {{ it.executed ? 'Списано' : 'Ожидает' }}
 

@@ -21,8 +21,9 @@ const WriteoffItemSchema: JSONSchemaType<Cooperative.Registry.MarketplaceWriteof
     quantity: { type: 'string' },
     unit: { type: 'string' },
     amount: { type: 'string' },
+    reason: { type: 'string' },
   },
-  required: ['braname', 'asset_title', 'quantity', 'unit', 'amount'],
+  required: ['braname', 'asset_title', 'quantity', 'unit', 'amount', 'reason'],
   additionalProperties: true,
 }
 

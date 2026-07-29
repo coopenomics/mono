@@ -27,6 +27,8 @@ export interface WriteoffItemAction {
   unit: string
   /** Стоимость списания (4 знака после запятой, валюта `_root_govern_symbol`). */
   amount: string
+  /** Причина списания (просрочка / порча / малооценность). */
+  reason: string
 }
 
 export interface Action extends IGenerate {
@@ -49,6 +51,7 @@ export interface WriteoffItemModel {
   quantity: string
   unit: string
   amount: string
+  reason: string
 }
 
 /**
@@ -131,6 +134,7 @@ th, td {
         <td style="font-weight: bold">{% trans 'col_quantity' %}</td>
         <td style="font-weight: bold">{% trans 'col_unit' %}</td>
         <td style="font-weight: bold">{% trans 'col_amount' %}</td>
+        <td style="font-weight: bold">{% trans 'col_reason' %}</td>
       </tr>
       {% for it in items %}
       <tr>
@@ -139,11 +143,13 @@ th, td {
         <td>{{ it.quantity }}</td>
         <td>{{ it.unit }}</td>
         <td>{{ it.amount }}</td>
+        <td>{{ it.reason }}</td>
       </tr>
       {% endfor %}
       <tr>
         <td colspan="4" style="font-weight: bold">{% trans 'total' %}</td>
         <td style="font-weight: bold">{{ total_amount }}</td>
+        <td></td>
       </tr>
     </tbody>
   </table>
@@ -166,6 +172,7 @@ export const translations = {
     col_quantity: 'Количество',
     col_unit: 'Ед. изм.',
     col_amount: 'Сумма списания',
+    col_reason: 'Причина',
     total: 'ИТОГО',
     signature: 'Подписано электронной подписью.',
   },
@@ -192,6 +199,7 @@ export const exampleData = {
       quantity: '12',
       unit: 'шт.',
       amount: '1 020,00 RUB',
+      reason: 'Истёк срок годности',
     },
     {
       braname: 'ku-moskva-2',
@@ -199,6 +207,7 @@ export const exampleData = {
       quantity: '5',
       unit: 'шт.',
       amount: '485,00 RUB',
+      reason: 'Повреждена упаковка',
     },
   ],
   total_amount: '1 505,00 RUB',
