@@ -54,6 +54,8 @@ export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayl
 export * as ListMyReturnClaims from './listMyReturnClaims'
 /** Эпик 7: заявления на возврат текущего КУ для operator-стола */
 export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
+/** Эпик 7: одно заявление на возврат по id — для детальной страницы возврата */
+export * as ReturnClaim from './returnClaim'
 /** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
 export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'
 /** Эпик 7: заявление на возврат с подписью пайщика, для со-подписи председателя при приёме на очном осмотре */

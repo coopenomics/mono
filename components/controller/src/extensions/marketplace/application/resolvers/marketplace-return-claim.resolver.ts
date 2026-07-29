@@ -252,7 +252,11 @@ export class MarketplaceReturnClaimResolver {
     description: 'Получить одно заявление на гарантийный возврат по идентификатору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('ReturnClaim', 'read:own')
+  // OR по капабилити: заказчик читает своё (read:own), председатель/доверенный
+  // КУ доставки — заявления своего участка (read:own-KU). Guard пропускает по
+  // ЛЮБОМУ из них — какое именно применимо к КОНКРЕТНОМУ заявлению (заказчик
+  // ли он, или председатель именно ЭТОГО КУ) резолвер проверяет сам ниже.
+  @RequireMarketplaceAccess('ReturnClaim', ['read:own', 'read:own-KU'])
   async marketplaceReturnClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string

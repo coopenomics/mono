@@ -15,6 +15,7 @@ import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
 import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode'
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
+import { OperatorReturnClaimDetailPage } from 'src/pages/Marketplace/OperatorReturnClaimDetail'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
@@ -569,6 +570,27 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
+            },
+            {
+              // Универсальная детальная страница заявления на возврат — одна и
+              // та же для всех статусов (на рассмотрении / ожидает визита /
+              // архив). Скрыта из меню, открывается кликом по карточке из
+              // «Гарантийных возвратов» (см. review 2026-07-29: раньше архивная
+              // карточка была тупиковой, решения принимались только инлайн в
+              // списке — теперь везде один путь: карточка → страница → статус
+              // + контекстное действие).
+              path: 'returns/:claimId',
+              name: 'marketplace-pvz-return-detail',
+              component: markRaw(OperatorReturnClaimDetailPage),
+              meta: {
+                title: 'Гарантийный возврат',
+                icon: 'fa-solid fa-clipboard-check',
+                requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+              },
+              children: [],
             },
             // TODO(2026-07-28): раздел «Доверенные лица» снят со Стола ПВЗ —
             // он обходил стороной уже существующий полноценный флоу КУ
