@@ -26,6 +26,7 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -809,6 +810,7 @@ export class MarketplaceWriteoffService {
       // следующий cron-цикл. Если update упадёт — re-throw, чтобы видна была
       // проблема и proposal остался в EXECUTING для retry.
       for (const invId of item.inventory_ids ?? []) {
+        await this.releasePublishedStockOnWriteoff(invId);
         await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
@@ -904,6 +906,7 @@ export class MarketplaceWriteoffService {
         },
       });
       for (const invId of proposal.items[idx].inventory_ids ?? []) {
+        await this.releasePublishedStockOnWriteoff(invId);
         await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
@@ -928,6 +931,27 @@ export class MarketplaceWriteoffService {
   }
 
   // ── Утилиты ────────────────────────────────────────────────────────
+
+  /**
+   * Списание позиции обезличенного остатка (requirement 76), уже
+   * опубликованной оффером кооператива в каталог, снимает списанное
+   * количество и с витрины — иначе `quantity_available` оффера остаётся
+   * завышенным на списанную партию, и заказчик продолжает видеть/пытаться
+   * заказать то, чего на складе уже нет (публикация сама по себе не
+   * откатывается: `unpublishStock` — отдельное осознанное действие
+   * оператора, здесь же позиция физически уничтожена/испорчена).
+   */
+  private async releasePublishedStockOnWriteoff(invId: string): Promise<void> {
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv || inv.ownership !== MarketplaceInventoryOwnerships.COOP || !inv.published_offer_id) {
+      return;
+    }
+    const offer = await this.offerRepo.findById(inv.published_offer_id);
+    if (!offer) return;
+    await this.offerRepo.applyUpdate(offer.id, {
+      quantity_available: Math.max(0, offer.quantity_available - inv.quantity_per_label),
+    });
+  }
 
   computeProposalHash(input: {
     coopname: string;
