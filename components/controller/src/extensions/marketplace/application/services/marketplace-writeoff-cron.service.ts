@@ -141,7 +141,6 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
           asset_title: inv.product_name_snapshot,
           quantity: String(inv.quantity_per_label),
           amount: total.toFixed(this.assetConfig.decimals),
-          reason: this.deriveReason(inv.expiry_date),
           inventory_id: inv.id,
         };
       }
@@ -165,11 +164,6 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       items_count: items.length,
       total_amount: created.total_amount,
     });
-  }
-
-  private deriveReason(expiry: Date | null): string {
-    if (!expiry) return 'Срок годности не задан';
-    return 'Истёк срок годности';
   }
 
   private resolveUnitCost(inv: MarketplaceInventoryEntity): number | null {

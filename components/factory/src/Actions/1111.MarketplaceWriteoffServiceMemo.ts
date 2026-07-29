@@ -52,7 +52,6 @@ export class Factory extends DocFactory<MarketplaceWriteoffServiceMemo.Action> {
         quantity: it.quantity,
         unit: it.unit,
         amount: it.amount,
-        reason: it.reason,
       }))
 
     const combinedData: MarketplaceWriteoffServiceMemo.Model = {

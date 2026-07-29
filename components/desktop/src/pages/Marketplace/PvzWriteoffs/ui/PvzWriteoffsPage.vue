@@ -37,7 +37,6 @@ const itemColumns = [
   { name: 'asset_title', align: 'left' as const, label: 'Наименование', field: 'asset_title' },
   { name: 'quantity', align: 'right' as const, label: 'Кол-во', field: 'quantity' },
   { name: 'amount', align: 'right' as const, label: 'Сумма', field: 'amount' },
-  { name: 'reason', align: 'left' as const, label: 'Причина', field: 'reason' },
 ];
 
 function groupKey(g: MarketplaceWriteoffConfirmationGroupView): string {
@@ -50,8 +49,8 @@ function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | nu
   return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
-function itemRowKey(it: { asset_title: string; reason: string }): string {
-  return `${it.asset_title}|${it.reason}`;
+function itemRowKey(it: { asset_title: string }): string {
+  return it.asset_title;
 }
 
 async function load(): Promise<void> {

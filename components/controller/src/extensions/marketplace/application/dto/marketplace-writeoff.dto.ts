@@ -55,8 +55,6 @@ export class MarketplaceWriteoffProposalItemDTO {
   quantity!: string;
   @Field({ description: 'Сумма списания (4 знака после запятой, валюта кооператива).' })
   amount!: string;
-  @Field({ description: 'Причина списания (срок годности, повреждение и т.п.).' })
-  reason!: string;
   @Field(() => [String], {
     description: 'Идентификаторы партий на складе, слитых в эту строку списания.',
   })
@@ -145,8 +143,6 @@ export class MarketplaceWriteoffItemInputDTO {
   quantity!: string;
   @Field({ description: 'Сумма списания в формате числа с 4 знаками после запятой.' })
   amount!: string;
-  @Field()
-  reason!: string;
   @Field(() => [String], {
     nullable: true,
     description: 'Идентификаторы партий на складе, которые покрывает эта строка списания.',
@@ -218,8 +214,6 @@ export class MarketplaceWriteoffCandidateDTO {
   quantity!: string;
   @Field({ description: 'Суммарная сумма к списанию (закупочная цена × количество, 4 знака).' })
   amount!: string;
-  @Field({ description: 'Причина-кандидат (по умолчанию — истёк срок годности).' })
-  reason!: string;
   @Field(() => String, { nullable: true, description: 'Ближайший срок годности среди партий (ISO).' })
   expiry_date?: string | null;
   @Field({

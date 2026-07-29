@@ -9,7 +9,6 @@ const rawItemSelector = {
   package_size: true,
   quantity: true,
   amount: true,
-  reason: true,
   inventory_ids: true,
   executed: true,
 }
@@ -88,7 +87,6 @@ const rawCandidateSelector = {
   package_size: true,
   quantity: true,
   amount: true,
-  reason: true,
   expiry_date: true,
   is_expired: true,
   lots_count: true,

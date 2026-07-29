@@ -226,7 +226,6 @@ export class MarketplaceWriteoffResolver {
         unit: units[i],
         // Человекочитаемая сумма «1 020,00 RUB» (2 знака), не машинные 4 знака.
         amount: this.service.formatAssetHuman(Number(it.amount)),
-        reason: it.reason,
       })),
       total_amount: this.service.formatAssetHuman(parseFloat(draft.total_amount)),
     };

@@ -60,7 +60,6 @@ export interface MarketplaceWriteoffProposalItem {
   asset_title: string;
   quantity: string;
   amount: string;
-  reason: string;
   inventory_ids: string[];
   executed: boolean;
 }

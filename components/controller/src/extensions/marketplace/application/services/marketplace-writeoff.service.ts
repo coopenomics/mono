@@ -65,7 +65,6 @@ export interface MarketplaceWriteoffItemInput {
   asset_title: string;
   quantity: string;
   amount: string;
-  reason: string;
   inventory_ids?: string[];
 }
 
@@ -116,7 +115,6 @@ export interface MarketplaceWriteoffCandidateView {
   quantity: string;
   /** Суммарная стоимость по всем партиям агрегата. */
   amount: string;
-  reason: string;
   /** Ближайший (самый срочный) срок годности среди партий агрегата. */
   expiry_date: string | null;
   is_expired: boolean;
@@ -144,7 +142,7 @@ export interface MarketplaceWriteoffServiceMemoData {
   branch_name: string;
   cycle_started_at: string;
   proposal_hash: string;
-  items: { asset_title: string; quantity: string; unit: string; amount: string; reason: string }[];
+  items: { asset_title: string; quantity: string; unit: string; amount: string }[];
   total_amount: string;
 }
 
@@ -300,8 +298,8 @@ export class MarketplaceWriteoffService {
     // визуально неразличимы (та же дата «годен до», тот же КУ) — пайщик видит
     // «прыгающее количество». Сливаем их в одну строку-агрегат: суммарное
     // кол-во + сумма, под капотом — список всех партий. Ключ группировки
-    // включает состояние (просрочено / без гарантии / годно), потому что у них
-    // разный визуальный статус и разная причина по умолчанию.
+    // включает состояние (просрочено / без гарантии / годно) — у них разный
+    // визуальный статус.
     const groups = new Map<
       string,
       {
@@ -311,7 +309,6 @@ export class MarketplaceWriteoffService {
         asset_title: string;
         quantity: number;
         amount: number;
-        reason: string;
         expiry_ms: number | null;
         is_expired: boolean;
         state: string;
@@ -344,11 +341,6 @@ export class MarketplaceWriteoffService {
           asset_title: c.asset_title,
           quantity: c.quantity,
           amount,
-          // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
-          // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
-          // вручную (порча/использование) → «Списание вручную». Председатель
-          // может уточнить причину в поле перед отправкой.
-          reason: state === 'valid' ? 'Списание вручную' : 'Истёк срок годности',
           expiry_ms: expiryMs,
           is_expired: c.is_expired,
           state,
@@ -374,7 +366,6 @@ export class MarketplaceWriteoffService {
         package_size: null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
-        reason: g.reason,
         expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
@@ -474,7 +465,6 @@ export class MarketplaceWriteoffService {
         quantity: it.quantity,
         unit: units[i],
         amount: it.amount,
-        reason: it.reason,
       })),
       total_amount: this.formatAssetNumber(total),
     };
@@ -628,7 +618,7 @@ export class MarketplaceWriteoffService {
         // it.amount хранится как голое число ("120.0000"); on-chain поле
         // wroff_item.amount — asset, нужен символ ("120.0000 RUB").
         amount: this.formatAsset(Number(it.amount)),
-        meta: it.reason,
+        meta: '',
         executed: false,
       })) as MarketContract.Actions.PropWroff.IPropWroff['items'],
       statement: new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.PropWroff.IPropWroff['statement'],
@@ -978,7 +968,6 @@ export class MarketplaceWriteoffService {
         asset_title: it.asset_title,
         quantity: it.quantity,
         amount: this.formatAssetNumber(amount),
-        reason: it.reason ?? '',
         inventory_ids: it.inventory_ids ?? [],
         executed: false,
       };
