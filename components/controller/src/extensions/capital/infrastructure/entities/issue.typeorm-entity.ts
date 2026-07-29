@@ -62,8 +62,9 @@ export class IssueTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   submaster?: string;
 
-  @Column({ type: 'varchar' })
-  project_hash!: string;
+  /** NULL — свободная задача без проекта/компонента */
+  @Column({ type: 'varchar', nullable: true })
+  project_hash?: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   cycle_id?: string;
@@ -75,9 +76,12 @@ export class IssueTypeormEntity extends BaseTypeormEntity {
   };
 
   // Связи
-  @ManyToOne(() => ProjectTypeormEntity, (project) => project.issues, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ProjectTypeormEntity, (project) => project.issues, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn({ name: 'project_hash', referencedColumnName: 'project_hash' })
-  project!: ProjectTypeormEntity;
+  project?: ProjectTypeormEntity | null;
 
   @ManyToOne(() => CycleTypeormEntity, (cycle) => cycle.issues, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'cycle_id' })

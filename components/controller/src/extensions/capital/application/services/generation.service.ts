@@ -653,15 +653,30 @@ export class GenerationService {
     };
 
     // Если указан issue_hash, ищем только по конкретной задаче.
-    // Артефакт задачи виден только тем, у кого есть допуск к проекту/компоненту задачи.
+    // Артефакт задачи виден только тем, у кого есть допуск к проекту/компоненту задачи
+    // (для свободных — ответственный/исполнитель/совет).
     if (filter?.issue_hash) {
       const issue = await this.issueRepository.findByIssueHash(filter.issue_hash);
       if (!issue) {
         return emptyResult;
       }
-      const project = await this.projectRepository.findByHash(issue.project_hash);
-      if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
-        return emptyResult;
+      if (issue.project_hash) {
+        const project = await this.projectRepository.findByHash(issue.project_hash);
+        if (!project || !(await this.permissionsService.canViewProjectArtifacts(project, currentUser))) {
+          return emptyResult;
+        }
+      } else {
+        const u = currentUser?.username;
+        const allowed =
+          !!u &&
+          (issue.creators?.includes(u) ||
+            issue.created_by === u ||
+            issue.submaster === u ||
+            currentUser?.role === 'chairman' ||
+            currentUser?.role === 'member');
+        if (!allowed) {
+          return emptyResult;
+        }
       }
       const result = await this.storyRepository.findAllPaginated(filter, options);
       return {
@@ -850,34 +865,50 @@ export class GenerationService {
   // ============ ISSUE METHODS ============
 
   /**
-   * Создание задачи
+   * Создание задачи.
+   * Без project_hash — свободная задача (не привязана к проекту/компоненту),
+   * создатель автоматически становится исполнителем.
    */
   async createIssue(
     data: CreateIssueInputDTO,
     username: string,
     currentUser?: MonoAccountDomainInterface
   ): Promise<IssueOutputDTO> {
-    // Проверяем права на управление задачами
-    const project = await this.projectRepository.findByHash(data.project_hash);
-    if (!project) {
-      throw new Error(`Проект с хэшем ${data.project_hash} не найден`);
+    const projectHash = data.project_hash?.trim() || null;
+    const isFree = !projectHash;
+
+    let creators = data.creators?.length ? [...data.creators] : [];
+    if (isFree && !creators.includes(username)) {
+      creators = [username, ...creators];
     }
-    const projectPermissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!projectPermissions.can_manage_issues) {
-      throw new Error('У вас нет прав на управление задачами в этом проекте. Только мастер проекта может управлять задачами.');
+
+    if (!isFree) {
+      const project = await this.projectRepository.findByHash(projectHash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${projectHash} не найден`);
+      }
+      const projectPermissions = await this.permissionsService.calculateProjectPermissions(
+        project,
+        currentUser
+      );
+      if (!projectPermissions.can_manage_issues) {
+        throw new Error(
+          'У вас нет прав на управление задачами в этом проекте. Только мастер проекта может управлять задачами.'
+        );
+      }
     }
 
     // Проверяем права на установку начального статуса (как у сохранённой задачи):
     // submaster по умолчанию = первый creator — иначе проверка видит роль CREATOR без CHANGE_STATUS.
-    const effectiveSubmasterForPermission
-      = data.submaster ?? (data.creators?.length ? data.creators[0] : undefined);
+    const effectiveSubmasterForPermission =
+      data.submaster ?? (creators.length ? creators[0] : undefined);
     if (data.status) {
       await this.issuePermissionsService.validateIssueStatusPermission(
         username,
         data.coopname,
-        data.project_hash,
+        projectHash ?? '',
         effectiveSubmasterForPermission,
-        data.creators || [],
+        creators,
         data.status,
         IssueStatus.BACKLOG, // Для новой задачи текущий статус - BACKLOG
         currentUser?.role
@@ -898,10 +929,11 @@ export class GenerationService {
       status: data.status || IssueStatus.BACKLOG,
       estimate: data.estimate ?? 0,
       sort_order: data.sort_order || 0,
-      created_by: username, // Сохраняем имя пользователя
-      submaster: data.submaster || (data.creators && data.creators.length > 0 ? data.creators[0] : undefined),
-      creators: data.creators || [],
-      project_hash: data.project_hash,
+      created_by: username,
+      submaster:
+        data.submaster || (creators.length > 0 ? creators[0] : undefined),
+      creators,
+      project_hash: projectHash,
       cycle_id: data.cycle_id,
       metadata: {
         labels: data.labels || [],
@@ -910,11 +942,25 @@ export class GenerationService {
       present: false,
     };
 
-    // Генерируем ID + увеличиваем счетчик атомарно в проекте
-    const { issueData, updatedProject } = this.issueIdGenerationService.generateIssueId(project, issueDataWithoutId);
-
-    // Сохраняем обновленный проект с новым счетчиком
-    await this.projectRepository.update(updatedProject);
+    let issueData: IIssueDatabaseData;
+    if (isFree) {
+      // ID свободной задачи: T-XXXXXXXX (12 символов max)
+      issueData = {
+        ...issueDataWithoutId,
+        id: `T-${issueHash.slice(0, 8).toUpperCase()}`,
+      };
+    } else {
+      const project = await this.projectRepository.findByHash(projectHash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${projectHash} не найден`);
+      }
+      const generated = this.issueIdGenerationService.generateIssueId(
+        project,
+        issueDataWithoutId
+      );
+      issueData = generated.issueData;
+      await this.projectRepository.update(generated.updatedProject);
+    }
 
     // Создаем доменную сущность с готовым ID
     const issueEntity = new IssueDomainEntity(issueData);
@@ -922,6 +968,8 @@ export class GenerationService {
     // Если указан ответственный, используем метод доменной сущности для правильного назначения
     if (data.submaster) {
       issueEntity.setSubmaster(data.submaster);
+    } else if (isFree) {
+      issueEntity.setSubmaster(username);
     }
 
     // Сохраняем задачу через репозиторий
@@ -930,7 +978,10 @@ export class GenerationService {
     // 562-14: план больше не создаёт авто-билеты времени
 
     // Рассчитываем права доступа для задачи
-    const permissions = await this.permissionsService.calculateIssuePermissions(savedIssue, currentUser);
+    const permissions = await this.permissionsService.calculateIssuePermissions(
+      savedIssue,
+      currentUser
+    );
 
     const withLinks = await this.withLinkedGitCommits({
       ...savedIssue,
@@ -954,6 +1005,11 @@ export class GenerationService {
     }
     if (issue.project_hash === targetHash) {
       throw new Error('Задача уже принадлежит выбранному компоненту');
+    }
+    if (!issue.project_hash) {
+      throw new Error(
+        'Свободную задачу нельзя перенести между компонентами — сначала привяжите её к компоненту'
+      );
     }
 
     const sourceProject = await this.projectRepository.findByHash(issue.project_hash);
@@ -1060,28 +1116,49 @@ export class GenerationService {
       throw new Error(`Задача с хэшем ${data.issue_hash} не найдена`);
     }
 
-    // Проверяем права на управление задачами
-    const project = await this.projectRepository.findByHash(existingIssue.project_hash);
-    if (!project) {
-      throw new Error(`Проект с хэшем ${existingIssue.project_hash} не найден`);
-    }
-    const projectPermissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
+    const isFree = !existingIssue.project_hash;
 
     // Рассчитываем права доступа для конкретной задачи
-    const issuePermissions = await this.permissionsService.calculateIssuePermissions(existingIssue, currentUser);
+    const issuePermissions = await this.permissionsService.calculateIssuePermissions(
+      existingIssue,
+      currentUser
+    );
 
-    // Проверяем права на управление задачами в проекте (мастер проекта) или на редактирование конкретной задачи (исполнитель)
-    if (!projectPermissions.can_manage_issues && !issuePermissions.can_edit_issue) {
-      throw new Error('У вас нет прав на редактирование этой задачи. Только мастер проекта или исполнитель задачи могут изменять её.');
+    let canManageViaProject = false;
+    if (!isFree) {
+      const project = await this.projectRepository.findByHash(existingIssue.project_hash!);
+      if (!project) {
+        throw new Error(`Проект с хэшем ${existingIssue.project_hash} не найден`);
+      }
+      const projectPermissions = await this.permissionsService.calculateProjectPermissions(
+        project,
+        currentUser
+      );
+      canManageViaProject = projectPermissions.can_manage_issues;
+    }
+
+    // Мастер проекта или право редактировать задачу (для свободных — ответственный/исполнитель)
+    if (!canManageViaProject && !issuePermissions.can_edit_issue) {
+      throw new Error(
+        'У вас нет прав на редактирование этой задачи. Только мастер проекта или исполнитель задачи могут изменять её.'
+      );
     }
 
     // Проверяем права на назначение ответственного
     if (data.submaster !== undefined && data.submaster !== existingIssue.submaster) {
-      await this.issuePermissionsService.validateSubmasterAssignmentPermission(
-        username,
-        existingIssue.coopname,
-        existingIssue.project_hash
-      );
+      if (isFree) {
+        if (!issuePermissions.can_assign_creator) {
+          throw new Error(
+            'Недостаточно прав для назначения ответственного на свободную задачу'
+          );
+        }
+      } else {
+        await this.issuePermissionsService.validateSubmasterAssignmentPermission(
+          username,
+          existingIssue.coopname,
+          existingIssue.project_hash!
+        );
+      }
     }
 
     // Проверяем права на изменение статуса задачи
@@ -1089,7 +1166,7 @@ export class GenerationService {
       await this.issuePermissionsService.validateIssueStatusPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         data.status,
@@ -1112,7 +1189,7 @@ export class GenerationService {
       await this.issuePermissionsService.validateEstimateSettingPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         currentUser?.role
@@ -1124,7 +1201,7 @@ export class GenerationService {
       await this.issuePermissionsService.validatePrioritySettingPermission(
         username,
         existingIssue.coopname,
-        existingIssue.project_hash,
+        existingIssue.project_hash ?? '',
         existingIssue.submaster,
         existingIssue.creators,
         currentUser?.role

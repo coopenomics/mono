@@ -75,7 +75,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { Zeus } from '@coopenomics/sdk';
 import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib';
-import { useCreateIssue } from '../../model';
+import { useCreateIssue, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
 const props = defineProps<{
@@ -154,9 +154,8 @@ const clear = async () => {
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    const inputData = {
+    const inputData: ICreateIssueInput = {
       coopname: system.info.coopname,
-      project_hash: currentProjectHash.value,
       title: formData.value.title,
       description: formData.value.description,
       priority: formData.value.priority,
@@ -165,6 +164,9 @@ const handleSubmit = async () => {
       labels: formData.value.labels,
       attachments: formData.value.attachments,
     };
+    if (currentProjectHash.value) {
+      inputData.project_hash = currentProjectHash.value;
+    }
 
     const result = await createIssue(inputData);
 
@@ -172,6 +174,8 @@ const handleSubmit = async () => {
     // result - это объект задачи, у которого есть поля id и issue_hash
     const issueId = typeof result === 'string' ? result : result?.id;
     const issueHash = result?.issue_hash;
+    const resultProjectHash =
+      result?.project_hash || currentProjectHash.value || 'free';
 
     SuccessAlert(
       `Задача ${issueId} успешно создана`,
@@ -183,9 +187,12 @@ const handleSubmit = async () => {
             name: 'component-issue-description',
             params: {
               coopname: system.info.coopname,
-              project_hash: currentProjectHash.value,
+              project_hash: resultProjectHash,
               issue_hash: issueHash
-            }
+            },
+            query: currentProjectHash.value
+              ? undefined
+              : { _backRoute: 'capital-my-tasks' },
           });
         }
       } : undefined

@@ -275,9 +275,9 @@ export class IssueTypeormRepository implements IssueRepository {
       queryBuilder = queryBuilder.andWhere('i.priority = ANY(:priorities)', { priorities: filter.priorities });
     }
 
-    // Фильтрация по массиву имен пользователей создателей
+    // Фильтрация по пересечению text[] creators с именами исполнителей
     if (filter?.creators?.length) {
-      queryBuilder = queryBuilder.andWhere('i.creators IN (:...creators)', {
+      queryBuilder = queryBuilder.andWhere('i.creators && :creators', {
         creators: filter.creators,
       });
     }

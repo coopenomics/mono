@@ -216,7 +216,9 @@ export class PermissionsService {
     );
 
     // Проверяем наличие clearance (доступа к проекту)
-    const has_clearance = await this.isProjectContributor(username, issue.coopname, issue.project_hash);
+    const has_clearance = issue.project_hash
+      ? await this.isProjectContributor(username, issue.coopname, issue.project_hash)
+      : issue.creators?.includes(username) || issue.created_by === username;
 
     // Рассчитываем права на основе матрицы доступа
     const can_edit_issue = this.issuePermissionsService.hasPermission(roles, IssueAction.EDIT_ISSUE);
@@ -233,13 +235,15 @@ export class PermissionsService {
     const can_complete_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.COMPLETE_REQUIREMENT);
 
     let can_move_issue = false;
-    const issueProject = await this.projectRepository.findByHash(issue.project_hash);
+    if (issue.project_hash) {
+      const issueProject = await this.projectRepository.findByHash(issue.project_hash);
 
-    if (issueProject?.isComponent()) {
-      const projectPerms = await this.calculateProjectPermissions(issueProject, currentUser);
-      const st = issueProject.status;
-      const projectOpenForMove = st === ProjectStatus.PENDING || st === ProjectStatus.ACTIVE;
-      can_move_issue = projectPerms.can_manage_issues && projectOpenForMove;
+      if (issueProject?.isComponent()) {
+        const projectPerms = await this.calculateProjectPermissions(issueProject, currentUser);
+        const st = issueProject.status;
+        const projectOpenForMove = st === ProjectStatus.PENDING || st === ProjectStatus.ACTIVE;
+        can_move_issue = projectPerms.can_manage_issues && projectOpenForMove;
+      }
     }
     // Получаем допустимые переходы статусов для текущего статуса (UNION по ролям).
     const allowed_status_transitions = this.issuePermissionsService.getAllowedStatusTransitions(roles, issue.status);

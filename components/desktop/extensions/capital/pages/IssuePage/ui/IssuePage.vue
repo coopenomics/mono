@@ -162,7 +162,16 @@ const isMobileLayout = isMobile
 const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
 
 const issueHash = computed(() => route.params.issue_hash as string)
-const projectHash = computed(() => route.params.project_hash as string)
+const projectHash = computed(() => {
+  const fromRoute = route.params.project_hash as string
+  if (fromRoute && fromRoute !== 'free') return fromRoute
+  return issue.value?.project_hash || fromRoute || ''
+})
+const isFreeIssue = computed(
+  () =>
+    !issue.value?.project_hash ||
+    (route.params.project_hash as string) === 'free',
+)
 
 const linkedGitCommits = computed(() => (issue.value as { linked_git_commits?: unknown[] } | null)?.linked_git_commits ?? [])
 
@@ -227,6 +236,10 @@ const ensureMarkdownFormat = (description: unknown) => {
 }
 
 const loadParentInfo = async () => {
+  if (isFreeIssue.value || !projectHash.value || projectHash.value === 'free') {
+    parentProject.value = null
+    return
+  }
   try {
     const projectData = await ProjectApi.loadProject({ hash: projectHash.value })
     parentProject.value = projectData || null
@@ -351,6 +364,10 @@ const handleIssueUpdated = (updatedIssue: unknown) => {
 
 const handleIssueDeleted = () => {
   const coopname = route.params.coopname as string
+  if (isFreeIssue.value) {
+    router.push({ name: 'capital-my-tasks', params: { coopname } })
+    return
+  }
   router.push({
     name: 'component-tasks',
     params: { coopname, project_hash: projectHash.value },
@@ -394,8 +411,8 @@ provide(ISSUE_PAGE_KEY, {
 
 watch(routeIssueKey, async (_key, prev) => {
   if (prev === undefined) return
-  await loadParentInfo()
   await loadIssue()
+  await loadParentInfo()
 })
 
 // Дефолт: пустой/родительский маршрут → вкладка «Описание»
@@ -415,8 +432,8 @@ watch(
 
 onMounted(async () => {
   loadSidebarWidth()
-  await loadParentInfo()
   await loadIssue()
+  await loadParentInfo()
 })
 </script>
 

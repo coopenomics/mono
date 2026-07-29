@@ -5045,8 +5045,8 @@ export type ValueTypes = {
 	labels?: Array<string> | undefined | null | Variable<any, string>,
 	/** Приоритет задачи */
 	priority?: ValueTypes["IssuePriority"] | undefined | null | Variable<any, string>,
-	/** Хеш проекта */
-	project_hash: string | Variable<any, string>,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Статус задачи */
@@ -14934,8 +14934,8 @@ export type ResolverInputTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ResolverInputTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -22546,8 +22546,8 @@ export type ModelTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: ModelTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -24545,8 +24545,8 @@ export type ModelTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ModelTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -32356,8 +32356,8 @@ export type GraphQLTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: GraphQLTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -34468,8 +34468,8 @@ export type GraphQLTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: GraphQLTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
