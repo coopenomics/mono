@@ -49,7 +49,7 @@ export class ComponentMetricResolver {
     deprecationReason: 'Справочник мер централизован — создание через миграции',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman'])
   async createMeasure(
     @Args('data', { type: () => CreateMeasureInputDTO }) data: CreateMeasureInputDTO,
     @CurrentUser() currentUser: MonoAccountDomainInterface
@@ -62,7 +62,7 @@ export class ComponentMetricResolver {
     description: 'Включение или выключение меры в справочнике (без изменения состава)',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman'])
   async updateMeasure(
     @Args('data', { type: () => UpdateMeasureInputDTO }) data: UpdateMeasureInputDTO,
     @CurrentUser() currentUser: MonoAccountDomainInterface

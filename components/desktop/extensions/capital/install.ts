@@ -601,7 +601,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Меры',
               icon: 'straighten',
-              roles: ['chairman', 'member'],
+              roles: ['chairman'],
               agreements: agreementsBase,
               requiresAuth: true,
             },
