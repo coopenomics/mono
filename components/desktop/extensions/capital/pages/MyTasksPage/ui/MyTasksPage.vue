@@ -54,7 +54,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import IssueListRow from 'app/extensions/capital/widgets/IssuesListWidget/ui/IssueListRow.vue';
 
 /** Sentinel в URL для свободных задач без project_hash */
-export const FREE_ISSUE_PROJECT_SENTINEL = 'free';
+const FREE_ISSUE_PROJECT_SENTINEL = 'free';
 
 const router = useRouter();
 const { info } = useSystemStore();
