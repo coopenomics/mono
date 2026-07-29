@@ -116,7 +116,6 @@ export interface MarketplaceWriteoffCandidateView {
   quantity: string;
   /** Суммарная стоимость по всем партиям агрегата. */
   amount: string;
-  reason: string;
   /** Ближайший (самый срочный) срок годности среди партий агрегата. */
   expiry_date: string | null;
   is_expired: boolean;
@@ -300,8 +299,9 @@ export class MarketplaceWriteoffService {
     // визуально неразличимы (та же дата «годен до», тот же КУ) — пайщик видит
     // «прыгающее количество». Сливаем их в одну строку-агрегат: суммарное
     // кол-во + сумма, под капотом — список всех партий. Ключ группировки
-    // включает состояние (просрочено / без гарантии / годно), потому что у них
-    // разный визуальный статус и разная причина по умолчанию.
+    // включает состояние (просрочено / без гарантии / годно) — у них разный
+    // визуальный статус. Причину кандидат не несёт: председатель указывает её
+    // явно при отправке (одна причина на всю подборку), backend её не угадывает.
     const groups = new Map<
       string,
       {
@@ -311,7 +311,6 @@ export class MarketplaceWriteoffService {
         asset_title: string;
         quantity: number;
         amount: number;
-        reason: string;
         expiry_ms: number | null;
         is_expired: boolean;
         state: string;
@@ -344,11 +343,6 @@ export class MarketplaceWriteoffService {
           asset_title: c.asset_title,
           quantity: c.quantity,
           amount,
-          // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
-          // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
-          // вручную (порча/использование) → «Списание вручную». Председатель
-          // может уточнить причину в поле перед отправкой.
-          reason: state === 'valid' ? 'Списание вручную' : 'Истёк срок годности',
           expiry_ms: expiryMs,
           is_expired: c.is_expired,
           state,
@@ -374,7 +368,6 @@ export class MarketplaceWriteoffService {
         package_size: null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
-        reason: g.reason,
         expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
@@ -973,12 +966,22 @@ export class MarketplaceWriteoffService {
           `Некорректная сумма позиции "${it.asset_title}": ${it.amount}`
         );
       }
+      // Причина обязательна для любой позиции: автоматическое (крон) списание
+      // само подставляет «Истёк срок годности»/«Срок годности не задан»
+      // (см. MarketplaceWriteoffCronService.deriveReason); ручное — председатель
+      // указывает её явно, одну на всю подборку. Угадывать причину backend'у
+      // запрещено (см. историю 2026-07-29): непроверенный дефолт молча уходил
+      // в документы 1108/1111 как будто реально заявленная причина.
+      const reason = it.reason?.trim();
+      if (!reason) {
+        throw new BadRequestException(`Не указана причина списания позиции "${it.asset_title}"`);
+      }
       return {
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
         amount: this.formatAssetNumber(amount),
-        reason: it.reason ?? '',
+        reason,
         inventory_ids: it.inventory_ids ?? [],
         executed: false,
       };

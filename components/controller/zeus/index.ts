@@ -10208,8 +10208,6 @@ export type ValueTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
-	/** Причина-кандидат (по умолчанию — истёк срок годности). */
-	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -23285,8 +23283,6 @@ export type ResolverInputTypes = {
 	package_size?:boolean | `@${string}`,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity?:boolean | `@${string}`,
-	/** Причина-кандидат (по умолчанию — истёк срок годности). */
-	reason?:boolean | `@${string}`,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -35933,8 +35929,6 @@ export type ModelTypes = {
 	package_size?: number | undefined | null,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
-	/** Причина-кандидат (по умолчанию — истёк срок годности). */
-	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
@@ -49951,8 +49945,6 @@ export type GraphQLTypes = {
 	package_size?: number | undefined | null,
 	/** Суммарное количество единиц по всем партиям строки. */
 	quantity: string,
-	/** Причина-кандидат (по умолчанию — истёк срок годности). */
-	reason: string,
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceWriteoffCandidate']: Omit<GraphQLTypes["MarketplaceWriteoffCandidate"], "...on MarketplaceWriteoffCandidate">

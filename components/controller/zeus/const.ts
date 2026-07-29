@@ -5702,7 +5702,6 @@ export const ReturnTypes: Record<string,any> = {
 		lots_count:"Int",
 		package_size:"Float",
 		quantity:"String",
-		reason:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
 	},
 	MarketplaceWriteoffConfirmationGroup:{

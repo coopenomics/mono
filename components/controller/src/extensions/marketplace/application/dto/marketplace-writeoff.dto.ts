@@ -218,8 +218,6 @@ export class MarketplaceWriteoffCandidateDTO {
   quantity!: string;
   @Field({ description: 'Суммарная сумма к списанию (закупочная цена × количество, 4 знака).' })
   amount!: string;
-  @Field({ description: 'Причина-кандидат (по умолчанию — истёк срок годности).' })
-  reason!: string;
   @Field(() => String, { nullable: true, description: 'Ближайший срок годности среди партий (ISO).' })
   expiry_date?: string | null;
   @Field({
