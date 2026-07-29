@@ -1,5 +1,6 @@
 import { ComponentMetricService } from './component-metric.service';
 import type { ComponentMetricRepository } from '../../domain/repositories/component-metric.repository';
+import type { MeasureRepository } from '../../domain/repositories/measure.repository';
 import type { IssueMetricBindingRepository } from '../../domain/repositories/issue-metric-binding.repository';
 import type { MetricContributionRepository } from '../../domain/repositories/metric-contribution.repository';
 import type { ProjectRepository } from '../../domain/repositories/project.repository';
@@ -45,6 +46,7 @@ describe('ComponentMetricService.handleIssueStatusTransition (562-34)', () => {
 
     service = new ComponentMetricService(
       {} as ComponentMetricRepository,
+      {} as MeasureRepository,
       bindingRepository as unknown as IssueMetricBindingRepository,
       contributionRepository as unknown as MetricContributionRepository,
       {} as ProjectRepository,
@@ -161,6 +163,7 @@ describe('ComponentMetricService.setIssueMetricBindings (562-34)', () => {
 
     const service = new ComponentMetricService(
       {} as ComponentMetricRepository,
+      {} as MeasureRepository,
       bindingRepository as unknown as IssueMetricBindingRepository,
       {} as MetricContributionRepository,
       projectRepository as unknown as ProjectRepository,

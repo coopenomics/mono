@@ -39,9 +39,10 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     expect(w2).not.toBeNull();
     expect(w2!.value).toBe(4);
 
+    // LEVEL: нули/плато — часть ряда; индексы на полном массиве
     const result = analyzeWave({
       values,
-      series_mode: MetricSeriesMode.RATE,
+      series_mode: MetricSeriesMode.LEVEL,
       fact: 20,
       target_value: 100,
     });
@@ -53,6 +54,54 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     });
     expect(result.swings[1]?.label).toBe(WaveLabel.W2);
     expect(result.fib_levels.map((l) => l.ratio)).toEqual([0.382, 0.5, 0.618]);
+  });
+
+  it('RATE: нулевые бакеты не считаются откатом после импульса', () => {
+    const result = analyzeWave({
+      values: [0, 0, 0, 6, 0, 0, 0],
+      series_mode: MetricSeriesMode.RATE,
+      fact: 6,
+      target_value: 100,
+    });
+    expect(result.current_phase).toBe(WavePhase.IMPULSE);
+    expect(result.current_label).toBe(WaveLabel.W1);
+  });
+
+  it('RATE: один вклад после нулей — есть коридор прогноза (не пустой)', () => {
+    const result = analyzeWave({
+      values: [0, 0, 0, 0, 0, 0, 6],
+      series_mode: MetricSeriesMode.RATE,
+      fact: 6,
+      target_value: 100,
+    });
+    expect(result.current_phase).toBe(WavePhase.IMPULSE);
+    expect(result.current_label).toBe(WaveLabel.W1);
+    expect(result.corridor.base).toHaveLength(2);
+    expect(result.corridor.optimistic).toHaveLength(2);
+    // свежий вклад → activity высокая → коридор не схлопнут в [0,0]
+    expect(result.corridor.base[1]).toBeGreaterThan(result.corridor.base[0]);
+  });
+
+  it('RATE: реальный спад скорости (ненулевые Δ вниз) — коррекция', () => {
+    const result = analyzeWave({
+      values: [2, 5, 10, 4, 2],
+      series_mode: MetricSeriesMode.RATE,
+      fact: 23,
+      target_value: 100,
+    });
+    expect(result.current_phase).toBe(WavePhase.CORRECTION);
+    expect(result.current_label).toBe(WaveLabel.W2);
+  });
+
+  it('RATE: долгий застой после вклада — прогноз Δ схлопнут к нулю', () => {
+    const result = analyzeWave({
+      values: [6, 0, 0, 0, 0, 0],
+      series_mode: MetricSeriesMode.RATE,
+      fact: 6,
+      target_value: 100,
+    });
+    expect(result.corridor.base[0]).toBeCloseTo(0, 5);
+    expect(result.corridor.base[1]).toBeCloseTo(0, 5);
   });
 
   it('уровни коррекции 0.382/0.5/0.618 от хода 0→1', () => {

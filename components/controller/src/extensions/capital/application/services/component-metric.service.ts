@@ -4,6 +4,10 @@ import {
   type ComponentMetricRepository,
 } from '../../domain/repositories/component-metric.repository';
 import {
+  MEASURE_REPOSITORY,
+  type MeasureRepository,
+} from '../../domain/repositories/measure.repository';
+import {
   ISSUE_METRIC_BINDING_REPOSITORY,
   type IssueMetricBindingRepository,
 } from '../../domain/repositories/issue-metric-binding.repository';
@@ -16,6 +20,7 @@ import type { ProjectRepository } from '../../domain/repositories/project.reposi
 import { ISSUE_REPOSITORY } from '../../domain/repositories/issue.repository';
 import type { IssueRepository } from '../../domain/repositories/issue.repository';
 import { ComponentMetricDomainEntity } from '../../domain/entities/component-metric.entity';
+import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
 import { MetricContributionDomainEntity } from '../../domain/entities/metric-contribution.entity';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
@@ -23,12 +28,15 @@ import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
+import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/catalog/default-blagorost-measures';
 import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
+import type { CreateMeasureInputDTO } from '../dto/metrics/create-measure-input.dto';
+import type { UpdateMeasureInputDTO } from '../dto/metrics/update-measure-input.dto';
 import type { SetIssueMetricBindingsInputDTO } from '../dto/metrics/set-issue-metric-bindings-input.dto';
 import type { LogMetricContributionInputDTO } from '../dto/metrics/log-metric-contribution-input.dto';
 import type { GetMetricSeriesInputDTO } from '../dto/metrics/get-metric-series-input.dto';
@@ -36,6 +44,7 @@ import type { GetMetricWaveInputDTO } from '../dto/metrics/get-metric-wave-input
 import type { GetMetricSuperpositionInputDTO } from '../dto/metrics/get-metric-superposition-input.dto';
 import type { GetMetricSuperpositionHistoryInputDTO } from '../dto/metrics/get-metric-superposition-history-input.dto';
 import type { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
+import type { MeasureOutputDTO } from '../dto/metrics/measure.dto';
 import type { IssueMetricBindingOutputDTO } from '../dto/metrics/issue-metric-binding.dto';
 import type { MetricContributionOutputDTO } from '../dto/metrics/metric-contribution.dto';
 import type { MetricSeriesOutputDTO } from '../dto/metrics/metric-series.dto';
@@ -59,14 +68,16 @@ import {
 import type { PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 
 /**
- * Сервис нефинансовых метрик компонента (волновой планер).
- * Off-chain: метрика → привязки задач → журнал вкладов → ряд burn-up/скорости.
+ * Меры (справочник) и цели по мерам на компонентах.
+ * Off-chain: мера → цель на компоненте → привязки задач → журнал вкладов → ряд / резонанс.
  */
 @Injectable()
 export class ComponentMetricService {
   constructor(
     @Inject(COMPONENT_METRIC_REPOSITORY)
     private readonly metricRepository: ComponentMetricRepository,
+    @Inject(MEASURE_REPOSITORY)
+    private readonly measureRepository: MeasureRepository,
     @Inject(ISSUE_METRIC_BINDING_REPOSITORY)
     private readonly bindingRepository: IssueMetricBindingRepository,
     @Inject(METRIC_CONTRIBUTION_REPOSITORY)
@@ -78,6 +89,109 @@ export class ComponentMetricService {
     private readonly permissionsService: PermissionsService
   ) {}
 
+  async createMeasure(
+    _data: CreateMeasureInputDTO,
+    _currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO> {
+    throw new Error(
+      'Справочник мер централизован. Новые меры добавляются только через деплой и миграции.'
+    );
+  }
+
+  async updateMeasure(
+    data: UpdateMeasureInputDTO,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO> {
+    const existing = await this.measureRepository.findByMeasureHash(data.measure_hash);
+    if (!existing) {
+      throw new Error(`Мера ${data.measure_hash} не найдена`);
+    }
+    // Мера — системный справочник: состав/волна/тег только через миграции.
+    // Через API разрешено лишь включение и выключение (active / archived).
+    void currentUser;
+
+    const touchesCatalog =
+      data.title !== undefined ||
+      data.unit !== undefined ||
+      data.series_mode !== undefined ||
+      data.wave_period !== undefined ||
+      data.tag !== undefined;
+    if (touchesCatalog) {
+      throw new Error(
+        'Справочник мер централизован. Название, единицу, режим, волну и категорию меняют только через деплой и миграции.'
+      );
+    }
+    if (data.status === undefined) {
+      throw new Error('Укажите статус меры: активна или архивна');
+    }
+    if (data.status !== MetricStatus.ACTIVE && data.status !== MetricStatus.ARCHIVED) {
+      throw new Error('Допустимы только статусы active и archived');
+    }
+
+    const updated = new MeasureDomainEntity({
+      _id: existing._id,
+      measure_hash: existing.measure_hash,
+      coopname: existing.coopname,
+      title: existing.title,
+      unit: existing.unit,
+      series_mode: existing.series_mode,
+      wave_period: existing.wave_period,
+      tag: existing.tag,
+      created_by: existing.created_by,
+      status: data.status,
+      present: existing.present,
+      block_num: existing.block_num,
+      _created_at: existing._created_at,
+      _updated_at: existing._updated_at,
+    });
+    const saved = await this.measureRepository.update(updated);
+    return this.toMeasureOutput(saved);
+  }
+
+  async getMeasures(
+    coopname: string,
+    status: MetricStatus | undefined,
+    _currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO[]> {
+    await this.ensureDefaultMeasures(coopname);
+    const measures = await this.measureRepository.findByCoopname(coopname, status);
+    return measures.map((m) => this.toMeasureOutput(m));
+  }
+
+  /**
+   * Идемпотентный сид справочника Благороста: недостающие меры по title+unit.
+   * Существующие не перетираем (правка волны/тега — админка / миграция).
+   */
+  async ensureDefaultMeasures(coopname: string): Promise<void> {
+    for (const seed of DEFAULT_BLAGOROST_MEASURES) {
+      const existing = await this.measureRepository.findByCoopnameAndTitleUnit(
+        coopname,
+        seed.title,
+        seed.unit,
+        MetricStatus.ACTIVE
+      );
+      if (existing) {
+        continue;
+      }
+      await this.measureRepository.create(
+        new MeasureDomainEntity({
+          _id: '',
+          measure_hash: defaultMeasureHash(coopname, seed.title, seed.unit),
+          coopname,
+          title: seed.title,
+          unit: seed.unit,
+          series_mode: seed.series_mode,
+          wave_period: seed.wave_period,
+          tag: seed.tag,
+          created_by: 'system',
+          status: MetricStatus.ACTIVE,
+          present: false,
+          block_num: 0,
+        })
+      );
+    }
+  }
+
   async createMetric(
     data: CreateComponentMetricInputDTO,
     currentUser: MonoAccountDomainInterface
@@ -88,16 +202,16 @@ export class ComponentMetricService {
     }
     await this.assertCanManageMetrics(project, currentUser);
 
+    const measure = await this.resolveMeasureForCreate(data, currentUser);
+
     const metric = new ComponentMetricDomainEntity({
       _id: '',
       metric_hash: generateUniqueHash(),
+      measure_hash: measure.measure_hash,
       coopname: data.coopname,
       project_hash: data.project_hash,
-      title: data.title,
-      unit: data.unit,
       target_value: data.target_value,
       deadline: data.deadline ?? null,
-      series_mode: data.series_mode ?? MetricSeriesMode.RATE,
       created_by: currentUser.username,
       status: MetricStatus.ACTIVE,
       present: false,
@@ -105,7 +219,7 @@ export class ComponentMetricService {
     });
 
     const created = await this.metricRepository.create(metric);
-    return this.toMetricOutput(created, 0);
+    return this.toMetricOutput(created, measure, 0);
   }
 
   async updateMetric(
@@ -125,16 +239,17 @@ export class ComponentMetricService {
     }
     await this.assertCanManageMetrics(project, currentUser);
 
+    const currentMeasure = await this.requireMeasure(existing.measure_hash);
+    const measure = await this.resolveMeasureForUpdate(data, existing, currentMeasure, currentUser);
+
     const updated = new ComponentMetricDomainEntity({
       _id: existing._id,
       metric_hash: existing.metric_hash,
+      measure_hash: measure.measure_hash,
       coopname: existing.coopname,
       project_hash: existing.project_hash,
-      title: data.title ?? existing.title,
-      unit: data.unit ?? existing.unit,
       target_value: data.target_value ?? existing.target_value,
       deadline: data.deadline !== undefined ? data.deadline : existing.deadline,
-      series_mode: data.series_mode ?? existing.series_mode,
       created_by: existing.created_by,
       status: existing.status,
       present: existing.present,
@@ -145,7 +260,7 @@ export class ComponentMetricService {
 
     const saved = await this.metricRepository.update(updated);
     const fact = await this.contributionRepository.sumDeltaByMetricHash(saved.metric_hash);
-    return this.toMetricOutput(saved, fact);
+    return this.toMetricOutput(saved, measure, fact);
   }
 
   async archiveMetric(
@@ -164,8 +279,9 @@ export class ComponentMetricService {
 
     existing.archive();
     const saved = await this.metricRepository.update(existing);
+    const measure = await this.requireMeasure(saved.measure_hash);
     const fact = await this.contributionRepository.sumDeltaByMetricHash(saved.metric_hash);
-    return this.toMetricOutput(saved, fact);
+    return this.toMetricOutput(saved, measure, fact);
   }
 
   async getComponentMetrics(
@@ -186,10 +302,17 @@ export class ComponentMetricService {
       projectHash,
       status ?? MetricStatus.ACTIVE
     );
+    const measureMap = await this.loadMeasureMap(metrics.map((m) => m.measure_hash));
     const facts = await this.contributionRepository.sumDeltaByMetricHashes(
       metrics.map((m) => m.metric_hash)
     );
-    return metrics.map((m) => this.toMetricOutput(m, facts.get(m.metric_hash) ?? 0));
+    return metrics.map((m) => {
+      const measure = measureMap.get(m.measure_hash.toLowerCase());
+      if (!measure) {
+        throw new Error(`Мера ${m.measure_hash} не найдена для цели ${m.metric_hash}`);
+      }
+      return this.toMetricOutput(m, measure, facts.get(m.metric_hash) ?? 0);
+    });
   }
 
   async setIssueMetricBindings(
@@ -351,7 +474,8 @@ export class ComponentMetricService {
       throw new Error('Нет прав на просмотр ряда метрики');
     }
 
-    const period = data.period ?? MetricSeriesPeriod.WEEK;
+    const measure = await this.requireMeasure(metric.measure_hash);
+    const period = data.period ?? measure.wave_period ?? MetricSeriesPeriod.WEEK;
     const to = data.to ? new Date(data.to) : new Date();
     const from = data.from ? new Date(data.from) : this.defaultSeriesFrom(to, period);
 
@@ -375,10 +499,10 @@ export class ComponentMetricService {
 
     return {
       metric_hash: metric.metric_hash,
-      title: metric.title,
-      unit: metric.unit,
+      title: measure.title,
+      unit: measure.unit,
       target_value: metric.target_value,
-      series_mode: metric.series_mode,
+      series_mode: measure.series_mode,
       period,
       fact,
       points,
@@ -433,7 +557,7 @@ export class ComponentMetricService {
   }
 
   /**
-   * Суперпозиция метрик + rollup по дочерним компонентам.
+   * Метрика резонанса + rollup по дочерним компонентам.
    */
   async getMetricSuperposition(
     data: GetMetricSuperpositionInputDTO,
@@ -486,7 +610,7 @@ export class ComponentMetricService {
   }
 
   /**
-   * История суперпозиции: кадр на каждый бакет периода в окне lookback.
+   * История резонанса: кадр на каждый бакет периода в окне lookback.
    */
   async getMetricSuperpositionHistory(
     data: GetMetricSuperpositionHistoryInputDTO,
@@ -545,7 +669,7 @@ export class ComponentMetricService {
     }
     const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
     if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр суперпозиции метрик');
+      throw new Error('Нет прав на просмотр метрики резонанса');
     }
 
     const period = periodInput ?? MetricSeriesPeriod.WEEK;
@@ -557,6 +681,7 @@ export class ComponentMetricService {
     );
 
     const metrics = await this.metricRepository.findByProjectHashes(scopeHashes, MetricStatus.ACTIVE);
+    const measureMap = await this.loadMeasureMap(metrics.map((m) => m.measure_hash));
     const contributionsByMetric = new Map<string, SuperpositionContributionInput[]>();
     for (const metric of metrics) {
       const contributions = await this.contributionRepository.findChronologicalByMetricHash(
@@ -568,17 +693,24 @@ export class ComponentMetricService {
       );
     }
 
-    const metricsInput: SuperpositionMetricInput[] = metrics.map((metric) => ({
-      metric_hash: metric.metric_hash,
-      project_hash: metric.project_hash,
-      project_title: titleByHash.get(metric.project_hash.toLowerCase()) ?? metric.project_hash,
-      title: metric.title,
-      unit: metric.unit,
-      target_value: metric.target_value,
-      series_mode: metric.series_mode,
-      plan_start: metric._created_at ? new Date(metric._created_at) : null,
-      deadline: metric.deadline ? new Date(metric.deadline) : null,
-    }));
+    const metricsInput: SuperpositionMetricInput[] = metrics.map((metric) => {
+      const measure = measureMap.get(metric.measure_hash.toLowerCase());
+      if (!measure) {
+        throw new Error(`Мера ${metric.measure_hash} не найдена для цели ${metric.metric_hash}`);
+      }
+      return {
+        metric_hash: metric.metric_hash,
+        project_hash: metric.project_hash,
+        project_title: titleByHash.get(metric.project_hash.toLowerCase()) ?? metric.project_hash,
+        title: measure.title,
+        unit: measure.unit,
+        target_value: metric.target_value,
+        series_mode: measure.series_mode,
+        wave_period: measure.wave_period,
+        plan_start: metric._created_at ? new Date(metric._created_at) : null,
+        deadline: metric.deadline ? new Date(metric.deadline) : null,
+      };
+    });
 
     return { project, period, scopes, metricsInput, contributionsByMetric };
   }
@@ -686,7 +818,81 @@ export class ComponentMetricService {
     }
   }
 
-  private toMetricOutput(metric: ComponentMetricDomainEntity, fact: number): ComponentMetricOutputDTO {
+  private async requireMeasure(measureHash: string): Promise<MeasureDomainEntity> {
+    const measure = await this.measureRepository.findByMeasureHash(measureHash);
+    if (!measure) {
+      throw new Error(`Мера ${measureHash} не найдена`);
+    }
+    return measure;
+  }
+
+  private async loadMeasureMap(measureHashes: string[]): Promise<Map<string, MeasureDomainEntity>> {
+    const measures = await this.measureRepository.findByMeasureHashes(measureHashes);
+    return new Map(measures.map((m) => [m.measure_hash.toLowerCase(), m] as const));
+  }
+
+  private async resolveMeasureForCreate(
+    data: CreateComponentMetricInputDTO,
+    _currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureDomainEntity> {
+    if (!data.measure_hash) {
+      throw new Error(
+        'Выберите меру из централизованного справочника. Создание мер через план недоступно.'
+      );
+    }
+    const measure = await this.requireMeasure(data.measure_hash);
+    if (measure.status === MetricStatus.ARCHIVED) {
+      throw new Error('Нельзя привязать выключенную меру');
+    }
+    return measure;
+  }
+
+  private async resolveMeasureForUpdate(
+    data: UpdateComponentMetricInputDTO,
+    existing: ComponentMetricDomainEntity,
+    currentMeasure: MeasureDomainEntity,
+    _currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureDomainEntity> {
+    if (data.title !== undefined || data.unit !== undefined || data.series_mode !== undefined) {
+      throw new Error(
+        'Меру цели меняют только выбором из справочника (measure_hash), без создания новых мер.'
+      );
+    }
+    if (!data.measure_hash) {
+      return currentMeasure;
+    }
+    const measure = await this.requireMeasure(data.measure_hash);
+    if (measure.status === MetricStatus.ARCHIVED) {
+      throw new Error('Нельзя привязать выключенную меру');
+    }
+    void existing;
+    return measure;
+  }
+
+  private toMeasureOutput(measure: MeasureDomainEntity): MeasureOutputDTO {
+    return {
+      _id: measure._id,
+      present: measure.present,
+      block_num: measure.block_num,
+      _created_at: measure._created_at,
+      _updated_at: measure._updated_at,
+      measure_hash: measure.measure_hash,
+      coopname: measure.coopname,
+      title: measure.title,
+      unit: measure.unit,
+      series_mode: measure.series_mode,
+      wave_period: measure.wave_period,
+      tag: measure.tag,
+      created_by: measure.created_by,
+      status: measure.status,
+    };
+  }
+
+  private toMetricOutput(
+    metric: ComponentMetricDomainEntity,
+    measure: MeasureDomainEntity,
+    fact: number
+  ): ComponentMetricOutputDTO {
     return {
       _id: metric._id,
       present: metric.present,
@@ -694,13 +900,14 @@ export class ComponentMetricService {
       _created_at: metric._created_at,
       _updated_at: metric._updated_at,
       metric_hash: metric.metric_hash,
+      measure_hash: metric.measure_hash,
       coopname: metric.coopname,
       project_hash: metric.project_hash,
-      title: metric.title,
-      unit: metric.unit,
+      title: measure.title,
+      unit: measure.unit,
       target_value: metric.target_value,
       deadline: metric.deadline,
-      series_mode: metric.series_mode,
+      series_mode: measure.series_mode,
       created_by: metric.created_by,
       status: metric.status,
       fact,

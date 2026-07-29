@@ -5,7 +5,7 @@ import { MetricSeriesPeriod } from '../../../domain/enums/metric-series-period.e
 @InputType('GetMetricSuperpositionHistoryInput')
 export class GetMetricSuperpositionHistoryInputDTO {
   @Field(() => String, {
-    description: 'Хеш проекта или компонента для истории суперпозиции',
+    description: 'Хеш проекта или компонента для истории резонанса',
   })
   @IsNotEmpty()
   @IsString()

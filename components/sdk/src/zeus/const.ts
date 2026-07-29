@@ -352,6 +352,11 @@ export const AllTypesProps: Record<string,any> = {
 	CreateMatrixAccountInputDTO:{
 
 	},
+	CreateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		wave_period:"MetricSeriesPeriod",
+		tag:"MeasureCatalogTag"
+	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
@@ -651,6 +656,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetMaxOriginServerTsForRoomInput:{
 
 	},
+	GetMeasuresInput:{
+		status:"MetricStatus"
+	},
 	GetMeetInput:{
 
 	},
@@ -769,6 +777,7 @@ export const AllTypesProps: Record<string,any> = {
 	MetricDriveDirection: "enum" as const,
 	MetricSeriesMode: "enum" as const,
 	MetricSeriesPeriod: "enum" as const,
+	MeasureCatalogTag: "enum" as const,
 	MetricStatus: "enum" as const,
 	ModerateRequestInput:{
 
@@ -845,6 +854,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
+		},
+		capitalCreateMeasure:{
+			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -1071,6 +1083,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
+		},
+		capitalUpdateMeasure:{
+			data:"UpdateMeasureInput"
 		},
 		capitalUpdateProcessTemplate:{
 			data:"UpdateProcessTemplateInput"
@@ -1675,6 +1690,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalIssueFilter",
 			options:"PaginationInput"
 		},
+		capitalMeasures:{
+			data:"GetMeasuresInput"
+		},
 		capitalMetricContributions:{
 			data:"GetMetricContributionsInput",
 			options:"PaginationInput"
@@ -2233,6 +2251,12 @@ export const AllTypesProps: Record<string,any> = {
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
+	UpdateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		wave_period:"MetricSeriesPeriod",
+		tag:"MeasureCatalogTag",
+		status:"MetricStatus"
+	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
 		represented_by:"RepresentedByInput"
@@ -2730,6 +2754,7 @@ export const ReturnTypes: Record<string,any> = {
 		created_by:"String",
 		deadline:"DateTime",
 		fact:"Float",
+		measure_hash:"String",
 		metric_hash:"String",
 		present:"Boolean",
 		project_hash:"String",
@@ -2951,6 +2976,22 @@ export const ReturnTypes: Record<string,any> = {
 		project_hash:"String",
 		reference_id:"String",
 		title:"String"
+	},
+	CapitalMeasure:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		measure_hash:"String",
+		present:"Boolean",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		title:"String",
+		unit:"String",
+		wave_period:"MetricSeriesPeriod",
+		tag:"MeasureCatalogTag"
 	},
 	CapitalMetricComponentRollup:{
 		fact_sum:"Float",
@@ -4201,6 +4242,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
@@ -4269,6 +4311,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTopupProgramExpensePool:"Transaction",
 		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
+		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
@@ -4919,6 +4962,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalIssue:"CapitalIssue",
 		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalMeasures:"CapitalMeasure",
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
 		capitalMetricSeries:"CapitalMetricSeries",
 		capitalMetricSuperposition:"CapitalMetricSuperposition",

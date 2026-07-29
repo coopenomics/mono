@@ -130,7 +130,7 @@ export class MetricSuperpositionOutputDTO {
   resultant_angle!: number;
 
   @Field(() => [MetricSuperpositionItemOutputDTO], {
-    description: 'Метрики в суперпозиции',
+    description: 'Метрики в резонансе',
   })
   items!: MetricSuperpositionItemOutputDTO[];
 
@@ -197,7 +197,7 @@ export class MetricSuperpositionFrameOutputDTO {
   flat_count!: number;
 
   @Field(() => [MetricSuperpositionItemOutputDTO], {
-    description: 'Метрики в суперпозиции на момент кадра',
+    description: 'Метрики в резонансе на момент кадра',
   })
   items!: MetricSuperpositionItemOutputDTO[];
 }
@@ -217,7 +217,7 @@ export class MetricSuperpositionHistoryOutputDTO {
   to!: Date;
 
   @Field(() => [MetricSuperpositionFrameOutputDTO], {
-    description: 'Кадры суперпозиции по бакетам периода',
+    description: 'Кадры резонанса по бакетам периода',
   })
   frames!: MetricSuperpositionFrameOutputDTO[];
 }

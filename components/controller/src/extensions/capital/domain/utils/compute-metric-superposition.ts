@@ -1,5 +1,5 @@
 /**
- * Расчёт суперпозиции метрик на момент времени T (окно [from, to]).
+ * Расчёт резонанса метрик на момент времени T (окно [from, to]).
  * Общий код для «сейчас» и истории кадров scrubber'а.
  */
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
@@ -26,6 +26,8 @@ export interface SuperpositionMetricInput {
   unit: string;
   target_value: number;
   series_mode: MetricSeriesMode;
+  /** Волна меры — шаг локального 5/3; не UI-scrubber */
+  wave_period: MetricSeriesPeriod;
   plan_start: Date | null;
   deadline: Date | null;
 }
@@ -82,24 +84,31 @@ export function driveOf(
   return MetricDriveDirection.FLAT;
 }
 
-/** Концы бакетов окна [from, to] — метки кадров истории. */
+/** Концы бакетов окна [from, to] — метки кадров истории (не дальше `to`). */
 export function listSuperpositionFrameAts(
   from: Date,
   to: Date,
   period: MetricSeriesPeriod
 ): Date[] {
+  const toMs = to.getTime();
   const points = buildMetricSeries([], {
     period,
     from,
     to,
     target_value: 0,
   });
-  return points.map((p) => new Date(p.period_end.getTime()));
+  // period_end текущего бакета может быть в будущем относительно `to` —
+  // иначе неделя/месяц дописывают пустые дни «из будущего» и гасят activity.
+  return points.map((p) => new Date(Math.min(p.period_end.getTime(), toMs)));
 }
 
 /**
- * Суперпозиция на момент `to` с окном ряда `[from, to]`.
+ * Резонанс на момент `to`.
+ * Ряд каждой меры строится по её `wave_period` (окно lookback от `to`).
+ * Аргументы `period`/`from` — для UI-scrubber/совместимости; на фазоры меры не влияют,
+ * если у входа задан `wave_period`.
  * Вклады с occurred_at > to не учитываются.
+ * RATE: фаза волны по ненулевым Δ; амплитуда/затухание — по календарным бакетам.
  */
 export function computeSuperpositionAt(
   metrics: SuperpositionMetricInput[],
@@ -109,6 +118,8 @@ export function computeSuperpositionAt(
   to: Date
 ): SuperpositionAtResult {
   const items: SuperpositionItemResult[] = [];
+  void period;
+  void from;
 
   for (const metric of metrics) {
     const key = metric.metric_hash.toLowerCase();
@@ -118,12 +129,14 @@ export function computeSuperpositionAt(
       return at.getTime() <= to.getTime();
     });
     const fact = contributions.reduce((s, c) => s + c.delta, 0);
-    const planStart = metric.plan_start ?? from;
+    const wavePeriod = metric.wave_period ?? MetricSeriesPeriod.DAY;
+    const metricFrom = defaultSuperpositionFrom(to, wavePeriod);
+    const planStart = metric.plan_start ?? metricFrom;
     const points = buildMetricSeries(
       contributions.map((c) => ({ delta: c.delta, occurred_at: c.occurred_at })),
       {
-        period,
-        from,
+        period: wavePeriod,
+        from: metricFrom,
         to,
         target_value: metric.target_value,
         plan_start: planStart,
@@ -140,7 +153,16 @@ export function computeSuperpositionAt(
       fact,
       target_value: metric.target_value,
     });
-    const recent_velocity = points.length ? points[points.length - 1].delta : 0;
+    // Скорость для drive: у RATE последний ненулевой Δ (ноль = нет данных, не откат)
+    let recent_velocity = points.length ? points[points.length - 1].delta : 0;
+    if (metric.series_mode === MetricSeriesMode.RATE) {
+      for (let i = values.length - 1; i >= 0; i--) {
+        if (Math.abs(values[i]) > 1e-12) {
+          recent_velocity = values[i];
+          break;
+        }
+      }
+    }
     const amplitude = recentActivityScore(values, metric.series_mode);
     const phase_rad = wavePhaseRadians(markup.current_phase, markup.current_label);
     items.push({

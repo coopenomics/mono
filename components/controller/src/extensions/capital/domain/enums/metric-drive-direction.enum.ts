@@ -1,7 +1,7 @@
 import { registerEnumType } from '@nestjs/graphql';
 
 /**
- * Направление вклада метрики в общую динамику (суперпозиция)
+ * Направление вклада метрики в общую динамику (резонанс)
  */
 export enum MetricDriveDirection {
   UP = 'UP',

@@ -81,7 +81,7 @@ const floatIndex = ref(props.modelValue);
 /** Последние сэмплы dx/dt для флика (не гасим скорость на pointerup) */
 const samples: { t: number; x: number }[] = [];
 
-const ariaLabel = 'Таймлайн суперпозиции';
+const ariaLabel = 'Таймлайн резонанса';
 
 const maxIndex = computed(() => Math.max(0, props.maxIndex));
 

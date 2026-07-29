@@ -15,6 +15,7 @@ const metricA: SuperpositionMetricInput = {
   unit: 'шт',
   target_value: 100,
   series_mode: MetricSeriesMode.RATE,
+  wave_period: MetricSeriesPeriod.DAY,
   plan_start: new Date('2026-01-01T00:00:00.000Z'),
   deadline: new Date('2026-12-31T00:00:00.000Z'),
 };
@@ -118,5 +119,60 @@ describe('compute-metric-superposition', () => {
 
     expect(late.fact_sum).toBeGreaterThan(early.fact_sum);
     expect(late.growth).toBeGreaterThanOrEqual(0);
+  });
+
+  it('кадр на period_end дня с вкладом: импульс и growth>0 (без ложного нулевого бакета)', () => {
+    const to = new Date('2026-07-28T19:05:00.000Z');
+    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.DAY);
+    const frameAts = listSuperpositionFrameAts(from, to, MetricSeriesPeriod.DAY);
+    const lastAt = frameAts[frameAts.length - 1];
+    // последний кадр упирается в `to`, а не в будущий period_end
+    expect(lastAt.toISOString()).toBe('2026-07-28T19:05:00.000Z');
+
+    const contribs = new Map([
+      [
+        'm1',
+        [{ delta: 6, occurred_at: new Date('2026-07-28T19:00:00.000Z') }],
+      ],
+      [
+        'm2',
+        [{ delta: 8, occurred_at: new Date('2026-07-28T19:00:00.000Z') }],
+      ],
+    ]);
+
+    const r = computeSuperpositionAt(
+      [metricA, metricB],
+      contribs,
+      MetricSeriesPeriod.DAY,
+      defaultSuperpositionFrom(lastAt, MetricSeriesPeriod.DAY),
+      lastAt
+    );
+
+    expect(r.growth).toBeGreaterThan(0.5);
+    expect(r.items.every((i) => i.phase_rad < 0.5)).toBe(true);
+  });
+
+  it('недельный кадр не гасит рост пустыми днями из будущего', () => {
+    const to = new Date('2026-07-28T19:05:00.000Z');
+    const from = defaultSuperpositionFrom(to, MetricSeriesPeriod.WEEK);
+    const frameAts = listSuperpositionFrameAts(from, to, MetricSeriesPeriod.WEEK);
+    const lastAt = frameAts[frameAts.length - 1];
+    expect(lastAt.getTime()).toBe(to.getTime());
+
+    const contribs = new Map([
+      ['m1', [{ delta: 6, occurred_at: new Date('2026-07-28T19:00:00.000Z') }]],
+      ['m2', [{ delta: 8, occurred_at: new Date('2026-07-28T19:00:00.000Z') }]],
+    ]);
+
+    const r = computeSuperpositionAt(
+      [metricA, metricB],
+      contribs,
+      MetricSeriesPeriod.WEEK,
+      defaultSuperpositionFrom(lastAt, MetricSeriesPeriod.WEEK),
+      lastAt
+    );
+
+    expect(r.growth).toBeGreaterThan(0.5);
+    expect(r.activity).toBeGreaterThan(0.5);
   });
 });

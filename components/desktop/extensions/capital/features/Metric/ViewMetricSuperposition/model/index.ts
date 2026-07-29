@@ -43,7 +43,7 @@ export function useMetricSuperposition(projectHash: () => string) {
     return list[idx] ?? null;
   });
 
-  /** Кадр как срез суперпозиции для мишени и статов */
+  /** Кадр как срез резонанса для мишени и статов */
   const data = computed(() => {
     const f = frame.value;
     const h = history.value;

@@ -352,6 +352,9 @@ export const AllTypesProps: Record<string,any> = {
 	CreateMatrixAccountInputDTO:{
 
 	},
+	CreateMeasureInput:{
+		series_mode:"MetricSeriesMode"
+	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
@@ -651,6 +654,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetMaxOriginServerTsForRoomInput:{
 
 	},
+	GetMeasuresInput:{
+		status:"MetricStatus"
+	},
 	GetMeetInput:{
 
 	},
@@ -664,6 +670,9 @@ export const AllTypesProps: Record<string,any> = {
 		from:"DateTime",
 		period:"MetricSeriesPeriod",
 		to:"DateTime"
+	},
+	GetMetricSuperpositionHistoryInput:{
+		period:"MetricSeriesPeriod"
 	},
 	GetMetricSuperpositionInput:{
 		period:"MetricSeriesPeriod"
@@ -842,6 +851,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
+		},
+		capitalCreateMeasure:{
+			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -1068,6 +1080,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
+		},
+		capitalUpdateMeasure:{
+			data:"UpdateMeasureInput"
 		},
 		capitalUpdateProcessTemplate:{
 			data:"UpdateProcessTemplateInput"
@@ -1672,6 +1687,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalIssueFilter",
 			options:"PaginationInput"
 		},
+		capitalMeasures:{
+			data:"GetMeasuresInput"
+		},
 		capitalMetricContributions:{
 			data:"GetMetricContributionsInput",
 			options:"PaginationInput"
@@ -1681,6 +1699,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalMetricSuperposition:{
 			data:"GetMetricSuperpositionInput"
+		},
+		capitalMetricSuperpositionHistory:{
+			data:"GetMetricSuperpositionHistoryInput"
 		},
 		capitalMetricWave:{
 			data:"GetMetricWaveInput"
@@ -2227,6 +2248,9 @@ export const AllTypesProps: Record<string,any> = {
 		priority:"IssuePriority",
 		status:"IssueStatus"
 	},
+	UpdateMeasureInput:{
+		series_mode:"MetricSeriesMode"
+	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
 		represented_by:"RepresentedByInput"
@@ -2724,6 +2748,7 @@ export const ReturnTypes: Record<string,any> = {
 		created_by:"String",
 		deadline:"DateTime",
 		fact:"Float",
+		measure_hash:"String",
 		metric_hash:"String",
 		present:"Boolean",
 		project_hash:"String",
@@ -2946,6 +2971,20 @@ export const ReturnTypes: Record<string,any> = {
 		reference_id:"String",
 		title:"String"
 	},
+	CapitalMeasure:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		measure_hash:"String",
+		present:"Boolean",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		title:"String",
+		unit:"String"
+	},
 	CapitalMetricComponentRollup:{
 		fact_sum:"Float",
 		metrics_count:"Int",
@@ -2985,23 +3024,57 @@ export const ReturnTypes: Record<string,any> = {
 		period_start:"DateTime"
 	},
 	CapitalMetricSuperposition:{
+		activity:"Float",
+		balance:"Float",
+		coherence:"Float",
 		components:"CapitalMetricComponentRollup",
 		disclaimer:"String",
 		down_count:"Int",
 		fact_sum:"Float",
 		flat_count:"Int",
+		growth:"Float",
 		items:"CapitalMetricSuperpositionItem",
 		period:"MetricSeriesPeriod",
 		project_hash:"String",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
 		target_sum:"Float",
 		up_count:"Int"
 	},
+	CapitalMetricSuperpositionFrame:{
+		activity:"Float",
+		at:"DateTime",
+		balance:"Float",
+		coherence:"Float",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionHistory:{
+		frames:"CapitalMetricSuperpositionFrame",
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		to:"DateTime"
+	},
 	CapitalMetricSuperpositionItem:{
+		amplitude:"Float",
 		current_label:"WaveLabel",
 		current_phase:"WavePhase",
 		drive:"MetricDriveDirection",
 		fact:"Float",
 		metric_hash:"String",
+		phase_rad:"Float",
 		project_hash:"String",
 		project_title:"String",
 		recent_velocity:"Float",
@@ -4161,6 +4234,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
@@ -4229,6 +4303,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalTopupProgramExpensePool:"Transaction",
 		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
+		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
@@ -4879,9 +4954,11 @@ export const ReturnTypes: Record<string,any> = {
 		capitalIssue:"CapitalIssue",
 		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalMeasures:"CapitalMeasure",
 		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
 		capitalMetricSeries:"CapitalMetricSeries",
 		capitalMetricSuperposition:"CapitalMetricSuperposition",
+		capitalMetricSuperpositionHistory:"CapitalMetricSuperpositionHistory",
 		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",

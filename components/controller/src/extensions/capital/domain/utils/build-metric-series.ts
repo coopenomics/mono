@@ -106,6 +106,21 @@ function periodStartOf(d: Date, period: MetricSeriesPeriod): Date {
   }
 }
 
+/**
+ * Правая граница окна (exclusive).
+ * Если `to` ровно на старте бакета (= period_end предыдущего) — бакет,
+ * начинающийся в `to`, не включаем: кадр истории не должен получать
+ * пустой «будущий» бар и ложную коррекцию волны.
+ * Если `to` внутри бакета — включаем этот (неполный) бакет.
+ */
+export function exclusiveEndOf(to: Date, period: MetricSeriesPeriod): Date {
+  const start = periodStartOf(to, period);
+  if (start.getTime() === to.getTime()) {
+    return new Date(to.getTime());
+  }
+  return addPeriod(start, period);
+}
+
 function idealAt(
   at: Date,
   planStart: Date | null | undefined,
@@ -136,7 +151,7 @@ export function buildMetricSeries(
 ): MetricSeriesPointResult[] {
   const { period, target_value, plan_start, deadline } = options;
   const from = periodStartOf(options.from, period);
-  const toExclusive = addPeriod(periodStartOf(options.to, period), period);
+  const toExclusive = exclusiveEndOf(options.to, period);
 
   const bucketDelta = new Map<number, number>();
   for (const c of contributions) {

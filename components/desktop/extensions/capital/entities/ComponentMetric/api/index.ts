@@ -2,7 +2,13 @@ import { client } from 'src/shared/api/client';
 import { Mutations, Queries } from '@coopenomics/sdk';
 import type {
   IComponentMetric,
+  IMeasure,
   IGetComponentMetricsInput,
+  IGetMeasuresInput,
+  ICreateMeasureInput,
+  ICreateMeasureOutput,
+  IUpdateMeasureInput,
+  IUpdateMeasureOutput,
   ICreateComponentMetricInput,
   ICreateComponentMetricOutput,
   IUpdateComponentMetricInput,
@@ -33,6 +39,30 @@ async function getComponentMetrics(
       variables: { data },
     });
   return result as IComponentMetric[];
+}
+
+async function getMeasures(data: IGetMeasuresInput): Promise<IMeasure[]> {
+  const { [Queries.Capital.GetMeasures.name]: result } = await client.Query(
+    Queries.Capital.GetMeasures.query,
+    { variables: { data } },
+  );
+  return result as IMeasure[];
+}
+
+async function createMeasure(data: ICreateMeasureInput): Promise<ICreateMeasureOutput> {
+  const { [Mutations.Capital.CreateMeasure.name]: result } = await client.Mutation(
+    Mutations.Capital.CreateMeasure.mutation,
+    { variables: { data } },
+  );
+  return result;
+}
+
+async function updateMeasure(data: IUpdateMeasureInput): Promise<IUpdateMeasureOutput> {
+  const { [Mutations.Capital.UpdateMeasure.name]: result } = await client.Mutation(
+    Mutations.Capital.UpdateMeasure.mutation,
+    { variables: { data } },
+  );
+  return result;
 }
 
 async function createComponentMetric(
@@ -137,6 +167,9 @@ async function getMetricSuperpositionHistory(
 
 export const api = {
   getComponentMetrics,
+  getMeasures,
+  createMeasure,
+  updateMeasure,
   createComponentMetric,
   updateComponentMetric,
   archiveComponentMetric,

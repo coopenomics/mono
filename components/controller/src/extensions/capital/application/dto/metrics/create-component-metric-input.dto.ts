@@ -3,6 +3,10 @@ import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsDate } from 'clas
 import { Type } from 'class-transformer';
 import { MetricSeriesMode } from '../../../domain/enums/metric-series-mode.enum';
 
+/**
+ * Создание цели по мере на компоненте.
+ * Мера только из централизованного справочника (measure_hash).
+ */
 @InputType('CreateComponentMetricInput')
 export class CreateComponentMetricInputDTO {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
@@ -15,17 +19,30 @@ export class CreateComponentMetricInputDTO {
   @IsString()
   project_hash!: string;
 
-  @Field(() => String, { description: 'Название метрики' })
+  @Field(() => String, {
+    description: 'Хеш меры из централизованного справочника',
+  })
   @IsNotEmpty()
   @IsString()
-  title!: string;
+  measure_hash!: string;
 
-  @Field(() => String, { description: 'Единица измерения' })
-  @IsNotEmpty()
+  @Field(() => String, {
+    nullable: true,
+    description: 'Не используется: меры только из справочника',
+  })
+  @IsOptional()
   @IsString()
-  unit!: string;
+  title?: string;
 
-  @Field(() => Float, { description: 'Целевое значение' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Не используется: меры только из справочника',
+  })
+  @IsOptional()
+  @IsString()
+  unit?: string;
+
+  @Field(() => Float, { description: 'Целевое значение на компоненте' })
   @IsNumber()
   target_value!: number;
 
@@ -37,7 +54,7 @@ export class CreateComponentMetricInputDTO {
 
   @Field(() => MetricSeriesMode, {
     nullable: true,
-    description: 'Режим ряда; по умолчанию скорость',
+    description: 'Не используется: режим ряда задан в справочнике мер',
     defaultValue: MetricSeriesMode.RATE,
   })
   @IsOptional()

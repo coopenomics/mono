@@ -5,6 +5,7 @@ import { baseCapitalSelector } from './baseCapitalSelector'
 const rawComponentMetricSelector = {
   ...baseCapitalSelector,
   metric_hash: true,
+  measure_hash: true,
   coopname: true,
   project_hash: true,
   title: true,

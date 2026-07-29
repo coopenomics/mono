@@ -302,6 +302,7 @@ import { ProcessResolver } from './application/resolvers/process.resolver';
 import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
 import { StoryTypeormRepository } from './infrastructure/repositories/story.typeorm-repository';
 import { ComponentMetricTypeormRepository } from './infrastructure/repositories/component-metric.typeorm-repository';
+import { MeasureTypeormRepository } from './infrastructure/repositories/measure.typeorm-repository';
 import { IssueMetricBindingTypeormRepository } from './infrastructure/repositories/issue-metric-binding.typeorm-repository';
 import { MetricContributionTypeormRepository } from './infrastructure/repositories/metric-contribution.typeorm-repository';
 import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeorm-repository';
@@ -418,6 +419,7 @@ import { ISSUE_REPOSITORY } from './domain/repositories/issue.repository';
 import { COMMENT_REPOSITORY } from './domain/repositories/comment.repository';
 import { STORY_REPOSITORY } from './domain/repositories/story.repository';
 import { COMPONENT_METRIC_REPOSITORY } from './domain/repositories/component-metric.repository';
+import { MEASURE_REPOSITORY } from './domain/repositories/measure.repository';
 import { ISSUE_METRIC_BINDING_REPOSITORY } from './domain/repositories/issue-metric-binding.repository';
 import { METRIC_CONTRIBUTION_REPOSITORY } from './domain/repositories/metric-contribution.repository';
 import { VOTE_REPOSITORY } from './domain/repositories/vote.repository';
@@ -879,6 +881,10 @@ IssueIdGenerationService,
     {
       provide: COMPONENT_METRIC_REPOSITORY,
       useClass: ComponentMetricTypeormRepository,
+    },
+    {
+      provide: MEASURE_REPOSITORY,
+      useClass: MeasureTypeormRepository,
     },
     {
       provide: ISSUE_METRIC_BINDING_REPOSITORY,

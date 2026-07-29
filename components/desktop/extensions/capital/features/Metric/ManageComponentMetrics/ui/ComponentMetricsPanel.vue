@@ -1,38 +1,40 @@
 <template lang="pug">
 .metrics-panel
   .metrics-panel__head
-    .metrics-panel__title Метрики компонента
+    .metrics-panel__title Цели по мерам
 
-  .metrics-panel__list(v-if='!isLoading && metricList.length')
-    .metric-item(v-for='metric in metricList', :key='metric.metric_hash')
-      .metric-item__header
-        .metric-item__title {{ metric.title }}
-        .metric-item__marks
-          BaseBadge(v-if='metric.status === archivedStatus', variant='neutral') архив
-          BaseBadge(:variant='seriesModeVariant(metric.series_mode)') {{ seriesModeLabel(metric.series_mode) }}
+  .metrics-panel__list.row.q-col-gutter-md(v-if='!isLoading && metricList.length')
+    .col-12.col-md-6(v-for='metric in metricList', :key='metric.metric_hash')
+      .metric-item
+        .metric-item__header
+          .metric-item__title {{ metric.title }}
+          .metric-item__marks
+            BaseBadge(v-if='metric.status === archivedStatus', variant='neutral') архив
+            BaseBadge(:variant='seriesModeVariant(metric.series_mode)') {{ seriesModeLabel(metric.series_mode) }}
 
-      .metric-item__progress
-        .metric-item__values
-          span.metric-item__fact {{ metric.fact }}
-          span.metric-item__sep &nbsp;/&nbsp;
-          span.metric-item__target {{ metric.target_value }} {{ metric.unit }}
-        q-linear-progress(
-          :value='progressValue(metric)',
-          color='primary',
-          track-color='grey-3',
-          rounded
-          size='6px'
-        )
+        .metric-item__progress
+          .metric-item__values
+            span.metric-item__fact {{ metric.fact }}
+            span.metric-item__sep &nbsp;/&nbsp;
+            span.metric-item__target {{ metric.target_value }} {{ metric.unit }}
+          q-linear-progress(
+            :value='progressValue(metric)',
+            color='primary',
+            track-color='grey-3',
+            rounded
+            size='6px'
+          )
 
-      MetricSeriesPanel(:metric-hash='metric.metric_hash')
+        MetricSeriesPanel(:metric-hash='metric.metric_hash')
 
   .metrics-panel__empty(v-else-if='!isLoading && !metricList.length')
-    EmptyState(title='Метрики не заданы — откройте «План»')
+    EmptyState(title='Цели по мерам не заданы — откройте «План»')
       template(#icon)
         q-icon(name='bar_chart', size='32px')
 
-  .metrics-panel__skel(v-if='isLoading')
-    .skel(v-for='i in 3', :key='i')
+  .metrics-panel__skel.row.q-col-gutter-md(v-if='isLoading')
+    .col-12.col-md-6(v-for='i in 4', :key='i')
+      .skel
 </template>
 
 <script setup lang="ts">
@@ -96,19 +98,8 @@ onMounted(async () => {
   color: var(--p-ink);
 }
 
-.metrics-panel__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
-.metrics-panel__skel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
 .metric-item {
+  height: 100%;
   padding: var(--p-3) var(--p-4);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);

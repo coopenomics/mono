@@ -1,17 +1,18 @@
-import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
 import { MetricStatus } from '../enums/metric-status.enum';
 import type { IComponentMetricDatabaseData } from '../interfaces/component-metric-database.interface';
 import { BaseDomainEntity } from '~/shared/sync/entities/base-domain.entity';
 
+/**
+ * Цель по мере на компоненте.
+ * Название/единица/режим ряда — на мере (`measure_hash`).
+ */
 export class ComponentMetricDomainEntity extends BaseDomainEntity<IComponentMetricDatabaseData> {
   public metric_hash: string;
+  public measure_hash: string;
   public coopname: string;
   public project_hash: string;
-  public title: string;
-  public unit: string;
   public target_value: number;
   public deadline?: Date | null;
-  public series_mode: MetricSeriesMode;
   public created_by: string;
   declare public status: MetricStatus;
 
@@ -19,13 +20,11 @@ export class ComponentMetricDomainEntity extends BaseDomainEntity<IComponentMetr
     super(databaseData, MetricStatus.ACTIVE);
 
     this.metric_hash = databaseData.metric_hash.toLowerCase();
+    this.measure_hash = databaseData.measure_hash.toLowerCase();
     this.coopname = databaseData.coopname;
     this.project_hash = databaseData.project_hash.toLowerCase();
-    this.title = databaseData.title;
-    this.unit = databaseData.unit;
     this.target_value = databaseData.target_value;
     this.deadline = databaseData.deadline ?? null;
-    this.series_mode = databaseData.series_mode ?? MetricSeriesMode.RATE;
     this.created_by = databaseData.created_by;
     this.status = databaseData.status ?? MetricStatus.ACTIVE;
   }

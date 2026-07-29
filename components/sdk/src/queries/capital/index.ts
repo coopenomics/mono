@@ -4,6 +4,8 @@ export * as GetCommit from './getCommit'
 
 export * as GetComponentMetrics from './getComponentMetrics'
 
+export * as GetMeasures from './getMeasures'
+
 export * as GetCommits from './getCommits'
 
 export * as GetContributor from './getContributor'

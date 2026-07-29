@@ -1,5 +1,5 @@
 /**
- * Полярная мишень суперпозиции: ширина + радиус + радиальный градиент.
+ * Полярная мишень резонанса: ширина + радиус + радиальный градиент.
  * Цвета адаптируются к light/dark.
  */
 
@@ -122,6 +122,138 @@ function pointOnCircle(
     x: cx + r * Math.sin(angle),
     y: cy - r * Math.cos(angle),
   };
+}
+
+/** Минимальный угол сектора для подписи внутри среза (~32°). */
+export const SECTOR_LABEL_MIN_SWEEP = (32 * Math.PI) / 180;
+
+/** Ниже этого угла — подпись вдоль биссектрисы; выше — горизонтально. */
+const SECTOR_LABEL_ANGLE_SWEEP = (70 * Math.PI) / 180;
+
+export interface SectorLabelLayout {
+  x: number;
+  y: number;
+  text: string;
+  /** Градусы SVG `rotate` вокруг (x, y). */
+  rotate: number;
+}
+
+export function truncateSectorTitle(title: string, maxChars: number): string {
+  const t = title.trim().replace(/\s+/g, ' ');
+  if (!t || maxChars < 1) return '';
+  if (t.length <= maxChars) return t;
+  if (maxChars === 1) return '…';
+  return `${t.slice(0, maxChars - 1)}…`;
+}
+
+/** Угол точки в системе мишени: 0 сверху, по часовой. */
+function pointAngle(cx: number, cy: number, x: number, y: number): number {
+  let a = Math.atan2(x - cx, cy - y);
+  if (a < 0) a += TWO_PI;
+  return a;
+}
+
+function angleInSweep(a: number, start: number, end: number): boolean {
+  // Секторы без wrap (start < end); допуск на границе
+  return a >= start - 1e-6 && a <= end + 1e-6;
+}
+
+/**
+ * Горизонтальный пролёт внутри клина на высоте labelY (через бинарный поиск).
+ * Хорда по радиусу завышает ширину для боковых секторов — поэтому так.
+ */
+function horizontalSpanInSector(
+  cx: number,
+  cy: number,
+  startAngle: number,
+  endAngle: number,
+  outerR: number,
+  coreR: number,
+  px: number,
+  py: number,
+): number {
+  // Запас от обода/ядра и от радиальных рёбер клина
+  const padR = 7;
+  const padAng = 0.07; // ~4°
+  const a0 = startAngle + padAng;
+  const a1 = endAngle - padAng;
+  if (a1 <= a0) return 0;
+
+  const isInside = (x: number): boolean => {
+    const dist = Math.hypot(x - cx, py - cy);
+    if (dist < coreR + padR || dist > outerR - padR) return false;
+    return angleInSweep(pointAngle(cx, cy, x, py), a0, a1);
+  };
+
+  if (!isInside(px)) return 0;
+
+  const expand = (dir: -1 | 1): number => {
+    let lo = 0;
+    let hi = outerR;
+    for (let i = 0; i < 28; i++) {
+      const mid = (lo + hi) / 2;
+      if (isInside(px + dir * mid)) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+
+  return expand(-1) + expand(1);
+}
+
+/** Примерная ширина глифа для `--p-fs-eyebrow` (кириллица + stroke). */
+const LABEL_CHAR_PX = 7.6;
+
+/**
+ * Подпись внутри среза: только если сектор достаточно широкий.
+ * Узкие клинья — без текста (имя в тултипе).
+ */
+export function layoutSectorLabel(
+  sector: Pick<PolarSector, 'title' | 'startAngle' | 'endAngle' | 'radius'>,
+  opts: { cx: number; cy: number; coreR: number },
+): SectorLabelLayout | null {
+  const sweep = sector.endAngle - sector.startAngle;
+  if (sweep < SECTOR_LABEL_MIN_SWEEP) return null;
+
+  const mid = (sector.startAngle + sector.endAngle) / 2;
+  const outer = Math.max(sector.radius, opts.coreR + 1);
+  const r = opts.coreR + (outer - opts.coreR) * 0.55;
+  const { x, y } = pointOnCircle(opts.cx, opts.cy, r, mid);
+
+  const angled = sweep < SECTOR_LABEL_ANGLE_SWEEP;
+  let availPx: number;
+  if (angled) {
+    // Текст вдоль биссектрисы ≈ по касательной: хорда с запасом
+    availPx = 2 * r * Math.sin(sweep / 2) * 0.52;
+  } else {
+    // Горизонтальный текст: реальная ширина клина на этой высоте + запас от краёв
+    availPx =
+      horizontalSpanInSector(
+        opts.cx,
+        opts.cy,
+        sector.startAngle,
+        sector.endAngle,
+        outer,
+        opts.coreR,
+        x,
+        y,
+      ) * 0.72;
+  }
+
+  const maxChars = Math.max(3, Math.min(20, Math.floor(availPx / LABEL_CHAR_PX)));
+  const text = truncateSectorTitle(sector.title, maxChars);
+  if (!text) return null;
+
+  let rotate = 0;
+  if (angled) {
+    let deg = (mid * 180) / Math.PI;
+    if (mid > Math.PI / 2 && mid < (3 * Math.PI) / 2) {
+      deg += 180;
+    }
+    rotate = deg;
+  }
+
+  return { x, y, text, rotate };
 }
 
 export function sectorPath(

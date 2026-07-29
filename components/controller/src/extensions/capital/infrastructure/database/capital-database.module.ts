@@ -29,6 +29,7 @@ import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-
 import { GithubCommMessageCursorTypeormEntity } from '../entities/github-comm-message-cursor.typeorm-entity';
 import { GithubCommTranscriptionCursorTypeormEntity } from '../entities/github-comm-transcription-cursor.typeorm-entity';
 import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
+import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
 import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
 import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
 import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
@@ -69,6 +70,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       GithubBranchCommitSyncStateTypeormEntity,
       IssueLinkedGitCommitTypeormEntity,
       ComponentMetricTypeormEntity,
+      MeasureTypeormEntity,
       IssueMetricBindingTypeormEntity,
       MetricContributionTypeormEntity,
     ]),

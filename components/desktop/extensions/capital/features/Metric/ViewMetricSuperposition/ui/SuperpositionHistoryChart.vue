@@ -60,7 +60,7 @@ const chartSeries = computed(() => [
     data: passedScore.value,
   },
   {
-    name: 'Суперпозиция',
+    name: 'Резонанс',
     type: 'line',
     data: scoreSeries.value,
   },

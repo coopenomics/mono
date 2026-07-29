@@ -2,6 +2,8 @@ import type { Queries, Mutations, Zeus } from '@coopenomics/sdk';
 
 export type IComponentMetric = Zeus.ModelTypes['CapitalComponentMetric'];
 
+export type IMeasure = Zeus.ModelTypes['CapitalMeasure'];
+
 export type IGetComponentMetricsInput =
   Queries.Capital.GetComponentMetrics.IInput['data'];
 
@@ -25,6 +27,21 @@ export type IArchiveComponentMetricInput =
 
 export type IArchiveComponentMetricOutput =
   Mutations.Capital.ArchiveComponentMetric.IOutput[typeof Mutations.Capital.ArchiveComponentMetric.name];
+
+export type IGetMeasuresInput = Queries.Capital.GetMeasures.IInput['data'];
+
+export type IGetMeasuresOutput =
+  Queries.Capital.GetMeasures.IOutput[typeof Queries.Capital.GetMeasures.name];
+
+export type ICreateMeasureInput = Mutations.Capital.CreateMeasure.IInput['data'];
+
+export type ICreateMeasureOutput =
+  Mutations.Capital.CreateMeasure.IOutput[typeof Mutations.Capital.CreateMeasure.name];
+
+export type IUpdateMeasureInput = Mutations.Capital.UpdateMeasure.IInput['data'];
+
+export type IUpdateMeasureOutput =
+  Mutations.Capital.UpdateMeasure.IOutput[typeof Mutations.Capital.UpdateMeasure.name];
 
 export type IGetIssueMetricBindingsInput =
   Queries.Capital.GetIssueMetricBindings.IInput['data'];

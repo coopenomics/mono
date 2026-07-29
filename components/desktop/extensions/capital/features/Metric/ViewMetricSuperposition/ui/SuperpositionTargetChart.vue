@@ -43,12 +43,25 @@ svg.sp-target(
     @mouseenter='emit("core-enter")',
     @click.stop='emit("core-enter")'
   )
+  text.sp-target__label(
+    v-for='label in labels',
+    :key='label.key',
+    :x='label.x',
+    :y='label.y',
+    :transform='label.rotate ? `rotate(${label.rotate} ${label.x} ${label.y})` : undefined',
+    text-anchor='middle',
+    dominant-baseline='middle'
+  ) {{ label.text }}
 </template>
 
 <script setup lang="ts">
-import type { PolarSector } from '../lib/superpositionPolar';
+import { computed } from 'vue';
+import {
+  layoutSectorLabel,
+  type PolarSector,
+} from '../lib/superpositionPolar';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     sectors: PolarSector[];
     size?: number;
@@ -69,7 +82,7 @@ withDefaults(
     coreR: 18,
     coreFill: 'var(--p-surface)',
     gradPrefix: '',
-    ariaLabel: 'Мишень суперпозиции',
+    ariaLabel: 'Мишень резонанса',
   },
 );
 
@@ -77,6 +90,18 @@ const emit = defineEmits<{
   'sector-enter': [sector: PolarSector];
   'core-enter': [];
 }>();
+
+const labels = computed(() =>
+  props.sectors.flatMap((sector) => {
+    const layout = layoutSectorLabel(sector, {
+      cx: props.cx,
+      cy: props.cy,
+      coreR: props.coreR,
+    });
+    if (!layout) return [];
+    return [{ key: sector.key, ...layout }];
+  }),
+);
 </script>
 
 <style lang="scss" scoped>
@@ -137,5 +162,19 @@ const emit = defineEmits<{
 :global([data-theme='dark']) .sp-target__core {
   stroke: #fff;
   stroke-opacity: 0.45;
+}
+
+.sp-target__label {
+  fill: var(--p-ink);
+  font-size: var(--p-fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: var(--p-ls-eyebrow);
+  pointer-events: none;
+  user-select: none;
+  paint-order: stroke fill;
+  stroke: var(--p-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  opacity: 0.92;
 }
 </style>

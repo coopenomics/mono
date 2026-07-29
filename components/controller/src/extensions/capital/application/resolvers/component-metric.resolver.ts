@@ -8,8 +8,12 @@ import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mon
 import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { ComponentMetricService } from '../services/component-metric.service';
 import { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
+import { MeasureOutputDTO } from '../dto/metrics/measure.dto';
 import { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
+import { CreateMeasureInputDTO } from '../dto/metrics/create-measure-input.dto';
+import { UpdateMeasureInputDTO } from '../dto/metrics/update-measure-input.dto';
+import { GetMeasuresInputDTO } from '../dto/metrics/get-measures-input.dto';
 import { ArchiveComponentMetricInputDTO } from '../dto/metrics/archive-component-metric-input.dto';
 import { GetComponentMetricsInputDTO } from '../dto/metrics/get-component-metrics-input.dto';
 import { IssueMetricBindingOutputDTO } from '../dto/metrics/issue-metric-binding.dto';
@@ -38,9 +42,50 @@ const paginatedMetricContributionsResult = createPaginationResult(
 export class ComponentMetricResolver {
   constructor(private readonly componentMetricService: ComponentMetricService) {}
 
+  @Mutation(() => MeasureOutputDTO, {
+    name: 'capitalCreateMeasure',
+    description:
+      'Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.',
+    deprecationReason: 'Справочник мер централизован — создание через миграции',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async createMeasure(
+    @Args('data', { type: () => CreateMeasureInputDTO }) data: CreateMeasureInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO> {
+    return this.componentMetricService.createMeasure(data, currentUser);
+  }
+
+  @Mutation(() => MeasureOutputDTO, {
+    name: 'capitalUpdateMeasure',
+    description: 'Включение или выключение меры в справочнике (без изменения состава)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member'])
+  async updateMeasure(
+    @Args('data', { type: () => UpdateMeasureInputDTO }) data: UpdateMeasureInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO> {
+    return this.componentMetricService.updateMeasure(data, currentUser);
+  }
+
+  @Query(() => [MeasureOutputDTO], {
+    name: 'capitalMeasures',
+    description: 'Справочник мер кооператива',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async getMeasures(
+    @Args('data') data: GetMeasuresInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<MeasureOutputDTO[]> {
+    return this.componentMetricService.getMeasures(data.coopname, data.status, currentUser);
+  }
+
   @Mutation(() => ComponentMetricOutputDTO, {
     name: 'capitalCreateComponentMetric',
-    description: 'Создание нефинансовой метрики на компоненте',
+    description: 'Создание цели по мере на компоненте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
@@ -53,7 +98,7 @@ export class ComponentMetricResolver {
 
   @Mutation(() => ComponentMetricOutputDTO, {
     name: 'capitalUpdateComponentMetric',
-    description: 'Обновление метрики компонента',
+    description: 'Обновление цели по мере на компоненте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
@@ -79,7 +124,7 @@ export class ComponentMetricResolver {
 
   @Query(() => [ComponentMetricOutputDTO], {
     name: 'capitalComponentMetrics',
-    description: 'Список метрик компонента с фактом',
+    description: 'Цели по мерам на компоненте с фактом',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
@@ -171,7 +216,7 @@ export class ComponentMetricResolver {
 
   @Query(() => MetricSuperpositionOutputDTO, {
     name: 'capitalMetricSuperposition',
-    description: 'Суперпозиция метрик и rollup планов/фактов по компонентам',
+    description: 'Метрика резонанса и rollup планов/фактов по компонентам',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
@@ -184,7 +229,7 @@ export class ComponentMetricResolver {
 
   @Query(() => MetricSuperpositionHistoryOutputDTO, {
     name: 'capitalMetricSuperpositionHistory',
-    description: 'История суперпозиции метрик по бакетам выбранного периода',
+    description: 'История резонанса метрик по бакетам выбранного периода',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])

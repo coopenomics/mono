@@ -9,44 +9,32 @@ CreateDialog(
   @dialog-closed="onDialogClosed"
 )
   template(#form-fields)
-    .plan-dialog__section
+    .plan-dialog__section.plan-dialog__finance
       .plan-dialog__section-title Финансовый план
-      q-input(
-        v-model.number='formData.plan_creators_hours'
-        label='Плановое количество часов исполнителей'
-        type='number'
-        :rules='[(val) => val > 0 || "Количество часов должно быть больше 0"]'
-        outlined
-        dense
-        class='q-mb-sm'
+      .plan-dialog__section-hint.t-sm Необязательно. Если часы не заданы — в блокчейн не отправляется, можно сохранить только цели по мерам.
+      BaseInput(
+        v-model='formData.plan_creators_hours',
+        label='Плановое количество часов исполнителей',
+        type='number',
+        suffix='ч',
+        :error='financeErrors.hours'
       )
-        template(#append)
-          span.text-grey-7 ч
-
-      q-input(
-        v-model='formData.plan_hour_cost'
-        label='Стоимость часа работы'
-        :rules='[(val) => !!val || "Стоимость часа работы обязательна"]'
-        outlined
-        dense
-        class='q-mb-sm'
+      BaseInput(
+        v-model='formData.plan_hour_cost',
+        label='Стоимость часа работы',
+        :suffix='governSymbol',
+        :error='financeErrors.hourCost'
       )
-        template(#append)
-          span.text-grey-7 {{ governSymbol }}
-
-      q-input(
-        v-model='formData.plan_expenses'
-        label='Дополнительные расходы'
-        :rules='[(val) => !!val || "Плановые расходы обязательны"]'
-        outlined
-        dense
+      BaseInput(
+        v-model='formData.plan_expenses',
+        label='Дополнительные расходы',
+        :suffix='governSymbol',
+        :error='financeErrors.expenses'
       )
-        template(#append)
-          span.text-grey-7 {{ governSymbol }}
 
     .plan-dialog__section(v-if='showMetrics')
       .plan-dialog__section-head
-        .plan-dialog__section-title Метрики
+        .plan-dialog__section-title Цели по мерам
         BaseButton(
           variant='ghost'
           size='sm'
@@ -58,52 +46,37 @@ CreateDialog(
           | Добавить
 
       .plan-dialog__metric(
-        v-for='(row, index) in metricRows'
+        v-for='(row, index) in metricRows',
         :key='row.key'
       )
         .plan-dialog__metric-fields
-          q-input.plan-dialog__metric-title(
-            v-model='row.title'
-            label='Название'
-            outlined
-            dense
+          BaseSelect.plan-dialog__metric-measure(
+            v-model='row.measure_hash',
+            :options='measureSelectOptions',
+            label='Мера',
+            :placeholder='measuresLoading ? "Загрузка…" : "Выбрать из справочника"',
+            @update:model-value='(val) => onMeasurePicked(index, val)'
           )
-          q-input.plan-dialog__metric-unit(
-            v-model='row.unit'
-            label='Ед.'
-            outlined
-            dense
-          )
-          q-input.plan-dialog__metric-target(
-            v-model.number='row.target_value'
-            label='Цель'
+          BaseInput.plan-dialog__metric-target(
+            v-model.number='row.target_value',
+            label='Цель',
             type='number'
-            outlined
-            dense
-          )
-          q-select.plan-dialog__metric-mode(
-            v-model='row.series_mode'
-            :options='seriesModeOptions'
-            label='Режим'
-            emit-value
-            map-options
-            outlined
-            dense
-            options-dense
           )
         BaseButton(
           variant='ghost'
-          size='sm'
-          :icon-only='true'
-          type='button'
-          aria-label='Убрать метрику'
+          size='sm',
+          :icon-only='true',
+          type='button',
+          aria-label='Убрать цель',
           @click='removeMetricRow(index)'
         )
           template(#icon-left)
             q-icon(name='close' size='16px')
 
       .plan-dialog__metrics-hint.t-sm(v-if='!metricRows.length')
-        | Метрик пока нет — нажмите «Добавить»
+        | Целей пока нет — нажмите «Добавить» и выберите меру из справочника.
+      .plan-dialog__metrics-hint.t-sm(v-else)
+        | Меры задаются в справочнике на столе администратора. Здесь только выбор и цель.
 </template>
 
 <script setup lang="ts">
@@ -112,21 +85,25 @@ import { Zeus } from '@coopenomics/sdk';
 import { useSetPlan } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
-import { BaseButton } from 'src/shared/ui/base';
+import { BaseButton, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import type { BaseSelectOption } from 'src/shared/ui/base';
 import type { IProject } from '../../../../../entities/Project/model';
 import { isComponent } from 'app/extensions/capital/shared/lib/project-utils';
 import { useSystemStore } from 'src/entities/System/model/store';
 import { useComponentMetricStore } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
-import type { IComponentMetric } from 'app/extensions/capital/entities/ComponentMetric/model';
+import type {
+  IComponentMetric,
+  IMeasure,
+} from 'app/extensions/capital/entities/ComponentMetric/model';
 
 interface MetricDraftRow {
   key: string;
   metric_hash?: string;
+  measure_hash: string | null;
   title: string;
   unit: string;
   target_value: number;
-  series_mode: Zeus.MetricSeriesMode;
 }
 
 const props = defineProps<{ project: IProject | null | undefined }>();
@@ -140,57 +117,128 @@ const dialogRef = ref();
 const { setPlan, governSymbol, formatAmountForEOSIO } = useSetPlan();
 const metricStore = useComponentMetricStore();
 const isSubmitting = ref(false);
+const measuresLoading = ref(false);
+const measures = ref<IMeasure[]>([]);
 
 const formData = ref({
-  plan_creators_hours: 0,
+  plan_creators_hours: '' as string,
   plan_expenses: '',
   plan_hour_cost: '',
 });
 
+const financeErrors = ref({
+  hours: '',
+  hourCost: '',
+  expenses: '',
+});
+
 const metricRows = ref<MetricDraftRow[]>([]);
-/** Хеши метрик, убранных из формы — архивируем при сохранении */
+/** Хеши целей, убранных из формы — архивируем при сохранении */
 const removedMetricHashes = ref<string[]>([]);
 
 const showMetrics = computed(
   () => !!props.project && isComponent(props.project),
 );
 
-const seriesModeOptions = [
-  { label: 'Изменения', value: Zeus.MetricSeriesMode.RATE },
-  { label: 'Уровень', value: Zeus.MetricSeriesMode.LEVEL },
-];
+const measureSelectOptions = computed<BaseSelectOption[]>(() =>
+  measures.value.map((m) => ({
+    value: m.measure_hash,
+    label: m.unit.trim() ? `${m.title.trim()} · ${m.unit.trim()}` : m.title.trim(),
+  })),
+);
+
+/** Финплан включается только если заданы часы > 0 — иначе on-chain setPlan не шлём. */
+const hasFinancialPlan = computed(() => {
+  const n = Number(formData.value.plan_creators_hours);
+  return Number.isFinite(n) && n > 0;
+});
+
+const clearFinanceErrors = () => {
+  financeErrors.value = { hours: '', hourCost: '', expenses: '' };
+};
+
+const validateFinanceFields = (): boolean => {
+  clearFinanceErrors();
+  if (!hasFinancialPlan.value) return true;
+
+  let ok = true;
+  if (!String(formData.value.plan_hour_cost ?? '').trim()) {
+    financeErrors.value.hourCost = 'Укажите стоимость часа или очистите часы';
+    ok = false;
+  }
+  if (!String(formData.value.plan_expenses ?? '').trim()) {
+    financeErrors.value.expenses = 'Укажите расходы или очистите часы';
+    ok = false;
+  }
+  const n = Number(formData.value.plan_creators_hours);
+  if (!Number.isFinite(n) || n <= 0) {
+    financeErrors.value.hours = 'Количество часов должно быть больше 0';
+    ok = false;
+  }
+  return ok;
+};
 
 let draftKeySeq = 0;
 const nextKey = () => `m-${++draftKeySeq}`;
 
 const emptyMetricRow = (): MetricDraftRow => ({
   key: nextKey(),
+  measure_hash: null,
   title: '',
   unit: '',
   target_value: 0,
-  series_mode: Zeus.MetricSeriesMode.RATE,
 });
 
 const metricToRow = (m: IComponentMetric): MetricDraftRow => ({
   key: m.metric_hash,
   metric_hash: m.metric_hash,
+  measure_hash: m.measure_hash,
   title: m.title,
   unit: m.unit,
   target_value: m.target_value,
-  series_mode: m.series_mode,
 });
 
+const onMeasurePicked = (index: number, value: string | number | null) => {
+  const row = metricRows.value[index];
+  if (!row) return;
+  const hash = value == null || value === '' ? null : String(value);
+  row.measure_hash = hash;
+  if (!hash) {
+    row.title = '';
+    row.unit = '';
+    return;
+  }
+  const fromCatalog = measures.value.find((m) => m.measure_hash === hash);
+  row.title = fromCatalog?.title ?? '';
+  row.unit = fromCatalog?.unit ?? '';
+};
+
 const fillFinancialFromProject = () => {
+  clearFinanceErrors();
   if (props.project?.is_planed && props.project.plan) {
-    formData.value.plan_creators_hours = props.project.plan.creators_hours || 0;
+    const hours = Number(props.project.plan.creators_hours) || 0;
+    formData.value.plan_creators_hours = hours > 0 ? String(hours) : '';
     formData.value.plan_expenses = props.project.plan.target_expense_pool || '';
     formData.value.plan_hour_cost = props.project.plan.hour_cost || '';
   } else {
     formData.value = {
-      plan_creators_hours: 0,
+      plan_creators_hours: '',
       plan_expenses: '',
       plan_hour_cost: '',
     };
+  }
+};
+
+const loadMeasuresCatalog = async () => {
+  const { info } = useSystemStore();
+  measuresLoading.value = true;
+  try {
+    measures.value = await api.getMeasures({
+      coopname: info.coopname,
+      status: Zeus.MetricStatus.ACTIVE,
+    });
+  } finally {
+    measuresLoading.value = false;
   }
 };
 
@@ -224,10 +272,11 @@ const removeMetricRow = (index: number) => {
 
 const clear = () => {
   formData.value = {
-    plan_creators_hours: 0,
+    plan_creators_hours: '',
     plan_expenses: '',
     plan_hour_cost: '',
   };
+  clearFinanceErrors();
   metricRows.value = [];
   removedMetricHashes.value = [];
 };
@@ -237,7 +286,7 @@ const onDialogClosed = () => {
 };
 
 const isMetricRowFilled = (row: MetricDraftRow) =>
-  !!row.title.trim() && !!row.unit.trim() && Number(row.target_value) > 0;
+  !!row.measure_hash && Number(row.target_value) > 0;
 
 const syncMetrics = async (projectHash: string) => {
   const { info } = useSystemStore();
@@ -248,25 +297,21 @@ const syncMetrics = async (projectHash: string) => {
   }
 
   for (const row of metricRows.value) {
-    if (!isMetricRowFilled(row)) continue;
+    if (!isMetricRowFilled(row) || !row.measure_hash) continue;
 
     if (row.metric_hash) {
       const result = await api.updateComponentMetric({
         metric_hash: row.metric_hash,
-        title: row.title.trim(),
-        unit: row.unit.trim(),
+        measure_hash: row.measure_hash,
         target_value: Number(row.target_value),
-        series_mode: row.series_mode,
       });
       metricStore.updateMetric(result);
     } else {
       const result = await api.createComponentMetric({
         coopname: info.coopname,
         project_hash: projectHash,
-        title: row.title.trim(),
-        unit: row.unit.trim(),
+        measure_hash: row.measure_hash,
         target_value: Number(row.target_value),
-        series_mode: row.series_mode,
       });
       metricStore.addMetric(result);
     }
@@ -283,32 +328,53 @@ const handleSubmit = async () => {
 
   const incomplete = metricRows.value.some(
     (row) =>
-      (row.title.trim() || row.unit.trim() || Number(row.target_value) > 0) &&
-      !isMetricRowFilled(row),
+      (row.measure_hash || Number(row.target_value) > 0) && !isMetricRowFilled(row),
   );
   if (incomplete) {
-    FailAlert('Заполните название, единицу и цель у каждой метрики или удалите пустые строки');
+    FailAlert('Выберите меру из справочника и укажите цель — или удалите пустые строки');
     return;
+  }
+
+  const finance = hasFinancialPlan.value;
+  const metricsToSave =
+    showMetrics.value &&
+    (metricRows.value.some(isMetricRowFilled) || removedMetricHashes.value.length > 0);
+
+  if (!finance && !metricsToSave) {
+    FailAlert('Укажите финансовый план (часы > 0) или цели по мерам');
+    return;
+  }
+
+  if (finance && !validateFinanceFields()) {
+    return;
+  }
+  if (!finance) {
+    clearFinanceErrors();
   }
 
   isSubmitting.value = true;
   try {
-    const planData = {
-      coopname: props.project.coopname || '',
-      master: props.project.master || '',
-      project_hash: props.project.project_hash,
-      plan_creators_hours: formData.value.plan_creators_hours,
-      plan_expenses: formatAmountForEOSIO(formData.value.plan_expenses),
-      plan_hour_cost: formatAmountForEOSIO(formData.value.plan_hour_cost),
-    };
-
-    await setPlan(planData);
+    if (finance) {
+      const planData = {
+        coopname: props.project.coopname || '',
+        master: props.project.master || '',
+        project_hash: props.project.project_hash,
+        plan_creators_hours: Number(formData.value.plan_creators_hours),
+        plan_expenses: formatAmountForEOSIO(formData.value.plan_expenses),
+        plan_hour_cost: formatAmountForEOSIO(formData.value.plan_hour_cost),
+      };
+      await setPlan(planData);
+    }
 
     if (showMetrics.value) {
       await syncMetrics(props.project.project_hash);
     }
 
-    SuccessAlert(props.project.is_planed ? 'План сохранён' : 'План установлен');
+    if (finance) {
+      SuccessAlert(props.project.is_planed ? 'План сохранён' : 'План установлен');
+    } else {
+      SuccessAlert('Цели по мерам сохранены');
+    }
     dialogRef.value?.clear();
     emit('success');
   } catch (error) {
@@ -322,7 +388,7 @@ const handleSubmit = async () => {
 const openDialog = async () => {
   fillFinancialFromProject();
   try {
-    await fillMetricsFromStore();
+    await Promise.all([loadMeasuresCatalog(), fillMetricsFromStore()]);
   } catch (error) {
     FailAlert(error);
   }
@@ -347,6 +413,21 @@ defineExpose({
   }
 }
 
+.plan-dialog__finance {
+  gap: var(--p-1);
+
+  /* BaseInput всегда reserve-hint-space — без ошибки схлопываем низ */
+  :deep(.q-field__bottom) {
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  :deep(.q-field--error .q-field__bottom) {
+    min-height: auto;
+    padding-top: var(--p-1);
+  }
+}
+
 .plan-dialog__section-head {
   display: flex;
   align-items: center;
@@ -358,6 +439,10 @@ defineExpose({
   font-size: var(--p-fs-body-sm);
   font-weight: 600;
   color: var(--p-ink);
+}
+
+.plan-dialog__section-hint {
+  color: var(--p-ink-3);
 }
 
 .plan-dialog__metric {
@@ -378,24 +463,14 @@ defineExpose({
   min-width: 0;
 }
 
-.plan-dialog__metric-title {
+.plan-dialog__metric-measure {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.plan-dialog__metric-unit {
-  flex: 0 0 64px;
-  width: 64px;
-}
-
 .plan-dialog__metric-target {
-  flex: 0 0 88px;
-  width: 88px;
-}
-
-.plan-dialog__metric-mode {
-  flex: 0 0 118px;
-  width: 118px;
+  flex: 0 0 120px;
+  width: 120px;
 }
 
 .plan-dialog__metrics-hint {

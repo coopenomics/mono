@@ -2,13 +2,13 @@
 .superposition
   .superposition__head
     .superposition__head-left
-      .superposition__title Суперпозиция метрик
+      .superposition__title Метрика резонанса
       BaseButton.superposition__help-btn(
         variant='ghost',
         size='sm',
         :icon-only='true',
         type='button',
-        aria-label='Справка о суперпозиции',
+        aria-label='Справка о резонансе',
         @click='helpOpen = true'
       )
         template(#icon-left)
@@ -44,7 +44,7 @@
             :name='STAT_ICONS.score',
             size='14px'
           )
-          span Суперпозиция
+          span Резонанс
           q-icon.superposition__stat-help(
             name='help_outline',
             size='14px'
@@ -109,7 +109,7 @@
         )
 
   .superposition__empty(v-else-if='!isLoading')
-    EmptyState(title='Нет активных метрик для суперпозиции')
+    EmptyState(title='Нет активных метрик для резонанса')
       template(#icon)
         q-icon(name='hub', size='28px')
 
@@ -335,7 +335,7 @@ const showCoreTip = () => {
     rows: [
       {
         icon: STAT_ICONS.score,
-        label: 'Суперпозиция',
+        label: 'Резонанс',
         value: pct(score.value),
       },
       {
@@ -371,8 +371,8 @@ const hideTip = () => {
 
 const ariaLabel = computed(() => {
   const d = data.value;
-  if (!d) return 'Мишень суперпозиции';
-  return `Суперпозиция ${pct(score.value)}. Баланс ${pct(d.balance)}, рост ${pct(d.growth)}, движение ${pct(d.activity)}`;
+  if (!d) return 'Мишень резонанса';
+  return `Резонанс ${pct(score.value)}. Баланс ${pct(d.balance)}, рост ${pct(d.growth)}, движение ${pct(d.activity)}`;
 });
 </script>
 
