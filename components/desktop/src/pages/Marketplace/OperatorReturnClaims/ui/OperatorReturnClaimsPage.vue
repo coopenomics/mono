@@ -40,7 +40,7 @@ const store = useOperatorBranchStore();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceReturnClaimView[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 
 const onSiteDialog = ref(false);
 const scanDialogOpen = ref(false);
@@ -168,7 +168,7 @@ q-page.returns(role='region', aria-label='Гарантийные возврат�
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Рассмотрение гарантийных возвратов доступно председателю участка и его доверенным лицам.'
   )

@@ -45,7 +45,7 @@ const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 
 const openDialog = ref(false);
 // Открываем выдачу СРАЗУ по всем позициям пайщика «к выдаче» — одна операция
@@ -359,7 +359,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Выдача заказов доступна председателю участка и его доверенным лицам.'
   )

@@ -28,7 +28,7 @@ const braname = computed(() => store.activeBraname ?? '')
 
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
-const loading = ref(false)
+const loading = ref(true)
 
 // Склад — это «что сейчас физически лежит на полке», не история движений.
 // Выданное пайщику и списанное уже не на полке — им место в будущей истории
@@ -257,7 +257,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Склад участка доступен председателю участка и его доверенным лицам.'
   )

@@ -71,7 +71,7 @@ const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
 // Состав ожидаемого имущества по поставщику (для карточек «что везут» без
 // проваливания): грузим единицы поставщиков, чьи партии/самовывоз ждут приёмки.
 const ordersByOfferer = ref<Record<string, MarketplaceSupplierPickupOrderView[]>>({});
-const loading = ref(false);
+const loading = ref(true);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
 // SUPPLY_PREPARED (после создания акта партия уходит в RECEPTION_IN_PROGRESS).
@@ -697,7 +697,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Приёмка партий доступна председателю участка и его доверенным лицам.'
   )

@@ -57,7 +57,7 @@ const isBranchTrustee = computed(
   () => !!branch.value && branch.value.trustee.username === session.username
 )
 
-const loading = ref(false)
+const loading = ref(true)
 const feePercent = ref(0)
 const economy = ref<MarketplaceBranchEconomyView | null>(null)
 const plans = ref<ExpensePlanView[]>([])
@@ -381,7 +381,7 @@ q-page.economy
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Экономика участка доступна председателю участка и его доверенным лицам.'
   )

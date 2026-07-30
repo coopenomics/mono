@@ -137,7 +137,7 @@ q-page.trusted
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Стол ПВЗ доступен председателю участка и его доверенным лицам. Управление доверенными лицами появится, когда вы станете оператором КУ.'
   )
@@ -174,7 +174,7 @@ q-page.trusted
         | Список доверенных лиц участка доступен председателю кооператива.
 
     //- Канон загрузки: скелетон-таблица на первичной загрузке, не пустой экран.
-    TableSkeleton(v-if='store.loading && !rows.length', :columns='skeletonColumns')
+    TableSkeleton(v-if='!store.loaded && !rows.length', :columns='skeletonColumns')
 
     .trusted__counter(v-if='rows.length')
       | Доверенных лиц: {{ trustedCount }}
@@ -209,7 +209,7 @@ q-page.trusted
                 span.trusted__dash(v-else) —
 
     EmptyState(
-      v-else-if='!store.loading && branch',
+      v-else-if='store.loaded && branch',
       title='Доверенных лиц пока нет',
       body='Добавьте доверенных лиц, которым доверяете операции на этом пункте выдачи.'
     )
