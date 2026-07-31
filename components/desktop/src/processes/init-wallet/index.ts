@@ -93,7 +93,7 @@ export function useInitWalletProcess() {
         e instanceof Error && e.message === WALLET_INIT_TIMEOUT_MESSAGE;
       if (isTimeout) {
         console.warn(
-          `Инициализация данных пользователя превысила ${WALLET_INIT_TIMEOUT_MS} мс (возможна недоступность API или внешних сервисов уведомлений). Интерфейс будет доступен, повторная попытка загрузки — через фоновый цикл.`,
+          `Инициализация данных пользователя превысила ${WALLET_INIT_TIMEOUT_MS} мс (возможна недоступность API или внешних сервисов уведомлений). Интерфейс будет доступен без фонового ретрая — обновите страницу после восстановления бэкенда.`,
         );
       }
 
@@ -124,10 +124,8 @@ export function useInitWalletProcess() {
       finishFirstInitUi();
     }
 
-    // фоновая проверка каждые 10 сек (только если это не принудительная перезагрузка)
-    if (!forceReload) {
-      setTimeout(run, 10_000);
-    }
+    // Без рекурсивного setTimeout(run, 10_000): при мёртвом бэкенде цикл
+    // вместе с ws-reconnect вывешивал вкладку (self-DDoS).
   };
 
   return { run };

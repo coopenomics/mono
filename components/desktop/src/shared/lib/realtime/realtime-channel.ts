@@ -42,6 +42,9 @@ const handles = new Map<string, RealtimeHandle>();
 let installed = false;
 
 const SAFETY_RESYNC_MS = 60_000;
+/** Схлопывает visibility + страховку + чужие вызовы в один catch-up. */
+const RESYNC_DEBOUNCE_MS = 1_500;
+let resyncTimer: ReturnType<typeof setTimeout> | null = null;
 
 function isAuthed(): boolean {
   return Boolean(useGlobalStore().wif);
@@ -49,6 +52,10 @@ function isAuthed(): boolean {
 
 function isForeground(): boolean {
   return typeof document === 'undefined' || document.visibilityState !== 'hidden';
+}
+
+function isBrowserOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
 function openSub(sub: RealtimeSubscription): void {
@@ -76,14 +83,26 @@ function openAll(): void {
 }
 
 function closeAll(): void {
+  if (resyncTimer) {
+    clearTimeout(resyncTimer);
+    resyncTimer = null;
+  }
   [...handles.keys()].forEach(closeSub);
 }
 
 function resyncActive(reason: string): void {
   if (!isAuthed() || !isForeground()) return;
-  subscriptions.forEach((sub) => {
-    if (handles.has(sub.id)) void sub.resync(reason);
-  });
+  // Мёртвая сеть / рестарт бэкенда без сети — не плодим HTTP catch-up.
+  if (isBrowserOffline()) return;
+
+  if (resyncTimer) clearTimeout(resyncTimer);
+  resyncTimer = setTimeout(() => {
+    resyncTimer = null;
+    if (!isAuthed() || !isForeground() || isBrowserOffline()) return;
+    subscriptions.forEach((sub) => {
+      if (handles.has(sub.id)) void sub.resync(reason);
+    });
+  }, RESYNC_DEBOUNCE_MS);
 }
 
 /**
