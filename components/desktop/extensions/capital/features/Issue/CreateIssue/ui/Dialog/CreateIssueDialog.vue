@@ -74,8 +74,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib';
-import { useCreateIssue } from '../../model';
+import { getIssueStatusLabel, capitalRouteName } from 'app/extensions/capital/shared/lib';
+import { useCreateIssue, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
 const props = defineProps<{
@@ -154,9 +154,8 @@ const clear = async () => {
 const handleSubmit = async () => {
   isSubmitting.value = true;
   try {
-    const inputData = {
+    const inputData: ICreateIssueInput = {
       coopname: system.info.coopname,
-      project_hash: currentProjectHash.value,
       title: formData.value.title,
       description: formData.value.description,
       priority: formData.value.priority,
@@ -165,13 +164,15 @@ const handleSubmit = async () => {
       labels: formData.value.labels,
       attachments: formData.value.attachments,
     };
+    if (currentProjectHash.value) {
+      inputData.project_hash = currentProjectHash.value;
+    }
 
     const result = await createIssue(inputData);
 
-    // Получаем ID и хэш задачи из результата
-    // result - это объект задачи, у которого есть поля id и issue_hash
     const issueId = typeof result === 'string' ? result : result?.id;
     const issueHash = result?.issue_hash;
+    const resultProjectHash = result?.project_hash || currentProjectHash.value;
 
     SuccessAlert(
       `Задача ${issueId} успешно создана`,
@@ -179,13 +180,23 @@ const handleSubmit = async () => {
         text: '', // Пустой текст, только иконка
         icon: 'launch',
         handler: () => {
+          if (resultProjectHash) {
+            router.push({
+              name: capitalRouteName('component-issue-description', route),
+              params: {
+                coopname: system.info.coopname,
+                project_hash: resultProjectHash,
+                issue_hash: issueHash,
+              },
+            });
+            return;
+          }
           router.push({
-            name: 'component-issue-description',
+            name: 'my-task-issue-description',
             params: {
               coopname: system.info.coopname,
-              project_hash: currentProjectHash.value,
-              issue_hash: issueHash
-            }
+              issue_hash: issueHash,
+            },
           });
         }
       } : undefined

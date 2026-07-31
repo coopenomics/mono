@@ -1,7 +1,7 @@
 <template lang="pug">
 .planning-page
-  //- Сводный план проекта (агрегат по компонентам)
-  .planning-page__section
+  //- Сводный финансовый план — только кооперативные проекты
+  .planning-page__section(v-if='!isLocalProject')
     .planning-page__head
       .planning-page__title Сводный план · {{ project?.title || '…' }}
       .planning-page__sub.t-sm.t-muted
@@ -18,18 +18,19 @@
   .planning-page__section(v-if='project')
     MetricSuperpositionPanel(:project-hash='project.project_hash')
 
-  //- Планы по каждому компоненту
-  .planning-page__section(
-    v-for='component in components',
-    :key='component.project_hash'
-  )
-    .planning-page__head
-      .planning-page__title Компонент · {{ component.title }}
-      .planning-page__sub.t-sm.t-muted Собственный план и факт компонента
-    ProjectPlanningWidget(
-      :project='component',
-      :permissions='permissions'
+  //- Финансовые планы компонентов — только кооперативные
+  template(v-if='!isLocalProject')
+    .planning-page__section(
+      v-for='component in components',
+      :key='component.project_hash'
     )
+      .planning-page__head
+        .planning-page__title Компонент · {{ component.title }}
+        .planning-page__sub.t-sm.t-muted Собственный план и факт компонента
+      ProjectPlanningWidget(
+        :project='component',
+        :permissions='permissions'
+      )
 </template>
 
 <script lang="ts" setup>
@@ -51,6 +52,8 @@ const projectStore = useProjectStore();
 const project = ref<IProject | null | undefined>(null);
 
 const projectHash = computed(() => route.params.project_hash as string);
+
+const isLocalProject = computed(() => project.value?.origin === 'local');
 
 const permissions = computed((): IProjectPermissions | null => {
   return project.value?.permissions || null;

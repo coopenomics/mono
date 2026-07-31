@@ -80,7 +80,7 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import {
   type IStory,
@@ -97,6 +97,7 @@ import type { IProjectPermissions } from 'app/extensions/capital/entities/Projec
 import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSectionEmpty';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 const props = withDefaults(
   defineProps<{
@@ -120,6 +121,7 @@ const props = withDefaults(
 const storyStore = useStoryStore();
 const { info } = useSystemStore();
 const router = useRouter();
+const route = useRoute();
 const editDialog = ref();
 const selectedRequirement = ref<IStory | null>(null);
 
@@ -364,7 +366,9 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
 
       if (projectData) {
         // Если у проекта есть parent_hash, это компонент - используем component-issue
-        const routeName = projectData.parent_hash ? 'component-issue-description' : 'project-issue';
+        const routeName = projectData.parent_hash
+          ? capitalRouteName('component-issue-description', route)
+          : 'project-issue';
 
         router.push({
           name: routeName,
@@ -394,7 +398,9 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
 
       if (projectData) {
         // Если у проекта есть parent_hash, это компонент
-        const routeName = projectData.parent_hash ? 'component-description' : 'project-description';
+        const routeName = projectData.parent_hash
+          ? capitalRouteName('component-description', route)
+          : capitalRouteName('project-description', route);
 
         router.push({
           name: routeName,
@@ -407,7 +413,7 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
       console.error('Ошибка при определении типа проекта:', error);
       // Fallback - переходим на страницу проекта
       router.push({
-        name: 'project-description',
+        name: capitalRouteName('project-description', route),
         params: {
           project_hash: requirement.project_hash
         }

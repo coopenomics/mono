@@ -108,7 +108,6 @@ export function listSuperpositionFrameAts(
  * Аргументы `period`/`from` — для UI-scrubber/совместимости; на фазоры меры не влияют,
  * если у входа задан `wave_period`.
  * Вклады с occurred_at > to не учитываются.
- * RATE: фаза волны по ненулевым Δ; амплитуда/затухание — по календарным бакетам.
  */
 export function computeSuperpositionAt(
   metrics: SuperpositionMetricInput[],
@@ -153,16 +152,7 @@ export function computeSuperpositionAt(
       fact,
       target_value: metric.target_value,
     });
-    // Скорость для drive: у RATE последний ненулевой Δ (ноль = нет данных, не откат)
-    let recent_velocity = points.length ? points[points.length - 1].delta : 0;
-    if (metric.series_mode === MetricSeriesMode.RATE) {
-      for (let i = values.length - 1; i >= 0; i--) {
-        if (Math.abs(values[i]) > 1e-12) {
-          recent_velocity = values[i];
-          break;
-        }
-      }
-    }
+    const recent_velocity = points.length ? points[points.length - 1].delta : 0;
     const amplitude = recentActivityScore(values, metric.series_mode);
     const phase_rad = wavePhaseRadians(markup.current_phase, markup.current_label);
     items.push({

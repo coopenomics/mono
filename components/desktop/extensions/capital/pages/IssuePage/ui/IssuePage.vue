@@ -7,7 +7,7 @@
   )
     template(#actions)
       BaseButton(
-        v-if="activeTabKey === 'component-issue-requirements' && canCreateRequirement"
+        v-if="isRequirementsTab && canCreateRequirement"
         variant="primary"
         size="sm"
         aria-label="Создать артефакт"
@@ -131,6 +131,10 @@ import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWid
 import { CreateRequirementWithEditorDialog } from 'app/extensions/capital/features/Story/CreateStory'
 import type { IGetStoriesInput } from 'app/extensions/capital/entities/Story/model'
 import { ISSUE_PAGE_KEY } from '../model/context'
+import {
+  isMyProjectsWorkspace,
+  capitalRouteName,
+} from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes'
 
 const route = useRoute()
 const router = useRouter()
@@ -162,7 +166,23 @@ const isMobileLayout = isMobile
 const { debounceSave, isAutoSaving, autoSaveError } = useUpdateIssue()
 
 const issueHash = computed(() => route.params.issue_hash as string)
-const projectHash = computed(() => route.params.project_hash as string)
+const isMyTaskContext = computed(() =>
+  String(route.name ?? '').startsWith('my-task-issue'),
+)
+const isMyProjectsContext = computed(
+  () => isMyProjectsWorkspace(route) && !isMyTaskContext.value,
+)
+const issueRoutePrefix = computed(() => {
+  if (isMyTaskContext.value) return 'my-task-issue'
+  if (isMyProjectsContext.value) return 'my-component-issue'
+  return 'component-issue'
+})
+const projectHash = computed(() => {
+  const fromRoute = route.params.project_hash as string | undefined
+  if (fromRoute && fromRoute !== 'free') return fromRoute
+  return issue.value?.project_hash || ''
+})
+const isFreeIssue = computed(() => !issue.value?.project_hash)
 
 const linkedGitCommits = computed(() => (issue.value as { linked_git_commits?: unknown[] } | null)?.linked_git_commits ?? [])
 
@@ -187,27 +207,46 @@ const handleRequirementCreated = () => {}
 
 const activeTabKey = computed(() => {
   const name = String(route.name ?? '')
-  if (name === 'component-issue' || name === 'component-issue-redirect') {
-    return 'component-issue-description'
+  const prefix = issueRoutePrefix.value
+  if (
+    name === prefix ||
+    name === `${prefix}-redirect` ||
+    name === 'component-issue' ||
+    name === 'component-issue-redirect' ||
+    name === 'my-component-issue' ||
+    name === 'my-component-issue-redirect' ||
+    name === 'my-task-issue' ||
+    name === 'my-task-issue-redirect'
+  ) {
+    return `${prefix}-description`
   }
   return name
 })
 
-const showSidebar = computed(() => activeTabKey.value === 'component-issue-description')
+const isDescriptionTab = computed(
+  () => activeTabKey.value.endsWith('issue-description') || activeTabKey.value.endsWith('component-issue-description'),
+)
+const isRequirementsTab = computed(
+  () => activeTabKey.value.endsWith('issue-requirements') || activeTabKey.value.endsWith('component-issue-requirements'),
+)
+const showSidebar = computed(() => isDescriptionTab.value)
 
 const issueTabs = computed(() => {
-  const params = {
-    project_hash: projectHash.value,
-    issue_hash: issueHash.value,
-  }
+  const prefix = issueRoutePrefix.value
+  const params = isMyTaskContext.value
+    ? { issue_hash: issueHash.value }
+    : {
+        project_hash: projectHash.value,
+        issue_hash: issueHash.value,
+      }
   const currentBackRoute = route.query._backRoute as string
   const query = currentBackRoute ? { _backRoute: currentBackRoute } : {}
 
   return [
-    { key: 'component-issue-description', label: 'Описание', route: { name: 'component-issue-description', params, query } },
-    { key: 'component-issue-requirements', label: 'Артефакты', route: { name: 'component-issue-requirements', params, query } },
-    { key: 'component-issue-commits', label: 'Коммиты', route: { name: 'component-issue-commits', params, query } },
-    { key: 'component-issue-history', label: 'История', route: { name: 'component-issue-history', params, query } },
+    { key: `${prefix}-description`, label: 'Описание', route: { name: `${prefix}-description`, params, query } },
+    { key: `${prefix}-requirements`, label: 'Артефакты', route: { name: `${prefix}-requirements`, params, query } },
+    { key: `${prefix}-commits`, label: 'Коммиты', route: { name: `${prefix}-commits`, params, query } },
+    { key: `${prefix}-history`, label: 'История', route: { name: `${prefix}-history`, params, query } },
   ]
 })
 
@@ -218,7 +257,7 @@ const parentProjectHash = computed(() => {
 })
 
 const routeIssueKey = computed(
-  () => `${String(route.params.issue_hash)}:${String(route.params.project_hash)}`,
+  () => `${String(route.params.issue_hash)}:${String(route.params.project_hash ?? '')}`,
 )
 
 const ensureMarkdownFormat = (description: unknown) => {
@@ -227,6 +266,10 @@ const ensureMarkdownFormat = (description: unknown) => {
 }
 
 const loadParentInfo = async () => {
+  if (isFreeIssue.value || !projectHash.value) {
+    parentProject.value = null
+    return
+  }
   try {
     const projectData = await ProjectApi.loadProject({ hash: projectHash.value })
     parentProject.value = projectData || null
@@ -242,7 +285,7 @@ const handleTitleUpdate = async (value: string) => {
   if (!issue.value) return
   issue.value.title = value
   try {
-    await debounceSave({ issue_hash: issue.value.issue_hash, title: value }, projectHash.value)
+    await debounceSave({ issue_hash: issue.value.issue_hash, title: value }, projectHash.value || '')
     logsRefreshTrigger.value++
   } catch (error) {
     console.error('Failed to update title:', error)
@@ -254,7 +297,7 @@ const handleDescriptionChange = async () => {
   try {
     await debounceSave(
       { issue_hash: issue.value.issue_hash, description: issue.value.description },
-      projectHash.value,
+      projectHash.value || '',
     )
     logsRefreshTrigger.value++
   } catch (error) {
@@ -266,6 +309,21 @@ useBackButton({
   text: 'Назад',
   componentId: 'issue-page-' + issueHash.value,
   onClick: () => {
+    if (isMyTaskContext.value) {
+      router.push({ name: 'capital-my-tasks', params: { coopname: route.params.coopname } })
+      return
+    }
+    if (isMyProjectsContext.value) {
+      if (projectHash.value) {
+        router.push({
+          name: capitalRouteName('component-tasks', route),
+          params: { coopname: route.params.coopname, project_hash: projectHash.value },
+        })
+        return
+      }
+      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } })
+      return
+    }
     const backRoute = route.query._backRoute as string
     if (backRoute) {
       const storedRoute = sessionStorage.getItem(backRoute)
@@ -351,8 +409,12 @@ const handleIssueUpdated = (updatedIssue: unknown) => {
 
 const handleIssueDeleted = () => {
   const coopname = route.params.coopname as string
+  if (isMyTaskContext.value || isFreeIssue.value) {
+    router.push({ name: 'capital-my-tasks', params: { coopname } })
+    return
+  }
   router.push({
-    name: 'component-tasks',
+    name: capitalRouteName('component-tasks', route),
     params: { coopname, project_hash: projectHash.value },
   })
 }
@@ -367,13 +429,17 @@ const handleIssueMoved = ({
 }) => {
   const coopname = route.params.coopname as string
   void router.replace({
-    name: 'component-issue-description',
+    name: capitalRouteName('component-issue-description', route),
     params: {
       coopname,
       project_hash: toProjectHash,
       issue_hash: updatedIssue.issue_hash,
     },
-    query: { ...route.query },
+    query: isMyTaskContext.value
+      ? { _backRoute: 'capital-my-tasks' }
+      : isMyProjectsContext.value
+        ? {}
+        : { ...route.query },
   })
 }
 
@@ -394,17 +460,25 @@ provide(ISSUE_PAGE_KEY, {
 
 watch(routeIssueKey, async (_key, prev) => {
   if (prev === undefined) return
-  await loadParentInfo()
   await loadIssue()
+  await loadParentInfo()
 })
 
 // Дефолт: пустой/родительский маршрут → вкладка «Описание»
 watch(
   () => route.name,
   (name) => {
-    if (name === 'component-issue' || name === 'component-issue-redirect') {
+    const n = String(name ?? '')
+    if (
+      n === 'component-issue' ||
+      n === 'component-issue-redirect' ||
+      n === 'my-component-issue' ||
+      n === 'my-component-issue-redirect' ||
+      n === 'my-task-issue' ||
+      n === 'my-task-issue-redirect'
+    ) {
       void router.replace({
-        name: 'component-issue-description',
+        name: `${issueRoutePrefix.value}-description`,
         params: route.params,
         query: route.query,
       })
@@ -415,8 +489,8 @@ watch(
 
 onMounted(async () => {
   loadSidebarWidth()
-  await loadParentInfo()
   await loadIssue()
+  await loadParentInfo()
 })
 </script>
 

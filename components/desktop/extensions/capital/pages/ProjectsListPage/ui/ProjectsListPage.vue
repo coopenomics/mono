@@ -1,6 +1,6 @@
 <template lang="pug">
-//- Родитель Мастерской: список на корне, проект/компонент/задача — children через router-view
-//- (подсветка «Мастерская» в рейле через matched по name projects-list).
+//- Родитель кооперативных проектов: список на корне, проект/компонент/задача — children через router-view
+//- (подсветка «Кооперативные проекты» в рейле через matched по name projects-list).
 router-view(v-if='!isWorkshopRoot')
 .projects-list-page(v-else)
   //- Панель фильтров (ProjectsFilterPanel) намеренно скрыта со страницы —
@@ -57,7 +57,7 @@ const router = useRouter();
 const route = useRoute();
 const session = useSessionStore();
 
-/** Корень Мастерской (список), не вложенный проект/компонент/задача. */
+/** Корень списка кооперативных проектов, не вложенный проект/компонент/задача. */
 const isWorkshopRoot = computed(() => route.name === 'projects-list');
 
 // openDialog кнопки-в-шапке прилетает колбэком (см. CreateProjectHeaderButton)

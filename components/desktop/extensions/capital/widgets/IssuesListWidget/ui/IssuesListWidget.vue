@@ -35,6 +35,7 @@
           q-td
             IssueListRow(
               :issue='props.row'
+              :is-private='isPrivateList'
               @click='handleIssueClick'
             )
 
@@ -70,6 +71,7 @@
           q-td
             IssueListRow(
               :issue='props.row'
+              :is-private='isPrivateList'
               @click='handleIssueClick'
             )
 
@@ -100,11 +102,15 @@ const props = defineProps<{
   compact?: boolean;
   /** Право мастера на управление задачами — без него полоска «Добавить задачу» скрыта */
   canManageIssues?: boolean;
+  /** Личный проект/компонент — показать щит у задач */
+  isPrivate?: boolean;
 }>();
 
 const emit = defineEmits<{
   issueClick: [issue: IIssue];
 }>();
+
+const isPrivateList = computed(() => !!props.isPrivate);
 
 const issueStore = useIssueStore();
 const { info } = useSystemStore();

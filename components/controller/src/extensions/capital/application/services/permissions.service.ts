@@ -10,6 +10,7 @@ import { IssuePermissionsService, IssueAction, ProjectAction } from './issue-per
 import { ProjectPermissionsService } from './project-permissions.service';
 import type { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 
 /**
  * Сервис для расчета прав доступа пользователя к объектам CAPITAL системы
@@ -205,18 +206,73 @@ export class PermissionsService {
 
     const username = currentUser.username;
 
+    // Свободная задача — только участникам
+    if (!issue.project_hash?.trim()) {
+      const isParticipant =
+        issue.created_by === username || (issue.creators?.includes(username) ?? false);
+      if (!isParticipant) {
+        return {
+          can_edit_issue: false,
+          can_change_status: false,
+          can_assign_creator: false,
+          can_set_done: false,
+          can_set_on_review: false,
+          can_set_estimate: false,
+          can_set_priority: false,
+          can_delete_issue: false,
+          can_move_issue: false,
+          can_create_requirement: false,
+          can_edit_requirement: false,
+          can_delete_requirement: false,
+          can_complete_requirement: false,
+          allowed_status_transitions: [] as IssueStatus[],
+          has_clearance: false,
+          is_guest: true,
+        };
+      }
+    } else {
+      // Задача в LOCAL-проекте — только владельцу проекта
+      const issueProject = await this.projectRepository.findByHash(issue.project_hash);
+      if (issueProject?.origin === ProjectOrigin.LOCAL) {
+        const isOwner =
+          issueProject.master === username || issueProject.local_owner === username;
+        if (!isOwner) {
+          return {
+            can_edit_issue: false,
+            can_change_status: false,
+            can_assign_creator: false,
+            can_set_done: false,
+            can_set_on_review: false,
+            can_set_estimate: false,
+            can_set_priority: false,
+            can_delete_issue: false,
+            can_move_issue: false,
+            can_create_requirement: false,
+            can_edit_requirement: false,
+            can_delete_requirement: false,
+            can_complete_requirement: false,
+            allowed_status_transitions: [] as IssueStatus[],
+            has_clearance: false,
+            is_guest: true,
+          };
+        }
+      }
+    }
+
     // Определяем НАБОР ролей пользователя для этой задачи (UNION-семантика).
     const roles = await this.issuePermissionsService.getUserRoleForIssue(
       username,
       issue.coopname,
-      issue.project_hash,
+      issue.project_hash ?? '',
       issue.submaster,
       issue.creators,
       currentUser.role
     );
 
     // Проверяем наличие clearance (доступа к проекту)
-    const has_clearance = await this.isProjectContributor(username, issue.coopname, issue.project_hash);
+    const has_clearance = issue.project_hash
+      ? await this.isProjectContributor(username, issue.coopname, issue.project_hash)
+      : issue.creators?.includes(username) || issue.created_by === username;
 
     // Рассчитываем права на основе матрицы доступа
     const can_edit_issue = this.issuePermissionsService.hasPermission(roles, IssueAction.EDIT_ISSUE);
@@ -233,13 +289,18 @@ export class PermissionsService {
     const can_complete_requirement = this.issuePermissionsService.hasPermission(roles, IssueAction.COMPLETE_REQUIREMENT);
 
     let can_move_issue = false;
-    const issueProject = await this.projectRepository.findByHash(issue.project_hash);
+    if (issue.project_hash) {
+      const issueProject = await this.projectRepository.findByHash(issue.project_hash);
 
-    if (issueProject?.isComponent()) {
-      const projectPerms = await this.calculateProjectPermissions(issueProject, currentUser);
-      const st = issueProject.status;
-      const projectOpenForMove = st === ProjectStatus.PENDING || st === ProjectStatus.ACTIVE;
-      can_move_issue = projectPerms.can_manage_issues && projectOpenForMove;
+      if (issueProject?.isComponent()) {
+        const projectPerms = await this.calculateProjectPermissions(issueProject, currentUser);
+        const st = issueProject.status;
+        const projectOpenForMove = st === ProjectStatus.PENDING || st === ProjectStatus.ACTIVE;
+        can_move_issue = projectPerms.can_manage_issues && projectOpenForMove;
+      }
+    } else {
+      // Свободная задача: «переместить» = назначить компонент (нужно право редактировать)
+      can_move_issue = can_edit_issue;
     }
     // Получаем допустимые переходы статусов для текущего статуса (UNION по ролям).
     const allowed_status_transitions = this.issuePermissionsService.getAllowedStatusTransitions(roles, issue.status);
@@ -297,6 +358,31 @@ export class PermissionsService {
     }
 
     const username = currentUser.username;
+
+    // Персональный проект: мастер/владелец — полный доступ к задачнику без допуска и кооперативных действий
+    if (project.origin === ProjectOrigin.LOCAL) {
+      const isOwner =
+        project.master === username || project.local_owner === username;
+      return {
+        can_edit_project: isOwner,
+        can_manage_issues: isOwner,
+        can_change_project_status: false,
+        can_delete_project: isOwner,
+        can_set_master: false,
+        can_manage_authors: false,
+        can_set_plan: false,
+        can_create_requirement: isOwner,
+        can_edit_requirement: isOwner,
+        can_delete_requirement: isOwner,
+        can_complete_requirement: isOwner,
+        has_clearance: isOwner,
+        pending_clearance: false,
+        has_parent_clearance: false,
+        // Личные данные — только владельцу, даже членам совета
+        can_view_artifacts: isOwner,
+        is_guest: !isOwner,
+      };
+    }
 
     // Определяем НАБОР project-ролей пользователя (UNION-семантика).
     const roles = await this.projectPermissionsService.getProjectUserRole(username, project, currentUser.role);

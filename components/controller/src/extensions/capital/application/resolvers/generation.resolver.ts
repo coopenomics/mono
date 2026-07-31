@@ -178,7 +178,7 @@ export class GenerationResolver {
   @Mutation(() => IssueOutputDTO, {
     name: 'capitalMoveIssueToComponent',
     description:
-      'Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)',
+      'Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])

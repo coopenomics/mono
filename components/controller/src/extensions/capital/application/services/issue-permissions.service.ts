@@ -42,7 +42,7 @@ export class IssuePermissionsService {
   async getUserRoleForIssue(
     username: string | undefined,
     coopname: string,
-    projectHash: string,
+    projectHash: string | null | undefined,
     issueSubmaster?: string,
     issueCreators?: string[],
     userRole?: string
@@ -54,32 +54,44 @@ export class IssuePermissionsService {
       return roles;
     }
 
-    // Project-specific роли — собираем все, что верны.
-    const isMaster = await this.isProjectMaster(username, coopname, projectHash);
-    if (isMaster) {
-      roles.add(UserRole.MASTER);
-    }
+    if (projectHash) {
+      // Project-specific роли — только если задача привязана к проекту/компоненту
+      const isMaster = await this.isProjectMaster(username, coopname, projectHash);
+      if (isMaster) {
+        roles.add(UserRole.MASTER);
+      }
 
-    if (issueSubmaster === username) {
-      roles.add(UserRole.SUBMASTER);
-    }
+      const segment = await this.segmentRepository.findOne({
+        username,
+        project_hash: projectHash,
+        coopname,
+      });
+      if (segment?.is_author) {
+        roles.add(UserRole.AUTHOR);
+      }
 
-    if (issueCreators && issueCreators.includes(username)) {
-      roles.add(UserRole.CREATOR);
-    }
+      const contributor = await this.contributorRepository.findByUsernameAndCoopname(
+        username,
+        coopname
+      );
+      if (contributor && contributor.appendixes.includes(projectHash)) {
+        roles.add(UserRole.CONTRIBUTOR);
+      }
 
-    const segment = await this.segmentRepository.findOne({
-      username,
-      project_hash: projectHash,
-      coopname,
-    });
-    if (segment?.is_author) {
-      roles.add(UserRole.AUTHOR);
-    }
+      if (issueSubmaster === username) {
+        roles.add(UserRole.SUBMASTER);
+      }
 
-    const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, coopname);
-    if (contributor && contributor.appendixes.includes(projectHash)) {
-      roles.add(UserRole.CONTRIBUTOR);
+      if (issueCreators && issueCreators.includes(username)) {
+        roles.add(UserRole.CREATOR);
+      }
+    } else {
+      // Свободная задача: ответственный = полный доступ (как мастер), остальные creators — исполнители
+      if (issueSubmaster === username) {
+        roles.add(UserRole.MASTER);
+      } else if (issueCreators && issueCreators.includes(username)) {
+        roles.add(UserRole.CREATOR);
+      }
     }
 
     // Системные роли совета — добавляем независимо от project-specific ролей.

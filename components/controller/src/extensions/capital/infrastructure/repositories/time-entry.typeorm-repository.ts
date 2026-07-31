@@ -36,6 +36,19 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     return entities.map((entity) => this.toDomain(entity));
   }
 
+  async sumCooperativeHoursByContributorAndDate(contributorHash: string, date: string): Promise<number> {
+    const row = await this.repository
+      .createQueryBuilder('te')
+      .select('COALESCE(SUM(te.hours), 0)', 'total')
+      .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
+      .where('te.contributor_hash = :contributorHash', { contributorHash })
+      .andWhere('te.date = :date', { date })
+      .andWhere('p.origin = :origin', { origin: 'blockchain' })
+      .getRawOne<{ total: string }>();
+
+    return Number(row?.total || 0);
+  }
+
   async findUncommittedByContributor(contributorHash: string): Promise<TimeEntryDomainEntity[]> {
     const entities = await this.repository.find({
       where: { contributor_hash: contributorHash, is_committed: false },
@@ -154,26 +167,24 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findProjectsByContributor(contributorHash: string): Promise<{ project_hash: string; project_name?: string }[]> {
-    // Получаем уникальные project_hash из записей времени участника
+    // Уникальные project_hash только кооперативных (blockchain) проектов с записями времени
     const result = await this.repository
       .createQueryBuilder('te')
       .select('DISTINCT te.project_hash', 'project_hash')
+      .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
+      .andWhere('p.origin = :origin', { origin: 'blockchain' })
       .getRawMany();
 
     const projectHashes = result.map((row) => row.project_hash);
 
-    // Если нет проектов, возвращаем пустой массив
     if (projectHashes.length === 0) {
       return [];
     }
 
-    // Получаем данные о проектах из блокчейна через deltas
-    // Пока что вернём просто project_hash без имени, так как это требует сложного запроса к deltas
-    // В будущем можно будет добавить join с таблицей deltas для получения названия проекта
     return projectHashes.map((project_hash) => ({
       project_hash,
-      project_name: undefined, // Временно undefined, можно получить из deltas по необходимости
+      project_name: undefined,
     }));
   }
 
@@ -276,6 +287,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
       .innerJoin('capital_issues', 'i', 'te.issue_hash = i.issue_hash')
       .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .innerJoin('capital_contributors', 'c', 'te.contributor_hash = c.contributor_hash')
+      .andWhere('p.origin = :projectOrigin', { projectOrigin: 'blockchain' })
       .groupBy('te.issue_hash, i.title, te.project_hash, p.title, te.contributor_hash, c.display_name, te.coopname')
       .orderBy('total_hours', 'DESC')
       .limit(limit)

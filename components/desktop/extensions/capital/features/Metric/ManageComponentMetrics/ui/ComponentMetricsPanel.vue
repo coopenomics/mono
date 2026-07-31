@@ -84,6 +84,10 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
+  padding: var(--p-3) var(--p-4);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface);
 }
 
 .metrics-panel__head {
@@ -159,6 +163,6 @@ onMounted(async () => {
 }
 
 .metrics-panel__empty {
-  padding: var(--p-4) 0;
+  padding: var(--p-2) 0;
 }
 </style>

@@ -16,7 +16,8 @@
 </template>
 
 <script lang="ts" setup>
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 interface Props {
   title?: string;
@@ -28,11 +29,12 @@ interface Props {
 const { parentHash, projectHash } = defineProps<Props>();
 
 const router = useRouter();
+const route = useRoute();
 
 const navigateToProject = (hash?: string) => {
   if (hash) {
     router.push({
-      name: 'project-description',
+      name: capitalRouteName('project-description', route),
       params: { project_hash: hash },
       query: { _useHistoryBack: 'true' },
     });
@@ -42,7 +44,7 @@ const navigateToProject = (hash?: string) => {
 const navigateToComponent = (hash?: string) => {
   if (hash) {
     router.push({
-      name: 'component-description',
+      name: capitalRouteName('component-description', route),
       params: { project_hash: hash },
       query: { _useHistoryBack: 'true' },
     });

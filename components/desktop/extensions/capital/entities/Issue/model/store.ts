@@ -117,7 +117,9 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
   };
 
   const relocateIssue = (fromProjectHash: string, toProjectHash: string, issueData: IIssue) => {
-    removeIssue(fromProjectHash, issueData.issue_hash);
+    if (fromProjectHash) {
+      removeIssue(fromProjectHash, issueData.issue_hash);
+    }
     addIssue(toProjectHash, issueData);
   };
 

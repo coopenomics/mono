@@ -2054,6 +2054,10 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -3461,6 +3465,10 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -3526,6 +3534,10 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -3660,6 +3672,8 @@ export type ValueTypes = {
 	has_invite?: boolean | undefined | null | Variable<any, string>,
 	/** Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username */
 	has_issues_with_creators?: Array<string> | undefined | null | Variable<any, string>,
+	/** Происхождение: blockchain или local */
+	origin?: string | undefined | null | Variable<any, string>,
 	/** Показывать только проекты, у которых есть задачи с указанными приоритетами */
 	has_issues_with_priorities?: Array<ValueTypes["IssuePriority"]> | undefined | null | Variable<any, string>,
 	/** Показывать только проекты, у которых есть задачи в указанных статусах */
@@ -5045,8 +5059,8 @@ export type ValueTypes = {
 	labels?: Array<string> | undefined | null | Variable<any, string>,
 	/** Приоритет задачи */
 	priority?: ValueTypes["IssuePriority"] | undefined | null | Variable<any, string>,
-	/** Хеш проекта */
-	project_hash: string | Variable<any, string>,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Статус задачи */
@@ -7602,6 +7616,7 @@ capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseIn
 capitalCreateProgramInvest?: [{	data: ValueTypes["CreateProgramInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProgramProperty?: [{	data: ValueTypes["CreateProgramPropertyInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalCreateLocalProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCreateProjectInvest?: [{	data: ValueTypes["CreateProjectInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProjectProperty?: [{	data: ValueTypes["CreateProjectPropertyInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateStory?: [{	data: ValueTypes["CreateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
@@ -12025,6 +12040,10 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -13385,6 +13404,10 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -13449,6 +13472,10 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
 	/** ID в блокчейне */
@@ -13579,6 +13606,8 @@ export type ResolverInputTypes = {
 	has_invite?: boolean | undefined | null,
 	/** Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username */
 	has_issues_with_creators?: Array<string> | undefined | null,
+	/** Происхождение: blockchain или local */
+	origin?: string | undefined | null,
 	/** Показывать только проекты, у которых есть задачи с указанными приоритетами */
 	has_issues_with_priorities?: Array<ResolverInputTypes["IssuePriority"]> | undefined | null,
 	/** Показывать только проекты, у которых есть задачи в указанных статусах */
@@ -14934,8 +14963,8 @@ export type ResolverInputTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ResolverInputTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -17428,6 +17457,7 @@ capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramE
 capitalCreateProgramInvest?: [{	data: ResolverInputTypes["CreateProgramInvestInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProgramProperty?: [{	data: ResolverInputTypes["CreateProgramPropertyInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["Transaction"]],
+capitalCreateLocalProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCreateProjectInvest?: [{	data: ResolverInputTypes["CreateProjectInvestInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProjectProperty?: [{	data: ResolverInputTypes["CreateProjectPropertyInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateStory?: [{	data: ResolverInputTypes["CreateStoryInput"]},ResolverInputTypes["CapitalStory"]],
@@ -21724,10 +21754,14 @@ export type ModelTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -22546,8 +22580,8 @@ export type ModelTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: ModelTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -23035,10 +23069,14 @@ export type ModelTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -23098,10 +23136,14 @@ export type ModelTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -23224,6 +23266,8 @@ export type ModelTypes = {
 	has_invite?: boolean | undefined | null,
 	/** Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username */
 	has_issues_with_creators?: Array<string> | undefined | null,
+	/** Происхождение: blockchain или local */
+	origin?: string | undefined | null,
 	/** Показывать только проекты, у которых есть задачи с указанными приоритетами */
 	has_issues_with_priorities?: Array<ModelTypes["IssuePriority"]> | undefined | null,
 	/** Показывать только проекты, у которых есть задачи в указанных статусах */
@@ -24545,8 +24589,8 @@ export type ModelTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ModelTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -26981,6 +27025,7 @@ export type ModelTypes = {
 	capitalCreateProgramProperty: ModelTypes["Transaction"],
 	/** Создание проекта в CAPITAL контракте */
 	capitalCreateProject: ModelTypes["Transaction"],
+	capitalCreateLocalProject: ModelTypes["CapitalProject"],
 	/** Инвестирование в проект CAPITAL контракта */
 	capitalCreateProjectInvest: ModelTypes["Transaction"],
 	/** Создание проектного имущественного взноса в CAPITAL контракте */
@@ -31478,10 +31523,14 @@ export type GraphQLTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -32356,8 +32405,8 @@ export type GraphQLTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: GraphQLTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -32885,10 +32934,14 @@ export type GraphQLTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -32950,10 +33003,14 @@ export type GraphQLTypes = {
 	description: string,
 	/** URL репозитория разработки (GitHub) для опроса маркеров коммитов; только БД */
 	development_repository_url?: string | undefined | null,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -33083,6 +33140,8 @@ export type GraphQLTypes = {
 	has_invite?: boolean | undefined | null,
 	/** Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username */
 	has_issues_with_creators?: Array<string> | undefined | null,
+	/** Происхождение: blockchain или local */
+	origin?: string | undefined | null,
 	/** Показывать только проекты, у которых есть задачи с указанными приоритетами */
 	has_issues_with_priorities?: Array<GraphQLTypes["IssuePriority"]> | undefined | null,
 	/** Показывать только проекты, у которых есть задачи в указанных статусах */
@@ -34468,8 +34527,8 @@ export type GraphQLTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: GraphQLTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -37055,6 +37114,7 @@ export type GraphQLTypes = {
 	capitalCreateProgramProperty: GraphQLTypes["Transaction"],
 	/** Создание проекта в CAPITAL контракте */
 	capitalCreateProject: GraphQLTypes["Transaction"],
+	capitalCreateLocalProject: GraphQLTypes["CapitalProject"],
 	/** Инвестирование в проект CAPITAL контракта */
 	capitalCreateProjectInvest: GraphQLTypes["Transaction"],
 	/** Создание проектного имущественного взноса в CAPITAL контракте */

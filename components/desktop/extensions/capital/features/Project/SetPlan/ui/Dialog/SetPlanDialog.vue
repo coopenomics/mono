@@ -9,7 +9,7 @@ CreateDialog(
   @dialog-closed="onDialogClosed"
 )
   template(#form-fields)
-    .plan-dialog__section.plan-dialog__finance
+    .plan-dialog__section.plan-dialog__finance(v-if='!isLocalProject')
       .plan-dialog__section-title Финансовый план
       .plan-dialog__section-hint.t-sm Необязательно. Если часы не заданы — в блокчейн не отправляется, можно сохранить только цели по мерам.
       BaseInput(
@@ -140,6 +140,14 @@ const showMetrics = computed(
   () => !!props.project && isComponent(props.project),
 );
 
+const isLocalProject = computed(() => props.project?.origin === 'local');
+
+const canEditMetrics = computed(() => {
+  const perms = props.project?.permissions;
+  if (!perms) return false;
+  return !!(perms.can_manage_issues || perms.can_edit_project);
+});
+
 const measureSelectOptions = computed<BaseSelectOption[]>(() =>
   measures.value.map((m) => ({
     value: m.measure_hash,
@@ -147,8 +155,9 @@ const measureSelectOptions = computed<BaseSelectOption[]>(() =>
   })),
 );
 
-/** Финплан включается только если заданы часы > 0 — иначе on-chain setPlan не шлём. */
+/** Финплан включается только если заданы часы > 0 — иначе on-chain setPlan не шлём. LOCAL — без финансов. */
 const hasFinancialPlan = computed(() => {
+  if (isLocalProject.value) return false;
   const n = Number(formData.value.plan_creators_hours);
   return Number.isFinite(n) && n > 0;
 });
@@ -321,8 +330,13 @@ const syncMetrics = async (projectHash: string) => {
 const handleSubmit = async () => {
   if (!props.project) return;
 
-  if (!props.project.permissions?.can_set_plan) {
+  const canFinance = !!props.project.permissions?.can_set_plan;
+  if (!isLocalProject.value && !canFinance) {
     FailAlert('У вас нет прав на установку плана');
+    return;
+  }
+  if (isLocalProject.value && !canEditMetrics.value) {
+    FailAlert('У вас нет прав на редактирование целей по мерам');
     return;
   }
 
@@ -341,7 +355,11 @@ const handleSubmit = async () => {
     (metricRows.value.some(isMetricRowFilled) || removedMetricHashes.value.length > 0);
 
   if (!finance && !metricsToSave) {
-    FailAlert('Укажите финансовый план (часы > 0) или цели по мерам');
+    FailAlert(
+      isLocalProject.value
+        ? 'Укажите цели по мерам'
+        : 'Укажите финансовый план (часы > 0) или цели по мерам',
+    );
     return;
   }
 

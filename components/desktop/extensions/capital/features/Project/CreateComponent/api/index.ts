@@ -16,6 +16,20 @@ async function createComponent(
   return result;
 }
 
+async function createLocalComponent(
+  data: ICreateComponentInput,
+): Promise<Mutations.Capital.CreateLocalProject.IOutput[typeof Mutations.Capital.CreateLocalProject.name]> {
+  const { [Mutations.Capital.CreateLocalProject.name]: result } =
+    await client.Mutation(Mutations.Capital.CreateLocalProject.mutation, {
+      variables: {
+        data,
+      },
+    });
+
+  return result;
+}
+
 export const api = {
   createComponent,
+  createLocalComponent,
 };

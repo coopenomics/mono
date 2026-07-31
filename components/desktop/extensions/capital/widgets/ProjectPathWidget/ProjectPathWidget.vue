@@ -29,6 +29,7 @@
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 const router = useRouter();
 const route = useRoute();
@@ -67,7 +68,7 @@ const goToParentProject = (projectHash?: string) => {
 
   // Родительский элемент всегда проект, переходим на страницу описания проекта
   router.push({
-    name: 'project-description',
+    name: capitalRouteName('project-description', route),
     params: { project_hash: projectHash },
     query: {
       _backRoute: backRouteKey
@@ -88,11 +89,12 @@ const goToCurrentItem = (projectHash?: string) => {
 
   // Для текущего элемента: если есть parent_hash — это компонент, иначе — проект.
   // Со страницы задачи компонента чаще нужен список задач, а не описание.
+  const routeNameRaw = String(route.name ?? '');
   const routeName = props.project?.parent_hash
-    ? String(route.name ?? '').startsWith('component-issue')
-      ? 'component-tasks'
-      : 'component-description'
-    : 'project-description';
+    ? routeNameRaw.includes('component-issue') || routeNameRaw.includes('my-task-issue')
+      ? capitalRouteName('component-tasks', route)
+      : capitalRouteName('component-description', route)
+    : capitalRouteName('project-description', route);
 
   router.push({
     name: routeName,

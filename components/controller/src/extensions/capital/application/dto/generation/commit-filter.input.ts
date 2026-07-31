@@ -49,4 +49,10 @@ export class CommitFilterInputDTO {
     description: 'Фильтр по дате создания (YYYY-MM-DD)',
   })
   created_date?: string;
+
+  /**
+   * Внутренний фильтр (не GraphQL): коммиты проектов/компонентов, где username — мастер.
+   * Выставляется в GenerationService для режима «На проверке».
+   */
+  review_for_master?: string;
 }

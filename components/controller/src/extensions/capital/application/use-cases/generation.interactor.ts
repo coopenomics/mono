@@ -23,6 +23,8 @@ import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
   type IssueLinkedGitCommitRepository,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -39,6 +41,8 @@ export class GenerationInteractor {
     private readonly contributorRepository: ContributorRepository,
     @Inject(COMMIT_REPOSITORY)
     private readonly commitRepository: CommitRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
     @Inject(forwardRef(() => CommitSyncService))
     private readonly commitSyncService: CommitSyncService,
@@ -55,6 +59,9 @@ export class GenerationInteractor {
    * commit_hash: из Git diff, из привязанных GitHub-коммитов или из off-chain взноса без Git (nonce в meta)
    */
   async createCommit(data: CreateCommitDomainInput, _currentUser: MonoAccountDomainInterface): Promise<CommitDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'фиксацию коммита');
+
     // Получаем участника по username
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(data.username, data.coopname);
 

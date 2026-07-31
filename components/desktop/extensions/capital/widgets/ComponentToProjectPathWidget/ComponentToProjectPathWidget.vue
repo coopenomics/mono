@@ -22,6 +22,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import { api as ProjectApi } from 'app/extensions/capital/entities/Project/api';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 const router = useRouter();
 const route = useRoute();
@@ -71,7 +72,7 @@ const goToParentProject = () => {
 
   // Переходим на страницу описания проекта
   router.push({
-    name: 'project-description',
+    name: capitalRouteName('project-description', route),
     params: { project_hash: props.project.parent_hash },
     query: {
       _backRoute: backRouteKey

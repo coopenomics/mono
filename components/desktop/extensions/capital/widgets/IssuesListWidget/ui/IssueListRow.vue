@@ -19,7 +19,17 @@
 
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
-    span.title-text {{ issue.title }}
+    .title-stack
+      .title-line
+        PrivateShieldIcon(:show='isPrivate')
+        span.title-text {{ issue.title }}
+      span.context-label(
+        v-if='contextLabel',
+        role='link',
+        tabindex='0',
+        @click.stop='onContextClick',
+        @keydown.enter.prevent='onContextClick'
+      ) {{ contextLabel }}
     BaseChip.label-chip(
       v-for='tag in tags'
       :key='tag'
@@ -57,6 +67,7 @@
 import { computed } from 'vue';
 import { EntityIdBadge } from 'src/shared/ui';
 import { BaseChip } from 'src/shared/ui/base';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
@@ -67,10 +78,20 @@ import {
 } from 'app/extensions/capital/shared/lib';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 
-const props = defineProps<{ issue: IIssue }>();
-const emit = defineEmits<{ (e: 'click', issue: IIssue): void }>();
+const props = defineProps<{
+  issue: IIssue;
+  /** Мелкий контекст «проект — компонент» (или отсутствие) под заголовком */
+  contextLabel?: string;
+  /** Свободная задача или задача личного проекта */
+  isPrivate?: boolean;
+}>();
+const emit = defineEmits<{
+  (e: 'click', issue: IIssue): void;
+  (e: 'context-click', issue: IIssue): void;
+}>();
 
 const onTitleClick = () => emit('click', props.issue);
+const onContextClick = () => emit('context-click', props.issue);
 
 const tags = computed(() => getIssueLabels(props.issue));
 const priorityIcon = computed(() => getIssuePriorityIcon(props.issue.priority));
@@ -140,12 +161,43 @@ const canChangeEstimate = computed(
   }
 }
 
+.title-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  gap: var(--p-1);
+}
+
+.title-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
 .title-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
   max-width: 100%;
+}
+
+.context-label {
+  font-size: var(--p-fs-meta);
+  line-height: var(--p-lh-meta);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--p-primary);
+  }
 }
 
 .label-chip {

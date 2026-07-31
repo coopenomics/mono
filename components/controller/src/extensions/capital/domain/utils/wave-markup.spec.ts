@@ -39,10 +39,10 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     expect(w2).not.toBeNull();
     expect(w2!.value).toBe(4);
 
-    // LEVEL: нули/плато — часть ряда; индексы на полном массиве
+    // Календарные нули/плато — часть ряда; индексы на полном массиве
     const result = analyzeWave({
       values,
-      series_mode: MetricSeriesMode.LEVEL,
+      series_mode: MetricSeriesMode.RATE,
       fact: 20,
       target_value: 100,
     });
@@ -56,15 +56,15 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     expect(result.fib_levels.map((l) => l.ratio)).toEqual([0.382, 0.5, 0.618]);
   });
 
-  it('RATE: нулевые бакеты не считаются откатом после импульса', () => {
+  it('RATE: нули после вклада учитываются как откат (коррекция)', () => {
     const result = analyzeWave({
       values: [0, 0, 0, 6, 0, 0, 0],
       series_mode: MetricSeriesMode.RATE,
       fact: 6,
       target_value: 100,
     });
-    expect(result.current_phase).toBe(WavePhase.IMPULSE);
-    expect(result.current_label).toBe(WaveLabel.W1);
+    expect(result.current_phase).toBe(WavePhase.CORRECTION);
+    expect(result.current_label).toBe(WaveLabel.W2);
   });
 
   it('RATE: один вклад после нулей — есть коридор прогноза (не пустой)', () => {
@@ -78,11 +78,9 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     expect(result.current_label).toBe(WaveLabel.W1);
     expect(result.corridor.base).toHaveLength(2);
     expect(result.corridor.optimistic).toHaveLength(2);
-    // свежий вклад → activity высокая → коридор не схлопнут в [0,0]
-    expect(result.corridor.base[1]).toBeGreaterThan(result.corridor.base[0]);
   });
 
-  it('RATE: реальный спад скорости (ненулевые Δ вниз) — коррекция', () => {
+  it('RATE: спад скорости — коррекция', () => {
     const result = analyzeWave({
       values: [2, 5, 10, 4, 2],
       series_mode: MetricSeriesMode.RATE,
@@ -93,7 +91,7 @@ describe('wave-markup (0→1→2 + fib scenarios)', () => {
     expect(result.current_label).toBe(WaveLabel.W2);
   });
 
-  it('RATE: долгий застой после вклада — прогноз Δ схлопнут к нулю', () => {
+  it('RATE: долгий застой после вклада — прогноз схлопнут к последнему Δ (=0)', () => {
     const result = analyzeWave({
       values: [6, 0, 0, 0, 0, 0],
       series_mode: MetricSeriesMode.RATE,

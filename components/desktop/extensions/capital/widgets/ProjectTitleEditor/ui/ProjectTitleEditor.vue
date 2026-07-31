@@ -25,8 +25,10 @@ div
         @click="resetChanges"
       )
         q-tooltip Отменить изменения
-      slot(v-else name="prepend-icon")
-        q-icon(name='work', size='24px', color='primary')
+      .row.items-center.no-wrap.q-gutter-xs(v-else)
+        PrivateShieldIcon(:show='project?.origin === "local"')
+        slot(name="prepend-icon")
+          q-icon(name='work', size='24px', color='primary')
 
     template(#append)
       .capital-title-editor-append.column.items-end.justify-center.q-gutter-y-sm
@@ -58,6 +60,7 @@ import type { IProject, IProjectPermissions } from 'app/extensions/capital/entit
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { EntityIdBadge } from 'src/shared/ui';
 import { useEditProject } from 'app/extensions/capital/features/Project/EditProject';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 
 const props = defineProps<{
   project: IProject | null | undefined;

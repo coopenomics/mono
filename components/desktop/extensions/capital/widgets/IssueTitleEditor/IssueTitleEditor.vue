@@ -24,8 +24,10 @@ q-input(
       @click="resetChanges"
     )
       q-tooltip Отменить изменения
-    slot(v-else name="prepend-icon")
-      q-icon(name='task', size='24px', color='primary')
+    .row.items-center.no-wrap.q-gutter-xs(v-else)
+      PrivateShieldIcon(:show='isPrivateIssue')
+      slot(name="prepend-icon")
+        q-icon(name='task', size='24px', color='primary')
 
   template(#append)
     .capital-title-editor-append.column.items-end.justify-center.q-gutter-y-sm
@@ -58,6 +60,8 @@ import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/
 import { useUpdateIssue } from 'app/extensions/capital/features/Issue/UpdateIssue'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui'
+import { useProjectStore } from 'app/extensions/capital/entities/Project/model'
 
 const props = defineProps<{
   issue: IIssue | null | undefined
@@ -71,6 +75,15 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const projectHash = computed(() => route.params.project_hash as string)
+const projectStore = useProjectStore()
+
+const isPrivateIssue = computed(() => {
+  if (!props.issue?.project_hash) return true
+  const project =
+    projectStore.getProject(props.issue.project_hash) ||
+    (projectHash.value ? projectStore.getProject(projectHash.value) : undefined)
+  return project?.origin === 'local'
+})
 
 // Используем composable для обновления задач
 const { debounceSave, saveImmediately } = useUpdateIssue()

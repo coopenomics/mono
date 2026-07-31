@@ -25,6 +25,25 @@ declare global {
   }
 }
 
+/**
+ * Жёсткая перезагрузка: сброс Cache Storage + cache-bust URL.
+ * Обычный location.reload() часто оставляет старый бандл в HTTP/SW-кэше.
+ * Дублирует src/shared/lib/hardReload.ts (src-pwa не всегда резолвит src/).
+ */
+async function hardReload(): Promise<void> {
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  } catch (error) {
+    if (isVerbose) console.warn('[hardReload] не удалось очистить Cache Storage', error);
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set('_cr', String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 // Флаг на уровне модуля — доступен как из блока регистрации SW, так и из controllerchange.
 // Перезагрузка происходит ТОЛЬКО при подтверждённом обновлении (callback updated).
 let hasPendingUpdate = false;
@@ -32,13 +51,13 @@ let isReloading = false;
 
 // Автоматическая перезагрузка при смене SW-контроллера.
 // updated callback устанавливает hasPendingUpdate = true → skipWaiting активирует новый SW
-// → controllerchange срабатывает → перезагружаем страницу с новыми чанками.
+// → controllerchange срабатывает → жёсткая перезагрузка с очисткой кэша.
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!isReloading && hasPendingUpdate) {
       isReloading = true;
-      if (isVerbose) console.log('🔄 Автоматическая перезагрузка из-за обновления SW');
-      window.location.reload();
+      if (isVerbose) console.log('🔄 Жёсткая перезагрузка из-за обновления SW');
+      void hardReload();
     }
   });
 }
@@ -63,6 +82,14 @@ if (!shouldRegisterSW) {
   }
   // Не регистрируем новый service worker
   if (isVerbose) console.log('Service Worker не будет зарегистрирован');
+
+  // Тост «Обновить» всё равно должен делать hard reload (не soft location.reload)
+  window.applyUpdate = () => {
+    void hardReload();
+  };
+  window.checkForUpdate = () => {
+    if (isVerbose) console.log('Service Worker не зарегистрирован');
+  };
 } else {
   if (isVerbose)
     console.log(
@@ -78,20 +105,26 @@ if (!shouldRegisterSW) {
   // Применение обновления (доступно глобально через window). Вызывается из тоста
   // version-watch. НЕ зависит от того, выстрелил ли lifecycle-callback `updated`:
   // - если есть готовый waiting-SW → активируем его (SKIP_WAITING), перезагрузка
-  //   произойдёт через глобальный controllerchange-слушатель;
-  // - если waiting нет (SW ещё не подготовил бандл или его нет вовсе) → просто
-  //   перезагружаем; свежий index/бандлы придут из SSR/сети (useFilenameHashes).
+  //   произойдёт через глобальный controllerchange-слушатель (hardReload);
+  // - если waiting нет → сразу hardReload (очистка Cache Storage + cache-bust).
   const applyUpdate = function () {
     if (refreshing) return;
     refreshing = true;
     hasPendingUpdate = true; // разрешаем reload по controllerchange
 
-    if (isVerbose) console.log('Применяем обновление...');
+    if (isVerbose) console.log('Применяем обновление (hard reload)...');
 
     if (registrationInstance && registrationInstance.waiting) {
       registrationInstance.waiting.postMessage({ type: 'SKIP_WAITING' });
+      // На случай если controllerchange не придёт — fallback через короткое ожидание
+      window.setTimeout(() => {
+        if (!isReloading) {
+          isReloading = true;
+          void hardReload();
+        }
+      }, 1500);
     } else {
-      window.location.reload();
+      void hardReload();
     }
   };
 

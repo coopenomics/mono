@@ -7,36 +7,52 @@
     :active-key="activeTabKey"
   )
     template(#actions)
-      PendingClearanceButton(
-        v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
-      )
-      MakeClearanceButton(
-        v-else-if="!project.permissions?.has_clearance"
-        ref="makeClearanceRef"
-        :project="project"
-        @clearance-submitted="handleClearanceSubmitted"
-      )
-      template(v-else)
+      template(v-if="isLocalProject")
         CreateComponentButton(
-          v-if="activeTabKey === 'project-components' && project.permissions?.can_edit_project"
+          v-if="activeTabKey.endsWith('project-components') && project.permissions?.can_edit_project"
           ref="createComponentRef"
           :project="project"
           size="sm"
           @on-click="handleComponentCreated"
         )
         CreateRequirementButton(
-          v-if="activeTabKey === 'project-requirements'"
+          v-if="activeTabKey.endsWith('project-requirements')"
           ref="createRequirementRef"
           :filter="{ project_hash: projectHash }"
           :permissions="project.permissions"
           @action-completed="handleRequirementCreated"
         )
-        AddAuthorButton(
-          v-if="activeTabKey === 'project-contributors' && project.permissions?.can_manage_authors"
-          ref="addAuthorRef"
-          :project="project"
-          @authors-added="handleAuthorsAdded"
+      template(v-else)
+        PendingClearanceButton(
+          v-if="project.permissions?.pending_clearance && !project.permissions?.has_clearance"
         )
+        MakeClearanceButton(
+          v-else-if="!project.permissions?.has_clearance"
+          ref="makeClearanceRef"
+          :project="project"
+          @clearance-submitted="handleClearanceSubmitted"
+        )
+        template(v-else)
+          CreateComponentButton(
+            v-if="activeTabKey.endsWith('project-components') && project.permissions?.can_edit_project"
+            ref="createComponentRef"
+            :project="project"
+            size="sm"
+            @on-click="handleComponentCreated"
+          )
+          CreateRequirementButton(
+            v-if="activeTabKey.endsWith('project-requirements')"
+            ref="createRequirementRef"
+            :filter="{ project_hash: projectHash }"
+            :permissions="project.permissions"
+            @action-completed="handleRequirementCreated"
+          )
+          AddAuthorButton(
+            v-if="activeTabKey.endsWith('project-contributors') && project.permissions?.can_manage_authors"
+            ref="addAuthorRef"
+            :project="project"
+            @authors-added="handleAuthorsAdded"
+          )
 
   // Скелетон первичной загрузки проекта
   .project-page-skeleton(v-if="!project")
@@ -118,7 +134,7 @@ import { MakeClearanceButton } from 'app/extensions/capital/features/Contributor
 import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/PendingClearanceButton';
 import { ProjectSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
-import { useCapitalFabHotkeys } from 'app/extensions/capital/shared/lib';
+import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -159,11 +175,24 @@ const makeClearanceRef = ref<CapitalActionOpen>(null);
 // Используем composable для загрузки проекта
 const { project, projectHash, loadProject } = useProjectLoader();
 
+const isLocalProject = computed(() => project.value?.origin === 'local');
+
 // Хоткеи действуют на той вкладке, где видна соответствующая кнопка
 useCapitalFabHotkeys(() => {
   const perms = project.value?.permissions;
   if (!perms) {
     return {};
+  }
+
+  if (isLocalProject.value) {
+    return {
+      component: perms.can_edit_project
+        ? () => createComponentRef.value?.openDialog()
+        : undefined,
+      requirement: perms.can_create_requirement
+        ? () => createRequirementRef.value?.openDialog()
+        : undefined,
+    };
   }
 
   if (!perms.has_clearance) {
@@ -186,6 +215,7 @@ useCapitalFabHotkeys(() => {
 });
 const route = useRoute();
 const router = useRouter();
+const { isMyProjects, listRoute, routeName } = useCapitalWorkspaceRoutes();
 
 // На странице задачи субменю проекта не показываем
 const isIssueRoute = computed(() => route.name === 'project-issue');
@@ -193,13 +223,13 @@ const isIssueRoute = computed(() => route.name === 'project-issue');
 // Активная вкладка: вложенные маршруты подсвечивают родительскую вкладку
 const activeTabKey = computed(() => {
   const name = String(route.name ?? '');
-  if (name === 'project-requirement-detail') return 'project-requirements';
+  if (name.endsWith('project-requirement-detail')) return routeName('project-requirements');
   return name;
 });
 
 // Управление (статус, мастер, video, git, удалить) — только на вкладке «Описание»
 const showSidebar = computed(
-  () => !isIssueRoute.value && activeTabKey.value === 'project-description',
+  () => !isIssueRoute.value && activeTabKey.value.endsWith('project-description'),
 );
 
 // Субменю проекта (вкладки)
@@ -208,14 +238,22 @@ const projectTabs = computed(() => {
   const currentBackRoute = route.query._backRoute as string;
   const query = currentBackRoute ? { _backRoute: currentBackRoute } : {};
 
-  return [
-    { key: 'project-description', label: 'Описание', route: { name: 'project-description', params, query } },
-    { key: 'project-requirements', label: 'Артефакты', route: { name: 'project-requirements', params, query } },
-    { key: 'project-components', label: 'Компоненты', route: { name: 'project-components', params, query } },
-    { key: 'project-planning', label: 'План', route: { name: 'project-planning', params, query } },
-    { key: 'project-contributors', label: 'Участники', route: { name: 'project-contributors', params, query } },
-    { key: 'project-history', label: 'История', route: { name: 'project-history', params, query } },
+  const tabs = [
+    { key: routeName('project-description'), label: 'Описание', route: { name: routeName('project-description'), params, query } },
+    { key: routeName('project-requirements'), label: 'Артефакты', route: { name: routeName('project-requirements'), params, query } },
+    { key: routeName('project-components'), label: 'Компоненты', route: { name: routeName('project-components'), params, query } },
+    { key: routeName('project-planning'), label: 'План', route: { name: routeName('project-planning'), params, query } },
   ];
+
+  if (!isLocalProject.value) {
+    tabs.push(
+      { key: routeName('project-contributors'), label: 'Участники', route: { name: routeName('project-contributors'), params, query } },
+    );
+  }
+
+  tabs.push({ key: routeName('project-history'), label: 'История', route: { name: routeName('project-history'), params, query } });
+
+  return tabs;
 });
 
 // Настраиваем кнопку "Назад"
@@ -223,6 +261,10 @@ const { setBackButton } = useBackButton({
   text: 'Назад',
   componentId: 'project-base-' + projectHash.value,
   onClick: () => {
+    if (isMyProjects.value) {
+      router.push({ name: 'capital-my-projects', params: { coopname: route.params.coopname } });
+      return;
+    }
     const backRoute = route.query._backRoute as string;
     if (backRoute) {
       // Проверяем, является ли backRoute ключом sessionStorage
@@ -245,7 +287,7 @@ const { setBackButton } = useBackButton({
       // Если это обычное название маршрута, переходим стандартно
       router.push({ name: backRoute });
     } else {
-      router.push({ name: 'projects-list' });
+      router.push({ name: listRoute.value });
     }
   }
 });
@@ -290,7 +332,7 @@ const handleTitleUpdate = (value: string) => {
 
 const handleProjectDeleted = () => {
   const coopname = route.params.coopname as string;
-  router.push({ name: 'projects-list', params: { coopname } });
+  router.push({ name: listRoute.value, params: { coopname } });
 };
 
 onMounted(async () => {
