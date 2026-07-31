@@ -60,6 +60,7 @@ import { Cooperative } from 'cooptypes';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import { IssuePermissionsService } from './issue-permissions.service';
 import { PermissionsService } from './permissions.service';
+import { ComponentMetricService } from './component-metric.service';
 import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
@@ -103,6 +104,7 @@ export class GenerationService {
     private readonly investsManagementInteractor: InvestsManagementInteractor,
     private readonly issuePermissionsService: IssuePermissionsService,
     private readonly permissionsService: PermissionsService,
+    private readonly componentMetricService: ComponentMetricService,
     private readonly projectMapperService: ProjectMapperService,
     private readonly commitMapperService: CommitMapperService,
     private readonly timeTrackingInteractor: TimeTrackingInteractor,
@@ -1166,6 +1168,16 @@ export class GenerationService {
 
     // Сохраняем через репозиторий
     const updatedIssue = await this.issueRepository.update(issueEntity);
+
+    // 562-34: журнал вкладов в метрики при переходе в/из DONE
+    if (data.status !== undefined && data.status !== existingIssue.status) {
+      await this.componentMetricService.handleIssueStatusTransition(
+        updatedIssue.issue_hash,
+        existingIssue.status,
+        updatedIssue.status,
+        username
+      );
+    }
 
     // 562-14: смена плана / creators больше не пересобирает авто-билеты
 

@@ -15,6 +15,9 @@
     .planning-page__skel(v-else)
       .skel(v-for='i in 6', :key='i')
 
+  .planning-page__section(v-if='project')
+    MetricSuperpositionPanel(:project-hash='project.project_hash')
+
   //- Планы по каждому компоненту
   .planning-page__section(
     v-for='component in components',
@@ -39,6 +42,7 @@ import type {
 } from 'app/extensions/capital/entities/Project/model';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { ProjectPlanningWidget } from 'app/extensions/capital/widgets';
+import { MetricSuperpositionPanel } from 'app/extensions/capital/features/Metric/ViewMetricSuperposition';
 import { FailAlert } from 'src/shared/api';
 
 const route = useRoute();
@@ -98,7 +102,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--p-6);
   min-width: 0;
-  padding: var(--p-4) 0;
+  /* Как q-pa-md / описание компонента — контент не на всю ширину без полей */
+  padding: var(--p-4);
 }
 
 .planning-page__section {
@@ -112,8 +117,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-1);
-  /* Как горизонтальный паддинг ячеек .table (20px) — заголовок не «прилипает» к краю */
-  padding: 0 var(--p-5);
 }
 
 .planning-page__title {
@@ -127,6 +130,5 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);
-  padding: var(--p-3);
 }
 </style>

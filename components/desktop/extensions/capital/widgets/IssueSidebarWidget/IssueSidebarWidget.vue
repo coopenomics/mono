@@ -28,6 +28,13 @@ div(
           @issue-updated='handleIssueUpdated'
         ).full-width.q-mt-xs
 
+        IssueMetricBindingsPanel.q-mb-sm(
+          v-if='issue && projectHash'
+          :issue-hash='issue.issue_hash'
+          :project-hash='projectHash'
+          :readonly='isMetricsReadonly'
+        )
+
         MoveIssueButton(
           v-if='issue && projectHash'
           :issue='issue'
@@ -58,6 +65,13 @@ div(
         @issue-updated='handleIssueUpdated'
       ).full-width
 
+      IssueMetricBindingsPanel.q-mt-sm(
+        v-if='issue && projectHash'
+        :issue-hash='issue.issue_hash'
+        :project-hash='projectHash'
+        :readonly='isMetricsReadonly'
+      )
+
       MoveIssueButton(
         v-if="issue && projectHash"
         :issue='issue'
@@ -79,11 +93,13 @@ div(
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/Issue/model'
 import { IssueControls } from 'app/extensions/capital/widgets/IssueControls'
 import { DeleteIssueButton } from 'app/extensions/capital/features/Issue/DeleteIssue'
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue'
+import { IssueMetricBindingsPanel } from 'app/extensions/capital/features/Metric/BindIssueMetrics'
+import { Zeus } from '@coopenomics/sdk'
 
 interface Props {
   issue: IIssue | null | undefined
@@ -101,6 +117,13 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const detailsOpen = ref(false)
+
+/** Привязки метрик фиксируются при DONE — дальше только просмотр */
+const isMetricsReadonly = computed(
+  () =>
+    !(props.permissions?.can_edit_issue) ||
+    props.issue?.status === Zeus.IssueStatus.DONE,
+)
 
 watch(
   () => props.compactMobile,

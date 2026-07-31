@@ -30,3 +30,4 @@ export * from './InvitationsPage';
 export * from './ProcessesPage';
 export * from './ProgramExpensesPage';
 export * from './ProgramExpensePage';
+export * from './MeasuresPage';

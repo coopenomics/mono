@@ -54,6 +54,7 @@
     "@wharfkit/contract": "^1.1.5",
     "@wharfkit/session": "^1.4.0",
     "@wharfkit/wallet-plugin-privatekey": "^1.1.0",
+    "apexcharts": "^6.6.0",
     "axios": "^1.13.5",
     "bpmn-js": "^18.13.1",
     "compression": "^1.7.4",
@@ -84,6 +85,7 @@
     "vue-markdown-render": "^2.2.1",
     "vue-router": "^4.0.12",
     "vue-window-size": "^2.0.0",
+    "vue3-apexcharts": "^1.11.1",
     "vue3-dropzone": "^2.2.1",
     "vue3-openlayers": "^10.0.1",
     "windows-1251": "^3.0.4"

@@ -9,7 +9,7 @@ span
   )
     template(#icon-left)
       q-icon(name='edit', size='18px')
-    | Финплан
+    | План
 
   SetPlanDialog(
     ref='dialogRef'
