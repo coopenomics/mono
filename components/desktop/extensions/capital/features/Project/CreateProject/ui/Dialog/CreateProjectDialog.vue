@@ -1,7 +1,7 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Создать проект"
+  :title="props.local ? 'Создать персональный проект' : 'Создать проект'"
   submit-text="Создать"
   dialog-style="width: 600px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
@@ -37,6 +37,11 @@ import { Editor } from 'src/shared/ui';
 import { useCreateProject, type ICreateProjectInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
+const props = defineProps<{
+  /** Персональный проект — только PostgreSQL, без блокчейна */
+  local?: boolean;
+}>();
+
 const emit = defineEmits<{
   success: [];
   error: [error: any];
@@ -44,7 +49,7 @@ const emit = defineEmits<{
 
 const dialogRef = ref();
 const system = useSystemStore();
-const { createProject } = useCreateProject();
+const { createProject, createLocalProject } = useCreateProject();
 const isSubmitting = ref(false);
 
 const formData = ref({
@@ -87,8 +92,13 @@ const handleSubmit = async () => {
       invite: formData.value.invite,
     };
 
-    await createProject(inputData);
-    SuccessAlert('Проект успешно создан');
+    if (props.local) {
+      await createLocalProject(inputData);
+      SuccessAlert('Персональный проект создан');
+    } else {
+      await createProject(inputData);
+      SuccessAlert('Проект успешно создан');
+    }
 
     // Закрываем диалог после успешного создания
     dialogRef.value?.clear();

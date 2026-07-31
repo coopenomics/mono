@@ -16,30 +16,23 @@ export class LogInteractor {
   /**
    * Получение логов с фильтрацией и пагинацией
    */
-  async getLogs(input: GetLogsInputDTO): Promise<PaginationResult<LogOutputDTO>> {
+  async getLogs(input: GetLogsInputDTO, viewerUsername?: string): Promise<PaginationResult<LogOutputDTO>> {
     const { filter, pagination } = input;
 
-    // Преобразование фильтров из DTO в интерфейс сервиса
-    const serviceFilter: ICapitalLogFilterInput | undefined = filter
-      ? {
-          coopname: filter.coopname,
-          project_hash: filter.project_hash,
-          issue_hash: filter.issue_hash,
-          show_issue_logs: filter.show_issue_logs,
-          initiator: filter.initiator,
-          date_from: filter.date_from,
-          date_to: filter.date_to,
-          show_components_logs: filter.show_components_logs,
-        }
-      : undefined;
+    const serviceFilter: ICapitalLogFilterInput = {
+      coopname: filter?.coopname,
+      project_hash: filter?.project_hash,
+      issue_hash: filter?.issue_hash,
+      show_issue_logs: filter?.show_issue_logs,
+      initiator: filter?.initiator,
+      date_from: filter?.date_from,
+      date_to: filter?.date_to,
+      show_components_logs: filter?.show_components_logs,
+      viewer_username: viewerUsername,
+    };
 
-    // Конвертируем параметры пагинации в доменные
     const domainOptions: PaginationInputDomainInterface | undefined = pagination;
-
-    // Получение логов из сервиса
     const result = await this.logService.getLogs(serviceFilter, domainOptions);
-
-    // Преобразование в DTO
     const items = result.items.map((log) => this.mapToDTO(log));
 
     return {
@@ -55,12 +48,11 @@ export class LogInteractor {
    */
   async getLogsByProjectHash(
     project_hash: string,
-    pagination?: PaginationInputDTO
+    pagination?: PaginationInputDTO,
+    viewerUsername?: string
   ): Promise<PaginationResult<LogOutputDTO>> {
-    // Конвертируем параметры пагинации в доменные
     const domainOptions: PaginationInputDomainInterface | undefined = pagination;
-
-    const result = await this.logService.getLogsByProjectHash(project_hash, domainOptions);
+    const result = await this.logService.getLogsByProjectHash(project_hash, domainOptions, viewerUsername);
     const items = result.items.map((log) => this.mapToDTO(log));
 
     return {
@@ -74,11 +66,13 @@ export class LogInteractor {
   /**
    * Получение логов по хешу задачи
    */
-  async getLogsByIssueHash(issue_hash: string, pagination?: PaginationInputDTO): Promise<PaginationResult<LogOutputDTO>> {
-    // Конвертируем параметры пагинации в доменные
+  async getLogsByIssueHash(
+    issue_hash: string,
+    pagination?: PaginationInputDTO,
+    viewerUsername?: string
+  ): Promise<PaginationResult<LogOutputDTO>> {
     const domainOptions: PaginationInputDomainInterface | undefined = pagination;
-
-    const result = await this.logService.getLogsByIssueHash(issue_hash, domainOptions);
+    const result = await this.logService.getLogsByIssueHash(issue_hash, domainOptions, viewerUsername);
     const items = result.items.map((log) => this.mapToDTO(log));
 
     return {

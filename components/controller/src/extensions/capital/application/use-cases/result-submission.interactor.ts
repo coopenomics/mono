@@ -19,6 +19,8 @@ import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для подведения результатов в CAPITAL контракте
@@ -33,6 +35,8 @@ export class ResultSubmissionInteractor {
     private readonly resultRepository: ResultRepository,
     @Inject(SEGMENT_REPOSITORY)
     private readonly segmentRepository: SegmentRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly resultSyncService: ResultSyncService,
@@ -45,6 +49,9 @@ export class ResultSubmissionInteractor {
    * Внесение результата в CAPITAL контракте
    */
   async pushResult(data: PushResultDomainInput): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'внесение результата');
+
     // Вызываем блокчейн порт
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
@@ -78,6 +85,8 @@ export class ResultSubmissionInteractor {
     data: ConvertSegmentDomainInput,
     _currentUser: MonoAccountDomainInterface
   ): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'конвертацию сегмента');
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,

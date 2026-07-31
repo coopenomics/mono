@@ -1,4 +1,5 @@
 import { ProjectStatus } from '../enums/project-status.enum';
+import { ProjectOrigin } from '../enums/project-origin.enum';
 import type {
   IProjectDomainInterfaceDatabaseData,
   IProjectMatrixComponentAnnouncementEvent,
@@ -35,6 +36,10 @@ export class ProjectDomainEntity
   public matrix_component_announcement_events?: IProjectMatrixComponentAnnouncementEvent[];
   /** URL репозитория разработки (только БД). */
   public development_repository_url: string | null;
+  /** blockchain — кооперативный; local — персональный */
+  public origin: ProjectOrigin;
+  /** Владелец персонального проекта */
+  public local_owner: string | null;
 
   // Поля из блокчейна (projects.hpp)
   public project_hash: IProjectDomainInterfaceBlockchainData['project_hash'];
@@ -81,6 +86,11 @@ export class ProjectDomainEntity
       databaseData.development_repository_url !== undefined && databaseData.development_repository_url !== null
         ? databaseData.development_repository_url.trim() || null
         : null;
+    this.origin =
+      (databaseData.origin as ProjectOrigin) === ProjectOrigin.LOCAL
+        ? ProjectOrigin.LOCAL
+        : ProjectOrigin.BLOCKCHAIN;
+    this.local_owner = databaseData.local_owner ?? null;
 
     // Инициализируем поля для генерации ID задач, если они не заданы
     this.initializeIssueIdFields();
@@ -89,7 +99,9 @@ export class ProjectDomainEntity
     if (blockchainData) {
       if (this.project_hash != blockchainData.project_hash.toLowerCase()) throw new Error('Project hash mismatch');
 
-      this.id = Number(blockchainData.id);
+      if (blockchainData.id != null && Number(blockchainData.id) > 0) {
+        this.id = Number(blockchainData.id);
+      }
       this.coopname = blockchainData.coopname;
       this.project_hash = blockchainData.project_hash.toLowerCase();
       this.parent_hash = blockchainData.parent_hash.toLowerCase();

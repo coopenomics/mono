@@ -74,7 +74,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useRoute, useRouter } from 'vue-router';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { Zeus } from '@coopenomics/sdk';
-import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib';
+import { getIssueStatusLabel, capitalRouteName } from 'app/extensions/capital/shared/lib';
 import { useCreateIssue, type ICreateIssueInput } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 
@@ -170,12 +170,9 @@ const handleSubmit = async () => {
 
     const result = await createIssue(inputData);
 
-    // Получаем ID и хэш задачи из результата
-    // result - это объект задачи, у которого есть поля id и issue_hash
     const issueId = typeof result === 'string' ? result : result?.id;
     const issueHash = result?.issue_hash;
-    const resultProjectHash =
-      result?.project_hash || currentProjectHash.value || 'free';
+    const resultProjectHash = result?.project_hash || currentProjectHash.value;
 
     SuccessAlert(
       `Задача ${issueId} успешно создана`,
@@ -183,16 +180,23 @@ const handleSubmit = async () => {
         text: '', // Пустой текст, только иконка
         icon: 'launch',
         handler: () => {
+          if (resultProjectHash) {
+            router.push({
+              name: capitalRouteName('component-issue-description', route),
+              params: {
+                coopname: system.info.coopname,
+                project_hash: resultProjectHash,
+                issue_hash: issueHash,
+              },
+            });
+            return;
+          }
           router.push({
-            name: 'component-issue-description',
+            name: 'my-task-issue-description',
             params: {
               coopname: system.info.coopname,
-              project_hash: resultProjectHash,
-              issue_hash: issueHash
+              issue_hash: issueHash,
             },
-            query: currentProjectHash.value
-              ? undefined
-              : { _backRoute: 'capital-my-tasks' },
           });
         }
       } : undefined

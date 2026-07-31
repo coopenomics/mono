@@ -4,6 +4,7 @@
   IssuesListWidget(
     :project-hash='projectHash',
     :can-manage-issues='!!project?.permissions?.can_manage_issues',
+    :is-private='project?.origin === "local"',
     @issue-click='handleIssueClick'
   )
 </template>
@@ -16,10 +17,12 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { FailAlert } from 'src/shared/api';
 import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidget';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const { routeName } = useCapitalWorkspaceRoutes();
 
 // Состояние проекта
 const project = ref<IProject | null | undefined>(null);
@@ -50,14 +53,11 @@ const loadProject = async () => {
 // Обработчик клика по задаче
 const handleIssueClick = (issue: IIssue) => {
   router.push({
-    name: 'component-issue-description',
+    name: routeName('component-issue-description'),
     params: {
       project_hash: projectHash.value,
       issue_hash: issue.issue_hash,
     },
-    query: {
-      _backRoute: 'component-tasks'
-    }
   });
 };
 

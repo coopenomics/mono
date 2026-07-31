@@ -37,7 +37,17 @@ export function useCreateComponent() {
 
   async function createComponent(
     data: ICreateComponentInput,
-  ): Promise<ICreateComponentOutput> {
+    options?: { local?: boolean },
+  ) {
+    if (options?.local) {
+      const project = await api.createLocalComponent(data);
+      await store.loadProject({
+        hash: data.parent_hash,
+      });
+      resetInput(createComponentInput, initialCreateComponentInput);
+      return project;
+    }
+
     const transaction = await api.createComponent(data);
 
     // Получаем данные родительского проекта - loadProject теперь сам обновляет projects.items

@@ -14,6 +14,8 @@ import type {
 } from '~/domain/common/interfaces/pagination.interface';
 import type { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для голосования в CAPITAL контракте
@@ -26,6 +28,8 @@ export class VotingInteractor {
     private readonly capitalBlockchainPort: CapitalBlockchainPort,
     @Inject(VOTE_REPOSITORY)
     private readonly voteRepository: VoteRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly segmentSyncService: SegmentSyncService
   ) {
     this.logger = new Logger(VotingInteractor.name);
@@ -33,10 +37,16 @@ export class VotingInteractor {
 
   private readonly logger: Logger;
 
+  private async assertProjectBlockchain(projectHash: string, actionLabel: string): Promise<void> {
+    const project = await this.projectRepository.findByHash(projectHash.toLowerCase());
+    assertBlockchainProject(project, actionLabel);
+  }
+
   /**
    * Запуск голосования в CAPITAL контракте
    */
   async startVoting(data: StartVotingDomainInput): Promise<TransactResult> {
+    await this.assertProjectBlockchain(data.project_hash, 'запуск голосования');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.startVoting(data);
   }
@@ -45,6 +55,7 @@ export class VotingInteractor {
    * Голосование в CAPITAL контракте
    */
   async submitVote(data: SubmitVoteDomainInput): Promise<TransactResult> {
+    await this.assertProjectBlockchain(data.project_hash, 'голосование');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.submitVote(data);
   }
@@ -53,6 +64,7 @@ export class VotingInteractor {
    * Завершение голосования в CAPITAL контракте
    */
   async completeVoting(data: CompleteVotingDomainInput): Promise<TransactResult> {
+    await this.assertProjectBlockchain(data.project_hash, 'завершение голосования');
     // Вызываем блокчейн порт
     return await this.capitalBlockchainPort.completeVoting(data);
   }
@@ -61,6 +73,7 @@ export class VotingInteractor {
    * Расчет голосов в CAPITAL контракте
    */
   async calculateVotes(data: CalculateVotesDomainInput): Promise<SegmentDomainEntity> {
+    await this.assertProjectBlockchain(data.project_hash, 'расчёт голосов');
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.calculateVotes(data);
 

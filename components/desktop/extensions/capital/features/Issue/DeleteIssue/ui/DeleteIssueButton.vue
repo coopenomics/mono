@@ -37,12 +37,14 @@ import { useDeleteIssue } from '../model';
 
 interface Props {
   issueHash: string;
-  projectHash: string;
+  /** Для свободных задач может быть пустым — только сброс кэша списка */
+  projectHash?: string;
   canDelete?: boolean;
   label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  projectHash: '',
   canDelete: false,
   label: 'Удалить',
 });

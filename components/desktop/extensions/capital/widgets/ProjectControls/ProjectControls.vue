@@ -1,18 +1,17 @@
 <template lang="pug">
 div
-  UpdateStatus(
-    v-if='project'
-    :project='project'
-    label='Статус'
-  ).q-mb-sm.full-width
-  SetMasterButton(
-    v-if='project'
-    :project='project'
-    dense
-    flat
-    :multiSelect='false'
-    placeholder=''
-  ).q-mb-sm.full-width
+  template(v-if='project && project.origin !== "local"')
+    UpdateStatus(
+      :project='project'
+      label='Статус'
+    ).q-mb-sm.full-width
+    SetMasterButton(
+      :project='project'
+      dense
+      flat
+      :multiSelect='false'
+      placeholder=''
+    ).q-mb-sm.full-width
 
   UpdateProjectVideo(v-if="project" :project="project")
   SetDevelopmentRepositoryUrl(v-if="project" :project="project")

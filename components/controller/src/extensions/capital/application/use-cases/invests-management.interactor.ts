@@ -19,6 +19,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -35,6 +37,8 @@ export class InvestsManagementInteractor {
     private readonly appendixRepository: AppendixRepository,
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
     private readonly logger: WinstonLoggerService
@@ -115,6 +119,9 @@ export class InvestsManagementInteractor {
     data: CreateProjectInvestDomainInput,
     _currentUser: MonoAccountDomainInterface
   ): Promise<TransactResult> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'инвестирование');
+
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,

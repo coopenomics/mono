@@ -129,6 +129,10 @@ const rawBaseProjectSelector = {
   description: true,
   /** URL репозитория для опроса маркеров коммитов (PRD §6.2.1) */
   development_repository_url: true,
+  /** Происхождение: blockchain | local */
+  origin: true,
+  /** Владелец персонального проекта */
+  local_owner: true,
   meta: true,
   created_at: true,
   counts: rawProjectCountsDataSelector,

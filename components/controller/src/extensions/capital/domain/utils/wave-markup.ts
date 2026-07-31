@@ -12,15 +12,13 @@
  * - MetricSeriesMode.LEVEL — на уровне значения (может откатываться).
  *
  * Затухание / «стоим на месте»:
- * - recentActivityScore → [0..1] по энергии последних календарных периодов
- *   (для RATE нули в бакетах = тишина, их не выкидываем из скоринга).
- * - Разметка волны RATE идёт по ненулевым Δ (паддинг нулей — не откат);
- *   перед первым вкладом добавляем синтетический 0 (тишина → импульс),
- *   иначе один бакет [Δ] даёт пустой коридор и UI теряет прогноз.
- * - activity≈0 → RATE: коридор → [0,0] (Δ=0, накопление плоско);
- *   LEVEL: → [last, last] (плоский прогноз на факте).
+ * - recentActivityScore → [0..1] по энергии последних периодов.
+ * - activity≈0 → коридор схлопывается в [last, last] (плоский прогноз на факте).
  * - activity→1 → полный волновой сценарий; малое действие — частичный разгон.
  *   (если долго нет ±, вероятность «выстрела» считаем нулевой — не тянем вверх/вниз.)
+ *
+ * RATE/LEVEL: календарные нули — часть ряда, их не выкидываем и не подменяем
+ * синтетикой. Ноль = ноль в таймфрейме.
  *
  * UI не рисует свинги/фибо-сетку: только сценарии коридора
  * (на UI сейчас base = 0.5→1.618), которые фронт проецирует
@@ -38,7 +36,6 @@ export const IMPULSE_EXTENSION = 1.618;
  * Энергия движения за последние lookback периодов → [0..1].
  * 0 — ряд стоит (LEVEL: уровень не меняется / RATE: Δ≈0);
  * 1 — есть заметная активность (полный волновой разгон).
- * Для RATE нули в календарных бакетах — тишина (затухание), не выкидываем.
  */
 export function recentActivityScore(
   values: number[],
@@ -60,31 +57,6 @@ export function recentActivityScore(
   // «полная» активность: суммарный ход порядка 15% пика на каждый период lookback
   const full = peak * 0.15 * n;
   return Math.max(0, Math.min(1, energy / full));
-}
-
-const RATE_EPS = 1e-12;
-
-/**
- * RATE: нулевой бакет = данных не было (паддинг), не откат.
- * Для разметки волны оставляем только ненулевые Δ; LEVEL не трогаем.
- * Если ряд начинается с вклада — впереди синтетический 0 (старт из тишины),
- * иначе один ненулевой бакет не даёт найти W1 и коридор пустеет.
- */
-export function valuesForWaveMarkup(
-  values: number[],
-  mode: MetricSeriesMode
-): number[] {
-  if (mode !== MetricSeriesMode.RATE) {
-    return values;
-  }
-  const sparse = values.filter((v) => Math.abs(v) > RATE_EPS);
-  if (sparse.length === 0) {
-    return values;
-  }
-  if (Math.abs(sparse[0]) > RATE_EPS) {
-    return [0, ...sparse];
-  }
-  return sparse;
 }
 
 /** Смешивает волновой путь к плоскому [last,last] при низкой активности. */
@@ -358,8 +330,7 @@ function buildPointLabels(
  * Точка 0 не нумеруется; W1 — на конце первой волны; W2 — на конце коррекции.
  */
 export function analyzeWave(input: AnalyzeWaveInput): WaveMarkupResult {
-  const rawValues = input.values;
-  const values = valuesForWaveMarkup(rawValues, input.series_mode);
+  const values = input.values;
   const periodsAhead = 2;
 
   if (values.length === 0) {
@@ -469,13 +440,8 @@ export function analyzeWave(input: AnalyzeWaveInput): WaveMarkupResult {
   const pessimistic = scenarioPath(0.618);
 
   const last = values[values.length - 1];
-  // Затухание — по календарному ряду (с нулями); фаза — по sparse RATE.
-  // RATE: якорь 0 (Δ=0 → накопление не растёт); LEVEL: якорь last (уровень).
-  const activity = recentActivityScore(rawValues, input.series_mode);
-  const flatAnchor =
-    input.series_mode === MetricSeriesMode.RATE ? 0 : last;
-  const damp = (path: number[]) =>
-    blendPathWithActivity(path, flatAnchor, activity);
+  const activity = recentActivityScore(values, input.series_mode);
+  const damp = (path: number[]) => blendPathWithActivity(path, last, activity);
 
   // Прирост к факту по модулю хода импульсной ноги сценария (может быть «откат» на первой точке)
   const signedImpulseAdd = (path: number[]) => {

@@ -20,7 +20,9 @@
   // 2. Тайтл: занимает всё свободное место, переносится по словам, ellipsis по необходимости.
   .title-block(@click.stop="onTitleClick")
     .title-stack
-      span.title-text {{ issue.title }}
+      .title-line
+        PrivateShieldIcon(:show='isPrivate')
+        span.title-text {{ issue.title }}
       span.context-label(
         v-if='contextLabel',
         role='link',
@@ -65,6 +67,7 @@
 import { computed } from 'vue';
 import { EntityIdBadge } from 'src/shared/ui';
 import { BaseChip } from 'src/shared/ui/base';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 import { IssueStatusChip } from '../../../features/Issue/UpdateIssue/ui/UpdateStatus';
 import { IssueTimeChip } from '../../../features/Issue/UpdateIssue/ui/UpdateEstimate';
 import { SetCreatorAvatars } from '../../../features/Issue/SetCreator';
@@ -79,6 +82,8 @@ const props = defineProps<{
   issue: IIssue;
   /** Мелкий контекст «проект — компонент» (или отсутствие) под заголовком */
   contextLabel?: string;
+  /** Свободная задача или задача личного проекта */
+  isPrivate?: boolean;
 }>();
 const emit = defineEmits<{
   (e: 'click', issue: IIssue): void;
@@ -162,6 +167,14 @@ const canChangeEstimate = computed(
   min-width: 0;
   max-width: 100%;
   gap: var(--p-1);
+}
+
+.title-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .title-text {

@@ -205,6 +205,14 @@ export class GitCommitMarkersSyncService {
       return false;
     }
 
+    const projectHash = issue.project_hash?.trim();
+    if (!projectHash) {
+      this.logger.warn(
+        `Git маркеры: коммит ${c.sha} — у задачи ${issue.issue_hash} нет проекта (свободная задача), привязку пропускаем`
+      );
+      return false;
+    }
+
     const user =
       (await this.userRepository.findByUsername(parsed.username)) ||
       (await this.userRepository.findByUsername(parsed.username.toLowerCase()));
@@ -232,7 +240,7 @@ export class GitCommitMarkersSyncService {
       github_sha: c.sha,
       html_url: htmlUrl,
       issue_hash: issue.issue_hash,
-      project_hash: issue.project_hash,
+      project_hash: projectHash,
       username: user.username,
       commit_message: c.commit.message || '',
       git_author_login: null,

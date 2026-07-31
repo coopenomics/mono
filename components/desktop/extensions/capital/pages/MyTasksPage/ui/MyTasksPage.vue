@@ -1,11 +1,8 @@
 <template lang="pug">
-.my-tasks-page
+//- Список на корне; задача — child через router-view (рейл остаётся на «Мои задачи»)
+router-view(v-if='!isRoot')
+.my-tasks-page(v-else)
   .page-surface.list-surface.list-surface--fill
-    .my-tasks-page__toolbar
-      CreateIssueButton(
-        label='Создать задачу',
-        @action-completed='reload'
-      )
     .issues-scroll-area
       q-table(
         v-if='items.length || loading',
@@ -26,6 +23,7 @@
               IssueListRow(
                 :issue='props.row',
                 :context-label='contextLabel(props.row)',
+                :is-private='isPrivateIssue(props.row)',
                 @click='openIssue',
                 @context-click='openContext'
               )
@@ -37,33 +35,47 @@
       .list-empty(v-else-if='!loading')
         q-icon(name='inbox', size='20px')
         span Нет задач, где вы исполнитель
+
+  //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
+  MoveIssueButton(
+    v-if='assignIssue',
+    ref='assignDialogRef',
+    :issue='assignIssue',
+    :permissions='assignIssue.permissions',
+    hide-trigger,
+    @moved='onAssigned'
+  )
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { FailAlert } from 'src/shared/api';
 import { EMPTY_HASH } from 'src/shared/lib/consts';
-import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
+import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue';
 import { api as IssueApi } from 'app/extensions/capital/entities/Issue/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
 import type { IProject } from 'app/extensions/capital/entities/Project/model';
 import IssueListRow from 'app/extensions/capital/widgets/IssuesListWidget/ui/IssueListRow.vue';
 
-/** Sentinel в URL для свободных задач без project_hash */
-const FREE_ISSUE_PROJECT_SENTINEL = 'free';
-
 const router = useRouter();
+const route = useRoute();
 const { info } = useSystemStore();
 const session = useSessionStore();
 const projectStore = useProjectStore();
 
+const isRoot = computed(() => route.name === 'capital-my-tasks');
+
 const loading = ref(false);
 const items = ref<IIssue[]>([]);
 const contextByHash = ref<Record<string, string>>({});
+const originByHash = ref<Record<string, string>>({});
+
+const assignIssue = ref<IIssue | null>(null);
+const assignDialogRef = ref<{ openDialog: () => void } | null>(null);
 
 const username = computed(() => session.username || '');
 
@@ -91,15 +103,14 @@ function formatContext(project: IProject | undefined | null): string {
 async function resolveContexts(issues: IIssue[]) {
   const hashes = [
     ...new Set(
-      issues
-        .map((i) => i.project_hash)
-        .filter((h): h is string => !!h && h !== FREE_ISSUE_PROJECT_SENTINEL),
+      issues.map((i) => i.project_hash).filter((h): h is string => !!h),
     ),
   ];
-  const next: Record<string, string> = { ...contextByHash.value };
+  const nextCtx: Record<string, string> = { ...contextByHash.value };
+  const nextOrigin: Record<string, string> = { ...originByHash.value };
   await Promise.all(
     hashes.map(async (hash) => {
-      if (next[hash]) return;
+      if (nextCtx[hash] && nextOrigin[hash]) return;
       let project = projectStore.getProject(hash);
       if (!project) {
         try {
@@ -108,19 +119,28 @@ async function resolveContexts(issues: IIssue[]) {
           project = undefined;
         }
       }
-      next[hash] = formatContext(project) || '';
+      nextCtx[hash] = formatContext(project) || '';
+      if (project?.origin) {
+        nextOrigin[hash] = project.origin;
+      }
     }),
   );
-  contextByHash.value = next;
+  contextByHash.value = nextCtx;
+  originByHash.value = nextOrigin;
 }
 
 function contextLabel(issue: IIssue): string {
-  if (!issue.project_hash) return 'Без проекта';
+  if (!issue.project_hash) return 'Без компонента';
   return contextByHash.value[issue.project_hash] || '';
 }
 
+function isPrivateIssue(issue: IIssue): boolean {
+  if (!issue.project_hash) return true;
+  return originByHash.value[issue.project_hash] === 'local';
+}
+
 async function reload() {
-  if (!username.value) return;
+  if (!username.value || !isRoot.value) return;
   loading.value = true;
   try {
     const result = await IssueApi.loadIssues({
@@ -146,36 +166,73 @@ async function reload() {
 }
 
 function openIssue(issue: IIssue) {
-  const projectHash = issue.project_hash || FREE_ISSUE_PROJECT_SENTINEL;
   router.push({
-    name: 'component-issue-description',
+    name: 'my-task-issue-description',
     params: {
-      project_hash: projectHash,
+      coopname: info.coopname,
       issue_hash: issue.issue_hash,
     },
-    query: { _backRoute: 'capital-my-tasks' },
   });
 }
 
-function openContext(issue: IIssue) {
-  if (!issue.project_hash) return;
-  const project = projectStore.getProject(issue.project_hash);
+async function openContext(issue: IIssue) {
+  if (!issue.project_hash) {
+    assignIssue.value = issue;
+    await nextTick();
+    assignDialogRef.value?.openDialog();
+    return;
+  }
+
+  let project = projectStore.getProject(issue.project_hash);
+  if (!project) {
+    try {
+      project = (await projectStore.loadProject({ hash: issue.project_hash })) as
+        | IProject
+        | undefined;
+    } catch {
+      project = undefined;
+    }
+  }
+
+  const isLocal = (project?.origin || originByHash.value[issue.project_hash]) === 'local';
   const parent = project?.parent_hash?.trim();
   const hasParent = !!parent && parent !== EMPTY_HASH;
+
   if (hasParent) {
     router.push({
-      name: 'component-tasks',
+      name: isLocal ? 'my-component-tasks' : 'component-tasks',
       params: { project_hash: issue.project_hash },
     });
     return;
   }
   router.push({
-    name: 'project-description',
+    name: isLocal ? 'my-project-description' : 'project-description',
     params: { project_hash: issue.project_hash },
   });
 }
 
-onMounted(reload);
+function onAssigned() {
+  assignIssue.value = null;
+  void reload();
+}
+
+watch(isRoot, (root) => {
+  if (root) {
+    void reload();
+  }
+});
+
+watch(username, () => {
+  if (isRoot.value) {
+    void reload();
+  }
+});
+
+onMounted(() => {
+  if (isRoot.value) {
+    void reload();
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -199,17 +256,11 @@ onMounted(reload);
   flex-direction: column;
 }
 
-.my-tasks-page__toolbar {
-  display: flex;
-  justify-content: flex-end;
-  padding: var(--p-3) var(--p-4) 0;
-}
-
 .issues-scroll-area {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--p-4) var(--p-4);
+  padding: 0;
 }
 
 .q-table {

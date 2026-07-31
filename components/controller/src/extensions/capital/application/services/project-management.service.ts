@@ -25,6 +25,8 @@ import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mon
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
+import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
+import { canViewLocalProject } from '../../domain/utils/private-project-access';
 
 /**
  * Сервис уровня приложения для управления проектами CAPITAL
@@ -46,6 +48,17 @@ export class ProjectManagementService {
    */
   async createProject(data: CreateProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<TransactResult> {
     return await this.projectManagementInteractor.createProject(data, currentUser);
+  }
+
+  /**
+   * Создание персонального проекта/компонента (только PostgreSQL)
+   */
+  async createLocalProject(
+    data: CreateProjectInputDTO,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<ProjectOutputDTO> {
+    const project = await this.projectManagementInteractor.createLocalProject(data, currentUser);
+    return await this.projectMapperService.mapToDTO(project, currentUser);
   }
 
   /**
@@ -230,14 +243,18 @@ export class ProjectManagementService {
 
     // Получаем результат с пагинацией из домена
     const result = await this.projectManagementInteractor.getProjects(filter, domainOptions);
+    const visible = this.filterAccessibleProjects(result.items, currentUser?.username);
 
     // Маппим проекты в DTO с правами доступа
-    const items = await this.projectMapperService.mapBatchToDTO(result.items, currentUser);
+    const items = await this.projectMapperService.mapBatchToDTO(visible, currentUser);
 
     return {
       items,
-      totalCount: result.totalCount,
-      totalPages: result.totalPages,
+      totalCount: visible.length === result.items.length ? result.totalCount : visible.length,
+      totalPages:
+        visible.length === result.items.length
+          ? result.totalPages
+          : Math.ceil(visible.length / (options?.limit || 10)),
       currentPage: result.currentPage,
     };
   }
@@ -255,14 +272,18 @@ export class ProjectManagementService {
 
     // Получаем результат с пагинацией из домена
     const result = await this.projectManagementInteractor.getProjectsWithComponents(filter, domainOptions);
+    const visible = this.filterAccessibleProjects(result.items, currentUser?.username);
 
     // Маппим проекты с компонентами в DTO с правами доступа
-    const items = await this.projectMapperService.mapBatchToDTOWithComponents(result.items, currentUser);
+    const items = await this.projectMapperService.mapBatchToDTOWithComponents(visible, currentUser);
 
     return {
       items,
-      totalCount: result.totalCount,
-      totalPages: result.totalPages,
+      totalCount: visible.length === result.items.length ? result.totalCount : visible.length,
+      totalPages:
+        visible.length === result.items.length
+          ? result.totalPages
+          : Math.ceil(visible.length / (options?.limit || 10)),
       currentPage: result.currentPage,
     };
   }
@@ -273,7 +294,7 @@ export class ProjectManagementService {
   async getProjectById(_id: string, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectById(_id);
 
-    if (!project) {
+    if (!project || !canViewLocalProject(project, currentUser?.username)) {
       return null;
     }
 
@@ -286,7 +307,7 @@ export class ProjectManagementService {
   async getProjectByHash(hash: string, currentUser?: MonoAccountDomainInterface): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectByHash(hash);
 
-    if (!project) {
+    if (!project || !canViewLocalProject(project, currentUser?.username)) {
       return null;
     }
 
@@ -302,7 +323,7 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectByHashWithComponents(hash);
 
-    if (!project) {
+    if (!project || !canViewLocalProject(project, currentUser?.username)) {
       return null;
     }
 
@@ -318,11 +339,19 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO | null> {
     const project = await this.projectManagementInteractor.getProjectWithRelations(projectHash);
 
-    if (!project) {
+    if (!project || !canViewLocalProject(project, currentUser?.username)) {
       return null;
     }
 
     return await this.projectMapperService.mapToDTO(project, currentUser);
+  }
+
+  /** Чужие LOCAL-проекты не отдаём в списках. */
+  private filterAccessibleProjects(
+    projects: ProjectDomainEntity[],
+    username?: string
+  ): ProjectDomainEntity[] {
+    return projects.filter((project) => canViewLocalProject(project, username));
   }
 
 }

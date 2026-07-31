@@ -33,6 +33,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { config } from '~/config';
 import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../domain/utils/hours-float';
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
+import { EMPTY_HASH } from '~/shared/utils/constants';
+import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте
@@ -148,7 +150,7 @@ export class TimeTrackingInteractor {
           _id: '',
           contributor_hash: item.contributor_hash,
           issue_hash: issue.issue_hash,
-          project_hash: issue.project_hash,
+          project_hash: issue.project_hash || EMPTY_HASH,
           coopname: issue.coopname,
           date,
           hours: item.uncommittedShare,
@@ -223,7 +225,7 @@ export class TimeTrackingInteractor {
 
   /**
    * Ручной worklog: явная запись факта на текущего исполнителя задачи.
-   * Не больше остатка суточного лимита (hours_per_day) по всем проектам.
+   * Не больше остатка суточного лимита (hours_per_day) по кооперативным проектам.
    */
   async addWorklog(input: {
     username: string;
@@ -239,12 +241,18 @@ export class TimeTrackingInteractor {
 
     const { issue, contributor } = await this.requireIssueAndCreator(input.username, input.coopname, input.issue_hash);
     const date = input.date || new Date().toISOString().split('T')[0];
-    const remaining = await this.getRemainingDailyHours(contributor, date);
-    if (hours > remaining + HOURS_FLOAT_EPSILON) {
-      const limit = this.getHoursPerDayLimit(contributor);
-      throw new Error(
-        `Превышен суточный лимит (${limit} ч). Сегодня ещё доступно ${this.roundHours(remaining)} ч по всем проектам.`
-      );
+    const project = issue.project_hash
+      ? await this.projectRepository.findByHash(issue.project_hash)
+      : null;
+
+    if (!isPersonalTimeScope(project, issue.project_hash)) {
+      const remaining = await this.getRemainingDailyHours(contributor, date);
+      if (hours > remaining + HOURS_FLOAT_EPSILON) {
+        const limit = this.getHoursPerDayLimit(contributor);
+        throw new Error(
+          `Превышен суточный лимит (${limit} ч). Сегодня ещё доступно ${this.roundHours(remaining)} ч по кооперативным проектам.`
+        );
+      }
     }
 
     return this.timeEntryRepository.create(
@@ -252,7 +260,7 @@ export class TimeTrackingInteractor {
         _id: '',
         contributor_hash: contributor.contributor_hash,
         issue_hash: issue.issue_hash,
-        project_hash: issue.project_hash,
+        project_hash: issue.project_hash || EMPTY_HASH,
         coopname: issue.coopname,
         date,
         hours,
@@ -268,7 +276,7 @@ export class TimeTrackingInteractor {
   /**
    * Старт таймера на задаче. Если уже есть открытая сессия на другой задаче — сначала Stop.
    * Инвариант: не больше одной открытой сессии на участника.
-   * Нельзя стартовать, если суточный лимит (hours_per_day) уже исчерпан по всем проектам.
+   * Суточный лимит (hours_per_day) проверяется только для кооперативных задач.
    */
   async startTimer(input: {
     username: string;
@@ -285,13 +293,19 @@ export class TimeTrackingInteractor {
       await this.stopTimerSession(open, { allowEmpty: true });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const remaining = await this.getRemainingDailyHours(contributor, today);
-    if (remaining <= HOURS_FLOAT_EPSILON) {
-      const limit = this.getHoursPerDayLimit(contributor);
-      throw new Error(
-        `Суточный лимит ${limit} ч уже выбран по всем проектам. Таймер можно запустить завтра или уменьшить учтённое время.`
-      );
+    const project = issue.project_hash
+      ? await this.projectRepository.findByHash(issue.project_hash)
+      : null;
+
+    if (!isPersonalTimeScope(project, issue.project_hash)) {
+      const today = new Date().toISOString().split('T')[0];
+      const remaining = await this.getRemainingDailyHours(contributor, today);
+      if (remaining <= HOURS_FLOAT_EPSILON) {
+        const limit = this.getHoursPerDayLimit(contributor);
+        throw new Error(
+          `Суточный лимит ${limit} ч уже выбран по кооперативным проектам. Таймер можно запустить завтра или уменьшить учтённое время.`
+        );
+      }
     }
 
     return this.timerSessionRepository.create(
@@ -299,7 +313,7 @@ export class TimeTrackingInteractor {
         _id: '',
         contributor_hash: contributor.contributor_hash,
         issue_hash: issue.issue_hash,
-        project_hash: issue.project_hash,
+        project_hash: issue.project_hash || EMPTY_HASH,
         coopname: issue.coopname,
         started_at: new Date(),
         stopped_at: null,
@@ -376,8 +390,8 @@ export class TimeTrackingInteractor {
   }
 
   /**
-   * Авто-стоп открытых таймеров, у которых elapsed исчерпал остаток hours_per_day за сутки
-   * (лимит общий по всем проектам). Вызывается из планировщика.
+   * Авто-стоп открытых таймеров на кооперативных задачах, у которых elapsed исчерпал
+   * остаток hours_per_day за сутки. Персональные сессии не ограничиваются.
    */
   async enforceOpenTimersDailyCap(): Promise<void> {
     const openSessions = await this.timerSessionRepository.findAllOpen();
@@ -388,6 +402,13 @@ export class TimeTrackingInteractor {
 
     for (const session of openSessions) {
       try {
+        const project = session.project_hash
+          ? await this.projectRepository.findByHash(session.project_hash)
+          : null;
+        if (isPersonalTimeScope(project, session.project_hash)) {
+          continue;
+        }
+
         const contributor = await this.contributorRepository.findOne({
           contributor_hash: session.contributor_hash,
         });
@@ -433,10 +454,13 @@ export class TimeTrackingInteractor {
     await this.timerSessionRepository.update(session);
 
     const date = stoppedAt.toISOString().split('T')[0];
+    const project = session.project_hash
+      ? await this.projectRepository.findByHash(session.project_hash)
+      : null;
     const contributor = await this.contributorRepository.findOne({
       contributor_hash: session.contributor_hash,
     });
-    if (contributor) {
+    if (contributor && !isPersonalTimeScope(project, session.project_hash)) {
       const remaining = await this.getRemainingDailyHours(contributor, date);
       if (Number.isFinite(remaining) && hours > remaining + HOURS_FLOAT_EPSILON) {
         hours = this.roundHours(remaining);
@@ -466,16 +490,15 @@ export class TimeTrackingInteractor {
     );
   }
 
-  /** Суточный лимит из профиля участника (часы в сутки, все проекты). 0 / не задан — без потолка. */
+  /** Суточный лимит из профиля участника (часы в сутки, кооперативные проекты). 0 / не задан — без потолка. */
   private getHoursPerDayLimit(contributor: ContributorDomainEntity): number {
     const raw = Number(contributor.hours_per_day);
     return Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
 
-  /** Уже учтённые часы участника за календарный день (все проекты / типы записей). */
+  /** Уже учтённые кооперативные часы участника за календарный день. */
   private async getLoggedHoursOnDate(contributorHash: string, date: string): Promise<number> {
-    const entries = await this.timeEntryRepository.findByContributorAndDate(contributorHash, date);
-    return entries.reduce((sum, e) => sum + Number(e.hours || 0), 0);
+    return this.timeEntryRepository.sumCooperativeHoursByContributorAndDate(contributorHash, date);
   }
 
   /**
@@ -860,7 +883,7 @@ export class TimeTrackingInteractor {
             _id: '',
             contributor_hash: contributor.contributor_hash,
             issue_hash: issue.issue_hash,
-            project_hash: issue.project_hash,
+            project_hash: issue.project_hash || EMPTY_HASH,
             coopname: issue.coopname,
             date, // Используем текущую дату
             hours: hoursPerCreator,
@@ -950,7 +973,7 @@ export class TimeTrackingInteractor {
           _id: '',
           contributor_hash: contributor.contributor_hash,
           issue_hash: issue.issue_hash,
-          project_hash: issue.project_hash,
+          project_hash: issue.project_hash || EMPTY_HASH,
           coopname: contributor.coopname as string,
           date,
           hours,

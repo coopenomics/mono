@@ -2,8 +2,8 @@
 .commits-list
   EmptyState(
     v-if='!loading && !rows.length',
-    title='Коммитов пока нет',
-    body='Когда участники зафиксируют время по компонентам, коммиты появятся здесь для проверки.'
+    :title='emptyTitle',
+    :body='emptyBody'
   )
     template(#icon)
       q-icon(name='fact_check')
@@ -135,10 +135,19 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatHours } from 'src/shared/lib/utils';
 import { DiffViewer } from 'src/shared/ui/DiffViewer';
 
-const props = defineProps<{
-  filter?: IGetCommitsFilter;
-  expanded?: Record<string, boolean>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    filter?: IGetCommitsFilter;
+    expanded?: Record<string, boolean>;
+    emptyTitle?: string;
+    emptyBody?: string;
+  }>(),
+  {
+    emptyTitle: 'Коммитов пока нет',
+    emptyBody:
+      'Когда участники зафиксируют время по компонентам, коммиты появятся здесь для проверки.',
+  },
+);
 
 const emit = defineEmits<{
   toggleExpand: [commitHash: string];
@@ -377,6 +386,15 @@ const goToIssue = (projectHash: string | undefined, issueHash: string) => {
 onMounted(async () => {
   await loadCommits();
 });
+
+watch(
+  () => props.filter,
+  () => {
+    pagination.value.page = 1;
+    void loadCommits();
+  },
+  { deep: true },
+);
 </script>
 
 <style lang="scss" scoped>

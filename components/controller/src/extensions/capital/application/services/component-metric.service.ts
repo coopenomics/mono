@@ -28,11 +28,13 @@ import { MetricSeriesPeriod } from '../../domain/enums/metric-series-period.enum
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/catalog/default-blagorost-measures';
 import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';
 import type { CreateMeasureInputDTO } from '../dto/metrics/create-measure-input.dto';
@@ -293,10 +295,7 @@ export class ComponentMetricService {
     if (!project) {
       throw new Error(`Компонент с хэшем ${projectHash} не найден`);
     }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр метрик компонента');
-    }
+    await this.assertCanViewMetrics(project, currentUser);
 
     const metrics = await this.metricRepository.findByProjectHash(
       projectHash,
@@ -323,9 +322,13 @@ export class ComponentMetricService {
     if (!issue) {
       throw new Error(`Задача ${data.issue_hash} не найдена`);
     }
-    const project = await this.projectRepository.findByHash(issue.project_hash);
+    const issueProjectHash = issue.project_hash?.trim();
+    if (!issueProjectHash) {
+      throw new Error('Привязки метрик доступны только для задач внутри компонента');
+    }
+    const project = await this.projectRepository.findByHash(issueProjectHash);
     if (!project) {
-      throw new Error(`Компонент ${issue.project_hash} не найден`);
+      throw new Error(`Компонент ${issueProjectHash} не найден`);
     }
     await this.assertCanEditIssueMetrics(project, issue, currentUser);
 
@@ -340,7 +343,7 @@ export class ComponentMetricService {
       if (!metric) {
         throw new Error(`Метрика ${item.metric_hash} не найдена`);
       }
-      if (metric.project_hash !== issue.project_hash.toLowerCase()) {
+      if (metric.project_hash !== issueProjectHash.toLowerCase()) {
         throw new Error(`Метрика ${item.metric_hash} не принадлежит компоненту задачи`);
       }
       if (metric.status === MetricStatus.ARCHIVED) {
@@ -373,14 +376,15 @@ export class ComponentMetricService {
     if (!issue) {
       throw new Error(`Задача ${issueHash} не найдена`);
     }
-    const project = await this.projectRepository.findByHash(issue.project_hash);
+    const issueProjectHash = issue.project_hash?.trim();
+    if (!issueProjectHash) {
+      return [];
+    }
+    const project = await this.projectRepository.findByHash(issueProjectHash);
     if (!project) {
-      throw new Error(`Компонент ${issue.project_hash} не найден`);
+      throw new Error(`Компонент ${issueProjectHash} не найден`);
     }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр привязок метрик');
-    }
+    await this.assertCanViewMetrics(project, currentUser);
     const bindings = await this.bindingRepository.findByIssueHash(issueHash);
     return bindings.map((b) => this.toBindingOutput(b));
   }
@@ -404,7 +408,8 @@ export class ComponentMetricService {
 
     if (data.issue_hash) {
       const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
-      if (!issue || issue.project_hash.toLowerCase() !== metric.project_hash) {
+      const issueProjectHash = issue?.project_hash;
+      if (!issue || !issueProjectHash || issueProjectHash.toLowerCase() !== metric.project_hash) {
         throw new Error('Задача не принадлежит компоненту метрики');
       }
     }
@@ -440,10 +445,7 @@ export class ComponentMetricService {
     if (!project) {
       throw new Error(`Компонент ${metric.project_hash} не найден`);
     }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр журнала вкладов');
-    }
+    await this.assertCanViewMetrics(project, currentUser);
 
     const result = await this.contributionRepository.findByMetricHashPaginated(metricHash, options);
     return {
@@ -469,10 +471,7 @@ export class ComponentMetricService {
     if (!project) {
       throw new Error(`Компонент ${metric.project_hash} не найден`);
     }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр ряда метрики');
-    }
+    await this.assertCanViewMetrics(project, currentUser);
 
     const measure = await this.requireMeasure(metric.measure_hash);
     const period = data.period ?? measure.wave_period ?? MetricSeriesPeriod.WEEK;
@@ -667,10 +666,7 @@ export class ComponentMetricService {
     if (!project) {
       throw new Error(`Проект ${projectHash} не найден`);
     }
-    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
-    if (!permissions.can_view_artifacts && !permissions.has_clearance && !permissions.has_parent_clearance) {
-      throw new Error('Нет прав на просмотр метрики резонанса');
-    }
+    await this.assertCanViewMetrics(project, currentUser);
 
     const period = periodInput ?? MetricSeriesPeriod.WEEK;
     const children = await this.projectRepository.findComponentsByParentHash(projectHash);
@@ -788,6 +784,26 @@ export class ComponentMetricService {
     }
 
     await this.contributionRepository.createMany(contributions);
+  }
+
+  /**
+   * Просмотр метрик: на кооперативных (blockchain) проектах — любому авторизованному;
+   * на LOCAL — только владельцу (can_view_artifacts). Управление по-прежнему через assertCanManageMetrics.
+   */
+  private async assertCanViewMetrics(
+    project: ProjectDomainEntity,
+    currentUser: MonoAccountDomainInterface
+  ): Promise<void> {
+    if (!currentUser?.username) {
+      throw new Error('Нет прав на просмотр метрик компонента');
+    }
+    if (project.origin !== ProjectOrigin.LOCAL) {
+      return;
+    }
+    const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
+    if (!permissions.can_view_artifacts) {
+      throw new Error('Нет прав на просмотр метрик компонента');
+    }
   }
 
   private async assertCanManageMetrics(

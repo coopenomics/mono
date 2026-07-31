@@ -11,6 +11,7 @@ div
 
   CreateProjectDialog(
     ref='dialogRef',
+    :local='props.local',
     @success='handleSuccess'
   )
 </template>
@@ -27,6 +28,8 @@ const props = defineProps<{
    * поэтому страница получает openDialog через колбэк.
    */
   exposeOpen?: (fn: () => void) => void;
+  /** Персональный проект без блокчейна */
+  local?: boolean;
 }>();
 
 const emit = defineEmits<{

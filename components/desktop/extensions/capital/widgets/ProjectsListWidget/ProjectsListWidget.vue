@@ -58,6 +58,7 @@
                 .list-item-title(
                   @click.stop='handleOpenProject(props.row.project_hash)'
                 )
+                  PrivateShieldIcon(:show='props.row.origin === "local"')
                   span {{ props.row.title }}
 
               // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
@@ -95,6 +96,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
 import { getProjectStatusIcon, getProjectStatusDotColor } from 'app/extensions/capital/shared/lib/projectStatus';
 import { isProject } from 'app/extensions/capital/shared/lib/project-utils';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 
 const props = defineProps<{
   coopname?: string;
@@ -105,6 +107,8 @@ const props = defineProps<{
   hasIssuesWithStatuses?: string[];
   hasIssuesWithPriorities?: string[];
   master?: string;
+  /** blockchain | local | any — по умолчанию backend режет blockchain */
+  origin?: string;
 }>();
 
 const { info } = useSystemStore();
@@ -181,6 +185,9 @@ const loadProjects = async (page = 1, append = false) => {
     }
     if (props.master) {
       filter.master = props.master;
+    }
+    if (props.origin) {
+      filter.origin = props.origin;
     }
 
     await projectStore.loadProjects({
@@ -459,7 +466,9 @@ const columns = [
 }
 
 :deep(.list-item-title) {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
   vertical-align: top;
   word-wrap: break-word;
   white-space: normal;

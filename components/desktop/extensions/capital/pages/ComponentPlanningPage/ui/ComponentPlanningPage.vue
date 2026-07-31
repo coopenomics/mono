@@ -1,16 +1,17 @@
 <template lang="pug">
 .planning-page
-  .planning-page__section
-    .planning-page__head(v-if='project')
+  //- Финансовый план — только кооперативные (блокчейн); LOCAL — только метрики
+  .planning-page__section(v-if='project && !isLocalProject')
+    .planning-page__head
       .planning-page__title План · {{ project.title }}
       .planning-page__sub.t-sm.t-muted План и факт по компоненту
     ProjectPlanningWidget(
-      v-if='project',
       :project='project',
       :permissions='permissions'
     )
-    .planning-page__skel(v-else)
-      .skel(v-for='i in 6', :key='i')
+
+  .planning-page__skel(v-else-if='!project')
+    .skel(v-for='i in 6', :key='i')
 
   .planning-page__section(v-if='project')
     ComponentMetricsPanel(:project-hash='project.project_hash')
@@ -38,6 +39,8 @@ const projectStore = useProjectStore();
 const project = ref<IProject | null | undefined>(null);
 
 const projectHash = computed(() => route.params.project_hash as string);
+
+const isLocalProject = computed(() => project.value?.origin === 'local');
 
 const permissions = computed((): IProjectPermissions | null => {
   return project.value?.permissions || null;

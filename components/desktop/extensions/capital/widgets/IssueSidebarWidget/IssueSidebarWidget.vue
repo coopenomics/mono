@@ -36,7 +36,7 @@ div(
         )
 
         MoveIssueButton(
-          v-if='issue && projectHash'
+          v-if='issue && (projectHash || permissions?.can_move_issue || permissions?.can_edit_issue)'
           :issue='issue'
           :project-hash='projectHash'
           :permissions='permissions'
@@ -45,10 +45,10 @@ div(
         ).q-mb-xs
 
         DeleteIssueButton(
-          v-if='issue && projectHash'
+          v-if='issue && permissions?.can_delete_issue'
           :issue-hash='issue.issue_hash'
-          :project-hash='projectHash'
-          :can-delete='permissions?.can_delete_issue ?? false'
+          :project-hash='projectHash || ""'
+          :can-delete='true'
           @deleted='emit("issue-deleted")'
         )
 
@@ -73,7 +73,7 @@ div(
       )
 
       MoveIssueButton(
-        v-if="issue && projectHash"
+        v-if='issue && (projectHash || permissions?.can_move_issue || permissions?.can_edit_issue)'
         :issue='issue'
         :project-hash='projectHash'
         :permissions='permissions'
@@ -82,11 +82,11 @@ div(
       ).q-mt-sm
 
     .capital-sidebar-delete-footer(
-      v-if="issue && projectHash && permissions?.can_delete_issue"
+      v-if="issue && permissions?.can_delete_issue"
     )
       DeleteIssueButton(
         :issue-hash='issue.issue_hash'
-        :project-hash='projectHash'
+        :project-hash='projectHash || ""'
         :can-delete='true'
         @deleted='emit("issue-deleted")'
       )

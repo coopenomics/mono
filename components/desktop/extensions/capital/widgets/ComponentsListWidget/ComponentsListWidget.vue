@@ -56,6 +56,7 @@
               .list-item-title(
                 @click.stop='handleOpenComponent(props.row.project_hash)'
               )
+                PrivateShieldIcon(:show='isLocalRow(props.row)')
                 span {{ props.row.title }}
 
             // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
@@ -98,6 +99,7 @@ import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMast
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 // import { ProjectMenuWidget } from 'app/extensions/capital/widgets/ProjectMenuWidget';
 
 const props = defineProps<{
@@ -156,6 +158,9 @@ watch(() => props.components, (newComponents) => {
     }, 50);
   }
 });
+
+const isLocalRow = (row: IProjectComponent | IProject) =>
+  row.origin === 'local' || props.project?.origin === 'local';
 
 const handleToggleComponent = (componentHash: string) => {
   // Если компонент разворачивается (становится expanded), устанавливаем loading
@@ -329,7 +334,9 @@ const columns = [
 }
 
 :deep(.list-item-title) {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
   vertical-align: top;
   word-wrap: break-word;
   white-space: normal;

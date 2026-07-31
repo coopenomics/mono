@@ -1,11 +1,12 @@
 import { boot } from 'quasar/wrappers';
 import { UpdateAlert } from 'src/shared/api/alerts';
+import { hardReload } from 'src/shared/lib/hardReload';
 
 // Связывает window-событие 'sw:update-available' с канон-тостом. Источник события —
 // version-watch (src/entities/AppVersion) по self-report ноды /version; lifecycle
 // service worker'а как триггер отключён (ненадёжен на iOS standalone и др.).
-// По «Обновить» зовём window.applyUpdate() (SKIP_WAITING → controllerchange → reload,
-// либо прямой reload если waiting-SW нет — см. register-service-worker.ts).
+// По «Обновить» зовём window.applyUpdate() (SKIP_WAITING → controllerchange → hardReload,
+// либо прямой hardReload если waiting-SW нет — см. register-service-worker.ts).
 export default boot(() => {
   if (typeof window === 'undefined') return; // SSR-safe: только клиент
 
@@ -22,7 +23,7 @@ export default boot(() => {
         if (typeof w.applyUpdate === 'function') {
           w.applyUpdate();
         } else {
-          window.location.reload();
+          void hardReload();
         }
       },
       () => {

@@ -1,6 +1,8 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { LogInteractor } from '../use-cases/log.interactor';
 import { LogOutputDTO } from '../dto/logs/log.dto';
 import { GetLogsInputDTO } from '../dto/logs/get-logs.input';
@@ -25,8 +27,11 @@ export class LogResolver {
     name: 'getCapitalProjectLogs',
     description: 'Получить логи событий по проекту с фильтрацией и пагинацией',
   })
-  async getLogs(@Args('data') data: GetLogsInputDTO): Promise<PaginationResult<LogOutputDTO>> {
-    return await this.logInteractor.getLogs(data);
+  async getLogs(
+    @Args('data') data: GetLogsInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<PaginationResult<LogOutputDTO>> {
+    return await this.logInteractor.getLogs(data, currentUser?.username);
   }
 
   /**
@@ -38,8 +43,9 @@ export class LogResolver {
   })
   async getIssueLogs(
     @Args('data') data: GetIssueLogsInputDTO,
-    @Args('options', { nullable: true }) options?: PaginationInputDTO
+    @Args('options', { nullable: true }) options?: PaginationInputDTO,
+    @CurrentUser() currentUser?: MonoAccountDomainInterface
   ): Promise<PaginationResult<LogOutputDTO>> {
-    return await this.logInteractor.getLogsByIssueHash(data.issue_hash, options);
+    return await this.logInteractor.getLogsByIssueHash(data.issue_hash, options, currentUser?.username);
   }
 }
