@@ -79,24 +79,32 @@ export function buildSparseTooltip(opts?: { signed?: boolean }) {
       const name = w.globals.seriesNames[i] ?? '';
       const color = w.globals.colors[i] ?? 'var(--p-primary)';
       let text = formatMetric(v);
-      if (signed && v > 0) text = `+${text}`;
+      if (signed && v > 0) text = '+' + text;
 
       rows.push(
-        `<div style="display:flex;align-items:center;gap:8px;margin-top:4px">` +
-          `<span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>` +
-          `<span style="color:var(--p-ink-2)">${name}</span>` +
-          `<span style="margin-left:auto;font-family:var(--p-mono);color:var(--p-ink)">${text}</span>` +
-          `</div>`,
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">' +
+          '<span style="width:8px;height:8px;border-radius:50%;background:' +
+          color +
+          ';flex-shrink:0"></span>' +
+          '<span style="color:var(--p-ink-2)">' +
+          name +
+          '</span>' +
+          '<span style="margin-left:auto;font-family:var(--p-mono);color:var(--p-ink)">' +
+          text +
+          '</span>' +
+          '</div>',
       );
     }
 
     if (!rows.length) return '';
 
     return (
-      `<div style="padding:8px 10px;background:var(--p-surface);border:1px solid var(--p-line);border-radius:8px;min-width:140px">` +
-      `<div style="font-size:12px;color:var(--p-ink-3);margin-bottom:2px">${label}</div>` +
+      '<div style="padding:8px 10px;background:var(--p-surface);border:1px solid var(--p-line);border-radius:8px;min-width:140px">' +
+      '<div style="font-size:12px;color:var(--p-ink-3);margin-bottom:2px">' +
+      label +
+      '</div>' +
       rows.join('') +
-      `</div>`
+      '</div>'
     );
   };
 }

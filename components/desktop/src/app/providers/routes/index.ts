@@ -12,6 +12,7 @@ import { ResetKeyPage } from 'src/pages/Registrator/ResetKey';
 import { InvitePage } from 'src/pages/Registrator/Invite';
 import { LoginRedirectPage } from 'src/features/User/LoginRedirect';
 import { PrivacyPage } from 'src/pages/Privacy';
+import { TermsPage } from 'src/pages/Terms';
 import { defineComponent, h } from 'vue';
 
 // Dynamic layout wrapper, который определяет layout в runtime
@@ -146,6 +147,15 @@ const baseRoutes: RouteRecordRaw[] = [
         meta: {
           title: 'Политика конфиденциальности',
           icon: 'fa-solid fa-shield-alt',
+        },
+      },
+      {
+        path: '/terms',
+        name: 'terms',
+        component: TermsPage,
+        meta: {
+          title: 'Пользовательское соглашение',
+          icon: 'fa-solid fa-file-contract',
         },
       },
       {
