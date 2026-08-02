@@ -171,12 +171,15 @@ if (!shouldRegisterSW) {
       if (isVerbose)
         console.log('Service Worker зарегистрирован:', registration);
 
+      // Сразу после регистрации ищем новый SW (холодный заход после деплоя).
+      void registration.update();
+
       // Проверяем обновления только при фокусе окна
-      let updateInterval;
+      let updateInterval: ReturnType<typeof setTimeout> | null = null;
 
       const checkForUpdates = () => {
         if (document.visibilityState === 'visible') {
-          registration.update();
+          void registration.update();
         }
       };
 

@@ -291,6 +291,34 @@ module.exports = configure(function (ctx) {
             // skipWaiting:false → Workbox сам инжектит listener SKIP_WAITING.
             cfg.skipWaiting = false;
             cfg.clientsClaim = false;
+
+            // CRITICAL: Quasar SSR+PWA по умолчанию ставит navigateFallback=offline.html.
+            // Workbox тогда на КАЖДУЮ навигацию (даже онлайн) отдаёт offline.html
+            // из precache активного SW — после деплоя холодный заход поднимает
+            // старый App Shell, пока пользователь не сделает hard reload.
+            // Убираем fallback: документ идёт в сеть (свежий SSR). Хешированные
+            // JS/CSS по-прежнему из precache/HTTP-кэша — на скорость ассетов
+            // почти не влияет. Офлайн-shell деградирует (нет сети = нет HTML).
+            delete cfg.navigateFallback;
+            delete cfg.navigateFallbackDenylist;
+
+            // Навигации: сеть первая, в кэш страниц — только как офлайн-запас
+            // после успешного ответа (не stale offline.html из другого релиза).
+            cfg.runtimeCaching = [
+              {
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'navigations',
+                  networkTimeoutSeconds: 5,
+                  expiration: {
+                    maxEntries: 8,
+                    maxAgeSeconds: 24 * 60 * 60,
+                  },
+                },
+              },
+              ...(cfg.runtimeCaching || []),
+            ];
           },
           extendManifestJson(json) {
             json.name = process.env.COOP_SHORT_NAME || 'Цифровой Кооператив';
