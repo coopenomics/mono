@@ -48,6 +48,10 @@ export function SuccessAlert(
         ...(action.text ? { label: action.text } : { icon: action.icon || 'launch' }),
         size: 'sm',
         flat: true,
+        // Заливка --p-primary — CTA не должен теряться рядом с заголовком
+        // (жалоба 2026-08-02: «Добавлено в корзину» и «В корзину» сливались
+        // в одну строку). Стиль — в quasar-canon.css.
+        class: 'q-notification__cta-btn',
         handler: action.handler,
       }
     : null;
@@ -58,9 +62,10 @@ export function SuccessAlert(
     icon: 'check_circle',
     position: POSITION,
     timeout: TIMEOUT_INFO,
-    // Одна строка: иконка + заголовок + CTA + крестик в ряд, без прыгающей
-    // второй строки с разъезжающимися кнопками (multiLine авто-расхождение).
-    multiLine: false,
+    // При наличии CTA-действия переносим его на отдельную строку под
+    // текстом (Quasar multiLine складывает контент и actions в колонку) —
+    // без action остаётся привычная компактная одна строка.
+    multiLine: Boolean(ctaAction),
     actions: ctaAction ? [ctaAction, CLOSE_ACTION] : [CLOSE_ACTION],
   });
 }
