@@ -578,29 +578,6 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
     ).rejects.toThrow(/Назначьте исполнителя/);
   });
 
-  it('addWorklog при hours_per_day=0 не режет по суточному лимиту', async () => {
-    const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
-    issueRepository.findByIssueHash!.mockResolvedValue(
-      makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
-    );
-    contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash', 'voskhod', 0));
-    timeEntryRepository.sumCooperativeHoursByContributorAndDate.mockResolvedValue(0);
-
-    await interactor.addWorklog({
-      username: 'ant',
-      coopname: 'voskhod',
-      issue_hash: 'i1',
-      hours: 3,
-      date: '2026-07-26',
-    });
-
-    expectEntryCreate(timeEntryRepository.create, {
-      contributor_hash: 'ant-hash',
-      hours: 3,
-      entry_type: 'manual',
-    });
-  });
-
   it('startTimer при hours_per_day=0 разрешает старт', async () => {
     const { interactor, timerSessionRepository, contributorRepository, issueRepository, timeEntryRepository } =
       buildInteractor();
@@ -615,17 +592,29 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
     expect(session.issue_hash).toBe('i1');
   });
 
-  it('addWorklog не даёт превысить hours_per_day', async () => {
+  it('addWorklog не режется hours_per_day даже на кооперативном проекте', async () => {
     const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
     issueRepository.findByIssueHash!.mockResolvedValue(
       makeIssue({ issue_hash: 'i1', estimate: 0, status: IssueStatus.IN_PROGRESS, creators: ['ant'] })
     );
     contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
+    // Уже 7 ч из 8 за день — ручная запись всё равно проходит (лимит только у таймера)
     timeEntryRepository.sumCooperativeHoursByContributorAndDate.mockResolvedValue(7);
 
-    await expect(
-      interactor.addWorklog({ username: 'ant', coopname: 'voskhod', issue_hash: 'i1', hours: 2, date: '2026-07-26' })
-    ).rejects.toThrow(/суточный лимит/);
+    await interactor.addWorklog({
+      username: 'ant',
+      coopname: 'voskhod',
+      issue_hash: 'i1',
+      hours: 2,
+      date: '2026-07-26',
+    });
+
+    expectEntryCreate(timeEntryRepository.create, {
+      contributor_hash: 'ant-hash',
+      hours: 2,
+      entry_type: 'manual',
+    });
+    expect(timeEntryRepository.sumCooperativeHoursByContributorAndDate).not.toHaveBeenCalled();
   });
 
   it('startTimer создаёт сессию; повторный start на ту же задачу идемпотентен', async () => {
@@ -776,7 +765,7 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
     });
   });
 
-  it('addWorklog на LOCAL-проекте не режется hours_per_day', async () => {
+  it('addWorklog на LOCAL-проекте создаёт manual-запись', async () => {
     const { interactor, contributorRepository, issueRepository, timeEntryRepository, projectRepository } =
       buildInteractor();
     issueRepository.findByIssueHash!.mockResolvedValue(
@@ -784,7 +773,6 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
     );
     contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
     projectRepository.findByHash!.mockResolvedValue(makeProject({ origin: ProjectOrigin.LOCAL }));
-    timeEntryRepository.sumCooperativeHoursByContributorAndDate.mockResolvedValue(8);
 
     await interactor.addWorklog({
       username: 'ant',
@@ -799,10 +787,9 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
       hours: 3,
       entry_type: 'manual',
     });
-    expect(timeEntryRepository.sumCooperativeHoursByContributorAndDate).not.toHaveBeenCalled();
   });
 
-  it('addWorklog на свободной задаче (пустой project_hash) не режется hours_per_day', async () => {
+  it('addWorklog на свободной задаче (пустой project_hash) создаёт manual-запись', async () => {
     const { interactor, contributorRepository, issueRepository, timeEntryRepository } = buildInteractor();
     issueRepository.findByIssueHash!.mockResolvedValue(
       makeIssue({
@@ -814,7 +801,6 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
       })
     );
     contributorRepository.findByUsernameAndCoopname!.mockResolvedValue(makeContributor('ant', 'ant-hash'));
-    timeEntryRepository.sumCooperativeHoursByContributorAndDate.mockResolvedValue(8);
 
     await interactor.addWorklog({
       username: 'ant',
@@ -829,7 +815,6 @@ describe('TimeTrackingInteractor.addWorklog / timer / trackTime (562-14)', () =>
       hours: 4,
       entry_type: 'manual',
     });
-    expect(timeEntryRepository.sumCooperativeHoursByContributorAndDate).not.toHaveBeenCalled();
   });
 
   it('startTimer на LOCAL при исчерпанном coop-лимите разрешён', async () => {

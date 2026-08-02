@@ -225,7 +225,9 @@ export class TimeTrackingInteractor {
 
   /**
    * Ручной worklog: явная запись факта на текущего исполнителя задачи.
-   * Не больше остатка суточного лимита (hours_per_day) по кооперативным проектам.
+   * Суточный лимит hours_per_day здесь не применяется — он только у таймера
+   * (start / stop / авто-стоп). Ручная запись может быть ретроспективной
+   * (вчера, позавчера, массовая разметка за месяцы).
    */
   async addWorklog(input: {
     username: string;
@@ -241,19 +243,6 @@ export class TimeTrackingInteractor {
 
     const { issue, contributor } = await this.requireIssueAndCreator(input.username, input.coopname, input.issue_hash);
     const date = input.date || new Date().toISOString().split('T')[0];
-    const project = issue.project_hash
-      ? await this.projectRepository.findByHash(issue.project_hash)
-      : null;
-
-    if (!isPersonalTimeScope(project, issue.project_hash)) {
-      const remaining = await this.getRemainingDailyHours(contributor, date);
-      if (hours > remaining + HOURS_FLOAT_EPSILON) {
-        const limit = this.getHoursPerDayLimit(contributor);
-        throw new Error(
-          `Превышен суточный лимит (${limit} ч). Сегодня ещё доступно ${this.roundHours(remaining)} ч по кооперативным проектам.`
-        );
-      }
-    }
 
     return this.timeEntryRepository.create(
       new TimeEntryDomainEntity({

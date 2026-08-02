@@ -476,18 +476,33 @@ Path: ~/.claude/config/blago/templates/{имя}.md
 
 ### issue (`issues/<issue_id>-<slug>.md` — уникальность по человекочитаемому id задачи)
 
-Порядок: **type**, **id**, **title** (название задачи), затем **project_title** / **component_title**; далее **status**, **priority**, **estimate**, **creators**, **labels**, **cycle_id**, **submaster**; внизу **hash** и **project_hash** перед датами.
+Порядок: **type**, **id**, **title** (название задачи), затем **project_title** / **component_title**; далее **status**, **priority**, **estimate**, **creators**, **fact_hours**, **labels**, **cycle_id**, **submaster**; внизу **hash** и **project_hash** перед датами.
 
 - **type:** issue
 - **id** — человекочитаемый ID задачи (PREFIX-N) или запасной идентификатор
 - **title** — название задачи (выше контекста проекта)
 - **project_title** — корневой проект
 - **component_title** — компонент, если есть
-- **status**, **priority**, **estimate** (число), **creators** (массив строк), **labels** (массив строк)
+- **status**, **priority**, **estimate** (число), **creators** (массив строк)
+- **fact_hours** — фактические часы по исполнителям (массив `{ username, hours }`). На **pull** подтягивается с сервера. На **push**: если у username в файле часов больше, чем на сервере — добавляется дельта через `capitalAddWorklog` (урезание не поддерживается). Username должен быть в **creators**. Ключ можно не указывать — тогда факт при push не трогается.
+- **labels** (массив строк)
 - опционально: **cycle_id**, **submaster**
 - **hash**, **project_hash** — перед **created_at** / **updated_at**
 - Поля **created_by** и **sort_order** в файле не выводятся; при push **sort_order** на сервер уходит как 0, если в YAML нет
 - Тело: описание задачи
+
+Пример **fact_hours**:
+
+```yaml
+creators:
+  - ant
+  - petr
+fact_hours:
+  - username: ant
+    hours: 5
+  - username: petr
+    hours: 3
+```
 
 ### story (`requirements/<2chars_id>-<slug>.md` или `issues/<issue_id>-<issueSlug>-requirements/<2chars_id>-<slug>.md` — первые 2 буквенно-цифровых символа из `_id`)
 
