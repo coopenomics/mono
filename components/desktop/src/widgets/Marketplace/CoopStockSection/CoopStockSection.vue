@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { date } from 'quasar';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseCard,
+  BaseDialog,
+  BaseInput,
+  EmptyState,
+  TableSkeleton,
+  type TableSkeletonColumn,
+} from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
@@ -21,9 +30,24 @@ import {
  * Зарезервированные под заказы со склада позиции показываются, но не трогаются.
  */
 
+// Раздел живёт под собственным табом на складе КУ (не карточкой, которая
+// то появляется, то исчезает в зависимости от наличия остатков — жалоба
+// 2026-08-02), поэтому наружу отдаём счётчик для бейджа таба.
+const emit = defineEmits<{ (e: 'count', value: number): void }>();
+
 const items = ref<MarketplaceInventoryItemView[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 const selected = ref<Set<string>>(new Set());
+watch(items, (v) => emit('count', v.length), { immediate: true });
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { cell: 'icon', width: '40px' },
+  { label: 'Товар', cell: 'text' },
+  { label: 'Кол-во', class: 'num', cell: 'text', cellWidth: '80px' },
+  { label: 'Цена прибытия', class: 'num', cell: 'text', cellWidth: '100px' },
+  { label: 'Годен до', cell: 'text', cellWidth: '100px' },
+  { label: 'Состояние', cell: 'badge' },
+];
 
 const publishDialogOpen = ref(false);
 const publishPrice = ref('');
@@ -134,7 +158,21 @@ async function unpublishSelected(): Promise<void> {
 </script>
 
 <template lang="pug">
-BaseCard.coop-stock(v-if='loading || items.length')
+TableSkeleton(
+  v-if='loading && !items.length',
+  :columns='skeletonColumns',
+  :rows='4'
+)
+
+EmptyState(
+  v-else-if='!items.length',
+  title='Остатков нет',
+  body='Здесь появятся обезличенные позиции склада после недовыдач и отказов от получения.'
+)
+  template(#icon)
+    q-icon(name='warehouse', size='48px')
+
+BaseCard.coop-stock(v-else)
   template(#head)
     .coop-stock__head
       q-icon(name='warehouse', size='22px')
