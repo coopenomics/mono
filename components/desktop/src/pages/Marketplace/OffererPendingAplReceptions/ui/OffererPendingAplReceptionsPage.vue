@@ -17,7 +17,7 @@ import {
 import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
 /**
- * Offerer-стол «Подпись приёмки»: поставщик подтверждает факт приёмки первой
+ * Offerer-стол «Подпись передачи»: поставщик подтверждает факт приёмки первой
  * подписью (on-chain `signsupp`), после чего акт уходит на закрывающую подпись
  * председателя КУ.
  *
@@ -141,7 +141,7 @@ const showLoader = computed(() => loading.value && !items.value.length);
 </script>
 
 <template lang="pug">
-q-page.offerer-apl(role='region', aria-label='Подпись приёмки')
+q-page.offerer-apl(role='region', aria-label='Подпись передачи')
   PageHint(storage-key='mp:offerer-apl:banner-dismissed')
     | Поставки, по которым ждут вашу подпись. Подписывая поставку, вы
     | подтверждаете факт приёмки — затем она уходит на закрывающую подпись

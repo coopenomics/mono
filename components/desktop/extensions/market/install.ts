@@ -430,7 +430,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-apl-receptions',
               component: markRaw(OffererPendingAplReceptionsPage),
               meta: {
-                title: 'Подпись приёмки',
+                title: 'Подпись передачи',
                 icon: 'fa-solid fa-file-signature',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
