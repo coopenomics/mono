@@ -28,7 +28,7 @@ export interface ZeroReportOrganizationShape {
   orgName: string;
   inn: string;
   kpp: string;
-  /** ОКТМО — обязателен для NDFL6/DUSN/UUSN (в СвНП). */
+  /** ОКТМО — обязателен для NDFL6/DUSN/UUSN/RSV (в СвНП / ОбязПлатСВ). */
   oktmo: string | null;
   /** ОКВЭД — для ЕФС-1 (УТ8:КодПоОКВЭД). */
   okved: string | null;
@@ -38,6 +38,8 @@ export interface ZeroReportOrganizationShape {
   /** ОГРН — для ЕФС-1 (ЕФС8:ОГРН). */
   ogrn: string | null;
   address: string | null;
+  /** Контактный телефон — СвНП @Тлф (обязателен для RSV/PSV при приёме ФНС). */
+  phone: string | null;
 }
 
 export interface ZeroReportSignerShape {

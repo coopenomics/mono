@@ -91,7 +91,10 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
     { key: 'okopf', label: 'ОКОПФ', source: 'manual' },
   ],
   [ReportType.NDFL6]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
-  [ReportType.RSV]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
+  [ReportType.RSV]: [
+    { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
+    { key: 'phone', label: 'Телефон', source: 'database' },
+  ],
   [ReportType.DUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
   [ReportType.FSS4]: [
     { key: 'oktmo', label: 'ОКТМО', source: 'manual' },
@@ -99,7 +102,10 @@ const REQUIRED_BY_TYPE: Record<ReportType, RequiredFieldSpec[]> = {
     { key: 'pfrRegNumber', label: 'Регистрационный номер в ПФР', source: 'manual' },
     { key: 'chairmanPosition', label: 'Должность руководителя', source: 'manual' },
   ],
-  [ReportType.PSV]: [{ key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' }],
+  [ReportType.PSV]: [
+    { key: 'signerSnils', label: 'СНИЛС подписанта', source: 'manual' },
+    { key: 'phone', label: 'Телефон', source: 'database' },
+  ],
   [ReportType.UV_VZNOSY]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
   [ReportType.UUSN]: [{ key: 'oktmo', label: 'ОКТМО', source: 'manual' }],
 };
@@ -142,7 +148,9 @@ export class ReportRequisitesService {
       inn: db(org?.details?.inn),
       kpp: db(org?.details?.kpp),
       ogrn: db(org?.details?.ogrn),
-      orgName: db(org?.full_name || org?.short_name),
+      // Для ФНС в НаимОрг нужно краткое наименование (ПК «…»), полное
+      // отклоняют. См. Корректировки_отчетов/ПСВ|РСВ README.
+      orgName: db(org?.short_name || org?.full_name),
       address,
       phone,
       signerLastName: db(org?.represented_by?.last_name),

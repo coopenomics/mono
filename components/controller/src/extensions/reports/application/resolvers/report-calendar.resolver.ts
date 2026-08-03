@@ -64,7 +64,7 @@ export class ReportCalendarResolver {
     description:
       'Матрица отчётов × периодов для календарного виджета. ' +
       'year = календарный год сдачи (когда приходит дедлайн). Для ячеек с ' +
-      'dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) ' +
+      'dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) ' +
       'reportYear = year - 1 — именно он возвращается в периоде.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
@@ -169,7 +169,7 @@ export class ReportCalendarResolver {
     const periods: ReportCalendarPeriodEntryDTO[] = form.periods.map((p) => {
       // dueYearOffset=0 — отчёт ЗА displayYear сдаётся в displayYear.
       // dueYearOffset=1 — отчёт ЗА displayYear-1 сдаётся в displayYear
-      // (Q4 кварталок, годовая БУХОТЧ, декабрь ПСВ).
+      // (Q4 кварталок, годовая БУХОТЧ).
       const reportYear = displayYear - p.dueYearOffset;
       const dueDate = calcDueDate(reportYear, p);
       const key = makeKey(form.reportType, p.periodCode, reportYear);

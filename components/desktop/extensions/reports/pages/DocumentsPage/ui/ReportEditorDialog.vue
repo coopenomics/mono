@@ -482,6 +482,7 @@ interface ZeroReportEdits {
     okpo: string | null
     ogrn: string | null
     address: string | null
+    phone: string | null
   }
   signer: {
     type: 'chairman' | 'representative'

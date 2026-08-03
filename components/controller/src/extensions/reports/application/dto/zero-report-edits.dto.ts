@@ -146,6 +146,12 @@ export class ZeroReportOrganizationEditsInputDTO {
   @IsString()
   @Length(1, 255)
   address!: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Контактный телефон (СвНП @Тлф)' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 20)
+  phone!: string | null;
 }
 
 @ObjectType('ZeroReportOrganizationEdits')
@@ -160,6 +166,7 @@ export class ZeroReportOrganizationEditsDTO {
   @Field(() => String, { nullable: true }) okpo!: string | null;
   @Field(() => String, { nullable: true }) ogrn!: string | null;
   @Field(() => String, { nullable: true }) address!: string | null;
+  @Field(() => String, { nullable: true }) phone!: string | null;
 }
 
 // =============================================================

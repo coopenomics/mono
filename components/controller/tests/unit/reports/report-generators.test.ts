@@ -183,7 +183,7 @@ const zeroBaseEdits: ZeroReportEditsShape = {
     correctionNumber: 0,
   },
   organization: {
-    orgName: 'Потребительский Кооператив "Ромашка"',
+    orgName: 'ПК "Ромашка"',
     inn: '7701234567',
     kpp: '770101001',
     oktmo: '45000000',
@@ -193,6 +193,7 @@ const zeroBaseEdits: ZeroReportEditsShape = {
     okpo: '12345678',
     ogrn: '1237700000001',
     address: '101000, Москва г, ул. Тестовая, д. 1',
+    phone: '79001234567',
   },
   signer: {
     type: 'representative',
@@ -441,8 +442,21 @@ describe('РСВ (RsvGenerator)', () => {
     expect(result.xml).toContain('ПоМесту="214"');
   });
 
-  it('<РасчетСВ/> — пустой self-closing (нулевой отчёт)', () => {
-    expect(gen.generate(withPeriod(1)).xml).toMatch(/<РасчетСВ\s*\/>/);
+  it('<СвНП> несёт СрЧисл=0 и Тлф (обязательны при приёме ФНС)', () => {
+    const xml = gen.generate(withPeriod(1)).xml;
+    expect(xml).toMatch(/<СвНП[^>]*СрЧисл="0"/);
+    expect(xml).toMatch(/<СвНП[^>]*Тлф="79001234567"/);
+  });
+
+  it('<РасчетСВ> содержит ОбязПлатСВ с нулевыми УплПерОПС/УплПерОПСДоп', () => {
+    const xml = gen.generate(withPeriod(1)).xml;
+    expect(xml).toContain('<ОбязПлатСВ');
+    expect(xml).toMatch(/ТипПлат="2"/);
+    expect(xml).toMatch(/ОКТМО="45000000"/);
+    expect(xml).toMatch(/<УплПерОПС[^>]*КБК="18210201000011000160"/);
+    expect(xml).toMatch(/<УплПерОПСДоп[^>]*КБК="18210204010011010160"/);
+    expect(xml).toMatch(/СумСВУплПер="0"/);
+    expect(xml).not.toMatch(/<РасчетСВ\s*\/>/);
   });
 
   it('<СвПред> представителя несёт НаимОрг (особенность РСВ)', () => {
@@ -486,6 +500,10 @@ describe('ПСВ (PsvGenerator)', () => {
     expect(result.xml).toContain('<ПерсСвФЛ');
     expect(result.xml).toContain('СНИЛС="123-456-789 00"');
     expect(result.xml).toContain('СумВыпл="0"');
+  });
+
+  it('<СвНП> несёт Тлф (обязателен при приёме ФНС)', () => {
+    expect(gen.generate(withPeriod(1)).xml).toMatch(/<СвНП[^>]*Тлф="79001234567"/);
   });
 
   it('эхом возвращает header.idFile в result.fileName', () => {
@@ -766,15 +784,17 @@ describe('Сверка с эталонами (ПК "Ромашка", санит�
     }
   });
 
-  it('RSV: тот же КНД/ВерсФорм и <РасчетСВ/>', async () => {
+  it('RSV: тот же КНД/ВерсФорм и структура ОбязПлатСВ', async () => {
     const ref = await readReference('NO_RASCHSV_romashka.xml');
     const ours = new RsvGenerator().generate(withPeriod(1));
     for (const attr of ['КНД="1151111"', 'ВерсФорм="5.08"']) {
       expect(ref).toContain(attr);
       expect(ours.xml).toContain(attr);
     }
-    expect(ref).toMatch(/<РасчетСВ\s*\/>/);
-    expect(ours.xml).toMatch(/<РасчетСВ\s*\/>/);
+    expect(ref).toContain('<ОбязПлатСВ');
+    expect(ours.xml).toContain('<ОбязПлатСВ');
+    expect(ref).toMatch(/СрЧисл="0"/);
+    expect(ours.xml).toMatch(/СрЧисл="0"/);
   });
 
   it('DUSN: тот же КНД/ВерсФорм/ПоМесту и структура РасчНал1', async () => {

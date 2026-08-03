@@ -6,8 +6,9 @@ import { ReportType } from '../enums/report-type.enum';
  * Источники:
  * - ФНС (6-НДФЛ): ФЗ №540-ФЗ от 27.11.2023, сроки п.2 ст.230 НК РФ с 2024 г.
  * - РСВ: ст.431 НК РФ — до 25-го числа месяца следующего за отчётным периодом.
- * - ПСВ: ст.431 НК РФ — до 25-го числа каждого месяца, кроме последнего
- *   месяца каждого квартала (т.к. за эти месяцы РСВ).
+ * - ПСВ: ст.431 НК РФ — до 25-го числа месяца, следующего за отчётным;
+ *   за последний месяц квартала (март/июнь/сент/дек) не сдаём — данные
+ *   закрывает разд. 3 РСВ (письма ФНС БС-4-11/2593@, БС-4-11/3700@).
  * - БУХОТЧ: ст.18 402-ФЗ — не позднее 3 месяцев после окончания года.
  * - ЕФС-1 ОСС: приказ СФР №1462 от 17.11.2025 — ежеквартально до 25-го.
  *
@@ -61,30 +62,28 @@ const RUSSIAN_MONTHS = [
 ];
 
 /**
- * ПСВ — ежемесячная форма: 12 записей, по одной на каждый месяц года.
+ * ПСВ — ежемесячная форма, но без последних месяцев квартала
+ * (март/июнь/сент/дек): за них данные закрывает разд. 3 РСВ, а ФНС
+ * отклоняет ПСВ при наложении сроков с РСВ. Остаётся 8 периодов.
  * Срок сдачи — до 25-го числа месяца, следующего за отчётным (ст.431 НК РФ).
- * Для декабря срок сдачи уходит на 25 января следующего года (dueYearOffset=1).
- *
- * Замечание: по приказу ФНС № ЕД-7-11/878@ за последние месяцы квартала
- * (м3/м6/м9/м12) ПСВ можно не сдавать, т.к. данные закрываются РСВ —
- * но это опциональное послабление, не отсутствие формы. На календаре
- * показываем все 12 ячеек; если пользователь решит, что март/июнь/сент/дек
- * закроются через РСВ, он отметит эти ячейки «Не надо сдавать».
  */
 function psvEntries(): CalendarPeriodEntry[] {
-  return Array.from({ length: 12 }, (_, i) => {
-    const reportMonth = i + 1;
-    const nextMonth = reportMonth + 1;
-    const dueMonth = nextMonth > 12 ? 1 : nextMonth;
-    const dueYearOffset: 0 | 1 = nextMonth > 12 ? 1 : 0;
-    return {
-      periodCode: reportMonth,
-      label: RUSSIAN_MONTHS[reportMonth - 1] ?? String(reportMonth),
-      dueMonth,
-      dueDay: 25,
-      dueYearOffset,
-    };
-  });
+  // Последний месяц квартала закрывается РСВ — в календарь не включаем.
+  const skipMonths = new Set([3, 6, 9, 12]);
+  return Array.from({ length: 12 }, (_, i) => i + 1)
+    .filter((reportMonth) => !skipMonths.has(reportMonth))
+    .map((reportMonth) => {
+      const nextMonth = reportMonth + 1;
+      const dueMonth = nextMonth > 12 ? 1 : nextMonth;
+      const dueYearOffset: 0 | 1 = nextMonth > 12 ? 1 : 0;
+      return {
+        periodCode: reportMonth,
+        label: RUSSIAN_MONTHS[reportMonth - 1] ?? String(reportMonth),
+        dueMonth,
+        dueDay: 25,
+        dueYearOffset,
+      };
+    });
 }
 
 export const REPORTS_CALENDAR_REGISTRY: CalendarFormEntry[] = [

@@ -226,6 +226,7 @@ export class ReportEditsBuilderService {
         okpo: merged.okpo.value,
         ogrn: merged.ogrn.value,
         address: merged.address.value,
+        phone: merged.phone.value,
       },
       signer: {
         type: signerTypeValue,
