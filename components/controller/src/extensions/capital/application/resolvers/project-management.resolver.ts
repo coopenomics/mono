@@ -52,6 +52,22 @@ export class ProjectManagementResolver {
   }
 
   /**
+   * Персональный проект/компонент — только в базе, без публикации в блокчейн
+   */
+  @Mutation(() => ProjectOutputDTO, {
+    name: 'capitalCreateLocalProject',
+    description: 'Создание персонального проекта или компонента без публикации в блокчейн',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman', 'member', 'user'])
+  async createCapitalLocalProject(
+    @Args('data', { type: () => CreateProjectInputDTO }) data: CreateProjectInputDTO,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
+  ): Promise<ProjectOutputDTO> {
+    return await this.projectManagementService.createLocalProject(data, currentUser);
+  }
+
+  /**
    * Мутация для редактирования проекта в CAPITAL контракте
    */
   @Mutation(() => TransactionDTO, {

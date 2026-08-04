@@ -38,7 +38,6 @@ import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import {
   CommitDomainEntity,
-  type ICommitContributionFeedbackData,
   type ICommitGitData,
 } from '../../domain/entities/commit.entity';
 import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/story.repository';
@@ -463,14 +462,22 @@ export class ResultSubmissionService {
                 diffHtmlBlocks.push(`<div class="commit-content">\n${this.renderGitDiffHtml(gitData)}\n</div>`);
                 break;
               }
-              case 'contribution_feedback': {
-                const fb = content.data as ICommitContributionFeedbackData;
-                const reviewPart = fb.review_text.trim()
-                  ? `<p><strong>Отзыв:</strong> ${this.escapeHtml(fb.review_text).replace(/\n/g, '<br/>')}</p>`
-                  : '';
-                diffHtmlBlocks.push(
-                  `<div class="commit-content contribution-feedback"><p><strong>Оценка работы:</strong> ${this.escapeHtml(String(fb.satisfaction_stars))} / 5</p>${reviewPart}</div>`
-                );
+              // Оценка и отзыв — только на коммите для приёмки мастером, не в юридический РИД
+              case 'contribution_feedback':
+                break;
+              case 'committed_issues': {
+                const issues = (content.data as { issues?: Array<{ title?: string; issue_hash?: string }> })?.issues;
+                if (issues?.length) {
+                  const items = issues
+                    .map((issue) => {
+                      const title = this.escapeHtml(issue.title?.trim() || issue.issue_hash || 'Задача');
+                      return `<li>${title}</li>`;
+                    })
+                    .join('');
+                  diffHtmlBlocks.push(
+                    `<div class="commit-content committed-issues"><p><strong>Задачи:</strong></p><ul>${items}</ul></div>`
+                  );
+                }
                 break;
               }
               default: {

@@ -29,6 +29,10 @@ type OnboardingHashKey =
   | 'onboarding_blagorost_provision_hash'
   | 'onboarding_blagorost_offer_template_hash';
 
+type CapitalOnboardingConfig = IConfig &
+  Partial<Record<OnboardingFlagKey, boolean>> &
+  Partial<Record<OnboardingHashKey | 'onboarding_init_at' | 'onboarding_expire_at' | 'capital_program_doc_data_hash', string>>;
+
 @Injectable()
 export class CapitalOnboardingService {
   constructor(
@@ -88,32 +92,65 @@ export class CapitalOnboardingService {
     }
   }
 
-  private async loadPlugin(): Promise<ExtensionDomainEntity<IConfig & Record<string, any>>> {
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private getMetaString(meta: unknown, key: string): string | undefined {
+    if (!this.isRecord(meta)) return undefined;
+    const value = meta[key];
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private isSignatureInfo(value: unknown): value is ISignedDocumentDomainInterface['signatures'][number] {
+    if (!this.isRecord(value)) return false;
+
+    return (
+      typeof value.id === 'number' &&
+      typeof value.signed_hash === 'string' &&
+      typeof value.signer === 'string' &&
+      typeof value.public_key === 'string' &&
+      typeof value.signature === 'string' &&
+      typeof value.signed_at === 'string' &&
+      typeof value.meta === 'string'
+    );
+  }
+
+  private getMetaSignatures(meta: unknown): ISignedDocumentDomainInterface['signatures'] {
+    if (!this.isRecord(meta)) return [];
+    const value = meta.signatures;
+    return Array.isArray(value) ? value.filter((item) => this.isSignatureInfo(item)) : [];
+  }
+
+  private async loadPlugin(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
     const plugin = await this.extensionRepository.findByName('capital');
     if (!plugin) throw new Error('Конфигурация расширения capital не найдена');
-    const pluginConfig = { ...plugin.config } as IConfig & Record<string, any>;
+    const pluginConfig: CapitalOnboardingConfig = { ...plugin.config };
 
-    let needUpdate = false;
+    const patch: Partial<CapitalOnboardingConfig> = {};
     if (!pluginConfig.onboarding_init_at) {
       pluginConfig.onboarding_init_at = new Date().toISOString();
-      needUpdate = true;
+      patch.onboarding_init_at = pluginConfig.onboarding_init_at;
     }
 
     if (!pluginConfig.onboarding_expire_at) {
       const start = new Date(pluginConfig.onboarding_init_at);
       pluginConfig.onboarding_expire_at = computeOnboardingExpiresAt(start);
-      needUpdate = true;
+      patch.onboarding_expire_at = pluginConfig.onboarding_expire_at;
     }
 
-    if (needUpdate) {
-      await this.extensionRepository.update({ ...plugin, config: pluginConfig });
-      return { ...plugin, config: pluginConfig };
+    if (Object.keys(patch).length > 0) {
+      // Точечный merge только изменившихся полей — полная перезапись config
+      // целиком (как раньше) конкурирует с параллельными записями других шагов
+      // онбординга (флаги, хэши) и теряет их изменения (lost update).
+      const updated = await this.extensionRepository.patchConfig('capital', patch);
+      return { ...plugin, config: updated.config };
     }
 
     return { ...plugin, config: pluginConfig };
   }
 
-  private buildState(pluginConfig: IConfig & Record<string, any>): CapitalOnboardingStateDTO {
+  private buildState(pluginConfig: CapitalOnboardingConfig): CapitalOnboardingStateDTO {
     return {
       generator_program_template_done: !!pluginConfig.onboarding_generator_program_template_done,
       onboarding_generator_program_template_hash: pluginConfig.onboarding_generator_program_template_hash || null,
@@ -125,6 +162,7 @@ export class CapitalOnboardingService {
       onboarding_blagorost_provision_hash: pluginConfig.onboarding_blagorost_provision_hash || null,
       blagorost_offer_template_done: !!pluginConfig.onboarding_blagorost_offer_template_done,
       onboarding_blagorost_offer_template_hash: pluginConfig.onboarding_blagorost_offer_template_hash || null,
+      capital_program_doc_data_hash: pluginConfig.capital_program_doc_data_hash || null,
       onboarding_init_at: pluginConfig.onboarding_init_at || '',
       onboarding_expire_at: pluginConfig.onboarding_expire_at || '',
     };
@@ -135,13 +173,28 @@ export class CapitalOnboardingService {
     return this.buildState(plugin.config);
   }
 
+  public async saveProgramDocDataHash(docDataHash: string): Promise<CapitalOnboardingStateDTO> {
+    await this.loadPlugin();
+    const normalizedHash = docDataHash.trim();
+
+    if (!normalizedHash) {
+      throw new Error('Hash PrivateData документов ЦПП не может быть пустым');
+    }
+
+    const updated = await this.extensionRepository.patchConfig('capital', {
+      capital_program_doc_data_hash: normalizedHash,
+    } as Partial<CapitalOnboardingConfig>);
+
+    return this.buildState(updated.config as CapitalOnboardingConfig);
+  }
+
   public async completeStep(data: CapitalOnboardingStepInputDTO, username: string): Promise<CapitalOnboardingStateDTO> {
     const plugin = await this.loadPlugin();
     const flagKey = this.mapStepToFlag(data.step);
     const hashKey = this.mapStepToHash(data.step);
     const normalizedTitle = data.title?.trim().substring(0, 200) || undefined;
 
-    if ((plugin.config as any)[flagKey]) {
+    if (plugin.config[flagKey]) {
       return this.buildState(plugin.config);
     }
     const project_id = uuid();
@@ -168,12 +221,12 @@ export class CapitalOnboardingService {
 
     // Публикуем проект решения в блокчейн сразу после генерации
     const documentForPublish: ISignedDocumentDomainInterface = {
-      version: (generatedDoc.meta as any)?.version || '1.0',
+      version: this.getMetaString(generatedDoc.meta, 'version') || '1.0',
       hash: generatedDoc.hash,
-      doc_hash: (generatedDoc.meta as any)?.doc_hash || generatedDoc.hash,
-      meta_hash: (generatedDoc.meta as any)?.meta_hash || generatedDoc.hash,
+      doc_hash: this.getMetaString(generatedDoc.meta, 'doc_hash') || generatedDoc.hash,
+      meta_hash: this.getMetaString(generatedDoc.meta, 'meta_hash') || generatedDoc.hash,
       meta: generatedDoc.meta,
-      signatures: (generatedDoc.meta as any)?.signatures || [],
+      signatures: this.getMetaSignatures(generatedDoc.meta),
     };
 
     await this.freeDecisionPort.publishProjectOfFreeDecision({
@@ -183,12 +236,12 @@ export class CapitalOnboardingService {
       document: documentForPublish,
     });
 
-    // Сохраняем hash в конфиге для отображения на фронтенде
-    const updatedConfig = {
-      ...plugin.config,
+    // Сохраняем hash в конфиге для отображения на фронтенде — точечный merge
+    // (не полная перезапись config), чтобы не потерять конкурентно записанные
+    // флаги/хэши других шагов онбординга (lost update на общем jsonb-блобе).
+    const updated = await this.extensionRepository.patchConfig('capital', {
       [hashKey]: generatedDoc.hash,
-    };
-    await this.extensionRepository.update({ ...plugin, config: updatedConfig });
+    } as Partial<CapitalOnboardingConfig>);
 
     // Регистрируем правило отслеживания в фабрике
     const varsField = this.mapStepToVarsField(data.step);
@@ -204,6 +257,6 @@ export class CapitalOnboardingService {
       },
     });
 
-    return this.buildState(updatedConfig);
+    return this.buildState(updated.config as CapitalOnboardingConfig);
   }
 }

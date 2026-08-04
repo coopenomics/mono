@@ -47,7 +47,7 @@ export interface ReportInput {
   correctionNumber?: number;
   /** СНИЛС председателя (для ПСВ) */
   signerSnils?: string;
-  /** Регистрационный номер страхователя в СФР/ПФР (для ЕФС-1). */
+  /** Регистрационный номер страхователя в СФР (для ЕФС-1). Legacy-путь — актуальные генераторы берут ZeroReportSignerShape.pfrRegNumber отдельно. */
   sfrRegNumber?: string;
   /** Должность руководителя для подачи в СФР (по умолчанию «Председатель Совета»). */
   chairmanPosition?: string;

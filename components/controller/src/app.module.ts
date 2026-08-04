@@ -76,6 +76,7 @@ import { UserModule } from './application/user/user.module';
 import { TokenApplicationModule } from './application/token/token-application.module';
 import { SettingsApplicationModule } from './application/settings/settings.module';
 import { RegistrationModule } from './application/registration/registration.module';
+import { MembershipExitModule } from './application/membership-exit/membership-exit.module';
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { SearchModule } from './application/search/search.module';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
@@ -169,6 +170,7 @@ import { MutationLoggingInterceptor } from './application/common/interceptors/mu
     TokenApplicationModule,
     SettingsApplicationModule,
     RegistrationModule,
+    MembershipExitModule,
     OnboardingApplicationModule,
     SearchModule,
     SignedDocumentsModule,

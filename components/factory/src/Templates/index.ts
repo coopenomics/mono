@@ -6,6 +6,8 @@ export * as CoopenomicsAgreement from './50.CoopenomicsAgreement'
 export * as ConvertToAxonStatement from './51.ConvertToAxonStatement'
 export * as ParticipantApplication from './100.ParticipantApplication'
 export * as DecisionOfParticipantApplication from './501.DecisionOfParticipantApplication'
+export * as ParticipantExitApplication from './200.ParticipantExitApplication'
+export * as DecisionOfParticipantExit from './201.DecisionOfParticipantExit'
 export * as SelectBranchStatement from './101.SelectBranchStatement'
 export * as ProjectFreeDecision from './599.ProjectFreeDecision'
 export * as FreeDecision from './600.FreeDecision'
@@ -40,6 +42,10 @@ export * as InitProjectDecision from './1006.InitProjectDecision'
 
 export * as ExpenseStatement from './1010.ExpenseStatement'
 export * as ExpenseDecision from './1011.ExpenseDecision'
+
+// Шасси расходов (волна 6, MVP-SINGLE) — C28-30
+export * as ExpenseProposalStatement from './2010.ExpenseProposalStatement'
+export * as ExpenseProposalDecision from './2011.ExpenseProposalDecision'
 
 export * as GenerationMoneyInvestStatement from './1020.GenerationMoneyInvestStatement'
 export * as GenerationMoneyReturnUnusedStatement from './1025.GenerationMoneyReturnUnusedStatement'

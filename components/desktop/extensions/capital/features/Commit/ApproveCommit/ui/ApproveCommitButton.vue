@@ -1,12 +1,10 @@
 <template lang="pug">
-q-btn(
-  color='positive',
-  @click='handleApproveCommit',
+BaseButton(
+  variant='primary',
+  :size='mini || isMobile ? "sm" : "md"',
   :loading='loading',
-  label="Одобрить",
-  :size='mini ? "sm" : "md"',
-  :dense="isMobile"
-)
+  @click.stop='handleApproveCommit'
+) Одобрить
 </template>
 
 <script setup lang="ts">
@@ -14,6 +12,7 @@ import { ref } from 'vue';
 import { useApproveCommit } from '../model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
+import { BaseButton } from 'src/shared/ui/base';
 import { useWindowSize } from 'src/shared/hooks';
 
 const { isMobile } = useWindowSize();

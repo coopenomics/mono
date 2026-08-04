@@ -31,7 +31,7 @@ docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/
 # `getaddrinfo EAI_AGAIN monoredis` → MaxRetriesPerRequestError → nodemon crash,
 # и провайдер не может взять org-данные partner1 (PROVIDER_URL=coopback:2998).
 echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres monoredis
+docker compose up -d mongo postgres monoredis minio
 
 # Ждем готовности MongoDB (standalone, ping вместо ожидания PRIMARY).
 echo "Ждем готовности MongoDB..."
@@ -48,6 +48,14 @@ until docker compose exec -T postgres pg_isready -U postgres -d voskhod > /dev/n
   sleep 2
 done
 echo "PostgreSQL готов!"
+
+# Ждем готовности MinIO
+echo "Ждем готовности MinIO..."
+until docker compose exec -T minio curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; do
+  echo "MinIO еще не готов, ждем..."
+  sleep 2
+done
+echo "MinIO готов!"
 
 # Запускаем boot процесс (расширенный: совет + пайщики; partner1 — при EXTRA_RENT=1)
 echo "Запускаем boot процесс..."

@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  DocumentHtmlReader(:html="privacyPolicyHtml")
-
+  .agreement-pending.t-body(v-if='isPending') Документ на утверждении советом.
+  DocumentHtmlReader(v-else :html='privacyPolicyHtml')
 </template>
 
 <script setup lang="ts">
@@ -12,8 +12,12 @@ import { Cooperative } from 'cooptypes';
 
 const { info } = useSystemStore();
 
-// Получаем шаблон Privacy Policy из cooptypes
 const privacyPolicyTemplate = Cooperative.Registry.PrivacyPolicy;
+
+const isPending = computed(() => {
+  const protocol = info?.vars?.privacy_agreement;
+  return !protocol?.protocol_number || !protocol?.protocol_day_month_year;
+});
 
 const privacyPolicyHtml = computed(() => {
   if (!info || !info.vars) {
@@ -22,11 +26,8 @@ const privacyPolicyHtml = computed(() => {
 
   const vars = info.vars;
   const contacts = info.contacts;
-
-  // Получаем переводы для русского языка
   const translation = privacyPolicyTemplate.translations.ru;
 
-  // Функция для замены плейсхолдеров в тексте
   const replacePlaceholders = (text: string): string => {
     return text
       .replace(/\{\{\s*vars\.full_abbr_dative\s*\}\}/g, vars.full_abbr_dative || '')
@@ -40,18 +41,15 @@ const privacyPolicyHtml = computed(() => {
       .replace(/\{\{\s*coop\.short_name\s*\}\}/g, contacts?.full_name || '');
   };
 
-  // Функция для замены переводов
   const replaceTranslations = (html: string): string => {
     let result = html;
     Object.entries(translation).forEach(([key, value]) => {
-      // Заменяем {% trans 'key' %} на соответствующий перевод
       const regex = new RegExp(`\\{\\%\\s*trans\\s*'${key}'\\s*\\%\\}`, 'g');
       result = result.replace(regex, value);
     });
     return result;
   };
 
-  // Применяем замены
   let html = privacyPolicyTemplate.context;
   html = replaceTranslations(html);
   html = replacePlaceholders(html);
@@ -59,3 +57,11 @@ const privacyPolicyHtml = computed(() => {
   return html;
 });
 </script>
+
+<style scoped>
+.agreement-pending {
+  padding: var(--p-4);
+  color: var(--p-ink-2);
+  text-align: center;
+}
+</style>

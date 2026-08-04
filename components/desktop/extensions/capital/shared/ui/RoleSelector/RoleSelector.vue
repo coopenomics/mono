@@ -41,11 +41,17 @@ const toggleRole = (roleValue: string) => {
 const getRoleIcon = (roleValue: string) => {
   const icons: Record<string, string> = {
     master: 'supervisor_account',
+    author: 'edit_note',
+    creator: 'engineering',
+    investor: 'account_balance_wallet',
+    coordinator: 'campaign',
+    contributor: 'groups',
+    // legacy-алиасы
     noble: 'lightbulb',
     benefactor: 'build',
     philanthropist: 'account_balance_wallet',
     herald: 'campaign',
-    early_contributor: 'stars'
+    early_contributor: 'stars',
   };
   return icons[roleValue] || 'help';
 };

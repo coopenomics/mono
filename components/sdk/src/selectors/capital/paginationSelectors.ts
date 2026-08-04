@@ -7,6 +7,7 @@ import { rawContributorSelector } from './contributorSelector'
 import { rawCycleSelector } from './cycleSelector'
 import { rawDebtSelector } from './debtSelector'
 import { rawExpenseSelector } from './expenseSelector'
+import { rawProgramExpenseSelector } from './programExpenseSelector'
 import { rawInvestSelector } from './investSelector'
 import { rawIssueSelector } from './issueSelector'
 import { rawLogSelector } from './logSelector'
@@ -14,6 +15,7 @@ import { rawProjectSelector } from './projectSelector'
 import { rawResultSelector } from './resultSelector'
 import { rawSegmentSelector } from './segmentSelector'
 import { rawStorySelector } from './storySelector'
+import { rawMetricContributionSelector } from './metricContributionSelector'
 import { rawTimeEntriesByIssuesSelector } from './timeEntriesByIssuesSelector'
 import { rawTimeEntrySelector } from './timeEntrySelector'
 import { rawVoteSelector } from './voteSelector'
@@ -95,6 +97,12 @@ const _validateExpenses: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalExpen
 export type expensesPaginationModel = ModelTypes['PaginatedCapitalExpensesPaginationResult']
 export const expensesPaginationSelector = Selector('PaginatedCapitalExpensesPaginationResult')(rawExpensesPaginationSelector)
 
+// Пагинированный селектор для программных расходов
+const rawProgramExpensesPaginationSelector = { ...paginationSelector, items: rawProgramExpenseSelector }
+const _validateProgramExpenses: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalProgramExpensesPaginationResult']> = rawProgramExpensesPaginationSelector
+export type programExpensesPaginationModel = ModelTypes['PaginatedCapitalProgramExpensesPaginationResult']
+export const programExpensesPaginationSelector = Selector('PaginatedCapitalProgramExpensesPaginationResult')(rawProgramExpensesPaginationSelector)
+
 // Пагинированный селектор для записей времени
 const rawTimeEntriesPaginationSelector = { ...paginationSelector, items: rawTimeEntrySelector }
 const _validateTimeEntries: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalTimeEntriesPaginationResult']> = rawTimeEntriesPaginationSelector
@@ -118,3 +126,9 @@ const rawLogsPaginationSelector = { ...paginationSelector, items: rawLogSelector
 const _validateLogs: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalLogsPaginationResult']> = rawLogsPaginationSelector
 export type logsPaginationModel = ModelTypes['PaginatedCapitalLogsPaginationResult']
 export const logsPaginationSelector = Selector('PaginatedCapitalLogsPaginationResult')(rawLogsPaginationSelector)
+
+// Пагинированный селектор для журнала вкладов в метрики
+const rawMetricContributionsPaginationSelector = { ...paginationSelector, items: rawMetricContributionSelector }
+const _validateMetricContributions: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalMetricContributionsPaginationResult']> = rawMetricContributionsPaginationSelector
+export type metricContributionsPaginationModel = ModelTypes['PaginatedCapitalMetricContributionsPaginationResult']
+export const metricContributionsPaginationSelector = Selector('PaginatedCapitalMetricContributionsPaginationResult')(rawMetricContributionsPaginationSelector)

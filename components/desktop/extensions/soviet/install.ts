@@ -8,6 +8,7 @@ import { InvestmentsPage } from 'src/pages/Cooperative/Investments';
 import { ListOfMeetsPage } from 'src/pages/Cooperative/ListOfMeets';
 import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
+import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
@@ -56,17 +57,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
             },
-          },
-          {
-            // Отдельная страница документа (deep-link из поиска и реестра).
-            path: 'documents/:hash',
-            name: 'document-details',
-            component: markRaw(DocumentDetailsPage),
-            meta: {
-              title: 'Документ',
-              roles: ['chairman', 'member'],
-              hidden: true,
-            },
+            children: [
+              {
+                // Отдельная страница документа (deep-link из поиска и реестра).
+                path: ':hash',
+                name: 'document-details',
+                component: markRaw(DocumentDetailsPage),
+                meta: {
+                  title: 'Документ',
+                  roles: ['chairman', 'member'],
+                  hidden: true,
+                },
+              },
+            ],
           },
           {
             path: 'payments/:username?',
@@ -85,6 +88,21 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: 'Инвестиции',
               icon: 'trending_up',
+              roles: ['chairman', 'member'],
+            },
+          },
+          {
+            // Реестр расходов кооператива: единая таблица всех расходов по всем
+            // пулам-кошелькам (без фильтра по кошельку — колонка «Кошелёк (пул)»
+            // показывает источник списания). Совет наблюдает; клик по строке
+            // открывает деталь расхода (generic `expenses-detail`). Фильтр по
+            // конкретному пулу — на странице расходов программы (capital).
+            path: 'expenses',
+            name: 'soviet-expenses-registry',
+            component: markRaw(ExpensesRegistryPage),
+            meta: {
+              title: 'Реестр расходов',
+              icon: 'receipt_long',
               roles: ['chairman', 'member'],
             },
           },

@@ -28,26 +28,21 @@ div
     @update:modelValue='handlePriorityUpdate'
   ).full-width.q-mb-sm
 
-  UpdateEstimate(
-    v-if='issue'
-    :model-value='issue.estimate'
-    :issue-hash='issue.issue_hash'
-    label='Оценка (ч)'
-    :readonly='!permissions?.can_set_estimate'
-    @update:modelValue='handleEstimateUpdate'
-  ).full-width.q-mb-sm
-
-  .row.items-center.justify-between.full-width.q-mb-sm(
-    v-if='issue && (issue.fact > 0 || issue.estimate > 0)'
-  )
-    .col-auto
-      .text-caption.text-grey-7 Факт
-    .col-auto
-      Estimation(
-        :estimation='issue.estimate'
-        :fact='issue.fact'
-        size='sm'
-      )
+  .issue-controls-plan-fact.q-mb-sm(v-if='issue')
+    UpdateEstimate(
+      :model-value='issue.estimate'
+      :issue-hash='issue.issue_hash'
+      label='План (ч)'
+      :readonly='!permissions?.can_set_estimate'
+      @update:modelValue='handleEstimateUpdate'
+    )
+    UpdateEstimate(
+      :key='`fact-${factHours}`'
+      :model-value='factHours'
+      :issue-hash='issue.issue_hash'
+      label='Факт (ч)'
+      readonly
+    )
 
   UpdateLabels(
     v-if='issue'
@@ -66,7 +61,6 @@ import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/mo
 import { UpdateStatus, UpdatePriority, UpdateEstimate, UpdateLabels } from '../../features/Issue/UpdateIssue'
 import { getIssueLabels } from 'app/extensions/capital/shared/lib'
 import { SetCreatorButton } from '../../features/Issue/SetCreator'
-import { Estimation } from 'src/shared/ui'
 
 interface Props {
   issue: any // IIssue тип
@@ -88,6 +82,9 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const issueLabels = computed(() => (props.issue ? getIssueLabels(props.issue) : []))
+
+/** Факт = сумма записей учёта времени. */
+const factHours = computed(() => Number(props.issue?.fact) || 0)
 
 const handleStatusUpdate = (value: any) => {
   emit('update:status', value)
@@ -113,3 +110,16 @@ const handleIssueUpdated = (issue: any) => {
   emit('issue-updated', issue)
 }
 </script>
+
+<style lang="scss" scoped>
+.issue-controls-plan-fact {
+  display: flex;
+  width: 100%;
+  gap: var(--p-2);
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+</style>

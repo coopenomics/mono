@@ -13,6 +13,8 @@ export interface IssueRepository {
   findByIssueHash(issueHash: string): Promise<IssueDomainEntity | null>;
   /** Короткий id задачи (колонка id, до 12 символов), например 562-15 */
   findByCoopnameAndClientId(coopname: string, clientId: string): Promise<IssueDomainEntity | null>;
+  /** Следующий человекочитаемый id свободной задачи в формате 000-N (уникален в рамках coopname). */
+  getNextFreeIssueId(coopname: string): Promise<string>;
   findAll(): Promise<IssueDomainEntity[]>;
   findByProjectHash(projectHash: string): Promise<IssueDomainEntity[]>;
   findByCreatedBy(createdBy: string): Promise<IssueDomainEntity[]>;

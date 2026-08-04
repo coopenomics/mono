@@ -12,6 +12,7 @@
     :error-message="error"
     :placeholder="placeholder"
     :type="type"
+    :autogrow="autogrow"
     :prefix="prefix"
     :suffix="suffix"
     :readonly="readonly"
@@ -53,6 +54,7 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   readonly: false,
   disabled: false,
   required: false,
+  autogrow: false,
 });
 
 const emit = defineEmits<{

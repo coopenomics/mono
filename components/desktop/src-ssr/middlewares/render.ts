@@ -11,6 +11,11 @@ export default defineSsrMiddleware(({ app, resolve, render, serve }) => {
   // over to Vue and Vue Router to render our page
   app.get(resolve.urlPath('{*path}'), (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/html');
+    // Документ нельзя кэшировать: иначе холодный заход поднимает HTML со
+    // ссылками на старые чанки (браузер/CDN), а тост об обновлении не помогает.
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     render(/* the ssrContext: */ { req, res })
       .then((html) => {

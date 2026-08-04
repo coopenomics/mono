@@ -1,81 +1,69 @@
 <template lang="pug">
-q-card(flat)
-  // Лоадер загрузки сегментов
-  WindowLoader(v-if='loading', text='загрузка участников...')
-  q-table(
-    v-else
-    :rows='segments?.items || []',
-    :columns='columns',
-    row-key='id',
-    :pagination='{ rowsPerPage: 0 }',
-    flat,
-    square,
-    hide-header,
-    hide-pagination,
-    :no-data-label='"Нет участников"'
+.contributors-list.list-surface
+  //- Первичная загрузка — скелетон, без спиннера поверх
+  .contributors-list__skel(v-if='loading && !rows.length')
+    .skel(v-for='i in 4', :key='i')
+
+  EmptyState(
+    v-else-if='!loading && !rows.length',
+    title='Участников пока нет',
+    body='Когда пайщики получат допуск к проекту или компоненту, они появятся в этом списке.'
   )
+    template(#icon)
+      q-icon(name='group')
 
+  .contributors-list__items(v-else)
+    .contributors-list__item(v-for='(row, index) in rows', :key='row._id || row.username')
+      .contributors-list__row
+        .contributors-list__index.t-sm.t-muted {{ index + 1 }}
 
-    template(#body='props')
-      q-tr(:props='props')
-        q-td
-          .row.items-center(style='padding: 12px; min-height: 48px')
-            // Порядковый номер
-            .col-auto(style='width: 30px; flex-shrink: 0; text-align: center')
-              span.text-caption.text-grey-6 {{ props.rowIndex + 1 }}
-              RefreshSegmentButton(:segment='props.row', size='sm', round, flat, icon='refresh', label="")
-            // Информация об участнике
-            .col.q-ml-sm
-              .row.items-center.justify-between
-                // Левая часть: имя и роли
-                .col-auto
-                  // Имя участника
-                  .row.items-center.q-mb-xs
-                    span.text-body2 {{ props.row.display_name }}
-                  // Роли участника
-                  .row.items-center.q-gutter-xs
-                    q-badge(
-                      v-for='(title, role) in roleTitles',
-                      :key='role',
-                      :color='getRoleColor(role, props.row, parseValueData(props.row.value).roles)',
-                      :label='title'
-                    )
+        .contributors-list__main
+          .contributors-list__title-row
+            span.contributors-list__name {{ row.display_name || row.username }}
+            q-icon.contributors-list__note-icon(
+              v-if='parseValueData(row.value).text',
+              name='notes',
+              size='16px'
+            )
+              q-tooltip(anchor='bottom middle', self='top middle', max-width='320px')
+                | {{ parseValueData(row.value).text }}
 
-                  // Текст описания участника
-                  .row.q-mt-sm(v-if='parseValueData(props.row.value).text')
-                    .col-12
-                      .description-text {{ parseValueData(props.row.value).text }}
+          .contributors-list__roles
+            BaseBadge(
+              v-for='role in visibleRoles(row)',
+              :key='role.key',
+              :variant='role.variant'
+            ) {{ role.title }}
 
-                // Правая часть: стоимость взноса
-                .col-auto
-                  .row.items-center.q-gutter-xs
-
-                    //- // Доля участника
-                    //- ColorCard(color='blue')
-                    //-   .card-label доля в результате
-                    //-   .card-value {{ calculateShare(props.row) }}%
-
-
-                    // Сумма взноса
-                    ColorCard(color='green')
-                      .card-label сумма взноса
-                      .card-value
-                        | {{ formatAsset2Digits(calculateContributionAmount(props.row)) }}
-
-
+        .contributors-list__side
+          .contributors-list__amount
+            .t-sm.t-muted Взнос
+            span.t-mono {{ formatAsset2Digits(calculateContributionAmount(row)) }}
+          RefreshSegmentButton(
+            v-if='segmentNeedsUpdate(row)',
+            :segment='row',
+            mini
+          )
 </template>
+
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
-import type { QTableProps } from 'quasar';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
-import { WindowLoader } from 'src/shared/ui/Loader';
-import { ColorCard } from 'src/shared/ui/ColorCard';
+import { EmptyState, BaseBadge } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits, addAssets } from 'src/shared/lib/utils';
 import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';
-import type { ISegmentsPagination, IGetSegmentsInput, ISegment } from 'app/extensions/capital/entities/Segment/model';
+import type {
+  ISegmentsPagination,
+  IGetSegmentsInput,
+  ISegment,
+} from 'app/extensions/capital/entities/Segment/model';
 import type { IProject } from '../../entities/Project/model';
-import RefreshSegmentButton from '../../features/Project/RefreshSegment/ui/RefreshSegmentButton.vue';
+import {
+  RefreshSegmentButton,
+} from 'app/extensions/capital/features/Project/RefreshSegment/ui';
+import { segmentNeedsUpdate } from 'app/extensions/capital/features/Project/RefreshSegment/model';
 
 const props = defineProps<{
   project?: IProject | null;
@@ -87,7 +75,8 @@ const segmentStore = useSegmentStore();
 const segments = ref<ISegmentsPagination | null>(null);
 const loading = ref(false);
 
-// Загрузка сегментов-участников
+const rows = computed(() => segments.value?.items || []);
+
 const loadSegments = async () => {
   loading.value = true;
 
@@ -96,13 +85,11 @@ const loadSegments = async () => {
       coopname: info.coopname,
     };
 
-    // Фильтруем сегменты только конкретного проекта
-    // Фильтрация по project_hash уже дает нам только сегменты этого проекта
     if (props.project?.project_hash) {
       filter.project_hash = props.project.project_hash;
     }
 
-    const segmentsInput: IGetSegmentsInput = {
+    await segmentStore.loadSegments({
       filter,
       options: {
         page: 1,
@@ -110,11 +97,11 @@ const loadSegments = async () => {
         sortBy: '_created_at',
         sortOrder: 'DESC',
       },
-    };
-    console.log('segmentsInput', segmentsInput)
-    await segmentStore.loadSegments(segmentsInput);
+    });
 
-    segments.value = segmentStore.getSegmentsByProject(props.project?.project_hash || '');
+    segments.value = segmentStore.getSegmentsByProject(
+      props.project?.project_hash || '',
+    );
   } catch (error) {
     console.error('Ошибка при загрузке сегментов:', error);
     FailAlert('Не удалось загрузить список участников');
@@ -123,134 +110,172 @@ const loadSegments = async () => {
   }
 };
 
-// Функция расчета суммы взноса (интеллектуальный взнос + сумма инвестиций)
 const calculateContributionAmount = (row: ISegment): string => {
   return addAssets(row.intellectual_cost, row.investor_amount);
 };
 
-// Функция для парсинга данных из value (JSON строка)
 const parseValueData = (value: string | null | undefined) => {
-  if (!value) return { text: '', roles: [] };
+  if (!value) return { text: '', roles: [] as string[] };
 
   try {
     const parsed = JSON.parse(value);
     return {
-      text: parsed.text || '',
-      roles: Array.isArray(parsed.roles) ? parsed.roles : []
+      text: typeof parsed.text === 'string' ? parsed.text : '',
+      roles: Array.isArray(parsed.roles) ? (parsed.roles as string[]) : [],
     };
   } catch {
-    return { text: '', roles: [] };
+    return { text: '', roles: [] as string[] };
   }
 };
 
-// Маппинг ролей для отображения
 const roleTitles: Record<string, string> = {
-  'author': 'Соавтор',
-  'creator': 'Исполнитель',
-  'investor': 'Инвестор',
-  'contributor': 'Участник'
+  author: 'Соавтор',
+  creator: 'Исполнитель',
+  investor: 'Инвестор',
+  contributor: 'Участник',
 };
 
-// Маппинг полей row на значения ролей
-const roleFields: Record<string, string> = {
-  'author': 'is_author',
-  'creator': 'is_creator',
-  'investor': 'is_investor',
-  'contributor': 'is_contributor'
+const roleFields: Record<string, keyof ISegment> = {
+  author: 'is_author',
+  creator: 'is_creator',
+  investor: 'is_investor',
+  contributor: 'is_contributor',
 };
 
-// Функция определения цвета для роли
-const getRoleColor = (role: string, row: any, claimedRoles: string[]): string => {
-  const isExecuted = row[roleFields[role]]; // роль исполняется
-  const isClaimed = claimedRoles.includes(role); // роль заявлена
+/** Роль исполняется → info; только заявлена → neutral; иначе не показываем */
+const visibleRoles = (
+  row: ISegment,
+): Array<{ key: string; title: string; variant: BaseBadgeVariant }> => {
+  const claimed = parseValueData(row.value).roles;
+  const out: Array<{ key: string; title: string; variant: BaseBadgeVariant }> =
+    [];
 
-  if (isExecuted || (isExecuted && isClaimed)) {
-    return 'primary'; // синий для исполняемых
-  } else if (isClaimed) {
-    return 'grey'; // серый для только заявленных
+  for (const [key, title] of Object.entries(roleTitles)) {
+    const isExecuted = Boolean(row[roleFields[key]]);
+    const isClaimed = claimed.includes(key);
+    if (!isExecuted && !isClaimed) continue;
+    out.push({
+      key,
+      title,
+      variant: isExecuted ? 'info' : 'neutral',
+    });
   }
-  return 'grey'; // серый по умолчанию
+  return out;
 };
 
-// Загружаем данные при монтировании, если проект уже есть
 onMounted(async () => {
   if (props.project) {
     await loadSegments();
   }
 });
 
-// Следим за изменением project_hash проекта и перезагружаем сегменты
-watch(() => props.project?.project_hash, async (newHash, oldHash) => {
-  if (newHash && newHash !== oldHash) {
-    await loadSegments();
-  }
-}, { immediate: false });
-
-// Следим за изменениями в fact.total проекта, которые влияют на расчет долей
-// Перезагружаем сегменты при изменении общей суммы проекта
-watch(() => props.project?.fact?.total, async (newTotal, oldTotal) => {
-  if (newTotal !== oldTotal && props.project?.project_hash) {
-    await loadSegments();
-  }
-}, { immediate: false });
-
-// Определяем столбцы таблицы
-const columns: QTableProps['columns'] = [
-  {
-    name: 'contributor',
-    label: 'Участник',
-    align: 'left',
-    field: 'display_name',
-    sortable: true,
+watch(
+  () => props.project?.project_hash,
+  async (newHash, oldHash) => {
+    if (newHash && newHash !== oldHash) {
+      await loadSegments();
+    }
   },
-];
+);
+
+watch(
+  () => props.project?.fact?.total,
+  async (newTotal, oldTotal) => {
+    if (newTotal !== oldTotal && props.project?.project_hash) {
+      await loadSegments();
+    }
+  },
+);
 </script>
 
 <style lang="scss" scoped>
-.q-table {
-  tr {
-    min-height: 48px;
-  }
-
-  .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
-  }
+.list-surface {
+  background: var(--p-surface);
 }
 
-.q-badge {
-  font-weight: 500;
-  margin-right: 4px;
+.contributors-list {
+  min-width: 0;
 }
 
-.value-text {
-  font-size: 0.875rem;
-  line-height: 1.4;
-  color: var(--q-primary);
-  display: inline-block;
-  vertical-align: top;
-  word-wrap: break-word;
-  white-space: normal;
-  max-width: 100%;
+.contributors-list__skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  padding: var(--p-3) 0;
 }
 
-.description-text {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  word-wrap: break-word;
-  white-space: normal;
-  max-width: 100%;
+.contributors-list__items {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--p-line);
 }
 
-.card-value {
-  font-size: 16px;
+.contributors-list__item {
+  border-bottom: 1px solid var(--p-line);
+}
+
+.contributors-list__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+  padding: var(--p-3) 0;
+  min-width: 0;
+}
+
+.contributors-list__index {
+  flex: 0 0 1.5rem;
+  text-align: right;
+  padding-top: 2px;
+}
+
+.contributors-list__main {
+  flex: 1 1 12rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.contributors-list__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  min-width: 0;
+}
+
+.contributors-list__name {
   font-weight: 500;
   color: var(--p-ink);
-  margin-bottom: var(--p-2);
+  word-break: break-word;
 }
 
-.card-label {
-  font-size: var(--p-fs-body);
-  color: var(--p-ink-2);
-  margin-bottom: var(--p-1);
+.contributors-list__note-icon {
+  flex-shrink: 0;
+  color: var(--p-ink-3);
+  cursor: help;
+}
+
+.contributors-list__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-1);
+}
+
+.contributors-list__side {
+  flex: 0 1 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  max-width: 100%;
+}
+
+.contributors-list__amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  color: var(--p-ink);
+  white-space: nowrap;
 }
 </style>

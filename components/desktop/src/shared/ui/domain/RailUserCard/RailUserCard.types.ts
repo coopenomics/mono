@@ -25,6 +25,6 @@ export interface RailUserCardProps {
   collapsed?: boolean;
   /** Показывать ли блок «Выйти» под карточкой */
   showSignout?: boolean;
-  /** Подпись для signout (default «Выйти») */
+  /** Подпись для signout (default «Выйти из кабинета») */
   signoutLabel?: string;
 }

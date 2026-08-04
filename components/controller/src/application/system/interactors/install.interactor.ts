@@ -25,6 +25,9 @@ import { Workflows } from '@coopenomics/notifications';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 
+/** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
+const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;
+
 @Injectable()
 export class InstallInteractor {
   constructor(
@@ -118,12 +121,28 @@ export class InstallInteractor {
 
   async install(data: InstallInputDomainInterface): Promise<void> {
     const status = await this.monoStatusRepository.getStatus();
+    const savedVars = await this.varsRepository.get();
+    const isIncompleteInstallMaintenance =
+      status === SystemStatus.maintenance && !savedVars?.name;
 
-    // Разрешаем установку ТОЛЬКО если система в статусе 'initialized' (после initSystem)
-    if (status !== SystemStatus.initialized) {
+    // Разрешаем установку если:
+    // - initialized (нормальный прогон)
+    // - maintenance без сохранённых vars (прерванная установка, можно повторить)
+    if (status !== SystemStatus.initialized && !isIncompleteInstallMaintenance) {
       throw new BadRequestException(
         `Установка невозможна. Текущий статус: ${status}. Требуется статус: ${SystemStatus.initialized}`
       );
+    }
+
+    if (data.soviet.length < MIN_SOVIET_MEMBERS_COUNT) {
+      throw new BadRequestException(
+        `Количество членов совета должно быть не менее ${MIN_SOVIET_MEMBERS_COUNT}`
+      );
+    }
+
+    // Повтор после прерванной установки: снимаем maintenance, дальше — обычный прогон.
+    if (isIncompleteInstallMaintenance) {
+      await this.monoStatusRepository.setStatus(SystemStatus.initialized);
     }
 
     const info = await this.blockchainPort.getInfo();

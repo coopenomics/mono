@@ -94,3 +94,13 @@ export * as MeetContract from './meet'
  * Деплоится на корневой KE-цепи и обслуживает несколько подсетей одновременно.
  */
 export * as AppsContract from './apps'
+
+/**
+ * Смарт-контракт шасси расходов цифрового кооператива (MVP — Благорост).
+ *
+ * Универсальный движок СЗ-расходов: principal storage = proposal с массивом items,
+ * operation_code из ledger2 OPERATION_REGISTRY передаётся в payexp,
+ * callback на финализацию задаётся при createexp (контракт+action+data).
+ * См. components/contracts/cpp/expense/expense.hpp (C28-29 v3).
+ */
+export * as ExpenseContract from './expense'

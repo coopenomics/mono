@@ -2,6 +2,13 @@ import { Injectable, Inject } from '@nestjs/common';
 import { MUTATION_LOG_REPOSITORY, MutationLogRepository } from '~/domain/mutation-log/repositories/mutation-log.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ISSUE_REPOSITORY, IssueRepository } from '../../domain/repositories/issue.repository';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
+import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
+import type { IssueDomainEntity } from '../../domain/entities/issue.entity';
+import {
+  isFreeIssueParticipant,
+  isLocalProjectOwner,
+} from '../../domain/utils/private-project-access';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -36,6 +43,9 @@ export interface ICapitalLogFilterInput {
 
   /** Включать логи дочерних компонентов при фильтрации по project_hash */
   show_components_logs?: boolean;
+
+  /** Текущий пользователь — для скрытия чужих персональных данных */
+  viewer_username?: string;
 }
 
 /**
@@ -115,6 +125,9 @@ export class LogService {
       mappedLogs = mappedLogs.filter((log) => log.entity_type !== LogEntityType.ISSUE);
     }
 
+    // Чужие персональные проекты / свободные задачи не показываем (в любой выдаче логов)
+    mappedLogs = await this.filterOutForeignPrivateLogs(mappedLogs, filter?.viewer_username);
+
     // Сортируем по времени создания (новые сверху)
     mappedLogs.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
 
@@ -133,13 +146,96 @@ export class LogService {
   }
 
   /**
+   * Скрывает чужие LOCAL-проекты и чужие свободные задачи.
+   * Кооперативные события остаются общими; свои персональные — видны владельцу.
+   */
+  private async filterOutForeignPrivateLogs(
+    logs: IMappedCapitalLog[],
+    viewerUsername?: string
+  ): Promise<IMappedCapitalLog[]> {
+    if (logs.length === 0) {
+      return logs;
+    }
+
+    const candidateIssueHashes = new Set<string>();
+    const projectHashes = new Set<string>();
+
+    for (const log of logs) {
+      if (
+        (log.entity_type === LogEntityType.ISSUE || log.entity_type === LogEntityType.STORY) &&
+        log.entity_id
+      ) {
+        candidateIssueHashes.add(log.entity_id.toLowerCase());
+      }
+      if (log.project_hash) {
+        projectHashes.add(log.project_hash.toLowerCase());
+      }
+    }
+
+    const issueMap = new Map<string, IssueDomainEntity>();
+    await Promise.all(
+      [...candidateIssueHashes].map(async (issueHash) => {
+        const issue = await this.issueRepository.findByIssueHash(issueHash);
+        if (issue) {
+          issueMap.set(issueHash, issue);
+          if (issue.project_hash?.trim()) {
+            projectHashes.add(issue.project_hash.trim().toLowerCase());
+          }
+        }
+      })
+    );
+
+    const projects =
+      projectHashes.size > 0 ? await this.projectRepository.findByHashes([...projectHashes]) : [];
+    const projectMap = new Map<string, ProjectDomainEntity>(
+      projects.map((project) => [project.project_hash.toLowerCase(), project])
+    );
+
+    return logs.filter((log) => {
+      let issue: IssueDomainEntity | undefined;
+      if (
+        (log.entity_type === LogEntityType.ISSUE || log.entity_type === LogEntityType.STORY) &&
+        log.entity_id
+      ) {
+        issue = issueMap.get(log.entity_id.toLowerCase());
+      }
+
+      const projectHash =
+        issue?.project_hash?.trim()?.toLowerCase() || log.project_hash?.toLowerCase() || null;
+      const project = projectHash ? projectMap.get(projectHash) : undefined;
+
+      // Свободная задача (нет проекта) — только участникам
+      if (issue && !issue.project_hash?.trim()) {
+        return isFreeIssueParticipant(issue, viewerUsername);
+      }
+
+      // LOCAL-проект — только владельцу
+      if (project?.origin === ProjectOrigin.LOCAL) {
+        return isLocalProjectOwner(project, viewerUsername);
+      }
+
+      // Лог с project_hash LOCAL, даже без issue
+      if (log.project_hash) {
+        const logProject = projectMap.get(log.project_hash.toLowerCase());
+        if (logProject?.origin === ProjectOrigin.LOCAL) {
+          return isLocalProjectOwner(logProject, viewerUsername);
+        }
+      }
+
+      // Кооперативные и прочие события — в общей ленте
+      return true;
+    });
+  }
+
+  /**
    * Получение логов по хешу проекта
    */
   async getLogsByProjectHash(
     projectHash: string,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    viewerUsername?: string
   ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
-    return this.getLogs({ project_hash: projectHash }, options);
+    return this.getLogs({ project_hash: projectHash, viewer_username: viewerUsername }, options);
   }
 
   /**
@@ -147,9 +243,10 @@ export class LogService {
    */
   async getLogsByIssueHash(
     issueHash: string,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    viewerUsername?: string
   ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
-    return this.getLogs({ issue_hash: issueHash }, options);
+    return this.getLogs({ issue_hash: issueHash, viewer_username: viewerUsername }, options);
   }
 
   /**
@@ -157,9 +254,10 @@ export class LogService {
    */
   async getLogsByInitiator(
     initiator: string,
-    options?: PaginationInputDomainInterface
+    options?: PaginationInputDomainInterface,
+    viewerUsername?: string
   ): Promise<PaginationResultDomainInterface<IMappedCapitalLog>> {
-    return this.getLogs({ initiator }, options);
+    return this.getLogs({ initiator, viewer_username: viewerUsername }, options);
   }
 
   /**

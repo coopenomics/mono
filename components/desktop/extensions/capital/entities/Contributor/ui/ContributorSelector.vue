@@ -1,10 +1,12 @@
 <template lang="pug">
 q-select(
   ref='selectRef'
-  standout="bg-teal text-white"
+  :standout='outlined ? false : "bg-teal text-white"'
+  :outlined='outlined'
+  :color='outlined ? "primary" : undefined'
   v-model='selectedValue'
   :options='filteredContributors'
-  :loading='isSearching'
+  :loading='isSearching || loading'
   :label='label'
   :placeholder='placeholder'
   :multiple='multiSelect'
@@ -77,6 +79,8 @@ interface Props {
   disable?: boolean;
   readonly?: boolean;
   loading?: boolean;
+  /** Канон-вид (как BaseSelect: outlined dense) вместо legacy standout */
+  outlined?: boolean;
 }
 
 interface Emits {
@@ -94,6 +98,7 @@ const props = withDefaults(defineProps<Props>(), {
   disable: false,
   readonly: false,
   loading: false,
+  outlined: false,
 });
 
 const emit = defineEmits<Emits>();

@@ -13,6 +13,7 @@ export interface PaymentFiltersDomainInterface {
   direction?: PaymentDirectionEnum;
   provider?: string;
   hash?: string;
+  proposal_hash?: string;
 }
 
 /**

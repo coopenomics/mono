@@ -72,13 +72,15 @@ export class AppendixTypeormRepository
   }
 
   /**
-   * Найти созданное приложение по имени пользователя и хэшу проекта
+   * Найти приложение со статусом created (запрос на рассмотрении)
+   * по имени пользователя и хэшу проекта
    */
   async findCreatedByUsernameAndProjectHash(username: string, projectHash: string): Promise<AppendixDomainEntity | null> {
     const entity = await this.repository.findOne({
       where: {
-        username,
+        username: username.toLowerCase(),
         project_hash: projectHash.toLowerCase(),
+        status: AppendixStatus.CREATED,
       },
     });
 

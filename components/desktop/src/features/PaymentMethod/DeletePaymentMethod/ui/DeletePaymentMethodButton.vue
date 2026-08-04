@@ -26,12 +26,10 @@ div
       p Вы уверены, что хотите удалить метод платежа?
 </template>
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
-import type { PropType } from 'vue';
+import { computed, ref, type PropType } from 'vue';
 import { useDeletePaymentMethod } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import type { BaseButtonSize } from 'src/shared/ui/base/BaseButton';
+import { BaseButton, type BaseButtonSize } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 

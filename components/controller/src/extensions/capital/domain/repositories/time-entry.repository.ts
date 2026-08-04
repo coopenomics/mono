@@ -22,6 +22,12 @@ export interface TimeEntryRepository {
   findByContributorAndDate(contributorHash: string, date: string): Promise<TimeEntryDomainEntity[]>;
 
   /**
+   * Сумма часов участника за день только по кооперативным (blockchain) проектам.
+   * LOCAL и свободные задачи (без project / empty hash) не учитываются.
+   */
+  sumCooperativeHoursByContributorAndDate(contributorHash: string, date: string): Promise<number>;
+
+  /**
    * Найти незакоммиченные записи времени по участнику
    */
   findUncommittedByContributor(contributorHash: string): Promise<TimeEntryDomainEntity[]>;
@@ -142,6 +148,11 @@ export interface TimeEntryRepository {
    * по которым есть хотя бы одна запись; отсутствующие задачи нужно считать нулевым фактом.
    */
   getFactByIssues(issueHashes: string[]): Promise<Map<string, IssueFactAggregate>>;
+
+  /**
+   * Найти запись времени по id
+   */
+  findById(id: string): Promise<TimeEntryDomainEntity | null>;
 }
 
 /**

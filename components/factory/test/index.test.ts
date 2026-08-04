@@ -1,20 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import type { RegistratorContract, SovietContract } from 'cooptypes'
-import { Cooperative } from 'cooptypes'
-import { v4 as uuidv4 } from 'uuid'
-import { Generator } from '../src'
-import type { IGenerate, IGeneratedDocument } from '../src/Interfaces/Documents'
-import { saveBufferToDisk } from '../src/Utils/saveBufferToDisk'
-import { loadBufferFromDisk } from '../src/Utils/loadBufferFromDisk'
-import { calculateSha256 } from '../src/Utils/calculateSHA'
-import { MongoDBConnector } from '../src/Services/Databazor'
 
-import type { ExternalEntrepreneurData, ExternalIndividualData, ExternalOrganizationData, ExternalProjectData, IVars } from '../src/Models'
+import type { ExternalOrganizationData, ExternalProjectData, IVars } from '../src/Models'
 import type { PaymentData } from '../src/Models/PaymentMethod'
 import type { CoopenomicsAgreement } from '../src/Templates'
-import { PrivacyPolicy, Registry, RegulationElectronicSignature, UserAgreement, WalletAgreement } from '../src/Templates'
+import { PrivacyPolicy, RegulationElectronicSignature, UserAgreement, WalletAgreement } from '../src/Templates'
 import { signatureExample } from './signatureExample'
-import { coopname, deleteAllFiles, generator, mongoUri, preLoading } from './utils'
+import { coopname, generator, mongoUri } from './utils'
 import { testDocumentGeneration } from './utils/testDocument'
 
 beforeAll(async () => {
@@ -216,6 +207,47 @@ describe('тест генератора документов', async () => {
       username: 'entrepreneur',
       lang: 'ru',
       decision_id: 4,
+    })
+  })
+
+  it('генерируем заявление на выход физического лица', async () => {
+    await testDocumentGeneration({
+      registry_id: 200,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      block_num: 1,
+      signature: signatureExample,
+    })
+
+    await testDocumentGeneration({
+      registry_id: 201,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      decision_id: 5,
+    })
+  })
+
+  it('генерируем заявление на выход юридического лица', async () => {
+    await testDocumentGeneration({
+      registry_id: 200,
+      coopname: 'voskhod',
+      username: 'exampleorg',
+      lang: 'ru',
+      block_num: 1,
+      signature: signatureExample,
+    })
+  })
+
+  it('генерируем заявление на выход индивидуального предпринимателя', async () => {
+    await testDocumentGeneration({
+      registry_id: 200,
+      coopname: 'voskhod',
+      username: 'entrepreneur',
+      lang: 'ru',
+      block_num: 1,
+      signature: signatureExample,
     })
   })
 

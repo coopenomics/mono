@@ -18,6 +18,7 @@
 import type { IName } from '../interfaces/ledger2'
 
 export {
+  LEDGER2_EXIT_REFUND_WALLETS,
   LEDGER2_USER_SHARED_PROGRAM_MAPPING,
   LEDGER2_WALLET_REGISTRY,
 } from './wallets.generated'
@@ -28,6 +29,7 @@ export type {
 } from './wallets.generated'
 
 import {
+  LEDGER2_EXIT_REFUND_WALLETS,
   LEDGER2_USER_SHARED_PROGRAM_MAPPING,
   LEDGER2_WALLET_REGISTRY,
 } from './wallets.generated'
@@ -63,6 +65,26 @@ const walletNamesByProgramId = (() => {
  * При миграции `progwallets → userwallets` ЦК расщепляется на пай + членский.
  */
 export const MEMBERSHIP_WALLET_NAME = 'w.wal.member'
+
+/**
+ * wallet_name целевого паевого взноса пайщика (program_id=1, ЦК).
+ */
+export const SHARE_WALLET_NAME = 'w.wal.share'
+
+/**
+ * wallet_name минимального паевого взноса пайщика (required_program_id=0 —
+ * вне программ, заполняется при регистрации). Возвращается пайщику при выходе.
+ */
+export const MIN_SHARE_WALLET_NAME = 'w.reg.minshr'
+
+/**
+ * Сет паевых («боевых») кошельков, возвращаемых пайщику при выходе из кооператива
+ * (`w.reg.minshr` + `w.wal.share` + `w.cap.blago`). Источник истины — контракт
+ * (`LEDGER2_EXIT_REFUND_WALLETS` в wallets.hpp), сгенерирован в wallets.generated.
+ * Контракт `confirmexit` пылесосит эти кошельки на возврат; backend-preview
+ * суммирует их же — расчёт всегда совпадает с тем, что вернёт контракт.
+ */
+export const EXIT_REFUND_WALLET_NAMES: readonly string[] = LEDGER2_EXIT_REFUND_WALLETS
 
 /**
  * Все wallet_name'ы, привязанные к какой-либо программе (program_id > 0).

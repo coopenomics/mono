@@ -24,6 +24,9 @@ import { TypeOrmMeetProcessedRepository } from './repositories/typeorm-meet-proc
 import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
+import { PaymentFileEntity } from './entities/payment-file.entity';
+import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
+import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
 import { WebPushSubscriptionEntity } from './entities/web-push-subscription.entity';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
 import { TypeOrmWebPushSubscriptionRepository } from './repositories/typeorm-web-push-subscription.repository';
@@ -121,6 +124,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
+      PaymentFileEntity,
       WebPushSubscriptionEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
@@ -174,6 +178,10 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     {
       provide: PAYMENT_REPOSITORY,
       useClass: TypeOrmPaymentRepository,
+    },
+    {
+      provide: PAYMENT_FILE_REPOSITORY,
+      useClass: TypeormPaymentFileRepository,
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
@@ -276,6 +284,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     MIGRATION_REPOSITORY,
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
+    PAYMENT_FILE_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,
     AGREEMENT_REPOSITORY,

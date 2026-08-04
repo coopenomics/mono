@@ -3,7 +3,11 @@ import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CapitalOnboardingStepInputDTO, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
+import {
+  CapitalOnboardingStepInputDTO,
+  CapitalOnboardingStateDTO,
+  SaveCapitalProgramDocDataInputDTO,
+} from '../dto/onboarding.dto';
 import { CapitalOnboardingService } from '../services/onboarding.service';
 import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
@@ -33,5 +37,17 @@ export class CapitalOnboardingResolver {
     @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<CapitalOnboardingStateDTO> {
     return this.onboardingService.completeStep(data, currentUser?.username);
+  }
+
+  @Mutation(() => CapitalOnboardingStateDTO, {
+    name: 'saveCapitalProgramDocDataHash',
+    description: 'Сохранить hash PrivateData параметров документов ЦПП',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async saveProgramDocDataHash(
+    @Args('data', { type: () => SaveCapitalProgramDocDataInputDTO }) data: SaveCapitalProgramDocDataInputDTO,
+  ): Promise<CapitalOnboardingStateDTO> {
+    return this.onboardingService.saveProgramDocDataHash(data.doc_data_hash);
   }
 }

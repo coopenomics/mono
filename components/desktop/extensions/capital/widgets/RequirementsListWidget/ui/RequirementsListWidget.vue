@@ -1,7 +1,13 @@
 <template lang="pug">
 div
+  CapitalSectionEmpty.capital-section-empty--centered(
+    v-if='!loading && !(requirements?.items?.length)'
+    icon='assignment'
+    :title='emptyTitle'
+    :body='emptyBody'
+  )
 
-  q-card(flat)
+  q-card(v-else, flat)
     q-card-section(style='padding: 0px')
       q-table(
         :rows='requirements?.items || []',
@@ -13,7 +19,6 @@ div
         square,
         hide-header,
         hide-pagination
-        no-data-label="Нет артефактов"
       )
         template(#body='props')
           q-tr(
@@ -75,7 +80,7 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import {
   type IStory,
@@ -91,6 +96,8 @@ import { EditRequirementDialog } from 'app/extensions/capital/features/Story/Edi
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import type { IIssuePermissions } from 'app/extensions/capital/entities/Issue/model';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
+import { CapitalSectionEmpty } from 'app/extensions/capital/shared/ui/CapitalSectionEmpty';
+import { capitalRouteName } from 'app/extensions/capital/shared/lib/capitalWorkspaceRoutes';
 
 const props = withDefaults(
   defineProps<{
@@ -101,13 +108,20 @@ const props = withDefaults(
     detailRouteName?: string;
     /** На странице артефактов корневого проекта — подпись и ссылка на компонент для чужих project_hash */
     showComponentScopeBadge?: boolean;
+    emptyTitle?: string;
+    emptyBody?: string;
   }>(),
-  { showComponentScopeBadge: false },
+  {
+    showComponentScopeBadge: false,
+    emptyTitle: 'Артефактов пока нет',
+    emptyBody: 'Добавьте первый артефакт, чтобы зафиксировать требования и решения.',
+  },
 );
 
 const storyStore = useStoryStore();
 const { info } = useSystemStore();
 const router = useRouter();
+const route = useRoute();
 const editDialog = ref();
 const selectedRequirement = ref<IStory | null>(null);
 
@@ -352,7 +366,9 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
 
       if (projectData) {
         // Если у проекта есть parent_hash, это компонент - используем component-issue
-        const routeName = projectData.parent_hash ? 'component-issue' : 'project-issue';
+        const routeName = projectData.parent_hash
+          ? capitalRouteName('component-issue-description', route)
+          : 'project-issue';
 
         router.push({
           name: routeName,
@@ -382,7 +398,9 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
 
       if (projectData) {
         // Если у проекта есть parent_hash, это компонент
-        const routeName = projectData.parent_hash ? 'component-description' : 'project-description';
+        const routeName = projectData.parent_hash
+          ? capitalRouteName('component-description', route)
+          : capitalRouteName('project-description', route);
 
         router.push({
           name: routeName,
@@ -395,7 +413,7 @@ const handleRequirementTypeClick = async (requirement: IStory) => {
       console.error('Ошибка при определении типа проекта:', error);
       // Fallback - переходим на страницу проекта
       router.push({
-        name: 'project-description',
+        name: capitalRouteName('project-description', route),
         params: {
           project_hash: requirement.project_hash
         }

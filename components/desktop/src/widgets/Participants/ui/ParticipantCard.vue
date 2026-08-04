@@ -31,17 +31,7 @@
       .participant-card__status
         BaseBadge(:variant='getAccountStatusBadge(participant).variant') {{ getAccountStatusBadge(participant).label }}
       .participant-card__meta-right
-        span.participant-card__date {{ formatDate(String(participant.participant_account?.created_at || '')) }}
-        BaseButton(
-          v-if='deletable',
-          variant='danger',
-          size='sm',
-          icon-only,
-          aria-label='Удалить пайщика',
-          @click.stop='$emit("delete", participant)'
-        )
-          template(#icon-left)
-            q-icon(name='delete_outline', size='18px')
+        span.participant-card__date {{ joinDate(participant) }}
 
   q-slide-transition
     .participant-card__body(v-show='expanded')
@@ -67,12 +57,10 @@ import {
 const props = defineProps<{
   participant: IAccount;
   expanded?: boolean;
-  deletable?: boolean;
 }>();
 
 const emit = defineEmits<{
   'toggle-expand': [];
-  delete: [participant: IAccount];
   update: [
     participant: IAccount,
     newData: IIndividualData | IOrganizationData | IEntrepreneurData,
@@ -94,6 +82,13 @@ const formatDate = (date?: string) => {
   if (!date) return 'Дата не указана';
   const formatted = moment(date).format('DD.MM.YY');
   return formatted === 'Invalid date' ? 'Дата не указана' : formatted;
+};
+
+// Дата вступления: приём советом (participant_account), у вышедших запись стёрта —
+// фолбэк на дату регистрации аккаунта on-chain (user_account.registered_at).
+const joinDate = (row: IAccount): string => {
+  const raw = row.participant_account?.created_at || row.user_account?.registered_at;
+  return formatDate(raw ? String(raw) : undefined);
 };
 
 const onUpdate = (

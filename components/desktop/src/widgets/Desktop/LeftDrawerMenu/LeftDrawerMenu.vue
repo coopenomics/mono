@@ -28,7 +28,7 @@
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
         primary-action-label='Пополнить',
         show-signout,
-        signout-label='Выйти',
+        signout-label='Выйти из кабинета',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
@@ -155,9 +155,6 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
-    if (r.name === 'projects-list' && currentName.startsWith('project-')) {
-      return String(r.name);
-    }
   }
   return undefined;
 });
@@ -294,7 +291,7 @@ async function onLogout(): Promise<void> {
 .left-drawer-menu__hidden-dialogs {
   display: none;
 }
-/* Кнопка «Выйти» из RailUserCard — урезаем нижний padding, чтобы версия
+/* Кнопка «Выйти из кабинета» из RailUserCard — урезаем нижний padding, чтобы версия
    шла сразу под ней без лишнего вертикального зазора. */
 :deep(.rail__signout) {
   padding-bottom: var(--p-1, 4px);

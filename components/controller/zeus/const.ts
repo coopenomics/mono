@@ -99,6 +99,9 @@ export const AllTypesProps: Record<string,any> = {
 		statuses:"ApprovalStatus"
 	},
 	ApprovalStatus: "enum" as const,
+	ArchiveComponentMetricInput:{
+
+	},
 	AssetContributionActGenerateDocumentInput:{
 
 	},
@@ -143,14 +146,24 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CandidateStatus: "enum" as const,
+	CapitalAddWorklogInput:{
+
+	},
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
 	CapitalContributorFilter:{
 		status:"ContributorStatus"
 	},
+	CapitalCreateProgramExpenseInput:{
+		items:"ExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	CapitalCycleFilter:{
 		status:"CycleStatus"
+	},
+	CapitalGetOpenTimerInput:{
+
 	},
 	CapitalInvestFilter:{
 		status:"InvestStatus"
@@ -168,13 +181,25 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalOnboardingStepInput:{
 		step:"CapitalOnboardingStep"
 	},
+	CapitalPauseTimerInput:{
+
+	},
 	CapitalProjectFilter:{
 		has_issues_with_priorities:"IssuePriority",
 		has_issues_with_statuses:"IssueStatus",
 		statuses:"ProjectStatus"
 	},
+	CapitalResumeTimerInput:{
+
+	},
 	CapitalSegmentFilter:{
 		status:"SegmentStatus"
+	},
+	CapitalStartTimerInput:{
+
+	},
+	CapitalStopTimerInput:{
+
 	},
 	CapitalStoryContentFormat: "enum" as const,
 	CapitalStoryFilter:{
@@ -184,6 +209,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CapitalTimeStatsInput:{
+
+	},
+	CapitalTopupProgramExpenseInput:{
 
 	},
 	ChairmanOnboardingAgendaInput:{
@@ -292,6 +320,10 @@ export const AllTypesProps: Record<string,any> = {
 	CreateCommitInput:{
 		data:"JSON"
 	},
+	CreateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
 	CreateCooperativeInvestmentInput:{
 		statement:"CooperativeInvestStatementSignedDocumentInput"
 	},
@@ -312,6 +344,11 @@ export const AllTypesProps: Record<string,any> = {
 	CreateExpenseInput:{
 		statement:"SignedDigitalDocumentInput"
 	},
+	CreateExpenseProposalInput:{
+		callback:"ExpenseCallbackInput",
+		items:"ExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	CreateIndividualDataInput:{
 		passport:"PassportInput"
 	},
@@ -330,6 +367,12 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateMatrixAccountInputDTO:{
 
+	},
+	CreateMeasureInput:{
+		series_mode:"MetricSeriesMode"
+	},
+	CreateMembershipExitInput:{
+		statement:"MembershipExitApplicationSignedDocumentInput"
 	},
 	CreateOrganizationDataInput:{
 		bank_account:"BankAccountInput",
@@ -444,9 +487,57 @@ export const AllTypesProps: Record<string,any> = {
 	EntrepreneurDetailsInput:{
 
 	},
+	ExpenseCallbackInput:{
+
+	},
+	ExpenseFileKind: "enum" as const,
 	ExpenseFilter:{
 
 	},
+	ExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
+	ExpenseItemStatus: "enum" as const,
+	ExpenseMechanics: "enum" as const,
+	ExpenseProposalDecisionBodyInput:{
+
+	},
+	ExpenseProposalDecisionGenerateDocumentInput:{
+		items:"ExpenseProposalDecisionItemInput",
+		proposal:"ExpenseProposalDecisionHeaderInput",
+		resolution:"ExpenseProposalDecisionBodyInput"
+	},
+	ExpenseProposalDecisionHeaderInput:{
+
+	},
+	ExpenseProposalDecisionItemInput:{
+
+	},
+	ExpenseProposalHeaderInput:{
+
+	},
+	ExpenseProposalItemInput:{
+
+	},
+	ExpenseProposalSignedItemInput:{
+
+	},
+	ExpenseProposalStatementGenerateDocumentInput:{
+		items:"ExpenseProposalItemInput",
+		proposal:"ExpenseProposalHeaderInput"
+	},
+	ExpenseProposalStatementSignedDocumentInput:{
+		meta:"ExpenseProposalStatementSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	ExpenseProposalStatementSignedMetaDocumentInput:{
+		items:"ExpenseProposalSignedItemInput",
+		proposal:"ExpenseProposalHeaderInput"
+	},
+	ExpenseProposalStatus: "enum" as const,
+	ExpenseRecipientType: "enum" as const,
+	ExpenseReportOutcome: "enum" as const,
 	ExpenseStatus: "enum" as const,
 	ExtendedMeetStatus: "enum" as const,
 	ExtensionInput:{
@@ -530,6 +621,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetCapitalStoryByHashInput:{
 
 	},
+	GetComponentMetricsInput:{
+		status:"MetricStatus"
+	},
 	GetContributorInput:{
 
 	},
@@ -556,6 +650,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetInvestInput:{
 
 	},
+	GetIssueMetricBindingsInput:{
+
+	},
 	GetLedger2HistoryInput:{
 		dateFrom:"DateTime",
 		dateTo:"DateTime"
@@ -573,11 +670,31 @@ export const AllTypesProps: Record<string,any> = {
 	GetMaxOriginServerTsForRoomInput:{
 
 	},
+	GetMeasuresInput:{
+		status:"MetricStatus"
+	},
 	GetMeetInput:{
 
 	},
 	GetMeetsInput:{
 
+	},
+	GetMetricContributionsInput:{
+
+	},
+	GetMetricSeriesInput:{
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		to:"DateTime"
+	},
+	GetMetricSuperpositionHistoryInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricSuperpositionInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricWaveInput:{
+		period:"MetricSeriesPeriod"
 	},
 	GetOneCoopDocumentsInput:{
 
@@ -624,6 +741,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
+	IssueMetricBindingItemInput:{
+
+	},
 	IssuePriority: "enum" as const,
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
@@ -636,6 +756,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	LogEntityType: "enum" as const,
 	LogEventType: "enum" as const,
+	LogMetricContributionInput:{
+
+	},
 	LoginInput:{
 
 	},
@@ -650,6 +773,25 @@ export const AllTypesProps: Record<string,any> = {
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
 	},
+	MembershipExitApplicationGenerateDocumentInput:{
+
+	},
+	MembershipExitApplicationSignedDocumentInput:{
+		meta:"MembershipExitApplicationSignedMetaDocumentInput",
+		signatures:"SignatureInfoInput"
+	},
+	MembershipExitApplicationSignedMetaDocumentInput:{
+
+	},
+	MembershipExitDecisionGenerateDocumentInput:{
+
+	},
+	MembershipExitStatus: "enum" as const,
+	MetricContributionSource: "enum" as const,
+	MetricDriveDirection: "enum" as const,
+	MetricSeriesMode: "enum" as const,
+	MetricSeriesPeriod: "enum" as const,
+	MetricStatus: "enum" as const,
 	ModerateRequestInput:{
 
 	},
@@ -672,14 +814,23 @@ export const AllTypesProps: Record<string,any> = {
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
+		cancelMembershipExit:{
+
+		},
 		cancelRequest:{
 			data:"CancelRequestInput"
 		},
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
+		capitalAddWorklog:{
+			data:"CapitalAddWorklogInput"
+		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
+		},
+		capitalArchiveComponentMetric:{
+			data:"ArchiveComponentMetricInput"
 		},
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
@@ -702,6 +853,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateCommit:{
 			data:"CreateCommitInput"
 		},
+		capitalCreateComponentMetric:{
+			data:"CreateComponentMetricInput"
+		},
 		capitalCreateCycle:{
 			data:"CreateCycleInput"
 		},
@@ -714,8 +868,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
 		},
+		capitalCreateMeasure:{
+			data:"CreateMeasureInput"
+		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
+		},
+		capitalCreateProgramExpense:{
+			data:"CapitalCreateProgramExpenseInput"
 		},
 		capitalCreateProgramInvest:{
 			data:"CreateProgramInvestInput"
@@ -856,6 +1016,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalImportContributor:{
 			data:"ImportContributorInput"
 		},
+		capitalLogMetricContribution:{
+			data:"LogMetricContributionInput"
+		},
 		capitalMakeClearance:{
 			data:"MakeClearanceInput"
 		},
@@ -864,6 +1027,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalOpenProject:{
 			data:"OpenProjectInput"
+		},
+		capitalPauseTimer:{
+			data:"CapitalPauseTimerInput"
 		},
 		capitalPushResult:{
 			data:"PushResultInput"
@@ -877,8 +1043,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
 		},
+		capitalResumeTimer:{
+			data:"CapitalResumeTimerInput"
+		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
+		},
+		capitalSetIssueMetricBindings:{
+			data:"SetIssueMetricBindingsInput"
 		},
 		capitalSetMaster:{
 			data:"SetMasterInput"
@@ -901,17 +1073,32 @@ export const AllTypesProps: Record<string,any> = {
 		capitalStartProject:{
 			data:"StartProjectInput"
 		},
+		capitalStartTimer:{
+			data:"CapitalStartTimerInput"
+		},
 		capitalStartVoting:{
 			data:"StartVotingInput"
 		},
 		capitalStopProject:{
 			data:"StopProjectInput"
 		},
+		capitalStopTimer:{
+			data:"CapitalStopTimerInput"
+		},
 		capitalSubmitVote:{
 			data:"SubmitVoteInput"
 		},
+		capitalTopupProgramExpensePool:{
+			data:"CapitalTopupProgramExpenseInput"
+		},
+		capitalUpdateComponentMetric:{
+			data:"UpdateComponentMetricInput"
+		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
+		},
+		capitalUpdateMeasure:{
+			data:"UpdateMeasureInput"
 		},
 		capitalUpdateProcessTemplate:{
 			data:"UpdateProcessTemplateInput"
@@ -964,6 +1151,9 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
+		confirmMembershipExit:{
+
+		},
 		confirmReceiveOnRequest:{
 			data:"ConfirmReceiveOnRequestInput"
 		},
@@ -985,8 +1175,14 @@ export const AllTypesProps: Record<string,any> = {
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
+		createExpenseProposal:{
+			data:"CreateExpenseProposalInput"
+		},
 		createInitialPayment:{
 			data:"CreateInitialPaymentInput"
+		},
+		createMembershipExit:{
+			data:"CreateMembershipExitInput"
 		},
 		createParentOffer:{
 			data:"CreateParentOfferInput"
@@ -1079,8 +1275,24 @@ export const AllTypesProps: Record<string,any> = {
 		generateDocument:{
 			input:"GenerateAnyDocumentInput"
 		},
+		generateExpenseProposalDecisionDocument:{
+			data:"ExpenseProposalDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateExpenseProposalStatementDocument:{
+			data:"ExpenseProposalStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
 		generateFreeDecision:{
 			data:"FreeDecisionGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitApplication:{
+			data:"MembershipExitApplicationGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateMembershipExitDecision:{
+			data:"MembershipExitDecisionGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateParticipantApplication:{
@@ -1175,6 +1387,12 @@ export const AllTypesProps: Record<string,any> = {
 		notifyOnAnnualGeneralMeet:{
 			data:"NotifyOnAnnualGeneralMeetInput"
 		},
+		overspendExpenseItem:{
+			data:"OverspendExpenseItemInput"
+		},
+		payExpenseItem:{
+			data:"PayExpenseItemInput"
+		},
 		processConvertToAxonStatement:{
 			data:"ProcessConvertToAxonStatementInput"
 		},
@@ -1199,6 +1417,9 @@ export const AllTypesProps: Record<string,any> = {
 		registerParticipant:{
 			data:"RegisterParticipantInput"
 		},
+		reportExpenseItem:{
+			data:"ReportExpenseItemInput"
+		},
 		resendNotification:{
 
 		},
@@ -1207,6 +1428,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
+		},
+		returnExpenseItem:{
+			data:"ReturnExpenseItemInput"
+		},
+		saveCapitalProgramDocDataHash:{
+			data:"SaveCapitalProgramDocDataInput"
 		},
 		saveReportDraft:{
 			input:"SaveReportDraftInput"
@@ -1234,6 +1461,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		startResetKey:{
 			data:"StartResetKeyInput"
+		},
+		submitExpenseReport:{
+			data:"SubmitExpenseReportInput"
 		},
 		supplyOnRequest:{
 			data:"SupplyOnRequestInput"
@@ -1268,6 +1498,12 @@ export const AllTypesProps: Record<string,any> = {
 		updateSystem:{
 			data:"Update"
 		},
+		uploadExpenseFile:{
+			data:"UploadExpenseFileInput"
+		},
+		uploadPaymentProof:{
+			data:"UploadPaymentProofInput"
+		},
 		verifyEmail:{
 			data:"VerifyEmailInputDTO"
 		},
@@ -1299,6 +1535,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	OrganizationType: "enum" as const,
+	OverspendExpenseItemInput:{
+
+	},
 	PaginationInput:{
 
 	},
@@ -1318,7 +1557,11 @@ export const AllTypesProps: Record<string,any> = {
 	PassportInput:{
 
 	},
+	PayExpenseItemInput:{
+
+	},
 	PaymentDirection: "enum" as const,
+	PaymentFileKind: "enum" as const,
 	PaymentFiltersInput:{
 		direction:"PaymentDirection",
 		status:"PaymentStatus",
@@ -1411,6 +1654,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalCommitFilter",
 			options:"PaginationInput"
 		},
+		capitalComponentMetrics:{
+			data:"GetComponentMetricsInput"
+		},
 		capitalContributor:{
 			data:"GetContributorInput"
 		},
@@ -1436,6 +1682,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ExpenseFilter",
 			options:"PaginationInput"
 		},
+		capitalGetOpenTimer:{
+			data:"CapitalGetOpenTimerInput"
+		},
 		capitalGetProcessInstance:{
 
 		},
@@ -1458,8 +1707,36 @@ export const AllTypesProps: Record<string,any> = {
 		capitalIssue:{
 			data:"GetCapitalIssueByHashInput"
 		},
+		capitalIssueMetricBindings:{
+			data:"GetIssueMetricBindingsInput"
+		},
 		capitalIssues:{
 			filter:"CapitalIssueFilter",
+			options:"PaginationInput"
+		},
+		capitalMeasures:{
+			data:"GetMeasuresInput"
+		},
+		capitalMetricContributions:{
+			data:"GetMetricContributionsInput",
+			options:"PaginationInput"
+		},
+		capitalMetricSeries:{
+			data:"GetMetricSeriesInput"
+		},
+		capitalMetricSuperposition:{
+			data:"GetMetricSuperpositionInput"
+		},
+		capitalMetricSuperpositionHistory:{
+			data:"GetMetricSuperpositionHistoryInput"
+		},
+		capitalMetricWave:{
+			data:"GetMetricWaveInput"
+		},
+		capitalProgramExpense:{
+
+		},
+		capitalProgramExpenses:{
 			options:"PaginationInput"
 		},
 		capitalProject:{
@@ -1550,6 +1827,27 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		cooperativePrograms:{
+
+		},
+		expenseFile:{
+
+		},
+		expenseFilesByItem:{
+
+		},
+		expenseFilesByProposal:{
+
+		},
+		expenseProposal:{
+
+		},
+		expenseProposalsByCooperative:{
+			options:"PaginationInput"
+		},
+		expenseProposalsByMember:{
+			options:"PaginationInput"
+		},
+		expenseRequisitesByProposal:{
 
 		},
 		getAccount:{
@@ -1678,8 +1976,20 @@ export const AllTypesProps: Record<string,any> = {
 		listReportDrafts:{
 			filter:"ListReportDraftsFilterInput"
 		},
+		membershipExit:{
+
+		},
+		membershipExitReturnPreview:{
+
+		},
 		onecoopGetDocuments:{
 			data:"GetOneCoopDocumentsInput"
+		},
+		paymentFile:{
+
+		},
+		paymentProofs:{
+
 		},
 		process:{
 
@@ -1730,6 +2040,9 @@ export const AllTypesProps: Record<string,any> = {
 		wallet_agreement:"SignedDigitalDocumentInput"
 	},
 	RemoveSecretaryRoomInput:{
+
+	},
+	ReportExpenseItemInput:{
 
 	},
 	ReportHistoryFilterInput:{
@@ -1801,7 +2114,13 @@ export const AllTypesProps: Record<string,any> = {
 	ReturnByMoneySignedMetaDocumentInput:{
 
 	},
+	ReturnExpenseItemInput:{
+
+	},
 	RoomMessageKind: "enum" as const,
+	SaveCapitalProgramDocDataInput:{
+
+	},
 	SaveReportDraftInput:{
 		reportType:"ReportType"
 	},
@@ -1836,6 +2155,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	SetConfigInput:{
 		config:"ConfigInput"
+	},
+	SetIssueMetricBindingsInput:{
+		bindings:"IssueMetricBindingItemInput"
 	},
 	SetMasterInput:{
 
@@ -1898,6 +2220,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	StoryStatus: "enum" as const,
+	SubmitExpenseReportInput:{
+
+	},
 	SubmitVoteInput:{
 		votes:"VoteDistributionInput"
 	},
@@ -1935,6 +2260,10 @@ export const AllTypesProps: Record<string,any> = {
 		endsAt:"DateTime",
 		startsAt:"DateTime"
 	},
+	UpdateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
 	UpdateEntrepreneurDataInput:{
 		country:"Country",
 		details:"EntrepreneurDetailsInput"
@@ -1945,6 +2274,9 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateIssueInput:{
 		priority:"IssuePriority",
 		status:"IssueStatus"
+	},
+	UpdateMeasureInput:{
+		series_mode:"MetricSeriesMode"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -1967,6 +2299,12 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateStoryInput:{
 		content_format:"CapitalStoryContentFormat",
 		status:"StoryStatus"
+	},
+	UploadExpenseFileInput:{
+		kind:"ExpenseFileKind"
+	},
+	UploadPaymentProofInput:{
+
 	},
 	UserStatus: "enum" as const,
 	VarsInput:{
@@ -1996,6 +2334,8 @@ export const AllTypesProps: Record<string,any> = {
 	WalmoveInput:{
 
 	},
+	WaveLabel: "enum" as const,
+	WavePhase: "enum" as const,
 	WebPushSubscriptionDataInput:{
 		keys:"WebPushSubscriptionKeysInput"
 	},
@@ -2426,6 +2766,25 @@ export const ReturnTypes: Record<string,any> = {
 		total_contribution:"String",
 		total_generation_pool:"String"
 	},
+	CapitalComponentMetric:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		deadline:"DateTime",
+		fact:"Float",
+		measure_hash:"String",
+		metric_hash:"String",
+		present:"Boolean",
+		project_hash:"String",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
 	CapitalConfigObject:{
 		authors_voting_percent:"Float",
 		coordinator_bonus_percent:"Float",
@@ -2533,6 +2892,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ExpenseStatus",
 		username:"String"
 	},
+	CapitalFibLevel:{
+		ratio:"Float",
+		value:"Float"
+	},
 	CapitalInvest:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -2591,6 +2954,16 @@ export const ReturnTypes: Record<string,any> = {
 		html_url:"String",
 		username:"String"
 	},
+	CapitalIssueMetricBinding:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		present:"Boolean"
+	},
 	CapitalIssuePermissions:{
 		allowed_status_transitions:"IssueStatus",
 		can_assign_creator:"Boolean",
@@ -2611,8 +2984,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	CapitalLog:{
 		_id:"String",
+		actor_name:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		description:"String",
 		entity_id:"String",
 		entity_type:"LogEntityType",
 		event_type:"LogEventType",
@@ -2620,11 +2995,142 @@ export const ReturnTypes: Record<string,any> = {
 		message:"String",
 		metadata:"JSON",
 		project_hash:"String",
-		reference_id:"String"
+		reference_id:"String",
+		title:"String"
+	},
+	CapitalMeasure:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		measure_hash:"String",
+		present:"Boolean",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricComponentRollup:{
+		fact_sum:"Float",
+		metrics_count:"Int",
+		project_hash:"String",
+		project_title:"String",
+		target_sum:"Float"
+	},
+	CapitalMetricContribution:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		contribution_hash:"String",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		occurred_at:"DateTime",
+		present:"Boolean",
+		source:"MetricContributionSource",
+		username:"String"
+	},
+	CapitalMetricSeries:{
+		fact:"Float",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		points:"CapitalMetricSeriesPoint",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricSeriesPoint:{
+		cumulative:"Float",
+		delta:"Float",
+		ideal_cumulative:"Float",
+		period_end:"DateTime",
+		period_start:"DateTime"
+	},
+	CapitalMetricSuperposition:{
+		activity:"Float",
+		balance:"Float",
+		coherence:"Float",
+		components:"CapitalMetricComponentRollup",
+		disclaimer:"String",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionFrame:{
+		activity:"Float",
+		at:"DateTime",
+		balance:"Float",
+		coherence:"Float",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionHistory:{
+		frames:"CapitalMetricSuperpositionFrame",
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		to:"DateTime"
+	},
+	CapitalMetricSuperpositionItem:{
+		amplitude:"Float",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		drive:"MetricDriveDirection",
+		fact:"Float",
+		metric_hash:"String",
+		phase_rad:"Float",
+		project_hash:"String",
+		project_title:"String",
+		recent_velocity:"Float",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricWave:{
+		corridor:"CapitalWaveCorridor",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		disclaimer:"String",
+		fact:"Float",
+		fib_levels:"CapitalFibLevel",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		point_labels:"WaveLabel",
+		series_mode:"MetricSeriesMode",
+		swings:"CapitalWaveSwing",
+		target_value:"Float",
+		title:"String",
+		unit:"String",
+		values:"Float"
 	},
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
 		blagorost_provision_done:"Boolean",
+		capital_program_doc_data_hash:"String",
 		generation_contract_template_done:"Boolean",
 		generator_offer_template_done:"Boolean",
 		generator_program_template_done:"Boolean",
@@ -2635,6 +3141,36 @@ export const ReturnTypes: Record<string,any> = {
 		onboarding_generator_offer_template_hash:"String",
 		onboarding_generator_program_template_hash:"String",
 		onboarding_init_at:"String"
+	},
+	CapitalProgramExpense:{
+		callback:"CapitalProgramExpenseCallback",
+		coopname:"String",
+		created_at:"String",
+		creator:"String",
+		creator_name:"String",
+		expense_hash:"String",
+		items:"CapitalProgramExpenseItem",
+		source_wallet:"String",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"String"
+	},
+	CapitalProgramExpenseCallback:{
+		action:"String",
+		contract:"String",
+		data:"String"
+	},
+	CapitalProgramExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_name:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
 	},
 	CapitalProject:{
 		_created_at:"DateTime",
@@ -2891,6 +3427,8 @@ export const ReturnTypes: Record<string,any> = {
 		coopname:"String",
 		global_available_invest_pool:"String",
 		present:"Boolean",
+		program_expense_pool:"String",
+		program_expense_reserved:"String",
 		program_membership_available:"String",
 		program_membership_cumulative_reward_per_share:"Float",
 		program_membership_distributed:"String",
@@ -2948,6 +3486,20 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Float",
 		totalPages:"Float"
 	},
+	CapitalTimerSession:{
+		_id:"String",
+		contributor_hash:"String",
+		coopname:"String",
+		elapsed_seconds:"Int",
+		is_paused:"Boolean",
+		issue_hash:"String",
+		issue_title:"String",
+		paused_at:"DateTime",
+		project_hash:"String",
+		started_at:"DateTime",
+		stopped_at:"DateTime",
+		total_paused_ms:"Float"
+	},
 	CapitalVote:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -2963,6 +3515,20 @@ export const ReturnTypes: Record<string,any> = {
 		voted_at:"String",
 		voter:"String",
 		voter_display_name:"String"
+	},
+	CapitalWaveCorridor:{
+		base:"Float",
+		eta_base_periods:"Int",
+		eta_optimistic_periods:"Int",
+		eta_pessimistic_periods:"Int",
+		optimistic:"Float",
+		periods_ahead:"Int",
+		pessimistic:"Float"
+	},
+	CapitalWaveSwing:{
+		index:"Int",
+		label:"WaveLabel",
+		value:"Float"
 	},
 	ChairmanOnboardingState:{
 		general_meet_done:"Boolean",
@@ -3209,6 +3775,68 @@ export const ReturnTypes: Record<string,any> = {
 	EntrepreneurDetails:{
 		inn:"String",
 		ogrn:"String"
+	},
+	ExpenseFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		item_hash:"String",
+		kind:"ExpenseFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		proposal_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
+	},
+	ExpenseItem:{
+		actual_amount:"String",
+		description:"String",
+		item_hash:"String",
+		mechanics:"ExpenseMechanics",
+		planned_amount:"String",
+		recipient:"String",
+		recipient_type:"ExpenseRecipientType",
+		status:"ExpenseItemStatus"
+	},
+	ExpenseProposal:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		blockchain_status:"Int",
+		coopname:"String",
+		created_at:"String",
+		decision_doc:"DocumentAggregate",
+		id:"Int",
+		items:"ExpenseItem",
+		present:"Boolean",
+		proposal_hash:"String",
+		source_wallet:"String",
+		statement_doc:"DocumentAggregate",
+		status:"ExpenseProposalStatus",
+		total_actual:"String",
+		total_planned:"String",
+		updated_at:"String",
+		username:"String"
+	},
+	ExpenseReportResult:{
+		outcome:"ExpenseReportOutcome",
+		settlement_amount:"String",
+		settlement_payment_hash:"String",
+		transaction:"Transaction"
+	},
+	ExpenseRequisite:{
+		coopname:"String",
+		data:"JSON",
+		item_hash:"String",
+		method_type:"String",
+		payment_purpose:"String",
+		proposal_hash:"String",
+		recipient:"String",
+		requisites:"String"
 	},
 	ExtendedBlockchainAction:{
 		account:"String",
@@ -3574,6 +4202,22 @@ export const ReturnTypes: Record<string,any> = {
 		votes_against:"Int",
 		votes_for:"Int"
 	},
+	MembershipExit:{
+		created_at:"String",
+		exit_hash:"String",
+		payment_status:"PaymentStatus",
+		quantity:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitResult:{
+		exit_hash:"String",
+		status:"MembershipExitStatus"
+	},
+	MembershipExitReturnPreview:{
+		minimum_contribution:"String",
+		share_contribution:"String",
+		total:"String"
+	},
 	MissingRequisiteField:{
 		key:"String",
 		label:"String",
@@ -3602,9 +4246,12 @@ export const ReturnTypes: Record<string,any> = {
 		addPaymentMethod:"PaymentMethod",
 		addTrustedAccount:"Branch",
 		authorizeDecision:"Transaction",
+		cancelMembershipExit:"Boolean",
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
+		capitalAddWorklog:"CapitalTimeEntry",
 		capitalApproveCommit:"CapitalCommit",
+		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
@@ -3612,11 +4259,14 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCompleteVoting:"Transaction",
 		capitalConvertSegment:"CapitalSegment",
 		capitalCreateCommit:"CapitalCommit",
+		capitalCreateComponentMetric:"CapitalComponentMetric",
 		capitalCreateCycle:"CapitalCycle",
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
+		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
 		capitalCreateProgramProperty:"Transaction",
 		capitalCreateProject:"Transaction",
@@ -3656,14 +4306,18 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
+		capitalLogMetricContribution:"CapitalMetricContribution",
 		capitalMakeClearance:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
 		capitalOpenProject:"CapitalProject",
+		capitalPauseTimer:"CapitalTimerSession",
 		capitalPushResult:"CapitalSegment",
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
+		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
@@ -3671,10 +4325,15 @@ export const ReturnTypes: Record<string,any> = {
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",
 		capitalStartProject:"CapitalProject",
+		capitalStartTimer:"CapitalTimerSession",
 		capitalStartVoting:"Transaction",
 		capitalStopProject:"CapitalProject",
+		capitalStopTimer:"CapitalTimeEntry",
 		capitalSubmitVote:"Transaction",
+		capitalTopupProgramExpensePool:"Transaction",
+		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
+		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
@@ -3693,6 +4352,7 @@ export const ReturnTypes: Record<string,any> = {
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		completeRequest:"Transaction",
 		confirmAgreement:"Transaction",
+		confirmMembershipExit:"MembershipExitResult",
 		confirmReceiveOnRequest:"Transaction",
 		confirmSupplyOnRequest:"Transaction",
 		createAnnualGeneralMeet:"MeetAggregate",
@@ -3700,7 +4360,9 @@ export const ReturnTypes: Record<string,any> = {
 		createChildOrder:"Transaction",
 		createCooperativeInvestment:"CreateCooperativeInvestmentResponse",
 		createDepositPayment:"GatewayPayment",
+		createExpenseProposal:"Transaction",
 		createInitialPayment:"GatewayPayment",
+		createMembershipExit:"MembershipExitResult",
 		createParentOffer:"Transaction",
 		createProjectOfFreeDecision:"CreatedProjectFreeDecision",
 		createWebPushSubscription:"CreateSubscriptionResponse",
@@ -3728,7 +4390,11 @@ export const ReturnTypes: Record<string,any> = {
 		generateCooperativeInvestDecisionDocument:"GeneratedDocument",
 		generateCooperativeInvestStatementDocument:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
+		generateExpenseProposalDecisionDocument:"GeneratedDocument",
+		generateExpenseProposalStatementDocument:"GeneratedDocument",
 		generateFreeDecision:"GeneratedDocument",
+		generateMembershipExitApplication:"GeneratedDocument",
+		generateMembershipExitDecision:"GeneratedDocument",
 		generateParticipantApplication:"GeneratedDocument",
 		generateParticipantApplicationDecision:"GeneratedDocument",
 		generatePrivacyAgreement:"GeneratedDocument",
@@ -3755,6 +4421,8 @@ export const ReturnTypes: Record<string,any> = {
 		markReportPeriod:"Boolean",
 		moderateRequest:"Transaction",
 		notifyOnAnnualGeneralMeet:"MeetAggregate",
+		overspendExpenseItem:"Transaction",
+		payExpenseItem:"Transaction",
 		processConvertToAxonStatement:"Boolean",
 		prohibitRequest:"Transaction",
 		publishProjectOfFreeDecision:"AgendaWithDocuments",
@@ -3763,10 +4431,13 @@ export const ReturnTypes: Record<string,any> = {
 		refresh:"RegisteredAccount",
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
+		reportExpenseItem:"ExpenseReportResult",
 		resendNotification:"Notification",
 		resetKey:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		returnExpenseItem:"Transaction",
+		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveReportDraft:"ReportDraft",
 		selectBranch:"Boolean",
 		sendAgreement:"Transaction",
@@ -3776,6 +4447,7 @@ export const ReturnTypes: Record<string,any> = {
 		signBySecretaryOnAnnualGeneralMeet:"MeetAggregate",
 		startInstall:"StartInstallResult",
 		startResetKey:"Boolean",
+		submitExpenseReport:"Transaction",
 		supplyOnRequest:"Transaction",
 		triggerNotificationWorkflow:"Boolean",
 		uninstallExtension:"Boolean",
@@ -3787,6 +4459,8 @@ export const ReturnTypes: Record<string,any> = {
 		updateRequest:"Transaction",
 		updateSettings:"Settings",
 		updateSystem:"SystemInfo",
+		uploadExpenseFile:"ExpenseFile",
+		uploadPaymentProof:"PaymentFile",
 		verifyEmail:"Boolean",
 		voteOnAnnualGeneralMeet:"MeetAggregate",
 		walmoveWallets:"Ledger2AdjustmentResult"
@@ -3967,6 +4641,18 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalMetricContributionsPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalMetricContribution",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedCapitalProgramExpensesPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalProgramExpense",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalProjectsPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalProject",
@@ -4027,6 +4713,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedExpenseProposalsPaginationResult:{
+		currentPage:"Int",
+		items:"ExpenseProposal",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedGatewayPaymentsPaginationResult:{
 		currentPage:"Int",
 		items:"GatewayPayment",
@@ -4062,6 +4754,20 @@ export const ReturnTypes: Record<string,any> = {
 		fee_amount:"String",
 		fee_percent:"Float",
 		tolerance_percent:"Float"
+	},
+	PaymentFile:{
+		checksum_sha256:"String",
+		coopname:"String",
+		id:"Int",
+		kind:"PaymentFileKind",
+		mime_type:"String",
+		original_filename:"String",
+		payment_hash:"String",
+		read_url:"String",
+		size_bytes:"Int",
+		storage_key:"String",
+		uploaded_at:"DateTime",
+		uploaded_by_username:"String"
 	},
 	PaymentMethod:{
 		created_at:"DateTime",
@@ -4270,6 +4976,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",
 		capitalCommit:"CapitalCommit",
 		capitalCommits:"PaginatedCapitalCommitsPaginationResult",
+		capitalComponentMetrics:"CapitalComponentMetric",
 		capitalContributor:"CapitalContributor",
 		capitalContributors:"PaginatedCapitalContributorsPaginationResult",
 		capitalCycles:"PaginatedCapitalCyclesPaginationResult",
@@ -4277,6 +4984,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
+		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",
 		capitalGetProcessTemplate:"ProcessTemplate",
@@ -4284,7 +4992,16 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInvest:"CapitalInvest",
 		capitalInvests:"PaginatedCapitalInvestsPaginationResult",
 		capitalIssue:"CapitalIssue",
+		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalMeasures:"CapitalMeasure",
+		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
+		capitalMetricSeries:"CapitalMetricSeries",
+		capitalMetricSuperposition:"CapitalMetricSuperposition",
+		capitalMetricSuperpositionHistory:"CapitalMetricSuperpositionHistory",
+		capitalMetricWave:"CapitalMetricWave",
+		capitalProgramExpense:"CapitalProgramExpense",
+		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
 		capitalProjectWithRelations:"CapitalProject",
 		capitalProjects:"PaginatedCapitalProjectsPaginationResult",
@@ -4317,6 +5034,13 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		expenseFile:"ExpenseFile",
+		expenseFilesByItem:"ExpenseFile",
+		expenseFilesByProposal:"ExpenseFile",
+		expenseProposal:"ExpenseProposal",
+		expenseProposalsByCooperative:"PaginatedExpenseProposalsPaginationResult",
+		expenseProposalsByMember:"PaginatedExpenseProposalsPaginationResult",
+		expenseRequisitesByProposal:"ExpenseRequisite",
 		getAccount:"Account",
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
@@ -4367,7 +5091,11 @@ export const ReturnTypes: Record<string,any> = {
 		getUserWebPushSubscriptions:"WebPushSubscriptionDto",
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		listReportDrafts:"ReportDraft",
+		membershipExit:"MembershipExit",
+		membershipExitReturnPreview:"MembershipExitReturnPreview",
 		onecoopGetDocuments:"OneCoopDocumentsResponse",
+		paymentFile:"PaymentFile",
+		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
 		searchDocuments:"SearchResult",
@@ -4495,6 +5223,7 @@ export const ReturnTypes: Record<string,any> = {
 		oktmo:"RequisiteFieldView",
 		okved:"RequisiteFieldView",
 		orgName:"RequisiteFieldView",
+		pfrRegNumber:"RequisiteFieldView",
 		phone:"RequisiteFieldView",
 		sfrRegNumber:"RequisiteFieldView",
 		signerFirstName:"RequisiteFieldView",
@@ -4737,6 +5466,7 @@ export const ReturnTypes: Record<string,any> = {
 		firstName:"String",
 		lastName:"String",
 		middleName:"String",
+		pfrRegNumber:"String",
 		repDoc:"String",
 		sfrRegNumber:"String",
 		snils:"String",

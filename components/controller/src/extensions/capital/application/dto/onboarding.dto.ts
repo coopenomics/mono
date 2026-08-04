@@ -36,6 +36,14 @@ export class CapitalOnboardingStepInputDTO {
   decision!: string;
 }
 
+@InputType('SaveCapitalProgramDocDataInput')
+export class SaveCapitalProgramDocDataInputDTO {
+  @Field(() => String)
+  @IsString()
+  @IsNotEmpty()
+  doc_data_hash!: string;
+}
+
 @ObjectType('CapitalOnboardingState')
 export class CapitalOnboardingStateDTO {
   @Field(() => Boolean)
@@ -67,6 +75,9 @@ export class CapitalOnboardingStateDTO {
 
   @Field(() => String, { nullable: true })
   onboarding_blagorost_offer_template_hash?: string | null;
+
+  @Field(() => String, { nullable: true })
+  capital_program_doc_data_hash?: string | null;
 
   @Field(() => String)
   onboarding_init_at!: string;

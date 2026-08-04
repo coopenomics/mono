@@ -73,6 +73,22 @@ export class ParticipantInteractor {
     return await this.documentDomainService.generateDocument({ data, options });
   }
 
+  async generateMembershipExitApplication(
+    data: Cooperative.Registry.ParticipantExitApplication.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    data.registry_id = Cooperative.Registry.ParticipantExitApplication.registry_id;
+    return await this.documentDomainService.generateDocument({ data, options });
+  }
+
+  async generateMembershipExitDecision(
+    data: Cooperative.Registry.DecisionOfParticipantExit.Action,
+    options: Cooperative.Document.IGenerationOptions
+  ): Promise<DocumentDomainEntity> {
+    data.registry_id = Cooperative.Registry.DecisionOfParticipantExit.registry_id;
+    return await this.documentDomainService.generateDocument({ data, options });
+  }
+
   /**
    * Проверяет подпись документа
    * @private

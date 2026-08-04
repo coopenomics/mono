@@ -225,6 +225,22 @@ export interface CapitalBlockchainPort {
   createExpense(data: CapitalContract.Actions.CreateExpense.ICreateExpense): Promise<TransactResult>;
 
   /**
+   * Программный расход через шасси: capital резервирует program_expense_pool
+   * и шлёт inline action в expense::createexp с callback `{capital, onpgexpdone}`.
+   */
+  createProgramExpense(
+    data: CapitalContract.Actions.CreateProgramExpense.ICreateProgramExpense,
+  ): Promise<TransactResult>;
+
+  /**
+   * Пополнение пула программных расходов из доступного остатка
+   * `global_available_invest_pool` (председатель).
+   */
+  topupProgramExpense(
+    data: CapitalContract.Actions.TopupProgramExpense.ITopupProgramExpense,
+  ): Promise<TransactResult>;
+
+  /**
    * Редактирование участника CAPITAL контракта
    */
   editContributor(data: CapitalContract.Actions.EditContributor.IEditContributor): Promise<TransactResult>;

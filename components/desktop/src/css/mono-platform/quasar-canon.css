@@ -107,16 +107,22 @@
   border-color: var(--p-line-2) !important;
 }
 
-/* Ghost — flat */
-.q-btn--flat {
+/* Ghost — flat (не трогаем destructive: text-negative остаётся красным) */
+.q-btn--flat:not(.text-negative) {
   color: var(--p-ink) !important;
 }
-.q-btn--flat:hover {
+.q-btn--flat:not(.text-negative):hover {
   background: var(--p-surface-2);
 }
 .q-btn--flat.text-grey-7,
 .q-btn--flat.text-grey {
   color: var(--p-ink-2) !important;
+}
+.q-btn--flat.text-negative {
+  color: var(--p-neg) !important;
+}
+.q-btn--flat.text-negative:hover {
+  background: var(--p-neg-soft);
 }
 
 /* Danger */
@@ -287,7 +293,9 @@
   font-size: var(--p-fs-body);
   border-bottom: 1px solid var(--p-line);
 }
-.q-table tbody tr:hover {
+/* Не красить q-tr--no-hover: вложенные строки-обёртки (раскрытый
+   проект/компонент) иначе подсвечиваются при ховере дочерних задач. */
+.q-table tbody > tr:not(.q-tr--no-hover):hover {
   background: var(--p-surface-2);
 }
 .q-table__top {

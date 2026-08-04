@@ -14,14 +14,22 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 import { ZodForm } from 'src/shared/ui/ZodForm';
 import { BaseCard } from 'src/shared/ui/base/BaseCard';
 import { isExtensionSchemaEmpty } from 'src/shared/lib/utils';
+import type { IExtensionConfigSchema } from 'src/entities/Extension/model';
+
+type ExtensionInstallConfig = Record<string, unknown>;
+type ExtensionInstallFormRef = {
+  value: Element | ComponentPublicInstance | null | undefined;
+};
 
 interface Props {
-  schema?: any;
-  config: any;
-  formRef?: any;
+  extensionName?: string;
+  schema?: IExtensionConfigSchema;
+  config: ExtensionInstallConfig;
+  formRef?: ExtensionInstallFormRef;
 }
 
 const props = defineProps<Props>();

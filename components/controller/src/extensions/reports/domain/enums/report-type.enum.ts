@@ -51,7 +51,8 @@ export const REPORT_CONFIG: Record<ReportType, {
     name: 'Персонифицированные сведения (ПСВ)',
     period: ReportPeriodType.MONTHLY,
     xsdFile: 'NO_PERSSVFL_1_297_00_05_01_02.xsd',
-    deadlineDescription: 'До 25 числа следующего месяца',
+    deadlineDescription:
+      'До 25 числа следующего месяца; за март/июнь/сент/дек не сдаём (закрывается РСВ)',
   },
   [ReportType.DUSN]: {
     name: 'Декларация по УСН',

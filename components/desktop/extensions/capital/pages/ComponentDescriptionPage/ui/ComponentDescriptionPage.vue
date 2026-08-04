@@ -1,5 +1,5 @@
 <template lang="pug">
-div.q-pa-md(ref="pageRootRef")
+div.q-px-md(ref="pageRootRef")
   // Индикатор авто-сохранения
   AutoSaveIndicator(
     :is-auto-saving="isAutoSaving"

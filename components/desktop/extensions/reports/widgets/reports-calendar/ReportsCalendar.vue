@@ -113,7 +113,7 @@ function onCellClick(row: IReportCalendarRow, month: number): void {
   const entry = periodAtMonth(row, month)
   if (!entry) return
   // year виджета — это календарный год СДАЧИ. entry.reportYear — год,
-  // ЗА который отчитываемся (для Q4/годовых/декабря ПСВ он = year-1).
+  // ЗА который отчитываемся (для Q4/годовых он = year-1).
   // В форму шлём именно reportYear из ячейки, а не year виджета —
   // иначе в 2026 БУХОТЧ откроется за 2026 вместо 2025.
   emit('select', {

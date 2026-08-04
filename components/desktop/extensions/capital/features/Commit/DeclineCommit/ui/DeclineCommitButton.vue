@@ -1,13 +1,11 @@
 <template lang="pug">
 div
-  q-btn(
-    color='negative',
-    @click='showDialog = true',
+  BaseButton(
+    variant='danger',
+    :size='mini || isMobile ? "sm" : "md"',
     :loading='loading',
-    label="Отклонить",
-    :size='mini ? "sm" : "md"',
-    :dense="isMobile"
-  )
+    @click.stop='showDialog = true'
+  ) Отклонить
 
   BaseDialog(
     v-model='showDialog',
@@ -40,6 +38,7 @@ import { useDeclineCommit } from '../model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { BaseButton } from 'src/shared/ui/base';
 import { Form } from 'src/shared/ui/Form';
 import { useWindowSize } from 'src/shared/hooks';
 

@@ -7,7 +7,7 @@ import { api } from '../src/eos'
 
 export class InitialMigration implements Migration {
   async run(): Promise {
-    const ids = [100]
+    const ids = [994, 995, 996, 998, 999, 1000]
 
     for (const id of ids) {
       try {

@@ -82,16 +82,11 @@ const emit = defineEmits<{
 
 .capital-sidebar-delete-footer {
   flex-shrink: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--p-line);
 
   :deep(.q-btn) {
     margin-top: 0;
   }
-}
-
-.body--dark .capital-sidebar-delete-footer,
-.q-dark .capital-sidebar-delete-footer {
-  border-top-color: rgba(255, 255, 255, 0.12);
 }
 
 .capital-sidebar-mobile-compact {

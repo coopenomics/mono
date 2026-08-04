@@ -1,35 +1,13 @@
 <template lang="pug">
-// Объединенный бейдж уровня и энергии
-q-badge(
-  :color="currentEnergy >= 90 ? 'teal' : currentEnergy >= 25 ? 'orange' : 'red'"
-  flat
-)
-  q-icon(name='local_fire_department', size='14px', class='q-mr-xs')
-  | Уровень {{ Number(contributorStore.self?.level) || 1 }}
-  .q-mx-sm •
-  // Компактный индикатор энергии
-  .energy-compact-inline.row.items-center
-    .energy-progress-container
-      q-linear-progress(
-        :value="currentEnergy / 100",
-        :color="currentEnergy >= 90 ? 'teal' : currentEnergy >= 25 ? 'orange' : 'red'",
-        track-color="grey-3",
-        size="24px",
-        style="width: 65px;"
-        rounded
-      )
-      .energy-overlay.row.items-center.justify-center.full-width.q-px-xs
-        q-icon(
-          name="arrow_left",
-          color="red",
-          size="24px",
-          class="energy-arrow"
-        )
-        .text-caption.text-white {{ currentEnergy.toFixed(0) }}%
-
-  // Tooltip с информацией о следующем уровне
-  q-tooltip
-    | До следующего уровня: {{ nextLevelRequirement }} {{ info.symbols.root_govern_symbol }}
+//- Объединённый бейдж уровня и энергии: вариант чипа отражает запас энергии.
+//- Мигающий красный «тик» влево — энергия затухает со временем, и требуемый
+//- для следующего уровня взнос растёт.
+BaseChip(:variant='energyVariant')
+  q-icon.q-mr-xs(name='local_fire_department', size='14px')
+  | Уровень {{ Number(contributorStore.self?.level) || 1 }} ·
+  q-icon.energy-decay-tick(name='arrow_left', color='negative', size='16px')
+  | {{ currentEnergy.toFixed(0) }}%
+  q-tooltip До следующего уровня: {{ nextLevelRequirement }} {{ info.symbols.root_govern_symbol }}
 </template>
 
 <script lang="ts" setup>
@@ -37,6 +15,8 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { BaseChip } from 'src/shared/ui/base';
+import type { BaseChipVariant } from 'src/shared/ui/base/BaseChip/BaseChip.types';
 
 const contributorStore = useContributorStore();
 const configStore = useConfigStore();
@@ -47,6 +27,13 @@ let energyUpdateTimer: ReturnType<typeof window.setInterval> | null = null;
 
 // Текущая энергия с учетом decay
 const currentEnergy = ref(0);
+
+// Вариант чипа по запасу энергии: высокая / средняя / на исходе
+const energyVariant = computed<BaseChipVariant>(() => {
+  if (currentEnergy.value >= 90) return 'pos';
+  if (currentEnergy.value >= 25) return 'warn';
+  return 'neg';
+});
 
 // Порог вклада для уровня (из GAMIFICATION.md)
 const calculateLevelRequirement = (level: number): number => {
@@ -139,39 +126,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.energy-compact-inline {
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
+.energy-decay-tick {
+  animation: energy-decay-blink 1s ease-in-out infinite;
 }
 
-.energy-compact-inline:hover {
-  opacity: 1;
-}
-
-.energy-progress-container {
-  position: relative;
-}
-
-.energy-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.energy-arrow {
-  animation: blink 1s ease-in-out infinite;
-}
-
-@keyframes blink {
-  0%, 50% {
+@keyframes energy-decay-blink {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .energy-decay-tick {
+    animation: none;
+  }
+}
 </style>
+

@@ -236,9 +236,7 @@ const goToCooperativeSite = () => {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* Адаптивность */

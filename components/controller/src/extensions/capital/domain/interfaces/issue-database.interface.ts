@@ -18,7 +18,8 @@ export interface IIssueDatabaseData extends IBaseDatabaseData {
   created_by: string; // Имя пользователя, создавшего задачу
   creators: string[]; // Массив имен пользователей создателей (contributors)
   submaster?: string; // Имя пользователя ответственного (contributor)
-  project_hash: string; // Хеш проекта
+  /** Хеш проекта/компонента; null/undefined — свободная задача */
+  project_hash?: string | null;
   cycle_id?: string; // ID цикла
   metadata: {
     labels: string[];

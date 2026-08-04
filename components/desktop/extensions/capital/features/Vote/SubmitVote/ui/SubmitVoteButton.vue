@@ -1,17 +1,17 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='handleSubmitVote',
+BaseButton(
+  variant='primary',
   :loading='loading',
   :disabled='disabled',
-  label='Проголосовать'
-)
+  @click='handleSubmitVote'
+) Проголосовать
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSubmitVote } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
+import { BaseButton } from 'src/shared/ui/base';
 
 interface Props {
   coopname: string;

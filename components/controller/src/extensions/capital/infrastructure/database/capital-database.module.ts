@@ -19,6 +19,7 @@ import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
+import { TimerSessionEntity } from '../entities/timer-session.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { ProcessTemplateTypeormEntity } from '../entities/process-template.entity';
 import { ProcessInstanceTypeormEntity } from '../entities/process-instance.entity';
@@ -27,6 +28,10 @@ import { GithubBranchCommitSyncStateTypeormEntity } from '../entities/github-bra
 import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-commit.typeorm-entity';
 import { GithubCommMessageCursorTypeormEntity } from '../entities/github-comm-message-cursor.typeorm-entity';
 import { GithubCommTranscriptionCursorTypeormEntity } from '../entities/github-comm-transcription-cursor.typeorm-entity';
+import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
+import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
+import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
+import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
 import { EntityVersionTypeormEntity } from '~/shared/sync/entities/entity-version.typeorm-entity';
 
 // Константа для имени подключения к базе данных capital (сохранена для обратной совместимости импортов, но не используется)
@@ -54,6 +59,7 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       CommitTypeormEntity,
       StateTypeormEntity,
       TimeEntryEntity,
+      TimerSessionEntity,
       SegmentTypeormEntity,
       GitHubFileIndexTypeormEntity,
       GithubCommMessageCursorTypeormEntity,
@@ -63,6 +69,10 @@ export const CAPITAL_DATABASE_CONNECTION = undefined as any;
       ProcessInstanceTypeormEntity,
       GithubBranchCommitSyncStateTypeormEntity,
       IssueLinkedGitCommitTypeormEntity,
+      ComponentMetricTypeormEntity,
+      MeasureTypeormEntity,
+      IssueMetricBindingTypeormEntity,
+      MetricContributionTypeormEntity,
     ]),
   ],
   exports: [TypeOrmModule],

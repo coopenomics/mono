@@ -86,6 +86,14 @@ export class CommitTypeormRepository
     if (filter.created_date) {
       queryBuilder = queryBuilder.andWhere('DATE(c.created_at) = :created_date', { created_date: filter.created_date });
     }
+    if (filter.review_for_master) {
+      queryBuilder = queryBuilder
+        .innerJoin('capital_projects', 'p_rev', 'p_rev.project_hash = c.project_hash')
+        .leftJoin('capital_projects', 'p_parent', 'p_parent.project_hash = p_rev.parent_hash')
+        .andWhere('(p_rev.master = :reviewMaster OR p_parent.master = :reviewMaster)', {
+          reviewMaster: filter.review_for_master,
+        });
+    }
 
     return queryBuilder;
   }

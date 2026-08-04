@@ -9,10 +9,11 @@
             q-icon(:name='e.icon || iconFor(e.type)' size='14px')
           .activity-timeline__body
             .activity-timeline__title-row
-              span.activity-timeline__title {{ e.title }}
+              span.activity-timeline__actor(v-if='e.actor') {{ e.actor }}
+              span.activity-timeline__title(v-else) {{ e.title }}
               span.activity-timeline__time {{ timeOf(e.date) }}
+            p.activity-timeline__action(v-if='e.actor') {{ e.title }}
             p.activity-timeline__desc(v-if='e.description') {{ e.description }}
-            span.activity-timeline__actor(v-if='e.actor') {{ e.actor }}
   template(v-else)
     ol.activity-timeline__list
       li.activity-timeline__item(v-for='e in events' :key='e.id')
@@ -20,10 +21,11 @@
           q-icon(:name='e.icon || iconFor(e.type)' size='14px')
         .activity-timeline__body
           .activity-timeline__title-row
-            span.activity-timeline__title {{ e.title }}
+            span.activity-timeline__actor(v-if='e.actor') {{ e.actor }}
+            span.activity-timeline__title(v-else) {{ e.title }}
             span.activity-timeline__time {{ e.date }}
+          p.activity-timeline__action(v-if='e.actor') {{ e.title }}
           p.activity-timeline__desc(v-if='e.description') {{ e.description }}
-          span.activity-timeline__actor(v-if='e.actor') {{ e.actor }}
 </template>
 
 <script setup lang="ts">
@@ -42,7 +44,7 @@ function iconFor(t: ActivityEventType): string {
     case 'reject': return 'cancel';
     case 'comment': return 'chat_bubble';
     case 'system': return 'settings';
-    case 'transfer': return 'swap_horiz';
+    case 'transfer': return 'eco';
   }
 }
 
@@ -123,7 +125,7 @@ const grouped = computed(() => {
   grid-template-columns: auto 1fr;
   align-items: start;
   gap: var(--p-3, 12px);
-  padding: var(--p-1, 4px) 0 var(--p-3, 12px);
+  padding: var(--p-1, 4px) 0 var(--p-4, 16px);
 }
 .activity-timeline__item:last-child {
   padding-bottom: 0;
@@ -147,7 +149,7 @@ const grouped = computed(() => {
 .activity-timeline__icon--create { background: var(--p-primary-soft); color: var(--p-primary); }
 .activity-timeline__icon--update { background: var(--p-info-soft); color: var(--p-info); }
 .activity-timeline__icon--comment { background: var(--p-accent-soft); color: var(--p-accent); }
-.activity-timeline__icon--transfer { background: var(--p-warn-soft); color: var(--p-warn); }
+.activity-timeline__icon--transfer { background: var(--p-pos-soft); color: var(--p-pos); }
 
 .activity-timeline__body {
   min-width: 0;
@@ -158,6 +160,12 @@ const grouped = computed(() => {
   align-items: baseline;
   justify-content: space-between;
   gap: var(--p-2, 8px);
+}
+
+.activity-timeline__actor {
+  font-weight: 500;
+  color: var(--p-ink);
+  overflow-wrap: anywhere;
 }
 
 .activity-timeline__title {
@@ -173,18 +181,20 @@ const grouped = computed(() => {
   color: var(--p-ink-2);
 }
 
-.activity-timeline__desc {
+.activity-timeline__action {
   margin: var(--p-1, 4px) 0 0;
-  color: var(--p-ink-1);
+  color: var(--p-ink);
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body-sm, 1.5);
+  overflow-wrap: anywhere;
 }
 
-.activity-timeline__actor {
-  display: inline-block;
-  margin-top: var(--p-1, 4px);
+.activity-timeline__desc {
+  margin: var(--p-1, 4px) 0 0;
   color: var(--p-ink-2);
-  font-size: var(--p-fs-meta, 12px);
-  line-height: var(--p-lh-meta, 1.4);
+  font-size: var(--p-fs-body-sm, 13px);
+  line-height: var(--p-lh-body-sm, 1.5);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 </style>

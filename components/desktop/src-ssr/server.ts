@@ -63,9 +63,30 @@ export const close = defineSsrClose(({ listenResult }) => {
 
 const maxAge = process.env.DEV ? 0 : 1000 * 60 * 60 * 24 * 30;
 
+// Файлы без хеша в имени: кэш ломает обновление PWA/shell.
+const NO_CACHE_STATIC =
+  /(?:^|\/)(service-worker\.js|offline\.html|push-sw\.js|manifest\.webmanifest|manifest\.json)$/i;
+
+type StaticOpts = {
+  setHeaders?: (res: Response, filePath: string, stat: unknown) => void;
+  [key: string]: unknown;
+};
+
 export const serveStaticContent = defineSsrServeStaticContent(({ app, resolve }) => {
   return ({ urlPath = '/', pathToServe = '.', opts = {} }) => {
-    const serveFn = express.static(resolve.public(pathToServe), { maxAge, ...opts });
+    const userOpts = opts as StaticOpts;
+    const serveFn = express.static(resolve.public(pathToServe), {
+      maxAge,
+      ...userOpts,
+      setHeaders(res, filePath, stat) {
+        userOpts.setHeaders?.(res, filePath, stat);
+        if (NO_CACHE_STATIC.test(filePath)) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    });
     app.use(resolve.urlPath(urlPath), serveFn);
   };
 });

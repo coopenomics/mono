@@ -7,10 +7,14 @@ export function useMoveIssueToComponent() {
 
   async function moveIssue(
     data: IMoveIssueToComponentInput,
-    fromProjectHash: string,
+    fromProjectHash?: string | null,
   ): Promise<IIssue> {
     const updated = await api.moveIssueToComponent(data);
-    store.relocateIssue(fromProjectHash, data.target_project_hash.toLowerCase(), updated);
+    store.relocateIssue(
+      fromProjectHash?.trim() || '',
+      data.target_project_hash.toLowerCase(),
+      updated,
+    );
     return updated;
   }
 

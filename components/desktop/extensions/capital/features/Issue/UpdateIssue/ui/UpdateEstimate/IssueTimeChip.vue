@@ -46,7 +46,7 @@
           .popup-label Факт, ч
           .popup-readonly-value
             | {{ factDisplay }}
-            q-tooltip Факт фиксируется автоматически из учёта рабочего времени
+            q-tooltip Факт = сумма записей учёта времени (таймер / ручной ввод)
 
         .popup-progress(v-if='hasEstimate')
           q-linear-progress(
@@ -58,7 +58,7 @@
           )
           .popup-progress-text {{ progressLabel }}
 
-        .popup-hint Факт нельзя задать вручную — он считается из учёта времени.
+        .popup-hint Факт из записей времени. Добавить — в блоке «История рабочего времени».
 </template>
 
 <script setup lang="ts">
@@ -69,6 +69,8 @@ import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
 
 interface Props {
   issueHash: string;
+  /** Явный hash проекта/компонента — обязателен на вложенных списках мастерской, где в URL нет project_hash */
+  projectHash?: string;
   estimate?: number | null;
   fact?: number | null;
   readonly?: boolean;
@@ -81,29 +83,53 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const route = useRoute();
-const projectHash = computed(() => route.params.project_hash as string);
+/** Prop приоритетнее роута: на projects-list route.params.project_hash пуст */
+const resolvedProjectHash = computed(
+  () => props.projectHash || (route.params.project_hash as string) || ''
+);
 
-const { debounceSave } = useUpdateIssue();
+const { saveImmediately } = useUpdateIssue();
 const issueStore = useIssueStore();
 
 const menuOpen = ref(false);
 const estimateInput = ref<number>(props.estimate ?? 0);
+/** Оптимистичное значение — сразу в чипе, пока стор не догонит */
+const optimisticEstimate = ref<number | null>(null);
+const isSaving = ref(false);
+
+const displayEstimate = computed(
+  () => optimisticEstimate.value ?? props.estimate ?? 0
+);
 
 watch(
   () => props.estimate,
   (v) => {
     estimateInput.value = v ?? 0;
+    if (optimisticEstimate.value != null && optimisticEstimate.value === (v ?? 0)) {
+      optimisticEstimate.value = null;
+    }
   }
 );
 
+// Закрытие меню кликом снаружи часто не даёт blur на input — сохраняем явно
+watch(menuOpen, (open, wasOpen) => {
+  if (wasOpen && !open) {
+    void saveEstimate();
+  }
+});
+
 const isReadonly = computed(() => props.readonly);
 
+/** Факт = сумма TimeEntry; без подстановки плана (562-14). */
+const effectiveFact = computed(() => Number(props.fact) || 0);
+
 const hasEstimate = computed(
-  () => props.estimate != null && !Number.isNaN(props.estimate) && (props.estimate as number) > 0
+  () =>
+    displayEstimate.value != null &&
+    !Number.isNaN(displayEstimate.value) &&
+    displayEstimate.value > 0
 );
-const hasFact = computed(
-  () => props.fact != null && !Number.isNaN(props.fact) && (props.fact as number) > 0
-);
+const hasFact = computed(() => effectiveFact.value > 0);
 const hasAny = computed(() => hasEstimate.value || hasFact.value);
 
 function formatHours(h: number | null | undefined): string {
@@ -118,36 +144,32 @@ function formatHours(h: number | null | undefined): string {
 
 const inlineLabel = computed(() => {
   if (hasFact.value && hasEstimate.value) {
-    return `${formatHours(props.fact)}/${formatHours(props.estimate)}`;
+    return `${formatHours(effectiveFact.value)} / ${formatHours(displayEstimate.value)}`;
   }
-  if (hasFact.value) return formatHours(props.fact);
-  if (hasEstimate.value) return formatHours(props.estimate);
+  if (hasFact.value) return formatHours(effectiveFact.value);
+  if (hasEstimate.value) return formatHours(displayEstimate.value);
   return '';
 });
 
-const factDisplay = computed(() =>
-  hasFact.value ? formatHours(props.fact) : '—'
-);
+const factDisplay = computed(() => formatHours(effectiveFact.value));
 
 const progressValue = computed(() => {
   if (!hasEstimate.value) return 0;
-  const ratio = (props.fact ?? 0) / (props.estimate ?? 1);
+  const ratio = effectiveFact.value / (displayEstimate.value || 1);
   return Math.min(1, Math.max(0, ratio));
 });
 
 const progressColor = computed(() => {
   if (!hasEstimate.value) return 'grey-6';
-  const fact = props.fact ?? 0;
-  const est = props.estimate ?? 0;
-  if (fact > est + 1e-6) return 'orange-7';
-  return 'teal-7';
+  const fact = effectiveFact.value;
+  const est = displayEstimate.value;
+  if (fact > est + 1e-6) return 'warning';
+  return 'primary';
 });
 
 const progressLabel = computed(() => {
   if (!hasEstimate.value) return '';
-  const fact = props.fact ?? 0;
-  const est = props.estimate ?? 0;
-  return `${formatHours(fact)} из ${formatHours(est)}`;
+  return `${formatHours(effectiveFact.value)} из ${formatHours(displayEstimate.value)}`;
 });
 
 const tooltipText = computed(() => {
@@ -162,15 +184,31 @@ const saveEstimate = async () => {
   const next = Number(estimateInput.value) || 0;
   const current = Number(props.estimate ?? 0);
   if (next === current) return;
+  // blur + закрытие меню часто стреляют подряд — не дублируем уже отправленное
+  if (optimisticEstimate.value === next) return;
+
+  const projectHash = resolvedProjectHash.value;
+  if (!projectHash) {
+    console.error('IssueTimeChip: projectHash is empty, cannot save estimate');
+    estimateInput.value = current;
+    return;
+  }
+
+  optimisticEstimate.value = next;
+  isSaving.value = true;
   try {
-    await debounceSave(
+    // Discrete-действие (как смена статуса) — без debounce 2с
+    await saveImmediately(
       { issue_hash: props.issueHash, estimate: next },
-      projectHash.value
+      projectHash
     );
-    await issueStore.updateIssueByHash(projectHash.value, props.issueHash);
+    await issueStore.updateIssueByHash(projectHash, props.issueHash);
   } catch (error) {
     console.error('IssueTimeChip: failed to save estimate', error);
+    optimisticEstimate.value = null;
     estimateInput.value = current;
+  } finally {
+    isSaving.value = false;
   }
 };
 </script>
@@ -181,27 +219,28 @@ const saveEstimate = async () => {
   align-items: center;
 }
 
-// Триггер фиксированной ширины — title не прыгает между задачами
-// с разными значениями времени.
+// Триггер живёт в фиксированной колонке строки (.cell-time) и
+// прижимается к её правому краю — время всех уровней в одной вертикали.
 .time-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
   padding: 2px 6px;
   height: 22px;
-  width: 86px;
   box-sizing: border-box;
   border-radius: 4px;
-  font-size: 11px;
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-mono-sm, 12px);
   font-weight: 500;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
   cursor: pointer;
   transition: background-color 0.12s ease;
   white-space: nowrap;
   overflow: hidden;
 
   &:hover:not(.readonly) {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--p-surface-2);
   }
 
   &.readonly {
@@ -209,7 +248,7 @@ const saveEstimate = async () => {
   }
 
   &.empty {
-    color: var(--q-grey-6, #757575);
+    color: var(--p-ink-3);
     justify-content: flex-start;
   }
 }
@@ -229,14 +268,14 @@ const saveEstimate = async () => {
 .time-popup {
   min-width: 240px;
   padding: 12px;
-  background-color: var(--q-color-white, #fff);
+  background-color: var(--p-surface);
   border-radius: 8px;
 }
 
 .popup-header {
   font-size: 11px;
   font-weight: 600;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -252,7 +291,7 @@ const saveEstimate = async () => {
 .popup-label {
   width: 64px;
   font-size: 12px;
-  color: var(--q-grey-7, #616161);
+  color: var(--p-ink-2);
 }
 
 .popup-input {
@@ -270,7 +309,7 @@ const saveEstimate = async () => {
   flex: 1;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-  color: var(--q-grey-8, #424242);
+  color: var(--p-ink);
 }
 
 .popup-progress {
@@ -280,14 +319,14 @@ const saveEstimate = async () => {
 
 .popup-progress-text {
   font-size: 11px;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
 
 .popup-hint {
   font-size: 10px;
-  color: var(--q-grey-6, #757575);
+  color: var(--p-ink-3);
   line-height: 1.3;
   font-style: italic;
 }
