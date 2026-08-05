@@ -14,13 +14,24 @@
 #     функций, прямые q-* вместо обёрток канона). Разовая зачистка 185 файлов
 #     не нужна: гейт смотрит ровно то, что тронуто в текущей ветке.
 #
+#   Ярус C «реестр тестов» — на изменённые файлы.
+#     Тронул код уже зарегистрированной фичи — обнови её файл в test-registry/.
+#     Области, ещё не заведённые в реестр, показываются как долг и вердикт не
+#     роняют: реестр наполняется постепенно, а блокировка здесь заставила бы
+#     заводить фичи формально, лишь бы прошло. Объём долга — `pnpm registry:audit`.
+#
 # Прочие накопленные ошибки линта показываются как долг и вердикт не роняют —
 # гейт падает только от того, что объявлено гейтом.
+#
+# Чего эти гейты НЕ делают: они защищают от забывчивости, а не от халтуры.
+# Тест, написанный «чтобы позеленело», пройдёт их все. От этого защищает
+# только мутационное тестирование — `pnpm mutate:changed`.
 #
 # Использование:
 #   pnpm check                      всё
 #   pnpm check:boundaries           только ярус A
-#   pnpm check:changed              только ярус B
+#   pnpm check:changed              ярусы B и C
+#   pnpm check:registry             только ярус C
 #   CHECK_BASE=origin/dev pnpm check   с какой веткой сравнивать ярус B
 #   CHECK_WITH_TESTS=1 pnpm check      добавить юнит-тесты (по умолчанию выключены:
 #                                      CLAUDE.md запрещает полный прогон локально)
@@ -78,6 +89,10 @@ gate_changed() {
   bash "$REPO_ROOT/scripts/lint-changed.sh"
 }
 
+gate_registry() {
+  node "$REPO_ROOT/scripts/check-registry.mjs"
+}
+
 gate_unit_tests() {
   pnpm run test:unit
 }
@@ -89,11 +104,16 @@ case "$MODE" in
     ;;
   changed)
     run_gate "канон: изменённые файлы" gate_changed
+    run_gate "реестр тестов" gate_registry
+    ;;
+  registry)
+    run_gate "реестр тестов" gate_registry
     ;;
   all)
     run_gate "границы: controller" gate_boundaries_controller
     run_gate "границы: desktop" gate_boundaries_desktop
     run_gate "канон: изменённые файлы" gate_changed
+    run_gate "реестр тестов" gate_registry
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
     # полный набор локально — живой dev-стек в docker вешает CPU/RAM.
     # В CI и вручную — CHECK_WITH_TESTS=1 pnpm check.
@@ -102,7 +122,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed)" >&2
+    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry)" >&2
     exit 2
     ;;
 esac

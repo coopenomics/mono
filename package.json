@@ -23,18 +23,18 @@
     ]
   },
   "dependencies": {
+    "@coopenomics/blago-cli": "workspace:*",
     "@coopenomics/boot": "workspace:*",
     "@coopenomics/cleos": "workspace:*",
     "@coopenomics/contracts": "workspace:*",
     "@coopenomics/controller": "workspace:*",
     "@coopenomics/desktop": "workspace:*",
     "@coopenomics/factory": "workspace:*",
+    "@coopenomics/inter": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/parser": "workspace:*",
     "@coopenomics/sdk": "workspace:*",
     "@coopenomics/setup": "workspace:*",
-    "@coopenomics/inter": "workspace:*",
-    "@coopenomics/blago-cli": "workspace:*",
     "commitgpt": "^2.0.0",
     "cooptypes": "workspace:*",
     "eslint": "^9.9.1",
@@ -70,6 +70,9 @@
     "check": "bash scripts/check.sh all",
     "check:boundaries": "bash scripts/check.sh boundaries",
     "check:changed": "bash scripts/check.sh changed",
+    "check:registry": "bash scripts/check.sh registry",
+    "registry:audit": "node scripts/registry-audit.mjs",
+    "mutate:changed": "bash scripts/mutate-changed.sh",
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",
     "test:ci": "pnpm run test:unit && pnpm run test:component",
     "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
@@ -77,6 +80,7 @@
     "test:integration": "bash scripts/run-integration-tests.sh"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.0"
   }
 }

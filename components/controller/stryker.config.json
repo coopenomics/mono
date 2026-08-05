@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Мутационное тестирование controller. Запускать через `pnpm mutate:changed` из корня — он подставляет --mutate по diff. Прямой прогон без --mutate перебрал бы весь src и занял бы часы.",
+  "packageManager": "pnpm",
+  "_comment_plugins": "Плагины перечислены явно: при строгом node_modules у pnpm автопоиск по маске @stryker-mutator/* ничего не находит и прогон падает на «Cannot find TestRunner plugin jest».",
+  "plugins": ["@stryker-mutator/jest-runner"],
+  "testRunner": "jest",
+  "jest": {
+    "configFile": "jest.config.js",
+    "enableFindRelatedTests": true
+  },
+  "reporters": ["progress", "clear-text"],
+  "coverageAnalysis": "perTest",
+  "concurrency": 2,
+  "timeoutMS": 120000,
+  "tempDirName": ".stryker-tmp",
+  "mutate": ["src/**/*.ts"],
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  }
+}
