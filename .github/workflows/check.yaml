@@ -1,0 +1,60 @@
+name: Check
+
+# Гейты харнеса: архитектурные границы + канон кода.
+#
+# Что проверяется (подробности — в scripts/check.sh):
+#  - ярус A «границы», вся кодовая база: ядро не знает про расширения,
+#    расширения не ходят друг в друга напрямую — только через inter;
+#  - ярус B «канон», только изменённые относительно базовой ветки файлы:
+#    сложность, размер функций, вложенность, прямые q-* вместо обёрток
+#    канона, строковый статус вместо enum.
+#
+# Гейт падает только от объявленных правил. Накопленные ошибки линта
+# печатаются отдельной строкой как долг и вердикт не роняют — иначе гейт
+# был бы красным с первого дня и его бы перестали читать.
+#
+# Почему нет шага `lerna run build`, в отличие от typecheck.yaml: правила
+# гейта не типозависимые (@typescript-eslint/parser без `project`), dist/
+# workspace-пакетов им не нужен. Поэтому job быстрый — минуты, не десятки.
+#
+# Юнит-тесты сюда НЕ входят: они в отдельном workflow (test.yaml), чтобы
+# падение теста и нарушение границы читались как разные события.
+
+on:
+  pull_request:
+    branches: [dev]
+  workflow_call:
+
+# Новый push в PR-ветку отменяет ещё бегущий прогон по той же ветке.
+concurrency:
+  group: check-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 обязателен — дифференциальному ярусу нужен merge-base
+      # с базовой веткой, чтобы понять, какие файлы считать изменёнными.
+      # При мелкой истории merge-base не находится, и ярус B молча
+      # выродится в «проверять нечего».
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Гейты — границы и канон
+        env:
+          CHECK_BASE: origin/${{ github.base_ref || 'dev' }}
+        run: pnpm check
