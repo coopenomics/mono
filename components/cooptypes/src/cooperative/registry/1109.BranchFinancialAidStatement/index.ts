@@ -13,10 +13,13 @@ export const registry_id = 1109
  * сам оплачивает НДФЛ с полученной суммы — кооператив налог не
  * удерживает.
  *
- * Подписанное заявление уходит в `branch::createaid` (регистрация
- * исходящего платежа через gateway); списание o.brn.aid (Дт 86 / Кт 51)
- * происходит в callback'е `branch::aidconfirm` после подтверждения
- * кассиром фактического банковского перевода.
+ * Подписанное заявление уходит в `branch::createaid` и выносится на
+ * повестку совета (type=brnaid): выплата денег из кооператива — его
+ * компетенция. После положительного решения совет подписывает Протокол
+ * (registry 1112), callback `branch::onaidauth` регистрирует исходящий
+ * платёж в gateway, и заявка попадает к кассиру. Списание o.brn.aid
+ * (Дт 86 / Кт 51) происходит в callback'е `branch::aidconfirm` после
+ * подтверждения кассиром фактического банковского перевода.
  */
 export interface Action extends IGenerate {
   registry_id: number
@@ -47,31 +50,28 @@ export interface Model {
 export const title = 'Заявление на выплату материальной помощи'
 export const description = 'Заявление доверенного лица кооперативного участка о выплате материальной помощи из числа распределённых ему членских взносов участка'
 
+/**
+ * ВАЖНО: тело документа (всё внутри `div.digital-document`) — ОДНОЙ строкой,
+ * без переносов и отступов между тегами. Предпросмотр в приложении
+ * (`BaseDocument` → shadow DOM) безусловно включает документу
+ * `white-space: pre-wrap`, поэтому каждый перенос строки в исходнике шаблона
+ * превращается в видимую пустую строку, а отступы — в пробелы. Вертикальный
+ * ритм задают штатные поля абзацев, прижатые блоки — инлайн
+ * `style="margin: 0px !important"`. См. `registry/CLAUDE.md`.
+ */
 export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-.digital-document { padding: 20px; }
-.digital-document p { margin: 0 0 6px; }
-.subheader { padding-bottom: 20px; }
+.digital-document h1 {
+  margin: 0px;
+  text-align: center;
+}
+.digital-document {
+  padding: 20px;
+}
+.subheader {
+  padding-bottom: 20px;
+}
 </style>
-
-<div class="digital-document">
-  <div style="text-align: right">
-    <p style="margin: 0">{% trans 'to_chairman' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p style="margin: 0">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p>
-  </div>
-
-  <div style="text-align: center">
-    <h1>{% trans 'statement_title' %}</h1>
-    <p class="subheader">{% trans 'statement_subheader' %}</p>
-  </div>
-
-  <p>{% trans 'body', amount, braname %}</p>
-  <p>{% trans 'tax_note' %}</p>
-
-  <p>{% trans 'signature' %}</p>
-  <p>{{ user.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
-</div>
+<div class="digital-document"><div style="text-align: right"><p style="margin: 0px !important">{% trans 'to_chairman' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p><p style="margin: 0px !important">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p></div><h1 class="header">{% trans 'statement_title' %}</h1><p class="subheader" style="text-align: center">{% trans 'statement_subheader' %}</p><p>{% trans 'body', amount %}</p><p>{% trans 'tax_note' %}</p><div class="signature"><p>{% trans 'signature' %}</p><p style="margin: 0px !important">{{ user.full_name_or_short_name }}</p><p style="margin: 0px !important">{{ meta.created_at }}</p></div></div>
 `
 
 export const translations = {
@@ -80,7 +80,7 @@ export const translations = {
     from_member: 'от пайщика',
     statement_title: 'ЗАЯВЛЕНИЕ',
     statement_subheader: 'о выплате материальной помощи',
-    body: 'Прошу выплатить мне материальную помощь в размере {0} из числа членских взносов кооперативного участка «{1}», распределённых мне по условиям участка, переводом на мой расчётный счёт по реквизитам, указанным в моём личном кабинете.',
+    body: 'Прошу выплатить мне материальную помощь в размере {0}.',
     tax_note: 'Уведомлён(а), что налог на доходы физических лиц с полученной суммы оплачиваю самостоятельно.',
     signature: 'Подписано электронной подписью.',
   },
@@ -99,5 +99,5 @@ export const exampleData = {
   user: { full_name_or_short_name: 'Иванов Иван Иванович' },
   aid_hash: '0000abcd...',
   braname: 'KU-MOSKVA-1',
-  amount: '5000.0000 RUB',
+  amount: '5000.00 RUB',
 }

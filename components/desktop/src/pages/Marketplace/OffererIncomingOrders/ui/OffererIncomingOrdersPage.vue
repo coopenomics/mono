@@ -48,7 +48,11 @@ const route = useRoute();
 const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого onMounted-запроса — иначе на самый первый рендер
+// (loading=false, items=[]) успевает попасть EmptyState «Нет партий» перед
+// скелетоном, особенно если fetchSupplierMinVolumeMap отвечает не мгновенно
+// (жалоба 2026-08-02).
+const loading = ref(true);
 const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
@@ -341,8 +345,10 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         q-icon(name='inbox', size='48px')
 
     .incoming-orders__list(v-if='hasParties')
-      //- ЕДИНАЯ карточка партии (канон-виджет SupplyPartyCard) — та же, что у
-      //- заказчика. Действия (Принять/Отклонить) — только пока партия копится.
+      //- Канон-виджет SupplyPartyCard. Действия (Принять/Отклонить) — только
+      //- пока партия копится; бар сбора — тоже только пока копится (после
+      //- приёма/получения «100%» не несёт информации, только шум — жалоба
+      //- 2026-08-02).
       SupplyPartyCard(
         v-for='p in parties',
         :key='p.key',
@@ -353,6 +359,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         hide-order-count,
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
+        :show-progress='p.kind === "collecting" && hasTarget(p)',
         :members='[]',
         total-label='Итого',
         :total-value='`${formatCost(p.totalCost)} · ${totalUnitsLabel(p)}`'

@@ -106,6 +106,12 @@ export class MarketplaceOrderDTO {
   })
   public readonly product_name!: string | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Обложка товара (первое изображение предложения) — для отображения в карточке заказа.',
+  })
+  public readonly image_url!: string | null;
+
   @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара из предложения (штука, килограмм, литр).',
@@ -388,6 +394,7 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
  */
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
+  image_url?: string | null;
   unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
   package_size?: number | null;
   delivery_point_name?: string | null;
@@ -427,6 +434,7 @@ export function toMarketplaceOrderDTO(
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,
+    image_url: display?.image_url ?? null,
     unit_of_measure: display?.unit_of_measure ?? null,
     supplier_account: o.supplier_account,
     supplier_name: display?.supplier_name ?? null,

@@ -39,6 +39,7 @@ export const rawOrderSelector = {
   offer_id: true,
   offer_hash: true,
   product_name: true,
+  image_url: true,
   unit_of_measure: true,
   supplier_account: true,
   supplier_name: true,

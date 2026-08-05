@@ -119,6 +119,16 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     return row ? this.mapper.toDomain(row) : null;
   }
 
+  async findByOrderHashes(
+    coopname: string,
+    order_hashes: string[]
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const hashes = [...new Set(order_hashes.filter((h) => h).map((h) => h.toLowerCase()))];
+    if (hashes.length === 0) return [];
+    const rows = await this.repo.find({ where: { coopname, order_hash: In(hashes) } });
+    return rows.map((row) => this.mapper.toDomain(row));
+  }
+
   async list(
     filter: MarketplaceOrderListFilter,
     pagination: PaginationInputDomainInterface

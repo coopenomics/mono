@@ -123,6 +123,8 @@ export * as SetTrusteeWeight from './setTrusteeWeight'
 export * as DeleteTrusteeWeight from './deleteTrusteeWeight'
 export * as ConvertBranchFunds from './convertBranchFunds'
 export * as CreateAid from './createAid'
+/** Подать расход кооперативного участка на решение совета через шасси расходов */
+export * as CreateBranchExpense from './createBranchExpense'
 
 // Реестр поставщиков
 /** Заявка пайщика на допуск поставщика (членская модель, путь 1) */

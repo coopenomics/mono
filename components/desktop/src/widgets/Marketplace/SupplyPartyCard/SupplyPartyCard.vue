@@ -44,6 +44,13 @@ const props = defineProps<{
   progress: number;
   /** Цвет бара (Quasar color): primary пока копится, positive когда набрано/принято. */
   barColor: string;
+  /**
+   * Показывать бар вообще. Имеет смысл только пока партия реально копится к
+   * цели — после приёма/получения бар всегда «100%» и не несёт информации,
+   * только шум (жалоба 2026-08-02). Передаётся страницей: `kind === 'collecting'
+   * && hasTarget`.
+   */
+  showProgress?: boolean;
   /** Состав партии строками: кто · сколько · стоимость. */
   // `who` опционально: на столе поставщика ФИО заказчиков НЕ показываем
   // (приватность — поставщику видны только объёмы партии, не кто заказал).
@@ -95,7 +102,7 @@ function onCardClick(): void {
         q-icon(name="layers", size="14px")
         | {{ orderCount }} заказ
 
-  .supply-party__progress
+  .supply-party__progress(v-if="showProgress !== false")
     q-linear-progress.supply-party__progress-bar(
       :value="progress",
       rounded,

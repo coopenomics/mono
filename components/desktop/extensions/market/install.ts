@@ -10,6 +10,8 @@ import { MyOrdersPage } from 'src/pages/Marketplace/MyOrders'
 // route'а 'trusted-persons' ниже — импорт временно отключён, файл страницы не удалён.
 // import { OperatorTrustedPersonsPage } from 'src/pages/Marketplace/OperatorTrustedPersons'
 import { OperatorBranchEconomyPage } from 'src/pages/Marketplace/OperatorBranchEconomy'
+import { OperatorBranchOrdersPage } from 'src/pages/Marketplace/OperatorBranchOrders'
+import { OperatorBranchOrderDetailPage } from 'src/pages/Marketplace/OperatorBranchOrderDetail'
 import { AdminMarketEconomyPage } from 'src/pages/Marketplace/AdminMarketEconomy'
 import { OperatorIssuancePage } from 'src/pages/Marketplace/OperatorIssuance'
 import { OrdererOrderDetailPage } from 'src/pages/Marketplace/OrdererOrderDetail'
@@ -26,13 +28,13 @@ import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
 import { PvzWriteoffsPage } from 'src/pages/Marketplace/PvzWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
+import { AdminOrderDetailPage } from 'src/pages/Marketplace/AdminOrderDetail'
 import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
-import { OrdererConsolidatedPage } from 'src/pages/Marketplace/OrdererConsolidated'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
 import { OffererMyOffersPage } from 'src/pages/Marketplace/OffererMyOffers'
 import { ChairmanCategoryWhitelistPage } from 'src/pages/Marketplace/ChairmanCategoryWhitelist'
@@ -225,23 +227,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: 'Мои заказы',
                 icon: 'fa-solid fa-cart-shopping',
-                requires: 'Order:create',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
-            {
-              // Эпик 4 / Story 4.4: сводный обзор заказов пайщика, сгруппированных
-              // по партиям (cycle_id). Дополняет «Мои заказы» — там плоский список,
-              // здесь — партии time_based/volume_based/open_subscription с этапом
-              // партии и суммарной стоимостью. Канон OrderCard для отдельных заказов.
-              path: 'consolidated',
-              name: 'marketplace-consolidated',
-              component: markRaw(OrdererConsolidatedPage),
-              meta: {
-                title: 'Коллективный заказ',
-                icon: 'fa-solid fa-layer-group',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -632,6 +617,39 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
+              // requirement (2026-08-03): реестр заказов своего участка —
+              // та же вёрстка, что у администратора, отфильтрованная по
+              // своему КУ; «Экономика участка» (движения по кошельку)
+              // ссылается сюда на конкретный заказ по order_hash.
+              path: 'orders',
+              name: 'marketplace-pvz-orders',
+              component: markRaw(OperatorBranchOrdersPage),
+              meta: {
+                title: 'Заказы участка',
+                icon: 'receipt_long',
+                requires: 'Order:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
+              // Страница одного заказа участка. Скрыта из меню — открывается
+              // кликом по строке реестра и ссылкой из движения в «Экономике
+              // участка» (раньше на её месте был разворот строки таблицы).
+              path: 'orders/:orderId',
+              name: 'marketplace-pvz-order-detail',
+              component: markRaw(OperatorBranchOrderDetailPage),
+              meta: {
+                title: 'Заказ участка',
+                icon: 'receipt_long',
+                requires: 'Order:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
+              },
+              children: [],
+            },
+            {
               // «Сканировать QR» — сквозной универсальный считыватель. Пункт меню
               // НЕ открывает страницу (нет component), а вызывает действие
               // `marketplaceUniversalScan` (всплывающий сканер, как кнопка
@@ -690,6 +708,23 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 requires: 'Order:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Страница одного заказа кооператива. Скрыта из меню —
+              // открывается кликом по строке реестра (раньше на её месте был
+              // разворот строки таблицы).
+              path: 'orders/:orderId',
+              name: 'marketplace-admin-order-detail',
+              component: markRaw(AdminOrderDetailPage),
+              meta: {
+                title: 'Заказ',
+                icon: 'receipt_long',
+                requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+                hidden: true,
               },
               children: [],
             },

@@ -45,6 +45,20 @@ export interface ExpenseCreatePayload {
   statement: unknown;
 }
 
+/**
+ * Предзаполнение формы при открытии из готовой записи (например, из планового
+ * расхода участка): описание расхода и первая позиция с суммой. Применяется
+ * только к пустому черновику — начатую вручную форму не затирает.
+ */
+export interface ExpenseCreatePrefill {
+  /** Назначение расхода — идёт в описание сметы и в первую позицию. */
+  description: string;
+  /** Сумма первой позиции, как её вводит пользователь (например «1500.00»). */
+  amount: string;
+  /** Срок исполнения, `YYYY-MM-DD`. */
+  deadline?: string;
+}
+
 export interface ExpenseCreateDialogProps {
   modelValue: boolean;
   /** ledger2-кошелёк-пул — источник средств расхода (фиксируется в тексте СЗ). */
@@ -55,4 +69,6 @@ export interface ExpenseCreateDialogProps {
   title?: string;
   /** Подача собранного и подписанного СЗ на чейн. */
   submit: (payload: ExpenseCreatePayload) => Promise<unknown>;
+  /** Предзаполнение пустой формы данными записи-источника. */
+  prefill?: ExpenseCreatePrefill;
 }

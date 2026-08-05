@@ -69,6 +69,9 @@ static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
 
+// branch linked actions
+static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
+
 // capitalization linked actions
 
 
@@ -97,6 +100,7 @@ static const std::set<eosio::name> soviet_actions = {
     "branchdec"_n, //решение собрания пайщиков об учреждении кооперативного участка
     "branchliab"_n, //договор о полной материальной ответственности председателя участка (линк в пакет совета)
     "branchauth"_n, //доверенность председателю кооперативного участка (линк в пакет совета)
+    "brnaid"_n, //заявление на материальную помощь доверенному участка на повестку совета (p.brn.aid)
     //CAPITAL
     "capitalinvst"_n, //заявление на инвестиции по договору УХД
     "createresult"_n, //клайм прироста благороста из задания

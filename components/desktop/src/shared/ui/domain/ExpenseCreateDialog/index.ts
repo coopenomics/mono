@@ -4,4 +4,5 @@ export type {
   ExpenseCreateDraftItem,
   ExpenseCreateChainItem,
   ExpenseCreatePayload,
+  ExpenseCreatePrefill,
 } from './ExpenseCreateDialog.types';

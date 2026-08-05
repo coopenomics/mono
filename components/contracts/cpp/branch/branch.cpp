@@ -7,16 +7,15 @@
 #include "src/convert.cpp"
 #include "src/createaid.cpp"
 #include "src/createbranch.cpp"
-#include "src/createspend.cpp"
 #include "src/deletebranch.cpp"
 #include "src/deltrusted.cpp"
 #include "src/delweight.cpp"
 #include "src/distribute.cpp"
 #include "src/editbranch.cpp"
+#include "src/createexp.cpp"
+#include "src/onexpdone.cpp"
 #include "src/retfee.cpp"
 #include "src/setweight.cpp"
-#include "src/spendconfirm.cpp"
-#include "src/spenddecline.cpp"
 #include "src/setprivate.cpp"
 #include "src/addwhite.cpp"
 #include "src/delwhite.cpp"
@@ -36,6 +35,8 @@
 #include "src/reqtrusted.cpp"
 #include "src/apprtrusted.cpp"
 #include "src/decltrusted.cpp"
+#include "src/onaidauth.cpp"
+#include "src/onaiddecl.cpp"
 
 using namespace eosio;
 

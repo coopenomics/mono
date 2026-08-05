@@ -1,6 +1,6 @@
 import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
-import type { MarketplaceOrderPage, MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
+import type { MarketplaceOrderPage, MarketplaceOrderStatusView } from '../types';
 
 // Получение оформляется у стойки ПВЗ: оператор формирует акт-бандл, пайщик
 // подписывает его в гейте «подпись на месте» (единый путь выдачи). Поэтому
@@ -40,13 +40,10 @@ export async function fetchMyOrders(variables: ListMyOrdersVariables = {}): Prom
   return result as MarketplaceOrderPage;
 }
 
-export async function fetchOrder(order_id: string): Promise<MarketplaceOrderView> {
-  const { [Queries.Marketplace.GetOrder.name]: result } = await client.Query(
-    Queries.Marketplace.GetOrder.query,
-    { variables: { input: { order_id } } },
-  );
-  return result as MarketplaceOrderView;
-}
+// Запрос одного заказа общий для всех столов — живёт в entity-слое
+// (src/entities/MarketplaceOrder); здесь только реэкспорт, чтобы не заводить
+// вторую копию той же операции.
+export { fetchOrder } from 'src/entities/MarketplaceOrder';
 
 export type CancelOrderResult =
   Mutations.Marketplace.CancelOrder.IOutput['marketplaceCancelOrder'];

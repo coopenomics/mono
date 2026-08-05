@@ -120,6 +120,14 @@ import {
   MarketplacePayoutSyncService,
   MARKETPLACE_PAYOUT_SYNC_SERVICE,
 } from './services/marketplace-payout-sync.service';
+import {
+  MarketplaceAidPayoutSyncService,
+  MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
+} from './services/marketplace-aid-payout-sync.service';
+import {
+  MarketplaceAidCouncilSyncService,
+  MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
+} from './services/marketplace-aid-council-sync.service';
 import { MarketplaceOutgoingPaymentResolver } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
 import {
@@ -377,6 +385,22 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
       useClass: MarketplacePayoutSyncService,
     },
     MarketplacePayoutSyncService,
+    // requirement b6 (2026-08-03) — слушатель callback'ов от gateway
+    // (aidconfirm/aiddecline) для зеркалирования статуса выплаты
+    // материальной помощи доверенному КУ, тем же паттерном, что и выплата
+    // поставщику выше.
+    {
+      provide: MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
+      useClass: MarketplaceAidPayoutSyncService,
+    },
+    MarketplaceAidPayoutSyncService,
+    // requirement b6 — слушатель решений совета по заявлению на матпомощь
+    // (onaidauth/onaiddecl): открывает платёж кассиру либо отменяет его.
+    {
+      provide: MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
+      useClass: MarketplaceAidCouncilSyncService,
+    },
+    MarketplaceAidCouncilSyncService,
     // Story 598-20 — push-уведомления marketplace flow (АПП Б поставщику,
     // новая выплата кассиру, подтверждённая выплата поставщику).
     // Слушает per-contract event-bus, отправка через Novu без обратного
@@ -501,6 +525,11 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Story 5.6 / 5.7 + 598-16
     MARKETPLACE_PAYOUT_SYNC_SERVICE,
     MarketplacePayoutSyncService,
+    // requirement b6 (2026-08-03) — выплата материальной помощи
+    MARKETPLACE_AID_PAYOUT_SYNC_SERVICE,
+    MarketplaceAidPayoutSyncService,
+    MARKETPLACE_AID_COUNCIL_SYNC_SERVICE,
+    MarketplaceAidCouncilSyncService,
     // Story 6.1 / 6.3 / 6.4
     MARKETPLACE_ISSUANCE_SERVICE,
     MarketplaceIssuanceService,

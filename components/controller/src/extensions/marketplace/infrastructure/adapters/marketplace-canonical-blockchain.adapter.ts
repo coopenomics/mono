@@ -553,6 +553,18 @@ export class MarketplaceCanonicalBlockchainAdapter implements MarketplaceCanonic
     );
   }
 
+  async createBranchExpense(
+    data: BranchContract.Actions.CreateExp.ICreateexp
+  ): Promise<TransactResult> {
+    return this.submitAsCoop(
+      data.coopname,
+      BranchContract.contractName.production,
+      BranchContract.Actions.CreateExp.actionName,
+      data,
+      'createexp'
+    );
+  }
+
   // ── Чтение on-chain состояния экономики КУ ───────────────────────────
 
   async getEconomyConfig(coopname: string): Promise<MarketContract.Tables.Config.IMktConfig | null> {

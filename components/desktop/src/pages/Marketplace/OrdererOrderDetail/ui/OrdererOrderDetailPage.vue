@@ -16,7 +16,7 @@ import {
   applyMembershipFee,
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
-import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
+import { orderStatusDisplay, orderProgress } from 'src/widgets/Marketplace/OrderCard';
 import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -73,6 +73,10 @@ const returnDetailsDialogOpen = ref(false);
 const selectedReturnClaim = ref<MarketplaceReturnClaimView | null>(null);
 
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
+// Пока заказ копится с другими пайщиками до минимального объёма поставки —
+// та же полоса, что и на карточке в «Моих заказах» (жалоба 2026-08-02: должна
+// быть видна и на самой странице заказа, не только в списке).
+const progress = computed(() => (order.value ? orderProgress(order.value) : undefined));
 const unitShort = computed(() =>
   marketplaceOrderUnitLabel(order.value?.unit_of_measure),
 );
@@ -376,6 +380,19 @@ q-page.order-detail(role="region", aria-label="Заказ")
               span(aria-hidden="true") ·
               span {{ formatDate(order.created_at) }}
 
+            .order-detail__progress(v-if="progress !== undefined")
+              .order-detail__progress-label
+                | коллективный заказ · {{ Math.round(progress * 100) }}%
+                q-icon(name="help_outline", size="14px", class="order-detail__progress-help")
+                  q-tooltip Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.
+              q-linear-progress.order-detail__progress-bar(
+                :value="progress",
+                rounded,
+                size="4px",
+                color="primary",
+                track-color="grey-3"
+              )
+
             .order-detail__facts
               .order-detail__fact
                 .order-detail__fact-label Сумма заказа
@@ -551,6 +568,30 @@ q-page.order-detail(role="region", aria-label="Заказ")
 
   &__num {
     font-family: var(--p-mono);
+  }
+
+  &__progress {
+    max-width: 280px;
+  }
+
+  &__progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-eyebrow, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    margin-bottom: 4px;
+  }
+
+  &__progress-help {
+    color: var(--p-ink-3);
+    cursor: help;
+  }
+
+  &__progress-bar {
+    border-radius: var(--p-r-sm, 8px);
   }
 
   &__facts {

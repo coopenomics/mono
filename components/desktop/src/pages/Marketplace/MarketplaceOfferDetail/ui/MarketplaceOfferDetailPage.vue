@@ -43,8 +43,6 @@ const readonly = computed(() => route.meta?.readonly === true);
 // реферрером), это лишь корректные подпись и fallback-маршрут.
 const backTarget = computed<{ label: string; name: string }>(() => {
   if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
-  if (route.query.from === 'consolidated')
-    return { label: 'К коллективному заказу', name: 'marketplace-consolidated' };
   // Стол администратора: карточку открывают из разных реестров — подпись и
   // fallback-маршрут «назад» зависят от того, откуда пришли (query `from`).
   if (route.query.from === 'orders')

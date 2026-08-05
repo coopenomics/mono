@@ -44,6 +44,10 @@ import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
   MarketplaceOrderSupplierActionService,
 } from '../services/marketplace-order-supplier-action.service';
+import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 
 const toOrderDTO = toMarketplaceOrderDTO;
 
@@ -58,7 +62,9 @@ export class MarketplaceOrderResolver {
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
-    private readonly displayService: MarketplaceOrderDisplayService
+    private readonly displayService: MarketplaceOrderDisplayService,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {}
 
   @Mutation(() => MarketplaceCancelOrderResultDTO, {
@@ -198,6 +204,32 @@ export class MarketplaceOrderResolver {
     return this.runListQuery(filter, options, { withParticipantNames: true });
   }
 
+  @Query(() => MarketplaceOrderPaginationResultDTO, {
+    name: 'marketplaceListBranchOrders',
+    description:
+      'Реестр заказов, идущих на конкретный кооперативный участок, с их текущими статусами (стол ПВЗ).',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Order', 'read:own-KU')
+  async marketplaceListBranchOrders(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname') braname: string,
+    @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<MarketplaceOrderPaginationResultDTO> {
+    await this.assertBranchScope(member, braname);
+    const filter: MarketplaceOrderListFilter = {
+      coopname: config.coopname,
+      delivery_braname: braname,
+      orderer_account: input?.orderer_account,
+      supplier_account: input?.supplier_account,
+      offer_id: input?.offer_id,
+      status: input?.statuses?.length ? (input.statuses as MarketplaceOrderStatus[]) : undefined,
+    };
+    // Стол ПВЗ видит обе стороны сделки на своём участке — как и администратор.
+    return this.runListQuery(filter, options, { withParticipantNames: true });
+  }
+
   @Query(() => MarketplaceOrderDTO, {
     name: 'marketplaceGetOrder',
     description: 'Получить один заказ по его идентификатору (доступ зависит от роли).',
@@ -217,11 +249,37 @@ export class MarketplaceOrderResolver {
     const canReadOwn = isOwner && canAccess(roles, 'Order', 'read:own');
     const canReadToSelf = isToSelf && canAccess(roles, 'Order', 'read:to-self');
     const canReadAll = canAccess(roles, 'Order', 'read:all');
-    if (!canReadOwn && !canReadToSelf && !canReadAll) {
+    // Стол ПВЗ: председатель и доверенные участка открывают карточку любого
+    // заказа, идущего на их участок — тот же скоуп, что и у реестра заказов
+    // участка (marketplaceListBranchOrders).
+    const canReadOwnKU =
+      !canReadAll &&
+      canAccess(roles, 'Order', 'read:own-KU') &&
+      (await this.kuChairmanService.isMemberOfBranch(
+        config.coopname,
+        order.delivery_braname,
+        member.username
+      ));
+    if (!canReadOwn && !canReadToSelf && !canReadAll && !canReadOwnKU) {
       throw new ForbiddenException('Нет прав на просмотр заказа.');
     }
-    const display = await this.displayService.enrichOne(order);
+    // Обе стороны сделки видны только тем, кто смотрит заказ «сверху» —
+    // администратору кооператива и участку получения.
+    const display = await this.displayService.enrichOne(order, {
+      withParticipantNames: canReadAll || canReadOwnKU,
+    });
     return toOrderDTO(order, display);
+  }
+
+  /** Own-KU скоуп: председатель/доверенный видит реестр только своего КУ; админ (read:all) — любой. */
+  private async assertBranchScope(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
+    if (canAccess(member.marketplace_roles as MarketplaceRole[], 'Order', 'read:all')) return;
+    await this.kuChairmanService.assertIsMemberOfBranch(
+      config.coopname,
+      braname,
+      member.username,
+      'Реестр заказов участка доступен его председателю и доверенным'
+    );
   }
 
   private async runListQuery(

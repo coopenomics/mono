@@ -9,12 +9,14 @@
  *  - Ledger2::apply(o.brn.aid, amount, …, hash=aid.hash) — BURN с
  *    w.brn.person получателя, Дт 86 / Кт 51.
  *
- * Выплата подтверждена — терминал жизненного цикла: запись заявки стирается
- * из RAM (наличие записи = ожидание выплаты), история — в журнале действий.
+ * Выплата подтверждена — терминал жизненного цикла: запись заявления стирается
+ * из RAM, история — в журнале действий и в решении совета.
  *
  * Guards:
  *  - require_auth(_gateway) — callback легитимен только от gateway-контракта;
- *  - заявка найдена по outcome_hash.
+ *  - заявление найдено по outcome_hash и одобрено советом (статус authorized):
+ *    исходящий платёж создаётся только в `onaidauth`, поэтому иной статус
+ *    означал бы выплату в обход решения совета.
  *
  * @ingroup public_branch_actions
  */
@@ -26,7 +28,9 @@
   auto byhash = aids.get_index<"byhash"_n>();
   auto it = byhash.find(outcome_hash);
   eosio::check(it != byhash.end(),
-               "Заявка на материальную помощь не найдена по outcome_hash из callback'а gateway");
+               "Заявление на материальную помощь не найдено по outcome_hash из callback'а gateway");
+  eosio::check(it->status == AidStatus::AUTHORIZED,
+               "Выплата материальной помощи не одобрена решением совета");
 
   Ledger2::apply(_branch, coopname,
                  operations::branch::FINANCIAL_AID,

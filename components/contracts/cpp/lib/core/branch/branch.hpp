@@ -51,7 +51,7 @@ bool is_trusted(eosio::name coopname, eosio::name braname, eosio::name username)
  * взносов (requirement b6 «Экономика КУ», раунд 5: приоритет общего
  * кошелька): зачисление 100% взноса в общий кошелёк КУ (o.brn.common).
  * Дальнейшее использование — отдельные команды председателя
- * (distribute / createspend) после контроля планового резерва бэкендом.
+ * (distribute / createexp) после контроля планового резерва бэкендом.
  */
 inline void accrue(eosio::name actor, eosio::name coopname, eosio::name braname,
                    eosio::asset amount,

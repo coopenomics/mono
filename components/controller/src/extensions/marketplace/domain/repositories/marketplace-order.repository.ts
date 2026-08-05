@@ -71,6 +71,12 @@ export interface MarketplaceOrderDomainRepository
   /** Батч-выборка заказов по идентификаторам (для обогащения позиций приёмки). */
   findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
   findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceOrderDomainEntity | null>;
+  /**
+   * Батч-выборка заказов по хэшам процессов — движения кошелька участка знают
+   * заказ только по хэшу процесса поставки, а ссылка ведёт на страницу заказа
+   * по его идентификатору.
+   */
+  findByOrderHashes(coopname: string, order_hashes: string[]): Promise<MarketplaceOrderDomainEntity[]>;
 
   /**
    * Заказы, включённые в конкретную партию (резолв состава партии на приёмке).

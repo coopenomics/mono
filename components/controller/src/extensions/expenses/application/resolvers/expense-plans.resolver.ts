@@ -34,7 +34,7 @@ export class ExpensePlansResolver {
   @Query(() => [ExpensePlanDTO], {
     name: 'listExpensePlans',
     description:
-      'Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Срочные и расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.',
+      'Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.',
   })
   @UseGuards(GqlJwtAuthGuard)
   async listExpensePlans(
@@ -47,7 +47,7 @@ export class ExpensePlansResolver {
   @Mutation(() => ExpensePlanDTO, {
     name: 'createExpensePlan',
     description:
-      'Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Планы кооперативного участка ведёт его председатель.',
+      'Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель.',
   })
   @UseGuards(GqlJwtAuthGuard)
   async createExpensePlan(
@@ -58,8 +58,8 @@ export class ExpensePlansResolver {
       braname: data.braname ?? null,
       title: data.title,
       amount: data.amount,
-      due_date: data.due_date ?? null,
-      priority: data.priority,
+      due_date: data.due_date,
+      recurrence: data.recurrence ?? null,
       pay_to: data.pay_to,
     });
     return toExpensePlanDTO(plan);

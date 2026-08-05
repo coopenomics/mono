@@ -203,6 +203,7 @@ export class Generator implements IGenerator {
       [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
       [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
       [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
+      [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
     }
     await this.storage.connect()
   }

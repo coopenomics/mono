@@ -298,9 +298,23 @@ export interface IConvert {
 export interface ICreateaid {
   coopname: IName
   username: IName
+  braname: IName
   aid_hash: IChecksum256
   amount: IAsset
   statement: IDocument2
+  meta: string
+}
+
+export interface IOnaidauth {
+  coopname: IName
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface IOnaiddecl {
+  coopname: IName
+  hash: IChecksum256
+  reason: string
 }
 
 export interface IAidconfirm {
@@ -314,23 +328,34 @@ export interface IAiddecline {
   reason: string
 }
 
-export interface ICreatespend {
+export interface IBranchExpenseItem {
+  item_hash: IChecksum256
+  /** Способ оплаты позиции: 0 — аванс под отчёт, 1 — прямая оплата по реквизитам. */
+  mechanics: number
+  /** Получатель: 0 — сам создатель, 1 — другой пайщик, 2 — организация. */
+  recipient_type: number
+  recipient: IName
+  description: string
+  planned_amount: IAsset
+  actual_amount: IAsset
+  status: number
+}
+
+export interface ICreateexp {
   coopname: IName
   braname: IName
-  spend_hash: IChecksum256
-  amount: IAsset
-  memo: string
+  creator: IName
+  expense_hash: IChecksum256
+  items: IBranchExpenseItem[]
+  statement: IDocument2
 }
 
-export interface ISpendconfirm {
+export interface IOnexpdone {
   coopname: IName
-  outcome_hash: IChecksum256
-}
-
-export interface ISpenddecline {
-  coopname: IName
-  outcome_hash: IChecksum256
-  reason: string
+  expense_hash: IChecksum256
+  status: number
+  total_actual: IAsset
+  data: string
 }
 
 export interface IBranchWeight {
@@ -352,8 +377,11 @@ export interface IBranchAid {
   id: IUint64
   hash: IChecksum256
   username: IName
+  braname: IName
   amount: IAsset
+  status: IName
   statement: IDocument2
+  protocol: IDocument2
 }
 
 export interface IBranchSpend {

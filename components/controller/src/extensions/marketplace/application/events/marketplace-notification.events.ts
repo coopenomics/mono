@@ -473,3 +473,40 @@ export interface MarketplaceSupplierApprovedEvent {
   /** Номер договора из заявки. */
   contract_number: string;
 }
+
+/**
+ * requirement b6: кассир подтвердил выплату материальной помощи
+ * (`branch::aidconfirm`). Парного отказа нет — одобренную советом выплату
+ * отменить нельзя. Эмитится из `MarketplaceAidPayoutSyncService` ПОСЛЕ
+ * `setPaymentStatus` в core (INV-12).
+ */
+export const MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT =
+  'marketplace.aidPayout.member.confirmed';
+
+
+export interface MarketplaceAidPayoutConfirmedEvent {
+  coopname: string;
+  /** Получатель материальной помощи — адресат уведомления. */
+  member_account: string;
+  amount: string;
+  /** Маскированные реквизиты получения («Сбербанк •1234»), если доступны. */
+  payment_destination: string | null;
+}
+
+/**
+ * requirement b6: совет принял решение по заявлению на материальную помощь.
+ * Одобрение переводит заявку кассиру, отказ закрывает её. Эмитится из
+ * `MarketplaceAidCouncilSyncService` ПОСЛЕ смены статуса платежа (INV-12).
+ */
+export const MARKETPLACE_AID_COUNCIL_DECIDED_EVENT =
+  'marketplace.aidPayout.member.councilDecided';
+
+export interface MarketplaceAidCouncilDecidedEvent {
+  coopname: string;
+  /** Получатель материальной помощи — адресат уведомления. */
+  member_account: string;
+  amount: string;
+  /** true — совет одобрил выплату; false — отказал либо повестка просрочена. */
+  approved: boolean;
+  reason?: string;
+}

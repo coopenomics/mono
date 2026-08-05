@@ -8,6 +8,13 @@
     :class="[`order-row--${order.status}`, { 'order-row--openable': openable }]"
     @click="onCardClick"
   >
+    <div class="order-row__thumb">
+      <q-img v-if="order.imageUrl" :src="order.imageUrl" ratio="1" class="order-row__thumb-img" />
+      <div v-else class="order-row__thumb-empty">
+        <q-icon name="image" size="20px" />
+      </div>
+    </div>
+
     <div class="order-row__main">
       <div class="order-row__title">{{ order.title }}</div>
       <div class="order-row__sub">
@@ -19,10 +26,31 @@
 
     <!-- Отдельный флекс-элемент строки (не внутри __main) — центрируется по
          высоте всей строки через align-items:center, а не жмётся к верху
-         вровень с заголовком. -->
-    <BaseBadge :variant="order.statusVariant" class="order-row__status">
-      {{ order.statusLabel }}
-    </BaseBadge>
+         вровень с заголовком. Полоса сбора партии — под статусом, в том же
+         столбце (жалоба 2026-08-02): бейдж, под ним узкая полоса, под ней
+         подпись с процентом — примерно той же ширины, что и сам бейдж. -->
+    <div class="order-row__status-col">
+      <BaseBadge :variant="order.statusVariant" class="order-row__status">
+        {{ order.statusLabel }}
+      </BaseBadge>
+
+      <div v-if="order.progress !== undefined" class="order-row__progress">
+        <q-linear-progress
+          class="order-row__progress-bar"
+          :value="order.progress"
+          rounded
+          size="4px"
+          color="primary"
+          track-color="grey-3"
+        />
+        <div class="order-row__progress-label">
+          коллективный заказ · {{ Math.round(order.progress * 100) }}%
+          <q-icon name="help_outline" size="12px" class="order-row__progress-help">
+            <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
+          </q-icon>
+        </div>
+      </div>
+    </div>
 
     <div class="order-row__fact">
       <div class="order-row__fact-label">Кол-во</div>
@@ -85,6 +113,23 @@
         </div>
       </div>
     </template>
+
+    <div v-if="order.progress !== undefined" class="order-card__progress">
+      <div class="order-card__progress-label">
+        коллективный заказ · {{ Math.round(order.progress * 100) }}%
+        <q-icon name="help_outline" size="14px" class="order-card__progress-help">
+          <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
+        </q-icon>
+      </div>
+      <q-linear-progress
+        class="order-card__progress-bar"
+        :value="order.progress"
+        rounded
+        size="6px"
+        color="primary"
+        track-color="grey-3"
+      />
+    </div>
 
     <div class="order-card__facts">
       <div class="order-card__fact">
@@ -151,6 +196,8 @@ export interface Order {
   id: string | number
   shortId?: string
   title: string
+  /** Обложка товара (первое изображение предложения); нет — показываем плейсхолдер. */
+  imageUrl?: string
   units: number
   unitLabel?: string
   totalCost: number
@@ -161,6 +208,13 @@ export interface Order {
    * уже включает взнос.
    */
   feeNote?: string
+  /**
+   * Заполнение сборки партии до минимального объёма поставки, 0..1.
+   * `undefined` — полосу не показывать (заказ вне стадии сбора: уже принят,
+   * без коллективного минимума, и т.п.) — раньше это был отдельный экран
+   * «Коллективный заказ», слитый сюда (жалоба 2026-08-02).
+   */
+  progress?: number
   /** Card-status — управляет набором действий per-role (ACTIONS_PER_ROLE). */
   status: OrderStatus
   /** Человекочитаемая подпись доменного статуса для бейджа (из orderStatusDisplay). */
@@ -387,6 +441,33 @@ function formatPrice(v: number) {
     margin-top: 2px;
   }
 
+  // Сборка партии — узкая полоска (не во всю ширину карточки), только пока
+  // заказ ещё копится к минимальному объёму поставки.
+  &__progress {
+    max-width: 220px;
+    margin-top: var(--p-1, 4px);
+  }
+
+  &__progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-eyebrow, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    margin-bottom: 4px;
+  }
+
+  &__progress-help {
+    color: var(--p-ink-3);
+    cursor: help;
+  }
+
+  &__progress-bar {
+    border-radius: var(--p-r-sm, 8px);
+  }
+
   // ПВЗ — отдельный блок с иконкой: наименование КУ (основное) + адрес.
   &__pvz {
     display: flex;
@@ -478,6 +559,30 @@ function formatPrice(v: number) {
     }
   }
 
+  // Миниатюра товара — фиксированный квадрат слева, как в корзине/каталоге.
+  &__thumb {
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--p-r-sm, 8px);
+    overflow: hidden;
+    background: var(--p-surface-2);
+  }
+
+  &__thumb-img {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__thumb-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--p-ink-3);
+  }
+
   // Заголовок + номер/дата — тянется, отдаёт место остальным колонкам первым.
   &__main {
     flex: 1 1 260px;
@@ -495,8 +600,18 @@ function formatPrice(v: number) {
 
   // Прямой ребёнок .order-row (не внутри __main) — align-items:center строки
   // центрирует его по всей высоте, а не вровень с верхней строкой заголовка.
-  &__status {
+  // Статус и полоса сбора партии — один столбец: бейдж сверху, под ним узкая
+  // полоса с подписью (жалоба 2026-08-02: раньше полоса жила отдельной
+  // полноширинной строкой снизу карточки — теперь встроена под статус).
+  &__status-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     flex-shrink: 0;
+  }
+
+  &__status {
     white-space: nowrap;
   }
 
@@ -517,6 +632,34 @@ function formatPrice(v: number) {
 
   &__sep {
     color: var(--p-ink-3);
+  }
+
+  // Узкая полоса под бейджем статуса; подпись — в одну строку, обычным
+  // регистром (капс с трекингом на этой ширине переносился на две строки и
+  // сбивал ритм рядом с бейджем — жалоба 2026-08-02).
+  &__progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__progress-bar {
+    width: 140px;
+    border-radius: var(--p-r-sm, 8px);
+  }
+
+  &__progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-eyebrow, 11px);
+    color: var(--p-ink-3);
+    white-space: nowrap;
+  }
+
+  &__progress-help {
+    color: var(--p-ink-3);
+    cursor: help;
   }
 
   // Кол-во/Сумма — компактные колонки фиксированной ширины, не тянутся.

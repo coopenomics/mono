@@ -324,7 +324,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
                 td.col-shelf
                   BaseInput.warehouse__shelf-input(
                     :model-value='shelfValue(row)',
-                    placeholder='Полка',
+                    placeholder='Указать полку',
                     flat,
                     :readonly='savingShelfId === row.id',
                     @update:model-value='(v) => onShelfInput(row, v)',
@@ -388,6 +388,13 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   &__search {
     max-width: 420px;
     width: 100%;
+
+    // Поиск не показывает hint/error — резерв места под них (Quasar
+    // reserve-hint-space) даёт пустой промежуток перед таблицей.
+    :deep(.q-field__bottom) {
+      min-height: 0;
+      padding-top: 0;
+    }
   }
 
   &__shelf-input {

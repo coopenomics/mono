@@ -9,6 +9,7 @@ import { CorrectionTable, type CorrectionRow } from 'src/widgets/Marketplace/Cor
 import {
   useActsPreview,
   getMembershipFeePercent,
+  applyMembershipFee,
   computeIssuanceDiff,
 } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -177,8 +178,16 @@ const totalFactCost = computed<string>(() => {
   return sum.toFixed(4);
 });
 
-// Ставка членского взноса — для оценки возврата/доплаты при расхождении факта.
+// Ставка членского взноса — для оценки возврата/доплаты при расхождении факта
+// и для показа состава суммы (себестоимость + взнос) оператору и пайщику.
 const feePercent = ref(0);
+
+// Себестоимость выдаваемого показываем отдельно от суммы к оплате — пайщик
+// платит взнос сверх себестоимости (та же формула, что в каталоге/корзине,
+// requirement b6); раньше на этом экране взнос не был виден вообще ни
+// оператору, ни пайщику на следующей подписи (жалоба 2026-08-02).
+const totalFactCostWithFee = computed(() => applyMembershipFee(Number(totalFactCost.value), feePercent.value));
+const membershipFeeAmount = computed(() => totalFactCostWithFee.value - Number(totalFactCost.value));
 
 // Недосдача видна сразу: сколько вернётся пайщику в кошелёк Стола заказов
 // (остаток резерва + пропорциональная часть взноса), при факте больше заказа —
@@ -426,7 +435,7 @@ BaseDialog(
         span.issue-act__name {{ recipientName }}
         span.issue-act__meta
           | К выдаче {{ includedCount }} из {{ positionsCount }}
-          |  · {{ formatAsset2Digits(totalFactCost) }} ₽
+          |  · {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
           template(v-if="issuanceDiff.refund > 0")
             |  · вернётся в кошелёк {{ formatAsset2Digits(issuanceDiff.refund.toFixed(4)) }} ₽
 
@@ -460,8 +469,14 @@ BaseDialog(
     template(#after)
       .issue-act__totals(v-if="!showActs")
         .issue-act__sum
-          span.issue-act__sum-label К выдаче ({{ includedCount }} из {{ positionsCount }} позиц.)
+          span.issue-act__sum-label Себестоимость ({{ includedCount }} из {{ positionsCount }} позиц.)
           span.issue-act__sum-value {{ formatAsset2Digits(totalFactCost) }} ₽
+        .issue-act__sum(v-if="feePercent > 0")
+          span.issue-act__sum-label Членский взнос ({{ feePercent }}%)
+          span.issue-act__sum-value {{ formatAsset2Digits(membershipFeeAmount.toFixed(4)) }} ₽
+        .issue-act__sum
+          span.issue-act__sum-label Итого к оплате
+          span.issue-act__sum-value {{ formatAsset2Digits(totalFactCostWithFee.toFixed(4)) }} ₽
         .issue-act__sum(v-if="leftCount > 0")
           span.issue-act__sum-label Остаётся на складе
           span.issue-act__sum-value {{ leftCount }} позиц.

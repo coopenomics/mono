@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 
 import type { BranchContract } from 'cooptypes';
 
@@ -64,6 +64,25 @@ export class MarketplaceKuChairmanService {
     const branch = branches.find((b) => b.braname === braname);
     if (!branch) return false;
     return this.branchIncludesMember(branch, member_account);
+  }
+
+  /**
+   * Общая own-KU guard-проверка для resolver'ов (Economy, Order и др.):
+   * бросает `ForbiddenException`, если пайщик не председатель/доверенный
+   * ИМЕННО этого КУ. Каждый resolver сам решает, нужен ли предварительный
+   * bypass по `read:all` своего resource — эта проверка про членство в КУ,
+   * не про capability роли.
+   */
+  async assertIsMemberOfBranch(
+    coopname: string,
+    braname: string,
+    member_account: string,
+    message = 'Доступно председателю и доверенным этого кооперативного участка'
+  ): Promise<void> {
+    const isMember = await this.isMemberOfBranch(coopname, braname, member_account);
+    if (!isMember) {
+      throw new ForbiddenException(message);
+    }
   }
 
   /**

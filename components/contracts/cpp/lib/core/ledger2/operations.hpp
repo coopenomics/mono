@@ -114,7 +114,13 @@ namespace operations {
     inline constexpr eosio::name DISTRIBUTE_COMMON   = "o.brn.common"_n;  ///< Зачисление 100% членского взноса в общий кошелёк КУ при финализации заказа (TRANSFER w.mkt.fee → w.brn.common, без Dr/Cr — внутри 86; username = braname КУ). Вызывается branch::accrue инлайн от контракта-источника.
     inline constexpr eosio::name RETURN_FEE_FROM_COMMON = "o.brn.retfee"_n; ///< Возврат членского взноса из общего кошелька КУ при гарантийном возврате имущества (TRANSFER w.brn.common → w.mkt.fee, без Dr/Cr — внутри 86; username = braname КУ). Точная инверсия DISTRIBUTE_COMMON: взнос идёт обратно тем же путём, каким пришёл. Первая нога двухходовки возврата — вторая (w.mkt.fee → w.mkt.member заказчика) выполняется существующей MEMBERSHIP_FEE_REFUND. Прямой TRANSFER w.brn.common[braname] → w.mkt.member[пайщик] невозможен: walletop держит один username на обе стороны, поэтому транзит через COOPERATIVE-пул w.mkt.fee (тот же приём, что в REFUSAL_PENALTY и RELEASE_FROM_COMMON). Вызывается branch::retfee инлайн от контракта-источника.
     inline constexpr eosio::name RELEASE_FROM_COMMON = "o.brn.release"_n; ///< Изъятие из общего кошелька КУ в транзитный пул ручного распределения (TRANSFER w.brn.common → w.brn.pool, без Dr/Cr — внутри 86; username = braname). Первая нога двухходовки распределения: один username на операцию — поэтому common→person идёт через COOPERATIVE-транзит w.brn.pool.
-    inline constexpr eosio::name SPEND_COMMON        = "o.brn.spend"_n;   ///< Оплата расхода кооперативного участка из общего кошелька (BURN с w.brn.common, Dr 86 / Cr 51 — выплата с расчётного счёта по реквизитам, после подтверждения кассиром). Плановый резерв расходов контролирует бэкенд; путь использования включается с шасси расходов.
+    inline constexpr eosio::name SPEND_COMMON        = "o.brn.spend"_n;   ///< Прямая оплата расхода кооперативного участка по реквизитам получателя (BURN с w.brn.expns, Dr 86 / Cr 51 — выплата с расчётного счёта после подтверждения кассиром). Роль `direct` в наборе шасси расходов для КУ; средства попадают в пул расходов при создании служебной записки (o.brn.expfnd).
+    inline constexpr eosio::name EXPENSE_FUND        = "o.brn.expfnd"_n;  ///< Выделение средств участка под расход (TRANSFER w.brn.common → w.brn.expns, без Dr/Cr — внутри 86; username = braname). Выполняется при создании служебной записки: сумма расхода уходит из общего кошелька в пул расходов и перестаёт быть доступной распределению.
+    inline constexpr eosio::name EXPENSE_UNFUND      = "o.brn.expunf"_n;  ///< Возврат неизрасходованных средств из пула расходов в общий кошелёк участка (TRANSFER w.brn.expns → w.brn.common, без Dr/Cr — внутри 86; username = braname). Инверсия o.brn.expfnd: совет отклонил расход либо расход закрыт на сумму меньше запланированной.
+    inline constexpr eosio::name EXPENSE_ADVANCE     = "o.brn.expadv"_n;  ///< Выдача аванса под отчёт по расходу участка (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51 — деньги ушли с расчётного счёта получателю; username = получатель аванса). Роль `advance` в наборе шасси расходов для КУ.
+    inline constexpr eosio::name EXPENSE_REPORT      = "o.brn.exprpt"_n;  ///< Закрытие подотчёта по расходу участка отчётом с чеками (BURN с w.exp.adv, без Dr/Cr — проводка Dr 86 / Cr 51 уже сделана при выдаче аванса). Роль `report` в наборе шасси расходов для КУ.
+    inline constexpr eosio::name EXPENSE_RETURN      = "o.brn.expret"_n;  ///< Возврат неиспользованного аванса под отчёт в пул расходов участка (TRANSFER w.exp.adv → w.brn.expns, Dr 51 / Cr 86 — деньги вернулись на расчётный счёт). Роль `refund` в наборе шасси расходов для КУ.
+    inline constexpr eosio::name EXPENSE_OVERSPEND   = "o.brn.expovr"_n;  ///< Доплата сверх выданного аванса по расходу участка (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend` в наборе шасси расходов для КУ; сразу за ней шасси закрывает подотчёт отчётом.
     inline constexpr eosio::name FINANCIAL_AID       = "o.brn.aid"_n;     ///< Материальная помощь доверенному КУ (BURN с w.brn.person, Dr 86 / Cr 51 — выплата с расчётного счёта по заявлению, после подтверждения кассиром; НДФЛ получатель платит сам).
     inline constexpr eosio::name CONVERT_TO_MKT      = "o.brn.conv"_n;    ///< Перевод персональных средств доверенного в членский кошелёк «Стола заказов» (TRANSFER w.brn.person → w.mkt.member, без Dr/Cr — внутри 86) для заказов как обычный пайщик.
   }
@@ -516,13 +522,66 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     0, 0,
     "Распределение членского взноса доверенному кооперативного участка" },
 
-  // 13b-3. p.brn.spend: Оплата расхода КУ из общего кошелька
-  //      (BURN с w.brn.common, Dr 86 / Cr 51 — деньги уходят из системы
-  //      банковским переводом по реквизитам после подтверждения кассиром).
+  // 13b-3. p.brn.spend: Выделение средств участка под расход
+  //      (TRANSFER w.brn.common → w.brn.expns, без Dr/Cr — внутри 86;
+  //      username = braname). Выполняется при создании служебной записки:
+  //      сумма расхода уходит из общего кошелька в пул расходов участка и
+  //      перестаёт быть доступной распределению.
+  { operations::branch::EXPENSE_FUND, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_COMMON, ledger2_wallets::BRANCH_EXPENSE_POOL,
+    0, 0,
+    "Выделение средств кооперативного участка под расход" },
+
+  // 13b-4. p.brn.spend: Возврат неизрасходованного из пула расходов участка
+  //      (TRANSFER w.brn.expns → w.brn.common, без Dr/Cr — внутри 86;
+  //      username = braname). Совет отклонил расход либо расход закрыт на
+  //      сумму меньше запланированной.
+  { operations::branch::EXPENSE_UNFUND, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::BRANCH_COMMON,
+    0, 0,
+    "Возврат неизрасходованных средств в общий кошелёк кооперативного участка" },
+
+  // 13b-5. p.brn.spend: Прямая оплата расхода КУ по реквизитам получателя
+  //      (BURN с w.brn.expns, Dr 86 / Cr 51 — деньги уходят из системы
+  //      банковским переводом после подтверждения кассиром).
+  //      Роль `direct` в наборе шасси расходов для КУ.
   { operations::branch::SPEND_COMMON, processes::branch::SPEND, WalletOp::BURN,
-    ledger2_wallets::BRANCH_COMMON, eosio::name{},
+    ledger2_wallets::BRANCH_EXPENSE_POOL, eosio::name{},
     ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
-    "Оплата расхода кооперативного участка из общего кошелька" },
+    "Прямая оплата расхода кооперативного участка по реквизитам" },
+
+  // 13b-6. p.brn.spend: Выдача аванса под отчёт по расходу участка
+  //      (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51 — деньги ушли
+  //      получателю с расчётного счёта; username = получатель аванса).
+  //      Роль `advance` в наборе шасси расходов для КУ.
+  { operations::branch::EXPENSE_ADVANCE, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача аванса под отчёт по расходу кооперативного участка" },
+
+  // 13b-7. p.brn.spend: Закрытие подотчёта отчётом с чеками
+  //      (BURN с w.exp.adv, без Dr/Cr — проводка сделана при выдаче аванса).
+  //      Роль `report` в наборе шасси расходов для КУ.
+  { operations::branch::EXPENSE_REPORT, processes::branch::SPEND, WalletOp::BURN,
+    ledger2_wallets::ADVANCE_HOLD, eosio::name{},
+    0, 0,
+    "Закрытие подотчёта по расходу кооперативного участка" },
+
+  // 13b-8. p.brn.spend: Возврат неиспользованного аванса в пул расходов
+  //      (TRANSFER w.exp.adv → w.brn.expns, Dr 51 / Cr 86 — деньги вернулись
+  //      на расчётный счёт). Роль `refund` в наборе шасси расходов для КУ.
+  { operations::branch::EXPENSE_RETURN, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::ADVANCE_HOLD, ledger2_wallets::BRANCH_EXPENSE_POOL,
+    ledger2_accounts::BANK_ACCOUNT, ledger2_accounts::TARGET_RECEIPTS,
+    "Возврат неиспользованного аванса по расходу кооперативного участка" },
+
+  // 13b-9. p.brn.spend: Доплата сверх выданного аванса
+  //      (TRANSFER w.brn.expns → w.exp.adv, Dr 86 / Cr 51). Роль `overspend`
+  //      в наборе шасси расходов для КУ; сразу за ней закрывается подотчёт.
+  { operations::branch::EXPENSE_OVERSPEND, processes::branch::SPEND, WalletOp::TRANSFER,
+    ledger2_wallets::BRANCH_EXPENSE_POOL, ledger2_wallets::ADVANCE_HOLD,
+    ledger2_accounts::TARGET_RECEIPTS, ledger2_accounts::BANK_ACCOUNT,
+    "Доплата сверх аванса по расходу кооперативного участка" },
 
   // 13c. p.brn.aid: Материальная помощь доверенному КУ
   //      (BURN с w.brn.person, Dr 86 / Cr 51 — деньги уходят из системы
@@ -864,6 +923,18 @@ static constexpr ExpenseOperationSet EXPENSE_OPERATION_SETS[] = {
     operations::expense::ADVANCE_REPORT,
     operations::expense::ADVANCE_RETURN,
     operations::expense::OVERSPEND },
+
+  // Пул расходов кооперативного участка — source_wallet заполняет служебная
+  // записка расхода КУ. Пул наполняется из общего кошелька участка
+  // (o.brn.expfnd) при создании записки; неизрасходованное возвращается туда
+  // же (o.brn.expunf). Проводки идут по целевому финансированию участка
+  // (Дт 86 / Кт 51), а не по вложениям, как в «Благоросте».
+  { ledger2_wallets::BRANCH_EXPENSE_POOL,
+    operations::branch::EXPENSE_ADVANCE,
+    operations::branch::SPEND_COMMON,
+    operations::branch::EXPENSE_REPORT,
+    operations::branch::EXPENSE_RETURN,
+    operations::branch::EXPENSE_OVERSPEND },
 };
 
 static constexpr size_t EXPENSE_OPERATION_SETS_SIZE =

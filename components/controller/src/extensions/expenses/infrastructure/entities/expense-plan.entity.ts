@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import { ExpensePlanPriority } from '../../domain/expense-plan.types';
+import { ExpensePlanRecurrence } from '../../domain/expense-plan.types';
 
 /**
  * TypeORM-сущность `expense_plans` — общесистемный оффчейн-реестр плановых
@@ -51,17 +51,43 @@ export class ExpensePlanEntity {
     name: 'due_date',
     type: 'timestamptz',
     nullable: true,
-    comment: 'Срок оплаты; NULL для срочных («как только возможно») и необязательных',
+    comment: 'Срок оплаты. Обязателен для новых записей; NULL остался у записей до отмены приоритетов',
   })
   dueDate?: Date | null;
 
   @Column({
-    name: 'priority',
+    name: 'recurrence',
     type: 'varchar',
     length: 16,
-    comment: 'SCHEDULED — к дате; URGENT — как только возможно (всегда в резерве); OPTIONAL — при наличии средств (не в резерве)',
+    default: ExpensePlanRecurrence.NONE,
+    comment: 'Периодичность серии: NONE — разовый; MONTHLY/QUARTERLY/YEARLY — повторяющийся',
   })
-  priority!: ExpensePlanPriority;
+  recurrence!: ExpensePlanRecurrence;
+
+  @Column({
+    name: 'next_spawned',
+    type: 'boolean',
+    default: false,
+    comment: 'По этой записи уже добавлен следующий экземпляр серии (защита от повторного порождения)',
+  })
+  nextSpawned!: boolean;
+
+  @Column({
+    name: 'proposal_hash',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    comment: 'Расход, которым оплачивается запись (служебная записка шасси расходов); NULL — оплата не запускалась',
+  })
+  proposalHash?: string | null;
+
+  @Column({
+    name: 'paid_at',
+    type: 'timestamptz',
+    nullable: true,
+    comment: 'Когда расход фактически оплачен; оплаченные записи не удерживают резерв',
+  })
+  paidAt?: Date | null;
 
   @Column({
     name: 'pay_to',

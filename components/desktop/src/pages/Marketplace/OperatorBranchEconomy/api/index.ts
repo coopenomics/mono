@@ -33,9 +33,36 @@ export async function getBranchEconomy(braname: string): Promise<MarketplaceBran
   return result;
 }
 
+export type MarketplaceBranchWalletHistoryView =
+  Queries.Marketplace.GetBranchWalletHistory.IOutput['marketplaceGetBranchWalletHistory'];
+
+export async function getBranchWalletHistory(
+  braname: string,
+  options?: Queries.Marketplace.GetBranchWalletHistory.IInput['options'],
+): Promise<MarketplaceBranchWalletHistoryView> {
+  const { [Queries.Marketplace.GetBranchWalletHistory.name]: result } = await client.Query(
+    Queries.Marketplace.GetBranchWalletHistory.query,
+    { variables: { braname, options } },
+  );
+  return result;
+}
+
 export async function getPersonalEconomy(): Promise<MarketplacePersonalEconomyView> {
   const { [Queries.Marketplace.GetPersonalEconomy.name]: result } = await client.Query(
     Queries.Marketplace.GetPersonalEconomy.query,
+  );
+  return result;
+}
+
+export type MarketplacePersonalWalletHistoryView =
+  Queries.Marketplace.GetPersonalWalletHistory.IOutput['marketplaceGetPersonalWalletHistory'];
+
+export async function getPersonalWalletHistory(
+  options?: Queries.Marketplace.GetPersonalWalletHistory.IInput['options'],
+): Promise<MarketplacePersonalWalletHistoryView> {
+  const { [Queries.Marketplace.GetPersonalWalletHistory.name]: result } = await client.Query(
+    Queries.Marketplace.GetPersonalWalletHistory.query,
+    { variables: { options } },
   );
   return result;
 }
@@ -145,4 +172,14 @@ export async function createAid(data: ICreateAidInput): Promise<boolean> {
     { variables: { data } },
   );
   return Boolean(result);
+}
+
+export type ICreateBranchExpenseInput = Mutations.Marketplace.CreateBranchExpense.IInput['data'];
+
+export async function createBranchExpense(data: ICreateBranchExpenseInput): Promise<string> {
+  const { [Mutations.Marketplace.CreateBranchExpense.name]: result } = await client.Mutation(
+    Mutations.Marketplace.CreateBranchExpense.mutation,
+    { variables: { data } },
+  );
+  return String(result);
 }

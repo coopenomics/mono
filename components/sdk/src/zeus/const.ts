@@ -132,6 +132,10 @@ export const AllTypesProps: Record<string,any> = {
 	BranchEstablishmentPetitionSignedMetaDocumentInput:{
 
 	},
+	BranchExpenseItemInput:{
+		mechanics:"ExpenseMechanics",
+		recipient_type:"ExpenseRecipientType"
+	},
 	BranchMeetingBallotGenerateDocumentInput:{
 		answers:"KuBallotAnswerInput",
 		questions:"KuBallotQuestionInput"
@@ -344,6 +348,10 @@ export const AllTypesProps: Record<string,any> = {
 		open_at:"DateTime",
 		proposal:"AnnualGeneralMeetingAgendaSignedDocumentInput"
 	},
+	CreateBranchExpenseInput:{
+		items:"BranchExpenseItemInput",
+		statement:"ExpenseProposalStatementSignedDocumentInput"
+	},
 	CreateBranchInput:{
 
 	},
@@ -379,7 +387,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateExpensePlanInput:{
 		due_date:"DateTime",
-		priority:"ExpensePlanPriority"
+		recurrence:"ExpensePlanRecurrence"
 	},
 	CreateExpenseProposalInput:{
 		callback:"ExpenseCallbackInput",
@@ -552,7 +560,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	ExpenseItemStatus: "enum" as const,
 	ExpenseMechanics: "enum" as const,
-	ExpensePlanPriority: "enum" as const,
+	ExpensePlanRecurrence: "enum" as const,
 	ExpenseProposalDecisionBodyInput:{
 
 	},
@@ -879,6 +887,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceAddToCartInput:{
 
 	},
+	MarketplaceAidStage: "enum" as const,
 	MarketplaceAidStatementSignablePayloadInput:{
 
 	},
@@ -1898,6 +1907,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceCreateAplReception:{
 			data:"MarketplaceCreateAplReceptionInput"
 		},
+		marketplaceCreateBranchExpense:{
+			data:"CreateBranchExpenseInput"
+		},
 		marketplaceCreateCustomCategory:{
 			input:"CreateCustomCategoryInput"
 		},
@@ -2635,6 +2647,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceGetBranchEconomy:{
 
 		},
+		marketplaceGetBranchWalletHistory:{
+			options:"PaginationInput"
+		},
 		marketplaceGetCategoryById:{
 			data:"GetCategoryByIdInput"
 		},
@@ -2652,6 +2667,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceGetOrder:{
 			input:"MarketplaceGetOrderInput"
+		},
+		marketplaceGetPersonalWalletHistory:{
+			options:"PaginationInput"
 		},
 		marketplaceGetProductTypeById:{
 			data:"GetProductTypeByIdInput"
@@ -2689,6 +2707,10 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceListAplReceptionsByBraname:{
 			data:"MarketplaceListAplReceptionsByBranameInput"
+		},
+		marketplaceListBranchOrders:{
+			input:"MarketplaceListOrdersInput",
+			options:"PaginationInput"
 		},
 		marketplaceListCatalog:{
 			input:"MarketplaceListCatalogInput"
@@ -4473,8 +4495,10 @@ export const ReturnTypes: Record<string,any> = {
 		creator:"String",
 		due_date:"DateTime",
 		id:"Int",
+		paid_at:"DateTime",
 		pay_to:"String",
-		priority:"ExpensePlanPriority",
+		proposal_hash:"String",
+		recurrence:"ExpensePlanRecurrence",
 		title:"String"
 	},
 	ExpenseProposal:{
@@ -4859,7 +4883,11 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceAid:{
 		amount:"String",
+		braname:"String",
 		hash:"String",
+		payment_destination:"String",
+		payment_status:"PaymentStatus",
+		stage:"MarketplaceAidStage",
 		username:"String"
 	},
 	MarketplaceAplReception:{
@@ -4965,6 +4993,21 @@ export const ReturnTypes: Record<string,any> = {
 		reserve_amount:"String",
 		total_weight:"Int",
 		weights:"MarketplaceTrusteeWeight"
+	},
+	MarketplaceBranchWalletHistoryPaginationResult:{
+		currentPage:"Int",
+		items:"MarketplaceBranchWalletOperation",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	MarketplaceBranchWalletOperation:{
+		created_at:"DateTime",
+		global_sequence:"String",
+		memo:"String",
+		operation_code:"String",
+		order_hash:"String",
+		order_id:"String",
+		quantity:"String"
 	},
 	MarketplaceCancelOrderResult:{
 		order:"MarketplaceOrder",
@@ -5302,6 +5345,7 @@ export const ReturnTypes: Record<string,any> = {
 		group_accumulated_quantity:"Float",
 		group_min_volume:"Float",
 		id:"String",
+		image_url:"String",
 		is_ready_announced:"Boolean",
 		issuance_fact:"MarketplaceOrderIssuanceFactSnapshot",
 		last_status_reason:"String",
@@ -6083,6 +6127,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceConvertBranchFunds:"Boolean",
 		marketplaceCreateAid:"Boolean",
 		marketplaceCreateAplReception:"MarketplaceAplReceptionResult",
+		marketplaceCreateBranchExpense:"String",
 		marketplaceCreateCustomCategory:"MarketplaceCategory",
 		marketplaceCreateExpressReception:"MarketplaceCreateExpressReceptionResult",
 		marketplaceCreateOffer:"MarketplaceOffer",
@@ -6838,6 +6883,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetAvailableCategories:"MarketplaceAvailableCategory",
 		marketplaceGetAvailableCategoryTree:"MarketplaceCategoryTreeNode",
 		marketplaceGetBranchEconomy:"MarketplaceBranchEconomy",
+		marketplaceGetBranchWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetCart:"MarketplaceCart",
 		marketplaceGetCategoryById:"MarketplaceCategoryTreeNode",
 		marketplaceGetCategoryRules:"MarketplaceAvailableCategory",
@@ -6848,6 +6894,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceGetOffer:"MarketplaceOffer",
 		marketplaceGetOrder:"MarketplaceOrder",
 		marketplaceGetPersonalEconomy:"MarketplacePersonalEconomy",
+		marketplaceGetPersonalWalletHistory:"MarketplaceBranchWalletHistoryPaginationResult",
 		marketplaceGetProductTypeById:"MarketplaceProductType",
 		marketplaceGetRequest:"MarketplaceRequest",
 		marketplaceGetRequestByHash:"MarketplaceRequest",
@@ -6864,6 +6911,7 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceListAplReceptionsAsSupplier:"MarketplaceAplReception",
 		marketplaceListAplReceptionsByBraname:"MarketplaceAplReception",
 		marketplaceListAvailableCategories:"MarketplaceCategory",
+		marketplaceListBranchOrders:"MarketplaceOrderPaginationResult",
 		marketplaceListCatalog:"MarketplaceOfferPaginationResult",
 		marketplaceListCategories:"MarketplaceCategory",
 		marketplaceListConsolidatedRequests:"MarketplaceConsolidatedRequestPaginationResult",

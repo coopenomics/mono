@@ -84,17 +84,25 @@ function onUpdate(value: string | number | null): void {
   font-size: var(--p-fs-mono);
 }
 
-/* Безрамочный (flat) режим: поле выглядит как текст в ячейке, на наведении —
-   мягкий фон, на фокусе — нижняя линия акцентом, чтобы видеть, что поле активно. */
+/* Безрамочный (flat) режим: поле выглядит как текст в ячейке. В покое — едва
+   заметная штриховая нижняя линия (иначе поле неотличимо от статичного
+   текста — жалоба 2026-08-02), на наведении — мягкий фон и линия сплошная,
+   на фокусе — нижняя линия акцентом, чтобы видеть, что поле активно. */
 .base-input--flat :deep(.q-field__control) {
   border-radius: var(--p-r-sm, 8px);
-  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+  border-bottom: 1px dashed var(--p-line-2);
+  transition:
+    background var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
 }
 .base-input--flat:hover :deep(.q-field__control) {
   background: var(--p-surface-2);
+  border-bottom-style: solid;
+  border-bottom-color: var(--p-primary-line);
 }
 .base-input--flat.q-field--focused :deep(.q-field__control) {
   background: var(--p-surface-2);
+  border-bottom-color: transparent;
   box-shadow: inset 0 -2px 0 var(--p-primary);
 }
 </style>

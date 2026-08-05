@@ -191,11 +191,14 @@ useMarketplaceRealtime(
   { onResync: () => reloadLive() },
 );
 
-// requirement b6: членский взнос входит в общую стоимость заказа. Заказчику
-// показываем только итоговую цену — без разбивки на себестоимость и взнос
-// (это внутренняя экономика кооператива, не его забота).
+// requirement b6: членский взнос входит в общую стоимость заказа. В каталоге и
+// в строках корзины — одной цифрой, с учётом взноса (непривычно и избыточно
+// объяснять на каждой позиции). В сводке «Ваш заказ» — наоборот, раскладываем
+// на стоимость товаров + взнос отдельной строкой (жалоба 2026-08-02: сумма
+// «120 ₽» без объяснения выглядела как ошибка — «молоко же 100 ₽»).
 const feePercent = ref(0);
 const totalWithFee = computed(() => applyMembershipFee(Number(cartStore.totalCost), feePercent.value));
+const feeAmount = computed(() => totalWithFee.value - Number(cartStore.totalCost));
 
 onMounted(async () => {
   try {
@@ -308,6 +311,12 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
         .mp-cart__summary-line
           span Всего единиц
           span.mp-cart__summary-val {{ cartStore.totalQuantity }}
+        .mp-cart__summary-line
+          span Себестоимость
+          span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
+        .mp-cart__summary-line(v-if="feePercent > 0")
+          span Членский взнос ({{ feePercent }}%)
+          span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
           span Итого
           span {{ money(totalWithFee) }} {{ symbol }}

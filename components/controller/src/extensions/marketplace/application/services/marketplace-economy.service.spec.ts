@@ -13,6 +13,11 @@ describe('MarketplaceEconomyService — units↔asset, lineUnits', () => {
     null as never,
     { decimals: 4, symbol: 'RUB' } as never,
     null as never,
+    null as never,
+    null as never,
+    null as never,
+    null as never,
+    null as never,
     null as never
   );
 

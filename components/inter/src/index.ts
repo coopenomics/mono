@@ -3,6 +3,7 @@ export {
   INTER_COOP_CALENDAR_EVENT_NOTIFICATION,
   INTER_EXPENSE_CHASSIS,
   INTER_FILE_STORAGE,
+  INTER_LEDGER2_HISTORY,
   INTER_MATRIX_ROOM_MESSAGING,
   INTER_PROJECT_CAPITAL_CLEARANCE,
   INTER_PROJECT_COMMUNICATION_ARTIFACTS,
@@ -71,3 +72,10 @@ export type {
   InterExpenseProposalStatus,
   InterExpenseRequisiteItemInput,
 } from './expense-chassis.port';
+
+export type {
+  InterLedger2HistoryFilter,
+  InterLedger2HistoryPort,
+  InterLedger2HistoryResult,
+  InterLedger2Operation,
+} from './ledger2-history.port';

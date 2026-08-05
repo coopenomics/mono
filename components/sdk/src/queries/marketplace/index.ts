@@ -6,6 +6,7 @@ export * as ListKUDetails from './listKUDetails'
 export * as ListMyOrders from './listMyOrders'
 /** Реестр всех заказов кооператива со статусами (стол администратора, Order:read:all) */
 export * as ListAllOrders from './listAllOrders'
+export * as ListBranchOrders from './listBranchOrders'
 /** Один заказ по идентификатору */
 export * as GetOrder from './getOrder'
 /** Базовый справочник категорий товаров */
@@ -108,6 +109,8 @@ export * as GetEconomyConfig from './getEconomyConfig'
 /** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации */
 export * as GetSupplierPaymentSettings from './getSupplierPaymentSettings'
 export * as GetBranchEconomy from './getBranchEconomy'
+export * as GetBranchWalletHistory from './getBranchWalletHistory'
+export * as GetPersonalWalletHistory from './getPersonalWalletHistory'
 export * as GetPersonalEconomy from './getPersonalEconomy'
 export * as ListAids from './listAids'
 export * as AidStatementSignablePayload from './aidStatementSignablePayload'

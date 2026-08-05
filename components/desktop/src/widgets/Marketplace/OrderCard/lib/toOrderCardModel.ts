@@ -35,6 +35,8 @@ const STATUS_TO_CARD: Record<DomainOrderStatus, OrderStatus> = {
 export interface OrderCardSource {
   id: string;
   product_name?: string | null;
+  /** Обложка товара (первое изображение предложения). */
+  image_url?: string | null;
   quantity: number;
   unit_of_measure?: string | null;
   /** Содержимое упаковки в базовой единице (Эпик 18); 0/null — отпуск по мере. */
@@ -45,6 +47,10 @@ export interface OrderCardSource {
   /** Готовая сумма total_cost + membership_fee (считает бэк — см. toMarketplaceOrderDTO). */
   total_cost_with_fee: string;
   status: DomainOrderStatus;
+  /** Накоплено всеми пайщиками в партии (сбор по паре оферта×КУ); null — заказ вне группового сбора. */
+  group_accumulated_quantity?: number | null;
+  /** Целевой минимальный объём поставки на КУ, при достижении которого партия формируется. */
+  group_min_volume?: number | null;
   /**
    * Оператор пункта объявил заказ готовым к выдаче. В бандл-модели заказчик почти
    * не видит on-chain READY_TO_RECEIVE (он схлопнут с получением), поэтому это
@@ -58,6 +64,21 @@ export interface OrderCardSource {
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;
   delivery_point_lng?: number | null;
+}
+
+/**
+ * Заполнение сборки партии (0..1) — только пока заказ ещё копится (ACTIVE) и
+ * у КУ есть целевой минимальный объём поставки. Раньше жил отдельным
+ * полноширинным баром на странице «Коллективный заказ» (Story 4.4); слит в
+ * карточку заказа как компактный индикатор (жалоба 2026-08-02) — та же
+ * формула, что использовала снесённая страница.
+ */
+export function orderProgress(o: OrderCardSource): number | undefined {
+  if (o.status !== 'ACTIVE') return undefined;
+  const target = o.group_min_volume;
+  if (target == null || target <= 1) return undefined;
+  const accumulated = o.group_accumulated_quantity ?? o.quantity;
+  return Math.min(1, accumulated / target);
 }
 
 /**
@@ -84,6 +105,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
     id: o.id,
     shortId: o.id.slice(0, 8),
     title: o.product_name || 'Товар по предложению',
+    imageUrl: o.image_url ?? undefined,
     units: saleUnit.units,
     unitLabel: saleUnit.unitLabel,
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
@@ -91,6 +113,7 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
       isOfferer && feeAmount > 0
         ? `Цена для заказчика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
         : undefined,
+    progress: orderProgress(o),
     status: announcedReady ? 'ready-to-issue' : STATUS_TO_CARD[o.status],
     // Бейдж карточки рисуем по доменному статусу (исчерпывающая карта), а не по
     // грубому card-status — иначе на карточке два разных текста статуса.

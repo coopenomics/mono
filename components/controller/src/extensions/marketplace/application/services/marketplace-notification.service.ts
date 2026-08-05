@@ -25,6 +25,10 @@ import {
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
   MARKETPLACE_SUPPLIER_APPROVED_EVENT,
+  MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT,
+  MARKETPLACE_AID_COUNCIL_DECIDED_EVENT,
+  type MarketplaceAidPayoutConfirmedEvent,
+  type MarketplaceAidCouncilDecidedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
@@ -481,6 +485,63 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push поставщику об отказе (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_AID_COUNCIL_DECIDED_EVENT)
+  async handleAidCouncilDecided(event: MarketplaceAidCouncilDecidedEvent): Promise<void> {
+    try {
+      const memberName = await this.accountPort.getDisplayName(event.member_account);
+      const outcomeHuman = event.approved
+        ? 'Совет одобрил выплату — заявка передана кассиру, ожидайте перевод на указанные реквизиты.'
+        : 'Совет отказал в выплате — средства остались на вашем кошельке, заявление можно подать заново.';
+      const payload: Workflows.MarketplaceAidCouncilDecided.IPayload = {
+        memberName,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
+        outcomeHuman,
+        // Готовый суффикс: ветвление в теле шага Центром уведомлений не вычисляется.
+        reasonSuffix: !event.approved && event.reason ? ` Причина: ${event.reason}.` : '',
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.member_account,
+        Workflows.MarketplaceAidCouncilDecided.id,
+        payload
+      );
+      this.logger.log(
+        `Матпомощь ${event.member_account}: push о решении совета отправлен (approved=${event.approved}).`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Матпомощь ${event.member_account}: ошибка отправки push о решении совета (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT)
+  async handleAidPayoutConfirmed(event: MarketplaceAidPayoutConfirmedEvent): Promise<void> {
+    try {
+      const memberName = await this.accountPort.getDisplayName(event.member_account);
+      const payload: Workflows.MarketplaceAidPayoutConfirmed.IPayload = {
+        memberName,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
+        paymentDestination: event.payment_destination ?? '',
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.member_account,
+        Workflows.MarketplaceAidPayoutConfirmed.id,
+        payload
+      );
+      this.logger.log(
+        `Матпомощь ${event.member_account}: push о выплате отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Матпомощь ${event.member_account}: ошибка отправки push о выплате (${err.message}) — flow не блокируется.`
       );
     }
   }
