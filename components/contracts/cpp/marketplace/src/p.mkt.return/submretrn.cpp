@@ -57,7 +57,16 @@ void marketplace::submretrn(eosio::name coopname,
   eosio::check(now < o.warranty_until,
                "Гарантийный срок по заказу истёк");
 
-  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, o.unit_price, o.package_size);
+  // Стоимость возвращаемого имущества считается от ФАКТА выдачи, а не от цены
+  // заказа: оператор мог скорректировать цену на месте (signiss2 берёт факт из
+  // акта выдачи), и заказчик заплатил именно `o.fact_cost`. Расчёт от
+  // `o.unit_price` вернул бы сумму, отличную от уплаченной, и разошёлся бы с
+  // суммой в подписанном заявлении. Доля возвращаемого количества берётся той
+  // же пропорцией, что и доля членского взноса ниже.
+  eosio::check(o.actual_quantity.amount > 0,
+               "По заказу не зафиксировано фактически выданное количество");
+  const eosio::asset fact_cost =
+      Marketplace::pro_rata(o.fact_cost, actual_quantity.amount, o.actual_quantity.amount);
 
   // Доля членского взноса, приходящаяся на возвращаемое имущество. Возврат —
   // полный: пайщику возвращается и стоимость имущества, и уплаченный за него
@@ -70,14 +79,13 @@ void marketplace::submretrn(eosio::name coopname,
   // выданного количества доля равна принятому взносу целиком.
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   eosio::asset fee_refund = eosio::asset(0, _root_govern_symbol);
-  if (locked_fee.amount > 0 && o.total_cost.amount > 0 && o.actual_quantity.amount > 0) {
-    const int64_t accepted_fee =
-        static_cast<int64_t>(static_cast<uint128_t>(locked_fee.amount) *
-                             o.fact_cost.amount / o.total_cost.amount);
-    fee_refund = eosio::asset(
-        static_cast<int64_t>(static_cast<uint128_t>(accepted_fee) *
-                             actual_quantity.amount / o.actual_quantity.amount),
-        _root_govern_symbol);
+  if (locked_fee.amount > 0 && o.total_cost.amount > 0) {
+    // Ровно та же пропорция, что применил signiss2 при финализации взноса, —
+    // возвращаем не больше и не меньше принятого участком.
+    const eosio::asset accepted_fee =
+        Marketplace::pro_rata(locked_fee, o.fact_cost.amount, o.total_cost.amount);
+    fee_refund = Marketplace::pro_rata(accepted_fee, actual_quantity.amount,
+                                       o.actual_quantity.amount);
   }
 
   // Создание return_request entity

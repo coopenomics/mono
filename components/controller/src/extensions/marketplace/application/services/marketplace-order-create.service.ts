@@ -5,6 +5,7 @@ import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { computeOrderHash } from '../shared/order-hash.util';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { calcCostAmount } from '../shared/cost.util';
 import { resolveSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
@@ -35,7 +36,10 @@ import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
 } from '../../domain/entities/marketplace-order.types';
-import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceUnitOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
 import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
@@ -177,8 +181,8 @@ export class MarketplaceOrderCreateService {
       input.order_hash ?? computeOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = this.deriveOfferHash(offer.id);
     // Стоимость: по мере — цена×базовое количество; упаковкой — цена×число упаковок.
-    const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
-    const total_cost_amount = this.computeTotalCostAmount(resolved.unitPrice, saleUnitCount);
+    // Считается той же целочисленной формулой, что и на цепи (см. cost.util).
+    const total_cost_amount = this.computeTotalCostAmount(resolved, offer.unit_of_measure);
     const unit_price_asset = this.formatAsset(resolved.unitPrice);
     const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
@@ -316,14 +320,36 @@ export class MarketplaceOrderCreateService {
     return createHash('sha256').update(`offer:${offer_id}`).digest('hex');
   }
 
-  private computeTotalCostAmount(price_per_unit: string, quantity: number): string {
-    // price_per_unit как numeric(18,4) приходит как string e.g. "150.0000".
-    const priceFloat = Number.parseFloat(price_per_unit);
+  /**
+   * Сумма заказа по той же формуле, что и на цепи (`Marketplace::calc_cost`):
+   * целочисленно, с округлением половины вверх. Раньше считалось умножением
+   * double с `toFixed` — предварительная сумма в БД расходилась с суммой,
+   * которую посчитает контракт.
+   */
+  private computeTotalCostAmount(
+    resolved: { unitPrice: string; baseQuantity: number; packageSize: number },
+    unit: MarketplaceUnitOfMeasure
+  ): string {
+    const priceFloat = Number.parseFloat(resolved.unitPrice);
     if (Number.isNaN(priceFloat) || priceFloat <= 0) {
-      throw new BadRequestException(`Некорректная цена за единицу: "${price_per_unit}"`);
+      throw new BadRequestException(`Некорректная цена за единицу: "${resolved.unitPrice}"`);
     }
-    const total = priceFloat * quantity;
-    return total.toFixed(this.assetDecimals);
+    const total = calcCostAmount({
+      quantity: resolved.baseQuantity,
+      unit,
+      unitPrice: resolved.unitPrice,
+      packageSize: resolved.packageSize,
+      decimals: this.assetDecimals,
+    });
+    // Цена и количество положительны, но при малых величинах произведение
+    // способно схлопнуться в ноль — контракт такой заказ отвергнет, и лучше
+    // сказать об этом до отправки транзакции.
+    if (Number.parseFloat(total) <= 0) {
+      throw new BadRequestException(
+        'Итоговая сумма заказа получилась нулевой — проверьте количество и цену.'
+      );
+    }
+    return total;
   }
 
   private formatAsset(price_per_unit: string): string {

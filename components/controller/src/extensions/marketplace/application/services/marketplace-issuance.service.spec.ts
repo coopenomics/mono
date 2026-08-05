@@ -30,9 +30,14 @@ function buildOrder(
   } as MarketplaceOrderDomainEntity;
 }
 
-function buildMocks(warehouseByOrder: Record<string, number>) {
+function buildMocks(
+  warehouseByOrder: Record<string, number>,
+  orderOverrides: Partial<MarketplaceOrderDomainEntity> = {}
+) {
   const orderRepo = {
-    findById: jest.fn().mockImplementation(async (id: string) => buildOrder({ id })),
+    findById: jest
+      .fn()
+      .mockImplementation(async (id: string) => buildOrder({ id, ...orderOverrides })),
     applyIssuanceOpened: jest.fn(),
     applyReadyAnnounced: jest
       .fn()
@@ -233,23 +238,31 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
       expect(action.total_amount).toBe('500.0000');
     });
 
-    it('оффер с фасовкой (order_unit_size=0.1, kg) → акт в единицах заказа без пересчёта: кол-во=5, цена за фасовку, единица «100 г»', async () => {
-      const mocks = buildMocks({ 'order-1': 5 });
+    it('отпуск упаковкой (Эпик 18) → акт в упаковках: кол-во=5, цена за упаковку, единица «упак. 0,1 кг»', async () => {
+      // Заказ на 0.5 кг упаковками по 0.1 кг — это 5 упаковок по 100 ₽.
+      // В акте количество ведётся в единицах отпуска (упаковках), а цена —
+      // за упаковку, чтобы «кол-во × цена = сумма» читалось без домыслов.
+      const mocks = buildMocks(
+        { 'order-1': 0.5 },
+        {
+          quantity: 0.5,
+          package_size: 0.1,
+          price_per_unit: '100.0000',
+          total_cost: '500.0000',
+        }
+      );
       mocks.offerRepo.findById.mockResolvedValue({
         id: 'offer-1',
         product_name: 'Икра',
         unit_of_measure: 'kg',
-        order_unit_size: '0.1',
       } as unknown as Awaited<ReturnType<MarketplaceOfferDomainRepository['findById']>>);
       const service = buildService(mocks);
       await service.getOpenIssuanceSignablePayload('voskhod', 'order-1', 'chairman');
       const action = mocks.documentDomainService.generateDocument.mock.calls[0][0].data;
-      // 5 единиц заказа (порций по 100 г) — так и остаются 5, цена за порцию (100),
-      // без разворота в 0.5 кг; единица измерения = ярлык фасовки «100 г».
       expect(action.fact_quantity).toBe(5);
       expect(action.unit_cost).toBe('100.0000');
       expect(action.total_amount).toBe('500.0000');
-      expect(action.unit_of_measurement).toBe('100 г');
+      expect(action.unit_of_measurement).toBe('упак. 0,1 кг');
     });
 
     it('не формирует акт, когда на складе пусто', async () => {

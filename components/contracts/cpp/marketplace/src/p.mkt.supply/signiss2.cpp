@@ -125,10 +125,11 @@ void marketplace::signiss2(eosio::name coopname,
   // отдельная команда председателя после контроля планового резерва.
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   if (locked_fee.amount > 0) {
-    const eosio::asset fact_fee = eosio::asset(
-        static_cast<int64_t>(static_cast<uint128_t>(locked_fee.amount) *
-                             fact_cost.amount / o.total_cost.amount),
-        _root_govern_symbol);
+    // Доля взноса, приходящаяся на фактически выданное: та же пропорция, что
+    // применяется при гарантийном возврате (`pro_rata`), — иначе возврат взноса
+    // разошёлся бы с принятым на копейку.
+    const eosio::asset fact_fee =
+        Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount);
 
     if (fact_fee < locked_fee) {
       // Недовыдача: неиспользованная часть взноса — на членский «Стола заказов».

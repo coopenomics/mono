@@ -83,6 +83,7 @@ import {
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
 import { toQuantityAsset } from '../shared/quantity.util';
+import { calcCostAmount, sumMoney } from '../shared/cost.util';
 import {
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
   MarketplaceSupplierSettingsService,
@@ -334,7 +335,13 @@ export class MarketplaceAplReceptionService {
     const pres = offer
       ? presentSaleUnit(fact_quantity, offer.unit_of_measure, input.order.package_size)
       : { units: fact_quantity, unitLabel: '' };
-    const total_amount = (pres.units * Number.parseFloat(fact_unit_price)).toFixed(4);
+    const total_amount = calcCostAmount({
+      quantity: fact_quantity,
+      unit: input.order.unit_of_measure,
+      unitPrice: fact_unit_price,
+      packageSize: input.order.package_size,
+      decimals: this.assetConfig.decimals,
+    });
     const action: Cooperative.Registry.MarketplaceAplReception.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplReception.registry_id,
       coopname: input.reception.coopname,
@@ -491,7 +498,7 @@ export class MarketplaceAplReceptionService {
         braname,
         orders_count: orders.length,
         total_units: orders.reduce((a, o) => a + o.quantity, 0),
-        total_amount: orders.reduce((a, o) => a + Number.parseFloat(o.total_cost), 0).toFixed(4),
+        total_amount: sumMoney(orders.map((o) => o.total_cost), this.assetConfig.decimals),
       });
     }
     return out;
@@ -564,9 +571,10 @@ export class MarketplaceAplReceptionService {
 
     const receptions: MarketplaceAplReceptionDomainEntity[] = [];
     for (const [cycle_id, cycleOrders] of byCycle) {
-      const total = cycleOrders
-        .reduce((a, o) => a + Number.parseFloat(o.total_cost), 0)
-        .toFixed(4);
+      const total = sumMoney(
+        cycleOrders.map((o) => o.total_cost),
+        this.assetConfig.decimals
+      );
 
       // Синтез SELF-партии по факту присутствия. В отличие от планового пути
       // поставщик партию заранее не формировал — оператор создаёт её на свой КУ
@@ -946,7 +954,16 @@ export class MarketplaceAplReceptionService {
         continue;
       }
       const factQuantity = factByOrderId.get(order.id) ?? order.quantity;
-      const amount = (factQuantity * Number.parseFloat(order.price_per_unit)).toFixed(4);
+      // Цена заказа — за единицу отпуска (при упаковочном отпуске за упаковку),
+      // поэтому сумма выплаты считается общей формулой, а не произведением на
+      // базовое количество.
+      const amount = calcCostAmount({
+        quantity: factQuantity,
+        unit: order.unit_of_measure,
+        unitPrice: order.price_per_unit,
+        packageSize: order.package_size,
+        decimals: this.assetConfig.decimals,
+      });
 
       await this.initiatePayoutForOrder({
         coopname: reception.coopname,
@@ -1365,14 +1382,23 @@ export class MarketplaceAplReceptionService {
     orders: MarketplaceOrderDomainEntity[]
   ): string {
     const byId = new Map(orders.map((o) => [o.id, o]));
-    let total = 0;
+    const amounts: string[] = [];
     for (const entry of fact) {
       const order = byId.get(entry.order_id);
       if (!order) continue;
-      const unitPrice = Number.parseFloat(entry.fact_unit_price ?? order.price_per_unit);
-      total += entry.fact_quantity * unitPrice;
+      // Цена — за единицу отпуска: при отпуске упаковкой это цена упаковки, и
+      // умножать её на базовое количество нельзя (сумма занижалась в разы).
+      amounts.push(
+        calcCostAmount({
+          quantity: entry.fact_quantity,
+          unit: order.unit_of_measure,
+          unitPrice: entry.fact_unit_price ?? order.price_per_unit,
+          packageSize: order.package_size,
+          decimals: this.assetConfig.decimals,
+        })
+      );
     }
-    return total.toFixed(4);
+    return sumMoney(amounts, this.assetConfig.decimals);
   }
 
   private formatAsset(value: string): string {

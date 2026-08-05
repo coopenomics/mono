@@ -9,6 +9,11 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
 import { resolveSaleUnit, presentSaleUnit } from '../shared/packaging.util';
+import { calcCostAmount, minorToDecimalString, sumMoney } from '../shared/cost.util';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceCartDomainEntity } from '../../domain/entities/marketplace-cart.entity';
 import { MarketplaceCartDTO, MarketplaceCartItemDTO } from '../dto/marketplace-cart.dto';
@@ -37,7 +42,9 @@ export class MarketplaceCartService {
     private readonly cartRepo: MarketplaceCartDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
     private readonly offerRepo: MarketplaceOfferDomainRepository,
-    private readonly imagesService: MarketplaceOfferImagesService
+    private readonly imagesService: MarketplaceOfferImagesService,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig
   ) {}
 
   async getCart(scope: CartScope): Promise<MarketplaceCartDTO> {
@@ -150,7 +157,8 @@ export class MarketplaceCartService {
     const offers = offerIds.length ? await this.offerRepo.findByIds(offerIds) : [];
     const offerById = new Map(offers.map((o) => [o.id, o]));
 
-    let totalCost = 0;
+    const decimals = this.assetConfig.decimals;
+    const lineTotals: string[] = [];
     const items = await Promise.all(
       cart.items.map(async (item) => {
         const offer = offerById.get(item.offer_id) ?? null;
@@ -163,22 +171,30 @@ export class MarketplaceCartService {
             ? (offer.packages ?? []).find((p) => p.id === item.package_id) ?? null
             : null;
         const packageMissing = Boolean(item.package_id) && !pkg;
-        const unitPrice = offer
-          ? pkg
-            ? Number.parseFloat(pkg.price)
-            : Number.parseFloat(offer.price_per_unit)
-          : null;
         const saleUnitPrice = pkg ? pkg.price : offer?.price_per_unit ?? null;
         const packageSize = pkg?.size ?? 0;
-        const lineTotalNum = unitPrice !== null && !packageMissing ? unitPrice * item.quantity : null;
+        // Сумма строки — той же целочисленной формулой, что применит контракт
+        // при создании заказа: `item.quantity` хранится в единицах отпуска
+        // (число упаковок либо базовое количество), поэтому упаковочная позиция
+        // переводится в базовое количество.
+        const lineTotal =
+          offer && saleUnitPrice !== null && !packageMissing
+            ? calcCostAmount({
+                quantity: packageSize > 0 ? item.quantity * packageSize : item.quantity,
+                unit: offer.unit_of_measure,
+                unitPrice: saleUnitPrice,
+                packageSize,
+                decimals,
+              })
+            : null;
         const available =
           offer && !packageMissing
             ? cart.delivery_braname
               ? this.offerDeliversTo(offer, cart.delivery_braname)
               : true
             : false;
-        if (available && lineTotalNum !== null) {
-          totalCost += lineTotalNum;
+        if (available && lineTotal !== null) {
+          lineTotals.push(lineTotal);
         }
         const packageLabel =
           offer && pkg
@@ -199,7 +215,7 @@ export class MarketplaceCartService {
           product_name: offer?.product_name ?? null,
           unit_of_measure: offer?.unit_of_measure ?? null,
           price_per_unit: saleUnitPrice,
-          line_total: lineTotalNum !== null ? lineTotalNum.toFixed(4) : null,
+          line_total: lineTotal,
           image_url: imageUrl,
           available_on_current_ku: available,
           // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
@@ -216,7 +232,9 @@ export class MarketplaceCartService {
       items,
       positions_count: cart.positions_count,
       total_quantity: cart.total_quantity,
-      total_cost: totalCost.toFixed(4),
+      total_cost: lineTotals.length
+        ? sumMoney(lineTotals, decimals)
+        : minorToDecimalString(0n, decimals),
     });
   }
 }

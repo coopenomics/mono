@@ -90,6 +90,19 @@ inline eosio::asset calc_cost(const eosio::asset& quantity, const eosio::asset& 
   return eosio::asset(amount, unit_price.symbol);
 }
 
+/// Доля суммы, пропорциональная части от целого, с округлением половины вверх
+/// (то же правило, что в `calc_cost`). Применяется там, где сумму нельзя
+/// пересчитать от цены — её надо разделить ровно так, как она сложилась:
+/// стоимость возвращаемой части выданного, доля членского взноса и т. п.
+/// При part == whole результат равен исходной сумме без потери копейки.
+inline eosio::asset pro_rata(const eosio::asset& total, int64_t part, int64_t whole) {
+  eosio::check(whole > 0, "Некорректная база для расчёта пропорциональной доли");
+  const uint128_t num = static_cast<uint128_t>(total.amount) * static_cast<uint128_t>(part);
+  const int64_t amount =
+      static_cast<int64_t>((num + static_cast<uint128_t>(whole) / 2) / static_cast<uint128_t>(whole));
+  return eosio::asset(amount, total.symbol);
+}
+
 // ── Orders ──────────────────────────────────────────────────────────────
 
 inline std::optional<order> get_order_by_hash(eosio::name coopname, const checksum256& order_hash) {
@@ -158,6 +171,17 @@ inline void erase_return_request(eosio::name coopname, uint64_t request_id) {
   auto it = requests.find(request_id);
   eosio::check(it != requests.end(), "Заявление на возврат не найдено по id");
   requests.erase(it);
+}
+
+/// Заявление на возврат рассматривает кооперативный участок выдачи заказа:
+/// имущество вернётся на его склад, а членский взнос списывается с его общего
+/// кошелька. Участок приходит параметром действия, поэтому сверяется с заказом
+/// на цепи — уполномоченный чужого участка решение по заявлению не проводит.
+inline void check_return_request_branch(eosio::name coopname, const return_request& r,
+                                        eosio::name braname) {
+  auto o = get_order_by_hash_or_fail(coopname, r.original_order_hash);
+  eosio::check(o.delivery_braname == braname,
+               "Заявление на возврат рассматривает кооперативный участок выдачи заказа");
 }
 
 // ── Writeoff proposals ──────────────────────────────────────────────────

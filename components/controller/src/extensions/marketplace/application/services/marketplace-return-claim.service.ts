@@ -14,6 +14,12 @@ import http from 'http-status';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
 import { toQuantityAsset } from '../shared/quantity.util';
+import {
+  calcCostAmount,
+  minorToDecimalString,
+  proRataByMoney,
+  proRataByQuantity,
+} from '../shared/cost.util';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
@@ -803,7 +809,8 @@ export class MarketplaceReturnClaimService {
    * `actual_quantity` возврата — всегда в базовых единицах, так что прямое
    * произведение было бы неверным для packaged-офферов (review 2026-07-27 —
    * заявление показывало заведомо несвязанные «стоимость единицы»/«сумма
-   * возврата»). Та же пропорция, что и в computeFeeRefund ниже.
+   * возврата»). Показывается в заявлении; сумма возврата считается не через
+   * неё, а пропорцией от фактической суммы выдачи (см. computeFactCost).
    */
   private effectiveUnitCost(order: MarketplaceOrderDomainEntity): number {
     const issuedQty = order.issuance_fact?.actual_quantity ?? order.quantity;
@@ -812,8 +819,33 @@ export class MarketplaceReturnClaimService {
     return issuedCost / issuedQty;
   }
 
+  /**
+   * Стоимость возвращаемого имущества — доля фактической суммы выдачи,
+   * пропорциональная возвращаемому количеству. Зеркало контракта (submretrn
+   * через `Marketplace::pro_rata`): деление от уже сложившейся суммы, а не
+   * пересчёт от цены — так возврат совпадает с уплаченным до копейки, включая
+   * случай, когда оператор скорректировал цену на выдаче.
+   */
   private computeFactCost(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
-    return (this.effectiveUnitCost(order) * actual_quantity).toFixed(4);
+    const decimals = this.assetConfig.decimals;
+    const issuedQty = order.issuance_fact?.actual_quantity ?? order.quantity;
+    const issuedCost = order.issuance_fact?.fact_cost ?? order.total_cost;
+    if (!(issuedQty > 0)) {
+      return calcCostAmount({
+        quantity: actual_quantity,
+        unit: order.unit_of_measure,
+        unitPrice: order.price_per_unit,
+        packageSize: order.package_size,
+        decimals,
+      });
+    }
+    return proRataByQuantity({
+      total: issuedCost,
+      part: actual_quantity,
+      whole: issuedQty,
+      unit: order.unit_of_measure,
+      decimals,
+    });
   }
 
   /**
@@ -827,14 +859,34 @@ export class MarketplaceReturnClaimService {
    * движение средств делает контракт своей копией расчёта.
    */
   private computeFeeRefund(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
-    const lockedFee = Number.parseFloat(order.membership_fee ?? '0');
-    const totalCost = Number.parseFloat(order.total_cost);
+    const decimals = this.assetConfig.decimals;
+    const lockedFee = order.membership_fee ?? '0';
+    const totalCost = order.total_cost;
     const issuedQty = order.issuance_fact?.actual_quantity ?? 0;
-    const issuedCost = Number.parseFloat(order.issuance_fact?.fact_cost ?? '0');
-    if (!(lockedFee > 0) || !(totalCost > 0) || !(issuedQty > 0)) return '0.0000';
+    const issuedCost = order.issuance_fact?.fact_cost ?? '0';
+    if (
+      !(Number.parseFloat(lockedFee) > 0) ||
+      !(Number.parseFloat(totalCost) > 0) ||
+      !(issuedQty > 0)
+    ) {
+      return minorToDecimalString(0n, decimals);
+    }
 
-    const acceptedFee = (lockedFee * issuedCost) / totalCost;
-    return ((acceptedFee * actual_quantity) / issuedQty).toFixed(4);
+    // Взнос, принятый кооперативом на выдаче, — той же пропорцией, что применил
+    // контракт в signiss2; затем доля возвращаемого количества.
+    const acceptedFee = proRataByMoney({
+      total: lockedFee,
+      part: issuedCost,
+      whole: totalCost,
+      decimals,
+    });
+    return proRataByQuantity({
+      total: acceptedFee,
+      part: actual_quantity,
+      whole: issuedQty,
+      unit: order.unit_of_measure,
+      decimals,
+    });
   }
 
   private computeRequestHash(input: {

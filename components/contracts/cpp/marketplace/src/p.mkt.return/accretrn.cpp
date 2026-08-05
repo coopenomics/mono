@@ -21,6 +21,7 @@
  * Отдельного документа решения нет.
  *
  * Guards:
+ *  - Указанный КУ (`braname`) — участок выдачи исходного заказа.
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
  *  - return_request.status == approved_for_visit.
  *  - statement подписан пайщиком (orderer) и председателем (signer).
@@ -34,13 +35,15 @@ void marketplace::accretrn(eosio::name coopname,
                             document2 statement) {
   require_auth(coopname);
 
-  auto branch = get_branch_or_fail(coopname, braname);
-  eosio::check(branch.is_user_authorized(signer),
-               "Подписант не уполномочен принимать возвраты данного кооперативного участка");
-
   auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
                "Заявление не одобрено для очного осмотра");
+
+  Marketplace::check_return_request_branch(coopname, r, braname);
+
+  auto branch = get_branch_or_fail(coopname, braname);
+  eosio::check(branch.is_user_authorized(signer),
+               "Подписант не уполномочен принимать возвраты данного кооперативного участка");
 
   // Председатель накладывает вторую подпись на заявление пайщика — документ
   // должен нести обе подписи (пайщика и председателя).
