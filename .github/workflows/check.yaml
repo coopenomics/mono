@@ -20,10 +20,22 @@ name: Check
 # Юнит-тесты сюда НЕ входят: они в отдельном workflow (test.yaml), чтобы
 # падение теста и нарушение границы читались как разные события.
 
+# ВАЖНО про триггеры. Actions живут на GitHub (coopenomics/mono), куда
+# прилетает зеркало пушей из Gitea. Pull request'ы создаются в Gitea и на
+# GitHub НЕ попадают — последний PR там от 19.05.2026. Поэтому workflow на
+# одном лишь `pull_request` не запустится никогда: ровно это случилось с
+# typecheck.yaml, который не отработал ни разу.
+#
+# Рабочий триггер здесь — push в dev: зеркало доставляет ветки исправно.
+# `pull_request` оставлен на случай возврата PR-флоу на GitHub, но полагаться
+# на него нельзя. `workflow_dispatch` — чтобы прогнать гейты вручную.
 on:
+  push:
+    branches: [dev]
   pull_request:
     branches: [dev]
   workflow_call:
+  workflow_dispatch:
 
 # Новый push в PR-ветку отменяет ещё бегущий прогон по той же ветке.
 concurrency:

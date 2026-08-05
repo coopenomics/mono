@@ -19,10 +19,18 @@ name: Typecheck
 #
 # Push в dev/testnet/main НЕ триггерит — намеренно (PR-гейт на dev достаточен).
 
+# ИСПРАВЛЕНО 2026-08-05: workflow не запускался НИ РАЗУ. Он висел на одном
+# `pull_request`, а PR'ы с 19.05.2026 создаются в Gitea и на GitHub, где
+# работают Actions, не попадают — туда приходит только зеркало пушей.
+# `gh run list --workflow typecheck.yaml` возвращал пустой список.
+# Рабочий триггер — push в dev.
 on:
+  push:
+    branches: [dev]
   pull_request:
     branches: [dev]
   workflow_call:
+  workflow_dispatch:
 
 # Новый push в PR-ветку отменяет ещё бегущий typecheck по той же ветке —
 # иначе 30-минутные прогоны копятся очередью. Группа по head_ref (исходная
