@@ -8,6 +8,12 @@
 # Чинить это разом никто не будет, а как гейт «только на изменённое» оно
 # не стоит ни часа: старый код не трогаем, новый писать плохо нельзя.
 #
+# Сравнение — храповиком (scripts/lib/lint-ratchet.mjs): для каждого файла
+# берётся его версия из базы, и вердикт роняет только РОСТ числа нарушений.
+# Пофайловая проверка «файл обязан быть чист целиком» на легаси требовала
+# несвязанного рефакторинга при любой правке — такой гейт обходят.
+# Для нового файла база пуста, поэтому правило работает в полную силу.
+#
 # База сравнения: $CHECK_BASE (по умолчанию origin/dev -> dev -> origin/main -> main).
 
 # Намеренно БЕЗ pipefail — см. комментарий в check.sh: вердикт в конвейере
@@ -18,6 +24,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT" || exit 2
 
 GATE="$REPO_ROOT/scripts/lib/eslint-gate.mjs"
+RATCHET="$REPO_ROOT/scripts/lib/lint-ratchet.mjs"
 
 # --- база сравнения --------------------------------------------------------
 BASE="${CHECK_BASE:-}"
@@ -66,9 +73,7 @@ CTRL_FILES="$(echo "$CHANGED" \
 
 if [ -n "$CTRL_FILES" ]; then
   echo "  controller: $(echo "$CTRL_FILES" | wc -l | tr -d ' ') файл(ов)"
-  # shellcheck disable=SC2086
-  ( cd components/controller && \
-    pnpm exec eslint $CTRL_FILES -f json --rule '{
+  echo "$CTRL_FILES" | node "$RATCHET" components/controller components/controller "$DIFF_FROM" '{
       "complexity": ["error", 10],
       "max-depth": ["error", 4],
       "max-lines-per-function": ["error", {"max": 60, "skipBlankLines": true, "skipComments": true}],
@@ -78,8 +83,7 @@ if [ -n "$CTRL_FILES" ]; then
         {"selector": "TSPropertySignature[key.name=/^(status|state)$/] > TSTypeAnnotation > TSStringKeyword",
          "message": "Статус — enum (registerEnumType -> Zeus -> фронт), не string."}
       ]
-    }' 2>/dev/null ) \
-    | node "$GATE" complexity max-depth max-lines-per-function no-restricted-syntax || STATUS=1
+    }' complexity max-depth max-lines-per-function no-restricted-syntax || STATUS=1
 fi
 
 # --- desktop: то же + канон вёрстки ----------------------------------------
@@ -94,9 +98,7 @@ DESK_FILES="$(echo "$CHANGED" \
 
 if [ -n "$DESK_FILES" ]; then
   echo "  desktop: $(echo "$DESK_FILES" | wc -l | tr -d ' ') файл(ов)"
-  # shellcheck disable=SC2086
-  ( cd components/desktop && \
-    pnpm exec eslint $DESK_FILES -f json --rule '{
+  echo "$DESK_FILES" | node "$RATCHET" components/desktop components/desktop "$DIFF_FROM" '{
       "complexity": ["error", 10],
       "max-depth": ["error", 4],
       "max-lines-per-function": ["error", {"max": 60, "skipBlankLines": true, "skipComments": true}],
@@ -112,8 +114,7 @@ if [ -n "$DESK_FILES" ]; then
         {"element": "q-banner",   "message": "Канон: BaseBanner из shared/ui/base."},
         {"element": "q-checkbox", "message": "Канон: BaseCheckbox из shared/ui/base."}
       ]
-    }' 2>/dev/null ) \
-    | node "$GATE" complexity max-depth max-lines-per-function vue/no-restricted-html-elements || STATUS=1
+    }' complexity max-depth max-lines-per-function vue/no-restricted-html-elements || STATUS=1
 fi
 
 if [ -z "$CTRL_FILES" ] && [ -z "$DESK_FILES" ]; then

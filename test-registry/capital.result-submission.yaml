@@ -282,24 +282,18 @@ cases:
   - id: cap.rid.side.29
     level: backend
     kind: side
-    scenario: pushResult, где у сегмента пустые intellectual_cost и debt_amount
+    scenario: pushResult, где у сегмента не заданы intellectual_cost или debt_amount
     expect: >
-      в домен уходит '0' обеими суммами — цепь отвергнет по несоответствию
-      intellectual_cost сегмента
-    test: ~
-    status: missing
-    decision_needed: true
+      отказ «сегмент не синхронизирован с блокчейном» до обращения к цепи.
+      Прежде подставлялось '0' — не валидный ассет, запрос падал на разборе ABI
+      вместо внятного отказа
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
 
-  - id: cap.rid.side.30
-    level: backend
-    kind: side
-    scenario: pushResult прошёл, но перечитать результат по result_hash не удалось
-    expect: >
-      событие result.updated не эмиттится, мутация завершается успешно —
-      синхронизация с GitHub молча пропускается
-    test: ~
-    status: missing
-    decision_needed: true
+  # Случай cap.rid.side.30 (молчаливый пропуск события result.updated) снят:
+  # событие и перечитывание результата ради него удалены из pushResult.
+  # Слушателя у события не было ни одного — legacy-синхронизация результатов
+  # с GitHub убрана раньше, остался только мёртвый emit.
 
   - id: cap.rid.side.31
     level: backend
@@ -358,11 +352,10 @@ cases:
     kind: side
     scenario: signActAsChairman по результату с пустым project_hash
     expect: >
-      project_hash не проверен и подставляется пустой строкой в синхронизацию
-      сегмента — в отличие от signActAsContributor, где он проверяется
-    test: ~
-    status: missing
-    decision_needed: true
+      отказ до обращения к цепи; прежде project_hash подставлялся пустой
+      строкой и синхронизация сегмента молча уходила в никуда
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
 
   - id: cap.rid.side.38
     level: backend
@@ -371,11 +364,11 @@ cases:
       generateResultContributionAct: пайщик передаёт свой data.username, но чужой
       result_hash
     expect: >
-      проверка «только для себя» сверяет data.username, а документ формируется по
-      result.username — чужие суммы и доля попадают в сгенерированный акт
-    test: ~
-    status: missing
-    decision_needed: true
+      отказ: владельца акта определяет result.username, а не поле запроса.
+      Прежде сверялось data.username, не влияющее на содержимое документа,
+      и чужие суммы с долей попадали в сгенерированный акт
+    test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    status: passing
 
   - id: cap.rid.side.39
     level: backend

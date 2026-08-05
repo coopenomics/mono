@@ -427,6 +427,24 @@ describe('ResultSubmissionInteractor', () => {
       expect(capitalBlockchainPort.signAct2).not.toHaveBeenCalled();
     });
 
+    // cap.rid.side.37 — исправлено: project_hash проверяется наравне с username
+    it('отклоняет результат без project_hash, а не синхронизирует по пустому хэшу', async () => {
+      const { interactor, capitalBlockchainPort, segmentSyncService } = makeInteractor({
+        result: { username: 'alice' },
+      });
+
+      await expect(
+        interactor.signActAsChairman({
+          coopname: 'coop',
+          chairman: 'bob',
+          result_hash: 'rh',
+          act: makeSignedDocument(),
+        } as any)
+      ).rejects.toThrow('Результат с хэшем rh не найден или не содержит username и project_hash');
+      expect(capitalBlockchainPort.signAct2).not.toHaveBeenCalled();
+      expect(segmentSyncService.syncSegment).not.toHaveBeenCalled();
+    });
+
     // cap.rid.side.35
     it('требует обе подписи — участника из базы и председателя из сессии', async () => {
       const spy = jest.spyOn(Classes.Document, 'assertDocumentSignatures').mockImplementation(() => undefined);

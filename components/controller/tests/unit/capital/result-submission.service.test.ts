@@ -114,8 +114,6 @@ function makeService(o: Overrides = {}) {
     findByHash: jest.fn(async () => ('generatedDocument' in o ? o.generatedDocument : { doc_hash: 'doc-hash-1' })),
   } as any;
 
-  const eventEmitter = { emit: jest.fn() } as any;
-
   const service = new ResultSubmissionService(
     resultSubmissionInteractor,
     documentInteractor,
@@ -129,8 +127,7 @@ function makeService(o: Overrides = {}) {
     { findProjectStories: jest.fn(async () => []), findByIssueHash: jest.fn(async () => []) } as any,
     { findByProjectHash: jest.fn(async () => []), findCompletedByProjectAndCreators: jest.fn(async () => []) } as any,
     documentRepository,
-    makeLoggerStub(),
-    eventEmitter
+    makeLoggerStub()
   );
 
   jest
@@ -145,7 +142,6 @@ function makeService(o: Overrides = {}) {
     resultRepository,
     segmentRepository,
     documentRepository,
-    eventEmitter,
   };
 }
 
@@ -280,18 +276,25 @@ describe('ResultSubmissionService', () => {
       expect(segmentRepository.findOne).toHaveBeenCalledWith({ project_hash: 'ph', username: 'alice' });
     });
 
-    // Случаи cap.rid.side.29 (пустые суммы сегмента уходят как '0') и
-    // cap.rid.side.30 (событие result.updated молча пропускается) намеренно
-    // оставлены без тестов: оба помечены decision_needed. Тест на них
-    // закрепил бы текущее поведение как норму и защищал бы его от исправления.
+    // cap.rid.side.29 — исправлено: пустые суммы сегмента больше не уходят в цепь
+    it('отказывает, если у сегмента не заданы суммы взноса или долга', async () => {
+      const { service, resultSubmissionInteractor } = makeService({ segment: { username: 'alice' } });
 
-    it('эмиттит result.updated с перечитанным результатом', async () => {
-      const updated = { result_hash: 'rh', status: 'created' };
-      const { service, eventEmitter } = makeService({ updatedResult: updated });
+      await expect(service.pushResult(pushDto(), alice)).rejects.toThrow(
+        'не синхронизирован с блокчейном'
+      );
+      expect(resultSubmissionInteractor.pushResult).not.toHaveBeenCalled();
+    });
 
-      await service.pushResult(pushDto(), alice);
+    it('отказывает, если задана сумма взноса, но не задан долг', async () => {
+      const { service, resultSubmissionInteractor } = makeService({
+        segment: { username: 'alice', intellectual_cost: '100.0000 RUB' },
+      });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith('result.updated', updated);
+      await expect(service.pushResult(pushDto(), alice)).rejects.toThrow(
+        'не синхронизирован с блокчейном'
+      );
+      expect(resultSubmissionInteractor.pushResult).not.toHaveBeenCalled();
     });
   });
 
@@ -635,13 +638,38 @@ describe('ResultSubmissionService', () => {
       expect(documentInteractor.generateDocument).toHaveBeenCalled();
     });
 
-    it('отказывает пайщику, назвавшему в запросе чужое имя', async () => {
-      const { service, documentInteractor } = makeService({ resultByHash: resultWithActSources() });
+    // cap.rid.side.38 — исправлено: владельца определяет result.username
+    it('отказывает пайщику по чужому результату, даже если он назвал своё имя', async () => {
+      const { service, documentInteractor } = makeService({
+        resultByHash: { ...resultWithActSources(), username: 'mallory' },
+      });
 
       await expect(
-        service.generateResultContributionAct({ result_hash: 'rh', username: 'mallory' } as any, {} as any, alice)
+        service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
       ).rejects.toThrow('Вы можете генерировать документы только для себя');
       expect(documentInteractor.generateDocument).not.toHaveBeenCalled();
+    });
+
+    it('разрешает пайщику свой результат независимо от присланного имени', async () => {
+      const { service, documentInteractor } = makeService({ resultByHash: resultWithActSources() });
+
+      await service.generateResultContributionAct(
+        { result_hash: 'rh', username: 'кто-угодно' } as any,
+        {} as any,
+        alice
+      );
+
+      expect(documentInteractor.generateDocument).toHaveBeenCalled();
+    });
+
+    it('отказывает, если у результата нет имени пользователя', async () => {
+      const { service } = makeService({
+        resultByHash: { ...resultWithActSources(), username: undefined },
+      });
+
+      await expect(
+        service.generateResultContributionAct({ result_hash: 'rh', username: 'alice' } as any, {} as any, alice)
+      ).rejects.toThrow('Имя пользователя не найдено в результате');
     });
   });
 });
