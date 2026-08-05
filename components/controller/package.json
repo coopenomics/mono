@@ -20,7 +20,7 @@
     "deploy-production": "git checkout production && git merge testnet && git push origin production && git checkout main",
     "start": "ts-node -r tsconfig-paths/register src/index.ts",
     "dev": "nodemon --watch src --watch migrations --ext ts,js,env --exec 'ts-node -r tsconfig-paths/register' src/index.ts",
-    "test": "jest -i --testPathPattern=tests/unit",
+    "test": "jest -i",
     "test:integration": "echo 'Integration tests run via @coopenomics/boot' && exit 0",
     "test:integration:file-storage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testRegex 'tests/file-storage/.*\\.integration\\.spec\\.ts$' --testPathIgnorePatterns='/node_modules/' --testTimeout=60000 -i",
     "test:watch": "jest -i --watchAll",

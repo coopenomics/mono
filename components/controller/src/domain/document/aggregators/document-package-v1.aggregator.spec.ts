@@ -8,14 +8,19 @@ jest.mock('~/utils/getFetch', () => ({
 const mockedGetActions = getActions as unknown as jest.Mock;
 
 /**
- * Регрессия: программная оферта ЦПП уходит на цепь через wallet::signagree
- * (program_id > 0), а не через soviet::sndagreement. Агрегатор повестки обязан
- * находить такое приложение к заявлению и не терять его (раньше искал только
- * soviet::newagreement и оферта молча выпадала из links).
+ * Регрессия: программная оферта ЦПП (program_id > 0) уходит на цепь через
+ * wallet::signagree, а не через soviet::sndagreement, и потому НЕ порождает
+ * soviet::newagreement. Агрегатор повестки обязан всё равно находить такое
+ * приложение к заявлению и не терять его.
+ *
+ * Носитель подписи ищется не в самом wallet::signagree, а в soviet::newresolved:
+ * его централизованно шлёт make_complete_document на каждый вызов — и из
+ * sndagreement, и из signagree. Поэтому у программных оферт newagreement нет,
+ * а newresolved есть всегда.
  */
 describe('DocumentPackageV1Aggregator — приложения к заявлению (links)', () => {
   const STATEMENT_HASH = 'AAAA';
-  const OFFER_HASH = 'BBBB'; // программная оферта — подписана через wallet::signagree
+  const OFFER_HASH = 'BBBB'; // программная оферта — носитель подписи в soviet::newresolved
   const PLATFORM_HASH = 'CCCC'; // платформенное соглашение — soviet::newagreement
 
   // Документы существуют в реестре документов независимо от пути подписи.
@@ -76,8 +81,8 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
         };
       }
 
-      // Программная оферта подписана через wallet::signagree, soviet::newagreement по ней НЕТ.
-      if (filter.name === 'signagree' && docHash === OFFER_HASH) {
+      // Программная оферта: soviet::newagreement по ней НЕТ, есть только newresolved.
+      if (filter.name === 'newresolved' && docHash === OFFER_HASH) {
         return {
           results: [
             {
@@ -98,7 +103,7 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
     });
   });
 
-  it('включает программную оферту (wallet::signagree) в приложения к заявлению', async () => {
+  it('включает программную оферту (soviet::newresolved) в приложения к заявлению', async () => {
     const rawAction = {
       data: {
         package: 'PACKAGE1',
@@ -123,7 +128,7 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
     expect(offerLink.signatures).toEqual([{ id: 'offer-sig' }]);
   });
 
-  it('ищет soviet::newagreement раньше, чем wallet::signagree', async () => {
+  it('ищет soviet::newagreement раньше, чем soviet::newresolved', async () => {
     const rawAction = {
       data: {
         package: 'PACKAGE1',
@@ -147,17 +152,17 @@ describe('DocumentPackageV1Aggregator — приложения к заявлен
         return f.name === 'newagreement' && f['data.document.doc_hash'] === OFFER_HASH;
       }
     );
-    const offerSignagreeIdx = mockedGetActions.mock.calls.findIndex(
+    const offerResolvedIdx = mockedGetActions.mock.calls.findIndex(
       ([, params]) => {
         const f = JSON.parse(params.filter);
-        return f.name === 'signagree' && f['data.document.doc_hash'] === OFFER_HASH;
+        return f.name === 'newresolved' && f['data.document.doc_hash'] === OFFER_HASH;
       }
     );
 
     expect(callNames).toContain('newagreement');
-    expect(callNames).toContain('signagree');
-    // По одному и тому же хэшу soviet проверяется до wallet-фолбэка.
+    expect(callNames).toContain('newresolved');
+    // По одному и тому же хэшу реестр соглашений проверяется до общего newresolved.
     expect(offerNewagreementIdx).toBeGreaterThanOrEqual(0);
-    expect(offerSignagreeIdx).toBeGreaterThan(offerNewagreementIdx);
+    expect(offerResolvedIdx).toBeGreaterThan(offerNewagreementIdx);
   });
 });

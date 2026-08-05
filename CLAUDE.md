@@ -94,14 +94,27 @@ pnpm jest tests/unit/marketplace/marketplace-onboarding-service.test.ts --runInB
 
 Перед пушем — `pnpm check`. Гейты ловят забывчивость, а не халтуру: зелёный `check` не значит, что фича защищена, это показывают только мутации.
 
+### ПОЛНЫЕ ТЕСТЫ ЛОКАЛЬНО НЕ ЗАПУСКАТЬ
+
+**Локально гоню только те тесты, которые сейчас пишу — точечно, по файлу.**
+Полный прогон вешает сервер: пока он идёт (а идёт долго), на машине практически ничего не работает. Целиком тесты гоняет CI на релизе — для этого гейт и сделан.
+
+```
+pnpm exec jest -i tests/unit/<домен>/<мой-файл>.test.ts   # так
+pnpm exec jest -i                                          # только по прямой просьбе
+```
+
+То же про `pnpm test`, `test:unit`, `test:ci`, `test:integration` и `mutate:changed` без аргументов — это тяжёлые прогоны, запускать по явной просьбе. Мутации ограничивать изменёнными файлами.
+
 | команда | назначение |
 |---|---|
-| `pnpm check` | границы + канон + реестр, один вердикт |
+| `pnpm check` | границы + канон + реестр, один вердикт — лёгкий, гонять свободно |
 | `pnpm registry:audit` | что покрыто и какие области кода вне реестра |
-| `pnpm mutate:changed` | проверка добросовестности тестов по изменённым файлам |
-| `pnpm test:unit` | cooptypes, parser, notifications, controller — без живой цепи |
-| `pnpm test:ci` | unit + component (component нужен MongoDB) |
-| `pnpm test:integration` | sdk, boot — **нужен поднятый стек** |
+| `pnpm exec jest -i <путь>` | **основной способ локально**: только свои тесты |
+| `pnpm mutate:changed` | мутации по изменённым файлам — тяжело, по просьбе |
+| `pnpm test:unit` | cooptypes, parser, notifications, controller — тяжело, по просьбе |
+| `pnpm test:ci` | unit + component (component нужен MongoDB) — тяжело, по просьбе |
+| `pnpm test:integration` | sdk, boot — **нужен поднятый стек**, по просьбе |
 
 CI: Actions работают на GitHub-зеркале; PR туда не попадают, поэтому рабочий триггер — `push` в `dev`. Тесты гоняются не на каждый push, а как релизный гейт: `release` объявлен `needs: tests`, красные тесты останавливают релиз.
 
