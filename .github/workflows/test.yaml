@@ -16,13 +16,22 @@ name: Tests
 # factory) экспортируют типы и рантайм только из сгенерированного dist/.
 # Без него ts-jest и vitest валятся на резолве `cooptypes`.
 
+# Триггеры намеренно НЕ включают pull_request: прогон тяжёлый (полный
+# lerna build + jest + vitest), гонять его на каждый push в каждую ветку
+# смысла нет — такой CI перестают читать.
+#
+# Тесты выполняют роль релизного гейта: release.yaml вызывает этот workflow
+# через workflow_call, и job `release` объявлен `needs: tests`. Релиз не
+# состоится, если тесты красные.
+#
+# workflow_dispatch оставлен, чтобы прогнать набор вручную в любой момент,
+# не дожидаясь релиза.
 on:
-  pull_request:
-    branches: [dev]
   workflow_call:
+  workflow_dispatch:
 
 concurrency:
-  group: tests-${{ github.head_ref || github.ref }}
+  group: tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

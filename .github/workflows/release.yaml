@@ -54,7 +54,15 @@ permissions:
   contents: write
 
 jobs:
+  # Релизный гейт. Тесты не гоняются на каждый push — только здесь, перед
+  # тем как что-либо собрать и выкатить. Если набор красный, job `release`
+  # не стартует, а значит не будет ни образов, ни публикации пакетов, ни
+  # вебхука деплоя: всё остальное объявлено `needs: release`.
+  tests:
+    uses: ./.github/workflows/test.yaml
+
   release:
+    needs: tests
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.resolve.outputs.tag_name }}
