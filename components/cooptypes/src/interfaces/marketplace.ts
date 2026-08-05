@@ -304,10 +304,10 @@ export interface IOrder {
   payout_status: IName
   payout_decline_reason: string
   return_request_id: IUint64
-  /** Списанная уценка по заказу из остатка (binary_extension; у старых строк отсутствует). */
-  markdown_cost?: IAsset
-  /** Членский взнос по заказу (requirement b6; binary_extension; у старых строк отсутствует). */
-  membership_fee?: IAsset
+  /** Списанная уценка по заказу из остатка кооператива; ноль — уценка не списывалась. */
+  markdown_cost: IAsset
+  /** Членский взнос по заказу (requirement b6); ноль — взнос не начислялся. */
+  membership_fee: IAsset
 }
 
 export interface IReturnRequest {
@@ -320,8 +320,8 @@ export interface IReturnRequest {
   original_consume_op_id: IChecksum256
   actual_quantity: IAsset
   fact_cost: IAsset
-  /** Возвращаемая доля членского взноса (binary_extension; у старых заявлений отсутствует). */
-  fee_refund?: IAsset
+  /** Возвращаемая доля членского взноса; ноль — взнос не возвращается. */
+  fee_refund: IAsset
   reason_text: string
   photos: IChecksum256[]
   status: IName

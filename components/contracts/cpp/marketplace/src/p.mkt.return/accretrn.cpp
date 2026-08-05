@@ -73,9 +73,7 @@ void marketplace::accretrn(eosio::name coopname,
   // сперва отправляем пополнение пула участком и только затем списание из него.
   // Если участок уже распределил или потратил взнос, branch::retfee остановит
   // приём возврата человекочитаемой ошибкой — сначала пополнение общего кошелька.
-  const eosio::asset fee_refund = r.fee_refund.has_value()
-      ? r.fee_refund.value()
-      : eosio::asset(0, _root_govern_symbol);
+  const eosio::asset fee_refund = r.fee_refund;
 
   if (fee_refund.amount > 0) {
     Branch::retfee(_marketplace, coopname, braname, fee_refund, r.hash,

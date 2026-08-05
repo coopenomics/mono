@@ -1,7 +1,6 @@
 #pragma once
 
 #include <eosio/asset.hpp>
-#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -91,8 +90,7 @@ namespace OrderPayoutStatus {
  *
  * История внутренних передач между КУ (заготовочный → точка выдачи и т.п.)
  * с подписью ТТН — отложена. Backend может реконструировать движение из
- * blockchain_actions если потребуется. Поле введено заранее, чтобы не
- * добавлять его потом через binary_extension.
+ * blockchain_actions если потребуется.
  *
  * `acceptance_act` (АПП приёмки) и `issue_act` (АПП выдачи) хранятся
  * полным document2 — это дублирование в случае batch-поставки (один
@@ -149,11 +147,10 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   /**
    * Списанная уценка по заказу из остатка кооператива (o.mkt.loss, Дт 91 / Кт 10):
    * разница между стоимостью прибытия выданного и фактической суммой выдачи.
-   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
-   * старых строк эквивалентно «уценка не списывалась». Guard идемпотентности
-   * action'а `markdown` (повторное списание по заказу не пройдёт).
+   * Ноль — уценка не списывалась; это же guard идемпотентности action'а
+   * `markdown` (повторное списание по заказу не пройдёт).
    */
-  eosio::binary_extension<eosio::asset> markdown_cost;
+  eosio::asset markdown_cost = asset(0, _root_govern_symbol);
 
   /**
    * Членский взнос по заказу (requirement b6 «Экономика КУ»): считается от
@@ -162,10 +159,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    * Включается в общую стоимость заказа для заказчика. При отмене
    * возвращается полностью (o.mkt.refund); при финализации пересчитывается
    * пропорционально факту и распределяется в кошельки КУ (branch::distribute).
-   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
-   * старых строк эквивалентно «взнос не начислялся».
+   * Ноль — взнос не начислялся.
    */
-  eosio::binary_extension<eosio::asset> membership_fee;
+  eosio::asset membership_fee = asset(0, _root_govern_symbol);
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

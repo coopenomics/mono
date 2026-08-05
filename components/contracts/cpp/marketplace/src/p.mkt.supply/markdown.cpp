@@ -24,7 +24,7 @@
  *  - заказ существует и сделан из остатка кооператива (offerer == coopname);
  *  - выдача завершена (status == received) — основание: двухподписный акт;
  *  - amount > 0 в валюте кооператива;
- *  - идемпотентность: уценка по заказу ещё не списывалась (markdown_cost пуст).
+ *  - идемпотентность: уценка по заказу ещё не списывалась (markdown_cost == 0).
  *
  * @ingroup public_marketplace_actions
  */
@@ -43,7 +43,7 @@ void marketplace::markdown(eosio::name coopname,
                "Уценка списывается только по заказу из остатка кооператива");
   eosio::check(o.status == OrderStatus::RECEIVED,
                "Уценка списывается после завершения выдачи по акту");
-  eosio::check(!o.markdown_cost.has_value() || o.markdown_cost.value().amount == 0,
+  eosio::check(o.markdown_cost.amount == 0,
                "Уценка по этому заказу уже списана");
   // Уценка не может превышать фактическую сумму выдачи: цена публикации
   // ограничена сверху ценой прибытия (только уценка, без наценки).

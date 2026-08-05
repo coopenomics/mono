@@ -118,8 +118,7 @@ void marketplace::stockorder(eosio::name coopname,
     o.status      = OrderStatus::ACCEPTED_TO_COOP; // имущество уже в кооперативе
     o.batch_hash  = batch_hash;
 
-    // binary_extension-поля заполняются оба (сериализация требует
-    // непрерывного хвоста): уценки ещё нет, взнос — по ставке на момент заказа.
+    // Уценки ещё нет; взнос — по ставке на момент заказа.
     o.markdown_cost  = eosio::asset(0, _root_govern_symbol);
     o.membership_fee = membership_fee;
   });

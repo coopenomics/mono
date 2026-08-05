@@ -1,7 +1,6 @@
 #pragma once
 
 #include <eosio/asset.hpp>
-#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -81,12 +80,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
    * возвращается пайщику вместе со стоимостью имущества — из общего кошелька
    * участка, куда взнос ушёл на выдаче (o.brn.retfee + o.mkt.refund).
    * Возврат при полном количестве возвращает пайщику ровно ту сумму, которую
-   * он заплатил за заказ.
-   *
-   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
-   * старых заявлений эквивалентно «взнос не возвращается».
+   * он заплатил за заказ. Ноль — взнос не возвращается.
    */
-  eosio::binary_extension<eosio::asset> fee_refund;
+  eosio::asset fee_refund = asset(0, _root_govern_symbol);
 
   std::string reason_text;                                    ///< причина обращения (≤ 500 символов)
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images

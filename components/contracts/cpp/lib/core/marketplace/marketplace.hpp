@@ -272,11 +272,9 @@ inline eosio::asset calc_membership_fee(const eosio::asset& base, uint64_t fee_p
   return eosio::asset(amount, _root_govern_symbol);
 }
 
-/// Членский взнос заказа (binary_extension: для исторических Order'ов — 0).
+/// Членский взнос заказа (ноль — взнос не начислялся).
 inline eosio::asset get_order_membership_fee(const order& o) {
-  return o.membership_fee.has_value()
-      ? o.membership_fee.value()
-      : eosio::asset(0, _root_govern_symbol);
+  return o.membership_fee;
 }
 
 /// Полный возврат членского взноса заказа на членский кошелёк «Стола
