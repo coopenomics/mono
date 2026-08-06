@@ -65,13 +65,26 @@ jobs:
     runs-on: ubuntu-latest
 
     # Тесты factory пишут документы в MongoDB (test/utils/index.ts →
-    # MongoDBConnector). Хост берётся из MONGO_HOST, в Gitea Actions
-    # сервис доступен по имени.
+    # MongoDBConnector), хост берётся из MONGO_HOST.
+    #
+    # Обращаться к сервису ПО ИМЕНИ (`mongo`) нельзя: job выполняется прямо на
+    # VM раннера, а не в контейнере, поэтому DNS-имени сервиса не существует —
+    # получаем `getaddrinfo EAI_AGAIN mongo`. Имя резолвится только у job'ов
+    # с `container:`. Здесь сервис доступен по проброшенному порту на
+    # 127.0.0.1, поэтому MONGO_HOST оставляем локальным.
+    #
+    # health-опции обязательны: без них шаг стартует раньше, чем mongo примет
+    # соединения, и падение выглядит как ошибка тестов.
     services:
       mongo:
         image: mongo:6
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v4
@@ -95,5 +108,5 @@ jobs:
       # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
       - name: Component-тесты (factory)
         env:
-          MONGO_HOST: mongo
+          MONGO_HOST: 127.0.0.1
         run: pnpm run test:component
