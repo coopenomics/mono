@@ -49,7 +49,7 @@ void capital::finalizeproj(eosio::name coopname, checksum256 project_hash) {
   // Все неиспользованные средства передаются в глобальный фонд для дальнейшего использования.
   // Формула общая для finalizeproj / delproject / declprj — см. calculate_unused_investments.
 
-  Capital::Projects::return_unused_investments_to_pool(coopname, project);
+  Capital::Core::return_unused_investments(coopname, project.id);
 
   // Устанавливаем статус проекта на FINALIZED
   Capital::Projects::update_status(coopname, project.id, Capital::Projects::Status::FINALIZED);

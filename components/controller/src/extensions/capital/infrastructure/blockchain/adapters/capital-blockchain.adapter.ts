@@ -695,6 +695,24 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
 
   /**
+   * Отмена проекта CAPITAL контракта
+   * Прекращение работ с возвратом неизрасходованных средств в программу
+   */
+  async cancelProject(data: CapitalContract.Actions.CancelProject.ICancelProject): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.CancelProject.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  /**
    * Финализация проекта CAPITAL контракта
    * Финализация проекта после завершения всех конвертаций участников
    */

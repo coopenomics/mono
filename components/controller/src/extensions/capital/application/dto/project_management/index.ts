@@ -8,6 +8,7 @@ export { StopProjectInputDTO } from './stop-project-input.dto';
 export { DeleteProjectInputDTO } from './delete-project-input.dto';
 export { CreateProjectInputDTO } from './create-project-input.dto';
 export { EditProjectInputDTO } from './edit-project-input.dto';
+export { CancelProjectInputDTO } from './cancel-project-input.dto';
 export { FinalizeProjectInputDTO } from './finalize-project-input.dto';
 export { GetProjectInputDTO } from './get-project-input.dto';
 export { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from './set-development-repository-url.input.dto';

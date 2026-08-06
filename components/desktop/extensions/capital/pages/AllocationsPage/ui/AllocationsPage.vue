@@ -1,20 +1,20 @@
 <template lang="pug">
 q-page.allocations-page
   //- Действия страницы — в топбар через canon Teleport в слот-host шапки.
-  //- Направлять средства может только председатель; совет видит страницу без кнопки.
+  //- Аллоцировать средства может только председатель; совет видит страницу без кнопки.
   Teleport(v-if='isChairman', to='#header-actions-host', defer)
     BaseButton(
       variant='primary',
       :size='isMobile ? "sm" : "md"',
       :icon-only='isMobile',
-      aria-label='Направить средства',
+      aria-label='Аллоцировать средства',
       @click='openAllocate'
     )
       template(#icon-left)
         q-icon(name='savings', size='18px')
       template(v-if='!isMobile', #default)
-        | Направить средства
-      q-tooltip(v-if='isMobile') Направить средства
+        | Аллоцировать средства
+      q-tooltip(v-if='isMobile') Аллоцировать средства
 
   .pools.row.q-col-gutter-md
     .col-12.col-md-6
@@ -31,7 +31,7 @@ q-page.allocations-page
     .col-12.col-md-6
       WalletCard(
         program='blagorost',
-        title='Направлено в проекты',
+        title='Аллоцировано в проекты',
         subtitle='Средства программы, ставшие бюджетом проектов',
         balance-label='Всего',
         :balance='allocatedTotal.amount',
@@ -198,7 +198,7 @@ const rows = computed<AllocationRow[]>(() => {
   return result;
 });
 
-// Направить средства можно в любой проект и компонент, в том числе в те,
+// Аллоцировать средства можно в любой проект и компонент, в том числе в те,
 // у которых бюджета ещё нет — поэтому список целей шире таблицы.
 const allocationTargets = computed<BaseSelectOption[]>(() => {
   const targets: BaseSelectOption[] = [];
@@ -219,7 +219,7 @@ const allocationTargets = computed<BaseSelectOption[]>(() => {
 const columns: BaseTableColumn<AllocationRow>[] = [
   { key: 'title', label: 'Проект' },
   { key: 'status', label: 'Статус' },
-  { key: 'allocated', label: 'Направлено', numeric: true },
+  { key: 'allocated', label: 'Аллоцировано', numeric: true },
   { key: 'used', label: 'Использовано', numeric: true },
 ];
 

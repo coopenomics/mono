@@ -34,10 +34,10 @@ void capital::delproject(name coopname, checksum256 project_hash) {
                  "Не все сегменты сконвертированы. Сначала конвертируйте все сегменты");
   }
 
-  // Возвращаем неиспользованные средства проекта в глобальный пул программы.
-  // Без этого аллоцированные в проект деньги пропадали бы вместе с записью:
-  // строка удалена, а global_available_invest_pool на них не пополнен.
-  Capital::Projects::return_unused_investments_to_pool(coopname, project);
+  // Возвращаем неизрасходованные средства проекта в программу. Без этого
+  // аллоцированные в проект деньги пропадали бы вместе с записью: строка
+  // удалена, а свободные средства программы на них не пополнены.
+  Capital::Core::return_unused_investments(coopname, project.id);
 
   Capital::Projects::delete_project(coopname, project.id);
 }

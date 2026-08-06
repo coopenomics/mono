@@ -725,8 +725,9 @@ namespace Capital::Projects {
    * средства — возврат идёт единым остатком в глобальный пул программы, потому
    * что деньги инвесторов уже находятся в «Благоросте» и лично им не возвращаются.
    *
-   * Единая точка расчёта для всех сценариев выбытия проекта: финализация
-   * (finalizeproj), удаление (delproject) и отклонение советом (declprj).
+   * Единая точка расчёта для всех сценариев возврата: финализация
+   * (finalizeproj), остановка (stopproject), отмена (cancelproj), удаление
+   * (delproject) и отклонение советом (declprj).
    *
    * @param prj Проект
    * @return Неиспользованный остаток (никогда не отрицательный)
@@ -736,29 +737,6 @@ namespace Capital::Projects {
     int64_t unused = prj.fact.total_received_investments.amount - used;
 
     return eosio::asset(unused > 0 ? unused : 0, _root_govern_symbol);
-  }
-
-  /**
-   * @brief Возвращает неиспользованные средства проекта в глобальный пул программы
-   *
-   * Отправляет трекинговое действие returntopool, если возвращать есть что.
-   * Действие исполняется inline — уже после того, как вызывающий код закончил
-   * работу (в том числе после удаления строки проекта), поэтому returntopool
-   * не требует существования проекта.
-   *
-   * @param coopname Имя кооператива
-   * @param prj Проект, из которого возвращаются средства
-   */
-  inline void return_unused_investments_to_pool(eosio::name coopname, const project &prj) {
-    eosio::asset unused = calculate_unused_investments(prj);
-    if (unused.amount == 0) return;
-
-    action(
-      permission_level{_capital, "active"_n},
-      _capital,
-      "returntopool"_n,
-      std::make_tuple(coopname, prj.project_hash, unused)
-    ).send();
   }
 
   /**

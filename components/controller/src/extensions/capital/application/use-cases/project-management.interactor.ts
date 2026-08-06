@@ -14,6 +14,7 @@ import type { SetPlanDomainInput } from '../../domain/actions/set-plan-domain-in
 import type { StartProjectDomainInput } from '../../domain/actions/start-project-domain-input.interface';
 import type { StopProjectDomainInput } from '../../domain/actions/stop-project-domain-input.interface';
 import type { IFinalizeProjectDomainInput } from '../../domain/actions/finalize-project-domain-input.interface';
+import type { CancelProjectInputDTO } from '../dto/project_management/cancel-project-input.dto';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -320,6 +321,27 @@ export class ProjectManagementInteractor {
     }
 
     return projectEntity;
+  }
+
+  /**
+   * Отмена проекта CAPITAL контракта
+   *
+   * Блокчейн возвращает средства и стирает запись проекта — в оперативной
+   * памяти цепи остаётся только то, с чем идёт работа. Поэтому статус
+   * «отменён» проставляется здесь, в учётной базе: из цепи он уже не придёт.
+   */
+  async cancelProject(data: CancelProjectInputDTO): Promise<ProjectDomainEntity> {
+    const projectEntity = await this.projectRepository.findByHash(data.project_hash);
+    assertBlockchainProject(projectEntity, 'отмену');
+
+    if (projectEntity.isComponent()) {
+      this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
+    }
+
+    await this.capitalBlockchainPort.cancelProject(data);
+
+    projectEntity.status = ProjectStatus.CANCELLED;
+    return await this.projectRepository.update(projectEntity);
   }
 
   /**

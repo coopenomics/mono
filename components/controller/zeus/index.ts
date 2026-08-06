@@ -2374,6 +2374,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CallTranscriptionWithSegments']?: Omit<ValueTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
 }>;
+	["CancelProjectInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хэш отменяемого проекта */
+	project_hash: string | Variable<any, string>
+};
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -7613,6 +7619,7 @@ capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variab
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
+capitalCancelProject?: [{	data: ValueTypes["CancelProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCloseProject?: [{	data: ValueTypes["CloseProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ValueTypes["CompleteProcessStepInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalCompleteRegistration?: [{	data: ValueTypes["CompleteCapitalRegistrationInputDTO"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -12388,6 +12395,12 @@ export type ResolverInputTypes = {
 	transcription?:ResolverInputTypes["CallTranscription"],
 		__typename?: boolean | `@${string}`
 }>;
+	["CancelProjectInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш отменяемого проекта */
+	project_hash: string
+};
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -17497,6 +17510,7 @@ capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]}
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
+capitalCancelProject?: [{	data: ResolverInputTypes["CancelProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCloseProject?: [{	data: ResolverInputTypes["CloseProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ResolverInputTypes["CompleteProcessStepInput"]},ResolverInputTypes["ProcessInstance"]],
 capitalCompleteRegistration?: [{	data: ResolverInputTypes["CompleteCapitalRegistrationInputDTO"]},ResolverInputTypes["Transaction"]],
@@ -22127,6 +22141,12 @@ export type ModelTypes = {
 	["CallTranscriptionWithSegments"]: {
 		segments: Array<ModelTypes["TranscriptionSegment"]>,
 	transcription: ModelTypes["CallTranscription"]
+};
+	["CancelProjectInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш отменяемого проекта */
+	project_hash: string
 };
 	["CancelRequestInput"]: {
 	/** Имя аккаунта кооператива */
@@ -27109,6 +27129,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: ModelTypes["CapitalSegment"],
+	/** Отмена проекта: возврат неизрасходованных средств в программу и прекращение работ
+
+Требуемые роли: chairman.  */
+	capitalCancelProject: ModelTypes["CapitalProject"],
 	/** Закрытие проекта от инвестиций в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -32488,6 +32512,12 @@ export type GraphQLTypes = {
 	transcription: GraphQLTypes["CallTranscription"],
 	['...on CallTranscriptionWithSegments']: Omit<GraphQLTypes["CallTranscriptionWithSegments"], "...on CallTranscriptionWithSegments">
 };
+	["CancelProjectInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Хэш отменяемого проекта */
+	project_hash: string
+};
 	["CancelRequestInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -37759,6 +37789,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: GraphQLTypes["CapitalSegment"],
+	/** Отмена проекта: возврат неизрасходованных средств в программу и прекращение работ
+
+Требуемые роли: chairman.  */
+	capitalCancelProject: GraphQLTypes["CapitalProject"],
 	/** Закрытие проекта от инвестиций в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -42692,6 +42726,7 @@ type ZEUS_VARIABLES = {
 	["BuhotchSignerType"]: ValueTypes["BuhotchSignerType"];
 	["CalculateVotesInput"]: ValueTypes["CalculateVotesInput"];
 	["CalendarEntryStatus"]: ValueTypes["CalendarEntryStatus"];
+	["CancelProjectInput"]: ValueTypes["CancelProjectInput"];
 	["CancelRequestInput"]: ValueTypes["CancelRequestInput"];
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];

@@ -377,7 +377,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-allocations',
             component: markRaw(AllocationsPage),
             meta: {
-              title: 'Инвестиции',
+              title: 'Аллокации',
               icon: 'savings',
               roles: ['chairman', 'member'],
               agreements: agreementsBase,

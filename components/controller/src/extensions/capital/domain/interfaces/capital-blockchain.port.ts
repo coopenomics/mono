@@ -210,6 +210,12 @@ export interface CapitalBlockchainPort {
   finalizeProject(data: CapitalContract.Actions.FinalizeProject.IFinalizeProject): Promise<TransactResult>;
 
   /**
+   * Отмена проекта: возврат неизрасходованных средств в программу и удаление
+   * записи проекта из блокчейна.
+   */
+  cancelProject(data: CapitalContract.Actions.CancelProject.ICancelProject): Promise<TransactResult>;
+
+  /**
    * Остановка проекта CAPITAL контракта
    */
   stopProject(data: CapitalContract.Actions.StopProject.IStopProject): Promise<TransactResult>;

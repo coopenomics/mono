@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Направить средства в проект',
+  title='Аллоцировать средства в проект',
   size='sm',
   @update:model-value='$emit("update:modelValue", $event)'
 )
@@ -32,7 +32,7 @@ BaseDialog(
         :loading='submitting',
         :disabled='!canSubmit',
         @click='submit'
-      ) Направить
+      ) Аллоцировать
 </template>
 
 <script setup lang="ts">

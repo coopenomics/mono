@@ -19,9 +19,10 @@ void capital::declprj(eosio::name coopname, checksum256 project_hash, std::strin
   auto exist_project = Capital::Projects::get_project_or_fail(coopname, project_hash);
   // eosio::check(!exist_project.is_authorized, "Нельзя отклонить уже авторизованный проект");
 
-  // Возвращаем неиспользованные средства в глобальный пул программы: отклонённый
-  // проект исчезает из таблицы, и без возврата аллоцированные деньги потерялись бы.
-  Capital::Projects::return_unused_investments_to_pool(coopname, exist_project);
+  // Возвращаем неизрасходованные средства в программу: отклонённый проект
+  // исчезает из таблицы, и без возврата аллоцированные деньги потерялись бы.
+  // Обычно возвращать нечего — совет отклоняет проект до начала работ.
+  Capital::Core::return_unused_investments(coopname, exist_project.id);
 
   // Удаляем проект
   Capital::Projects::delete_project(coopname, exist_project.id);
