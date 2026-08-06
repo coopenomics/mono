@@ -1,5 +1,13 @@
-/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles */
+/** Контекст пайщика для Стола заказов: core_roles + marketplace_roles + настройки склада */
 export * as WhoAmI from './whoAmI'
+/** Эпик 19: ячейки хранения складов кооперативных участков */
+export * as ListStorageCells from './listStorageCells'
+/** Эпик 19: боксы кооперативных участков */
+export * as ListContainers from './listContainers'
+/** Эпик 19: справочник типов боксов кооператива (габариты и объём) */
+export * as ListContainerTypes from './listContainerTypes'
+/** Эпик 19: бокс по коду с этикетки или отсканированного QR */
+export * as ResolveContainerByCode from './resolveContainerByCode'
 /** Список marketplace-детализаций ПВЗ кооператива */
 export * as ListKUDetails from './listKUDetails'
 /** Заказы пайщика-заказчика (стол заказчика) */

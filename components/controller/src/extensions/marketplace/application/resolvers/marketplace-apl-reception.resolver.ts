@@ -148,7 +148,6 @@ export class MarketplaceAplReceptionResolver {
       supplier_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
-      placements: data.placements,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -171,6 +170,7 @@ export class MarketplaceAplReceptionResolver {
       chairman_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
+      placements: data.placements,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
