@@ -7,38 +7,66 @@ import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
-import { BaseBadge, BaseButton, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base'
-import { PageHint } from 'src/shared/ui/domain'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import {
-  assignInventoryShelf,
+  BaseBadge,
+  BaseButton,
+  BaseCheckbox,
+  BaseDialog,
+  BaseInput,
+  BaseSelect,
+  CardListSkeleton,
+  EmptyState,
+} from 'src/shared/ui/base'
+import type { BaseSelectOption } from 'src/shared/ui/base'
+import { PageHint } from 'src/shared/ui/domain'
+import { useMarketplaceRealtime, printLabelSheet } from 'src/shared/lib/marketplace'
+import {
+  containerLabel,
+  createStorageGrid,
+  locationLabel,
+  moveContainer,
+  useMarketplaceStorageStore,
+  type MarketplaceContainerView,
+  type MarketplaceStorageCellView,
+} from 'src/entities/MarketplaceStorage'
+import {
+  assignInventoryPlacement,
+  listInventory,
+  type MarketplaceInventoryItemView,
+} from 'src/entities/MarketplaceInventory'
+import {
   bindInventoryBarcode,
   clearInventoryLabel,
-  fetchInventoryByBraname,
   splitInventory,
-  type MarketplaceInventoryItemView,
 } from '../api'
 
 /**
- * Стол ПВЗ, «Склад участка». Имущество, принятое кооперативом (RECEIVED), лежит
- * на складе КУ — здесь оператор организует его физически как доску полок:
+ * Стол ПВЗ, «Раскладка и маркировка».
  *
- *   - колонка «Поступило» — принятое, ещё не разложенное;
- *   - колонки-полки — что лежит на каждой полке;
- *   - раскладка = перетащить карточку на полку (DnD) или через меню «⋮»;
- *   - «Разложить» дробит позицию по количеству на несколько полок;
- *   - маркировка = наклеить заранее напечатанный штрих-код и привязать его
- *     к позиции сканером (кнопка-штрихкод на карточке).
+ * Склад участка — не лента полок, а адресная сетка: столбцы это секции, строки
+ * ярусы, на пересечении ячейка со своим адресом (A-02). В ячейке стоят боксы, а
+ * негабарит, который в тару не влезает, кладётся в ячейку напрямую. Так склад
+ * ищется адресом и работает одинаково на десяти позициях и на десяти тысячах.
  *
- * «Печать этикеток» (в шапке) печатает лист произвольных штрих-кодов — оператор
- * режет и наклеивает их на имущество, затем сканирует, чтобы привязать к позиции.
- * Цель — при выдаче заказчику за секунды найти, на какой полке лежит заказ.
+ * Контур опционален. При выключенных ячейках сетки нет вовсе — имущество просто
+ * складывается в боксы («наполнил и поставил в угол», самая ходовая модель).
+ * При выключенных и боксах, и ячейках страница остаётся столом маркировки:
+ * штрих-коды и разбиение по количеству работают как прежде.
+ *
+ * Маркировка = наклеить заранее напечатанный штрих-код и привязать его к позиции
+ * сканером. Она независима от размещения и остаётся необязательной.
  */
 
 const route = useRoute()
-const store = useOperatorBranchStore()
+const branchStore = useOperatorBranchStore()
+const storage = useMarketplaceStorageStore()
+
 const coopname = computed(() => String(route.params.coopname ?? ''))
-const braname = computed(() => store.activeBraname ?? '')
+const braname = computed(() => branchStore.activeBraname ?? '')
+
+const containersEnabled = computed(() => branchStore.warehouseSettings.containers_enabled)
+const cellsEnabled = computed(() => branchStore.warehouseSettings.cells_enabled)
+const placementEnabled = computed(() => branchStore.addressedStorageEnabled)
 
 const items = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
@@ -56,50 +84,127 @@ const boardItems = computed(() =>
   items.value.filter((i) => i.status === RECEIVED || i.status === LABELED),
 )
 
-// Полки-плейсхолдеры, созданные оператором, но пока пустые (нет позиций).
-// Живут до перезагрузки — после reload остаются лишь полки с позициями.
-const extraShelves = ref<string[]>([])
+// ─── Поиск и фильтр ───
+const search = ref('')
+const onlyNonEmpty = ref(false)
 
-const shelfNames = computed(() => {
-  const set = new Set<string>()
-  for (const i of boardItems.value) if (i.shelf) set.add(i.shelf)
-  for (const s of extraShelves.value) set.add(s)
-  return [...set].sort((a, b) => a.localeCompare(b, 'ru'))
-})
+const query = computed(() => search.value.trim().toLowerCase())
 
-interface BoardColumn {
-  key: string
-  title: string
-  icon: string
-  shelf: string | null
-  items: MarketplaceInventoryItemView[]
+function matchesItem(item: MarketplaceInventoryItemView): boolean {
+  if (!query.value) return true
+  const hay = [item.product_name_snapshot, ordererLabel(item), item.barcode_value]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return hay.includes(query.value)
 }
 
-const INBOX_KEY = '__inbox__'
+function matchesContainer(container: MarketplaceContainerView): boolean {
+  if (!query.value) return true
+  const own = [container.code, container.label].filter(Boolean).join(' ').toLowerCase()
+  if (own.includes(query.value)) return true
+  // Бокс находится и по тому, что внутри: оператор ищет товар, а не тару.
+  return itemsInContainer(container.id).some(matchesItem)
+}
 
-const columns = computed<BoardColumn[]>(() => {
-  const cols: BoardColumn[] = [
-    {
-      key: INBOX_KEY,
-      title: 'Поступило',
-      icon: 'inbox',
-      shelf: null,
-      items: boardItems.value.filter((i) => !i.shelf),
-    },
-  ]
-  for (const name of shelfNames.value) {
-    cols.push({
-      key: name,
-      title: name,
-      icon: 'shelves',
-      shelf: name,
-      items: boardItems.value.filter((i) => i.shelf === name),
-    })
-  }
-  return cols
-})
+function matchesCell(cell: MarketplaceStorageCellView): boolean {
+  if (!query.value) return true
+  const own = [cell.code, cell.section, cell.label].filter(Boolean).join(' ').toLowerCase()
+  return own.includes(query.value)
+}
 
-// ── Перераскладка (split) по количеству: непромаркированный пул заказа ──
+// ─── Раскладка позиций по местам ───
+function itemsInContainer(containerId: string): MarketplaceInventoryItemView[] {
+  return boardItems.value.filter((i) => i.container_id === containerId)
+}
+
+function itemsInCell(cellId: string): MarketplaceInventoryItemView[] {
+  return boardItems.value.filter((i) => i.cell_id === cellId)
+}
+
+/** Не размещённое: ни в боксе, ни в ячейке. Это и есть колонка «Поступило». */
+const inboxItems = computed(() =>
+  boardItems.value.filter((i) => !i.container_id && !i.cell_id).filter(matchesItem),
+)
+
+function containersInCell(cellId: string): MarketplaceContainerView[] {
+  return storage.activeContainers.filter((c) => c.cell_id === cellId)
+}
+
+/** Боксы без адреса — они существуют штатно: «наполнил и поставил в угол». */
+const unplacedContainers = computed(() =>
+  storage.activeContainers.filter((c) => !c.cell_id).filter(matchesContainer),
+)
+
+function visibleContainersInCell(cellId: string): MarketplaceContainerView[] {
+  return containersInCell(cellId).filter(matchesContainer)
+}
+
+function visibleItemsInCell(cellId: string): MarketplaceInventoryItemView[] {
+  return itemsInCell(cellId).filter(matchesItem)
+}
+
+function cellHasContent(cell: MarketplaceStorageCellView): boolean {
+  return (
+    visibleContainersInCell(cell.id).length > 0 || visibleItemsInCell(cell.id).length > 0
+  )
+}
+
+/**
+ * Показывать ли ячейку. Пока не ищут и не включён фильтр — видны все, включая
+ * пустые: пустая ячейка это место, куда кладут, а не отсутствие данных.
+ */
+function cellVisible(cell: MarketplaceStorageCellView): boolean {
+  if (query.value) return matchesCell(cell) || cellHasContent(cell)
+  if (onlyNonEmpty.value) return cellHasContent(cell)
+  return true
+}
+
+const visibleSections = computed(() =>
+  storage.sections.filter((section) =>
+    storage.activeCells.some((c) => c.section === section && cellVisible(c)),
+  ),
+)
+
+const visibleLevels = computed(() =>
+  storage.levels.filter((level) =>
+    storage.activeCells.some((c) => c.level === level && cellVisible(c)),
+  ),
+)
+
+/**
+ * Сетка считается заранее, а не вызовами из шаблона: так координата ищется один
+ * раз на отрисовку, а не на каждое обращение к ячейке, и содержимое каждой
+ * ячейки лежит рядом с ней готовым.
+ */
+interface GridSlot {
+  section: string
+  cell: MarketplaceStorageCellView | null
+  boxes: MarketplaceContainerView[]
+  loose: MarketplaceInventoryItemView[]
+}
+interface GridRow {
+  level: number
+  slots: GridSlot[]
+}
+
+const gridRows = computed<GridRow[]>(() =>
+  visibleLevels.value.map((level) => ({
+    level,
+    slots: visibleSections.value.map((section) => {
+      const cell = storage.cellAt(section, level)
+      const visible = cell !== null && cellVisible(cell)
+      return {
+        section,
+        cell: visible ? cell : null,
+        boxes: visible && cell ? visibleContainersInCell(cell.id) : [],
+        loose: visible && cell ? visibleItemsInCell(cell.id) : [],
+      }
+    }),
+  })),
+)
+
+// ─── Перераскладка (split) по количеству: непромаркированный пул заказа ──
 function orderPool(item: MarketplaceInventoryItemView): MarketplaceInventoryItemView[] {
   return items.value.filter(
     (i) => i.order_id === item.order_id && i.status === RECEIVED && !i.barcode_value,
@@ -119,7 +224,14 @@ async function load(): Promise<void> {
   }
   loading.value = true
   try {
-    items.value = await fetchInventoryByBraname(braname.value.trim())
+    const [list] = await Promise.all([
+      listInventory({ braname: braname.value.trim() }),
+      storage.load(braname.value.trim(), {
+        containers: containersEnabled.value,
+        cells: cellsEnabled.value,
+      }),
+    ])
+    items.value = list
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
@@ -127,20 +239,34 @@ async function load(): Promise<void> {
   }
 }
 
-// ── Перекладка позиции на полку (и снятие — shelf=null) ──
-async function moveToShelf(item: MarketplaceInventoryItemView, shelf: string | null): Promise<void> {
-  const next = shelf?.trim() ? shelf.trim() : null
-  if ((item.shelf ?? null) === next) return
+// ─── Перекладка позиции: в бокс, в ячейку либо снятие с места ──
+async function movePlacement(
+  item: MarketplaceInventoryItemView,
+  placement: { container_id?: string | null; cell_id?: string | null },
+): Promise<void> {
+  const nextContainer = placement.container_id ?? null
+  const nextCell = placement.cell_id ?? null
+  if ((item.container_id ?? null) === nextContainer && (item.cell_id ?? null) === nextCell) {
+    return
+  }
   try {
-    await assignInventoryShelf({ inventory_id: item.id, shelf: next })
-    SuccessAlert(next ? `Переложено на полку «${next}»` : 'Снято с полки')
+    await assignInventoryPlacement({
+      inventory_id: item.id,
+      container_id: nextContainer,
+      cell_id: nextCell,
+    })
+    SuccessAlert(
+      nextContainer || nextCell
+        ? `Переложено: ${locationLabel({ container_id: nextContainer, cell_id: nextCell }, storage.index)}`
+        : 'Снято с места',
+    )
     await load()
   } catch (e) {
     FailAlert(e, 'Не удалось переложить позицию')
   }
 }
 
-// ── Снять штрих-код для переклейки (LABELED → RECEIVED) ──
+// ─── Снять штрих-код для переклейки (LABELED → RECEIVED) ──
 async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
   try {
     await clearInventoryLabel({ inventory_id: item.id })
@@ -151,41 +277,183 @@ async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
   }
 }
 
-// ── Drag & drop карточек между колонками ──
+// ─── Drag & drop: перетаскиваем и позиции, и боксы ──
+// Вид перетаскиваемого важен: позиция ложится в бокс или ячейку, бокс — только
+// в ячейку. Без различения бокс «падал» бы внутрь другого бокса.
+type DragKind = 'item' | 'container'
+const dragKind = ref<DragKind | null>(null)
 const dragId = ref<string | null>(null)
 const dragOverKey = ref<string | null>(null)
 
-function onDragStart(item: MarketplaceInventoryItemView): void {
-  dragId.value = item.id
+function onDragStart(kind: DragKind, id: string): void {
+  dragKind.value = kind
+  dragId.value = id
 }
 function onDragEnd(): void {
+  dragKind.value = null
   dragId.value = null
   dragOverKey.value = null
-}
-function onDrop(col: BoardColumn): void {
-  const item = items.value.find((i) => i.id === dragId.value)
-  dragOverKey.value = null
-  dragId.value = null
-  if (item) void moveToShelf(item, col.shelf)
 }
 
-// ── Создание новой (пустой) полки ──
-const newShelfOpen = ref(false)
-const newShelfName = ref('')
-function openNewShelf(): void {
-  newShelfName.value = ''
-  newShelfOpen.value = true
-}
-function createShelf(): void {
-  const name = newShelfName.value.trim()
-  if (!name) return
-  if (!extraShelves.value.includes(name) && !shelfNames.value.includes(name)) {
-    extraShelves.value.push(name)
+function dropOnCell(cell: MarketplaceStorageCellView): void {
+  const kind = dragKind.value
+  const id = dragId.value
+  onDragEnd()
+  if (!kind || !id) return
+  if (kind === 'container') {
+    void placeContainer(id, cell.id)
+    return
   }
-  newShelfOpen.value = false
+  const item = items.value.find((i) => i.id === id)
+  if (item) void movePlacement(item, { cell_id: cell.id })
 }
 
-// ── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
+function dropOnContainer(container: MarketplaceContainerView): void {
+  const kind = dragKind.value
+  const id = dragId.value
+  onDragEnd()
+  if (kind !== 'item' || !id) return
+  const item = items.value.find((i) => i.id === id)
+  if (item) void movePlacement(item, { container_id: container.id })
+}
+
+function dropOnInbox(): void {
+  const kind = dragKind.value
+  const id = dragId.value
+  onDragEnd()
+  if (!kind || !id) return
+  if (kind === 'container') {
+    void placeContainer(id, null)
+    return
+  }
+  const item = items.value.find((i) => i.id === id)
+  if (item) void movePlacement(item, {})
+}
+
+async function placeContainer(containerId: string, cellId: string | null): Promise<void> {
+  try {
+    const moved = await moveContainer({ container_id: containerId, cell_id: cellId })
+    SuccessAlert(
+      cellId ? `Бокс ${moved.code} переставлен` : `Бокс ${moved.code} снят с адреса`,
+    )
+    await load()
+  } catch (e) {
+    FailAlert(e, 'Не удалось переставить бокс')
+  }
+}
+
+// ─── Варианты мест для выпадающих списков ──
+// Пустые боксы идут первыми: чаще всего кладут в свободную тару, а докладка в
+// занятый бокс — штатный, но второй по частоте сценарий.
+const placementOptions = computed<BaseSelectOption[]>(() => {
+  const out: BaseSelectOption[] = []
+  if (containersEnabled.value) {
+    const boxes = [...storage.activeContainers].sort((a, b) => {
+      const diff = itemsInContainer(a.id).length - itemsInContainer(b.id).length
+      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
+    })
+    for (const c of boxes) {
+      const count = itemsInContainer(c.id).length
+      out.push({
+        value: `container:${c.id}`,
+        label: `Бокс ${containerLabel(c, storage.index)} — ${count ? `${count} поз.` : 'пусто'}`,
+      })
+    }
+  }
+  if (cellsEnabled.value) {
+    for (const cell of storage.activeCells) {
+      out.push({ value: `cell:${cell.id}`, label: `Ячейка ${cell.code} (негабарит)` })
+    }
+  }
+  return out
+})
+
+/** Значение выпадающего списка → пара идентификаторов места. */
+function parsePlacementOption(value: string | number | null): {
+  container_id: string | null
+  cell_id: string | null
+} {
+  const raw = value === null || value === undefined ? '' : String(value)
+  if (raw.startsWith('container:')) return { container_id: raw.slice(10), cell_id: null }
+  if (raw.startsWith('cell:')) return { container_id: null, cell_id: raw.slice(5) }
+  return { container_id: null, cell_id: null }
+}
+
+function placementOptionOf(item: {
+  container_id?: string | null
+  cell_id?: string | null
+}): string | null {
+  if (item.container_id) return `container:${item.container_id}`
+  if (item.cell_id) return `cell:${item.cell_id}`
+  return null
+}
+
+// ─── Содержимое бокса ──
+const boxDialogOpen = ref(false)
+const boxTarget = ref<MarketplaceContainerView | null>(null)
+
+function openBox(container: MarketplaceContainerView): void {
+  boxTarget.value = container
+  boxDialogOpen.value = true
+}
+
+const boxItems = computed(() =>
+  boxTarget.value ? itemsInContainer(boxTarget.value.id) : [],
+)
+
+// ─── Управление сеткой ──
+const gridOpen = ref(false)
+const gridSections = ref('')
+const gridLevelFrom = ref<number | null>(1)
+const gridLevelTo = ref<number | null>(3)
+const gridSaving = ref(false)
+
+const gridSectionList = computed(() =>
+  gridSections.value
+    .split(/[,\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean),
+)
+
+const gridValid = computed(
+  () =>
+    gridSectionList.value.length > 0 &&
+    Number(gridLevelFrom.value) >= 1 &&
+    Number(gridLevelTo.value) >= Number(gridLevelFrom.value),
+)
+
+function openGrid(): void {
+  gridSections.value = ''
+  gridLevelFrom.value = 1
+  gridLevelTo.value = 3
+  gridOpen.value = true
+}
+
+async function submitGrid(): Promise<void> {
+  if (!gridValid.value) return
+  gridSaving.value = true
+  try {
+    const created = await createStorageGrid({
+      braname: braname.value.trim(),
+      sections: gridSectionList.value,
+      level_from: Math.trunc(Number(gridLevelFrom.value)),
+      level_to: Math.trunc(Number(gridLevelTo.value)),
+    })
+    SuccessAlert(
+      created.length
+        ? `Заведено ячеек: ${created.length}`
+        : 'Все такие ячейки уже существуют',
+    )
+    gridOpen.value = false
+    await load()
+  } catch (e) {
+    FailAlert(e, 'Не удалось завести ячейки')
+  } finally {
+    gridSaving.value = false
+  }
+}
+
+// ─── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
 function randomEAN13(): string {
   let base = ''
   for (let i = 0; i < 12; i++) base += Math.floor(Math.random() * 10).toString()
@@ -195,7 +463,7 @@ function randomEAN13(): string {
   return `${base}${check}`
 }
 
-// ── Печать листа произвольных штрих-кодов (для нарезки и наклейки) ──
+// ─── Печать листа произвольных штрих-кодов (для нарезки и наклейки) ──
 const printDialogOpen = ref(false)
 const printCount = ref<number | null>(24)
 
@@ -204,7 +472,7 @@ function openPrintDialog(): void {
 }
 
 // SVG-полосы штрих-кода (тот же псевдо-рендер, что и в BarcodeDisplay) — строкой,
-// чтобы печатать изолированный лист в скрытом iframe, а не весь UI приложения.
+// чтобы печатать изолированный лист, а не весь UI приложения.
 function barcodeSvg(code: string): string {
   const rects: { x: number; w: number }[] = []
   let x = 4
@@ -230,38 +498,15 @@ function barcodeSvg(code: string): string {
 function doPrint(): void {
   const n = Math.trunc(Number(printCount.value) || 0)
   if (n < 1) return
-  const codes = Array.from({ length: n }, () => randomEAN13())
   printDialogOpen.value = false
-
-  const labels = codes
-    .map((code) => `<div class="lbl">${barcodeSvg(code)}<div class="code">${code}</div></div>`)
-    .join('')
-  const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Этикетки</title><style>
-    @page { size: A4; margin: 8mm; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: monospace; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
-    .lbl { border: 1px solid #ddd; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; align-items: center; break-inside: avoid; }
-    .lbl svg { display: block; max-width: 100%; }
-    .code { margin-top: 4px; letter-spacing: 2px; font-size: 13px; color: #111; }
-  </style></head><body><div class="grid">${labels}</div></body></html>`
-
-  const iframe = document.createElement('iframe')
-  iframe.setAttribute('aria-hidden', 'true')
-  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;'
-  iframe.srcdoc = html
-  iframe.onload = () => {
-    const win = iframe.contentWindow
-    if (!win) return
-    win.focus()
-    win.print()
-    win.addEventListener('afterprint', () => iframe.remove())
-    window.setTimeout(() => iframe.remove(), 60000)
-  }
-  document.body.appendChild(iframe)
+  const labels = Array.from({ length: n }, () => {
+    const code = randomEAN13()
+    return `${barcodeSvg(code)}<div class="code">${code}</div>`
+  })
+  printLabelSheet({ title: 'Этикетки', labels })
 }
 
-// ── Привязка штрих-кода к позиции ──
+// ─── Привязка штрих-кода к позиции ──
 // Сканируем камерой устройства (CodeScanner), либо ручной ввод/USB-сканер в
 // запасном поле виджета. Считанный код привязывается сразу — без отдельной кнопки.
 const scanDialogOpen = ref(false)
@@ -291,10 +536,10 @@ async function submitScan(raw: string): Promise<void> {
   }
 }
 
-// ── Раскладка по количеству на несколько полок (split/merge/move) ──
+// ─── Раскладка по количеству на несколько мест (split/merge/move) ──
 const splitDialogOpen = ref(false)
 const splitTarget = ref<MarketplaceInventoryItemView | null>(null)
-const splitRows = ref<{ quantity: number | null; shelf: string }[]>([])
+const splitRows = ref<{ quantity: number | null; placement: string | null }[]>([])
 
 const splitTotal = computed(() =>
   splitRows.value.reduce((a, r) => a + (Number(r.quantity) || 0), 0),
@@ -315,14 +560,14 @@ function openSplit(item: MarketplaceInventoryItemView): void {
   const pool = orderPool(item)
   splitRows.value = pool.map((p) => ({
     quantity: p.quantity_per_label as number | null,
-    shelf: p.shelf ?? '',
+    placement: placementOptionOf(p),
   }))
-  if (splitRows.value.length === 1) splitRows.value.push({ quantity: null, shelf: '' })
+  if (splitRows.value.length === 1) splitRows.value.push({ quantity: null, placement: null })
   splitDialogOpen.value = true
 }
 
 function addSplitRow(): void {
-  splitRows.value.push({ quantity: null, shelf: '' })
+  splitRows.value.push({ quantity: null, placement: null })
 }
 function removeSplitRow(idx: number): void {
   splitRows.value.splice(idx, 1)
@@ -339,13 +584,13 @@ async function applySplit(): Promise<void> {
       inventory_id: target.id,
       splits: splitRows.value.map((r) => ({
         quantity: Number(r.quantity),
-        shelf: r.shelf.trim() || null,
+        ...parsePlacementOption(r.placement),
       })),
     })
     SuccessAlert(
       splitRows.value.length > 1
-        ? `Заказ разложен на ${splitRows.value.length} полок(и)`
-        : 'Заказ собран на одной полке',
+        ? `Заказ разложен на ${splitRows.value.length} мест(а)`
+        : 'Заказ собран на одном месте',
     )
     splitDialogOpen.value = false
     await load()
@@ -371,24 +616,24 @@ useMarketplaceRealtime(
       if (event.braname === braname.value.trim()) reloadLive()
     },
     MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    // Исполненное списание тоже опустошает полки склада.
+    // Исполненное списание тоже опустошает склад.
     MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
   },
   { onResync: () => reloadLive() },
 )
 
 onMounted(async () => {
-  await store.ensureLoaded(coopname.value)
+  await branchStore.ensureLoaded(coopname.value)
   void load()
 })
 </script>
 
 <template lang="pug">
-q-page.place(role='region', aria-label='Склад участка')
+q-page.place(role='region', aria-label='Раскладка и маркировка')
   OperatorBranchBar
 
   EmptyState(
-    v-if='store.loaded && !store.isOperator',
+    v-if='branchStore.loaded && !branchStore.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Раскладка имущества доступна председателю участка и его доверенным лицам.'
   )
@@ -396,166 +641,281 @@ q-page.place(role='region', aria-label='Склад участка')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    Teleport(to="#header-actions-host", defer)
-      BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
-        template(#icon-left)
-          q-icon(name='print', size='16px')
-        | Печать этикеток
+    Teleport(to='#header-actions-host', defer)
+      .place__head-actions
+        BaseButton(v-if='cellsEnabled', variant='secondary', size='sm', @click='openGrid')
+          template(#icon-left)
+            q-icon(name='grid_view', size='16px')
+          | Сетка склада
+        BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
+          template(#icon-left)
+            q-icon(name='print', size='16px')
+          | Печать этикеток
 
-    PageHint.no-print(storage-key='mp:operator-labeling:banner-dismissed')
-      | Разложите принятое имущество по полкам — чтобы при выдаче заказчику сразу
-      | найти, где что лежит. Перетащите карточку на полку (или меню «⋮ → на полку»).
-      | Штрих-код — по желанию, для поиска сканером.
+    PageHint(storage-key='mp:operator-labeling:banner-dismissed')
+      template(v-if='cellsEnabled')
+        | Склад адресный: столбцы — секции, строки — ярусы, на пересечении ячейка
+        | со своим адресом. Перетащите позицию в бокс или прямо в ячейку, если она
+        | негабаритная. Бокс тоже перетаскивается — целиком, вместе с содержимым.
+      template(v-else-if='containersEnabled')
+        | Разложите принятое имущество по боксам — при выдаче заказчику сразу
+        | видно, в какой таре что лежит. Адрес боксу не обязателен: наполнили и
+        | поставили. Штрих-код — по желанию, для поиска сканером.
+      template(v-else)
+        | Наклейте на принятое имущество штрих-коды и привяжите их сканером —
+        | тогда при выдаче позиция находится за секунду. Адресное хранение
+        | (боксы и ячейки) выключено в настройках расширения.
 
     //- Канон загрузки: скелетон, а не спиннер.
-    CardListSkeleton.no-print(v-if='loading && !items.length', :count='3')
+    CardListSkeleton(v-if='loading && !items.length', :count='3')
 
-    EmptyState.no-print(
+    EmptyState(
       v-else-if='!boardItems.length',
       title='На складе пусто',
-      body='Здесь появятся принятые позиции — после приёмки партии на столе «Приёмка партии».'
+      body='Здесь появятся принятые позиции — после приёмки партии на столе «Ожидаемые поставки».'
     )
       template(#icon)
         q-icon(name='inventory_2', size='48px')
 
-    .place__board.no-print(v-else)
-      .place__col(
-        v-for='col in columns',
-        :key='col.key',
-        :class='{ "place__col--inbox": col.key === "__inbox__", "is-over": dragOverKey === col.key }',
-        @dragover.prevent='dragOverKey = col.key',
-        @dragleave='dragOverKey = (dragOverKey === col.key ? null : dragOverKey)',
-        @drop='onDrop(col)'
-      )
-        .place__col-head
-          q-icon(:name='col.icon', size='18px')
-          span.place__col-title {{ col.title }}
-          BaseBadge(variant='neutral') {{ col.items.length }}
+    template(v-else)
+      //- Поиск и фильтр — отдельной строкой: у поля и переключателя разные
+      //- высоты, в одном ряду поле «скачет» относительно переключателя.
+      .place__filters
+        BaseInput.place__search(
+          v-model='search',
+          type='search',
+          placeholder='Поиск: адрес, бокс, товар, заказчик',
+          clearable
+        )
+        BaseCheckbox(
+          v-if='cellsEnabled',
+          v-model='onlyNonEmpty',
+          label='Только непустые ячейки'
+        )
 
-        .place__col-body
-          .place__empty-drop(v-if='!col.items.length')
-            | {{ col.key === '__inbox__' ? 'Всё разложено' : 'Перетащите сюда' }}
+      .place__layout
+        //- ─────────────── Поступило: не размещённое имущество ───────────────
+        .place__inbox(
+          :class='{ "is-over": dragOverKey === "__inbox__", "place__inbox--solo": !placementEnabled }',
+          @dragover.prevent='dragOverKey = "__inbox__"',
+          @dragleave='dragOverKey = (dragOverKey === "__inbox__" ? null : dragOverKey)',
+          @drop='dropOnInbox'
+        )
+          .place__col-head
+            q-icon(name='inbox', size='18px')
+            span.place__col-title Поступило
+            BaseBadge(variant='neutral') {{ inboxItems.length }}
 
-          .place__card(
-            v-for='item in col.items',
-            :key='item.id',
-            draggable='true',
-            :class='{ "is-dragging": dragId === item.id }',
-            @dragstart='onDragStart(item)',
-            @dragend='onDragEnd'
+          .place__col-body
+            .place__empty-drop(v-if='!inboxItems.length')
+              | {{ placementEnabled ? 'Всё разложено' : 'Ничего не найдено' }}
+
+            .place__card(
+              v-for='item in inboxItems',
+              :key='item.id',
+              :draggable='placementEnabled',
+              :class='{ "is-dragging": dragId === item.id }',
+              @dragstart='onDragStart("item", item.id)',
+              @dragend='onDragEnd'
+            )
+              .place__card-top
+                .place__card-info
+                  .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
+                  .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
+                .place__card-actions
+                  BaseButton(
+                    v-if='!item.barcode_value',
+                    variant='ghost',
+                    size='sm',
+                    icon-only,
+                    aria-label='Привязать штрих-код сканером',
+                    @click='openScan(item)'
+                  )
+                    template(#icon-left)
+                      q-icon(name='qr_code_scanner', size='18px')
+                      q-tooltip Привязать штрих-код сканером
+                  BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия')
+                    template(#icon-left)
+                      q-icon(name='more_vert', size='18px')
+                      q-menu(anchor='bottom right', self='top right')
+                        q-list(dense, style='min-width: 240px')
+                          template(v-if='placementEnabled')
+                            q-item-label(header) Положить
+                            q-item(
+                              v-for='opt in placementOptions',
+                              :key='opt.value',
+                              clickable,
+                              v-close-popup,
+                              @click='movePlacement(item, parsePlacementOption(opt.value))'
+                            )
+                              q-item-section {{ opt.label }}
+                            q-separator
+                          q-item(
+                            v-if='canRedistribute(item)',
+                            clickable,
+                            v-close-popup,
+                            @click='openSplit(item)'
+                          )
+                            q-item-section(avatar)
+                              q-icon(name='call_split', size='18px')
+                            q-item-section Разложить по количеству
+                          q-item(
+                            v-if='item.barcode_value',
+                            clickable,
+                            v-close-popup,
+                            @click='removeLabel(item)'
+                          )
+                            q-item-section(avatar)
+                              q-icon(name='label_off', size='18px')
+                            q-item-section Снять штрих-код
+
+              .place__card-badges
+                BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
+                BaseBadge(v-else, variant='neutral') Без штрих-кода
+
+              BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='sm')
+
+        //- ─────────────── Координатная сетка склада ───────────────
+        .place__grid-wrap(v-if='cellsEnabled')
+          EmptyState(
+            v-if='!storage.activeCells.length',
+            title='Сетка склада не заведена',
+            body='Опишите склад координатами: секции по горизонтали, ярусы по вертикали. Тогда место находится адресом, а не перебором.'
           )
-            .place__card-top
-              .place__card-info
-                .place__card-name {{ item.product_name_snapshot || 'Товар по предложению' }}
-                .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
-              .place__card-actions
-                BaseButton(
-                  v-if='!item.barcode_value',
-                  variant='ghost',
-                  size='sm',
-                  icon-only,
-                  aria-label='Привязать штрих-код сканером',
-                  @click='openScan(item)'
-                )
-                  template(#icon-left)
-                    q-icon(name='qr_code_scanner', size='18px')
-                    q-tooltip Привязать штрих-код сканером
-                BaseButton.place__card-menu-btn(variant='ghost', size='sm', icon-only, aria-label='Действия')
-                  template(#icon-left)
-                    q-icon(name='more_vert', size='18px')
-                    q-menu(anchor='bottom right', self='top right')
-                      q-list(dense, style='min-width: 220px')
-                        q-item-label(header) Переложить на полку
-                        q-item(
-                          v-for='name in shelfNames.filter((n) => n !== item.shelf)',
-                          :key='name',
-                          clickable,
-                          v-close-popup,
-                          @click='moveToShelf(item, name)'
-                        )
-                          q-item-section(avatar)
-                            q-icon(name='shelves', size='18px')
-                          q-item-section {{ name }}
-                        q-item(clickable, v-close-popup, @click='openNewShelf')
-                          q-item-section(avatar)
-                            q-icon(name='add', size='18px')
-                          q-item-section На новую полку…
-                        q-item(
-                          v-if='item.shelf',
-                          clickable,
-                          v-close-popup,
-                          @click='moveToShelf(item, null)'
-                        )
-                          q-item-section(avatar)
-                            q-icon(name='inbox', size='18px')
-                          q-item-section Снять с полки
-                        q-separator
-                        q-item(
-                          v-if='canRedistribute(item)',
-                          clickable,
-                          v-close-popup,
-                          @click='openSplit(item)'
-                        )
-                          q-item-section(avatar)
-                            q-icon(name='call_split', size='18px')
-                          q-item-section Разложить по количеству
-                        q-item(
-                          v-if='item.barcode_value',
-                          clickable,
-                          v-close-popup,
-                          @click='removeLabel(item)'
-                        )
-                          q-item-section(avatar)
-                            q-icon(name='label_off', size='18px')
-                          q-item-section Снять штрих-код
+            template(#icon)
+              q-icon(name='grid_view', size='48px')
 
-            .place__card-badges
-              BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
-              BaseBadge(v-else, variant='neutral') Без штрих-кода
+          EmptyState(
+            v-else-if='!visibleSections.length',
+            title='Ничего не найдено',
+            body='Ни одна ячейка не подходит под поиск или фильтр.'
+          )
+            template(#icon)
+              q-icon(name='search_off', size='48px')
 
-            BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='sm')
+          .place__grid-scroll(v-else)
+            table.place__grid
+              thead
+                tr
+                  th.place__grid-corner Ярус
+                  th(v-for='section in visibleSections', :key='section') {{ section }}
+              tbody
+                tr(v-for='row in gridRows', :key='row.level')
+                  th.place__grid-level {{ row.level }}
+                  td(v-for='slot in row.slots', :key='slot.section')
+                    .place__cell(
+                      v-if='slot.cell',
+                      :class='{ "is-over": dragOverKey === `cell:${slot.cell.id}` }',
+                      @dragover.prevent='dragOverKey = `cell:${slot.cell.id}`',
+                      @dragleave='dragOverKey = null',
+                      @drop='dropOnCell(slot.cell)'
+                    )
+                      .place__cell-head
+                        span.place__cell-code {{ slot.cell.code }}
+                      .place__cell-body
+                        .place__box(
+                          v-for='box in slot.boxes',
+                          :key='box.id',
+                          draggable='true',
+                          :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
+                          @dragstart.stop='onDragStart("container", box.id)',
+                          @dragend='onDragEnd',
+                          @dragover.prevent.stop='dragOverKey = `box:${box.id}`',
+                          @drop.stop='dropOnContainer(box)',
+                          @click='openBox(box)'
+                        )
+                          q-icon(name='inbox', size='16px')
+                          span.place__box-code {{ box.code }}
+                          BaseBadge(variant='neutral') {{ itemsInContainer(box.id).length }}
 
-      //- Колонка-кнопка создания новой полки.
-      .place__col.place__col--add
-        BaseButton(variant='ghost', @click='openNewShelf')
-          template(#icon-left)
-            q-icon(name='add', size='18px')
-          | Полка
+                        .place__mini(
+                          v-for='item in slot.loose',
+                          :key='item.id',
+                          draggable='true',
+                          :class='{ "is-dragging": dragId === item.id }',
+                          @dragstart='onDragStart("item", item.id)',
+                          @dragend='onDragEnd'
+                        )
+                          span.place__mini-name {{ item.product_name_snapshot || 'Товар' }}
+                          span.place__mini-qty {{ item.quantity_per_label }}
 
-  //- Новая полка.
-  BaseDialog(v-model='newShelfOpen', title='Новая полка', size='sm')
-    .place__new-shelf
-      BaseInput(
-        v-model='newShelfName',
-        label='Название полки',
-        placeholder='A-12',
-        autofocus,
-        @keydown.enter='createShelf'
-      )
+        //- ─────────────── Боксы без адреса (или весь список без сетки) ───────
+        .place__boxes(v-if='containersEnabled')
+          .place__col-head
+            q-icon(name='inbox', size='18px')
+            span.place__col-title {{ cellsEnabled ? 'Боксы без адреса' : 'Боксы участка' }}
+            BaseBadge(variant='neutral') {{ unplacedContainers.length }}
+
+          .place__empty-drop(v-if='!unplacedContainers.length')
+            | {{ cellsEnabled ? 'Все боксы расставлены' : 'Боксы не заведены — заведите их на столе «Боксы»' }}
+
+          .place__box-list
+            .place__box.place__box--wide(
+              v-for='box in unplacedContainers',
+              :key='box.id',
+              draggable='true',
+              :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
+              @dragstart='onDragStart("container", box.id)',
+              @dragend='onDragEnd',
+              @dragover.prevent='dragOverKey = `box:${box.id}`',
+              @dragleave='dragOverKey = null',
+              @drop='dropOnContainer(box)',
+              @click='openBox(box)'
+            )
+              q-icon(name='inbox', size='16px')
+              span.place__box-code {{ box.code }}
+              span.place__box-note(v-if='box.label') {{ box.label }}
+              BaseBadge(variant='neutral') {{ itemsInContainer(box.id).length }}
+
+  //- ─────────────────────── Содержимое бокса ───────────────────────
+  BaseDialog(v-model='boxDialogOpen', :title='boxTarget ? `Бокс ${boxTarget.code}` : "Бокс"', size='md')
+    .place__box-dialog(v-if='boxTarget')
+      .place__note {{ containerLabel(boxTarget, storage.index) }} · позиций: {{ boxItems.length }}
+
+      EmptyState(v-if='!boxItems.length', title='Бокс пуст', body='Перетащите в него позицию из «Поступило».')
+        template(#icon)
+          q-icon(name='inbox', size='40px')
+
+      .place__box-row(v-for='item in boxItems', :key='item.id')
+        .place__card-info
+          .place__card-name {{ item.product_name_snapshot || 'Товар' }}
+          .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
+        BaseButton(variant='ghost', size='sm', @click='movePlacement(item, {})') Вынуть
     template(#footer)
-      BaseButton(variant='ghost', size='sm', @click='newShelfOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :disabled='!newShelfName.trim()', @click='createShelf') Создать
+      BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') Закрыть
 
-  //- Раскладка по количеству.
-  BaseDialog(v-model='splitDialogOpen', title='Разложить по полкам', size='md')
+  //- ─────────────────────── Сетка склада ───────────────────────
+  BaseDialog(v-model='gridOpen', title='Сетка склада', size='sm')
+    .place__form
+      .place__note
+        | Секции — это столбцы склада (A, B, «Холодильник»), ярусы — строки.
+        | Перечислите секции через запятую и задайте диапазон ярусов; уже
+        | существующие координаты пропускаются.
+      BaseInput(v-model='gridSections', label='Секции', placeholder='A, B, C')
+      .place__levels
+        BaseInput(v-model.number='gridLevelFrom', type='number', label='Ярус с')
+        BaseInput(v-model.number='gridLevelTo', type='number', label='по')
+      .place__note(v-if='gridValid')
+        | Будет заведено ячеек: {{ gridSectionList.length * (Number(gridLevelTo) - Number(gridLevelFrom) + 1) }}
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', :disabled='gridSaving', @click='gridOpen = false') Отмена
+      BaseButton(variant='primary', size='sm', :loading='gridSaving', :disabled='!gridValid', @click='submitGrid') Завести
+
+  //- ─────────────────────── Раскладка по количеству ───────────────────────
+  BaseDialog(v-model='splitDialogOpen', title='Разложить по местам', size='md')
     .place__split(v-if='splitTarget')
       .place__split-head
         | {{ splitTarget.product_name_snapshot || 'Товар' }} — всего {{ splitPoolTotal }} ед.
-      .place__split-note
-        | Распределите весь заказ по полкам. Чтобы собрать обратно на одну полку —
-        | удалите лишние строки; чтобы разложить иначе — измените количества и полки.
+      .place__note
+        | Распределите весь заказ по местам. Чтобы собрать обратно в одно место —
+        | удалите лишние строки; чтобы разложить иначе — измените количества и места.
       .place__split-row(v-for='(row, idx) in splitRows', :key='idx')
-        BaseInput.place__split-qty(
-          v-model.number='row.quantity',
-          type='number',
-          label='Кол-во',
-          dense
-        )
-        BaseInput.place__split-shelf(
-          v-model='row.shelf',
-          label='Полка',
-          placeholder='A-12',
-          dense
+        BaseInput.place__split-qty(v-model.number='row.quantity', type='number', label='Кол-во')
+        BaseSelect.place__split-place(
+          v-if='placementEnabled',
+          v-model='row.placement',
+          :options='placementOptions',
+          label='Место'
         )
         BaseButton(
           variant='ghost',
@@ -571,37 +931,34 @@ q-page.place(role='region', aria-label='Склад участка')
         BaseButton(variant='ghost', size='sm', @click='addSplitRow')
           template(#icon-left)
             q-icon(name='add', size='16px')
-          | Ещё полка
+          | Ещё доля
         span.place__split-total(:class='{ "place__split-total--bad": splitTotal !== splitPoolTotal }')
           | Сумма: {{ splitTotal }} / {{ splitPoolTotal }}
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='splitDialogOpen = false') Отмена
       BaseButton(variant='primary', size='sm', :loading='splitting', :disabled='!splitValid', @click='applySplit') Разложить
 
-  //- Печать листа произвольных штрих-кодов.
+  //- ─────────────────────── Печать штрих-кодов ───────────────────────
   BaseDialog(v-model='printDialogOpen', title='Печать этикеток', size='sm')
-    .place__print-dialog
-      .place__print-note
+    .place__form
+      .place__note
         | Сколько штрих-кодов напечатать? Распечатайте лист, разрежьте и наклейте
         | этикетки на имущество — затем привяжите их к позициям сканером.
       BaseInput(
         v-model.number='printCount',
         type='number',
         label='Количество этикеток',
-        min='1',
-        autofocus,
         @keydown.enter='doPrint'
       )
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='printDialogOpen = false') Отмена
       BaseButton(variant='primary', size='sm', :disabled='!printCount || printCount < 1', @click='doPrint') Печать
 
-  //- Привязка штрих-кода: сканируем камерой телефона (или USB-сканер/ручной ввод
-  //- в запасном поле) — единый виджет CodeScanner, как QR на приёмке/выдаче.
+  //- ─────────────────────── Привязка штрих-кода ───────────────────────
   //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
   BaseDialog(v-model='scanDialogOpen', title='Привязать штрих-код', size='sm')
-    .place__scan
-      .place__scan-note(v-if='scanTarget')
+    .place__form
+      .place__note(v-if='scanTarget')
         | {{ scanTarget.product_name_snapshot || 'Товар' }} — наведите камеру на
         | наклеенный штрих-код, либо введите его номер вручную. Код привяжется сразу.
       CodeScanner(
@@ -625,41 +982,59 @@ q-page.place(role='region', aria-label='Склад участка')
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  // Доска полок — горизонтальный ряд колонок с прокруткой.
-  &__board {
+  &__head-actions {
     display: flex;
-    gap: var(--p-3, 12px);
-    align-items: flex-start;
-    overflow-x: auto;
-    padding-bottom: var(--p-2, 8px);
+    align-items: center;
+    gap: var(--p-2, 8px);
   }
 
-  &__col {
-    flex: 0 0 280px;
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: var(--p-4, 16px);
+    flex-wrap: wrap;
+  }
+
+  &__search {
+    max-width: 420px;
+    width: 100%;
+
+    // Поиск не показывает hint/error — снимаем резерв строки под них, иначе
+    // между полем и сеткой висит пустой промежуток.
+    :deep(.q-field__bottom) {
+      min-height: 0;
+      padding-top: 0;
+    }
+  }
+
+  // Слева — «Поступило» фиксированной ширины, справа — сетка на всё остальное.
+  &__layout {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__inbox {
+    flex: 0 0 300px;
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
-    background: var(--p-surface-2);
+    background: var(--p-surface);
     padding: var(--p-3, 12px);
-    max-height: calc(100vh - 220px);
-    transition: border-color 0.12s ease, background 0.12s ease;
+    max-height: calc(100vh - 260px);
+    transition: border-color var(--p-dur-fast, 0.12s) var(--p-ease-standard);
 
     &.is-over {
       border-color: var(--p-primary);
-      background: var(--p-surface);
     }
 
-    &--inbox {
-      background: var(--p-surface);
-    }
-
-    &--add {
-      border-style: dashed;
-      background: transparent;
-      align-items: stretch;
-      justify-content: flex-start;
+    // Адресное хранение выключено — раскладывать некуда, и «Поступило»
+    // занимает страницу целиком как обычный список для маркировки.
+    &--solo {
+      flex: 1 1 100%;
     }
   }
 
@@ -696,7 +1071,7 @@ q-page.place(role='region', aria-label='Склад участка')
   &__card {
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-sm, 8px);
-    background: var(--p-surface);
+    background: var(--p-surface-2);
     padding: var(--p-3, 12px);
     display: flex;
     flex-direction: column;
@@ -752,22 +1127,201 @@ q-page.place(role='region', aria-label='Склад участка')
     gap: var(--p-1, 4px);
   }
 
-  &__print-dialog,
-  &__scan {
+  // ─── Координатная сетка ───
+  &__grid-wrap {
+    flex: 1 1 480px;
+    min-width: 0;
+  }
+
+  &__grid-scroll {
+    overflow: auto;
+    max-height: calc(100vh - 260px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+  }
+
+  &__grid {
+    border-collapse: collapse;
+    width: 100%;
+
+    th,
+    td {
+      border: 1px solid var(--p-line);
+      vertical-align: top;
+      padding: var(--p-1, 4px);
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--p-surface-2);
+      color: var(--p-ink-2);
+      font-size: var(--p-fs-meta, 12px);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: var(--p-2, 8px);
+      text-align: center;
+    }
+  }
+
+  &__grid-corner {
+    width: 64px;
+  }
+
+  &__grid-level {
+    width: 64px;
+    background: var(--p-surface-2);
+    color: var(--p-ink-2);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  &__cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+    min-height: 72px;
+    min-width: 160px;
+    border-radius: var(--p-r-sm, 8px);
+    padding: var(--p-1, 4px);
+    transition: background var(--p-dur-fast, 0.12s) var(--p-ease-standard);
+
+    &.is-over {
+      background: var(--p-primary-soft);
+    }
+  }
+
+  &__cell-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__cell-code {
+    font-family: var(--p-mono);
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+  }
+
+  &__cell-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__box {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-surface);
+    padding: var(--p-1, 4px) var(--p-2, 8px);
+    cursor: grab;
+    color: var(--p-ink);
+
+    &.is-dragging {
+      opacity: 0.5;
+    }
+
+    &.is-over {
+      border-color: var(--p-primary);
+      background: var(--p-primary-soft);
+    }
+
+    &--wide {
+      background: var(--p-surface-2);
+    }
+  }
+
+  &__box-code {
+    flex: 1 1 auto;
+    font-family: var(--p-mono);
+    font-size: var(--p-fs-body-sm, 13px);
+    overflow-wrap: anywhere;
+  }
+
+  &__box-note {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  // Негабарит, лежащий прямо в ячейке.
+  &__mini {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-2, 8px);
+    border: 1px dashed var(--p-line-2, var(--p-line));
+    border-radius: var(--p-r-sm, 8px);
+    padding: var(--p-1, 4px) var(--p-2, 8px);
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-2);
+    cursor: grab;
+
+    &.is-dragging {
+      opacity: 0.5;
+    }
+  }
+
+  &__mini-name {
+    overflow-wrap: anywhere;
+  }
+
+  &__mini-qty {
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+
+  // ─── Боксы без адреса ───
+  &__boxes {
+    flex: 1 1 240px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    padding: var(--p-3, 12px);
+  }
+
+  &__box-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+  }
+
+  // ─── Диалоги ───
+  &__form,
+  &__box-dialog {
     display: flex;
     flex-direction: column;
     gap: var(--p-3, 12px);
     padding-top: var(--p-2, 8px);
   }
 
-  &__print-note,
-  &__scan-note {
+  &__note {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
   }
 
-  &__new-shelf {
-    padding-top: var(--p-2, 8px);
+  &__levels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--p-2, 8px);
+  }
+
+  &__box-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+    border-bottom: 1px solid var(--p-line);
+    padding-bottom: var(--p-2, 8px);
   }
 
   &__split {
@@ -782,22 +1336,18 @@ q-page.place(role='region', aria-label='Склад участка')
     color: var(--p-ink);
   }
 
-  &__split-note {
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
-  }
-
   &__split-row {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: var(--p-2, 8px);
   }
 
   &__split-qty {
-    width: 110px;
+    width: 120px;
+    flex: 0 0 auto;
   }
 
-  &__split-shelf {
+  &__split-place {
     flex: 1 1 auto;
   }
 
@@ -823,8 +1373,8 @@ q-page.place(role='region', aria-label='Склад участка')
   .place {
     padding: var(--p-4, 16px);
 
-    &__col {
-      flex-basis: 240px;
+    &__inbox {
+      flex-basis: 100%;
     }
   }
 }
