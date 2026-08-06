@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
@@ -79,8 +78,7 @@ export class ResultSubmissionService {
     private readonly issueRepository: IssueRepository,
     @Inject(DOCUMENT_REPOSITORY)
     private readonly documentRepository: DocumentRepository,
-    private readonly logger: WinstonLoggerService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(ResultSubmissionService.name);
   }
@@ -135,6 +133,16 @@ export class ResultSubmissionService {
       throw new Error(`Сегмент для пользователя ${data.username} и проекта ${data.project_hash} не найден`);
     }
 
+    // Суммы живут в блокчейн-части сегмента. Если её нет, сегмент не
+    // синхронизирован с цепью, и подставлять '0' нельзя: это не валидный ассет
+    // (нет дробной части и символа) — запрос упал бы на разборе ABI, а не с
+    // внятным отказом. Отсекаем здесь.
+    if (!segment.intellectual_cost || !segment.debt_amount) {
+      throw new Error(
+        `Сегмент пользователя ${data.username} по проекту ${data.project_hash} не синхронизирован с блокчейном: не заданы сумма взноса или сумма долга. Обновите сегмент и повторите.`
+      );
+    }
+
     // Формируем данные для domain layer
     // Используем присланный подписанный документ (он прошел глубокую проверку)
     const domainInput = {
@@ -142,21 +150,19 @@ export class ResultSubmissionService {
       username: data.username,
       project_hash: data.project_hash,
       result_hash: result.result_hash,
-      contribution_amount: segment.intellectual_cost || '0', // берем из сегмента
-      debt_amount: segment.debt_amount || '0', // берем из сегмента
+      contribution_amount: segment.intellectual_cost, // берем из сегмента
+      debt_amount: segment.debt_amount, // берем из сегмента
       statement: data.statement,
       debt_hashes: [], // пока пустой массив
     };
 
     const segmentEntity = await this.resultSubmissionInteractor.pushResult(domainInput);
 
-    // Получаем обновлённый результат для синхронизации с GitHub
-    const updatedResult = await this.resultRepository.findByResultHash(result.result_hash);
-    if (updatedResult) {
-      // Генерируем событие для синхронизации с GitHub
-      this.eventEmitter.emit('result.updated', updatedResult);
-    }
-
+    // Здесь эмиттилось событие `result.updated` «для синхронизации с GitHub».
+    // Слушателя у него не было ни одного: legacy markdown-синхронизация
+    // проектов и результатов с GitHub удалена (см. GitHubSyncSchedulerService).
+    // Событие снято вместе с перечитыванием результата, которое делалось
+    // только ради него.
     return await this.segmentMapper.toDTO(segmentEntity);
   }
 
@@ -759,15 +765,23 @@ export class ResultSubmissionService {
     options: GenerateDocumentOptionsInputDTO,
     currentUser: MonoAccountDomainInterface
   ): Promise<GeneratedDocumentDTO> {
-    // Проверяем, что пользователь может генерировать документы только для себя
-    // Председатель может генерировать документы для любого пользователя
-    if (data.username !== currentUser.username && currentUser.role !== 'chairman') {
-      throw new Error('Вы можете генерировать документы только для себя');
-    }
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
       throw new Error(`Результат с хешем ${data.result_hash} не найден`);
+    }
+    if (!result.username) {
+      throw new Error('Имя пользователя не найдено в результате');
+    }
+
+    // Владельца определяет результат, а не запрос. Акт формируется по
+    // result.username — сверять присланное data.username было бессмысленно:
+    // оно не влияет на содержимое документа, и своё имя вместе с чужим
+    // result_hash открывало бы чужие суммы и долю. Поле data.username из DTO
+    // не убрано: по нему RolesGuard пропускает пайщика к своим ресурсам.
+    // Председатель ставит на акте вторую подпись и вправе сгенерировать любой.
+    if (result.username !== currentUser.username && currentUser.role !== 'chairman') {
+      throw new Error('Вы можете генерировать документы только для себя');
     }
 
     // Находим заявление по result_hash (должно быть в блокчейн данных)
@@ -821,9 +835,7 @@ export class ResultSubmissionService {
       .digest('hex');
 
     // Все проверки пройдены, генерируем документ
-    if (!result.username) {
-      throw new Error('Имя пользователя не найдено в результате');
-    }
+    // (result.username проверен в начале — по нему определяется владелец акта)
     const documentData: ResultContributionActGenerateDocumentInputDTO = {
       result_act_hash,
       percent_of_result: statementMeta.percent_of_result,

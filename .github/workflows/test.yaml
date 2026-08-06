@@ -1,0 +1,99 @@
+name: Tests
+
+# Автотесты на PR в dev. До этого workflow тесты в CI не гонялись вообще —
+# был только typecheck, а `pnpm test` никто не вызывал.
+#
+# Разделение на два job'а намеренное:
+#  - unit  — ничему внешнему не нужен, быстрая обратная связь;
+#  - component — нужен MongoDB, поэтому отдельно: падение сервиса не должно
+#    выглядеть как падение unit-тестов.
+#
+# test:integration (sdk + boot) сюда НЕ входит: ему нужен поднятый стек —
+# нода блокчейна, парсер и controller. Это отдельная задача.
+#
+# Почему всюду `pnpm lerna run build` перед тестами — та же причина, что в
+# typecheck.yaml: workspace-пакеты (cooptypes, sdk, inter, notifications,
+# factory) экспортируют типы и рантайм только из сгенерированного dist/.
+# Без него ts-jest и vitest валятся на резолве `cooptypes`.
+
+# Триггеры намеренно НЕ включают pull_request: прогон тяжёлый (полный
+# lerna build + jest + vitest), гонять его на каждый push в каждую ветку
+# смысла нет — такой CI перестают читать.
+#
+# Тесты выполняют роль релизного гейта: release.yaml вызывает этот workflow
+# через workflow_call, и job `release` объявлен `needs: tests`. Релиз не
+# состоится, если тесты красные.
+#
+# workflow_dispatch оставлен, чтобы прогнать набор вручную в любой момент,
+# не дожидаясь релиза.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      # cooptypes + parser + notifications + controller.
+      # Юнит-тесты controller гоняются через `jest -i` (runInBand) — так же,
+      # как требует CLAUDE.md для локального запуска.
+      - name: Unit-тесты
+        run: pnpm run test:unit
+
+  component:
+    runs-on: ubuntu-latest
+
+    # Тесты factory пишут документы в MongoDB (test/utils/index.ts →
+    # MongoDBConnector). Хост берётся из MONGO_HOST, в Gitea Actions
+    # сервис доступен по имени.
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      # SKIP_BLOCK_FETCH=TRUE отключает поход в блокчейн за номером блока
+      # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
+      - name: Component-тесты (factory)
+        env:
+          MONGO_HOST: mongo
+        run: pnpm run test:component

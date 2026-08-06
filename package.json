@@ -23,18 +23,18 @@
     ]
   },
   "dependencies": {
+    "@coopenomics/blago-cli": "workspace:*",
     "@coopenomics/boot": "workspace:*",
     "@coopenomics/cleos": "workspace:*",
     "@coopenomics/contracts": "workspace:*",
     "@coopenomics/controller": "workspace:*",
     "@coopenomics/desktop": "workspace:*",
     "@coopenomics/factory": "workspace:*",
+    "@coopenomics/inter": "workspace:*",
     "@coopenomics/notifications": "workspace:*",
     "@coopenomics/parser": "workspace:*",
     "@coopenomics/sdk": "workspace:*",
     "@coopenomics/setup": "workspace:*",
-    "@coopenomics/inter": "workspace:*",
-    "@coopenomics/blago-cli": "workspace:*",
     "commitgpt": "^2.0.0",
     "cooptypes": "workspace:*",
     "eslint": "^9.9.1",
@@ -53,7 +53,7 @@
     "deploy": "lerna run deploy --scope @coopenomics/boot --",
     "clear": "lerna run clear --scope @coopenomics/boot",
     "enter": "lerna run run --scope @coopenomics/cleos",
-    "build:lib": "lerna run build --scope @coopenomics/cooptypes --scope @coopenomics/factory --scope @coopenomics/inter",
+    "build:lib": "lerna run build --scope cooptypes --scope @coopenomics/factory --scope @coopenomics/inter",
     "build:contracts:all": "lerna run build:all --scope @coopenomics/contracts",
     "build:contract": "lerna run build:one --scope @coopenomics/contracts --",
     "build:contracts:all:test": "lerna run build:all:test --scope @coopenomics/contracts",
@@ -67,12 +67,20 @@
     "testnet": "bash scripts/promote.sh testnet",
     "production": "bash scripts/promote.sh main",
     "docs-publish": "pnpm gh-pages --nojekyll -d docs/site --repo git@github.com:coopenomics/monocoop.git",
+    "check": "bash scripts/check.sh all",
+    "check:boundaries": "bash scripts/check.sh boundaries",
+    "check:changed": "bash scripts/check.sh changed",
+    "check:registry": "bash scripts/check.sh registry",
+    "registry:audit": "node scripts/registry-audit.mjs",
+    "mutate:changed": "bash scripts/mutate-changed.sh",
     "test": "pnpm run test:unit && pnpm run test:component && pnpm run test:integration",
-    "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test",
+    "test:ci": "pnpm run test:unit && pnpm run test:component",
+    "test:unit": "pnpm --filter cooptypes run test && pnpm --filter @coopenomics/parser run test && pnpm --filter @coopenomics/notifications run test && pnpm --filter @coopenomics/controller run test",
     "test:component": "SOURCE=local NODE_ENV=test SKIP_BLOCK_FETCH=TRUE pnpm --filter @coopenomics/factory run test",
     "test:integration": "bash scripts/run-integration-tests.sh"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "^2.9.0"
   }
 }
