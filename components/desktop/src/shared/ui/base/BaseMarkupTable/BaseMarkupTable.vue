@@ -74,7 +74,9 @@ const tableStyle = computed(() => ({
     background: var(--p-surface-2);
   }
 
-  &--sticky-head&--sticky-col :deep(thead tr th:first-child) {
+  // Угловая ячейка стоит на пересечении обоих липких рядов — она должна
+  // перекрывать и заголовок, и первую колонку.
+  &--sticky-head.base-markup-table--sticky-col :deep(thead tr th:first-child) {
     z-index: 3;
   }
 }
