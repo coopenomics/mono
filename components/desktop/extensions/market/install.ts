@@ -130,18 +130,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             {
               // Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — gate ЦПП
               // «Стол заказов». Объявлен ПЕРВЫМ и требует выделенного права
-              // `Onboarding:orderer`, которое backend выдаёт только пока пайщик
-              // не подписал персональную оферту (requires_gate=true). Тогда это
-              // единственная видимая страница стола заказчика — рабочие страницы
-              // (Каталог и т.д.) требуют orderer-прав, которых до подписи нет.
-              // После подписи маркер исчезает, страница авто-скрывается, а
-              // дефолт стола (Каталог) и остальные пункты открываются.
+              // `Onboarding:orderer`, которое backend выдаёт, пока не выполнены
+              // ОБА условия допуска заказчика: подписана персональная оферта
+              // (requires_gate=false) И выбран пункт выдачи в корзине
+              // (`delivery_braname`). Тогда это единственная видимая страница
+              // стола заказчика — рабочие страницы (Каталог и т.д.) требуют
+              // orderer-прав, которых до выполнения обоих условий нет. После
+              // выполнения маркер исчезает, страница авто-скрывается, а дефолт
+              // стола (Каталог) и остальные пункты открываются.
               path: 'onboarding/member-cpp',
               name: 'marketplace-onboarding-member-cpp',
               component: markRaw(OnboardingMemberPickCppPage),
               meta: {
                 title: 'Подключение к Столу заказов',
-                icon: 'fa-solid fa-handshake-angle',
+                icon: 'handshake',
                 requires: 'Onboarding:orderer',
                 requiresAuth: true,
                 agreements: agreementsBase,
