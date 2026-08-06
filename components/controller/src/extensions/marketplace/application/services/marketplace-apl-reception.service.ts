@@ -48,7 +48,19 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
-import { MarketplaceInventoryStatuses } from '../../domain/entities/marketplace-inventory.types';
+import {
+  MarketplaceInventoryStatuses,
+  type MarketplaceInventoryPlacement,
+} from '../../domain/entities/marketplace-inventory.types';
+import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  type MarketplaceContainerDomainRepository,
+} from '../../domain/repositories/marketplace-container.repository';
+import {
+  MARKETPLACE_STORAGE_CELL_REPOSITORY,
+  type MarketplaceStorageCellDomainRepository,
+} from '../../domain/repositories/marketplace-storage-cell.repository';
+import { MarketplaceWarehouseSettingsService } from './marketplace-warehouse-settings.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -127,12 +139,27 @@ export interface MarketplaceAplReceptionSignSupplierInputDto {
   signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
 }
 
+/** Куда председатель кладёт принятое по конкретному заказу (Эпик 19). */
+export interface MarketplaceAplReceptionPlacementInput {
+  order_id: string;
+  /** Бокс, в который кладут принятое. */
+  container_id?: string | null;
+  /** Ячейка, если имущество кладут на склад напрямую (негабарит). */
+  cell_id?: string | null;
+}
+
 export interface MarketplaceAplReceptionSignChairmanInputDto {
   coopname: string;
   chairman_account: string;
   apl_reception_id: string;
   /** То же что у поставщика — но для on-chain `signchair`. */
   signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
+  /**
+   * Место хранения по каждому принятому заказу. Обязательно, когда кооператив
+   * включил «Требовать указание места при приёмке»; иначе принятое попадает на
+   * склад без места и раскладывается позже.
+   */
+  placements?: MarketplaceAplReceptionPlacementInput[];
 }
 
 export interface MarketplaceAplReceptionResult {
@@ -223,6 +250,11 @@ export class MarketplaceAplReceptionService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
+    private readonly containerRepo: MarketplaceContainerDomainRepository,
+    @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
+    private readonly cellRepo: MarketplaceStorageCellDomainRepository,
+    private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
@@ -730,6 +762,15 @@ export class MarketplaceAplReceptionService {
     const groupOrders = await this.loadGroupOrders(reception);
     const { accepted: acceptedOrders } = this.splitGroupByFact(reception, groupOrders);
 
+    // Размещение проверяем ДО отправки в цепь. Наоборот нельзя: подпись уже
+    // была бы на цепи, а разместить принятое не вышло бы — акт закрыт,
+    // имущество физически лежит, а системе положить его некуда.
+    const placementByOrderId = await this.resolveReceptionPlacements(
+      reception,
+      acceptedOrders,
+      input.placements ?? []
+    );
+
     let txHash: string;
     try {
       txHash = await this.submitOnChainSignChair(
@@ -774,7 +815,7 @@ export class MarketplaceAplReceptionService {
     // Имущество, принятое по акту, появляется на складе КУ сразу — независимо
     // от маркировки (штрих-код опционален). Полку и штрих-код оператор назначит
     // позже на столе раскладки/маркировки.
-    await this.materializeInventory(updated, acceptedOrders);
+    await this.materializeInventory(updated, acceptedOrders, placementByOrderId);
 
     // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
     // через gateway. Кассир увидит каждую выплату в общем реестре
@@ -1128,9 +1169,97 @@ export class MarketplaceAplReceptionService {
    * Идемпотентно: если по Order'у позиция уже есть (повторная подпись/ретрай),
    * пропускаем, чтобы не задвоить склад.
    */
+  /**
+   * Проверяет и раскладывает по заказам места хранения, переданные вместе с
+   * закрывающей подписью.
+   *
+   * Вызывается ДО отправки подписи в цепь: если разместить нельзя, приёмка не
+   * должна закрыться вовсе. Обратный порядок оставил бы акт подписанным
+   * on-chain, а принятое — без места, куда его положить.
+   *
+   * Когда кооператив не включил «Требовать указание места при приёмке», список
+   * может быть пустым или частичным — принятое просто попадёт на склад без
+   * места, как было до Эпика 19.
+   */
+  private async resolveReceptionPlacements(
+    reception: MarketplaceAplReceptionDomainEntity,
+    acceptedOrders: MarketplaceOrderDomainEntity[],
+    placements: MarketplaceAplReceptionPlacementInput[]
+  ): Promise<Map<string, MarketplaceInventoryPlacement>> {
+    const settings = await this.warehouseSettings.get();
+
+    // Оприходуются только заказы, которые едут на КУ этой приёмки, — ровно тот
+    // же отбор, что делает materializeInventory.
+    const targetOrders = acceptedOrders.filter(
+      (o) => o.delivery_braname === reception.braname
+    );
+    const targetOrderIds = new Set(targetOrders.map((o) => o.id));
+    const resolved = new Map<string, MarketplaceInventoryPlacement>();
+
+    for (const placement of placements) {
+      if (!targetOrderIds.has(placement.order_id)) {
+        throw new BadRequestException(
+          'Указано место для заказа, которого нет в этой приёмке.'
+        );
+      }
+      const container_id = placement.container_id ?? null;
+      const cell_id = placement.cell_id ?? null;
+
+      if (container_id && cell_id) {
+        throw new BadRequestException(
+          'Для одного заказа укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
+        );
+      }
+      if (!container_id && !cell_id) continue;
+
+      if (container_id) {
+        const container = await this.containerRepo.findById(container_id);
+        if (!container || container.coopname !== reception.coopname) {
+          throw new NotFoundException('Бокс не найден.');
+        }
+        if (!container.is_active) {
+          throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+        }
+        if (container.braname !== reception.braname) {
+          throw new ConflictException(
+            `Бокс «${container.code}» числится за участком ${container.braname}, а приёмка идёт на ${reception.braname}.`
+          );
+        }
+        resolved.set(placement.order_id, { container_id, cell_id: null });
+        continue;
+      }
+
+      const cell = await this.cellRepo.findById(cell_id as string);
+      if (!cell || cell.coopname !== reception.coopname) {
+        throw new NotFoundException('Ячейка не найдена.');
+      }
+      if (!cell.is_active) {
+        throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+      }
+      if (cell.braname !== reception.braname) {
+        throw new ConflictException(
+          `Ячейка «${cell.code}» относится к участку ${cell.braname}, а приёмка идёт на ${reception.braname}.`
+        );
+      }
+      resolved.set(placement.order_id, { container_id: null, cell_id });
+    }
+
+    if (settings.posting_on_reception_required) {
+      const missing = targetOrders.filter((o) => !resolved.has(o.id));
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          `Укажите место хранения для всего принятого: не размещено позиций — ${missing.length}.`
+        );
+      }
+    }
+
+    return resolved;
+  }
+
   private async materializeInventory(
     reception: MarketplaceAplReceptionDomainEntity,
-    orders: MarketplaceOrderDomainEntity[]
+    orders: MarketplaceOrderDomainEntity[],
+    placementByOrderId: Map<string, MarketplaceInventoryPlacement> = new Map()
   ): Promise<void> {
     const groupOrders = orders.filter((o) => o.delivery_braname === reception.braname);
     if (groupOrders.length === 0) return;
@@ -1145,6 +1274,7 @@ export class MarketplaceAplReceptionService {
     const receivedAt = reception.chairman_signed_at ?? new Date();
 
     let created = 0;
+    let placedCount = 0;
     for (const order of groupOrders) {
       const factQty = factByOrderId.get(order.id) ?? order.quantity;
       if (factQty <= 0) continue;
@@ -1169,7 +1299,10 @@ export class MarketplaceAplReceptionService {
         product_name_snapshot: offer?.product_name ?? '',
         quantity_per_label: factQty,
         orderer_account_snapshot: order.orderer_account,
-        shelf: null,
+        // Место хранения проставляется сразу: приёмка и размещение — одно
+        // действие у стойки, а не два захода с разрывом между ними.
+        container_id: placementByOrderId.get(order.id)?.container_id ?? null,
+        cell_id: placementByOrderId.get(order.id)?.cell_id ?? null,
         received_at: receivedAt,
         received_by_operator_account: reception.created_by_operator_account,
         barcode_value: null,
@@ -1182,10 +1315,12 @@ export class MarketplaceAplReceptionService {
         arrival_price: order.price_per_unit,
       });
       created += 1;
+      const placement = placementByOrderId.get(order.id);
+      if (placement?.container_id || placement?.cell_id) placedCount += 1;
     }
 
     this.logger.log(
-      `АПП ${reception.id}: на склад КУ ${reception.braname} оприходовано ${created} позиций (RECEIVED).`
+      `АПП ${reception.id}: на склад КУ ${reception.braname} оприходовано ${created} позиций (RECEIVED), из них с местом хранения ${placedCount}.`
     );
   }
 

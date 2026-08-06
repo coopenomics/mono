@@ -148,6 +148,7 @@ export class MarketplaceAplReceptionResolver {
       supplier_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
+      placements: data.placements,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -157,7 +158,7 @@ export class MarketplaceAplReceptionResolver {
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
     name: 'marketplaceSignAplReceptionAsChairman',
     description:
-      'Председатель КУ ставит закрывающую подпись на акте приёмки — имущество переходит на баланс кооператива.',
+      'Председатель КУ ставит закрывающую подпись на акте приёмки: имущество переходит на баланс кооператива и одновременно приходуется на склад по указанному месту хранения.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:closing')

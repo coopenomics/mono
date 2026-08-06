@@ -179,6 +179,27 @@ export class MarketplaceCreateAplReceptionInputDTO {
   fact_quantity_per_order?: MarketplaceAplReceptionFactEntryInputDTO[];
 }
 
+@InputType('MarketplaceAplReceptionPlacementInput')
+export class MarketplaceAplReceptionPlacementInputDTO {
+  @Field(() => String, { description: 'Заказ, принятое по которому размещают.' })
+  @IsString()
+  @IsNotEmpty()
+  order_id!: string;
+
+  @Field(() => String, { nullable: true, description: 'Бокс, в который кладут принятое.' })
+  @IsOptional()
+  @IsString()
+  container_id?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Ячейка, если имущество кладут на склад напрямую (негабарит).',
+  })
+  @IsOptional()
+  @IsString()
+  cell_id?: string | null;
+}
+
 @InputType('MarketplaceSignAplReceptionInput')
 export class MarketplaceSignAplReceptionInputDTO {
   @Field(() => String, { description: 'Идентификатор акта приёмки.' })
@@ -195,6 +216,17 @@ export class MarketplaceSignAplReceptionInputDTO {
   @ValidateNested({ each: true })
   @Type(() => MarketplaceAplReceptionSignedDocumentInputDTO)
   signed_documents!: MarketplaceAplReceptionSignedDocumentInputDTO[];
+
+  @Field(() => [MarketplaceAplReceptionPlacementInputDTO], {
+    nullable: true,
+    description:
+      'Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceAplReceptionPlacementInputDTO)
+  placements?: MarketplaceAplReceptionPlacementInputDTO[];
 }
 
 @InputType('MarketplaceAplReceptionByIdInput')
