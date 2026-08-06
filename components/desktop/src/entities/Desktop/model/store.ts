@@ -145,6 +145,23 @@ export const useDesktopStore = defineStore(namespace, () => {
     return session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user';
   }
 
+  /**
+   * Выдано ли пайщику конкретное право в столе расширения.
+   *
+   * В отличие от `isPageVisible` / `hasRouteAccess` (сверяют `meta.requires`
+   * маршрута) — для фоновых запросов глобальных виджетов, не привязанных к
+   * маршруту: оверлей висит поверх всего ЛК и обязан спрашивать бэкенд только
+   * о том, на что у пайщика есть права, иначе резолвер отвечает 403 на каждой
+   * дочитке (инцидент 2026-08-06: гейт «подпись на месте» раз в минуту просил
+   * акты поставщика у пайщика без допуска в реестре).
+   *
+   * Стол ещё не загружен или не грант-управляемый → `false`: фоновому опросу
+   * лучше промолчать и повториться на следующей дочитке, чем ловить 403.
+   */
+  function hasGrant(workspaceName: string, grant: string): boolean {
+    return workspaceGrants(workspaceName)?.includes(grant) ?? false;
+  }
+
   // Видна ли страница (пункт меню / доступ к маршруту) внутри стола.
   function isPageVisible(meta: RouteMeta | undefined, workspaceName: string): boolean {
     const grants = workspaceGrants(workspaceName);
@@ -525,6 +542,7 @@ export const useDesktopStore = defineStore(namespace, () => {
     setRoutes,
     workspaceMenus,
     // Канон авторизации столов (grants)
+    hasGrant,
     isPageVisible,
     isWorkspaceVisible,
     hasRouteAccess,

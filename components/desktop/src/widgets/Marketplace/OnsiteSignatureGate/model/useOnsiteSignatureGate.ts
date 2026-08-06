@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { useGlobalStore } from 'src/shared/store';
+import { useDesktopStore } from 'src/entities/Desktop/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { groupAplReceptions, type ReceptionGroup } from 'src/shared/lib/marketplace';
 import {
@@ -48,6 +49,18 @@ import {
  */
 
 const PENDING_SUPPLIER_SIGN = 'PENDING_SUPPLIER_SIGN';
+
+// Гейт глобальный (оверлей поверх всего ЛК), а его источники — приватные
+// запросы разных ролей. Спрашиваем только то, на что у пайщика есть право:
+// `marketplaceListAplReceptionsAsSupplier` закрыт `Shipment:create:own` (есть
+// лишь у одобренного поставщика), `marketplaceListStockProposals` —
+// `StockProposal:read:own` (есть у заказчика, прошедшего онбординг). Без
+// проверки резолвер отвечает 403 на каждой страховочной дочитке (раз в 60 с),
+// и хотя гейт ошибку глотает, лог кооператива забивается ForbiddenException.
+const SUPPLIER_WORKSPACE = 'market-supplier';
+const SUPPLIER_GRANT = 'Shipment:create:own';
+const ORDERER_WORKSPACE = 'market';
+const ORDERER_GRANT = 'StockProposal:read:own';
 // Очная приёмка кодируется как 'A' / 'IN_PERSON' в зависимости от слоя — гейт
 // блокирует ТОЛЬКО её; экспедиторскую (B / EXPEDITOR) не трогает.
 const IN_PERSON_VARIANTS = new Set(['A', 'IN_PERSON']);
@@ -88,13 +101,18 @@ async function refresh(source = 'ручной'): Promise<void> {
     return;
   }
   const wasVisible = isVisible.value;
+  const desktop = useDesktopStore();
   loading.value = true;
   try {
     const [receptions, proposals] = await Promise.all([
-      listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
-      listStockProposals({ statuses: [Zeus.MarketplaceStockProposalStatus.PROPOSED] }).catch(
-        () => [] as MarketplaceStockProposalView[],
-      ),
+      desktop.hasGrant(SUPPLIER_WORKSPACE, SUPPLIER_GRANT)
+        ? listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[])
+        : Promise.resolve([] as MarketplaceAplReceptionView[]),
+      desktop.hasGrant(ORDERER_WORKSPACE, ORDERER_GRANT)
+        ? listStockProposals({ statuses: [Zeus.MarketplaceStockProposalStatus.PROPOSED] }).catch(
+            () => [] as MarketplaceStockProposalView[],
+          )
+        : Promise.resolve([] as MarketplaceStockProposalView[]),
     ]);
     supplierReceptions.value = receptions;
     stockProposals.value = proposals;
