@@ -8,6 +8,7 @@ import {
 } from '../dto/marketplace-offer.dto';
 import { MarketplaceOfferImagesService } from '../services/marketplace-offer-images.service';
 import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
+import { MarketplaceStockService } from '../services/marketplace-stock.service';
 
 /**
  * Story 3.2 (доп.): ленивый резолв изображений Offer'а.
@@ -26,7 +27,8 @@ import { MarketplaceOrderDisplayService } from '../services/marketplace-order-di
 export class MarketplaceOfferFieldsResolver {
   constructor(
     private readonly imagesService: MarketplaceOfferImagesService,
-    private readonly displayService: MarketplaceOrderDisplayService
+    private readonly displayService: MarketplaceOrderDisplayService,
+    private readonly stockService: MarketplaceStockService
   ) {}
 
   @ResolveField('images', () => [MarketplaceOfferImageDTO], {
@@ -54,6 +56,16 @@ export class MarketplaceOfferFieldsResolver {
   })
   async supplierName(@Parent() offer: MarketplaceOfferDTO): Promise<string | null> {
     return this.displayService.resolveAccountName(offer.supplier_account);
+  }
+
+  @ResolveField('stock_package_size', () => Float, {
+    nullable: true,
+    description:
+      'Размер упаковки, в которой остаток фактически принят на склад (Эпик 18) — только для предложений докладки со склада (stock_braname задан). Null — отпуск по мере или партии разной фасовки в остатке.',
+  })
+  async stockPackageSize(@Parent() offer: MarketplaceOfferDTO): Promise<number | null> {
+    if (!offer.stock_braname) return null;
+    return this.stockService.resolveStockPackageSize(offer.coopname, offer.id);
   }
 }
 

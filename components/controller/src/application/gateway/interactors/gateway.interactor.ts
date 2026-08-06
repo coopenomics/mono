@@ -729,13 +729,17 @@ export class GatewayInteractor {
       username: data.username,
       quantity: data.quantity,
       symbol: data.symbol,
-      // Системная выплата расширения — оплата (обычная покупка, например по
-      // акту приёма-передачи), НЕ возврат паевого взноса: разная правовая
-      // природа и разное отображение в реестре кассира.
-      type: PaymentTypeEnum.PAYMENT,
+      // Системная выплата расширения — по умолчанию «оплата» (обычная покупка,
+      // например по акту приёма-передачи); extension может передать другой
+      // тип (например AID — материальная помощь), НЕ возврат паевого взноса:
+      // разная правовая природа и разное отображение в реестре кассира.
+      type: data.type ?? PaymentTypeEnum.PAYMENT,
       direction: PaymentDirectionEnum.OUTGOING,
       provider,
-      status: PaymentStatusEnum.PENDING,
+      // Выплаты, требующие решения совета, создаются в AWAITING_AUTHORIZATION —
+      // кассиру они скрыты до принятия решения (тот же приём, что у возврата
+      // паевого взноса, см. WithdrawAuthorizationListener).
+      status: data.status ?? PaymentStatusEnum.PENDING,
       memo: data.memo,
       secret: generateUniqueHash(),
       payment_method_id: data.payment_method_id,

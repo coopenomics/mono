@@ -14,7 +14,6 @@ export interface ReceptionLineRow {
   product_name: string | null;
   fact_quantity: number;
   unit_of_measure: string | null;
-  order_unit_size: string | null;
   fact_unit_price: string | null;
 }
 
@@ -23,7 +22,7 @@ const props = defineProps<{
 }>();
 
 function qtyLabel(row: ReceptionLineRow): string {
-  return marketplaceQuantityLabel(row.fact_quantity, row.unit_of_measure, row.order_unit_size);
+  return marketplaceQuantityLabel(row.fact_quantity, row.unit_of_measure);
 }
 
 function lineSum(row: ReceptionLineRow): number {

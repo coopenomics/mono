@@ -121,6 +121,14 @@ namespace Marketplace::Memo {
     return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): восстановление членского взноса";
   }
 
+  inline std::string get_return_fee_from_common_memo(uint64_t return_request_id, uint64_t order_id) {
+    return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): возврат членского взноса из общего кошелька кооперативного участка";
+  }
+
+  inline std::string get_return_fee_to_member_memo(uint64_t return_request_id, uint64_t order_id) {
+    return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): возврат членского взноса пайщику";
+  }
+
   inline std::string get_return_transit_close_memo(uint64_t return_request_id, uint64_t order_id) {
     return "Гарантийный возврат имущества пайщиком по заявлению № " + std::to_string(return_request_id) + " (исходный заказ № " + std::to_string(order_id) + "): возврат имущества на склад";
   }

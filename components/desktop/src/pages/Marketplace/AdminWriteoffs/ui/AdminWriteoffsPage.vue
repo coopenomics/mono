@@ -5,6 +5,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { BaseBadge, BaseButton, BaseCard, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -24,7 +25,8 @@ import WriteoffProposalDetailsDialog from './WriteoffProposalDetailsDialog.vue';
 
 /**
  * Эпик 8: admin-стол «Списания». Три вкладки: «Кандидаты» — имущество на
- * складах, председатель выделяет позиции, при желании пишет причину и одной
+ * складах, председатель выделяет позиции, указывает причину списания (одна на
+ * всю подборку — backend её не угадывает, см. историю 2026-07-29) и одной
  * кнопкой подписывает Заявление 1108 и выносит проект на повестку совета
  * (черновик собирается под капотом). «На повестке» — проекты в работе совета
  * (только наблюдение). «Архив» — исполненные и отклонённые.
@@ -38,8 +40,8 @@ const inCouncil = ref<MarketplaceWriteoffProposalView[]>([]);
 const archive = ref<MarketplaceWriteoffProposalView[]>([]);
 const loading = ref(false);
 
-// Имущество на складах: председатель выделяет позиции, пишет причину и сразу
-// отправляет в совет.
+// Имущество на складах: председатель выделяет позиции, указывает причину и
+// сразу отправляет в совет.
 const candidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const selectedCandidates = ref<MarketplaceWriteoffCandidateView[]>([]);
 const writeoffReason = ref('');
@@ -106,12 +108,19 @@ async function load(): Promise<void> {
   }
 }
 
+function candidateQuantityLabel(c: MarketplaceWriteoffCandidateView): string {
+  const saleUnit = marketplaceOrderSaleUnit(Number.parseFloat(c.quantity) || 0, c.unit_of_measure, c.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function hasAmount(c: MarketplaceWriteoffCandidateView): boolean {
   return Number.parseFloat(c.amount) > 0;
 }
 
-// Один шаг: выделил имущество + (необязательно) причину → собираем черновик
-// под капотом и сразу открываем подпись Заявления для отправки в совет.
+// Один шаг: выделил имущество + указал причину → собираем черновик под
+// капотом и сразу открываем подпись Заявления для отправки в совет. Причина
+// обязательна и едина для всей подборки — backend её не угадывает (см. историю
+// 2026-07-29: угаданный дефолт молча уходил в документы как заявленная причина).
 async function signAndSend(): Promise<void> {
   const picked = selectedCandidates.value.filter(hasAmount);
   if (picked.length === 0) {
@@ -119,6 +128,11 @@ async function signAndSend(): Promise<void> {
       new Error('Нет позиций с известной стоимостью'),
       'Выделите позиции с ненулевой суммой списания',
     );
+    return;
+  }
+  const reason = writeoffReason.value.trim();
+  if (!reason) {
+    FailAlert(new Error('Не указана причина списания'), 'Укажите причину списания');
     return;
   }
   preparing.value = true;
@@ -129,15 +143,13 @@ async function signAndSend(): Promise<void> {
       await cancelWriteoffDraft(draft.value.id);
       draft.value = null;
     }
-    const reason = writeoffReason.value.trim();
     const created = await createWriteoffDraft({
       items: picked.map((c) => ({
         braname: c.braname,
         asset_title: c.asset_title,
         quantity: c.quantity,
         amount: c.amount,
-        // Пусто — причина по состоянию позиции (просрочено / ручное списание).
-        reason: reason || c.reason,
+        reason,
         // Агрегат партий: одна строка Заявления покрывает все партии товара.
         inventory_ids: c.inventory_ids,
       })),
@@ -249,7 +261,7 @@ onMounted(() => {
 <template lang="pug">
 q-page.writeoffs(role="region", aria-label="Списания скоропорта")
   PageHint(storage-key="mp:admin-writeoffs:banner-dismissed")
-    | Выделите имущество на складах к списанию, при необходимости укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего председатель кооперативного участка подтверждает выбытие со склада.
+    | Выделите имущество на складах к списанию, укажите причину и одной кнопкой подпишите Заявление — проект сразу выносится на повестку совета. Совет утверждает списание протоколом, после чего председатель кооперативного участка подтверждает выбытие со склада.
 
   //- Главное действие страницы — в шапку (канон: CTA в топбаре). Только на
   //- вкладке «Кандидаты»: собрать проект из выбора и открыть подпись.
@@ -273,8 +285,8 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     .t-muted «Просрочен» — первоочередные кандидаты; «Без гарантии» — можно списать вручную сразу (порча, использование); «Годен» — ещё в сроке гарантии, возврат возможен.
     BaseInput.q-mt-sm(
       v-model="writeoffReason",
-      label="Причина списания (необязательно)",
-      placeholder="Например: порча, использование. Пусто — причина по состоянию позиции",
+      label="Причина списания",
+      placeholder="Например: истёк срок годности, порча, использование",
       :disabled="selectedCandidates.length === 0"
     )
     q-table.full-width.q-mt-sm(
@@ -291,7 +303,7 @@ q-page.writeoffs(role="region", aria-label="Списания скоропорт�
     )
       template(#body-cell-quantity="props")
         q-td.text-right(:props="props")
-          div {{ props.row.quantity }}
+          div {{ candidateQuantityLabel(props.row) }}
           .t-muted.t-sm(v-if="props.row.lots_count > 1") из {{ props.row.lots_count }} партий
       template(#body-cell-state="props")
         q-td(:props="props")

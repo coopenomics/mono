@@ -2,23 +2,24 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
-import { FailAlert } from 'src/shared/api';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import { Avatar, BaseBadge, BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { StockRestockPanel } from 'src/widgets/Marketplace/StockRestockPanel';
 import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
-  decodeHandoffToken,
+  decodeScannedCode,
   HandoffTokenKind,
   handoffStageRoute,
-  HANDOFF_QUERY,
+  useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
 } from 'src/shared/lib/marketplace';
 import {
+  announceOrderReady,
   listIssuancesByBraname,
   type MarketplaceOrderIssuanceView,
 } from '../api';
@@ -40,10 +41,11 @@ import IssueActOpenDialog from './IssueActOpenDialog.vue';
 const route = useRoute();
 const router = useRouter();
 const store = useOperatorBranchStore();
+const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceOrderIssuanceView[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 
 const openDialog = ref(false);
 // Открываем выдачу СРАЗУ по всем позициям пайщика «к выдаче» — одна операция
@@ -64,7 +66,7 @@ interface IssuanceLine {
   /** Заказано пайщиком; больше quantity — недопоставка, показываем рядом. */
   orderedQuantity: number;
   unit: MarketplaceOrderIssuanceView['unit_of_measure'];
-  orderUnitSize: MarketplaceOrderIssuanceView['order_unit_size'];
+  packageSize: number | null;
   total: string;
   status: string;
 }
@@ -98,6 +100,11 @@ function factOf(o: MarketplaceOrderIssuanceView): { qty: number; ordered: number
   return { qty, ordered, total: qty * unitPriceWithFee };
 }
 
+function lineQuantityLabel(qty: number, l: { unit: MarketplaceOrderIssuanceView['unit_of_measure']; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(qty, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
   const map = new Map<string, IssuanceLine>();
   for (const o of orders) {
@@ -113,6 +120,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
       ex.quantity += qty;
       ex.orderedQuantity += ordered;
       ex.total = (Number.parseFloat(ex.total) + total).toFixed(4);
+      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else {
       map.set(key, {
         key,
@@ -120,7 +128,7 @@ function mergeLines(orders: MarketplaceOrderIssuanceView[]): IssuanceLine[] {
         quantity: qty,
         orderedQuantity: ordered,
         unit: o.unit_of_measure,
-        orderUnitSize: o.order_unit_size,
+        packageSize: o.package_size ?? null,
         total: total.toFixed(4),
         status: o.status,
       });
@@ -140,6 +148,10 @@ interface IssuanceGroup {
   account: string;
   name: string;
   toIssue: MarketplaceOrderIssuanceView[];
+  /** Позиции «к выдаче», по которым готовность ещё НЕ объявлена — цель кнопки. */
+  toAnnounce: MarketplaceOrderIssuanceView[];
+  /** Сколько позиций «к выдаче» уже объявлены готовыми (ждём прихода заказчика). */
+  announcedCount: number;
   toIssueLines: IssuanceLine[];
   awaitingLines: IssuanceLine[];
   total: string;
@@ -157,12 +169,16 @@ const groups = computed<IssuanceGroup[]>(() => {
   for (const [account, orders] of map) {
     const named = orders.find((o) => o.orderer_name);
     const toIssue = orders.filter((o) => o.status === 'ACCEPTED_TO_COOP');
+    const toAnnounce = toIssue.filter((o) => !o.is_ready_announced);
+    const announcedCount = toIssue.length - toAnnounce.length;
     const toIssueLines = mergeLines(toIssue);
     const awaitingLines = mergeLines(orders.filter((o) => o.status === 'READY_TO_RECEIVE'));
     out.push({
       account,
       name: named?.orderer_name || account,
       toIssue,
+      toAnnounce,
+      announcedCount,
       toIssueLines,
       awaitingLines,
       // Итог — по факту строк (склад/акт), не по заказанному: при недопоставке
@@ -196,6 +212,27 @@ function startOpen(orders: MarketplaceOrderIssuanceView[]): void {
   openDialog.value = true;
 }
 
+// Объявление готовности к выдаче: по карточке заказчика разом объявляем все его
+// ещё не объявленные позиции «к выдаче». Статус заказа не меняется — заказчику
+// уходит push «приходите заберите», позиции получают бейдж «Объявлено». Сама
+// выдача по-прежнему открывается при приходе заказчика (скан QR).
+const announcingAccount = ref<string | null>(null);
+async function announceGroup(g: IssuanceGroup): Promise<void> {
+  if (!g.toAnnounce.length || announcingAccount.value) return;
+  announcingAccount.value = g.account;
+  try {
+    for (const o of g.toAnnounce) {
+      await announceOrderReady(o.id);
+    }
+    SuccessAlert(`Заказчик оповещён — заказ готов к выдаче (${g.toAnnounce.length} позиц.).`);
+    await load();
+  } catch (e) {
+    FailAlert(e, 'Не удалось объявить готовность к выдаче');
+  } finally {
+    announcingAccount.value = null;
+  }
+}
+
 // QR-код получения: оператор сканирует account-bound код заказчика → резолвим
 // аккаунт против ленты своего КУ и показываем РАЗОМ все его заказы на выдачу.
 const scanDialogOpen = ref(false);
@@ -219,12 +256,14 @@ function startPickupIssuance(): void {
   startOpen(pickupOrders.value);
 }
 
-function onQrScanned(code: string): void {
+async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname.value);
   if (!token) {
     FailAlert(
-      new Error('Нераспознанный код. Отсканируйте код получения заказчика, код поставщика или QR с ТТН.'),
+      new Error(
+        'Нераспознанный код. Отсканируйте код получения заказчика, код поставщика, QR с ТТН или введите логин пайщика.',
+      ),
     );
     return;
   }
@@ -236,45 +275,55 @@ function onQrScanned(code: string): void {
   // не нужно знать, кто пришёл. Ведём его на «Ожидаемые поставки» с тем же кодом —
   // целевой стол сам откроет приёмку.
   if (token.kind !== HandoffTokenKind.Receive) {
+    handoffSignal.post(code);
     void router.push({
       name: handoffStageRoute('reception'),
       params: { coopname: coopname.value },
-      query: { [HANDOFF_QUERY]: code },
     });
     return;
   }
   // Заказы не обязательны: пайщик мог «просто зайти» — оператор предложит
   // ему имущество со склада кооператива (докладка, requirement 76).
   pickupAccount.value = token.account;
-  void resolvePickup();
+  await resolvePickup();
 }
+
+const PICKUP_RESOLVE_RETRIES = 2;
+const PICKUP_RESOLVE_DELAY_MS = 600;
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Резолв отсканированного кода получения: есть позиции «к выдаче» — сразу
  * открываем полную выдачу (промежуточное окно «Открыть выдачу» — лишний клик);
  * нечего открывать — показываем резолв-окно с докладкой со склада (req. 76).
+ *
+ * Несколько попыток с паузой, а не один отказ: лента собирается из composite-
+ * entity (БД + блокчейн-снапшот), парсер догоняет цепь с лагом — код передачи
+ * заказчик может показать раньше, чем лента отразит актуальный статус заказа.
  */
 async function resolvePickup(): Promise<void> {
-  // Код мог прийти с универсального сканера сразу после навигации — лента
-  // могла не успеть загрузиться, без неё резолв «у пайщика ничего нет».
-  if (!items.value.length && !loading.value) await load();
-  if (pickupToIssueCount.value > 0) {
-    startOpen(pickupOrders.value);
-    return;
+  for (let attempt = 0; attempt <= PICKUP_RESOLVE_RETRIES; attempt += 1) {
+    if (!loading.value) await load();
+    if (pickupToIssueCount.value > 0) {
+      startOpen(pickupOrders.value);
+      return;
+    }
+    if (attempt < PICKUP_RESOLVE_RETRIES) await wait(PICKUP_RESOLVE_DELAY_MS);
   }
   pickupDialogOpen.value = true;
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола приёмки) через
-// query `handoff`: подхватываем, запускаем выдачу и стираем параметр, чтобы
-// повторный показ того же кода снова сработал и обновление не зациклило.
-function consumeHandoffQuery(): void {
-  const code = route.query[HANDOFF_QUERY];
-  if (typeof code !== 'string' || !code) return;
-  const rest = { ...route.query };
-  delete rest[HANDOFF_QUERY];
-  void router.replace({ query: rest });
-  onQrScanned(code);
+// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
+// query-параметр живёт в истории роутера, и его нужно было стирать сразу после
+// чтения, а `router.replace` для этого не дожидался (fire-and-forget). Если
+// страница успевала пересобраться в промежутке (первый заход на стол в сессии —
+// догрузка чанка/стора КУ), код уже был стёрт из URL и терялся безвозвратно.
+// Стор переживает переход между страницами как есть — терять нечего.
+async function consumeHandoffSignal(): Promise<void> {
+  const code = handoffSignal.consume();
+  if (!code) return;
+  await onQrScanned(code);
 }
 
 function onOpened(): void {
@@ -283,8 +332,8 @@ function onOpened(): void {
 
 watch(braname, () => void load());
 
-// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
-watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+// Повторный заход с новым кодом (универсальный сканер уже на этом столе).
+watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
 
 // Realtime: заказчик подтвердил получение в своём кабинете (READY_TO_RECEIVE →
 // RECEIVED) — карточка уходит со стола сама; оператор у стойки видит подпись
@@ -301,7 +350,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  consumeHandoffQuery();
+  await consumeHandoffSignal();
 });
 </script>
 
@@ -310,7 +359,7 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Выдача заказов доступна председателю участка и его доверенным лицам.'
   )
@@ -351,10 +400,26 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
             BaseBadge(v-if='line.quantity < line.orderedQuantity', variant='warn') Недопоставка
+
+          //- Одна кнопка на карточку: объявить готовыми к выдаче все ещё не
+          //- объявленные позиции заказчика (заказчику уходит уведомление).
+          //- Уже объявленные показываем бейджем — оператор не жмёт повторно.
+          .issuance__announce
+            BaseButton(
+              v-if='g.toAnnounce.length',
+              variant='primary',
+              size='sm',
+              :loading='announcingAccount === g.account',
+              @click='announceGroup(g)'
+            )
+              template(#icon-left)
+                q-icon(name='campaign', size='16px')
+              | Объявить выдачу
+            BaseBadge(v-if='g.announcedCount', variant='pos') Объявлено, ждём заказчика
 
         //- Ждут получения — выдача открыта, ждём подпись заказчика.
         .issuance__section(v-if='g.awaitingLines.length')
@@ -363,9 +428,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
             .issuance__line-info
               .issuance__line-name {{ line.name }}
               .issuance__line-meta
-                | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+                | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
                 span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-                  |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+                  |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
             BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
         //- Итог по заказчику — снизу, под выдачей (не в шапке карточки).
@@ -401,9 +466,9 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
         .issuance__resolve-item-info
           .issuance__resolve-item-title {{ line.name }}
           .issuance__resolve-item-meta
-            | {{ marketplaceQuantityLabel(line.quantity, line.unit, line.orderUnitSize) }} · {{ formatAsset2Digits(line.total) }} ₽
+            | {{ lineQuantityLabel(line.quantity, line) }} · {{ formatAsset2Digits(line.total) }} ₽
             span.issuance__line-shortage(v-if='line.quantity < line.orderedQuantity')
-              |  · заказано {{ marketplaceQuantityLabel(line.orderedQuantity, line.unit, line.orderUnitSize) }}
+              |  · заказано {{ lineQuantityLabel(line.orderedQuantity, line) }}
         BaseBadge(:variant='orderStatusDisplay(line.status).variant') {{ orderStatusDisplay(line.status).label }}
 
       //- Открываем выдачу разом по всем готовым позициям пайщика — одна операция.
@@ -491,6 +556,14 @@ q-page.issuance(role='region', aria-label='Выдача заказов')
     display: flex;
     flex-direction: column;
     gap: var(--p-2, 8px);
+  }
+
+  &__announce {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--p-2, 8px);
+    margin-top: var(--p-1, 4px);
   }
 
   &__section-head {

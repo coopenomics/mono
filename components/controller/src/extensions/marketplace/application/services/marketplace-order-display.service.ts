@@ -28,6 +28,8 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import type { MarketplaceOrderDisplayFields } from '../dto/marketplace-order.dto';
+import { isStockOrder } from '../shared/order-kind.util';
+import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 
 export const MARKETPLACE_ORDER_DISPLAY_SERVICE = Symbol('MARKETPLACE_ORDER_DISPLAY_SERVICE');
 
@@ -61,7 +63,8 @@ export class MarketplaceOrderDisplayService {
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    private readonly userCertificate: UserCertificateInteractor
+    private readonly userCertificate: UserCertificateInteractor,
+    private readonly imagesService: MarketplaceOfferImagesService
   ) {}
 
   /**
@@ -113,21 +116,26 @@ export class MarketplaceOrderDisplayService {
           ? this.orderRepo.sumByCycleIds(config.coopname, cycleIds)
           : Promise.resolve([]),
         opts?.withWarehouseQuantity
-          ? this.inventoryRepo.sumOnWarehouseByOrders(
-              config.coopname,
-              orders.map((o) => o.id)
-            )
+          ? this.resolveWarehouseQuantity(orders)
           : Promise.resolve(new Map<string, number>()),
         // Полки — той же опцией, что и складской остаток: оба нужны только
         // лентам выдачи («сколько есть» + «где лежит»).
         opts?.withWarehouseQuantity
-          ? this.inventoryRepo.shelvesOnWarehouseByOrders(
-              config.coopname,
-              orders.map((o) => o.id)
-            )
+          ? this.resolveWarehouseShelves(orders)
           : Promise.resolve(new Map<string, string[]>()),
       ]);
     const offerById = new Map(offers.map((offer) => [offer.id, offer]));
+    // Обложка товара — первое изображение оффера (как в каталоге/корзине).
+    // Резолвим по уникальным офферам, не по заказам — несколько заказов часто
+    // ссылаются на один и тот же offer_id.
+    const imageUrlByOfferId = new Map<string, string>();
+    await Promise.all(
+      offers.map(async (offer) => {
+        const coverKey = offer.images?.[0]?.bucket_key;
+        if (!coverKey) return;
+        imageUrlByOfferId.set(offer.id, await this.imagesService.getReadUrl(coverKey));
+      })
+    );
     // Ключ (offer_id::braname) → накоплено всеми на этапе сбора.
     const accumulatedByKey = new Map<string, number>();
     for (const g of groupSums) {
@@ -161,8 +169,9 @@ export class MarketplaceOrderDisplayService {
       }
       result.set(order.id, {
         product_name: offer?.product_name ?? null,
+        image_url: offer ? (imageUrlByOfferId.get(offer.id) ?? null) : null,
         unit_of_measure: offer?.unit_of_measure ?? null,
-        order_unit_size: offer?.order_unit_size ?? null,
+        package_size: order.package_size ?? null,
         delivery_point_name: branch?.name ?? null,
         delivery_point_address: branch?.address ?? null,
         delivery_point_lat: branch?.lat ?? null,
@@ -179,27 +188,61 @@ export class MarketplaceOrderDisplayService {
         warehouse_shelves: opts?.withWarehouseQuantity
           ? (shelvesByOrderId.get(order.id) ?? null)
           : null,
+        warranty_until: order.warranty_until ?? null,
       });
     }
     return result;
   }
 
-  /** Реквизиты одного заказа (для getOrder). Делегирует в батч-проход. */
-  async enrichOne(order: MarketplaceOrderDomainEntity): Promise<MarketplaceOrderDisplayFields> {
-    const map = await this.enrich([order]);
+  /**
+   * Реквизиты одного заказа (для getOrder). Делегирует в батч-проход.
+   * `withGroupProgress` по умолчанию включён — страница отдельного заказа
+   * показывает ту же полосу сбора партии, что и лента «Мои заказы» (иначе
+   * group_accumulated_quantity/group_min_volume остаются null и полоса не
+   * рисуется — баг 2026-08-02). `withParticipantNames` — по требованию:
+   * страницам заказа на столах администратора и ПВЗ нужны обе стороны
+   * сделки, заказчику своего заказа — нет.
+   */
+  async enrichOne(
+    order: MarketplaceOrderDomainEntity,
+    opts?: { withGroupProgress?: boolean; withParticipantNames?: boolean }
+  ): Promise<MarketplaceOrderDisplayFields> {
+    const map = await this.enrich([order], {
+      withGroupProgress: opts?.withGroupProgress ?? true,
+      withParticipantNames: opts?.withParticipantNames ?? false,
+    });
     return map.get(order.id) ?? {};
   }
 
   /**
    * Реквизиты заказов по их идентификаторам (для позиций приёмки, где известны
    * только order_id из снапшота факта). Грузит заказы батчем и делегирует в
-   * `enrich`. Имена участников здесь не нужны — только товар/единица/ПВЗ.
+   * `enrich`. Имена участников — опционально (`withParticipantNames`): по
+   * умолчанию не резолвим (только товар/единица/ПВЗ), включаем явно там, где
+   * оператору/председателю нужно видеть «от кого» (например, лента заявлений
+   * на гарантийный возврат).
    */
-  async enrichByOrderIds(orderIds: string[]): Promise<Map<string, MarketplaceOrderDisplayFields>> {
+  async enrichByOrderIds(
+    orderIds: string[],
+    opts?: { withParticipantNames?: boolean }
+  ): Promise<Map<string, MarketplaceOrderDisplayFields>> {
     const ids = [...new Set(orderIds.filter((id) => id))];
     if (ids.length === 0) return new Map();
     const orders = await this.orderRepo.findByIds(ids);
-    return this.enrich(orders);
+    return this.enrich(orders, opts);
+  }
+
+  /**
+   * Батч человекочитаемых названий КУ (только имя, без адреса/координат) по
+   * branames — для мест, где показывать участок нужно в одну строку рядом с
+   * ФИО участника (например история решений председателя), а не полной
+   * карточкой ПВЗ с адресом/картой.
+   */
+  async resolveBranchNames(branames: string[]): Promise<Map<string, string | null>> {
+    const byBraname = await this.resolveBranches(branames);
+    const result = new Map<string, string | null>();
+    for (const [braname, info] of byBraname) result.set(braname, info.name);
+    return result;
   }
 
   /**
@@ -266,6 +309,48 @@ export class MarketplaceOrderDisplayService {
       })
     );
     return result;
+  }
+
+  /**
+   * «Принято и не выдано» по заказу — источник физического наличия зависит от
+   * происхождения заказа. Обычный заказ (у поставщика) — приёмка на склад КУ
+   * (`sumOnWarehouseByOrders`, ownership=ORDER). Заказ ИЗ ОСТАТКА кооператива
+   * (`isStockOrder`) приёмки не имеет вообще — имущество зарезервировано
+   * прямо при создании заказа (`reserveStock`, reserved_order_id), поэтому
+   * доступность считается через `sumReservedByOrders`. Раньше здесь всегда
+   * вызывался только «обычный» путь — лента выдачи ложно показывала
+   * «Недопоставка 0 из N» на товаре, который физически уже на складе
+   * (review 2026-07-28; тот же источник бага уже чинился в
+   * `MarketplaceIssuanceService.loadAvailableOnWarehouse`).
+   */
+  private async resolveWarehouseQuantity(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, number>> {
+    const stockIds = orders.filter((o) => isStockOrder(o)).map((o) => o.id);
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    const [stockSums, regularSums] = await Promise.all([
+      stockIds.length
+        ? this.inventoryRepo.sumReservedByOrders(config.coopname, stockIds)
+        : Promise.resolve(new Map<string, number>()),
+      regularIds.length
+        ? this.inventoryRepo.sumOnWarehouseByOrders(config.coopname, regularIds)
+        : Promise.resolve(new Map<string, number>()),
+    ]);
+    return new Map([...stockSums, ...regularSums]);
+  }
+
+  /**
+   * Полки — только для обычных заказов: shelf проставляется при приёмке от
+   * поставщика. У заказа из остатка кооператива своей полки нет (резерв
+   * позиций остатка не переносит их физическую полку на заказ).
+   */
+  private async resolveWarehouseShelves(
+    orders: MarketplaceOrderDomainEntity[]
+  ): Promise<Map<string, string[]>> {
+    const regularIds = orders.filter((o) => !isStockOrder(o)).map((o) => o.id);
+    return regularIds.length
+      ? this.inventoryRepo.shelvesOnWarehouseByOrders(config.coopname, regularIds)
+      : new Map();
   }
 
   /** Маппинг организации участка в отображаемые реквизиты (единый порядок fallback). */

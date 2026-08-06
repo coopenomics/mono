@@ -7,7 +7,7 @@ import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   acceptOrdersBatch,
@@ -48,7 +48,11 @@ const route = useRoute();
 const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
 const currentPage = ref(1);
-const loading = ref(false);
+// true до первого onMounted-запроса — иначе на самый первый рендер
+// (loading=false, items=[]) успевает попасть EmptyState «Нет партий» перед
+// скелетоном, особенно если fetchSupplierMinVolumeMap отвечает не мгновенно
+// (жалоба 2026-08-02).
+const loading = ref(true);
 const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
@@ -119,7 +123,10 @@ interface SupplierParty {
   productName: string;
   deliveryBraname: string;
   pvzName: string;
-  unitLabel: string;
+  /** Базовая единица (сырое значение) — для пересчёта «Итого» в упаковки (Эпик 18). */
+  unitOfMeasure: MarketplaceOrderView['unit_of_measure'];
+  /** Содержимое упаковки в базовой единице; null — по мере либо разные упаковки в партии (смешанные не считаем упаковками). */
+  packageSize: number | null;
   orders: MarketplaceOrderView[];
   totalUnits: number;
   totalCost: number;
@@ -147,7 +154,8 @@ const parties = computed<SupplierParty[]>(() => {
         productName: o.product_name || 'Товар по предложению',
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
-        unitLabel: marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size),
+        unitOfMeasure: o.unit_of_measure,
+        packageSize: o.package_size,
         orders: [],
         totalUnits: 0,
         totalCost: 0,
@@ -158,6 +166,9 @@ const parties = computed<SupplierParty[]>(() => {
       };
       buckets.set(key, p);
     }
+    // Разные упаковки внутри одной партии (заказчики выбрали разный размер) —
+    // «число упаковок» для суммы неоднозначно, откатываемся к базовой единице.
+    if (p.packageSize !== o.package_size) p.packageSize = null;
     p.orders.push(o);
     p.totalUnits += o.quantity;
     p.totalCost += parseFloat(o.total_cost) || 0;
@@ -194,6 +205,15 @@ function progressRatio(p: SupplierParty): number {
 // уже принятая партия) — успех.
 function barColor(p: SupplierParty): string {
   return p.kind === 'collecting' && hasTarget(p) && !reachedMin(p) ? 'primary' : 'positive';
+}
+
+// «Итого партии»: число упаковок, как их заказывали (Эпик 18), а не итоговый
+// объём в базовой единице — «Объём партии»/«цель» выше нарочно остаются в
+// базовой единице (это порог поставки, не зависит от того, как заказчики
+// упаковали покупку).
+function totalUnitsLabel(p: SupplierParty): string {
+  const saleUnit = marketplaceOrderSaleUnit(p.totalUnits, p.unitOfMeasure, p.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
 function formatCost(value: number): string {
@@ -325,8 +345,10 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         q-icon(name='inbox', size='48px')
 
     .incoming-orders__list(v-if='hasParties')
-      //- ЕДИНАЯ карточка партии (канон-виджет SupplyPartyCard) — та же, что у
-      //- заказчика. Действия (Принять/Отклонить) — только пока партия копится.
+      //- Канон-виджет SupplyPartyCard. Действия (Принять/Отклонить) — только
+      //- пока партия копится; бар сбора — тоже только пока копится (после
+      //- приёма/получения «100%» не несёт информации, только шум — жалоба
+      //- 2026-08-02).
       SupplyPartyCard(
         v-for='p in parties',
         :key='p.key',
@@ -335,13 +357,12 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
         hide-order-count,
-        :volume-label='`Объём партии: ${p.totalUnits}×${p.unitLabel}`',
-        :target-label='hasTarget(p) ? `цель — от ${p.minVolume}×${p.unitLabel}` : ""',
         :progress='progressRatio(p)',
         :bar-color='barColor(p)',
+        :show-progress='p.kind === "collecting" && hasTarget(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${p.totalUnits}×${p.unitLabel}`'
+        :total-value='`${formatCost(p.totalCost)} · ${totalUnitsLabel(p)}`'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')

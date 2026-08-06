@@ -11,15 +11,29 @@ import type {
   MarketplaceReturnClaimOnSiteInspectionDTO,
   MarketplaceReturnClaimPhotoDTO,
 } from '../dto/marketplace-return-claim.dto';
+import type { MarketplaceUnitOfMeasureEnum } from '../dto/marketplace-offer.dto';
 
 /**
  * Преобразование domain → GraphQL DTO. Подписанные URL фотографий запрашиваются
  * у переданного `urlResolver` (имплементация знает про bucket file-storage —
  * resolver просто проксирует на `MarketplaceReturnClaimService.getPhotoReadUrl`).
  */
+export interface MarketplaceReturnClaimDisplayFields {
+  product_name?: string | null;
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
+  package_size?: number | null;
+  orderer_name?: string | null;
+  warranty_until?: Date | null;
+}
+
 export async function toMarketplaceReturnClaimDTO(
   claim: MarketplaceReturnClaimDomainEntity,
-  urlResolver: (bucket_key: string) => Promise<string>
+  urlResolver: (bucket_key: string) => Promise<string>,
+  display?: MarketplaceReturnClaimDisplayFields,
+  /** ФИО председателей, встречающихся в decision_log (аккаунт → имя), для истории решений. */
+  chairmanNames?: Map<string, string | null>,
+  /** Человекочитаемые названия КУ, встречающихся в decision_log, для истории решений. */
+  branchNames?: Map<string, string | null>
 ): Promise<MarketplaceReturnClaimDTO> {
   const photos = await Promise.all(claim.photos.map((p) => toPhotoDTO(p, urlResolver)));
   const inspection = claim.on_site_inspection
@@ -32,7 +46,12 @@ export async function toMarketplaceReturnClaimDTO(
     request_hash: claim.request_hash,
     order_id: claim.order_id,
     order_hash: claim.order_hash,
+    product_name: display?.product_name ?? null,
+    unit_of_measure: display?.unit_of_measure ?? null,
+    package_size: display?.package_size ?? null,
     orderer_account: claim.orderer_account,
+    orderer_name: display?.orderer_name ?? null,
+    warranty_until: display?.warranty_until ?? null,
     delivery_braname: claim.delivery_braname,
     supplier_account: claim.supplier_account,
     status: claim.status,
@@ -41,9 +60,15 @@ export async function toMarketplaceReturnClaimDTO(
     expected_resolution: claim.expected_resolution,
     actual_quantity: claim.actual_quantity,
     fact_cost: claim.fact_cost,
+    fee_refund: claim.fee_refund,
+    // Полная сумма возврата — то, что пайщик реально получит обратно; считаем
+    // здесь, чтобы каждый клиент не складывал две суммы самостоятельно.
+    total_refund: (
+      Number.parseFloat(claim.fact_cost) + Number.parseFloat(claim.fee_refund)
+    ).toFixed(4),
     photos,
     submretrn_tx_hash: claim.submretrn_tx_hash,
-    decision_log: claim.decision_log.map(toDecisionEntryDTO),
+    decision_log: claim.decision_log.map((entry) => toDecisionEntryDTO(entry, chairmanNames, branchNames)),
     on_site_inspection: inspection,
     ledger_snapshot: claim.ledger_snapshot ? toLedgerSnapshotDTO(claim.ledger_snapshot) : null,
     created_at: claim.created_at,
@@ -67,13 +92,17 @@ async function toPhotoDTO(
 }
 
 function toDecisionEntryDTO(
-  entry: MarketplaceReturnClaimDecisionLogEntry
+  entry: MarketplaceReturnClaimDecisionLogEntry,
+  chairmanNames?: Map<string, string | null>,
+  branchNames?: Map<string, string | null>
 ): MarketplaceReturnClaimDecisionEntryDTO {
   return {
     stage: entry.stage,
     decision: entry.decision,
     by_chairman_account: entry.by_chairman_account,
+    by_chairman_name: chairmanNames?.get(entry.by_chairman_account) ?? null,
     braname: entry.braname,
+    braname_name: branchNames?.get(entry.braname) ?? null,
     comment: entry.comment,
     at: new Date(entry.at),
     tx_hash: entry.tx_hash,

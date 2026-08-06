@@ -249,6 +249,17 @@ describe('MarketplaceWriteoffService', () => {
         service.createDraft({ ...baseInput, items: [buildItem({ amount: '-5' })] })
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('BadRequest — причина списания не указана (пусто/пробелы)', async () => {
+      mocks.repo.findOpenDraft.mockResolvedValue(null);
+      mocks.repo.findOpenInCouncil.mockResolvedValue(null);
+      await expect(
+        service.createDraft({ ...baseInput, items: [buildItem({ reason: '' })] })
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.createDraft({ ...baseInput, items: [buildItem({ reason: '   ' })] })
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   // ── computeProposalHash ────────────────────────────────────────────────

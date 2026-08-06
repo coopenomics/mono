@@ -29,9 +29,11 @@
         <q-space />
       </div>
 
-      <q-card-section class="mp-takeover__body" :class="{ 'mp-takeover__body--wide': wide }">
-        <div v-if="leadText" :id="leadId" class="mp-takeover__lead">{{ leadText }}</div>
-        <slot />
+      <q-card-section class="mp-takeover__body">
+        <div class="mp-takeover__body-inner" :class="{ 'mp-takeover__body-inner--wide': wide }">
+          <div v-if="leadText" :id="leadId" class="mp-takeover__lead">{{ leadText }}</div>
+          <slot />
+        </div>
       </q-card-section>
 
       <q-separator />
@@ -117,21 +119,6 @@ function onConfirm() {
   background: var(--mp-surface-0);
   color: var(--mp-on-surface);
 
-  // Тонкая 4px-полоса акцента слева — единственный источник цвета в шапке
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 4px;
-    background: var(--q-primary);
-  }
-
-  &--success::before { background: var(--q-positive); }
-  &--warning::before { background: var(--q-warning); }
-  &--danger::before  { background: var(--q-negative); }
-
   &__bar {
     display: flex;
     align-items: center;
@@ -161,13 +148,22 @@ function onConfirm() {
     color: var(--mp-on-surface);
   }
 
+  // Скроллится ВЕСЬ блок во всю ширину диалога — скроллбар живёт у правого
+  // края окна, как ожидается от modal/takeover. Центрированная колонка
+  // контента (max-width) — отдельный НЕ скроллящийся вложенный элемент;
+  // раньше overflow висел прямо на центрированном 720px-блоке, и скроллбар
+  // рисовался у его края посреди экрана, а не у края диалога (см. review
+  // 2026-07-27).
   &__body {
     flex: 1;
-    overflow: auto;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  &__body-inner {
     padding: var(--mp-space-xl) var(--mp-space-lg);
     max-width: 720px;
     margin: 0 auto;
-    width: 100%;
 
     &--wide {
       max-width: none;

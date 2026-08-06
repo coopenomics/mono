@@ -12,6 +12,14 @@ export const marketplaceReturnClaimFinalizedPayloadSchema = z.object({
   claim_id: z.string(),
   order_id: z.string(),
   returnedAmount: z.string().optional(),
+  /**
+   * Готовый суффикс для in-app/push («` — 100,00 ₽ восстановлены`» либо
+   * пустая строка) — считается на бэкенде, а не через `{% if %}` в теле
+   * шага. Liquid-условия в in_app/pushControlValues Центром уведомлений не
+   * вычисляются (тег остаётся как есть в тексте) — только email-шаблоны
+   * (`editorType: 'html'`) идут через полноценный рендер (review 2026-07-28).
+   */
+  returnedAmountSuffix: z.string().default(''),
   deepLinkUrl: z.string().optional(),
 });
 
@@ -38,12 +46,12 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
     createInAppStep(
       'marketplace-return-claim-finalized-notification',
       'Гарантийный возврат завершён',
-      '{{payload.outcomeHuman}}{% if payload.returnedAmount %} — {{payload.returnedAmount}} ₽ восстановлены{% endif %}.'
+      '{{payload.outcomeHuman}}{{payload.returnedAmountSuffix}}.'
     ),
     createPushStep(
       'marketplace-return-claim-finalized-push',
       'Гарантийный возврат завершён',
-      '{{payload.outcomeHuman}}{% if payload.returnedAmount %} — {{payload.returnedAmount}} ₽ восстановлены{% endif %}.'
+      '{{payload.outcomeHuman}}{{payload.returnedAmountSuffix}}.'
     ),
   ])
   .build();

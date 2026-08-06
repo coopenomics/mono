@@ -31,14 +31,26 @@ const props = defineProps<{
    * счётчик остаётся.
    */
   hideOrderCount?: boolean;
-  /** Левая подпись прогресса целиком, напр. «Объём партии: 5 кг». */
-  volumeLabel: string;
-  /** Правая muted-подпись (цель сбора), напр. «цель — от 10 кг». Пусто — скрыта. */
-  targetLabel?: string;
-  /** Заполнение прогресс-бара 0..1. */
+  /**
+   * Заполнение прогресс-бара 0..1 (доля от минимального объёма поставки).
+   * Абсолютные величины (сколько литров/упаковок набрано) на баре не
+   * показываем — набор в партии может идти разными упаковками одного товара,
+   * а порог сбора всегда в базовой единице, поэтому смешивать их в одной
+   * подписи вводит в заблуждение (Эпик 18, инцидент «Объём партии: 1×л» при
+   * 10 упаковках по 0,1 л). Точный состав — ниже, в `totalValue` («10×упак.
+   * 0,1 л»). Бар — только процент готовности; сам объём/цель поставщик и так
+   * задавал при настройке предложения.
+   */
   progress: number;
   /** Цвет бара (Quasar color): primary пока копится, positive когда набрано/принято. */
   barColor: string;
+  /**
+   * Показывать бар вообще. Имеет смысл только пока партия реально копится к
+   * цели — после приёма/получения бар всегда «100%» и не несёт информации,
+   * только шум (жалоба 2026-08-02). Передаётся страницей: `kind === 'collecting'
+   * && hasTarget`.
+   */
+  showProgress?: boolean;
   /** Состав партии строками: кто · сколько · стоимость. */
   // `who` опционально: на столе поставщика ФИО заказчиков НЕ показываем
   // (приватность — поставщику видны только объёмы партии, не кто заказал).
@@ -90,17 +102,16 @@ function onCardClick(): void {
         q-icon(name="layers", size="14px")
         | {{ orderCount }} заказ
 
-  .supply-party__progress
-    .supply-party__progress-row
-      span.t-muted {{ volumeLabel }}
-      span.t-muted(v-if="targetLabel") {{ targetLabel }}
+  .supply-party__progress(v-if="showProgress !== false")
     q-linear-progress.supply-party__progress-bar(
       :value="progress",
       rounded,
-      size="10px",
+      size="28px",
       :color="barColor",
       track-color="grey-3"
     )
+      .absolute-full.flex.flex-center
+        span.supply-party__progress-percent {{ Math.round(progress * 100) }}%
     .t-muted.supply-party__progress-hint(v-if="$slots.hint")
       slot(name="hint")
 
@@ -159,15 +170,15 @@ function onCardClick(): void {
     gap: var(--p-3, 12px);
   }
 
-  &__progress-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: var(--p-fs-body);
-  }
-
   &__progress-bar {
     border-radius: var(--p-r-sm, 8px);
+  }
+
+  &__progress-percent {
+    font-size: var(--p-fs-body-sm, 12px);
+    font-weight: 600;
+    color: var(--p-ink-on-primary);
+    font-variant-numeric: tabular-nums;
   }
 
   &__progress-hint {

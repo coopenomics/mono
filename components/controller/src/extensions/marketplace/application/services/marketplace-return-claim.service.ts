@@ -13,6 +13,13 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { HttpApiError } from '~/utils/httpApiError';
+import { toQuantityAsset } from '../shared/quantity.util';
+import {
+  calcCostAmount,
+  minorToDecimalString,
+  proRataByMoney,
+  proRataByQuantity,
+} from '../shared/cost.util';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
@@ -22,6 +29,18 @@ import {
   type MarketplaceOrderDomainRepository,
 } from '../../domain/repositories/marketplace-order.repository';
 import {
+  MARKETPLACE_OFFER_REPOSITORY,
+  type MarketplaceOfferDomainRepository,
+} from '../../domain/repositories/marketplace-offer.repository';
+import {
+  MARKETPLACE_INVENTORY_REPOSITORY,
+  type MarketplaceInventoryDomainRepository,
+} from '../../domain/repositories/marketplace-inventory.repository';
+import {
+  MarketplaceInventoryOwnerships,
+  MarketplaceInventoryStatuses,
+} from '../../domain/entities/marketplace-inventory.types';
+import {
   MARKETPLACE_RETURN_CLAIM_REPOSITORY,
   type MarketplaceReturnClaimDomainRepository,
 } from '../../domain/repositories/marketplace-return-claim.repository';
@@ -29,6 +48,11 @@ import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_ASSET_CONFIG,
+  type MarketplaceAssetConfig,
+} from './marketplace-asset.config';
+import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
 import { MarketplaceReturnClaimImagesService } from './marketplace-return-claim-images.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
@@ -87,7 +111,8 @@ export interface MarketplaceApproveReturnVisitInput {
   chairman_account: string;
   braname: string;
   claim_id: string;
-  comment: string;
+  /** Опционально: одобрение (в отличие от отказа) не обязано мотивироваться. */
+  comment?: string;
 }
 
 export interface MarketplaceRejectReturnRemoteInput {
@@ -158,8 +183,14 @@ export class MarketplaceReturnClaimService {
     private readonly claimRepo: MarketplaceReturnClaimDomainRepository,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(MARKETPLACE_OFFER_REPOSITORY)
+    private readonly offerRepo: MarketplaceOfferDomainRepository,
+    @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
+    @Inject(MARKETPLACE_ASSET_CONFIG)
+    private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     private readonly imagesService: MarketplaceReturnClaimImagesService,
     private readonly eventBus: EventEmitter2,
@@ -203,7 +234,6 @@ export class MarketplaceReturnClaimService {
     order_id: string;
     actual_quantity?: number;
     reason_text?: string;
-    defect_category?: MarketplaceReturnClaimDefectCategory | null;
   }): Promise<DocumentDomainEntity> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
     const quantity = this.resolveActualQuantity(order, input.actual_quantity);
@@ -212,7 +242,6 @@ export class MarketplaceReturnClaimService {
       orderer: input.orderer_account,
       actual_quantity: quantity,
       reason_text: input.reason_text,
-      defect_category: input.defect_category ?? undefined,
     });
   }
 
@@ -285,6 +314,7 @@ export class MarketplaceReturnClaimService {
     });
 
     const fact_cost = this.computeFactCost(order, actual_quantity);
+    const fee_refund = this.computeFeeRefund(order, actual_quantity);
 
     // Сначала кладём фото в bucket, чтобы on-chain submit мог опереться
     // на их sha256-хеши.
@@ -305,7 +335,7 @@ export class MarketplaceReturnClaimService {
         orderer: input.orderer_account,
         request_hash,
         original_order_hash: order.order_hash,
-        actual_quantity,
+        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
         reason_text: input.reason_text,
         photos: photos.map((p) => p.content_hash),
         statement: statementAct,
@@ -342,6 +372,7 @@ export class MarketplaceReturnClaimService {
       expected_resolution: MarketplaceReturnClaimExpectedResolutions.FUNDS_RETURN,
       actual_quantity,
       fact_cost,
+      fee_refund,
       photos,
       statement: input.signed_statement as ISignedDocumentDomainInterface,
       submretrn_tx_hash: txHash,
@@ -370,8 +401,8 @@ export class MarketplaceReturnClaimService {
   async approveReturnVisit(
     input: MarketplaceApproveReturnVisitInput
   ): Promise<MarketplaceReturnClaimResult> {
-    if (!input.comment || input.comment.trim().length === 0) {
-      throw new BadRequestException('Укажите комментарий к одобрению.');
+    if (input.comment && input.comment.length > 500) {
+      throw new BadRequestException('Комментарий не может быть длиннее 500 символов.');
     }
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
@@ -410,7 +441,7 @@ export class MarketplaceReturnClaimService {
       decision: 'approve_visit',
       by_chairman_account: input.chairman_account,
       braname: input.braname,
-      comment: input.comment,
+      comment: input.comment?.trim() ?? '',
       at: new Date(),
       tx_hash: txHash,
     };
@@ -497,8 +528,10 @@ export class MarketplaceReturnClaimService {
     }
     this.assertBranameMatchesClaim(claim, input.braname, 'приём возврата на месте');
     // Story 7.3/FR32: считанный штрих-код фиксируется в decision_log/inspection
-    // для аудита; полноценная сверка с marketplace_inventory будет реализована
-    // вместе с canonical Inventory (Эпик 5/9).
+    // для аудита (сверка конкретной промаркированной единицы — вне MVP).
+    // Складской учёт возвращённого количества — см. restockReturnedItem ниже:
+    // отдельная позиция обезличенного остатка КУ, неопубликованная, доступная
+    // председателю к повторной публикации или списанию (review 2026-07-28).
 
     // Принятие возврата = вторая подпись председателя на заявлении пайщика
     // (тот же документ registry 1104 с двумя подписями), контракт сверяет обе.
@@ -580,6 +613,13 @@ export class MarketplaceReturnClaimService {
     this.logger.log(
       `Заявление на возврат ${claim.id} принято: compensating forward выполнен на ${claim.fact_cost} (tx=${txHash}).`
     );
+
+    // Физическое имущество возвращается на склад КУ отдельной позицией
+    // обезличенного остатка кооператива — best-effort: сбой складского учёта
+    // не должен откатывать уже проведённый на цепи compensating forward
+    // (деньги пайщику важнее бухгалтерии остатка, которую можно поправить
+    // вручную).
+    await this.restockReturnedItem(claim, input.braname, input.chairman_account, at);
 
     this.emitDecided(updated, entry);
     this.emitFinalized(updated, entry);
@@ -762,9 +802,91 @@ export class MarketplaceReturnClaimService {
     return requested;
   }
 
+  /**
+   * Эффективная цена за базовую единицу (кг/л/шт), выведенная из фактической
+   * выдачи (issuedCost/issuedQty), а не из `order.price_per_unit` напрямую:
+   * при отпуске упаковкой (Эпик 18) `price_per_unit` — цена ЗА УПАКОВКУ, а
+   * `actual_quantity` возврата — всегда в базовых единицах, так что прямое
+   * произведение было бы неверным для packaged-офферов (review 2026-07-27 —
+   * заявление показывало заведомо несвязанные «стоимость единицы»/«сумма
+   * возврата»). Показывается в заявлении; сумма возврата считается не через
+   * неё, а пропорцией от фактической суммы выдачи (см. computeFactCost).
+   */
+  private effectiveUnitCost(order: MarketplaceOrderDomainEntity): number {
+    const issuedQty = order.issuance_fact?.actual_quantity ?? order.quantity;
+    const issuedCost = Number.parseFloat(order.issuance_fact?.fact_cost ?? order.total_cost);
+    if (!(issuedQty > 0)) return Number.parseFloat(order.price_per_unit);
+    return issuedCost / issuedQty;
+  }
+
+  /**
+   * Стоимость возвращаемого имущества — доля фактической суммы выдачи,
+   * пропорциональная возвращаемому количеству. Зеркало контракта (submretrn
+   * через `Marketplace::pro_rata`): деление от уже сложившейся суммы, а не
+   * пересчёт от цены — так возврат совпадает с уплаченным до копейки, включая
+   * случай, когда оператор скорректировал цену на выдаче.
+   */
   private computeFactCost(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
-    const unitPrice = Number.parseFloat(order.price_per_unit);
-    return (actual_quantity * unitPrice).toFixed(4);
+    const decimals = this.assetConfig.decimals;
+    const issuedQty = order.issuance_fact?.actual_quantity ?? order.quantity;
+    const issuedCost = order.issuance_fact?.fact_cost ?? order.total_cost;
+    if (!(issuedQty > 0)) {
+      return calcCostAmount({
+        quantity: actual_quantity,
+        unit: order.unit_of_measure,
+        unitPrice: order.price_per_unit,
+        packageSize: order.package_size,
+        decimals,
+      });
+    }
+    return proRataByQuantity({
+      total: issuedCost,
+      part: actual_quantity,
+      whole: issuedQty,
+      unit: order.unit_of_measure,
+      decimals,
+    });
+  }
+
+  /**
+   * Доля членского взноса, возвращаемая вместе с имуществом. Зеркало формулы
+   * контракта (submretrn): взнос, фактически принятый кооперативом на выдаче,
+   * масштабированный по доле возвращаемого количества. При возврате всего
+   * выданного количества возвращается принятый взнос целиком — пайщик получает
+   * обратно ровно ту сумму, которую заплатил за заказ.
+   *
+   * Значение здесь — read-model для UI и документа заявления; фактическое
+   * движение средств делает контракт своей копией расчёта.
+   */
+  private computeFeeRefund(order: MarketplaceOrderDomainEntity, actual_quantity: number): string {
+    const decimals = this.assetConfig.decimals;
+    const lockedFee = order.membership_fee ?? '0';
+    const totalCost = order.total_cost;
+    const issuedQty = order.issuance_fact?.actual_quantity ?? 0;
+    const issuedCost = order.issuance_fact?.fact_cost ?? '0';
+    if (
+      !(Number.parseFloat(lockedFee) > 0) ||
+      !(Number.parseFloat(totalCost) > 0) ||
+      !(issuedQty > 0)
+    ) {
+      return minorToDecimalString(0n, decimals);
+    }
+
+    // Взнос, принятый кооперативом на выдаче, — той же пропорцией, что применил
+    // контракт в signiss2; затем доля возвращаемого количества.
+    const acceptedFee = proRataByMoney({
+      total: lockedFee,
+      part: issuedCost,
+      whole: totalCost,
+      decimals,
+    });
+    return proRataByQuantity({
+      total: acceptedFee,
+      part: actual_quantity,
+      whole: issuedQty,
+      unit: order.unit_of_measure,
+      decimals,
+    });
   }
 
   private computeRequestHash(input: {
@@ -781,9 +903,21 @@ export class MarketplaceReturnClaimService {
     orderer: string;
     actual_quantity: number;
     reason_text?: string;
-    defect_category?: string | null;
   }): Promise<DocumentDomainEntity> {
     const fact_cost = this.computeFactCost(input.order, input.actual_quantity);
+    // Артикул/наименование/единица/цена — из заказа и его оферты, не из
+    // заглушки фабрики (см. review 2026-07-27: заглушка возвращала одни и те
+    // же тестовые данные независимо от order_id).
+    const offer = await this.offerRepo.findById(input.order.offer_id);
+    // Категория дефекта в MVP не собирается формой (см. Story 7.1) и в
+    // документ не попадает — на заявке (claim.defect_category) поле
+    // остаётся про запас на будущее, но в тело подписываемого документа
+    // не прокидывается вообще (не как null, не как пропущенный ключ):
+    // отсутствующее необязательное поле в meta ловило рассинхрон между
+    // GraphQL/JSON-транспортом клиенту (роняет undefined-ключи) и MongoDB
+    // (материализует их в null) — client-side canonicalize(meta) давал
+    // разные meta_hash при подписи и при повторном чтении для со-подписи
+    // председателя («Хэш метаданных не совпадает», см. review 2026-07-27).
     const action: Cooperative.Registry.MarketplaceReturnStatement.Action = {
       registry_id: Cooperative.Registry.MarketplaceReturnStatement.registry_id,
       coopname: input.order.coopname,
@@ -792,10 +926,17 @@ export class MarketplaceReturnClaimService {
       order_hash: input.order.order_hash,
       braname: input.order.delivery_braname,
       reason_text: input.reason_text ?? '',
-      defect_category: input.defect_category ?? undefined,
       actual_quantity: input.actual_quantity,
       fact_cost,
-      skip_save: true,
+      sku: input.order.offer_id,
+      product_title: offer?.product_name ?? 'Товар по предложению',
+      unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
+      unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
+      currency: this.assetConfig.symbol,
+      // Тело документа сохраняется в стор: председателю при со-подписи на
+      // очном осмотре нужен ИСХОДНЫЙ документ (тот же порядок/состав ключей
+      // meta) по doc_hash через buildDocumentAggregate — как и в АПП-приёмке.
+      skip_save: false,
     };
     return this.documentDomainService.generateDocument({ data: action });
   }
@@ -939,6 +1080,84 @@ export class MarketplaceReturnClaimService {
       inspection_result: inspectionResult,
     };
     this.eventBus.emit(MARKETPLACE_RETURN_ACCEPTED_FOR_SUPPLIER_EVENT, event);
+  }
+
+  /**
+   * Возвращённое по гарантии имущество зачисляется отдельной позицией
+   * обезличенного остатка кооператива (ownership=COOP, неопубликованная,
+   * `RECEIVED`) — той же самой таблицы, что и «осталось после недовыдач и
+   * отказов» (requirement 76): председатель либо публикует её заново
+   * (`marketplacePublishStock`), либо ничего не делает — по истечении срока
+   * годности позиция подсвечивается кандидатом на списание (`is_expired`,
+   * тот же механизм, что и у обычного остатка), либо списывает вручную сразу
+   * как брак.
+   *
+   * Срок годности/цену прибытия берём с ИСХОДНОЙ позиции склада этого заказа
+   * (если она сохранилась — приёмка не удаляет строки, только меняет статус
+   * ISSUED), а не пересчитываем заново от `shelf_life_days` оффера: срок
+   * годности партии не «продлевается» тем, что она съездила к пайщику и
+   * вернулась.
+   *
+   * Best-effort: сбой здесь не должен откатывать уже проведённый на цепи
+   * compensating forward — деньги пайщику важнее бухгалтерии остатка,
+   * которую при сбое видно в логе и можно поправить вручную.
+   */
+  private async restockReturnedItem(
+    claim: MarketplaceReturnClaimDomainEntity,
+    braname: string,
+    chairman_account: string,
+    at: Date
+  ): Promise<void> {
+    try {
+      const order = await this.orderRepo.findById(claim.order_id);
+      if (!order) {
+        this.logger.warn(
+          `restockReturnedItem: заказ ${claim.order_id} не найден — возврат claim ${claim.id} не зачислен в остаток.`
+        );
+        return;
+      }
+      const offer = await this.offerRepo.findById(order.offer_id);
+      // Обычный заказ — исходная позиция несёт этот order_id напрямую; заказ
+      // из остатка (stockorder) резервирует уже существующие COOP-позиции
+      // через reserved_order_id (order_id на них не переносится, см.
+      // reserveStock/finalizeReservedIssue) — пробуем оба пути.
+      const [byOrderId, byReservedOrderId] = await Promise.all([
+        this.inventoryRepo.list({ coopname: claim.coopname, order_id: claim.order_id }),
+        this.inventoryRepo.list({ coopname: claim.coopname, reserved_order_id: claim.order_id }),
+      ]);
+      const origin = byOrderId[0] ?? byReservedOrderId[0] ?? null;
+      const arrival_price = origin?.arrival_price ?? order.price_per_unit;
+      const expiry_date =
+        origin?.expiry_date ??
+        (offer?.shelf_life_days
+          ? new Date(at.getTime() + offer.shelf_life_days * 86_400_000)
+          : null);
+
+      await this.inventoryRepo.create({
+        coopname: claim.coopname,
+        order_id: claim.order_id,
+        shipment_id: `return:${claim.id}`,
+        braname,
+        status: MarketplaceInventoryStatuses.RECEIVED,
+        product_name_snapshot: offer?.product_name ?? 'Возвращённый товар',
+        quantity_per_label: claim.actual_quantity,
+        orderer_account_snapshot: claim.orderer_account,
+        received_at: at,
+        received_by_operator_account: chairman_account,
+        expiry_date,
+        ownership: MarketplaceInventoryOwnerships.COOP,
+        arrival_price,
+      });
+
+      this.logger.log(
+        `Заявление на возврат ${claim.id}: имущество (${claim.actual_quantity} ед.) зачислено в остаток кооператива КУ ${braname}.`
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `restockReturnedItem: не удалось зачислить возврат claim ${claim.id} в остаток (${message}) — сверить остаток вручную.`
+      );
+    }
   }
 }
 

@@ -112,6 +112,7 @@ export class MarketplaceWriteoffResolver {
     const limit = options?.limit ?? 50;
     const items = result.items.map(toMarketplaceWriteoffProposalDTO);
     await this.enrichItemBranchNames(items);
+    await this.enrichItemUnits(items);
     return {
       items,
       totalCount: result.total,
@@ -131,6 +132,7 @@ export class MarketplaceWriteoffResolver {
   ): Promise<MarketplaceWriteoffProposalDTO> {
     const dto = toMarketplaceWriteoffProposalDTO(await this.service.getProposal(id));
     await this.enrichItemBranchNames([dto]);
+    await this.enrichItemUnits([dto]);
     return dto;
   }
 
@@ -381,6 +383,18 @@ export class MarketplaceWriteoffResolver {
       for (const it of d.items) {
         it.branch_name = names[it.braname] ?? it.braname;
       }
+    }
+  }
+
+  /** Единица измерения + содержимое упаковки (Эпик 18) — по первой партии строки. */
+  private async enrichItemUnits(dtos: MarketplaceWriteoffProposalDTO[]): Promise<void> {
+    const items = dtos.flatMap((d) => d.items);
+    if (items.length === 0) return;
+    const display = await this.service.resolveItemDisplayMap(items);
+    for (const it of items) {
+      const d = display.get(it.inventory_ids[0] ?? '');
+      it.unit_of_measure = d?.unit_of_measure ?? null;
+      it.package_size = d?.package_size ?? null;
     }
   }
 

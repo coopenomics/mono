@@ -69,6 +69,9 @@ static constexpr eosio::name _product_contribution_action = "productcntr"_n;
 static constexpr eosio::name _product_return_action = "productrtrn"_n;
 static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     ///< Списание скоропорта по решению совета (p.mkt.wroff)
 
+// branch linked actions
+static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
+
 // capitalization linked actions
 
 
@@ -97,6 +100,7 @@ static const std::set<eosio::name> soviet_actions = {
     "branchdec"_n, //решение собрания пайщиков об учреждении кооперативного участка
     "branchliab"_n, //договор о полной материальной ответственности председателя участка (линк в пакет совета)
     "branchauth"_n, //доверенность председателю кооперативного участка (линк в пакет совета)
+    "brnaid"_n, //заявление на материальную помощь доверенному участка на повестку совета (p.brn.aid)
     //CAPITAL
     "capitalinvst"_n, //заявление на инвестиции по договору УХД
     "createresult"_n, //клайм прироста благороста из задания
@@ -224,7 +228,14 @@ static constexpr uint64_t _capital_program_id = 4;
 
 
     static constexpr eosio::symbol _root_symbol = eosio::symbol(eosio::symbol_code("AXON"), 4); /*!< системный токен */
-    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4); 
+    static constexpr eosio::symbol _root_govern_symbol = eosio::symbol(eosio::symbol_code("RUB"), 4);
+
+    // Единицы измерения количества имущества marketplace (Эпик 17, L14):
+    // количество — fixed-point asset с символом единицы. Точность = младшая
+    // единица: KG(3)=граммы, LTR(3)=миллилитры, PCS(0)=штука неделима.
+    static constexpr eosio::symbol _unit_kg    = eosio::symbol(eosio::symbol_code("KG"),  3);
+    static constexpr eosio::symbol _unit_liter = eosio::symbol(eosio::symbol_code("LTR"), 3);
+    static constexpr eosio::symbol _unit_piece = eosio::symbol(eosio::symbol_code("PCS"), 0);
     static const eosio::asset _provider_initial = eosio::asset(1000000, _root_govern_symbol);
     static const eosio::asset _provider_minimum = eosio::asset(3000000, _root_govern_symbol);
     

@@ -21,6 +21,7 @@ import {
   MarketplaceReturnClaimSignablePayloadInputDTO,
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
+import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
@@ -30,6 +31,10 @@ import {
   MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
   MarketplaceBranchOwnershipService,
 } from '../services/marketplace-branch-ownership.service';
+import {
+  MARKETPLACE_ORDER_DISPLAY_SERVICE,
+  MarketplaceOrderDisplayService,
+} from '../services/marketplace-order-display.service';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
@@ -60,7 +65,9 @@ export class MarketplaceReturnClaimResolver {
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
     private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
-    private readonly branchOwnership: MarketplaceBranchOwnershipService
+    private readonly branchOwnership: MarketplaceBranchOwnershipService,
+    @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
+    private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
   @Query(() => GeneratedDocumentDTO, {
@@ -80,7 +87,6 @@ export class MarketplaceReturnClaimResolver {
       order_id: data.order_id,
       actual_quantity: data.actual_quantity,
       reason_text: data.reason_text,
-      defect_category: data.defect_category,
     });
     return toGeneratedDocumentDTO(doc);
   }
@@ -207,7 +213,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceReturnClaimDTO[]> {
     const claims = await this.service.listByOrderer(config.coopname, member.username);
-    return Promise.all(claims.map((c) => this.toClaimDTO(c)));
+    return this.toClaimDTOs(claims);
   }
 
   @Query(() => [MarketplaceReturnClaimDTO], {
@@ -238,7 +244,7 @@ export class MarketplaceReturnClaimResolver {
       config.coopname,
       data.delivery_braname
     );
-    return Promise.all(claims.map((c) => this.toClaimDTO(c)));
+    return this.toClaimDTOs(claims);
   }
 
   @Query(() => MarketplaceReturnClaimDTO, {
@@ -246,7 +252,11 @@ export class MarketplaceReturnClaimResolver {
     description: 'Получить одно заявление на гарантийный возврат по идентификатору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('ReturnClaim', 'read:own')
+  // OR по капабилити: заказчик читает своё (read:own), председатель/доверенный
+  // КУ доставки — заявления своего участка (read:own-KU). Guard пропускает по
+  // ЛЮБОМУ из них — какое именно применимо к КОНКРЕТНОМУ заявлению (заказчик
+  // ли он, или председатель именно ЭТОГО КУ) резолвер проверяет сам ниже.
+  @RequireMarketplaceAccess('ReturnClaim', ['read:own', 'read:own-KU'])
   async marketplaceReturnClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
@@ -304,7 +314,57 @@ export class MarketplaceReturnClaimResolver {
   private async toClaimDTO(
     claim: Awaited<ReturnType<MarketplaceReturnClaimService['findById']>>
   ): Promise<MarketplaceReturnClaimDTO> {
-    return toMarketplaceReturnClaimDTO(claim, (key) => this.service.getPhotoReadUrl(key));
+    // Имя заказчика — председатель КУ должен видеть «от кого», не сырой account.
+    const display = await this.orderDisplay.enrichByOrderIds([claim.order_id], {
+      withParticipantNames: true,
+    });
+    const { chairmanNames, branchNames } = await this.resolveDecisionLogNames([claim]);
+    return toMarketplaceReturnClaimDTO(
+      claim,
+      (key) => this.service.getPhotoReadUrl(key),
+      display.get(claim.order_id),
+      chairmanNames,
+      branchNames
+    );
+  }
+
+  /** Батч-обогащение товаром/единицей/упаковкой/именем заказчика — один запрос заказов на весь список. */
+  private async toClaimDTOs(
+    claims: MarketplaceReturnClaimDomainEntity[]
+  ): Promise<MarketplaceReturnClaimDTO[]> {
+    const display = await this.orderDisplay.enrichByOrderIds(
+      claims.map((c) => c.order_id),
+      { withParticipantNames: true }
+    );
+    const { chairmanNames, branchNames } = await this.resolveDecisionLogNames(claims);
+    return Promise.all(
+      claims.map((c) =>
+        toMarketplaceReturnClaimDTO(
+          c,
+          (key) => this.service.getPhotoReadUrl(key),
+          display.get(c.order_id),
+          chairmanNames,
+          branchNames
+        )
+      )
+    );
+  }
+
+  /**
+   * История решений председателя показывает участника и КУ человеко-читаемо
+   * (ФИО / название участка), не сырой account/braname — батч по всем записям
+   * decision_log сразу для списка заявлений, одним запросом на каждый вид имени.
+   */
+  private async resolveDecisionLogNames(
+    claims: MarketplaceReturnClaimDomainEntity[]
+  ): Promise<{ chairmanNames: Map<string, string | null>; branchNames: Map<string, string | null> }> {
+    const accounts = [...new Set(claims.flatMap((c) => c.decision_log.map((e) => e.by_chairman_account)))];
+    const branames = [...new Set(claims.flatMap((c) => c.decision_log.map((e) => e.braname)))];
+    const [chairmanNamesRaw, branchNames] = await Promise.all([
+      this.orderDisplay.resolveAccountNames(accounts),
+      this.orderDisplay.resolveBranchNames(branames),
+    ]);
+    return { chairmanNames: chairmanNamesRaw, branchNames };
   }
 
   private async toResultDTO(

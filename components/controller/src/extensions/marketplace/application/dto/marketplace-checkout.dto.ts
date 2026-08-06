@@ -1,4 +1,4 @@
-import { Field, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
@@ -15,6 +15,14 @@ export class MarketplaceCheckoutSignedLineInputDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
   @IsString()
   public readonly offer_id!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Упаковка позиции (при отпуске упаковкой). Пусто — отпуск по мере.',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly package_id?: string | null;
 
   @Field(() => String, {
     description: 'order_hash будущего заказа — тот же, что в мете заявления.',
@@ -66,6 +74,12 @@ export class MarketplaceCheckoutSignableLineDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции корзины.' })
   public readonly offer_id!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Упаковка позиции (при отпуске упаковкой); null — отпуск по мере.',
+  })
+  public readonly package_id!: string | null;
+
   @Field(() => String, { description: 'order_hash будущего заказа (зашит в мету заявления).' })
   public readonly order_hash!: string;
 
@@ -94,7 +108,7 @@ export class MarketplaceCheckoutFailedLineDTO {
   @Field(() => String, { nullable: true, description: 'Название товара (для отображения).' })
   public readonly product_name!: string | null;
 
-  @Field(() => Int, { description: 'Количество единиц непрошедшей позиции.' })
+  @Field(() => Float, { description: 'Количество единиц непрошедшей позиции.' })
   public readonly quantity!: number;
 
   @Field(() => String, { description: 'Причина, по которой позиция не оформлена.' })

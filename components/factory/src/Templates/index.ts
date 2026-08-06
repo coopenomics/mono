@@ -91,6 +91,7 @@ export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStateme
 export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
 export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
+export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
 
 export * as AnnualGeneralMeetingAgenda from './300.AnnualGeneralMeetingAgenda'
 export * as AnnualGeneralMeetingSovietDecision from './301.AnnualGeneralMeetingSovietDecision'

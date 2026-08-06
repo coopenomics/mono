@@ -47,10 +47,19 @@ export interface MarketplaceInventoryListFilter {
   status?: MarketplaceInventoryStatus | MarketplaceInventoryStatus[];
   /** requirement 76: фильтр по принадлежности (адресная / обезличенный остаток). */
   ownership?: MarketplaceInventoryOwnership;
+  /**
+   * Заказ из остатка (stockorder), которому эта позиция была зарезервирована
+   * (`reserveStock`/`finalizeReservedIssue` не переносят на позицию `order_id`
+   * заказа — только `reserved_order_id`, и не очищают его после выдачи).
+   * Нужен для трассировки исходной партии COOP-позиции по заказу остатка.
+   */
+  reserved_order_id?: string;
   /** Только свободный остаток (reserved_order_id IS NULL). */
   free_only?: boolean;
   /** Только опубликованный (published_offer_id IS NOT NULL) либо только неопубликованный (false). */
   published?: boolean;
+  /** Все партии, слитые в конкретный оффер остатка (докладка/витрина). */
+  published_offer_id?: string;
 }
 
 /**

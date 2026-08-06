@@ -1,4 +1,4 @@
-import { createUnionType, Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { createUnionType, Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { MarketplaceAplReceptionStatusEnum } from './marketplace-apl-reception.dto';
 import { MarketplaceOfferStatusEnum } from './marketplace-offer.dto';
@@ -77,7 +77,7 @@ export class MarketplaceOfferStockChangedEventDTO {
   @Field(() => String, { description: 'Идентификатор предложения.' })
   offer_id!: string;
 
-  @Field(() => Int, { description: 'Доступное к заказу количество единиц.' })
+  @Field(() => Float, { description: 'Доступное к заказу количество единиц.' })
   quantity_available!: number;
 
   @Field(() => Boolean, { description: 'Предложение без ограничения по количеству.' })

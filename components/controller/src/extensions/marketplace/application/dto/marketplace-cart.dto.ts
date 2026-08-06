@@ -1,4 +1,5 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { MarketplaceSaleFormEnum, MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
  * Эпик 16: позиция корзины с обогащением для UI. Реквизиты товара
@@ -13,7 +14,27 @@ export class MarketplaceCartItemDTO {
   @Field(() => String, { description: 'Идентификатор предложения.' })
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц в корзине.' })
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка (при отпуске упаковкой); null — отпуск по мере.',
+  })
+  public readonly package_id!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Подпись единицы отпуска для упаковки («упак. 0,5 л»); null — отпуск по мере.',
+  })
+  public readonly package_label!: string | null;
+
+  @Field(() => MarketplaceSaleFormEnum, {
+    nullable: true,
+    description: 'Способ отпуска предложения: по мере или упаковкой.',
+  })
+  public readonly sale_form!: MarketplaceSaleFormEnum | null;
+
+  @Field(() => Float, {
+    description: 'Количество: базовое (по мере) или число упаковок (упаковкой).',
+  })
   public readonly quantity!: number;
 
   @Field(() => String, {
@@ -22,19 +43,11 @@ export class MarketplaceCartItemDTO {
   })
   public readonly product_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара (штука, килограмм, литр).',
   })
-  public readonly unit_of_measure!: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description:
-      'Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц ' +
-      'входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук.',
-  })
-  public readonly order_unit_size!: string | null;
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => String, {
     nullable: true,
@@ -61,7 +74,7 @@ export class MarketplaceCartItemDTO {
   })
   public readonly available_on_current_ku!: boolean;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Максимально доступное количество единиц по предложению. null — без ограничения (можно заказать любое количество).',
@@ -96,7 +109,7 @@ export class MarketplaceCartDTO {
   @Field(() => Int, { description: 'Количество разных позиций (строк) в корзине.' })
   public readonly positions_count!: number;
 
-  @Field(() => Int, { description: 'Суммарное количество единиц всех позиций.' })
+  @Field(() => Float, { description: 'Суммарное количество единиц всех позиций.' })
   public readonly total_quantity!: number;
 
   @Field(() => String, { description: 'Итоговая сумма корзины (по доступным к доставке позициям).' })

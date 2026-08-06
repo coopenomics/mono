@@ -1,9 +1,9 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -11,6 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceBarcodeFormatEnum {
   CODE128 = 'CODE128',
@@ -91,7 +92,7 @@ export class MarketplaceInventoryItemDTO {
   @Field(() => String, { description: 'Наименование товара — для печатной наклейки.' })
   product_name_snapshot!: string;
 
-  @Field(() => Int, { description: 'Количество единиц имущества в этой позиции склада.' })
+  @Field(() => Float, { description: 'Количество единиц имущества в этой позиции склада.' })
   quantity_per_label!: number;
 
   @Field(() => String, { description: 'Заказчик — печатается на наклейке.' })
@@ -103,17 +104,18 @@ export class MarketplaceInventoryItemDTO {
   })
   orderer_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара (штука, килограмм, литр) — из предложения. Для подписей количества на складе.',
   })
-  unit_of_measure!: string | null;
+  unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
-  @Field(() => String, {
+  @Field(() => Float, {
     nullable: true,
-    description: 'Размер единицы заказа (фасовки) в базовых единицах — из предложения.',
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18) — как позиция принята на склад. Null/0 — отпуск по мере.',
   })
-  order_unit_size!: string | null;
+  package_size!: number | null;
 
   @Field(() => String, {
     nullable: true,
@@ -250,8 +252,8 @@ export class MarketplaceClearInventoryLabelInputDTO {
 
 @InputType('MarketplaceInventorySplitEntryInput')
 export class MarketplaceInventorySplitEntryInputDTO {
-  @Field(() => Int, { description: 'Количество единиц в этой доле.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Количество единиц в этой доле.' })
+  @IsNumber()
   @Min(1)
   quantity!: number;
 
@@ -333,7 +335,7 @@ export function toMarketplaceInventoryItemDTO(
   // (резолвер списка) батчем по заказам — не хранятся снимком. По умолчанию null.
   dto.orderer_name = null;
   dto.unit_of_measure = null;
-  dto.order_unit_size = null;
+  dto.package_size = null;
   dto.delivery_point_name = null;
   dto.delivery_point_address = null;
   dto.shelf = e.shelf;

@@ -88,13 +88,18 @@ export class MarketplaceRoleGuard implements CanActivate {
     }
 
     if (requiredAccess) {
-      const ok = canAccess(memberRoles, requiredAccess.resource, requiredAccess.action);
+      // action может быть массивом — OR: достаточно, чтобы роль удовлетворяла
+      // хотя бы одному (см. IMarketplaceAccessRequirement).
+      const actions = Array.isArray(requiredAccess.action)
+        ? requiredAccess.action
+        : [requiredAccess.action];
+      const ok = actions.some((action) => canAccess(memberRoles, requiredAccess.resource, action));
       if (!ok) {
         this.logger.warn(
-          `forbidden-attempt: member=${currentMember.username} action=${className}.${handlerName} requested_access=${requiredAccess.resource}:${requiredAccess.action} actual_marketplace_roles=[${memberRoles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
+          `forbidden-attempt: member=${currentMember.username} action=${className}.${handlerName} requested_access=${requiredAccess.resource}:${actions.join('|')} actual_marketplace_roles=[${memberRoles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
         );
         throw new ForbiddenException(
-          `Forbidden: marketplace access '${requiredAccess.resource}:${requiredAccess.action}' required, member has roles [${memberRoles.join(', ')}]`
+          `Forbidden: marketplace access '${requiredAccess.resource}:${actions.join('|')}' required, member has roles [${memberRoles.join(', ')}]`
         );
       }
     }

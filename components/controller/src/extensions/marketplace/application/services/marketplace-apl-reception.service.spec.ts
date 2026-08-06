@@ -26,6 +26,8 @@ function buildOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}): Mark
     delivery_braname: 'ku.krasn.1',
     order_hash: '0xorder1hash',
     quantity: 2,
+    unit_of_measure: 'piece',
+    package_size: 0,
     price_per_unit: '150.0000',
     total_cost: '300.0000',
     status: 'BLOCKED',
@@ -606,19 +608,21 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
     service = buildService(mocks);
   });
 
-  it('оффер с фасовкой (order_unit_size=0.1, kg) → акт в единицах заказа без пересчёта: кол-во=5, цена за фасовку, единица «100 г»', async () => {
+  it('отпуск упаковкой (Эпик 18) → акт в упаковках: кол-во=5, цена за упаковку, единица «упак. 0,1 кг»', async () => {
     // Зеркало теста MarketplaceIssuanceService (выдача) — приёмка и выдача
-    // используют один и тот же toPhysicalActLine-подобный путь; здесь
-    // проверяем, что он больше НЕ пересчитывает в базовые единицы (0.5 кг), а
-    // ведёт акт в единицах заказа, как заказал/поставил поставщик.
+    // ведут акт в единицах отпуска: при упаковочном отпуске количество — число
+    // упаковок, цена — за упаковку, сумма = количество × цену.
     const reception = buildReception({
-      fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 5 } as any],
+      fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 0.5 } as any],
     });
     const order = buildOrder({
       id: 'order-1',
       offer_id: 'offer-1',
-      quantity: 5,
+      quantity: 0.5,
+      unit_of_measure: 'kg',
+      package_size: 0.1,
       price_per_unit: '100.0000',
+      total_cost: '500.0000',
     });
     mocks.receptionRepo.findById.mockResolvedValue(reception);
     mocks.orderRepo.findByCycleId.mockResolvedValue([order]);
@@ -626,7 +630,6 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
       id: 'offer-1',
       product_name: 'Икра',
       unit_of_measure: 'kg',
-      order_unit_size: '0.1',
     });
     mocks.documentDomainService.generateDocument.mockResolvedValue({} as any);
 
@@ -636,6 +639,6 @@ describe('MarketplaceAplReceptionService — единица заказа (фас
     expect(action.fact_quantity).toBe(5);
     expect(action.unit_cost).toBe('100.0000');
     expect(action.total_amount).toBe('500.0000');
-    expect(action.unit_of_measurement).toBe('100 г');
+    expect(action.unit_of_measurement).toBe('упак. 0,1 кг');
   });
 });

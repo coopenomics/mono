@@ -38,6 +38,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
 import { Loader } from 'src/shared/ui/Loader'
+import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard'
 
 interface Props {
   processHash: string
@@ -55,23 +56,9 @@ function field(name: string): string {
   return typeof v === 'string' ? v : v != null ? String(v) : ''
 }
 
-// Подписи статусов заказа — канон стола «Мои заказы» (MyOrdersPage STATUS_LABEL).
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  ACTIVE: 'Ожидает сборки партии',
-  ACCEPTED_PENDING_SUPPLIER: 'Ждёт поставщика',
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: 'Ждёт поставщика',
-  ACCEPTED: 'Принят поставщиком',
-  SUPPLY_PREPARED: 'Собрана к отгрузке',
-  ACCEPTED_TO_COOP: 'Принят кооперативом',
-  READY_TO_RECEIVE: 'Готов к выдаче',
-  RECEIVED: 'Получен',
-  RETURNED: 'Возвращён',
-  CANCELLED_BY_ORDERER: 'Отменён заказчиком',
-  CANCELLED_BY_SUPPLIER: 'Отменён поставщиком',
-}
 const statusLabel = computed(() => {
   const raw = field('status')
-  return ORDER_STATUS_LABEL[raw] || raw || '—'
+  return orderStatusDisplay(raw).label || raw || '—'
 })
 
 const deepLink = computed(() => ({

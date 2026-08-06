@@ -47,7 +47,8 @@ export const description = 'Форма протокола решения сов�
 export const context = `<style>
 h1 { margin: 0px; text-align: center; }
 h3 { margin: 0px; padding-top: 15px; }
-.digital-document { padding: 20px; white-space: pre-wrap; }
+.digital-document { padding: 20px; }
+.digital-document p { margin: 0 0 6px; }
 .subheader { padding-bottom: 20px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }

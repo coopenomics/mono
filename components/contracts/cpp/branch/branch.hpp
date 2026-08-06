@@ -9,6 +9,7 @@
 #include "../lib/index.hpp"
 #include "../lib/core/gateway/gateway.hpp"
 #include "../lib/core/ledger2/ledger2.hpp"
+#include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси расходов
 
 /**
 \defgroup public_branch Контракт BRANCH
@@ -135,6 +136,19 @@ public:
                                  std::string memo);
 
   /**
+   * @brief Возврат членских взносов КУ из общего кошелька участка обратно в
+   * пул взносов программы-источника (o.brn.retfee) — инверсия accrue.
+   * Вызывается inline контрактом-источником (marketplace) при гарантийном
+   * возврате имущества, чтобы пайщику вернулась полная уплаченная сумма.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void retfee(eosio::name coopname, eosio::name braname,
+                                 eosio::name source_contract,
+                                 eosio::asset amount,
+                                 eosio::checksum256 process_hash,
+                                 std::string memo);
+
+  /**
    * @brief Ручное распределение средств общего кошелька КУ между
    * председателем и доверенными по весам реестра: команда председателя,
    * сумма раскладывается по весам (o.brn.release + o.brn.person), остаток
@@ -158,15 +172,38 @@ public:
                                   eosio::asset amount);
 
   /**
-   * @brief Заявка на материальную помощь доверенного из его персонального
-   * кошелька: заявление получателя → исходящий платёж через gateway →
-   * списание o.brn.aid в callback'е aidconfirm после действия кассира.
+   * @brief Заявление на материальную помощь доверенного из его персонального
+   * кошелька: подписанное заявление вносится на повестку совета (type=brnaid).
+   * Исходящий платёж кассиру создаётся только после решения совета — в
+   * callback'е onaidauth.
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void createaid(eosio::name coopname, eosio::name username,
+                                    eosio::name braname,
                                     eosio::checksum256 aid_hash,
                                     eosio::asset amount,
-                                    document2 statement);
+                                    document2 statement,
+                                    std::string meta);
+
+  /**
+   * @brief Callback от soviet — совет одобрил выплату материальной помощи.
+   * Заявление переходит в authorized, протокол сохраняется, и регистрируется
+   * исходящий платёж в gateway — заявка попадает к кассиру.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void onaidauth(eosio::name coopname,
+                                    eosio::checksum256 hash,
+                                    document2 authorization);
+
+  /**
+   * @brief Callback от soviet — совет отказал в выплате либо срок рассмотрения
+   * истёк. Заявление закрывается, не доходя до кассира; средства остаются на
+   * персональном кошельке.
+   * @ingroup public_branch_actions
+   */
+  [[eosio::action]] void onaiddecl(eosio::name coopname,
+                                    eosio::checksum256 hash,
+                                    std::string reason);
 
   /**
    * @brief Callback от gateway::outcomplete — кассир подтвердил банковский
@@ -178,7 +215,7 @@ public:
 
   /**
    * @brief Callback от gateway::outdecline — перевод не состоялся; средства
-   * остаются на персональном кошельке, заявка помечается отклонённой.
+   * остаются на персональном кошельке, заявление закрывается.
    * @ingroup public_branch_actions
    */
   [[eosio::action]] void aiddecline(eosio::name coopname,
@@ -186,30 +223,27 @@ public:
                                      std::string reason);
 
   /**
-   * @brief Команда оплаты расхода КУ из общего кошелька участка: исходящий
-   * платёж через gateway → списание o.brn.spend в callback'е spendconfirm
-   * после действия кассира. Плановый реестр расходов ведёт бэкенд.
+   * @brief Подать расход участка в шасси расходов: средства уходят из общего
+   * кошелька КУ в пул расходов (o.brn.expfnd), записка передаётся шасси —
+   * решение совета, оплата по реквизитам либо аванс под отчёт, отчёт,
+   * закрытие.
    * @ingroup public_branch_actions
    */
-  [[eosio::action]] void createspend(eosio::name coopname, eosio::name braname,
-                                      eosio::checksum256 spend_hash,
-                                      eosio::asset amount,
-                                      std::string memo);
+  [[eosio::action]] void createexp(eosio::name coopname, eosio::name braname,
+                                    eosio::name creator,
+                                    eosio::checksum256 expense_hash,
+                                    std::vector<ExpenseDomain::item> items,
+                                    document2 statement);
 
   /**
-   * @brief Callback от gateway::outcomplete — кассир подтвердил банковский
-   * перевод по расходу КУ. Здесь применяется o.brn.spend (Дт 86 / Кт 51).
+   * @brief Callback шасси расходов — расход завершён (отклонён советом либо
+   * закрыт). Неизрасходованный остаток возвращается в общий кошелёк участка
+   * (o.brn.expunf), запись расхода стирается.
    * @ingroup public_branch_actions
    */
-  [[eosio::action]] void spendconfirm(eosio::name coopname,
-                                       eosio::checksum256 outcome_hash);
-
-  /**
-   * @brief Callback от gateway::outdecline — перевод не состоялся; средства
-   * остаются на общем кошельке КУ, команда помечается отклонённой.
-   * @ingroup public_branch_actions
-   */
-  [[eosio::action]] void spenddecline(eosio::name coopname,
-                                       eosio::checksum256 outcome_hash,
-                                       std::string reason);
+  [[eosio::action]] void onexpdone(eosio::name coopname,
+                                    eosio::checksum256 expense_hash,
+                                    uint8_t status,
+                                    eosio::asset total_actual,
+                                    std::vector<char> data);
 };

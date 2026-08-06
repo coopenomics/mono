@@ -21,6 +21,7 @@
  * Отдельного документа решения нет.
  *
  * Guards:
+ *  - Указанный КУ (`braname`) — участок выдачи исходного заказа.
  *  - Подписант (`signer`) авторизован для указанного КУ (`braname`).
  *  - return_request.status == approved_for_visit.
  *  - statement подписан пайщиком (orderer) и председателем (signer).
@@ -34,13 +35,15 @@ void marketplace::accretrn(eosio::name coopname,
                             document2 statement) {
   require_auth(coopname);
 
-  auto branch = get_branch_or_fail(coopname, braname);
-  eosio::check(branch.is_user_authorized(signer),
-               "Подписант не уполномочен принимать возвраты данного кооперативного участка");
-
   auto r = Marketplace::get_return_request_by_hash_or_fail(coopname, request_hash);
   eosio::check(r.status == ReturnStatus::APPROVED_FOR_VISIT,
                "Заявление не одобрено для очного осмотра");
+
+  Marketplace::check_return_request_branch(coopname, r, braname);
+
+  auto branch = get_branch_or_fail(coopname, braname);
+  eosio::check(branch.is_user_authorized(signer),
+               "Подписант не уполномочен принимать возвраты данного кооперативного участка");
 
   // Председатель накладывает вторую подпись на заявление пайщика — документ
   // должен нести обе подписи (пайщика и председателя).
@@ -53,6 +56,34 @@ void marketplace::accretrn(eosio::name coopname,
                  operations::marketplace::RETURN_BY_MEMBER,
                  r.fact_cost, r.orderer, r.hash,
                  Marketplace::Memo::get_return_by_member_memo(r.id, r.original_order_id));
+
+  // Возврат членского взноса, уплаченного за возвращаемое имущество: пайщик
+  // получает обратно полную сумму заказа, а не только стоимость имущества.
+  //
+  // Взнос ушёл в общий кошелёк участка на выдаче (o.brn.common), поэтому
+  // возвращается тем же путём в обратную сторону, двумя ногами внутри счёта 86
+  // (новых бухгалтерских проводок нет — деньги не покидают целевое
+  // финансирование, а перекладываются обратно между кошельками):
+  //   1) o.brn.retfee  — общий кошелёк участка → пул взносов «Стола заказов»;
+  //   2) o.mkt.refund  — пул взносов → членский кошелёк заказчика.
+  // Прямой перевод между кошельком участка и кошельком пайщика невозможен:
+  // walletop держит один username на обе стороны, отсюда транзит через пул.
+  //
+  // Порядок важен: инлайн-действия исполняются в порядке отправки, поэтому
+  // сперва отправляем пополнение пула участком и только затем списание из него.
+  // Если участок уже распределил или потратил взнос, branch::retfee остановит
+  // приём возврата человекочитаемой ошибкой — сначала пополнение общего кошелька.
+  const eosio::asset fee_refund = r.fee_refund;
+
+  if (fee_refund.amount > 0) {
+    Branch::retfee(_marketplace, coopname, braname, fee_refund, r.hash,
+                   Marketplace::Memo::get_return_fee_from_common_memo(r.id, r.original_order_id));
+
+    Ledger2::apply(_marketplace, coopname,
+                   operations::marketplace::MEMBERSHIP_FEE_REFUND,
+                   fee_refund, r.orderer, r.hash,
+                   Marketplace::Memo::get_return_fee_to_member_memo(r.id, r.original_order_id));
+  }
 
   // Со-подписанное заявление доводит запись реестра документов до «решён»
   // (тот же doc_hash, что у newsubmitted в submretrn; новая версия с двумя

@@ -1,3 +1,6 @@
+import type { PaymentStatusEnum } from '../enums/payment-status.enum';
+import type { PaymentTypeEnum } from '../enums/payment-type.enum';
+
 /**
  * Story 598-17 / AR35: создание исходящего платежа без пользовательского
  * заявления (`statement`) и без привязки к платёжному методу пайщика.
@@ -16,6 +19,15 @@ export interface CreateSystemOutgoingPaymentInputDomainInterface {
   symbol: string;
   /** Описание назначения (для UI кассирского стола). */
   memo: string;
+  /** Тип платежа для кассирского реестра. По умолчанию — `PAYMENT` (обычная покупка). */
+  type?: PaymentTypeEnum;
+  /**
+   * Начальный статус. По умолчанию — `PENDING` (кассир видит платёж сразу).
+   * Если выплата требует решения совета, extension создаёт платёж со статусом
+   * `AWAITING_AUTHORIZATION` — кассиру он скрыт, пока решение не принято, а
+   * перевод в `PENDING` делает слушатель callback'а совета.
+   */
+  status?: PaymentStatusEnum;
   /** Имя инициирующего расширения, например `marketplace`. */
   related_extension: string;
   /** ID сущности расширения, по которой инициирован платёж. */

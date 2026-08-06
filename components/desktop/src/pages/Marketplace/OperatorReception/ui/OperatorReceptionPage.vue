@@ -10,15 +10,15 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { AccountBadge, PageHint } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { marketplaceQuantityLabel, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { marketplaceOrderSaleUnit, marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
 import {
-  decodeHandoffToken,
+  decodeScannedCode,
   HandoffTokenKind,
   groupAplReceptions,
   handoffStageRoute,
-  HANDOFF_QUERY,
+  useMarketplaceHandoffSignal,
   useMarketplaceRealtime,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
@@ -60,6 +60,7 @@ import SignAplReceptionChairmanDialog from './SignAplReceptionChairmanDialog.vue
 const route = useRoute();
 const router = useRouter();
 const store = useOperatorBranchStore();
+const handoffSignal = useMarketplaceHandoffSignal();
 const coopname = computed(() => String(route.params.coopname ?? ''));
 const braname = computed(() => store.activeBraname ?? '');
 const items = ref<MarketplaceAplReceptionView[]>([]);
@@ -70,7 +71,7 @@ const expressCandidates = ref<MarketplaceExpressPickupCandidateView[]>([]);
 // Состав ожидаемого имущества по поставщику (для карточек «что везут» без
 // проваливания): грузим единицы поставщиков, чьи партии/самовывоз ждут приёмки.
 const ordersByOfferer = ref<Record<string, MarketplaceSupplierPickupOrderView[]>>({});
-const loading = ref(false);
+const loading = ref(true);
 
 // Партии, прибывшие на КУ и ожидающие создания акта приёмки: статус
 // SUPPLY_PREPARED (после создания акта партия уходит в RECEPTION_IN_PROGRESS).
@@ -225,7 +226,7 @@ interface DeliveryLine {
   key: string;
   productName: string;
   unit: string;
-  orderUnitSize: string | null;
+  packageSize: number | null;
   quantity: number;
   // Экспедиторская упаковка: сколько коробок суммарно по товару (если поставка
   // идёт по ТТН и упаковка задана). 0 — упаковка неизвестна, коробки не показываем.
@@ -245,6 +246,11 @@ const unitsPerBoxByOrder = computed(() => {
   return m;
 });
 
+function lineQuantityLabel(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryLine[] {
   const map = new Map<string, DeliveryLine>();
   for (const o of orders) {
@@ -256,12 +262,13 @@ function aggregateLines(orders: MarketplaceSupplierPickupOrderView[]): DeliveryL
     if (ex) {
       ex.quantity += qty;
       ex.boxes += boxes;
+      if (ex.packageSize !== (o.package_size ?? null)) ex.packageSize = null;
     } else
       map.set(key, {
         key,
         productName: o.product_name || 'Товар по предложению',
         unit: o.unit_of_measure ?? '',
-        orderUnitSize: o.order_unit_size ?? null,
+        packageSize: o.package_size ?? null,
         quantity: qty,
         boxes,
       });
@@ -507,10 +514,12 @@ async function openPickupForShipment(shipment_id: string): Promise<void> {
 
 async function onQrScanned(code: string): Promise<void> {
   scanDialogOpen.value = false;
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname.value);
   if (!token) {
     FailAlert(
-      new Error('Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика или QR с ТТН экспедитора.'),
+      new Error(
+        'Нераспознанный код. Отсканируйте «Мой код для ПВЗ» поставщика, QR с ТТН экспедитора или введите логин пайщика.',
+      ),
     );
     return;
   }
@@ -529,23 +538,23 @@ async function onQrScanned(code: string): Promise<void> {
   // Код получения заказчика (receive) на столе приёмки — НЕ ошибка: сканер
   // универсален, оператору не нужно знать, кто пришёл. Ведём его на «Выдачу
   // заказов» с тем же кодом — целевой стол сам откроет выдачу.
+  handoffSignal.post(code);
   void router.push({
     name: handoffStageRoute('issuance'),
     params: { coopname: coopname.value },
-    query: { [HANDOFF_QUERY]: code },
   });
 }
 
 // Код передачи мог прийти с универсального сканера (или со стола выдачи) через
-// query `handoff`: подхватываем, запускаем приёмку и стираем параметр, чтобы
-// повторный показ того же кода снова сработал и обновление страницы не зациклило.
-function consumeHandoffQuery(): void {
-  const code = route.query[HANDOFF_QUERY];
-  if (typeof code !== 'string' || !code) return;
-  const rest = { ...route.query };
-  delete rest[HANDOFF_QUERY];
-  void router.replace({ query: rest });
-  void onQrScanned(code);
+// общий стор `useMarketplaceHandoffSignal` — не через URL query (было раньше):
+// query-параметр нужно было стирать сразу после чтения, а `router.replace` для
+// этого не дожидался (fire-and-forget). Если страница успевала пересобраться в
+// промежутке (первый заход на стол в сессии — догрузка чанка/стора КУ), код уже
+// был стёрт из URL и терялся безвозвратно. Стор переживает переход как есть.
+async function consumeHandoffSignal(): Promise<void> {
+  const code = handoffSignal.consume();
+  if (!code) return;
+  await onQrScanned(code);
 }
 
 // Сформировать акты / отказать в приёмке: на каждую партию — createAplReception
@@ -652,8 +661,8 @@ async function cancelReceptionGroup(group: ReceptionGroup<MarketplaceAplReceptio
 
 watch(braname, () => void load());
 
-// Повторный заход с новым кодом в query (универсальный сканер уже на этом столе).
-watch(() => route.query[HANDOFF_QUERY], () => consumeHandoffQuery());
+// Повторный заход с новым кодом (универсальный сканер уже на этом столе).
+watch(() => handoffSignal.pendingCode, () => void consumeHandoffSignal());
 
 // Realtime вместо поллинга: статус акта меняет поставщик со своего устройства
 // (подписал приёмку → PENDING_CHAIRMAN_RECEPTION_SIGN, у оператора сама
@@ -679,7 +688,7 @@ useMarketplaceRealtime(
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);
   await load();
-  consumeHandoffQuery();
+  await consumeHandoffSignal();
 });
 </script>
 
@@ -688,7 +697,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Приёмка партий доступна председателю участка и его доверенным лицам.'
   )
@@ -746,7 +755,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
         ul.reception__card-items(v-if='g.lines.length')
           li.reception__card-item(v-for='l in g.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
-            span.reception__card-qty {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+            span.reception__card-qty {{ lineQuantityLabel(l) }}
         .reception__card-stamps(v-if='g.createdAt || g.supplierSignedAt')
           .reception__card-stamp(v-if='g.createdAt')
             q-icon(name='inventory_2', size='14px')
@@ -792,7 +801,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
           li.reception__card-item(v-for='l in d.lines', :key='l.key')
             span.reception__card-prod {{ l.productName }}
             span.reception__card-qty
-              | {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+              | {{ lineQuantityLabel(l) }}
               span.reception__card-boxes(v-if='l.boxes')  · {{ l.boxes }} кор.
         .reception__card-stamps
           .reception__card-stamp(v-if='d.formedAt')
@@ -847,7 +856,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               type='number',
               label='Заказано',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
@@ -856,7 +865,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               :min='0',
               :max='o.quantity',
               :disabled='!isSelected(o.id)',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
               @update:model-value='() => clampFact(o.id, o.quantity)',
               @blur='clampFact(o.id, o.quantity)'
             )
@@ -888,7 +897,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               type='number',
               label='Акцепт',
               readonly,
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)'
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)'
             )
             BaseInput(
               v-model.number='pickupFact[o.id]',
@@ -897,7 +906,7 @@ q-page.reception(role='region', aria-label='Ожидаемые поставки 
               :min='0',
               :max='o.quantity',
               :disabled='!takeAddon',
-              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure, o.order_unit_size)',
+              :suffix='marketplaceOrderUnitLabel(o.unit_of_measure)',
               @update:model-value='() => clampFact(o.id, o.quantity)',
               @blur='clampFact(o.id, o.quantity)'
             )

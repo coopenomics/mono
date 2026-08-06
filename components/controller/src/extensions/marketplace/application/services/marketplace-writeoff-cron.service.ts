@@ -33,6 +33,8 @@ import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-no
  */
 @Injectable()
 export class MarketplaceWriteoffCronService implements OnModuleInit {
+  private static readonly EXPIRED_REASON = 'Истёк срок годности';
+
   constructor(
     @InjectRepository(MarketplaceInventoryEntity, 'marketplace')
     private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
@@ -93,7 +95,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     // threshold writeoff_returned_age_days) — Phase 2: требуется
     // расширение marketplace_inventory.status + поля returned_at / age_days.
     const cutoff = new Date(Date.now() - graceDays * 86_400_000);
-    const candidates = await this.inventoryRepo.find({
+    const rawCandidates = await this.inventoryRepo.find({
       where: {
         coopname,
         // Скоропорт сканируем по всем позициям на складе — промаркированным и нет
@@ -103,6 +105,25 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       },
       take: 200,
       order: { expiry_date: 'ASC' },
+    });
+
+    // `expiry_date <= cutoff` в Postgres/TypeORM уже отсекает NULL (сравнение
+    // NULL <= x недостоверно → строка не проходит WHERE), но эта защита
+    // неявная и завязана на конкретный SQL-оператор — если запрос когда-нибудь
+    // поменяют (например, добавят "IS NULL OR <="), автоматическое списание
+    // молча захватит имущество без указанного срока годности. Юридический
+    // документ (Заявление 1108) не имеет права нести причину «не задан» — либо
+    // «Истёк срок годности» (детерминировано крон-сканером), либо причина,
+    // которую вписал председатель вручную. Третьего не дано, поэтому здесь —
+    // явный, не полагающийся на СУБД, гвард с алертом на аномалию.
+    const candidates = rawCandidates.filter((inv) => {
+      if (inv.expiry_date === null) {
+        this.logger.error(
+          `[WRITEOFF_CRON] аномалия: позиция ${inv.id} без expiry_date прошла фильтр LessThanOrEqual — исключена из автосписания (coopname=${coopname})`
+        );
+        return false;
+      }
+      return true;
     });
 
     if (candidates.length === 0) {
@@ -141,7 +162,9 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
           asset_title: inv.product_name_snapshot,
           quantity: String(inv.quantity_per_label),
           amount: total.toFixed(this.assetConfig.decimals),
-          reason: this.deriveReason(inv.expiry_date),
+          // Единственный кандидат крона — просроченный скоропорт (см. гвард
+          // expiry_date !== null выше), причина всегда детерминирована.
+          reason: MarketplaceWriteoffCronService.EXPIRED_REASON,
           inventory_id: inv.id,
         };
       }
@@ -165,11 +188,6 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       items_count: items.length,
       total_amount: created.total_amount,
     });
-  }
-
-  private deriveReason(expiry: Date | null): string {
-    if (!expiry) return 'Срок годности не задан';
-    return 'Истёк срок годности';
   }
 
   private resolveUnitCost(inv: MarketplaceInventoryEntity): number | null {

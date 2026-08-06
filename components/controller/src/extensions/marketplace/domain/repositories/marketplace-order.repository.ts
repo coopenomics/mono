@@ -4,6 +4,7 @@ import type {
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../entities/marketplace-order.types';
+import type { MarketplaceUnitOfMeasure } from '../entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
@@ -22,7 +23,10 @@ export interface MarketplaceOrderCreateInput {
   supplier_account: string;
   delivery_braname: string;
   quantity: number;
+  unit_of_measure: MarketplaceUnitOfMeasure;
   price_per_unit: string;
+  /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
+  package_size: number;
   total_cost: string;
   cycle_id: string | null;
   /** Грань «заказ заказчика» (Эпик 16): общий id строк одного оформления на один КУ. */
@@ -67,6 +71,12 @@ export interface MarketplaceOrderDomainRepository
   /** Батч-выборка заказов по идентификаторам (для обогащения позиций приёмки). */
   findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
   findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceOrderDomainEntity | null>;
+  /**
+   * Батч-выборка заказов по хэшам процессов — движения кошелька участка знают
+   * заказ только по хэшу процесса поставки, а ссылка ведёт на страницу заказа
+   * по его идентификатору.
+   */
+  findByOrderHashes(coopname: string, order_hashes: string[]): Promise<MarketplaceOrderDomainEntity[]>;
 
   /**
    * Заказы, включённые в конкретную партию (резолв состава партии на приёмке).
@@ -178,6 +188,13 @@ export interface MarketplaceOrderDomainRepository
       issue_act_signiss1_document: ISignedDocumentDomainInterface;
     }
   ): Promise<MarketplaceOrderDomainEntity>;
+
+  /**
+   * Оператор КУ выдачи объявил заказ готовым к выдаче («Объявить выдачу»).
+   * Проставляет `ready_announced_at = now()`, статус НЕ меняет (остаётся
+   * ACCEPTED_TO_COOP). Backend-only сигнал, ортогональный подписям.
+   */
+  applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity>;
 
   /**
    * Story 6.3: применяет финальную подпись АПП-выдачи (заказчик получил

@@ -17,10 +17,19 @@ export const MARKETPLACE_ACCESS_METADATA_KEY = 'marketplace_access';
 
 export interface IMarketplaceAccessRequirement {
   resource: string;
-  action: string;
+  /**
+   * Одно действие или список — тогда guard пропускает, если роль
+   * удовлетворяет ХОТЯ БЫ ОДНОМУ из них (OR). Нужен там, где один и тот же
+   * резолвер сам разруливает ownership для разных ролей (например,
+   * `marketplaceReturnClaim`: заказчик читает своё по `read:own`,
+   * председатель КУ — по `read:own-KU`) — guard проверяет только «эта роль
+   * вообще может читать resource хоть в какой-то форме», а не то, какую
+   * именно форму, это делает сам резолвер.
+   */
+  action: string | string[];
 }
 
-export const RequireMarketplaceAccess = (resource: string, action: string) =>
+export const RequireMarketplaceAccess = (resource: string, action: string | string[]) =>
   SetMetadata<string, IMarketplaceAccessRequirement>(MARKETPLACE_ACCESS_METADATA_KEY, {
     resource,
     action,

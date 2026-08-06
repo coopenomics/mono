@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   type MarketplaceOrderStatusChangedEvent,
@@ -71,7 +71,9 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       supplier_account: input.supplier_account,
       delivery_braname: input.delivery_braname,
       quantity: input.quantity,
+      unit_of_measure: input.unit_of_measure,
       price_per_unit: input.price_per_unit,
+      package_size: input.package_size,
       total_cost: input.total_cost,
       cycle_id: input.cycle_id,
       checkout_id: input.checkout_id ?? null,
@@ -115,6 +117,16 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       where: { coopname, order_hash: order_hash.toLowerCase() },
     });
     return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async findByOrderHashes(
+    coopname: string,
+    order_hashes: string[]
+  ): Promise<MarketplaceOrderDomainEntity[]> {
+    const hashes = [...new Set(order_hashes.filter((h) => h).map((h) => h.toLowerCase()))];
+    if (hashes.length === 0) return [];
+    const rows = await this.repo.find({ where: { coopname, order_hash: In(hashes) } });
+    return rows.map((row) => this.mapper.toDomain(row));
   }
 
   async list(
@@ -444,6 +456,17 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       this.emitStatusChanged(updated, before.status);
     }
     return updated;
+  }
+
+  async applyReadyAnnounced(id: string): Promise<MarketplaceOrderDomainEntity> {
+    // Идемпотентно: повторное объявление не сдвигает исходный момент — гейт и
+    // единственный push живут в сервисе (announceReady), здесь только запись.
+    await this.repo.update(
+      { id, ready_announced_at: IsNull() },
+      { ready_announced_at: new Date() } as Record<string, unknown>
+    );
+    const row = await this.repo.findOneOrFail({ where: { id } });
+    return this.mapper.toDomain(row);
   }
 
   async applyIssuanceFinalized(

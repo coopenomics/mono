@@ -48,26 +48,27 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
     cart_id: string,
     coopname: string,
     offer_id: string,
+    package_id: string,
     quantity: number
   ): Promise<void> {
-    const existing = await this.itemRepo.findOne({ where: { cart_id, offer_id } });
+    const existing = await this.itemRepo.findOne({ where: { cart_id, offer_id, package_id } });
     if (existing) {
       await this.itemRepo.update({ id: existing.id }, { quantity: existing.quantity + quantity });
     } else {
       await this.itemRepo.save(
-        this.itemRepo.create({ cart_id, coopname, offer_id, quantity })
+        this.itemRepo.create({ cart_id, coopname, offer_id, package_id, quantity })
       );
     }
     await this.touchCart(cart_id);
   }
 
-  async setItemQuantity(cart_id: string, offer_id: string, quantity: number): Promise<void> {
-    await this.itemRepo.update({ cart_id, offer_id }, { quantity });
+  async setItemQuantity(cart_id: string, offer_id: string, package_id: string, quantity: number): Promise<void> {
+    await this.itemRepo.update({ cart_id, offer_id, package_id }, { quantity });
     await this.touchCart(cart_id);
   }
 
-  async removeItem(cart_id: string, offer_id: string): Promise<void> {
-    await this.itemRepo.delete({ cart_id, offer_id });
+  async removeItem(cart_id: string, offer_id: string, package_id: string): Promise<void> {
+    await this.itemRepo.delete({ cart_id, offer_id, package_id });
     await this.touchCart(cart_id);
   }
 

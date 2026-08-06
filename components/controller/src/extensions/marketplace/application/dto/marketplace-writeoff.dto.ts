@@ -1,4 +1,4 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
@@ -6,6 +6,7 @@ import {
   MarketplaceWriteoffProposalStatuses,
   MarketplaceWriteoffProposalTriggers,
 } from '../../domain/entities/marketplace-writeoff-proposal.types';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceWriteoffProposalStatusEnum {
   DRAFT = 'DRAFT',
@@ -42,6 +43,14 @@ export class MarketplaceWriteoffProposalItemDTO {
   branch_name?: string | null;
   @Field({ description: 'Наименование позиции или артикул из карточки имущества.' })
   asset_title!: string;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере.',
+  })
+  package_size?: number | null;
   @Field({ description: 'Количество единиц к списанию.' })
   quantity!: string;
   @Field({ description: 'Сумма списания (4 знака после запятой, валюта кооператива).' })
@@ -197,12 +206,18 @@ export class MarketplaceWriteoffCandidateDTO {
   branch_name!: string;
   @Field({ description: 'Наименование позиции (из карточки имущества).' })
   asset_title!: string;
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере.',
+  })
+  package_size?: number | null;
   @Field({ description: 'Суммарное количество единиц по всем партиям строки.' })
   quantity!: string;
   @Field({ description: 'Суммарная сумма к списанию (закупочная цена × количество, 4 знака).' })
   amount!: string;
-  @Field({ description: 'Причина-кандидат (по умолчанию — истёк срок годности).' })
-  reason!: string;
   @Field(() => String, { nullable: true, description: 'Ближайший срок годности среди партий (ISO).' })
   expiry_date?: string | null;
   @Field({

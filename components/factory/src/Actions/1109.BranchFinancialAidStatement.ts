@@ -48,7 +48,9 @@ export class Factory extends DocFactory<BranchFinancialAidStatement.Action> {
       user,
       aid_hash: data.aid_hash,
       braname: data.braname,
-      amount: data.amount,
+      // Сумма в документ идёт человеческим форматом (2 знака), а не сырым
+      // ассетом цепи с четырьмя знаками.
+      amount: super.formatAsset(data.amount),
     }
 
     await this.validate(combinedData, template.model)

@@ -11,9 +11,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
-import type { BranchContract } from 'cooptypes';
+import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+import { MarketplaceAidStage } from '../services/marketplace-economy.service';
 import type {
+  MarketplaceAidView,
   MarketplaceBranchEconomyView,
+  MarketplaceBranchWalletOperationView,
   MarketplaceTrusteeWeightView,
 } from '../services/marketplace-economy.service';
 
@@ -85,6 +88,32 @@ export class MarketplaceBranchEconomyDTO {
 
   @Field({ description: 'Доступно к распределению: общий кошелёк за вычетом резерва.' })
   available_to_distribute!: string;
+}
+
+@ObjectType('MarketplaceBranchWalletOperation', {
+  description: 'Одно движение по общему кошельку кооперативного участка — поступление членского взноса, изъятие в распределение или оплата планового расхода.',
+})
+export class MarketplaceBranchWalletOperationDTO {
+  @Field({ description: 'Порядковый номер операции в реестре движений.' })
+  global_sequence!: string;
+
+  @Field({ description: 'Код операции (поступление членского взноса, распределение между участниками, оплата расхода и т.д.).' })
+  operation_code!: string;
+
+  @Field(() => String, { nullable: true, description: 'Сумма движения.' })
+  quantity?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Назначение — например, по какому заказу поступил взнос.' })
+  memo?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Идентификатор заказа-источника — для перехода в реестр заказов участка. Пусто для движений без заказа (распределение, оплата расхода).' })
+  order_hash?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Идентификатор заказа-источника — для перехода на страницу заказа. Пусто для движений без заказа.' })
+  order_id?: string | null;
+
+  @Field(() => Date, { description: 'Дата и время операции.' })
+  created_at!: Date;
 }
 
 @InputType('MarketplaceDistributeBranchFundsInput')
@@ -181,6 +210,11 @@ export class MarketplaceCreateAidInputDTO {
   @IsNotEmpty()
   aid_hash!: string;
 
+  @Field({ description: 'Реквизиты получателя (из раздела «Реквизиты» стола пайщика), на которые уйдёт выплата.' })
+  @IsString()
+  @IsNotEmpty()
+  payment_method_id!: string;
+
   @Field(() => SignedDigitalDocumentInputDTO, {
     description: 'Подписанное получателем Заявление на выплату материальной помощи.',
   })
@@ -191,17 +225,35 @@ export class MarketplaceCreateAidInputDTO {
 
 @ObjectType('MarketplaceAid', {
   description:
-    'Заявка на материальную помощь доверенного кооперативного участка, ожидающая выплаты. Выплаченные и отклонённые заявки в списке не показываются — итог выплаты виден в движениях по кошельку.',
+    'Заявление на материальную помощь доверенного кооперативного участка. Выплаченные и отклонённые заявления в списке не показываются — итог выплаты виден в движениях по кошельку.',
 })
 export class MarketplaceAidDTO {
-  @Field({ description: 'Идентификатор заявки.' })
+  @Field({ description: 'Идентификатор заявления.' })
   hash!: string;
 
   @Field({ description: 'Получатель материальной помощи.' })
   username!: string;
 
+  @Field({ description: 'Кооперативный участок, средства которого распределены получателю.' })
+  braname!: string;
+
   @Field({ description: 'Сумма выплаты.' })
   amount!: string;
+
+  @Field(() => MarketplaceAidStage, {
+    description:
+      'Стадия заявления: на рассмотрении совета либо одобрено советом и ожидает выплаты кассиром.',
+  })
+  stage!: MarketplaceAidStage;
+
+  @Field(() => PaymentStatusEnum, {
+    nullable: true,
+    description: 'Статус выплаты у кассира. Пусто — платёж не найден в реестре, обратитесь к администратору.',
+  })
+  payment_status?: PaymentStatusEnum | null;
+
+  @Field(() => String, { nullable: true, description: 'Реквизиты получателя, на которые уходит выплата (маскированная подпись).' })
+  payment_destination?: string | null;
 }
 
 @InputType('MarketplaceListAidsInput')
@@ -230,12 +282,12 @@ export function toMarketplaceBranchEconomyDTO(
   };
 }
 
-export function toMarketplaceAidDTO(
-  aid: BranchContract.Tables.Aids.IBranchAid
-): MarketplaceAidDTO {
-  return {
-    hash: String(aid.hash),
-    username: aid.username,
-    amount: aid.amount,
-  };
+export function toMarketplaceBranchWalletOperationDTO(
+  view: MarketplaceBranchWalletOperationView
+): MarketplaceBranchWalletOperationDTO {
+  return { ...view };
+}
+
+export function toMarketplaceAidDTO(aid: MarketplaceAidView): MarketplaceAidDTO {
+  return { ...aid };
 }

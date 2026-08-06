@@ -1,6 +1,5 @@
-import { createClient } from 'graphql-ws'
+import { createClient, type Client as GraphqlWsClient } from 'graphql-ws'
 import {
-  type chainOptions,
   type GraphQLTypes,
   type InputType,
   type OperationOptions,
@@ -25,11 +24,18 @@ import {
  * Кастомные скаляры в подписках не декодируются — ровно как в Query/Mutation
  * Client'а (Thunder без scalars). Появятся скаляры в событиях — добавить
  * decodeScalarsInResponse по образцу сгенерированного SubscriptionThunder.
+ *
+ * Reconnect: ограниченный retry + backoff с потолком. Infinity/агрессивный
+ * reconnect при мёртвом бэкенде вывешивал вкладку (self-DDoS).
  */
 
 /** Хэндл открытой подписки (честная сигнатура open/error — без кастов у потребителя). */
 export interface WsSubscriptionHandle<Z, T> {
-  /** Совместимость с привычкой `stream.ws.close()`: закрывает соединение целиком. */
+  /**
+   * Закрывает ТОЛЬКО эту подписку (unsubscribe). Общий graphql-ws client
+   * остаётся жить для других операций; при lazy-режиме сокет сам гаснет,
+   * когда активных подписок не осталось.
+   */
   ws: { close: () => void }
   /** Очередное событие подписки (payload data). */
   on: (fn: (args: InputType<T, Z, Record<string, never>>) => void) => void
@@ -41,20 +47,78 @@ export interface WsSubscriptionHandle<Z, T> {
   off: (fn: () => void) => void
 }
 
-export function wsSubscription(...options: chainOptions) {
-  const client = createClient({
-    url: String(options[0]),
-    connectionParams: Object.fromEntries(new Headers(options[1]?.headers).entries()),
-    // Пинг приложения поверх ws: туннели/прокси режут «тихие» соединения,
-    // а зомби-сокет без пинга жил бы до 60-сек страховочного resync'а.
-    keepAlive: 15_000,
-    // Дефолтных 5 попыток не хватает на долгий рестарт dev-бэкенда; 30 с
-    // экспоненциальным backoff'ом покрывают часы, не зацикливаясь навечно.
-    retryAttempts: 30,
-  })
+export type WsHeadersProvider = HeadersInit | (() => HeadersInit)
+
+export interface WsSubscriptionOptions {
+  headers?: WsHeadersProvider
+}
+
+const KEEP_ALIVE_MS = 15_000
+/** Хватает на типичный рестарт controller; дальше — тишина до ручного reopen. */
+const RETRY_ATTEMPTS = 8
+const RETRY_BASE_MS = 1_000
+const RETRY_MAX_MS = 30_000
+
+function resolveHeaders(headers?: WsHeadersProvider): HeadersInit {
+  if (!headers) return {}
+  return typeof headers === 'function' ? headers() : headers
+}
+
+function isBrowserOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
+/**
+ * Фабрика subscription-API на одном shared graphql-ws client.
+ * Вызывать один раз на экземпляр SDK Client и кэшировать результат.
+ */
+export function wsSubscription(url: string, options: WsSubscriptionOptions = {}) {
+  let disposed = false
+  let client: GraphqlWsClient | null = null
+
+  const getClient = (): GraphqlWsClient => {
+    if (disposed) {
+      throw new Error('wsSubscription: client disposed')
+    }
+    if (!client) {
+      client = createClient({
+        url,
+        // Функция — чтобы Authorization подхватывался на каждом (ре)коннекте,
+        // а не замораживался снимком headers на момент создания.
+        connectionParams: () =>
+          Object.fromEntries(new Headers(resolveHeaders(options.headers)).entries()),
+        keepAlive: KEEP_ALIVE_MS,
+        retryAttempts: RETRY_ATTEMPTS,
+        retryWait: async (retries) => {
+          const delay = Math.min(RETRY_BASE_MS * 2 ** retries, RETRY_MAX_MS)
+          const jitter = Math.floor(Math.random() * 1_000)
+          await new Promise((resolve) => setTimeout(resolve, delay + jitter))
+        },
+        shouldRetry: (errOrCloseEvent) => {
+          // Офлайн / вкладка без сети — не долбим сами себя.
+          if (isBrowserOffline()) return false
+          // Как дефолт graphql-ws: ретраим только close-подобные события.
+          return (
+            typeof errOrCloseEvent === 'object' &&
+            errOrCloseEvent !== null &&
+            'code' in errOrCloseEvent
+          )
+        },
+      })
+    }
+    return client
+  }
+
+  const dispose = (): void => {
+    disposed = true
+    if (client) {
+      client.dispose()
+      client = null
+    }
+  }
 
   // По ws ходят только subscription-операции (query/mutation — HTTP Thunder).
-  return (operation: 'subscription') =>
+  const api = (operation: 'subscription') =>
     <Z extends ValueTypes['Subscription']>(
       o: Z & { [P in keyof Z]: P extends keyof ValueTypes['Subscription'] ? Z[P] : never },
       ops?: OperationOptions & { variables?: Record<string, unknown> },
@@ -62,8 +126,10 @@ export function wsSubscription(...options: chainOptions) {
       let onMessage: ((args: any) => void) | undefined
       let onError: ((e: unknown) => void) | undefined
       let onClose: (() => void) | undefined
+      let removeOpened: (() => void) | undefined
 
-      client.subscribe(
+      const wsClient = getClient()
+      const unsubscribe = wsClient.subscribe(
         {
           query: Zeus(operation, o, { operationOptions: ops }),
           variables: ops?.variables,
@@ -82,7 +148,13 @@ export function wsSubscription(...options: chainOptions) {
       )
 
       return {
-        ws: { close: () => client.dispose() },
+        ws: {
+          close: () => {
+            removeOpened?.()
+            removeOpened = undefined
+            unsubscribe()
+          },
+        },
         on(listener) {
           onMessage = listener
         },
@@ -90,11 +162,16 @@ export function wsSubscription(...options: chainOptions) {
           onError = listener
         },
         open(listener) {
-          client.on('opened', listener)
+          removeOpened?.()
+          removeOpened = wsClient.on('opened', listener)
         },
         off(listener) {
           onClose = listener
         },
       }
     }
+
+  return Object.assign(api, { dispose })
 }
+
+export type WsSubscriptionApi = ReturnType<typeof wsSubscription>

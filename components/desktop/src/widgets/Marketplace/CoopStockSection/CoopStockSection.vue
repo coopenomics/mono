@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { date } from 'quasar';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput } from 'src/shared/ui/base';
+import {
+  BaseBadge,
+  BaseButton,
+  BaseCard,
+  BaseDialog,
+  BaseInput,
+  EmptyState,
+  TableSkeleton,
+  type TableSkeletonColumn,
+} from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
 import {
   listStock,
@@ -19,12 +30,30 @@ import {
  * Зарезервированные под заказы со склада позиции показываются, но не трогаются.
  */
 
+// Раздел живёт под собственным табом на складе КУ (не карточкой, которая
+// то появляется, то исчезает в зависимости от наличия остатков — жалоба
+// 2026-08-02), поэтому наружу отдаём счётчик для бейджа таба.
+const emit = defineEmits<{ (e: 'count', value: number): void }>();
+
 const items = ref<MarketplaceInventoryItemView[]>([]);
-const loading = ref(false);
+const loading = ref(true);
 const selected = ref<Set<string>>(new Set());
+watch(items, (v) => emit('count', v.length), { immediate: true });
+
+const skeletonColumns: TableSkeletonColumn[] = [
+  { cell: 'icon', width: '40px' },
+  { label: 'Товар', cell: 'text' },
+  { label: 'Кол-во', class: 'num', cell: 'text', cellWidth: '80px' },
+  { label: 'Цена прибытия', class: 'num', cell: 'text', cellWidth: '100px' },
+  { label: 'Годен до', cell: 'text', cellWidth: '100px' },
+  { label: 'Состояние', cell: 'badge' },
+];
 
 const publishDialogOpen = ref(false);
 const publishPrice = ref('');
+// Скоропорт с докладки обычно не возвращают — 0 дней безопасный дефолт;
+// оператор ПВЗ переопределяет на своё усмотрение перед публикацией.
+const publishWarrantyDays = ref('0');
 const publishing = ref(false);
 
 async function reload(): Promise<void> {
@@ -75,13 +104,23 @@ function toggle(id: string): void {
   selected.value = next;
 }
 
+function quantityLabel(i: MarketplaceInventoryItemView): string {
+  const saleUnit = marketplaceOrderSaleUnit(i.quantity_per_label, i.unit_of_measure, i.package_size);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
 function expiryLabel(i: MarketplaceInventoryItemView): string {
   return i.expiry_date ? date.formatDate(i.expiry_date as unknown as string, 'DD.MM.YYYY') : '—';
 }
 
 function openPublishDialog(): void {
   // Префилл цены — цена прибытия первой выбранной позиции (база уценки).
-  publishPrice.value = selectedFree.value.find((i) => i.arrival_price)?.arrival_price ?? '';
+  // Урезаем до 2 знаков (asset на цепи — precision 4, «100.0000» выглядело
+  // неотформатированным полем ввода); floorDecimalString — truncate, не
+  // round, и отдаёт точку, а не запятую — годится и на отправку в мутацию.
+  const arrivalPrice = selectedFree.value.find((i) => i.arrival_price)?.arrival_price;
+  publishPrice.value = arrivalPrice ? floorDecimalString(arrivalPrice, 2) : '';
+  publishWarrantyDays.value = '0';
   publishDialogOpen.value = true;
 }
 
@@ -91,6 +130,7 @@ async function confirmPublish(): Promise<void> {
     await publishStock({
       inventory_ids: selectedFree.value.map((i) => i.id),
       price_per_unit: publishPrice.value ? publishPrice.value : null,
+      warranty_days: publishWarrantyDays.value !== '' ? Number(publishWarrantyDays.value) : null,
     });
     SuccessAlert('Остаток опубликован в каталоге предложением от кооператива.');
     publishDialogOpen.value = false;
@@ -118,7 +158,21 @@ async function unpublishSelected(): Promise<void> {
 </script>
 
 <template lang="pug">
-BaseCard.coop-stock(v-if='loading || items.length')
+TableSkeleton(
+  v-if='loading && !items.length',
+  :columns='skeletonColumns',
+  :rows='4'
+)
+
+EmptyState(
+  v-else-if='!items.length',
+  title='Остатков нет',
+  body='Здесь появятся обезличенные позиции склада после недовыдач и отказов от получения.'
+)
+  template(#icon)
+    q-icon(name='warehouse', size='48px')
+
+BaseCard.coop-stock(v-else)
   template(#head)
     .coop-stock__head
       q-icon(name='warehouse', size='22px')
@@ -160,7 +214,7 @@ BaseCard.coop-stock(v-if='loading || items.length')
                 @update:model-value='toggle(i.id)'
               )
             td {{ i.product_name_snapshot }}
-            td.num {{ i.quantity_per_label }}
+            td.num {{ quantityLabel(i) }}
             td.num {{ i.arrival_price ? formatAsset2Digits(i.arrival_price) + ' ₽' : '—' }}
             td {{ expiryLabel(i) }}
             td
@@ -181,6 +235,12 @@ BaseDialog(
       label='Цена за единицу, ₽',
       type='number',
       hint='Пусто — по цене прибытия каждой позиции'
+    )
+    BaseInput(
+      v-model='publishWarrantyDays',
+      label='Срок гарантийного возврата, дней',
+      type='number',
+      hint='0 — вернуть нельзя (обычно для скоропорта)'
     )
     .coop-stock__publish-actions
       BaseButton(variant='ghost', @click='publishDialogOpen = false') Отменить

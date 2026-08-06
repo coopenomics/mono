@@ -25,13 +25,13 @@ export interface MarketplaceCartDomainRepository {
    * Добавить/долить позицию: если оффер уже в корзине — количество
    * суммируется (слияние одинаковых позиций), иначе создаётся строка.
    */
-  upsertItem(cart_id: string, coopname: string, offer_id: string, quantity: number): Promise<void>;
+  upsertItem(cart_id: string, coopname: string, offer_id: string, package_id: string, quantity: number): Promise<void>;
 
-  /** Установить точное количество по офферу (например из инпута корзины). */
-  setItemQuantity(cart_id: string, offer_id: string, quantity: number): Promise<void>;
+  /** Установить точное количество по офферу+упаковке (например из инпута корзины). */
+  setItemQuantity(cart_id: string, offer_id: string, package_id: string, quantity: number): Promise<void>;
 
-  /** Убрать позицию из корзины. */
-  removeItem(cart_id: string, offer_id: string): Promise<void>;
+  /** Убрать позицию (оффер+упаковку) из корзины. */
+  removeItem(cart_id: string, offer_id: string, package_id: string): Promise<void>;
 
   /** Очистить корзину (все позиции). */
   clear(cart_id: string): Promise<void>;

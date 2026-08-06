@@ -4,6 +4,9 @@ import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { computeOrderHash } from '../shared/order-hash.util';
+import { toQuantityAsset } from '../shared/quantity.util';
+import { calcCostAmount } from '../shared/cost.util';
+import { resolveSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   type MarketplaceNewOrderForSupplierEvent,
@@ -33,7 +36,10 @@ import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
 } from '../../domain/entities/marketplace-order.types';
-import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import {
+  MarketplaceOfferStatuses,
+  type MarketplaceUnitOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
 import { rethrowChainError } from '../shared/chain-tx.util';
 
 export interface MarketplaceOrderCreateInputDto {
@@ -43,8 +49,17 @@ export interface MarketplaceOrderCreateInputDto {
   orderer_account: string;
   /** ID Offer'а из marketplace_offer. */
   offer_id: string;
-  /** Кол-во единиц (целое, >= 1, <= Offer.quantity_available для non-unlimited). */
+  /**
+   * Заказываемое количество. При отпуске по мере — количество в базовой
+   * единице (кг/л/шт, дробное для веса/объёма). При отпуске упаковкой (Эпик 18)
+   * — целое число упаковок выбранного варианта `package_id`.
+   */
   quantity: number;
+  /**
+   * Выбранная упаковка каталога (Эпик 18) — обязательна при отпуске упаковкой,
+   * не передаётся при отпуске по мере.
+   */
+  package_id?: string | null;
   /** ПВЗ получения (branch.name). Story 2.3 валидирует existence в C++. */
   delivery_braname: string;
   /**
@@ -151,9 +166,13 @@ export class MarketplaceOrderCreateService {
         `Предложение не активно (статус «${offer.status}»). Заказ оформить нельзя.`
       );
     }
-    if (!offer.unlimited_flag && offer.quantity_available < input.quantity) {
+    // Эпик 18: разрешаем способ отпуска в базовое количество/цену/упаковку.
+    // По мере — quantity как базовое количество; упаковкой — quantity как число
+    // упаковок, базовое = число × содержимое, цена — за упаковку.
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
+    if (!offer.unlimited_flag && offer.quantity_available < resolved.baseQuantity) {
       throw new BadRequestException(
-        `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
+        `Доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
       );
     }
 
@@ -161,14 +180,17 @@ export class MarketplaceOrderCreateService {
     const order_hash =
       input.order_hash ?? computeOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = this.deriveOfferHash(offer.id);
-    const total_cost_amount = this.computeTotalCostAmount(offer.price_per_unit, input.quantity);
-    const unit_price_asset = this.formatAsset(offer.price_per_unit);
+    // Стоимость: по мере — цена×базовое количество; упаковкой — цена×число упаковок.
+    // Считается той же целочисленной формулой, что и на цепи (см. cost.util).
+    const total_cost_amount = this.computeTotalCostAmount(resolved, offer.unit_of_measure);
+    const unit_price_asset = this.formatAsset(resolved.unitPrice);
+    const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // ── 3. Optimistic counter (синхронно ДО chain submit) ──────────
-    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, input.quantity);
+    const offerBeforeBlock = await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
     this.logger.debug(
-      `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${input.quantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
+      `MarketplaceOrderCreateService: counter onOrderBlocked OK (offer=${offer.id}, qty=${resolved.baseQuantity}, available=${offerBeforeBlock.quantity_available}, blocked=${offerBeforeBlock.quantity_blocked})`
     );
 
     // ── 4. Chain submit createorder с compensating-rollback ────────
@@ -182,8 +204,9 @@ export class MarketplaceOrderCreateService {
         offer_hash,
         offerer: offer.supplier_account,
         delivery_braname: input.delivery_braname,
-        quantity: input.quantity,
+        quantity: toQuantityAsset(resolved.baseQuantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
+        package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceOrderCreateService.ZERO_HASH,
         convert_statement: input.convert_statement,
@@ -197,7 +220,7 @@ export class MarketplaceOrderCreateService {
         error.stack
       );
       try {
-        await this.offerCounters.onOrderRolledBack(offer.id, input.quantity);
+        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
       } catch (compErr: any) {
         // Counter rollback fail на compensating-path — критическая
         // несогласованность; alert + manual reconciliation.
@@ -226,8 +249,10 @@ export class MarketplaceOrderCreateService {
       offer_hash,
       supplier_account: offer.supplier_account,
       delivery_braname: input.delivery_braname,
-      quantity: input.quantity,
-      price_per_unit: offer.price_per_unit,
+      quantity: resolved.baseQuantity,
+      unit_of_measure: offer.unit_of_measure,
+      price_per_unit: resolved.unitPrice,
+      package_size: resolved.packageSize,
       total_cost: locked_amount,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,
@@ -253,7 +278,7 @@ export class MarketplaceOrderCreateService {
         order_hash,
         supplier_account: offer.supplier_account,
         orderer_account: input.orderer_account,
-        quantity: input.quantity,
+        quantity: resolved.baseQuantity,
         total_cost: locked_amount,
       };
       this.eventBus.emit(MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT, newOrderEvent);
@@ -268,8 +293,11 @@ export class MarketplaceOrderCreateService {
   // ── private ──────────────────────────────────────────────────────
 
   private validateInput(input: MarketplaceOrderCreateInputDto): void {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
+    // Единично-зависимая валидация количества (штука — целое, вес/объём —
+    // дробное) выполняется после загрузки Offer'а через assertValidQuantity;
+    // здесь — только базовая проверка положительности.
+    if (!(input.quantity > 0)) {
+      throw new BadRequestException('Количество должно быть больше нуля.');
     }
     if (!input.delivery_braname || input.delivery_braname.length === 0) {
       throw new BadRequestException('Не указан ПВЗ получения.');
@@ -292,14 +320,36 @@ export class MarketplaceOrderCreateService {
     return createHash('sha256').update(`offer:${offer_id}`).digest('hex');
   }
 
-  private computeTotalCostAmount(price_per_unit: string, quantity: number): string {
-    // price_per_unit как numeric(18,4) приходит как string e.g. "150.0000".
-    const priceFloat = Number.parseFloat(price_per_unit);
+  /**
+   * Сумма заказа по той же формуле, что и на цепи (`Marketplace::calc_cost`):
+   * целочисленно, с округлением половины вверх. Раньше считалось умножением
+   * double с `toFixed` — предварительная сумма в БД расходилась с суммой,
+   * которую посчитает контракт.
+   */
+  private computeTotalCostAmount(
+    resolved: { unitPrice: string; baseQuantity: number; packageSize: number },
+    unit: MarketplaceUnitOfMeasure
+  ): string {
+    const priceFloat = Number.parseFloat(resolved.unitPrice);
     if (Number.isNaN(priceFloat) || priceFloat <= 0) {
-      throw new BadRequestException(`Некорректная цена за единицу: "${price_per_unit}"`);
+      throw new BadRequestException(`Некорректная цена за единицу: "${resolved.unitPrice}"`);
     }
-    const total = priceFloat * quantity;
-    return total.toFixed(this.assetDecimals);
+    const total = calcCostAmount({
+      quantity: resolved.baseQuantity,
+      unit,
+      unitPrice: resolved.unitPrice,
+      packageSize: resolved.packageSize,
+      decimals: this.assetDecimals,
+    });
+    // Цена и количество положительны, но при малых величинах произведение
+    // способно схлопнуться в ноль — контракт такой заказ отвергнет, и лучше
+    // сказать об этом до отправки транзакции.
+    if (Number.parseFloat(total) <= 0) {
+      throw new BadRequestException(
+        'Итоговая сумма заказа получилась нулевой — проверьте количество и цену.'
+      );
+    }
+    return total;
   }
 
   private formatAsset(price_per_unit: string): string {

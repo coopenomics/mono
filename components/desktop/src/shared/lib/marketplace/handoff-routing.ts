@@ -13,7 +13,7 @@
  * виду кода, а кнопки на самих столах приёмки/выдачи запускают свою стадию сразу.
  */
 
-import { decodeHandoffToken, HandoffTokenKind } from './handoff-token';
+import { decodeScannedCode, HandoffTokenKind } from './handoff-token';
 
 /** Стадия стола ПВЗ, на которую ведёт код передачи. */
 export type HandoffStage = 'reception' | 'issuance';
@@ -38,24 +38,17 @@ export function handoffStageRoute(stage: HandoffStage): string {
 /**
  * Куда ведёт отсканированный код. Возвращает `null`, если код не распознан как
  * токен передачи или выписан для другого кооператива — вызывающий показывает
- * ошибку. Имя query-параметра, через который целевая страница подхватывает код
- * и сама открывает приёмку/выдачу, — `HANDOFF_QUERY`.
+ * ошибку. Сам код на целевой стол передаётся не через URL, а через
+ * `useMarketplaceHandoffSignal` (см. её doc-комментарий, почему не query).
  */
 export function resolveHandoffTarget(
   coopname: string,
   code: string,
 ): HandoffRouteTarget | null {
-  const token = decodeHandoffToken(code);
+  const token = decodeScannedCode(code, coopname);
   if (!token) return null;
   if (token.coopname && token.coopname !== coopname) return null;
   const stage: HandoffStage =
     token.kind === HandoffTokenKind.Receive ? 'issuance' : 'reception';
   return { routeName: STAGE_ROUTE[stage], stage };
 }
-
-/**
- * Имя query-параметра, в котором отсканированный код прилетает на целевой стол
- * (приёмки/выдачи). Страница читает его при появлении, запускает свой сценарий
- * скана и стирает параметр (чтобы повторный показ того же кода снова сработал).
- */
-export const HANDOFF_QUERY = 'handoff';

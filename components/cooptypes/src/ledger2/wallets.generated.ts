@@ -42,6 +42,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.mkt.payout", human_name: "Выплаты поставщикам", kind: "COOPERATIVE" },
   { name: "w.mkt.fee", human_name: "Резерв членских взносов «Стола заказов» под заказы", kind: "COOPERATIVE" },
   { name: "w.brn.pool", human_name: "Транзитный пул ручного распределения кооперативного участка", kind: "COOPERATIVE" },
+  { name: "w.brn.expns", human_name: "Пул расходов кооперативного участка", kind: "COOPERATIVE" },
   { name: "w.cap.pgexp", human_name: "Пул программных расходов ЦПП «Благорост»", kind: "COOPERATIVE" },
 ] as const
 

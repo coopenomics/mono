@@ -43,12 +43,12 @@
 void marketplace::signiss2(eosio::name coopname,
                             eosio::name orderer,
                             checksum256 order_hash,
-                            uint64_t actual_quantity,
+                            eosio::asset actual_quantity,
                             eosio::asset actual_unit_price,
                             eosio::name delivery_signer,
                             document2 act) {
   require_auth(coopname);
-  eosio::check(actual_quantity > 0, "Фактическое количество должно быть больше нуля");
+  Marketplace::check_quantity(actual_quantity);
   eosio::check(actual_unit_price.symbol == _root_govern_symbol,
                "Фактическая цена за единицу указана в неверной валюте");
   eosio::check(actual_unit_price.amount > 0,
@@ -56,6 +56,9 @@ void marketplace::signiss2(eosio::name coopname,
 
   auto o = Marketplace::get_order_by_hash_or_fail(coopname, order_hash);
   eosio::check(o.orderer == orderer, "Вы не заказчик этого заказа");
+  eosio::check(actual_quantity.symbol == o.quantity.symbol,
+               "Единица измерения фактического количества не совпадает с заказом");
+  Marketplace::check_packaging(actual_quantity, o.package_size);  // Эпик 18: упаковочный — выдаём целыми упаковками
   eosio::check(o.status == OrderStatus::READY_TO_RECEIVE,
                "Заказ не готов к выдаче");
   eosio::check(is_empty_document(o.issue_act_signiss2),
@@ -70,9 +73,8 @@ void marketplace::signiss2(eosio::name coopname,
   // Факт считается от скорректированной оператором цены (actual_unit_price),
   // а не от цены заказа (o.unit_price): оператор мог снизить/поднять цену на
   // месте (испорчена упаковка, замена позиции и т. п.).
-  const eosio::asset fact_cost = eosio::asset(
-      static_cast<int64_t>(actual_quantity) * actual_unit_price.amount,
-      _root_govern_symbol);
+  // При упаковочном отпуске actual_unit_price — скорректированная цена упаковки.
+  const eosio::asset fact_cost = Marketplace::calc_cost(actual_quantity, actual_unit_price, o.package_size);
   eosio::check(fact_cost.amount > 0,
                "Итоговая фактическая сумма заказа должна быть больше нуля");
 
@@ -123,10 +125,11 @@ void marketplace::signiss2(eosio::name coopname,
   // отдельная команда председателя после контроля планового резерва.
   const eosio::asset locked_fee = Marketplace::get_order_membership_fee(o);
   if (locked_fee.amount > 0) {
-    const eosio::asset fact_fee = eosio::asset(
-        static_cast<int64_t>(static_cast<uint128_t>(locked_fee.amount) *
-                             fact_cost.amount / o.total_cost.amount),
-        _root_govern_symbol);
+    // Доля взноса, приходящаяся на фактически выданное: та же пропорция, что
+    // применяется при гарантийном возврате (`pro_rata`), — иначе возврат взноса
+    // разошёлся бы с принятым на копейку.
+    const eosio::asset fact_fee =
+        Marketplace::pro_rata(locked_fee, fact_cost.amount, o.total_cost.amount);
 
     if (fact_fee < locked_fee) {
       // Недовыдача: неиспользованная часть взноса — на членский «Стола заказов».

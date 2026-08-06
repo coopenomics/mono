@@ -9,7 +9,9 @@ import { BaseBadge, BaseButton, BaseInput, EmptyState, TableSkeleton } from 'src
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
+import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
+import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
@@ -25,34 +27,44 @@ const store = useOperatorBranchStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 
-type InventoryStatus = MarketplaceInventoryItemView['status']
-
-const statusFilter = ref<InventoryStatus[]>([])
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
-const loading = ref(false)
+const loading = ref(true)
 
-const statusOptions: { label: string; value: InventoryStatus }[] = [
-  { label: 'Принято', value: Zeus.MarketplaceInventoryStatus.RECEIVED },
-  { label: 'Промаркировано', value: Zeus.MarketplaceInventoryStatus.LABELED },
-  { label: 'Выдано пайщику', value: Zeus.MarketplaceInventoryStatus.ISSUED },
-  { label: 'Возврат на склад', value: Zeus.MarketplaceInventoryStatus.RETURNED },
-  { label: 'Списано', value: Zeus.MarketplaceInventoryStatus.WRITTEN_OFF },
+// Склад/Остатки — два раздела в табах (канон — «Гарантийные возвраты»), не
+// карточка, которая появляется/исчезает в зависимости от наличия остатков
+// (жалоба 2026-08-02: мигало на каждый заход). Активный раздел всегда
+// показывается — без фильтрации содержимого, только переключение видимости.
+const activeTab = ref<'shelf' | 'stock'>('shelf')
+const coopStockCount = ref(0)
+const tabs = computed<PageTab[]>(() => [
+  { key: 'shelf', label: 'Склад', count: sortedRows.value.length },
+  { key: 'stock', label: 'Остатки', count: coopStockCount.value },
+])
+function onSelectTab(tab: PageTab): void {
+  activeTab.value = tab.key as typeof activeTab.value
+}
+
+// Склад — это «что сейчас физически лежит на полке», не история движений.
+// Выданное пайщику и списанное уже не на полке — им место в будущей истории
+// заказов, не здесь. Поэтому фильтр не выбирается оператором, а зашит: только
+// 3 состояния, которые вообще бывают «на складе».
+const ON_SHELF_STATUSES = [
+  Zeus.MarketplaceInventoryStatus.RECEIVED,
+  Zeus.MarketplaceInventoryStatus.LABELED,
+  Zeus.MarketplaceInventoryStatus.RETURNED,
 ]
-
-function isStatusActive(value: InventoryStatus): boolean {
-  return statusFilter.value.includes(value)
-}
-
-function toggleStatus(value: InventoryStatus): void {
-  statusFilter.value = isStatusActive(value)
-    ? statusFilter.value.filter((s) => s !== value)
-    : [...statusFilter.value, value]
-}
 
 // Имя заказчика для показа: ФИО (резолвится бэкендом), иначе — аккаунт.
 function ordererName(row: MarketplaceInventoryItemView): string {
   return row.orderer_name?.trim() || row.orderer_account_snapshot
+}
+
+// «4» без единицы измерения непонятно, чего именно — штук, кг, упаковок.
+// Тот же формат, что и в «Остатке кооператива» ниже на этой странице.
+function quantityLabel(row: MarketplaceInventoryItemView): string {
+  const saleUnit = marketplaceOrderSaleUnit(row.quantity_per_label, row.unit_of_measure, row.package_size)
+  return `${saleUnit.units}×${saleUnit.unitLabel}`
 }
 
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
@@ -60,7 +72,6 @@ function ordererName(row: MarketplaceInventoryItemView): string {
 const filteredRows = computed(() => {
   const q = search.value.trim().toLowerCase()
   return items.value.filter((row) => {
-    if (statusFilter.value.length && !statusFilter.value.includes(row.status)) return false
     if (q) {
       const hay = [
         row.orderer_name,
@@ -97,7 +108,7 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Полка', class: 'col-shelf', cell: 'text' },
   { label: 'Товар', cell: 'text' },
   { label: 'Заказчик', class: 'col-orderer', cell: 'text' },
-  { label: 'Ед.', class: 'col-qty', cell: 'text', cellWidth: '40px' },
+  { label: 'Кол-во', class: 'col-qty', cell: 'text', cellWidth: '120px' },
   { label: 'Штрих-код', class: 'col-barcode', cell: 'text' },
   { label: 'Состояние', class: 'col-status', cell: 'badge' },
   { label: 'Годен до', class: 'col-expiry', cell: 'text', cellWidth: '120px' },
@@ -111,7 +122,7 @@ async function load(): Promise<void> {
   }
   loading.value = true
   try {
-    items.value = await listInventory({ braname: braname.value.trim() })
+    items.value = await listInventory({ braname: braname.value.trim(), statuses: ON_SHELF_STATUSES })
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
@@ -261,7 +272,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Склад участка доступен председателю участка и его доверенным лицам.'
   )
@@ -274,134 +285,116 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       | полке, заказчик и состояние. Полку можно поправить, а штрих-код выпустить
       | прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
+    PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
 
-    //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
-    //- поле «скачет» относительно чипов). Ниже — чипы-фильтры состояния.
-    BaseInput.warehouse__search(
-      v-model='search',
-      type='search',
-      placeholder='Поиск: заказчик, товар, полка, штрих-код',
-      clearable
-    )
-    .warehouse__chips
-      .chip(
-        v-for='opt in statusOptions',
-        :key='opt.value',
-        :class='isStatusActive(opt.value) ? "chip--accent" : "chip--neutral"',
-        role='button',
-        tabindex='0',
-        @click='toggleStatus(opt.value)',
-        @keydown.enter='toggleStatus(opt.value)'
-      ) {{ opt.label }}
+    template(v-if='activeTab === "shelf"')
+      //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
+      //- поле «скачет» относительно чипов). Ниже — чипы-фильтры состояния.
+      BaseInput.warehouse__search(
+        v-model='search',
+        type='search',
+        placeholder='Поиск: заказчик, товар, полка, штрих-код',
+        clearable
+      )
 
-    TableSkeleton(
-      v-if='loading && !items.length',
-      :columns='skeletonColumns',
-      :rows='6',
-      min-width='900px'
-    )
+      TableSkeleton(
+        v-if='loading && !items.length',
+        :columns='skeletonColumns',
+        :rows='6',
+        min-width='900px'
+      )
 
-    .table-wrap(v-else-if='sortedRows.length')
-      .table-scroll
-        table.table
-          thead
-            tr
-              th.col-shelf Полка
-              th.col-product Товар
-              th.col-orderer Заказчик
-              th.col-qty Ед.
-              th.col-barcode Штрих-код
-              th.col-status Состояние
-              th.col-expiry Годен до
-              th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
-          tbody
-            tr(v-for='row in sortedRows', :key='row.id')
-              //- Полка — инлайн-правка: поле всегда редактируемо, сохраняется по
-              //- уходу фокуса или Enter. Никаких кнопок по бокам.
-              td.col-shelf
-                BaseInput.warehouse__shelf-input(
-                  :model-value='shelfValue(row)',
-                  placeholder='Полка',
-                  flat,
-                  :readonly='savingShelfId === row.id',
-                  @update:model-value='(v) => onShelfInput(row, v)',
-                  @blur='commitShelf(row)',
-                  @keyup.enter='commitShelf(row)'
-                )
+      .table-wrap(v-else-if='sortedRows.length')
+        .table-scroll
+          table.table
+            thead
+              tr
+                th.col-shelf Полка
+                th.col-product Товар
+                th.col-orderer Заказчик
+                th.col-qty Кол-во
+                th.col-barcode Штрих-код
+                th.col-status Состояние
+                th.col-expiry Годен до
+                th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
+            tbody
+              tr(v-for='row in sortedRows', :key='row.id')
+                //- Полка — инлайн-правка: поле всегда редактируемо, сохраняется по
+                //- уходу фокуса или Enter. Никаких кнопок по бокам.
+                td.col-shelf
+                  BaseInput.warehouse__shelf-input(
+                    :model-value='shelfValue(row)',
+                    placeholder='Указать полку',
+                    flat,
+                    :readonly='savingShelfId === row.id',
+                    @update:model-value='(v) => onShelfInput(row, v)',
+                    @blur='commitShelf(row)',
+                    @keyup.enter='commitShelf(row)'
+                  )
 
-              td.col-product.warehouse__product {{ row.product_name_snapshot }}
+                td.col-product.warehouse__product {{ row.product_name_snapshot }}
 
-              td.col-orderer
-                .warehouse__orderer
-                  span.warehouse__orderer-name {{ ordererName(row) }}
-                  AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
+                td.col-orderer
+                  .warehouse__orderer
+                    span.warehouse__orderer-name {{ ordererName(row) }}
+                    AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
 
-              td.col-qty {{ row.quantity_per_label }}
+                td.col-qty {{ quantityLabel(row) }}
 
-              //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
-              td.col-barcode
-                span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
-                BaseButton.warehouse__issue(
-                  v-else,
-                  variant='ghost',
-                  size='sm',
-                  :loading='issuingBarcodeId === row.id',
-                  @click='issueBarcode(row)'
-                )
-                  template(#icon-left)
-                    q-icon(name='label', size='16px')
-                  | Выпустить
+                //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
+                td.col-barcode
+                  span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
+                  BaseButton.warehouse__issue(
+                    v-else,
+                    variant='ghost',
+                    size='sm',
+                    :loading='issuingBarcodeId === row.id',
+                    @click='issueBarcode(row)'
+                  )
+                    template(#icon-left)
+                      q-icon(name='label', size='16px')
+                    | Выпустить
 
-              td.col-status
-                BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
+                td.col-status
+                  BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
 
-              td.col-expiry(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
+                td.col-expiry(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
 
-              td.col-date {{ formatDateTime(row.received_at) }}
+                td.col-date {{ formatDateTime(row.received_at) }}
 
-      .table-foot
-        span Позиций: {{ sortedRows.length }}
+        .table-foot
+          span Позиций: {{ sortedRows.length }}
 
-    EmptyState(
-      v-else,
-      title='На складе пусто',
-      body='Здесь появятся принятые позиции участка. Проверьте фильтры состояния и поиск.'
-    )
-      template(#icon)
-        q-icon(name='inventory_2', size='48px')
+      EmptyState(
+        v-else,
+        title='На складе пусто',
+        body='Здесь появятся принятые позиции участка. Проверьте поиск.'
+      )
+        template(#icon)
+          q-icon(name='inventory_2', size='48px')
 
     //- Остаток кооператива (requirement 76): обезличенные позиции после
     //- недовыдач/отказов — публикация в каталог предложением от кооператива.
-    CoopStockSection.warehouse__stock
+    CoopStockSection(v-else-if='activeTab === "stock"', @count='(n) => (coopStockCount = n)')
 </template>
 
 <style scoped lang="scss">
 .warehouse {
-  &__stock {
-    margin-top: var(--p-5, 20px);
-  }
-
   padding: var(--p-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
 
-  &__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--p-2, 8px);
-
-    .chip {
-      cursor: pointer;
-      user-select: none;
-      height: 28px;
-      padding: 0 12px;
-    }
-  }
-
   &__search {
     max-width: 420px;
     width: 100%;
+
+    // Поиск не показывает hint/error — резерв места под них (Quasar
+    // reserve-hint-space) даёт пустой промежуток перед таблицей.
+    :deep(.q-field__bottom) {
+      min-height: 0;
+      padding-top: 0;
+    }
   }
 
   &__shelf-input {
@@ -437,12 +430,12 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 .table-scroll {
   overflow-x: auto;
 }
-// Сумма ширин колонок (1146px) = min-width таблицы: при table-layout:fixed колонки
+// Сумма ширин колонок = min-width таблицы: при table-layout:fixed колонки
 // не схлопываются (товар не «зажат»), а на узких экранах включается горизонтальный
 // скролл вместо наезжающих друг на друга колонок.
 .table {
   table-layout: fixed;
-  min-width: 1306px;
+  min-width: 1380px;
 }
 
 .col-shelf {
@@ -455,7 +448,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   width: 200px;
 }
 .col-qty {
-  width: 56px;
+  width: 130px;
   text-align: right;
 }
 .col-barcode {

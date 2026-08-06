@@ -1,9 +1,10 @@
-import { Field, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { ArrayMinSize, IsArray, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { ArrayMinSize, IsArray, IsNumber, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
 import { MarketplaceShipmentTTNDataDTO } from './marketplace-shipment.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 export enum MarketplaceAplReceptionVariantEnum {
   IN_PERSON = 'A',
@@ -32,7 +33,7 @@ export class MarketplaceAplReceptionFactEntryDTO {
   @Field(() => String)
   order_id!: string;
 
-  @Field(() => Int, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
+  @Field(() => Float, { description: 'Фактически принятое количество (для расхождений Варианта Б).' })
   fact_quantity!: number;
 
   @Field(() => String, {
@@ -47,17 +48,18 @@ export class MarketplaceAplReceptionFactEntryDTO {
   })
   product_name!: string | null;
 
-  @Field(() => String, {
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
     nullable: true,
     description: 'Базовая единица измерения товара по этой позиции (штука, килограмм, литр).',
   })
-  unit_of_measure!: string | null;
+  unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
-  @Field(() => String, {
+  @Field(() => Float, {
     nullable: true,
-    description: 'Размер единицы заказа (фасовки) в базовых единицах по этой позиции.',
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице.',
   })
-  order_unit_size!: string | null;
+  package_size!: number | null;
 }
 
 @InputType('MarketplaceAplReceptionFactEntryInput')
@@ -67,8 +69,8 @@ export class MarketplaceAplReceptionFactEntryInputDTO {
   @IsNotEmpty()
   order_id!: string;
 
-  @Field(() => Int)
-  @IsInt()
+  @Field(() => Float)
+  @IsNumber()
   @Min(0)
   fact_quantity!: number;
 
@@ -265,7 +267,7 @@ export class MarketplaceExpressPickupCandidateDTO {
   @Field(() => Int, { description: 'Сколько принятых заказов ожидает приёмки.' })
   orders_count!: number;
 
-  @Field(() => Int, { description: 'Суммарное количество единиц.' })
+  @Field(() => Float, { description: 'Суммарное количество единиц.' })
   total_units!: number;
 
   @Field(() => String, { description: 'Суммарная сумма заказов.' })
@@ -306,7 +308,11 @@ export interface MarketplaceAplReceptionDisplayFields {
   offerer_name?: string | null;
   lineByOrderId?: Map<
     string,
-    { product_name: string | null; unit_of_measure: string | null; order_unit_size: string | null }
+    {
+      product_name: string | null;
+      unit_of_measure: MarketplaceUnitOfMeasureEnum | null;
+      package_size: number | null;
+    }
   >;
 }
 
@@ -332,7 +338,7 @@ export function toMarketplaceAplReceptionDTO(
     const line = display?.lineByOrderId?.get(f.order_id);
     entry.product_name = line?.product_name ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
-    entry.order_unit_size = line?.order_unit_size ?? null;
+    entry.package_size = line?.package_size ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

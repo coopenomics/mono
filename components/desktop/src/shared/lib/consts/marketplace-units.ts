@@ -1,16 +1,25 @@
+import { Zeus } from '@coopenomics/sdk';
+
 /**
- * Единицы измерения товара Стола заказов — единый источник для всех
- * marketplace-экранов (создание оферты, модерация, мои предложения, каталог).
+ * Единицы измерения и способ отпуска товара Стола заказов — единый источник
+ * для всех marketplace-экранов (создание оферты, модерация, мои предложения,
+ * каталог, корзина, заказы).
  *
- * Канон-значения (`piece`/`kg`/`liter`) совпадают с backend-enum
- * `unit_of_measure` — это БАЗОВАЯ единица измерения. «Упаковка» единицей не
- * является: заказ упаковками/фасовками задаётся размером единицы заказа
- * (`order_unit_size`), например `piece` + 8 = упаковка из 8 штук. Русские
- * подписи держим здесь, чтобы «liter» не утекало в UI на английском и подписи
- * не расходились между страницами (раньше карта дублировалась в
- * ChairmanModeration и в CreateMarketplaceOffer).
+ * Значения — РЕАЛЬНЫЕ GraphQL-enum'ы из Zeus (`Zeus.MarketplaceUnitOfMeasure`,
+ * `Zeus.MarketplaceSaleForm`), а не собственные строки: сервер сериализует
+ * enum именем варианта (`KG`, `PACKAGED`), а не JS-значением backend'а
+ * (`kg`, `packaged`) — свой строковый union здесь расходится с проводом и
+ * ловится либо ошибкой валидации на mutation, либо молчаливым непопаданием
+ * сравнения на чтении. Базовая единица (кг/л/шт) — отдельная характеристика
+ * от способа отпуска (по мере/упаковкой, Эпик 18); «упаковка» сама по себе
+ * не единица измерения. Русские подписи держим здесь, чтобы не расходились
+ * между страницами.
  */
-export type MarketplaceUnitOfMeasure = 'piece' | 'kg' | 'liter';
+export const MarketplaceUnitOfMeasure = Zeus.MarketplaceUnitOfMeasure;
+export type MarketplaceUnitOfMeasure = Zeus.MarketplaceUnitOfMeasure;
+
+export const MarketplaceSaleForm = Zeus.MarketplaceSaleForm;
+export type MarketplaceSaleForm = Zeus.MarketplaceSaleForm;
 
 interface MarketplaceUnitDef {
   value: MarketplaceUnitOfMeasure;
@@ -21,9 +30,9 @@ interface MarketplaceUnitDef {
 }
 
 const MARKETPLACE_UNITS: readonly MarketplaceUnitDef[] = [
-  { value: 'piece', label: 'шт.', short: 'шт' },
-  { value: 'kg', label: 'кг', short: 'кг' },
-  { value: 'liter', label: 'литр', short: 'л' },
+  { value: MarketplaceUnitOfMeasure.PIECE, label: 'шт.', short: 'шт' },
+  { value: MarketplaceUnitOfMeasure.KG, label: 'кг', short: 'кг' },
+  { value: MarketplaceUnitOfMeasure.LITER, label: 'литр', short: 'л' },
 ];
 
 /** Опции для q-select при создании/редактировании оферты. */
@@ -47,52 +56,59 @@ export function marketplaceUnitLabel(value: string | null | undefined): string {
   return MARKETPLACE_UNITS.find((u) => u.value === value)?.label ?? value;
 }
 
-/**
- * Пресеты размера единицы заказа (фасовки) по базовой единице — фиксированный
- * выбор в форме публикации. На backend `order_unit_size` допускает любое
- * положительное число, но заказчику/поставщику показываем типовые варианты.
- * Значения — в базовых единицах (kg/liter/piece), как строки numeric.
- */
-export const MARKETPLACE_ORDER_UNIT_PRESETS: Record<MarketplaceUnitOfMeasure, readonly string[]> = {
-  kg: ['0.1', '0.25', '0.5', '1', '2', '5'],
-  liter: ['0.25', '0.5', '1', '1.5', '2', '5'],
-  piece: ['1', '6', '8', '10', '12', '30'],
-};
-
-/** Убирает хвостовые нули у числа-фасовки: 1.000 → «1», 0.100 → «0.1». */
+/** Убирает хвостовые нули количества: 1.000 → «1», 0.500 → «0.5». */
 function trimNumber(n: number): string {
   return String(Number(n.toFixed(3)));
 }
 
 /**
- * Человекочитаемая подпись одной единицы заказа (фасовки) — объём, которым
- * оперирует заказчик. Примеры: kg+0.1 → «100 г», kg+1 → «1 кг»,
- * liter+0.5 → «500 мл», piece+8 → «упаковка 8 шт», piece+1 → «шт».
+ * Подпись базовой единицы измерения (Эпик 17): количество ведётся прямо в
+ * базовой единице (кг/л/шт), поэтому ярлык — сама единица. Понятие «фасовки»
+ * упразднено; необязательный второй аргумент игнорируется (обратная
+ * совместимость вызовов).
  */
 export function marketplaceOrderUnitLabel(
   unit: string | null | undefined,
-  size: string | number | null | undefined,
+  _size?: string | number | null | undefined,
 ): string {
-  const parsed = typeof size === 'string' ? Number.parseFloat(size) : size ?? 1;
-  const q = Number.isFinite(parsed) && (parsed as number) > 0 ? (parsed as number) : 1;
-  if (unit === 'kg') return q < 1 ? `${Math.round(q * 1000)} г` : `${trimNumber(q)} кг`;
-  if (unit === 'liter') return q < 1 ? `${Math.round(q * 1000)} мл` : `${trimNumber(q)} л`;
-  // piece
-  if (q === 1) return 'шт';
-  return `упаковка ${trimNumber(q)} шт`;
+  return marketplaceUnitShort(unit);
 }
 
 /**
- * Кол-во × единица заказа: «1×1 кг», «2×500 г», «3×упаковка 8 шт», «1×шт».
- * Склейка через пробел («1 1 кг») читается как «одиннадцать кг» — непонятно,
- * где количество упаковок, а где размер фасовки.
+ * Кол-во + базовая единица: «0.5 кг», «20 кг», «3 шт». Количество дробное в
+ * базовой единице; необязательный третий аргумент игнорируется (обратная
+ * совместимость вызовов).
  */
 export function marketplaceQuantityLabel(
   quantity: number | string | null | undefined,
   unit: string | null | undefined,
-  size?: string | number | null | undefined,
+  _size?: string | number | null | undefined,
 ): string {
   const parsed = typeof quantity === 'string' ? Number.parseFloat(quantity) : quantity ?? 0;
   const q = Number.isFinite(parsed as number) ? (parsed as number) : 0;
-  return `${trimNumber(q)}×${marketplaceOrderUnitLabel(unit, size)}`;
+  return `${trimNumber(q)} ${marketplaceUnitShort(unit)}`;
+}
+
+/**
+ * Презентация количества заказа с учётом упаковки (Эпик 18): по мере —
+ * базовое количество и единица («10 кг»); упаковкой — заказ ведётся в базовой
+ * единице (`quantity` — итог, `packageSize` — содержимое одной упаковки), но
+ * заказчику показываем число упаковок, как он их выбирал («10×упак. 0,1 л»),
+ * а не итоговый объём в базовой единице. Зеркалит backend `presentSaleUnit`
+ * (`controller/.../application/shared/packaging.util.ts`) — там же source of
+ * truth формата подписи.
+ */
+export function marketplaceOrderSaleUnit(
+  quantity: number,
+  unit: string | null | undefined,
+  packageSize: number | null | undefined,
+): { units: number; unitLabel: string } {
+  const baseLabel = marketplaceUnitShort(unit);
+  if (packageSize && packageSize > 0) {
+    return {
+      units: Number((quantity / packageSize).toFixed(0)),
+      unitLabel: `упак. ${String(packageSize).replace('.', ',')} ${baseLabel}`,
+    };
+  }
+  return { units: Number(trimNumber(quantity)), unitLabel: baseLabel };
 }

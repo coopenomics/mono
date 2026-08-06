@@ -32,6 +32,8 @@ export class MarketplaceReturnClaimDomainEntity {
   public readonly expected_resolution: MarketplaceReturnClaimExpectedResolution;
   public readonly actual_quantity: number;
   public readonly fact_cost: string;
+  /** Возвращаемая доля членского взноса — вместе с fact_cost даёт полную сумму возврата пайщику. */
+  public readonly fee_refund: string;
   public readonly photos: MarketplaceReturnClaimPhoto[];
   public readonly statement: ISignedDocumentDomainInterface | null;
   public readonly submretrn_tx_hash: string;
@@ -59,6 +61,7 @@ export class MarketplaceReturnClaimDomainEntity {
     this.expected_resolution = props.expected_resolution;
     this.actual_quantity = props.actual_quantity;
     this.fact_cost = props.fact_cost;
+    this.fee_refund = props.fee_refund ?? '0';
     this.photos = props.photos;
     this.statement = props.statement;
     this.submretrn_tx_hash = props.submretrn_tx_hash;

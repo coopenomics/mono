@@ -118,6 +118,7 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
       [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
       [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
       [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
+      [PaymentTypeEnum.AID]: 'Материальная помощь',
     };
     return typeLabels[this.type] || this.type;
   }

@@ -131,12 +131,51 @@ async function waitForSignatureSynced(): Promise<boolean> {
  * перечитываем гранты/маршруты, фиксируем выбранный КУ как пункт выдачи и уходим
  * на стол заказчика. Скрываем форму (redirecting), чтобы не мелькнул промежуток.
  */
+// Имя собственного маршрута — используется ниже, чтобы не выбрать его же
+// целью редиректа после успешного подключения (см. комментарий в proceedToDesk).
+const ONBOARDING_ROUTE_NAME = 'marketplace-onboarding-member-cpp';
+
 async function proceedToDesk(): Promise<void> {
   redirecting.value = true;
-  await desktop.loadDesktop();
   await loadExtensionRoutes('market', router);
-  // Фиксируем выбранный КУ как пункт выдачи корзины. Если упадёт — не блокируем
-  // переход: КУ можно сменить в шапке стола.
+
+  // Гейт оферты (requires_gate) и гранты стола (getDesktop → firstAccessibleRoute)
+  // синхронизируются НЕЗАВИСИМО друг от друга и с разной задержкой: гейт —
+  // быстрый читаемый признак (см. waitForSignatureSynced выше), гранты —
+  // отдельный медленный путь (parser → wallet::users.programs[]). Подтверждённый
+  // requires_gate=false НЕ гарантирует, что уже И loadDesktop() отдаст свежие
+  // orderer-права — инцидент 2026-07-26: однократный loadDesktop() сразу после
+  // подтверждения гейта уводил на маршрут, тут же заворачиваемый навигационным
+  // гвардом («Недостаточно прав доступа»), либо (для случая «оферта уже
+  // подписана при регистрации», где гейт не проверяется вовсе) на тот же
+  // онбординг. Поэтому здесь — свой короткий поллинг: перезапрашиваем
+  // loadDesktop(), пока firstAccessibleRoute не отдаст маршрут, отличный от
+  // самого онбординга, либо не истечёт окно ожидания.
+  const deadline = Date.now() + 15000;
+  let target: { name: string } | null = null;
+  while (Date.now() < deadline) {
+    await desktop.loadDesktop();
+    const candidate = desktop.firstAccessibleRoute('market');
+    if (candidate && candidate.name !== ONBOARDING_ROUTE_NAME) {
+      target = candidate;
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  if (!target) {
+    // Синк не успел за отведённое окно — крайне редко. Не гадаем с fallback-
+    // маршрутом (marketplace-catalog может требовать тот же ещё не выданный
+    // грант) — честно просим обновить страницу чуть позже.
+    redirecting.value = false;
+    NotifyAlert('Подключение завершено, но права ещё синхронизируются. Обновите страницу через несколько секунд.');
+    return;
+  }
+
+  // Фиксируем выбранный КУ как пункт выдачи корзины — только теперь, когда
+  // orderer-права на Cart подтверждены грантом выше (до этого cartStore падал
+  // бы: «до подписи нет orderer-прав на Cart»). Если упадёт по другой причине —
+  // не блокируем переход: КУ можно сменить в шапке стола.
   if (selectedBraname.value) {
     try {
       await cartStore.changeDeliveryPoint(selectedBraname.value);
@@ -144,14 +183,18 @@ async function proceedToDesk(): Promise<void> {
       console.warn('[OnboardingMemberPickCpp] setCartDeliveryPoint упал:', e);
     }
   }
-  const target = desktop.firstAccessibleRoute('market');
-  void router.push(
-    target
-      ? coopname.value
-        ? { name: target.name, params: { coopname: coopname.value } }
-        : { name: target.name }
-      : { name: 'marketplace-catalog' },
-  );
+
+  const destination = coopname.value
+    ? { name: target.name, params: { coopname: coopname.value } }
+    : { name: target.name };
+  await router.push(destination);
+  // Защитный сброс на случай прочих причин, по которым переход не увёл со
+  // страницы (например гвард прав всё же откатил назад) — не оставляем
+  // пользователя с вечным спиннером без объяснения.
+  if (router.currentRoute.value.name === ONBOARDING_ROUTE_NAME) {
+    redirecting.value = false;
+    NotifyAlert('Подключение завершено, но переход на стол не удался. Обновите страницу.');
+  }
 }
 
 /**

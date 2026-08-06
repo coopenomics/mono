@@ -5,7 +5,10 @@ import type {
   MarketplaceBarcodeStrategy,
   MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
+  MarketplaceOfferPackage,
+  MarketplaceOfferPackageInput,
   MarketplaceOfferStatus,
+  MarketplaceSaleForm,
 } from '../entities/marketplace-offer.types';
 import type {
   PaginationInputDomainInterface,
@@ -37,8 +40,10 @@ export interface OfferCreateInput {
   category_id: number;
   price_per_unit: string;
   unit_of_measure: 'piece' | 'kg' | 'liter';
-  /** Размер единицы заказа (фасовки) в базовых единицах. numeric как string. */
-  order_unit_size: string;
+  /** Способ отпуска (Эпик 18): by_measure | packaged. */
+  sale_form: MarketplaceSaleForm;
+  /** Каталог упаковок (Эпик 18); пустой при отпуске по мере. */
+  packages: MarketplaceOfferPackage[];
   quantity_available: number;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];
@@ -61,8 +66,14 @@ export interface OfferUpdateInput {
   category_id?: number;
   price_per_unit?: string;
   unit_of_measure?: 'piece' | 'kg' | 'liter';
-  /** Размер единицы заказа (фасовки) в базовых единицах. numeric как string. */
-  order_unit_size?: string;
+  /** Способ отпуска (Эпик 18). */
+  sale_form?: MarketplaceSaleForm;
+  /**
+   * Каталог упаковок (Эпик 18), сырой вход поставщика — если передан,
+   * полностью заменяет набор. Сервис нормализует в хранимую форму (id/sort_order)
+   * до записи.
+   */
+  packages?: MarketplaceOfferPackageInput[];
   quantity_available?: number;
   unlimited_flag?: boolean;
   delivery_points?: MarketplaceOfferDeliveryPoint[];

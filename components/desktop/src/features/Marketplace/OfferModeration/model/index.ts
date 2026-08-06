@@ -13,6 +13,13 @@ function isValidDays(val: string): boolean {
 export interface OfferModerationTarget {
   id: string;
   product_name: string;
+  /**
+   * Срок годности (скоропорт) в днях, задан поставщиком при создании
+   * предложения. Показывается при одобрении — модератор ориентируется на
+   * него, назначая гарантийный срок возврата (оба поля разные, но
+   * гарантийный срок обычно не должен превышать срок годности).
+   */
+  shelf_life_days?: number;
 }
 
 export interface UseOfferModerationOptions {
@@ -45,12 +52,18 @@ export function useOfferModeration(opts: UseOfferModerationOptions = {}) {
     // окно, в течение которого пайщик может вернуть имущество. 0 — возврат
     // по предложению недоступен. Срок годности (скоропорт) поставщик указал
     // отдельно при создании предложения.
+    const shelfLifeText =
+      offer.shelf_life_days === undefined
+        ? ''
+        : offer.shelf_life_days > 0
+          ? ` Срок годности товара, указанный поставщиком: ${offer.shelf_life_days} дн. — ориентируйтесь на него.`
+          : ' Поставщик не указал срок годности (товар без срока годности).';
     Dialog.create({
       title: 'Одобрить предложение?',
       message:
         `«${offer.product_name}» появится в публичном каталоге кооператива. ` +
         'Укажите гарантийный срок возврата (дней): в течение него пайщик сможет ' +
-        'вернуть имущество. 0 — возврат недоступен.',
+        `вернуть имущество. 0 — возврат недоступен.${shelfLifeText}`,
       prompt: {
         model: '0',
         type: 'number',

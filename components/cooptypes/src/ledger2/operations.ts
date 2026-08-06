@@ -249,10 +249,40 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: null, credit: null,
     human_name: 'Распределение членского взноса доверенному кооперативного участка' },
 
+  { code: 'o.brn.expfnd',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_FUND',   wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.expns',
+    debit: null, credit: null,
+    human_name: 'Выделение средств кооперативного участка под расход' },
+
+  { code: 'o.brn.expunf',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_UNFUND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Возврат неизрасходованных средств в общий кошелёк кооперативного участка' },
+
   { code: 'o.brn.spend',   process_type: 'p.brn.spend',   contract: 'branch',
-    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.common', wallet_to: null,
+    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.expns', wallet_to: null,
     debit: 86, credit: 51,
-    human_name: 'Оплата расхода кооперативного участка из общего кошелька' },
+    human_name: 'Прямая оплата расхода кооперативного участка по реквизитам' },
+
+  { code: 'o.brn.expadv',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу кооперативного участка' },
+
+  { code: 'o.brn.exprpt',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу кооперативного участка' },
+
+  { code: 'o.brn.expret',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.brn.expns',
+    debit: 51, credit: 86,
+    human_name: 'Возврат неиспользованного аванса по расходу кооперативного участка' },
+
+  { code: 'o.brn.expovr',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу кооперативного участка' },
 
   { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
     name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,

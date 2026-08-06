@@ -46,33 +46,39 @@ export interface Model {
 export const title = 'Заявление о конвертации паевого взноса в членский взнос'
 export const description = 'Заявление пайщика о конвертации паевого взноса в членский взнос по ЦПП «Стол заказов» при оформлении заказа'
 
-// Без white-space: pre-wrap — иначе каждый перенос строки в исходнике шаблона
-// превращается в вертикальный зазор и документ выглядит «разорванным».
-// Отступы между блоками задаются margin'ами явно (компактный эталон — 1080).
+// Вёрстка 1-в-1 с эталоном фабричного документа 1106/1109, которые КОРРЕКТНО
+// отображаются и в повестке совета (рендерер BaseDocument), и в предпросмотре.
+// BaseDocument прогоняет html через sanitizeHtml — он ВЫРЕЗАЕТ содержимое
+// <style> документа (инлайн-стили выживают, блочные правила — нет) и форсит в
+// Shadow DOM `.digital-document { white-space: pre-wrap }`. Поэтому:
+// выравнивание — ИНЛАЙН (`style="text-align: ..."`, а не класс в <style>),
+// вертикальный ритм — ПУСТЫМИ СТРОКАМИ под pre-wrap (не margin'ами), плотные
+// абзацы внутри одного блока (шапка «В Совет»/«от пайщика», подпись) — одной
+// строкой переноса без пустой строки между ними. Свой <style> ниже нужен
+// только для нешадоу-рендеров (weasyprint, предпросмотр без BaseDocument).
 export const context = `<style>
+h1 { margin: 0px; text-align: center; }
 .digital-document { padding: 20px; }
 .digital-document p { margin: 0 0 6px; }
-.digital-document h1 { margin: 0; text-align: center; }
-.digital-document .addressee { text-align: right; margin-bottom: 24px; }
-.digital-document .title-block { text-align: center; margin-bottom: 24px; }
-.digital-document .subheader { margin-top: 4px; }
-.digital-document .sign { margin-top: 24px; }
+.subheader { padding-bottom: 20px; }
 </style>
+
 <div class="digital-document">
-  <div class="addressee">
-    <p>{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
-    <p>{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p>
+  <div style="text-align: right">
+    <p style="margin: 0">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p>
+    <p style="margin: 0">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p>
   </div>
-  <div class="title-block">
-    <h1>{% trans 'statement_title' %}</h1>
+
+  <div style="text-align: center">
+    <h1 class="header">{% trans 'statement_title' %}</h1>
     <p class="subheader">{% trans 'statement_subheader', program.name %}</p>
   </div>
+
   <p>{% trans 'body', amount, program.name %}</p>
-  <div class="sign">
-    <p>{% trans 'signature' %}</p>
-    <p>{{ user.full_name_or_short_name }}</p>
-    <p>{{ meta.created_at }}</p>
-  </div>
+
+  <p>{% trans 'signature' %}</p>
+  <p>{{ user.full_name_or_short_name }}</p>
+  <p>{{ meta.created_at }}</p>
 </div>
 `
 

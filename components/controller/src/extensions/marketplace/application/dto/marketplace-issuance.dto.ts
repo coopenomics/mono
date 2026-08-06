@@ -1,5 +1,5 @@
-import { Field, ID, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, ID, InputType } from '@nestjs/graphql';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 @InputType('MarketplaceListIssuancesByBranameInput')
 export class MarketplaceListIssuancesByBranameInputDTO {
@@ -7,6 +7,19 @@ export class MarketplaceListIssuancesByBranameInputDTO {
   @IsString()
   @IsNotEmpty()
   public readonly delivery_braname!: string;
+}
+
+/**
+ * Ручное объявление готовности к выдаче оператором КУ («Объявить выдачу» на
+ * столе ПВЗ). Не подпись и не on-chain действие — только сигнал заказчику
+ * «приходите заберите» до его прихода.
+ */
+@InputType('MarketplaceAnnounceOrderReadyInput')
+export class MarketplaceAnnounceOrderReadyInputDTO {
+  @Field(() => ID, { description: 'Заказ, который объявляется готовым к выдаче на пункте.' })
+  @IsString()
+  @IsNotEmpty()
+  public readonly order_id!: string;
 }
 
 /**
@@ -21,13 +34,13 @@ export class MarketplaceIssueActPayloadInputDTO {
   @IsNotEmpty()
   public readonly order_id!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Фактически выдаваемое количество для предпросмотра акта (если не указано — берётся заказ).',
   })
   @IsOptional()
-  @IsInt()
+  @IsNumber()
   @Min(0)
   public readonly actual_quantity?: number;
 

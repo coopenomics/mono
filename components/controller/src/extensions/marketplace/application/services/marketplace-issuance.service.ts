@@ -39,6 +39,11 @@ import {
 } from '../../domain/repositories/marketplace-offer.repository';
 import { computeActNumber } from '../shared/act-number.util';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import { presentSaleUnit } from '../shared/packaging.util';
+import { calcCostAmount, compareMoney } from '../shared/cost.util';
+import { isStockOrder } from '../shared/order-kind.util';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
+import { toQuantityAsset } from '../shared/quantity.util';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceOrderIssuanceFactSnapshot } from '../../domain/entities/marketplace-order.types';
 import {
@@ -189,7 +194,7 @@ export class MarketplaceIssuanceService {
     // уценка) — повышение цены на выдаче открыло бы «наценку», под которую
     // нет доходной проводки (requirement 76, вопрос 4).
     if (
-      this.isStockOrder(order) &&
+      isStockOrder(order) &&
       Number.parseFloat(input.actual_unit_price) > Number.parseFloat(order.price_per_unit) + 1e-9
     ) {
       throw new ConflictException(
@@ -254,7 +259,59 @@ export class MarketplaceIssuanceService {
       `Выдача order ${order.id} открыта председателем ${input.chairman_account} (tx=${txHash}); статус READY_TO_RECEIVE.`
     );
 
-    // Story 6.1 / FR22: push заказчику — заказ готов на ПВЗ.
+    // Push «заказ готов на ПВЗ» здесь НЕ эмитим: открытие выдачи происходит,
+    // когда заказчик уже стоит у стойки (в бандл-модели signiss1 уходит на цепь
+    // при контрподписи получения). Уведомление «приходите заберите» отправляет
+    // announceReady — заранее, до прихода. См. MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT.
+    return { order: updated, tx_hash: txHash };
+  }
+
+  /**
+   * Оператор КУ выдачи вручную объявляет заказ готовым к выдаче («Объявить
+   * выдачу» на столе ПВЗ) — ДО прихода заказчика. Это единственная точка, где
+   * заказчику уходит push «приходите заберите» и в его кабинете загорается
+   * «Готово к выдаче».
+   *
+   * Backend-only сигнал, ортогональный подписям: on-chain статус остаётся
+   * ACCEPTED_TO_COOP (проводок нет), поэтому инварианты бандла
+   * (`awaits_chairman_issue_open`) и последующая выдача (signiss1/signiss2)
+   * не затрагиваются. Идемпотентно — повторный вызов не шлёт push дважды.
+   */
+  async announceReady(input: {
+    coopname: string;
+    order_id: string;
+    operator_account: string;
+  }): Promise<MarketplaceOrderDomainEntity> {
+    const order = await this.loadOrder(input.coopname, input.order_id);
+
+    // Уже объявлено — тихий no-op без повторного push (двойной клик оператора,
+    // гонка realtime-обновления стола).
+    if (order.ready_announced_at !== null) {
+      return order;
+    }
+    if (order.status !== 'ACCEPTED_TO_COOP') {
+      throw new ConflictException(
+        `Заказ в статусе «${order.status}» — объявить готовность к выдаче нельзя.`
+      );
+    }
+    if (order.chairman_signed_at !== null) {
+      throw new ConflictException('Выдача по заказу уже открыта.');
+    }
+
+    // Объявлять готовым можно только то, что физически принято на склад КУ:
+    // иначе заказчик придёт на пустой пункт.
+    const available = await this.loadAvailableOnWarehouse(order);
+    if (available <= 0) {
+      throw new ConflictException(
+        'По заказу ещё ничего не принято на склад пункта выдачи — объявить готовность нельзя.'
+      );
+    }
+
+    const updated = await this.orderRepo.applyReadyAnnounced(order.id);
+    this.logger.log(
+      `Заказ ${order.id} объявлен готовым к выдаче оператором ${input.operator_account}.`
+    );
+
     const event: MarketplaceOrderReadyToReceiveEvent = {
       coopname: updated.coopname,
       order_id: updated.id,
@@ -264,7 +321,7 @@ export class MarketplaceIssuanceService {
     };
     this.eventBus.emit(MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT, event);
 
-    return { order: updated, tx_hash: txHash };
+    return updated;
   }
 
   async finalizeIssuance(
@@ -323,7 +380,7 @@ export class MarketplaceIssuanceService {
         coopname: order.coopname,
         orderer: order.orderer_account,
         order_hash: order.order_hash,
-        actual_quantity,
+        actual_quantity: toQuantityAsset(actual_quantity, order.unit_of_measure),
         actual_unit_price: this.formatAsset(fact_unit_price),
         delivery_signer,
         act,
@@ -364,7 +421,7 @@ export class MarketplaceIssuanceService {
     // кооператива, доступная к перепредложению пайщикам после публикации.
     // Best-effort: на сводный учёт это не должно ронять закрытие выдачи.
     try {
-      if (this.isStockOrder(order)) {
+      if (isStockOrder(order)) {
         // Заказ из остатка: выданное — ISSUED, невыданный резерв возвращается
         // в свободный опубликованный остаток.
         const { released, issued_arrival_cost } = await this.inventoryRepo.finalizeReservedIssue(
@@ -413,15 +470,6 @@ export class MarketplaceIssuanceService {
   // ── private ──
 
   /**
-   * Заказ из остатка кооператива (requirement 76): продавец — сам кооператив.
-   * Такой заказ не имеет приёмки — выдача идёт из зарезервированных позиций
-   * обезличенного остатка.
-   */
-  private isStockOrder(order: MarketplaceOrderDomainEntity): boolean {
-    return order.supplier_account === order.coopname;
-  }
-
-  /**
    * Списание уценки по заказу из остатка (chain `markdown`, o.mkt.loss).
    * Best-effort: сбой не роняет закрытие выдачи — расход дослать можно
    * повторным вызовом (на цепи guard идемпотентности по заказу).
@@ -455,7 +503,7 @@ export class MarketplaceIssuanceService {
   private async loadAvailableOnWarehouse(
     order: MarketplaceOrderDomainEntity
   ): Promise<number> {
-    const sums = this.isStockOrder(order)
+    const sums = isStockOrder(order)
       ? await this.inventoryRepo.sumReservedByOrders(order.coopname, [order.id])
       : await this.inventoryRepo.sumOnWarehouseByOrders(order.coopname, [order.id]);
     return sums.get(order.id) ?? 0;
@@ -514,8 +562,10 @@ export class MarketplaceIssuanceService {
       offer_id: input.order.offer_id,
       product_title: offer?.product_name ?? 'Товар по предложению',
       unit_of_measurement: offer
-        ? marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size)
+        ? marketplaceOrderUnitLabel(offer.unit_of_measure)
         : '',
+      unit_of_measure: offer?.unit_of_measure,
+      package_size: input.order.package_size,
       transmitter: input.transmitter,
       actual_quantity: input.actual_quantity,
       unit_price,
@@ -539,6 +589,11 @@ export class MarketplaceIssuanceService {
     product_title: string;
     /** Готовый ярлык единицы заказа (фасовки) — строит вызывающая сторона из оферты. */
     unit_of_measurement: string;
+    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
+    unit_of_measure?: MarketplaceUnitOfMeasure;
+    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
+    package_size?: number;
+    /** Количество в БАЗОВОЙ единице (не число упаковок) — как и у обычного заказа. */
     quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
@@ -554,6 +609,8 @@ export class MarketplaceIssuanceService {
       offer_id: input.offer_id,
       product_title: input.product_title,
       unit_of_measurement: input.unit_of_measurement,
+      unit_of_measure: input.unit_of_measure,
+      package_size: input.package_size,
       transmitter: input.transmitter,
       actual_quantity: input.quantity,
       unit_price: input.unit_price,
@@ -569,15 +626,25 @@ export class MarketplaceIssuanceService {
     supplier_account: string;
     offer_id: string;
     product_title: string;
-    /** Готовый ярлык единицы заказа (фасовки). */
+    /** Ярлык базовой единицы (fallback для отпуска по мере/остатка). */
     unit_of_measurement: string;
+    /** Эпик 18: базовая единица оффера — для упаковочной презентации акта. */
+    unit_of_measure?: MarketplaceUnitOfMeasure;
+    /** Эпик 18: содержимое упаковки в базовой единице; 0/undefined = по мере. */
+    package_size?: number;
     transmitter: string;
     actual_quantity: number;
     unit_price: string;
   }): Promise<DocumentDomainEntity> {
-    // Акт выдачи ведётся В ЕДИНИЦАХ ЗАКАЗА (фасовках), без пересчёта в базовые:
-    // количество = число единиц заказа, цена — за единицу заказа.
-    const total_amount = (p.actual_quantity * Number.parseFloat(p.unit_price)).toFixed(4);
+    // Эпик 18: акт ведётся в единицах отпуска. По мере — количество в базовой
+    // единице, цена за базовую единицу. Упаковкой — количество = число упаковок,
+    // единица = «упак. 0,5 л», цена = за упаковку; сумма считается от числа
+    // упаковок (иначе на некруглой упаковке разъезжается копейка).
+    const packageSize = p.package_size ?? 0;
+    const pres = p.unit_of_measure
+      ? presentSaleUnit(p.actual_quantity, p.unit_of_measure, packageSize)
+      : { units: p.actual_quantity, unitLabel: p.unit_of_measurement };
+    const total_amount = (pres.units * Number.parseFloat(p.unit_price)).toFixed(4);
     const action: Cooperative.Registry.MarketplaceAplIssuance.Action = {
       registry_id: Cooperative.Registry.MarketplaceAplIssuance.registry_id,
       coopname: p.coopname,
@@ -589,12 +656,12 @@ export class MarketplaceIssuanceService {
       transmitter: p.transmitter,
       braname: p.delivery_braname,
       accept_braname: p.delivery_braname,
-      fact_quantity: p.actual_quantity,
+      fact_quantity: pres.units,
       total_amount,
       supplier_account: p.supplier_account,
       sku: p.offer_id,
       product_title: p.product_title,
-      unit_of_measurement: p.unit_of_measurement,
+      unit_of_measurement: pres.unitLabel,
       unit_cost: p.unit_price,
       currency: this.assetConfig.symbol,
       // false: тело акта выдачи сохраняется в стор документов, чтобы заказчик
@@ -613,14 +680,24 @@ export class MarketplaceIssuanceService {
     const decimals = this.assetConfig.decimals;
     const unitPrice = Number.parseFloat(actual_unit_price);
     const fact_unit_price = unitPrice.toFixed(decimals);
-    const factCostNum = actual_quantity * unitPrice;
-    const fact_cost = factCostNum.toFixed(decimals);
+    // Эпик 18: actual_quantity — в БАЗОВОЙ единице, а при отпуске упаковкой
+    // actual_unit_price — цена ЗА УПАКОВКУ (см. resolveSaleUnit). Сумму считает
+    // общая формула `calcCostAmount` — та же, что применит контракт в signiss2:
+    // упаковкой сумма берётся от числа упаковок, по мере — от базового
+    // количества, оба случая целочисленно.
+    const fact_cost = calcCostAmount({
+      quantity: actual_quantity,
+      unit: order.unit_of_measure,
+      unitPrice: fact_unit_price,
+      packageSize: order.package_size,
+      decimals,
+    });
     // diff_state по СТОИМОСТИ (цена могла измениться, не только количество):
     // именно стоимость определяет ветку возврата/доплаты в signiss2.
-    const orderedCostNum = Number.parseFloat(order.total_cost);
+    const comparison = compareMoney(fact_cost, order.total_cost, decimals);
     let diff_state: MarketplaceOrderIssuanceFactSnapshot['diff_state'];
-    if (factCostNum === orderedCostNum) diff_state = 'equal';
-    else if (factCostNum < orderedCostNum) diff_state = 'less';
+    if (comparison === 0) diff_state = 'equal';
+    else if (comparison < 0) diff_state = 'less';
     else diff_state = 'more';
     return { actual_quantity, fact_unit_price, fact_cost, diff_state };
   }

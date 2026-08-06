@@ -1,5 +1,6 @@
 import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceConsolidatedRequestDTO } from './marketplace-consolidated-request.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import {
@@ -33,7 +34,7 @@ registerEnumType(MarketplaceOrderIssuanceFactDiffStateEnum, {
   description: 'Фактическая выдача имущества пайщику на ПВЗ.',
 })
 export class MarketplaceOrderIssuanceFactSnapshotDTO {
-  @Field(() => Int, { description: 'Фактически выданное количество единиц.' })
+  @Field(() => Float, { description: 'Фактически выданное количество единиц.' })
   public readonly actual_quantity!: number;
 
   @Field(() => String, { description: 'Фактическая цена за единицу (скорректирована оператором при открытии выдачи).' })
@@ -107,17 +108,15 @@ export class MarketplaceOrderDTO {
 
   @Field(() => String, {
     nullable: true,
+    description: 'Обложка товара (первое изображение предложения) — для отображения в карточке заказа.',
+  })
+  public readonly image_url!: string | null;
+
+  @Field(() => MarketplaceUnitOfMeasureEnum, {
+    nullable: true,
     description: 'Базовая единица измерения товара из предложения (штука, килограмм, литр).',
   })
-  public readonly unit_of_measure!: string | null;
-
-  @Field(() => String, {
-    nullable: true,
-    description:
-      'Размер единицы заказа (фасовки) в базовых единицах из предложения: сколько ' +
-      'базовых единиц входит в одну единицу заказа. «0.1» — по 100 г, «8» — упаковка из 8 штук.',
-  })
-  public readonly order_unit_size!: string | null;
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
   @Field(() => String, { description: 'Аккаунт поставщика.' })
   public readonly supplier_account!: string;
@@ -155,10 +154,17 @@ export class MarketplaceOrderDTO {
   })
   public readonly delivery_point_lng!: number | null;
 
-  @Field(() => Int, { description: 'Количество единиц товара в заказе.' })
+  @Field(() => Float, { description: 'Количество единиц товара в заказе.' })
   public readonly quantity!: number;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
+    description:
+      'Содержимое упаковки в базовой единице (Эпик 18): 0 — отпуск по мере, ' +
+      'иначе quantity/package_size — число упаковок в заказе.',
+  })
+  public readonly package_size!: number;
+
+  @Field(() => Float, {
     nullable: true,
     description:
       'Сколько по заказу фактически принято на склад пункта выдачи и ещё не ' +
@@ -176,7 +182,7 @@ export class MarketplaceOrderDTO {
   })
   public readonly warehouse_shelves!: string[] | null;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Сколько уже накоплено по этому предложению на данном пункте выдачи всеми ' +
@@ -185,7 +191,7 @@ export class MarketplaceOrderDTO {
   })
   public readonly group_accumulated_quantity!: number | null;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description:
       'Целевой минимальный объём поставки на этот пункт выдачи — ориентир сбора ' +
@@ -274,6 +280,14 @@ export class MarketplaceOrderDTO {
     description: 'Фактическая выдача после финальной подписи заказчика (заполняется на ПВЗ).',
   })
   public readonly issuance_fact!: MarketplaceOrderIssuanceFactSnapshotDTO | null;
+
+  @Field(() => Boolean, {
+    description:
+      'Оператор пункта выдачи объявил заказ готовым к выдаче — заказчику отправлено ' +
+      'уведомление «приходите заберите». Пока false, заказ принят кооперативом, но ' +
+      'ещё не готов к получению.',
+  })
+  public readonly is_ready_announced!: boolean;
 
   @Field(() => Date, {
     nullable: true,
@@ -380,8 +394,9 @@ export function toMarketplaceOrderCreateTxSnapshotDTO(
  */
 export interface MarketplaceOrderDisplayFields {
   product_name?: string | null;
-  unit_of_measure?: string | null;
-  order_unit_size?: string | null;
+  image_url?: string | null;
+  unit_of_measure?: MarketplaceUnitOfMeasureEnum | null;
+  package_size?: number | null;
   delivery_point_name?: string | null;
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;
@@ -392,6 +407,7 @@ export interface MarketplaceOrderDisplayFields {
   group_min_volume?: number | null;
   warehouse_quantity?: number | null;
   warehouse_shelves?: string[] | null;
+  warranty_until?: Date | null;
 }
 
 /**
@@ -418,8 +434,8 @@ export function toMarketplaceOrderDTO(
     offer_id: o.offer_id,
     offer_hash: o.offer_hash,
     product_name: display?.product_name ?? null,
+    image_url: display?.image_url ?? null,
     unit_of_measure: display?.unit_of_measure ?? null,
-    order_unit_size: display?.order_unit_size ?? null,
     supplier_account: o.supplier_account,
     supplier_name: display?.supplier_name ?? null,
     delivery_braname: o.delivery_braname,
@@ -428,6 +444,7 @@ export function toMarketplaceOrderDTO(
     delivery_point_lat: display?.delivery_point_lat ?? null,
     delivery_point_lng: display?.delivery_point_lng ?? null,
     quantity: o.quantity,
+    package_size: o.package_size,
     warehouse_quantity: display?.warehouse_quantity ?? null,
     warehouse_shelves: display?.warehouse_shelves ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
@@ -457,6 +474,7 @@ export function toMarketplaceOrderDTO(
           diff_state: o.issuance_fact.diff_state as MarketplaceOrderIssuanceFactDiffStateEnum,
         })
       : null,
+    is_ready_announced: o.is_ready_announced,
     chairman_signed_at: o.chairman_signed_at,
     chairman_account: o.chairman_account,
     signiss1_tx_hash: o.signiss1_tx_hash,

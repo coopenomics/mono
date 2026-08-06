@@ -12,6 +12,8 @@ export interface MarketplaceCartItemProps {
   cart_id: string;
   coopname: string;
   offer_id: string;
+  /** Выбранная упаковка (Эпик 18); пустая строка при отпуске по мере. */
+  package_id: string;
   quantity: number;
   created_at: Date;
   updated_at: Date;

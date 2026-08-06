@@ -120,37 +120,126 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               outlined,
               dense,
               no-error-icon,
-              reserve-hint-space,
-              emit-value,
-              map-options,
-              @update:model-value='onUnitChange'
-            )
-            q-select(
-              v-model='form.order_unit_size',
-              :options='orderUnitOptions',
-              label='Единица заказа',
-              outlined,
-              dense,
-              no-error-icon,
-              reserve-hint-space,
               emit-value,
               map-options
             )
-          q-input(
-            v-model='form.price_per_unit',
-            :label='priceLabel',
-            outlined,
-            dense,
-            no-error-icon,
-            reserve-hint-space,
-            :suffix='governSymbol',
-            hint='Два знака после запятой, например 100.50',
-            :rules='[priceRule]'
-          )
-          p.offer-wizard__hint(v-if='referencePriceHint') {{ referencePriceHint }}
-          p.offer-wizard__hint(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
-          .offer-wizard__qty
+            q-input(
+              v-if='form.sale_form !== MarketplaceSaleForm.PACKAGED',
+              v-model='form.price_per_unit',
+              :label='priceLabel',
+              outlined,
+              dense,
+              no-error-icon,
+              :suffix='governSymbol',
+              :rules='[priceRule]'
+            )
+
+          //- ───────── Способ отпуска (Эпик 18) ─────────
+          .offer-wizard__qty-group
+            .offer-wizard__field-label Способ отпуска
+            .offer-wizard__qty-mode
+              button.offer-wizard__qty-mode-label(
+                type='button',
+                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === MarketplaceSaleForm.BY_MEASURE }',
+                @click='onSelectSaleForm(MarketplaceSaleForm.BY_MEASURE)'
+              ) По мере
+              q-toggle.offer-wizard__qty-toggle(
+                :model-value='form.sale_form === MarketplaceSaleForm.PACKAGED',
+                color='primary',
+                dense,
+                aria-label='По мере или упаковкой',
+                @update:model-value='(v) => onSelectSaleForm(v ? MarketplaceSaleForm.PACKAGED : MarketplaceSaleForm.BY_MEASURE)'
+              )
+              button.offer-wizard__qty-mode-label(
+                type='button',
+                :class='{ "offer-wizard__qty-mode-label--active": form.sale_form === MarketplaceSaleForm.PACKAGED }',
+                @click='onSelectSaleForm(MarketplaceSaleForm.PACKAGED)'
+              ) Упаковкой
+            .offer-wizard__hint(v-if='form.sale_form === MarketplaceSaleForm.BY_MEASURE') Заказчик указывает произвольное количество; цена — за {{ orderUnitLabel }}.
+            .offer-wizard__hint(v-else) Товар отпускается целыми упаковками, у каждой своя цена. Заказчик выбирает упаковку и число упаковок.
+
+            //- ───────── Редактор упаковок — внутри той же карточки ─────────
+            .offer-wizard__packages(v-if='form.sale_form === MarketplaceSaleForm.PACKAGED')
+              .offer-wizard__hint(v-if='form.packages.length > 1')
+                | Кружок слева — упаковка по умолчанию (первой видна в каталоге).
+              .offer-wizard__pkg-row(v-for='(pkg, i) in form.packages', :key='i')
+                q-radio.offer-wizard__pkg-default(
+                  :model-value='defaultPackageIndex',
+                  :val='i',
+                  color='primary',
+                  dense,
+                  aria-label='Сделать упаковкой по умолчанию',
+                  @update:model-value='setDefaultPackage(i)'
+                )
+                q-input.offer-wizard__pkg-size(
+                  v-model.number='pkg.size',
+                  :label='`Содержимое, ${orderUnitLabel}`',
+                  type='number',
+                  min='0',
+                  :step='unitStep',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space
+                )
+                q-input.offer-wizard__pkg-price(
+                  v-model='pkg.price',
+                  label='Цена упаковки',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space,
+                  :suffix='governSymbol'
+                )
+                q-input.offer-wizard__pkg-label(
+                  v-model='pkg.label',
+                  label='Подпись (необяз.)',
+                  outlined,
+                  dense,
+                  no-error-icon,
+                  hide-bottom-space
+                )
+                BaseButton(
+                  variant='ghost',
+                  icon-only,
+                  size='sm',
+                  :disabled='form.packages.length <= 1',
+                  aria-label='Убрать упаковку',
+                  @click='removePackage(i)'
+                )
+                  template(#icon-left)
+                    q-icon(name='delete_outline', size='18px')
+              BaseButton.offer-wizard__pkg-add(
+                variant='ghost',
+                size='sm',
+                @click='addPackage'
+              )
+                template(#icon-left)
+                  q-icon(name='add', size='16px')
+                span.q-ml-sm Добавить упаковку
+
+          .offer-wizard__qty-group
+            .offer-wizard__field-label Наличие
+            .offer-wizard__qty-mode
+              button.offer-wizard__qty-mode-label(
+                type='button',
+                :class='{ "offer-wizard__qty-mode-label--active": !form.unlimited_flag }',
+                @click='onToggleUnlimited(false)'
+              ) Количество ограничено
+              q-toggle.offer-wizard__qty-toggle(
+                :model-value='form.unlimited_flag',
+                color='primary',
+                dense,
+                aria-label='Количество ограничено или не ограничено',
+                @update:model-value='onToggleUnlimited'
+              )
+              button.offer-wizard__qty-mode-label(
+                type='button',
+                :class='{ "offer-wizard__qty-mode-label--active": form.unlimited_flag }',
+                @click='onToggleUnlimited(true)'
+              ) Количество не ограничено
             q-input.offer-wizard__qty-input(
+              v-if='!form.unlimited_flag',
               v-model.number='form.quantity_available',
               label='Доступное количество',
               type='number',
@@ -158,17 +247,11 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               outlined,
               dense,
               no-error-icon,
-              reserve-hint-space,
+              hide-bottom-space,
               :suffix='`× ${orderUnitLabel}`',
-              :disable='form.unlimited_flag',
-              :rules='[(v) => form.unlimited_flag || (v !== null && v >= 0) || "Укажите количество или включите «без ограничения»"]'
+              :rules='[(v) => (v !== null && v >= 0) || "Укажите количество или выберите «Количество не ограничено»"]'
             )
-            BaseCheckbox.offer-wizard__qty-check(
-              :model-value='form.unlimited_flag',
-              label='Без ограничения',
-              @update:model-value='onToggleUnlimited'
-            )
-          q-input(
+          q-input.offer-wizard__field-full(
             v-model.number='form.shelf_life_days',
             label='Срок годности (дней)',
             type='number',
@@ -176,8 +259,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
             outlined,
             dense,
             no-error-icon,
-            reserve-hint-space,
-            hint='По сроку годности имущество списывается со склада как скоропорт. 0 — без срока годности (не списывается). Гарантийный срок возврата назначает председатель при модерации.',
+            hide-bottom-space,
             :rules='[(v) => (v !== null && v >= 0) || "Срок годности не может быть отрицательным"]'
           )
 
@@ -296,7 +378,7 @@ q-page.mp-role-offerer.offer-wizard(role='region', aria-label='Создание 
               .offer-preview__pricerow
                 .offer-preview__pricebox
                   span.offer-preview__price {{ formattedPrice }}
-                  span.offer-preview__per за {{ orderUnitLabel }}
+                  span.offer-preview__per за {{ previewUnitLabel }}
                 BaseChip(:variant='stockEmpty ? "neg" : "pos"', size='sm') {{ stockLabel }}
               p.offer-preview__fee(v-if='priceWithFeeHint') {{ priceWithFeeHint }}
               p.offer-preview__desc(v-if='form.description') {{ form.description }}
@@ -358,11 +440,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore, GeocodeStatus } from 'src/entities/MarketplaceKUDetails';
-import {
-  MARKETPLACE_UNIT_OPTIONS,
-  MARKETPLACE_ORDER_UNIT_PRESETS,
-  marketplaceOrderUnitLabel,
-} from 'src/shared/lib/consts';
+import { MARKETPLACE_UNIT_OPTIONS, marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { fileToBase64, formatAsset2Digits } from 'src/shared/lib/utils';
 import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import { Zeus } from '@coopenomics/sdk';
@@ -382,8 +460,10 @@ import type {
   MarketplaceCreateOfferFormState,
   MarketplaceCreateOfferPayload,
   MarketplaceOfferImageUpload,
-  MarketplaceUnitOfMeasure,
 } from '../types';
+// Значения (не только типы) — реальные GraphQL-enum'ы, используются в
+// шаблоне и коде как MarketplaceSaleForm.PACKAGED/MarketplaceUnitOfMeasure.KG.
+import { MarketplaceSaleForm, MarketplaceUnitOfMeasure } from '../types';
 
 /**
  * Story 3.2 / 4.7: многошаговый мастер публикации Offer'а (по канону
@@ -608,8 +688,9 @@ const form = ref<MarketplaceCreateOfferFormState>({
   description: '',
   category_id: null,
   price_per_unit: '',
-  unit_of_measure: 'piece',
-  order_unit_size: '1',
+  unit_of_measure: MarketplaceUnitOfMeasure.PIECE,
+  sale_form: MarketplaceSaleForm.BY_MEASURE,
+  packages: [],
   quantity_available: 1,
   unlimited_flag: false,
   delivery_points: [],
@@ -643,31 +724,42 @@ let galleryUidSeq = 0;
 const selectedCategoryLabel = computed(
   () => categoryOptions.value.find((o) => o.value === form.value.category_id)?.label ?? '—'
 );
-const selectedUnitLabel = computed(
-  () => unitOptions.find((o) => o.value === form.value.unit_of_measure)?.label ?? ''
-);
-
-// Опции размера единицы заказа (фасовки) под выбранную базовую единицу.
-// Фиксированный пресет: заказчик/поставщик оперируют типовыми фасовками, но
-// backend примет и произвольное положительное значение.
-const orderUnitOptions = computed(() =>
-  (MARKETPLACE_ORDER_UNIT_PRESETS[form.value.unit_of_measure] ?? ['1']).map((v) => ({
-    label: marketplaceOrderUnitLabel(form.value.unit_of_measure, v),
-    value: v,
-  }))
-);
-// Человекочитаемая подпись текущей единицы заказа: «100 г», «упаковка 8 шт»…
-const orderUnitLabel = computed(() =>
-  marketplaceOrderUnitLabel(form.value.unit_of_measure, form.value.order_unit_size)
-);
+// Подпись базовой единицы измерения: «кг», «л», «шт» (Эпик 17: количество и
+// цена ведутся прямо в базовой единице, «фасовки» нет).
+const orderUnitLabel = computed(() => marketplaceOrderUnitLabel(form.value.unit_of_measure));
 const priceLabel = computed(() => `Цена за ${orderUnitLabel.value}`);
 
-// Смена базовой единицы обнуляет фасовку к первому пресету (0.1 кг для веса не
-// имеет смысла оставлять при переключении на штуки).
-function onUnitChange(): void {
-  const presets = MARKETPLACE_ORDER_UNIT_PRESETS[form.value.unit_of_measure] ?? ['1'];
-  if (!presets.includes(form.value.order_unit_size)) {
-    form.value.order_unit_size = form.value.unit_of_measure === 'piece' ? '1' : presets[0];
+// Эпик 18: шаг ввода содержимого упаковки — штука неделима (1), вес/объём дробный.
+const unitStep = computed(() => (form.value.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 1 : 0.001));
+
+// Индекс упаковки «по умолчанию» (для radio); -1 если не задана.
+const defaultPackageIndex = computed(() => form.value.packages.findIndex((p) => p.is_default));
+
+function setDefaultPackage(index: number): void {
+  form.value.packages.forEach((p, i) => {
+    p.is_default = i === index;
+  });
+}
+
+function addPackage(): void {
+  const isFirst = form.value.packages.length === 0;
+  form.value.packages.push({ size: null, price: '', label: '', is_default: isFirst });
+}
+
+function removePackage(index: number): void {
+  const wasDefault = form.value.packages[index]?.is_default;
+  form.value.packages.splice(index, 1);
+  if (wasDefault && form.value.packages.length > 0) {
+    form.value.packages[0].is_default = true;
+  }
+}
+
+// Переключение способа отпуска: при первом переходе к «упаковкой» заводим
+// одну пустую упаковку, чтобы редактор не был пустым.
+function onSelectSaleForm(form_value: MarketplaceSaleForm): void {
+  form.value.sale_form = form_value;
+  if (form_value === MarketplaceSaleForm.PACKAGED && form.value.packages.length === 0) {
+    addPackage();
   }
 }
 const deliveryPointsPreview = computed(() =>
@@ -731,35 +823,50 @@ async function loadKuOptions(): Promise<void> {
 // Нормализованная (точка-разделитель) цена для отправки и форматирования.
 const priceNumberStr = computed(() => form.value.price_per_unit.trim().replace(',', '.'));
 
+// Упаковка по умолчанию (для отправки и превью) — то, что реально увидит и
+// закажет заказчик при отпуске упаковкой.
+const defaultPackage = computed(() =>
+  form.value.packages.find((p) => p.is_default) ?? form.value.packages[0] ?? null
+);
+
+// Цена в превью: по мере — form.price_per_unit (поле «Цена за ед.»); упаковкой
+// — цена упаковки по умолчанию. form.price_per_unit при упаковочном отпуске
+// скрыт и может хранить неактуальное значение с прошлого переключения режима
+// («по мере» → «упаковкой») или восстановленного черновика — использовать его
+// в превью для упаковочного оффера нельзя (инцидент 2026-07-25: превью
+// показывало «1 RUB за л» вместо реальной цены упаковки «100 RUB»).
+const previewPriceStr = computed(() =>
+  form.value.sale_form === MarketplaceSaleForm.PACKAGED
+    ? (defaultPackage.value?.price ?? '').trim().replace(',', '.')
+    : priceNumberStr.value
+);
+// Подпись единицы отпуска в превью: по мере — базовая единица («л»);
+// упаковкой — размер упаковки по умолчанию («упак. 1 л»), а не базовая
+// единица — заказчик покупает целыми упаковками, не по цене за литр/кг.
+const previewUnitLabel = computed(() => {
+  if (form.value.sale_form !== MarketplaceSaleForm.PACKAGED) return orderUnitLabel.value;
+  const size = defaultPackage.value?.size;
+  return size ? `упак. ${String(size).replace('.', ',')} ${orderUnitLabel.value}` : orderUnitLabel.value;
+});
+
 // Цена с учётом взноса — то, что реально увидит и заплатит пайщик.
 const priceWithFee = computed<number | null>(() => {
-  if (!priceNumberStr.value) return null;
-  const n = Number(priceNumberStr.value);
+  if (!previewPriceStr.value) return null;
+  const n = Number(previewPriceStr.value);
   if (Number.isNaN(n)) return null;
   return feePercent.value > 0 ? applyMembershipFee(n, feePercent.value) : n;
 });
 // В превью крупно — своя цена поставщика (без взноса).
 const formattedPrice = computed(() => {
-  if (!priceNumberStr.value) return '—';
-  const n = Number(priceNumberStr.value);
+  if (!previewPriceStr.value) return '—';
+  const n = Number(previewPriceStr.value);
   if (Number.isNaN(n)) return '—';
   return formatAsset2Digits(`${n} ${governSymbol.value}`);
 });
 const priceWithFeeHint = computed(() => {
   if (priceWithFee.value == null || feePercent.value <= 0) return '';
   const formatted = formatAsset2Digits(`${priceWithFee.value} ${governSymbol.value}`);
-  return `Цена для заказчика: ${formatted} за ${orderUnitLabel.value}`;
-});
-
-// Справочная цена за базовую единицу (за 1 кг / 1 л / 1 шт) — для сравнения
-// предложений при фасовке ≠ базовой единице. Считается от цены заказчика (с
-// членским взносом), т.к. именно её он сравнивает.
-const referencePriceHint = computed(() => {
-  const size = Number.parseFloat(form.value.order_unit_size);
-  if (priceWithFee.value == null || !Number.isFinite(size) || size <= 0 || size === 1) return '';
-  const perBase = priceWithFee.value / size;
-  const formatted = formatAsset2Digits(`${perBase} ${governSymbol.value}`);
-  return `≈ ${formatted} за ${selectedUnitLabel.value} — для сравнения`;
+  return `Цена для заказчика: ${formatted} за ${previewUnitLabel.value}`;
 });
 
 const stockEmpty = computed(
@@ -834,7 +941,20 @@ function scheduleSaveDraft(): void {
 function restoreDraft(): void {
   const saved = LocalStorage.getItem(DRAFT_KEY) as Partial<OfferDraft> | null;
   if (!saved?.form) return;
-  form.value = { ...form.value, ...saved.form };
+  // Черновик мог быть сохранён ДО перехода unit_of_measure/sale_form на
+  // реальные GraphQL-enum'ы (Эпик 18) — тогда в LocalStorage лежат старые
+  // строчные значения ('kg', 'packaged'), которых больше нет в enum'е.
+  // Слепой мёрж тихо возвращал бы их в форму и валил submit на каждой
+  // загрузке, независимо от reload. Не доверяем сохранённому значению, если
+  // оно не входит в текущий набор — оставляем свежий дефолт формы.
+  const restoredForm: Partial<MarketplaceCreateOfferFormState> = { ...saved.form };
+  if (!Object.values(MarketplaceUnitOfMeasure).includes(restoredForm.unit_of_measure!)) {
+    delete restoredForm.unit_of_measure;
+  }
+  if (!Object.values(MarketplaceSaleForm).includes(restoredForm.sale_form!)) {
+    delete restoredForm.sale_form;
+  }
+  form.value = { ...form.value, ...restoredForm };
   if (typeof saved.activeKey === 'string') activeKey.value = saved.activeKey;
   if (Array.isArray(saved.completedKeys)) completedKeys.value = saved.completedKeys;
   if (Array.isArray(saved.images) && saved.images.length) {
@@ -1007,13 +1127,59 @@ function buildImagesPayload(): MarketplaceOfferImageUpload[] | undefined {
 
 async function onSubmit(): Promise<void> {
   const f = form.value;
+
+  // Эпик 18: при отпуске упаковкой — валидируем каталог упаковок и собираем его.
+  let packagesPayload: MarketplaceCreateOfferPayload['packages'];
+  let pricePerUnit = priceNumberStr.value;
+  if (f.sale_form === MarketplaceSaleForm.PACKAGED) {
+    if (f.packages.length === 0) {
+      FailAlert(new Error('Добавьте хотя бы одну упаковку.'));
+      return;
+    }
+    // Точность содержимого зависит от единицы (как unitStep): штука неделима
+    // (0 знаков), вес/объём — до 3 знаков (граммы/миллилитры). Проверяем на
+    // клиенте, чтобы не гонять на сервер и обратно за очевидной ошибкой.
+    const sizePrecision = f.unit_of_measure === MarketplaceUnitOfMeasure.PIECE ? 0 : 3;
+    for (const p of f.packages) {
+      if (!p.size || p.size <= 0) {
+        FailAlert(new Error('У каждой упаковки укажите содержимое больше нуля.'));
+        return;
+      }
+      const scaledSize = p.size * 10 ** sizePrecision;
+      if (Math.abs(scaledSize - Math.round(scaledSize)) > 1e-9) {
+        FailAlert(
+          new Error(
+            f.unit_of_measure === MarketplaceUnitOfMeasure.PIECE
+              ? 'Содержимое упаковки в штуках должно быть целым — если это вес или объём (например, граммы), выберите единицу «кг» или «литр».'
+              : `Содержимое упаковки для единицы «${orderUnitLabel.value}» допускает не более ${sizePrecision} знаков после запятой.`
+          )
+        );
+        return;
+      }
+      if (!/^\d+([.,]\d{1,4})?$/.test(p.price.trim()) || Number.parseFloat(p.price.replace(',', '.')) <= 0) {
+        FailAlert(new Error('У каждой упаковки укажите корректную цену.'));
+        return;
+      }
+    }
+    packagesPayload = f.packages.map((p) => ({
+      size: p.size as number,
+      price: p.price.trim().replace(',', '.'),
+      label: p.label.trim() ? p.label.trim() : null,
+      is_default: p.is_default,
+    }));
+    // price_per_unit при упаковочном отпуске backend выводит из упаковки по
+    // умолчанию; шлём цену дефолт-упаковки, чтобы удовлетворить валидацию DTO.
+    pricePerUnit = (defaultPackage.value?.price ?? '').trim().replace(',', '.');
+  }
+
   const payload: MarketplaceCreateOfferPayload = {
     product_name: f.product_name.trim(),
     description: f.description.trim() ? f.description.trim() : null,
     category_id: f.category_id as number,
-    price_per_unit: priceNumberStr.value,
+    price_per_unit: pricePerUnit,
     unit_of_measure: f.unit_of_measure,
-    order_unit_size: f.order_unit_size,
+    sale_form: f.sale_form,
+    packages: packagesPayload,
     quantity_available: f.unlimited_flag ? null : f.quantity_available,
     unlimited_flag: f.unlimited_flag,
     delivery_points: f.delivery_points,
@@ -1063,7 +1229,14 @@ async function prefillForEdit(id: string): Promise<void> {
       category_id: offer.category_id != null ? Number(offer.category_id) : null,
       price_per_unit: formatPriceForInput(offer.price_per_unit),
       unit_of_measure: offer.unit_of_measure as MarketplaceUnitOfMeasure,
-      order_unit_size: offer.order_unit_size ? String(offer.order_unit_size) : '1',
+      sale_form: (offer.sale_form as MarketplaceSaleForm) ?? MarketplaceSaleForm.BY_MEASURE,
+      packages: (offer.packages ?? []).map((p) => ({
+        id: p.id,
+        size: p.size,
+        price: formatPriceForInput(p.price),
+        label: p.label ?? '',
+        is_default: p.is_default,
+      })),
       quantity_available: offer.quantity_available,
       unlimited_flag: offer.unlimited_flag,
       delivery_points: (offer.delivery_points ?? []).map((d) => ({
@@ -1169,25 +1342,64 @@ onBeforeUnmount(() => {
 
   &__row {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--p-3, 12px);
+    align-items: start;
+
+    :deep(.q-field) {
+      width: 100%;
+    }
   }
 
-  &__qty {
+  &__qty-group {
     display: flex;
-    align-items: flex-start;
-    gap: var(--p-4, 16px);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    padding: var(--p-3, 12px) var(--p-4, 16px);
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    background: var(--p-surface-2);
   }
 
-  &__qty-input {
-    flex: 0 1 240px;
+  &__qty-mode {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: var(--p-3, 12px);
+    min-height: 32px;
   }
 
-  // Чекбокс в одной строке с полем количества; небольшой top-отступ
-  // выравнивает его по центру dense-контрола.
-  &__qty-check {
-    margin-top: var(--p-2, 8px);
+  &__qty-mode-label {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: var(--p-fs-meta, 12px);
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--p-ink-3);
+    cursor: pointer;
+    transition: color 0.15s ease, font-weight 0.15s ease;
+
+    &:hover {
+      color: var(--p-ink-2);
+    }
+
+    &--active {
+      color: var(--p-ink);
+      font-weight: 600;
+    }
+  }
+
+  &__qty-toggle {
+    flex-shrink: 0;
+  }
+
+  &__qty-input,
+  &__field-full {
+    width: 100%;
   }
 
   &__field-label {
@@ -1199,6 +1411,41 @@ onBeforeUnmount(() => {
       font-weight: 500;
       color: var(--p-ink-3);
     }
+  }
+
+  // Редактор упаковок (Эпик 18): список строк, паттерн как у &__ku-row —
+  // flex-строка с фиксированной шириной узких полей и растущей подписью.
+  &__packages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__pkg-row {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    flex-wrap: wrap;
+  }
+
+  &__pkg-default {
+    flex-shrink: 0;
+  }
+
+  &__pkg-size {
+    flex: 1 1 140px;
+  }
+
+  &__pkg-price {
+    flex: 1 1 160px;
+  }
+
+  &__pkg-label {
+    flex: 2 1 200px;
+  }
+
+  &__pkg-add {
+    align-self: flex-start;
   }
 
   &__cards {

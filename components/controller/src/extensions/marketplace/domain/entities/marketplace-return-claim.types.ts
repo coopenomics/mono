@@ -152,8 +152,16 @@ export interface MarketplaceReturnClaimProps {
   expected_resolution: MarketplaceReturnClaimExpectedResolution;
   /** Возвращаемое количество — по умолчанию = order.actual_quantity, может быть меньше (но > 0). */
   actual_quantity: number;
-  /** Возвращаемая сумма = actual_quantity × unit_price (рассчитывается на submit). */
+  /** Возвращаемая стоимость имущества = actual_quantity × unit_price (рассчитывается на submit). */
   fact_cost: string;
+  /**
+   * Возвращаемая доля членского взноса (рассчитывается на submit пропорционально
+   * возвращаемому количеству). Вместе с fact_cost составляет полную сумму,
+   * которую пайщик получает обратно: гарантийный возврат возвращает и стоимость
+   * имущества, и уплаченный за него взнос. У заявлений, поданных до введения
+   * возврата взноса, — отсутствует (трактуется как 0).
+   */
+  fee_refund?: string;
   photos: MarketplaceReturnClaimPhoto[];
   /**
    * Подписанное пайщиком заявление (registry 1104) — сохраняется при подаче,

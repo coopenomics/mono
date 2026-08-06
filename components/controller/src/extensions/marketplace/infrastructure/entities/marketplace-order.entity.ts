@@ -11,6 +11,11 @@ import type {
   MarketplaceOrderIssuanceFactSnapshot,
   MarketplaceOrderStatus,
 } from '../../domain/entities/marketplace-order.types';
+import {
+  MarketplaceUnitsOfMeasure,
+  type MarketplaceUnitOfMeasure,
+} from '../../domain/entities/marketplace-offer.types';
+import { numericQuantityTransformer } from './numeric-quantity.transformer';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 
 /**
@@ -66,12 +71,31 @@ export class MarketplaceOrderEntity {
   @Column({ type: 'varchar', length: 13 })
   public delivery_braname!: string;
 
-  @Column({ type: 'integer' })
+  // Дробное количество (Эпик 17): numeric в базовой единице; transformer
+  // возвращает number. Точность 3 — граммы/миллилитры (KG/LTR); PCS — целое.
+  @Column({ type: 'numeric', precision: 18, scale: 3, transformer: numericQuantityTransformer })
   public quantity!: number;
 
-  // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer)
+  // Единица измерения заказа, денормализованная из Offer'а при создании (как и
+  // price_per_unit): нужна для сборки on-chain asset-количества (символ KG/LTR/
+  // PCS) на выдаче/приёмке/возврате и для форматирования в актах/UI.
+  @Column({ type: 'varchar', length: 16, default: MarketplaceUnitsOfMeasure.PIECE })
+  public unit_of_measure!: MarketplaceUnitOfMeasure;
+
+  // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer).
+  // Эпик 18: цена за единицу отпуска — за базовую единицу при отпуске по мере,
+  // за упаковку при упаковочном (package_size > 0).
   @Column({ type: 'numeric', precision: 18, scale: 4 })
   public price_per_unit!: string;
+
+  /**
+   * Содержимое упаковки в базовой единице, снапшот выбранной упаковки оффера
+   * (Эпик 18). 0 = отпуск по мере (price_per_unit за базовую единицу); >0 =
+   * упаковкой (price_per_unit за упаковку, quantity кратно package_size).
+   * `synchronize:true` создаёт колонку с default 0.
+   */
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
+  public package_size!: number;
 
   @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;
@@ -147,6 +171,14 @@ export class MarketplaceOrderEntity {
   /** Снапшот фактической выдачи после `signiss2` (factual quantity, fact_cost, diff_state). */
   @Column({ type: 'jsonb', nullable: true })
   public issuance_fact!: MarketplaceOrderIssuanceFactSnapshot | null;
+
+  /**
+   * Момент ручного объявления готовности к выдаче оператором КУ («Объявить
+   * выдачу»). Backend-only операционный сигнал — статус не меняется, on-chain
+   * не пишется; триггерит push заказчику и бейдж «Готово к выдаче».
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  public ready_announced_at!: Date | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   public chairman_signed_at!: Date | null;

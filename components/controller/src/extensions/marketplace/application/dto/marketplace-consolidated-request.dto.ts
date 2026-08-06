@@ -1,4 +1,4 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ObjectType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceConsolidatedRequestDomainEntity } from '../../domain/entities/marketplace-consolidated-request.entity';
 
@@ -9,7 +9,7 @@ export class MarketplaceConsolidatedRequestDTO {
   @Field(() => String) public readonly offer_id!: string;
   @Field(() => String) public readonly supplier_account!: string;
 
-  @Field(() => Int) public readonly total_quantity!: number;
+  @Field(() => Float) public readonly total_quantity!: number;
   @Field(() => String, { description: 'Сумма заявки (numeric как string).' })
   public readonly total_amount!: string;
 

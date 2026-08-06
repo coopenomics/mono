@@ -171,6 +171,53 @@ export function registerBaseDecisionHandlers() {
     },
   });
 
+  // Обработчик для BranchFinancialAidProtocol (протокол совета о выплате
+  // материальной помощи доверенному кооперативного участка).
+  // Документ-Решение совета (registry 1112) генерируется из метаданных
+  // подписанного Заявления на выплату (1109) + decision_id текущего решения.
+  // Получатель берётся из заявления: подписант заявления и есть тот, кому
+  // выплачивают. Фабрика сама резолвит его ФИО, состав совета и голоса.
+  decisionFactory.registerHandler('brnaid', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения brnaid');
+      }
+
+      const statementMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.BranchFinancialAidStatement.Action;
+
+      if (
+        !statementMeta.aid_hash ||
+        !statementMeta.braname ||
+        !statementMeta.amount ||
+        !statementMeta.username
+      ) {
+        throw new Error('Некорректные метаданные заявления для решения brnaid');
+      }
+
+      const { info } = useSystemStore();
+
+      const protocolAction: Cooperative.Registry.BranchFinancialAidProtocol.Action =
+        {
+          registry_id:
+            Cooperative.Registry.BranchFinancialAidProtocol.registry_id,
+          coopname: info.coopname,
+          username,
+          lang: 'ru',
+          decision_id,
+          aid_hash: statementMeta.aid_hash,
+          receiver: statementMeta.username,
+          braname: statementMeta.braname,
+          amount: statementMeta.amount,
+        };
+
+      return await new DigitalDocument().generate(protocolAction, {
+        lang: 'ru',
+      });
+    },
+  });
+
   // Обработчик для DecisionOfParticipantExit (решение о выходе пайщика)
   decisionFactory.registerHandler('leavecoop', {
     generateHandler: async ({ decision_id, username }) => {

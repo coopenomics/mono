@@ -48,8 +48,9 @@ export interface ICreateOrder {
   offer_hash: IChecksum256
   offerer: IName
   delivery_braname: IName
-  quantity: IUint64
+  quantity: IAsset
   unit_price: IAsset
+  package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
   convert_statement: IDocument2
@@ -61,8 +62,9 @@ export interface IStockOrder {
   order_hash: IChecksum256
   offer_hash: IChecksum256
   delivery_braname: IName
-  quantity: IUint64
+  quantity: IAsset
   unit_price: IAsset
+  package_size: IAsset
   warranty_period_secs: IUint32
   batch_hash: IChecksum256
 }
@@ -129,7 +131,7 @@ export interface ISignChair {
   coopname: IName
   signer: IName
   order_hash: IChecksum256
-  actual_quantity: IUint64
+  actual_quantity: IAsset
   actual_unit_price: IAsset
   act: IDocument2
 }
@@ -161,7 +163,7 @@ export interface ISignIss2 {
   coopname: IName
   orderer: IName
   order_hash: IChecksum256
-  actual_quantity: IUint64
+  actual_quantity: IAsset
   actual_unit_price: IAsset
   delivery_signer: IName
   act: IDocument2
@@ -174,7 +176,7 @@ export interface ISubmRetrn {
   orderer: IName
   request_hash: IChecksum256
   original_order_hash: IChecksum256
-  actual_quantity: IUint64
+  actual_quantity: IAsset
   reason_text: string
   photos: IChecksum256[]
   statement: IDocument2
@@ -285,8 +287,9 @@ export interface IOrder {
   delivery_braname: IName
   accept_braname: IName
   current_warehouse_braname: IName
-  quantity: IUint64
-  actual_quantity: IUint64
+  quantity: IAsset
+  actual_quantity: IAsset
+  package_size: IAsset
   unit_price: IAsset
   total_cost: IAsset
   fact_cost: IAsset
@@ -301,10 +304,10 @@ export interface IOrder {
   payout_status: IName
   payout_decline_reason: string
   return_request_id: IUint64
-  /** Списанная уценка по заказу из остатка (binary_extension; у старых строк отсутствует). */
-  markdown_cost?: IAsset
-  /** Членский взнос по заказу (requirement b6; binary_extension; у старых строк отсутствует). */
-  membership_fee?: IAsset
+  /** Списанная уценка по заказу из остатка кооператива; ноль — уценка не списывалась. */
+  markdown_cost: IAsset
+  /** Членский взнос по заказу (requirement b6); ноль — взнос не начислялся. */
+  membership_fee: IAsset
 }
 
 export interface IReturnRequest {
@@ -315,8 +318,10 @@ export interface IReturnRequest {
   original_order_id: IUint64
   original_order_hash: IChecksum256
   original_consume_op_id: IChecksum256
-  actual_quantity: IUint64
+  actual_quantity: IAsset
   fact_cost: IAsset
+  /** Возвращаемая доля членского взноса; ноль — взнос не возвращается. */
+  fee_refund: IAsset
   reason_text: string
   photos: IChecksum256[]
   status: IName

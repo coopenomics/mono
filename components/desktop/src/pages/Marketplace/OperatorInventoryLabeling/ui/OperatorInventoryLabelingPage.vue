@@ -41,7 +41,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
 
 const items = ref<MarketplaceInventoryItemView[]>([])
-const loading = ref(false)
+const loading = ref(true)
 
 const RECEIVED = Zeus.MarketplaceInventoryStatus.RECEIVED
 const LABELED = Zeus.MarketplaceInventoryStatus.LABELED
@@ -388,7 +388,7 @@ q-page.place(role='region', aria-label='Склад участка')
   OperatorBranchBar
 
   EmptyState(
-    v-if='!store.loading && !store.isOperator',
+    v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
     body='Раскладка имущества доступна председателю участка и его доверенным лицам.'
   )

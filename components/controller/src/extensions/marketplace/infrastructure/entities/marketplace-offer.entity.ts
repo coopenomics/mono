@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import type { MarketplaceOfferStatus } from '../../domain/entities/marketplace-offer.types';
+import { numericQuantityTransformer } from './numeric-quantity.transformer';
 
 /**
  * Story 3.2: Offer Стола заказов. Pure db (не on-chain).
@@ -41,9 +42,7 @@ export class MarketplaceOfferEntity {
   @Column({ type: 'integer' })
   public category_id!: number;
 
-  // numeric → string в TypeORM (precision deliberately, не плодим float).
-  // Цена задаётся за одну единицу заказа (фасовку размером `order_unit_size`
-  // базовых единиц), не за одну базовую единицу.
+  // Цена за одну базовую единицу товара (кг/литр/штуку). numeric → string.
   @Column({ type: 'numeric', precision: 18, scale: 4 })
   public price_per_unit!: string;
 
@@ -51,23 +50,37 @@ export class MarketplaceOfferEntity {
   public unit_of_measure!: 'piece' | 'kg' | 'liter';
 
   /**
-   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
-   * За неё указана `price_per_unit`, и в ней заказчик набирает `quantity`
-   * (заказ = целое число таких фасовок). Примеры: икра `kg` + 0.1 (цена за
-   * 100 г), яйца `piece` + 8 (цена за упаковку 8 шт), молоко `liter` + 1.
-   * Справочная цена за базовую единицу = `price_per_unit / order_unit_size`.
-   * numeric → string в TypeORM.
+   * Способ отпуска (Эпик 18): `by_measure` — по мере (цена за базовую единицу),
+   * `packaged` — упаковкой (цена за упаковку из `packages`). `synchronize:true`
+   * создаёт колонку с default 'by_measure'.
    */
-  @Column({ type: 'numeric', precision: 12, scale: 3, default: 1 })
-  public order_unit_size!: string;
+  @Column({ type: 'varchar', length: 16, default: 'by_measure' })
+  public sale_form!: 'by_measure' | 'packaged';
 
-  @Column({ type: 'integer', default: 0 })
+  /**
+   * Каталог упаковок при `sale_form = packaged` (Эпик 18). jsonb-массив
+   * `{ id, size, price, label, sort_order, is_default }` — у каждой упаковки
+   * своя цена (управляемая упаковка). Пустой при отпуске по мере. Паттерн
+   * jsonb value-object как `delivery_points`/`images`.
+   */
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  public packages!: Array<{
+    id: string;
+    size: number;
+    price: string;
+    label: string | null;
+    sort_order: number;
+    is_default: boolean;
+  }>;
+
+  // Дробный остаток (Эпик 17): numeric в базовой единице (кг/л/шт), transformer → number.
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_available!: number;
 
-  @Column({ type: 'integer', default: 0 })
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_blocked!: number;
 
-  @Column({ type: 'integer', default: 0 })
+  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public quantity_consumed!: number;
 
   @Column({ type: 'boolean', default: false })

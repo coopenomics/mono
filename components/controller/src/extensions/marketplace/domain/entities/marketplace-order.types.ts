@@ -1,4 +1,5 @@
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 export type MarketplaceOrderStatus =
   | 'ACTIVE'
@@ -102,7 +103,10 @@ export interface MarketplaceOrderProps {
   supplier_account: string;
   delivery_braname: string;
   quantity: number;
+  unit_of_measure: MarketplaceUnitOfMeasure;
   price_per_unit: string;
+  /** Содержимое упаковки в базовой единице (Эпик 18); 0 = отпуск по мере. */
+  package_size: number;
   total_cost: string;
   /**
    * Членский взнос, включённый в стоимость заказа (requirement b6). On-chain
@@ -130,6 +134,15 @@ export interface MarketplaceOrderProps {
   current_warehouse_braname: string | null;
   /** Снапшот фактической выдачи — заполняется в момент `signiss2`. */
   issuance_fact: MarketplaceOrderIssuanceFactSnapshot | null;
+  /**
+   * Момент, когда оператор КУ выдачи вручную объявил заказ готовым к выдаче
+   * («Объявить выдачу» на столе ПВЗ). Backend-only операционный сигнал —
+   * on-chain статус не меняется (остаётся ACCEPTED_TO_COOP), проводок нет.
+   * Именно он, а не приём в кооператив, шлёт заказчику push «приходите
+   * заберите» и включает бейдж «Готово к выдаче» в его кабинете. null — ещё
+   * не объявлено.
+   */
+  ready_announced_at: Date | null;
   /** Время первой подписи (председатель КУ выдачи открыл выдачу — `signiss1`). */
   chairman_signed_at: Date | null;
   /** Backend account, открывший выдачу первой подписью. */

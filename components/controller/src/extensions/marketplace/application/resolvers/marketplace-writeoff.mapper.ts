@@ -25,6 +25,8 @@ export function toMarketplaceWriteoffProposalDTO(
     const d = new MarketplaceWriteoffProposalItemDTO();
     d.braname = it.braname;
     d.asset_title = it.asset_title;
+    d.unit_of_measure = null;
+    d.package_size = null;
     d.quantity = it.quantity;
     d.amount = it.amount;
     d.reason = it.reason;

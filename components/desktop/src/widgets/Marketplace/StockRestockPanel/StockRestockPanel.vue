@@ -3,10 +3,11 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Classes, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { useGlobalStore } from 'src/shared/store';
-import { BaseBadge, BaseButton } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketplaceOrderUnitLabel, MarketplaceSaleForm, type MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
+import { useMarketplaceRealtime, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
 import {
   createStockProposal,
   cancelStockProposal,
@@ -29,17 +30,31 @@ const props = defineProps<{
   memberAccount: string;
 }>();
 
+interface CoopStockPackage {
+  id: string;
+  size: number;
+  price: string;
+  label: string | null;
+  is_default: boolean;
+}
+
 type CoopStockOffer = {
   id: string;
   product_name: string;
   price_per_unit: string;
   quantity_available: number;
   stock_braname: string | null;
+  sale_form: MarketplaceSaleForm;
+  unit_of_measure: MarketplaceUnitOfMeasure;
+  packages: CoopStockPackage[];
 };
 
 const offers = ref<CoopStockOffer[]>([]);
 const offersLoading = ref(false);
+// Эпик 18: количество — базовое при отпуске по мере, число упаковок при
+// отпуске упаковкой (тот же контракт, что и в корзине/AddToCartDialog).
 const quantities = ref<Record<string, number>>({});
+const selectedPackageId = ref<Record<string, string | null>>({});
 const sending = ref(false);
 const proposals = ref<MarketplaceStockProposalView[]>([]);
 
@@ -49,14 +64,63 @@ const activeProposals = computed(() =>
   ),
 );
 
+function isPackaged(offer: CoopStockOffer): boolean {
+  return offer.sale_form === MarketplaceSaleForm.PACKAGED;
+}
+
+function unitLabel(offer: CoopStockOffer): string {
+  return marketplaceOrderUnitLabel(offer.unit_of_measure);
+}
+
+function packageOptions(offer: CoopStockOffer): Array<{ value: string; label: string }> {
+  return offer.packages.map((p) => {
+    const sizeLabel = `${String(p.size).replace('.', ',')} ${unitLabel(offer)}`;
+    return { value: p.id, label: p.label ? `${p.label} — ${sizeLabel}` : `Упаковка ${sizeLabel}` };
+  });
+}
+
+function selectedPackage(offer: CoopStockOffer): CoopStockPackage | null {
+  const id = selectedPackageId.value[offer.id];
+  return offer.packages.find((p) => p.id === id) ?? null;
+}
+
+// Цена за единицу отпуска: по мере — за базовую единицу; упаковкой — за упаковку.
+function unitPrice(offer: CoopStockOffer): string {
+  return isPackaged(offer) ? (selectedPackage(offer)?.price ?? '0') : offer.price_per_unit;
+}
+
+// Максимум в единице отпуска (упаковки при упаковке, иначе базовые единицы).
+function maxQty(offer: CoopStockOffer): number {
+  if (!isPackaged(offer)) return offer.quantity_available;
+  const pkg = selectedPackage(offer);
+  if (!pkg || pkg.size <= 0) return 0;
+  return Math.floor(offer.quantity_available / pkg.size);
+}
+
+function ensureDefaultPackage(offer: CoopStockOffer): void {
+  if (!isPackaged(offer) || selectedPackageId.value[offer.id] !== undefined) return;
+  const def = offer.packages.find((p) => p.is_default) ?? offer.packages[0] ?? null;
+  selectedPackageId.value = { ...selectedPackageId.value, [offer.id]: def?.id ?? null };
+}
+
+function onPackageChange(offer: CoopStockOffer, packageId: string | number | null): void {
+  selectedPackageId.value = { ...selectedPackageId.value, [offer.id]: packageId as string | null };
+  // Смена упаковки меняет максимум/шаг — сбрасываем набранное количество.
+  quantities.value = { ...quantities.value, [offer.id]: 0 };
+}
+
 const composedLines = computed(() =>
   offers.value
-    .map((o) => ({ offer: o, quantity: quantities.value[o.id] ?? 0 }))
+    .map((o) => ({
+      offer: o,
+      quantity: quantities.value[o.id] ?? 0,
+      package_id: isPackaged(o) ? (selectedPackageId.value[o.id] ?? null) : null,
+    }))
     .filter((l) => l.quantity > 0),
 );
 const composedTotal = computed(() =>
   composedLines.value
-    .reduce((sum, l) => sum + l.quantity * Number.parseFloat(l.offer.price_per_unit), 0)
+    .reduce((sum, l) => sum + l.quantity * Number.parseFloat(unitPrice(l.offer)), 0)
     .toFixed(4),
 );
 
@@ -71,6 +135,7 @@ async function loadOffers(): Promise<void> {
     offers.value = (page.items as CoopStockOffer[]).filter(
       (o) => o.stock_braname === props.braname && o.quantity_available > 0,
     );
+    offers.value.forEach(ensureDefaultPackage);
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -89,9 +154,10 @@ async function loadProposals(): Promise<void> {
   }
 }
 
-function bump(offer: CoopStockOffer, delta: number): void {
+function bump(offer: CoopStockOffer, sign: 1 | -1): void {
+  const step = saleQuantityStep(offer);
   const current = quantities.value[offer.id] ?? 0;
-  const next = Math.max(0, Math.min(offer.quantity_available, current + delta));
+  const next = Math.max(0, Math.min(maxQty(offer), quantizeSaleQuantity(offer, current + sign * step)));
   quantities.value = { ...quantities.value, [offer.id]: next };
 }
 
@@ -112,12 +178,17 @@ async function sendProposal(): Promise<void> {
     const payloads = await getStockIssuancePayloads({
       braname: props.braname,
       member_account: props.memberAccount,
-      items: composedLines.value.map((l) => ({ offer_id: l.offer.id, quantity: l.quantity })),
+      items: composedLines.value.map((l) => ({
+        offer_id: l.offer.id,
+        quantity: l.quantity,
+        package_id: l.package_id,
+      })),
     });
     const items = await Promise.all(
       payloads.map(async (p) => ({
         offer_id: p.offer_id,
         quantity: p.quantity,
+        package_id: p.package_id,
         order_hash: p.order_hash,
         signiss1_act: await docSigner.signDocument(p.signiss1_document, globalStore.username, 1),
       })),
@@ -167,6 +238,7 @@ watch(
   () => props.memberAccount,
   () => {
     quantities.value = {};
+    selectedPackageId.value = {};
     void loadProposals();
   },
 );
@@ -182,7 +254,8 @@ watch(
   .restock__pending(v-for='p in activeProposals', :key='p.id')
     .restock__pending-info
       span.restock__pending-label Ожидает решения пайщика
-      span.restock__pending-items {{ p.items.map((i) => `${i.product_name} ×${i.quantity}`).join(', ') }}
+      span.restock__pending-items
+        | {{ p.items.map((i) => `${i.product_name} ×${i.quantity}${i.package_label ? ' ' + i.package_label : ''}`).join(', ') }}
       span.restock__pending-total {{ formatAsset2Digits(p.total_cost) }} ₽
     BaseButton(variant='ghost', size='sm', @click='withdraw(p)') Отозвать
 
@@ -191,8 +264,19 @@ watch(
     .restock__offer(v-for='o in offers', :key='o.id')
       .restock__offer-info
         span.restock__offer-name {{ o.product_name }}
-        span.restock__offer-meta
-          | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · свободно {{ o.quantity_available }}
+        span.restock__offer-meta(v-if='!isPackaged(o)')
+          | {{ formatAsset2Digits(o.price_per_unit) }} ₽ · свободно {{ o.quantity_available }} {{ unitLabel(o) }}
+        span.restock__offer-meta(v-else-if='selectedPackage(o)')
+          | {{ formatAsset2Digits(selectedPackage(o)?.price ?? '0') }} ₽ за упак. · свободно {{ maxQty(o) }} упак.
+
+      BaseSelect(
+        v-if='isPackaged(o)',
+        :model-value='selectedPackageId[o.id] ?? null',
+        :options='packageOptions(o)',
+        label='Упаковка',
+        @update:model-value='(v) => onPackageChange(o, v)'
+      )
+
       .restock__offer-qty
         BaseButton(variant='ghost', size='sm', :disabled='!(quantities[o.id] ?? 0)', @click='bump(o, -1)')
           q-icon(name='remove', size='16px')
@@ -200,7 +284,7 @@ watch(
         BaseButton(
           variant='ghost',
           size='sm',
-          :disabled='(quantities[o.id] ?? 0) >= o.quantity_available',
+          :disabled='(quantities[o.id] ?? 0) >= maxQty(o)',
           @click='bump(o, 1)'
         )
           q-icon(name='add', size='16px')
@@ -271,6 +355,7 @@ watch(
   &__offer {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: var(--p-2, 8px);
 
@@ -279,6 +364,7 @@ watch(
       flex-direction: column;
       gap: 1px;
       min-width: 0;
+      flex: 1 1 auto;
     }
 
     &-name {

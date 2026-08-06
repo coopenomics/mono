@@ -29,15 +29,17 @@ void marketplace::createorder(eosio::name coopname,
                                checksum256 offer_hash,
                                eosio::name offerer,
                                eosio::name delivery_braname,
-                               uint64_t quantity,
+                               eosio::asset quantity,
                                eosio::asset unit_price,
+                               eosio::asset package_size,
                                uint32_t warranty_period_secs,
                                checksum256 batch_hash,
                                document2 convert_statement) {
   require_auth(coopname);
 
   // ── Базовая валидация параметров ────────────────────────────────────
-  eosio::check(quantity > 0, "Количество должно быть больше нуля");
+  Marketplace::check_quantity(quantity);
+  Marketplace::check_packaging(quantity, package_size);  // Эпик 18: при упаковочном отпуске quantity кратно упаковке
   eosio::check(!is_empty_document(convert_statement),
                "Отсутствует заявление о конвертации паевого взноса");
   verify_document_or_fail(convert_statement, { orderer });
@@ -56,10 +58,8 @@ void marketplace::createorder(eosio::name coopname,
   // КУ выдачи существует
   get_branch_or_fail(coopname, delivery_braname);
 
-  // ── Расчёт total_cost ────────────────────────────────────────────────
-  eosio::asset total_cost = eosio::asset(
-      static_cast<int64_t>(quantity) * unit_price.amount,
-      _root_govern_symbol);
+  // ── Расчёт total_cost (Эпик 17/18: по мере — qty*price/10^prec; упаковкой — packages*price) ──
+  const eosio::asset total_cost = Marketplace::calc_cost(quantity, unit_price, package_size);
   eosio::check(total_cost.amount > 0,
                "Итоговая сумма заказа должна быть больше нуля");
 
@@ -96,6 +96,7 @@ void marketplace::createorder(eosio::name coopname,
 
     o.quantity        = quantity;
     o.actual_quantity = quantity;          // до signiss2 == quantity (Story 6.2/6.3)
+    o.package_size    = package_size;      // Эпик 18: 0 = по мере, >0 = упаковкой
     o.unit_price      = unit_price;
     o.total_cost      = total_cost;
     o.fact_cost       = total_cost;        // до signiss2 == total_cost
@@ -105,8 +106,7 @@ void marketplace::createorder(eosio::name coopname,
     o.status      = OrderStatus::ACTIVE;
     o.batch_hash  = batch_hash;
 
-    // binary_extension-поля заполняются оба (сериализация требует
-    // непрерывного хвоста): уценки ещё нет, взнос — по ставке на момент заказа.
+    // Уценки ещё нет; взнос — по ставке на момент заказа.
     o.markdown_cost  = eosio::asset(0, _root_govern_symbol);
     o.membership_fee = membership_fee;
   });

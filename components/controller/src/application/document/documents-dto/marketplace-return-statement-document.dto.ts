@@ -1,5 +1,5 @@
-import { Field, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Field, Float, InputType, Int, IntersectionType, OmitType } from '@nestjs/graphql';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
@@ -36,8 +36,8 @@ export class MarketplaceReturnStatementRequestPayloadInputDTO {
   @IsString()
   unit_of_measurement!: string;
 
-  @Field(() => Int, { description: 'Возвращаемое количество единиц.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Возвращаемое количество единиц.' })
+  @IsNumber()
   @Min(1)
   units!: number;
 
@@ -82,19 +82,34 @@ class BaseMarketplaceReturnStatementMetaDocumentInputDTO implements ExcludeCommo
   @IsString()
   reason_text!: string;
 
-  @Field({ nullable: true, description: 'Необязательная категория дефекта (пересортица, истёкший срок и т.п.).' })
-  @IsOptional()
-  @IsString()
-  defect_category?: string;
-
-  @Field(() => Int, { description: 'Фактическое количество единиц к возврату.' })
-  @IsInt()
+  @Field(() => Float, { description: 'Фактическое количество единиц к возврату.' })
+  @IsNumber()
   @Min(1)
   actual_quantity!: number;
 
   @Field({ description: 'Стоимость возвращаемой части (4 знака после запятой).' })
   @IsString()
   fact_cost!: string;
+
+  @Field({ description: 'Артикул (SKU) товара — идентификатор предложения исходного заказа.' })
+  @IsString()
+  sku!: string;
+
+  @Field({ description: 'Наименование товара из предложения.' })
+  @IsString()
+  product_title!: string;
+
+  @Field({ description: 'Единица измерения (например «литры», «кг», «шт.»).' })
+  @IsString()
+  unit_of_measurement!: string;
+
+  @Field({ description: 'Стоимость базовой единицы товара (4 знака после запятой).' })
+  @IsString()
+  unit_cost!: string;
+
+  @Field({ description: 'Код валюты расчёта (например «RUB»).' })
+  @IsString()
+  currency!: string;
 
   @Field({
     nullable: true,

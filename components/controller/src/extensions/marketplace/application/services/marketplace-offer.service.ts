@@ -20,15 +20,22 @@ import type {
   MarketplaceBarcodeStrategy,
   MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
+  MarketplaceOfferPackage,
+  MarketplaceOfferPackageInput,
   MarketplaceOfferStatus,
+  MarketplaceSaleForm,
   MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import {
   MARKETPLACE_OFFER_MAX_IMAGES,
+  MARKETPLACE_OFFER_MAX_PACKAGES,
   MARKETPLACE_UNITS_OF_MEASURE,
   MarketplaceBarcodeStrategies,
   MarketplaceOfferStatuses,
+  MarketplaceSaleForms,
 } from '../../domain/entities/marketplace-offer.types';
+import { MARKETPLACE_UNIT_PRECISION } from '../shared/quantity.util';
+import { randomUUID } from 'crypto';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 import {
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
@@ -76,11 +83,10 @@ export interface OfferCreateRequest {
   category_id: number;
   price_per_unit: string;
   unit_of_measure: MarketplaceUnitOfMeasure;
-  /**
-   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
-   * numeric как string. Опционально — по умолчанию «1» (одна базовая единица).
-   */
-  order_unit_size?: string | null;
+  /** Способ отпуска (Эпик 18); по умолчанию by_measure. */
+  sale_form?: MarketplaceSaleForm | null;
+  /** Каталог упаковок (Эпик 18), сырой вход; обязателен при sale_form = packaged. */
+  packages?: MarketplaceOfferPackageInput[] | null;
   quantity_available: number | null;
   unlimited_flag: boolean;
   /** КУ поставки с минимальным объёмом на каждом. */
@@ -160,6 +166,16 @@ export class MarketplaceOfferService {
         ? input.pack_size ?? null
         : null;
 
+    // Эпик 18: способ отпуска и каталог упаковок. При отпуске упаковкой цена
+    // за базовую единицу выводится из упаковки по умолчанию — для витрины/
+    // сортировки каталога; истина по деньгам — цена самой упаковки.
+    const sale_form = input.sale_form ?? MarketplaceSaleForms.BY_MEASURE;
+    const packages = this.buildPackages(sale_form, input.packages ?? [], input.unit_of_measure);
+    const price_per_unit =
+      sale_form === MarketplaceSaleForms.PACKAGED
+        ? this.deriveDisplayUnitPrice(packages, input.unit_of_measure)
+        : input.price_per_unit;
+
     const images = await this.uploadImages(
       input.coopname,
       input.supplier_account,
@@ -173,9 +189,10 @@ export class MarketplaceOfferService {
       product_name: input.product_name.trim(),
       description: input.description?.trim() ?? null,
       category_id: input.category_id,
-      price_per_unit: input.price_per_unit,
+      price_per_unit,
       unit_of_measure: input.unit_of_measure,
-      order_unit_size: this.normalizeSaleUnitSize(input.order_unit_size),
+      sale_form,
+      packages,
       quantity_available: input.unlimited_flag ? 0 : (input.quantity_available ?? 0),
       unlimited_flag: input.unlimited_flag,
       delivery_points: this.normalizeDeliveryPoints(input.delivery_points),
@@ -226,12 +243,23 @@ export class MarketplaceOfferService {
     if (patch.unit_of_measure !== undefined) {
       this.assertUnit(patch.unit_of_measure);
     }
-    if (patch.order_unit_size !== undefined && patch.order_unit_size !== null) {
-      this.assertSaleUnitSize(patch.order_unit_size);
-      patch.order_unit_size = patch.order_unit_size.trim();
-    }
     if (patch.shelf_life_days !== undefined && patch.shelf_life_days < 0) {
       throw new BadRequestException('Срок годности не может быть отрицательным.');
+    }
+
+    // Эпик 18: способ отпуска / каталог упаковок. Нормализуем на объединении
+    // patch и текущего оффера (переключение by_measure↔packaged требует
+    // согласованного набора упаковок и единицы измерения).
+    if (patch.sale_form !== undefined || patch.packages !== undefined) {
+      const merged_sale_form = patch.sale_form ?? offer.sale_form;
+      const merged_unit = patch.unit_of_measure ?? offer.unit_of_measure;
+      const raw_packages = patch.packages ?? offer.packages;
+      const normalized = this.buildPackages(merged_sale_form, raw_packages, merged_unit);
+      patch.sale_form = merged_sale_form;
+      patch.packages = normalized;
+      if (merged_sale_form === MarketplaceSaleForms.PACKAGED) {
+        patch.price_per_unit = this.deriveDisplayUnitPrice(normalized, merged_unit);
+      }
     }
 
     if (patch.barcode_strategy !== undefined || patch.pack_size !== undefined) {
@@ -473,9 +501,6 @@ export class MarketplaceOfferService {
       );
     }
 
-    if (input.order_unit_size !== undefined && input.order_unit_size !== null) {
-      this.assertSaleUnitSize(input.order_unit_size);
-    }
   }
 
   /**
@@ -505,6 +530,74 @@ export class MarketplaceOfferService {
         );
       }
     }
+  }
+
+  /**
+   * Эпик 18: валидация и нормализация каталога упаковок.
+   *  - по мере (`by_measure`): упаковок не должно быть — возвращаем пустой набор;
+   *  - упаковкой (`packaged`): ≥1 упаковка; у каждой размер кратен точности
+   *    единицы и > 0, цена корректна и > 0; ровно одна помечается «по
+   *    умолчанию» (первая, если поставщик не отметил). Каждой присваивается
+   *    стабильный id и порядковый sort_order.
+   */
+  private buildPackages(
+    sale_form: MarketplaceSaleForm,
+    raw: MarketplaceOfferPackageInput[],
+    unit: MarketplaceUnitOfMeasure
+  ): MarketplaceOfferPackage[] {
+    if (sale_form !== MarketplaceSaleForms.PACKAGED) {
+      return [];
+    }
+    if (!Array.isArray(raw) || raw.length === 0) {
+      throw new BadRequestException('При отпуске упаковкой добавьте хотя бы одну упаковку.');
+    }
+    if (raw.length > MARKETPLACE_OFFER_MAX_PACKAGES) {
+      throw new BadRequestException(`Слишком много упаковок (максимум ${MARKETPLACE_OFFER_MAX_PACKAGES}).`);
+    }
+    const precision = MARKETPLACE_UNIT_PRECISION[unit];
+    let hasDefault = false;
+    const packages: MarketplaceOfferPackage[] = raw.map((p, index) => {
+      if (!Number.isFinite(p.size) || p.size <= 0) {
+        throw new BadRequestException('Размер упаковки должен быть больше нуля.');
+      }
+      const scaled = p.size * 10 ** precision;
+      if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
+        throw new BadRequestException(
+          `Размер упаковки допускает не более ${precision} знаков после запятой для этой единицы.`
+        );
+      }
+      if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
+        throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
+      }
+      const is_default = p.is_default === true && !hasDefault;
+      if (is_default) hasDefault = true;
+      return {
+        id: randomUUID(),
+        size: p.size,
+        price: p.price,
+        label: p.label?.trim() ? p.label.trim() : null,
+        sort_order: index,
+        is_default,
+      };
+    });
+    if (!hasDefault) {
+      packages[0] = { ...packages[0], is_default: true };
+    }
+    return packages;
+  }
+
+  /**
+   * Эпик 18: витринная цена «за базовую единицу» для упаковочного оффера —
+   * выводится из упаковки по умолчанию (цена ÷ содержимое). Только для показа
+   * и сортировки каталога; деньги считаются от цены упаковки.
+   */
+  private deriveDisplayUnitPrice(
+    packages: MarketplaceOfferPackage[],
+    _unit: MarketplaceUnitOfMeasure
+  ): string {
+    const base = packages.find((p) => p.is_default) ?? packages[0];
+    const perUnit = Number.parseFloat(base.price) / base.size;
+    return perUnit.toFixed(4);
   }
 
   private normalizeDeliveryPoints(
@@ -570,25 +663,6 @@ export class MarketplaceOfferService {
     if (!MARKETPLACE_UNITS_OF_MEASURE.includes(u)) {
       throw new BadRequestException('Выбрана недопустимая единица измерения.');
     }
-  }
-
-  /**
-   * Размер единицы заказа (фасовки) — положительное число (до трёх знаков
-   * после запятой) базовых единиц. Пример: «0.1» для заказа по 100 г при
-   * базовой единице «кг», «8» для упаковки из 8 штук.
-   */
-  private assertSaleUnitSize(size: string): void {
-    if (typeof size !== 'string' || !/^\d+(\.\d{1,3})?$/.test(size) || Number.parseFloat(size) <= 0) {
-      throw new BadRequestException(
-        'Размер фасовки должен быть положительным числом (например, «0.1» или «8»).'
-      );
-    }
-  }
-
-  /** Пустое значение фасовки → «1» (одна базовая единица). */
-  private normalizeSaleUnitSize(size: string | null | undefined): string {
-    if (size === undefined || size === null || size.trim() === '') return '1';
-    return size.trim();
   }
 
   private async ensureCategoryExists(category_id: number): Promise<void> {

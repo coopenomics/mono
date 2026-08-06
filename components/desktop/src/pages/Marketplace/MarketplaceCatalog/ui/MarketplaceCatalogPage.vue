@@ -15,10 +15,9 @@ import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { marketplaceOrderUnitLabel, marketplaceUnitLabel } from 'src/shared/lib/consts';
-import { marketplaceOfferImageUrls, formatAsset2Digits } from 'src/shared/lib/utils';
-import { applyMembershipFee, getMembershipFeePercent } from 'src/shared/lib/marketplace';
-import { useSystemStore } from 'src/entities/System/model';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
+import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
   fetchCatalog,
   fetchCategories,
@@ -114,17 +113,10 @@ const categoryNameById = computed<Record<number, string>>(() => {
   return map;
 });
 
-// Справочная цена за базовую единицу (за кг / л / шт) — только когда единица
-// заказа ≠ базовой (фасовка): даёт заказчику общую базу для сравнения. Считается
-// от цены заказчика (с членским взносом), т.к. именно её он сравнивает.
-function referencePriceNote(offer: MarketplaceOfferView): string | undefined {
-  const size = Number.parseFloat(String(offer.order_unit_size ?? '1'));
-  if (!Number.isFinite(size) || size <= 0 || size === 1) return undefined;
-  const cost = Number.parseFloat(offer.price_per_unit);
-  if (!Number.isFinite(cost) || cost <= 0) return undefined;
-  const buyer = feePercent.value > 0 ? applyMembershipFee(cost, feePercent.value) : cost;
-  const formatted = formatAsset2Digits(`${buyer / size} ${systemStore.governSymbol}`);
-  return `≈ ${formatted} за ${marketplaceUnitLabel(offer.unit_of_measure)}`;
+// Цена задаётся за базовую единицу (Эпик 17) — справочный пересчёт из фасовки
+// больше не нужен; нота-подсказка не показывается.
+function referencePriceNote(_offer: MarketplaceOfferView): string | undefined {
+  return undefined;
 }
 
 function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
@@ -137,7 +129,7 @@ function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
+    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
     referenceNote: referencePriceNote(offer),
     status,
     category: categoryNameById.value[offer.category_id] ?? undefined,
@@ -268,7 +260,6 @@ async function onKUChanged(): Promise<void> {
 
 // requirement b6: ставка членского взноса для отображения цены «с взносом».
 const feePercent = ref(0);
-const systemStore = useSystemStore();
 
 async function loadFeePercent(): Promise<void> {
   try {

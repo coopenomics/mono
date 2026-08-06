@@ -7,6 +7,7 @@ import type { DocumentDomainEntity } from '~/domain/document/entity/document-dom
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
 import { computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
+import { resolveSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_ECONOMY_SERVICE,
   MarketplaceEconomyService,
@@ -57,6 +58,8 @@ interface CheckoutScope {
 /** Позиция корзины, готовая к оформлению (активна и возится на выбранный КУ). */
 interface CheckoutPayableLine {
   offer_id: string;
+  /** Упаковка позиции (Эпик 18); пустая строка при отпуске по мере. */
+  package_id: string;
   quantity: number;
   offer: MarketplaceOfferDomainEntity;
 }
@@ -64,6 +67,7 @@ interface CheckoutPayableLine {
 /** Заявление о конвертации к подписи по одной позиции корзины. */
 export interface MarketplaceCheckoutSignableLine {
   offer_id: string;
+  package_id: string | null;
   order_hash: string;
   amount: string;
   document: DocumentDomainEntity;
@@ -139,7 +143,7 @@ export class MarketplaceCheckoutService {
       const order_hash = line.offer.stock_braname
         ? computeStockOrderHash(scope.coopname, scope.orderer_account, line.offer_id)
         : computeOrderHash(scope.coopname, scope.orderer_account, line.offer_id);
-      const amount = this.economyService.convertAmountForLine(line.offer.price_per_unit, line.quantity, feePercent);
+      const amount = this.lineAmount(line, feePercent);
       const action: Cooperative.Registry.MarketplaceConvertStatement.Action = {
         registry_id: Cooperative.Registry.MarketplaceConvertStatement.registry_id,
         coopname: scope.coopname,
@@ -152,7 +156,7 @@ export class MarketplaceCheckoutService {
         skip_save: false,
       };
       const document = await this.documentDomainService.generateDocument({ data: action });
-      result.push({ offer_id: line.offer_id, order_hash, amount, document });
+      result.push({ offer_id: line.offer_id, package_id: line.package_id || null, order_hash, amount, document });
     }
     return result;
   }
@@ -178,8 +182,7 @@ export class MarketplaceCheckoutService {
     // Предвалидация баланса под всю оформляемую корзину (без частичного
     // списания) — вместе с членским взносом, как этого требует контракт.
     const totalNeeded = payable.reduce(
-      (sum, l) =>
-        sum + this.parseAmount(this.economyService.convertAmountForLine(l.offer.price_per_unit, l.quantity, feePercent)),
+      (sum, l) => sum + this.parseAmount(this.lineAmount(l, feePercent)),
       0
     );
     if (payable.length > 0) {
@@ -192,7 +195,13 @@ export class MarketplaceCheckoutService {
       }
     }
 
-    const signedByOffer = new Map((input.lines ?? []).map((l) => [l.offer_id, l]));
+    // Ключ строки — (offer_id, package_id): один оффер может идти разными
+    // упаковками, поэтому offer_id недостаточно (Эпик 18).
+    const lineKey = (offer_id: string, package_id: string | null | undefined): string =>
+      `${offer_id}|${package_id ?? ''}`;
+    const signedByLine = new Map(
+      (input.lines ?? []).map((l) => [lineKey(l.offer_id, l.package_id), l])
+    );
     const checkoutId = input.checkout_id ?? randomUUID();
 
     // Построчное оформление: прошедшее остаётся заказанным даже при сбое
@@ -205,7 +214,7 @@ export class MarketplaceCheckoutService {
         // каждой строки: контракт требует подписанный документ и публикует
         // его в реестр. Несовпадение суммы/якоря — позиция не оформляется,
         // заявление нужно переподписать (цены могли измениться).
-        const signedLine = signedByOffer.get(line.offer_id);
+        const signedLine = signedByLine.get(lineKey(line.offer_id, line.package_id));
         if (!signedLine) {
           throw new BadRequestException(
             'Нет подписанного заявления о конвертации паевого взноса — обновите оформление.'
@@ -220,11 +229,7 @@ export class MarketplaceCheckoutService {
             'Заявление о конвертации подписано для другого заказа — обновите оформление.'
           );
         }
-        const expectedAmount = this.economyService.convertAmountForLine(
-          line.offer.price_per_unit,
-          line.quantity,
-          feePercent
-        );
+        const expectedAmount = this.lineAmount(line, feePercent);
         if (meta.amount !== expectedAmount) {
           throw new BadRequestException(
             `Сумма позиции изменилась (в заявлении ${meta.amount}, к оплате ${expectedAmount}) — обновите оформление.`
@@ -243,6 +248,7 @@ export class MarketplaceCheckoutService {
             orderer_account: scope.orderer_account,
             offer_id: line.offer_id,
             quantity: line.quantity,
+            package_id: line.package_id || null,
             checkout_id: checkoutId,
             order_hash: signedLine.order_hash,
             // Заказ из остатка из членских: паевой конвертируется на сумму строки
@@ -259,6 +265,7 @@ export class MarketplaceCheckoutService {
           orderer_account: scope.orderer_account,
           offer_id: line.offer_id,
           quantity: line.quantity,
+          package_id: line.package_id || null,
           delivery_braname: deliveryBraname,
           checkout_id: checkoutId,
           order_hash: signedLine.order_hash,
@@ -309,8 +316,20 @@ export class MarketplaceCheckoutService {
    * запускаются, но сообщаются заказчику. Общая логика превью заявлений
    * о конвертации и самого оформления: наборы строк должны совпадать.
    */
+  /**
+   * Стоимость позиции к оплате (тело + членский взнос) с учётом способа отпуска
+   * (Эпик 18): по мере — цена базовой единицы × количество; упаковкой — цена
+   * упаковки × число упаковок. Единый расчёт для превью, проверки баланса и
+   * оформления — суммы обязаны совпадать.
+   */
+  private lineAmount(line: CheckoutPayableLine, feePercent: number): string {
+    const r = resolveSaleUnit(line.offer, line.quantity, line.package_id || null);
+    const saleUnitCount = r.packageSize > 0 ? r.packageCount! : r.baseQuantity;
+    return this.economyService.convertAmountForLine(r.unitPrice, saleUnitCount, feePercent);
+  }
+
   private splitCartLines(
-    items: ReadonlyArray<{ offer_id: string; quantity: number }>,
+    items: ReadonlyArray<{ offer_id: string; package_id: string; quantity: number }>,
     deliveryBraname: string,
     offers: MarketplaceOfferDomainEntity[]
   ): { payable: CheckoutPayableLine[]; failed: MarketplaceCheckoutFailedLineDTO[] } {
@@ -341,7 +360,7 @@ export class MarketplaceCheckoutService {
         );
         continue;
       }
-      payable.push({ offer_id: item.offer_id, quantity: item.quantity, offer });
+      payable.push({ offer_id: item.offer_id, package_id: item.package_id ?? '', quantity: item.quantity, offer });
     }
     return { payable, failed };
   }

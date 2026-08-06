@@ -76,7 +76,7 @@ function toCatalogOffer(offer: MarketplacePendingOfferView): CatalogOffer {
     images: marketplaceOfferImageUrls(offer.images),
     remainUnits: offer.unlimited_flag ? undefined : offer.quantity_available,
     unitCost: offer.price_per_unit,
-    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size),
+    unitLabel: marketplaceOrderUnitLabel(offer.unit_of_measure),
     status: 'moderation',
     category: categoryName(offer) ?? undefined,
     supplierName: offer.supplier_name ?? offer.supplier_account ?? undefined,
@@ -179,6 +179,11 @@ q-page.moderation(role="region", aria-label="Модерация предложе
         //- администратора (категория/участки/гарантия/галерея). Кнопки
         //- «Одобрить»/«Отклонить» останавливают всплытие (@click.stop).
         CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", @click="goToDetail(o)")
+          //- Срок годности задаёт поставщик — модератор ориентируется на него,
+          //- назначая гарантийный срок возврата в диалоге «Одобрить».
+          template(#details)
+            .mp-catalog-offer-card__reference
+              | Срок годности: {{ o.shelf_life_days > 0 ? `${o.shelf_life_days} дн.` : 'без срока годности' }}
           template(#actions)
             BaseButton(
               variant="danger",

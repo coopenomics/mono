@@ -7,8 +7,8 @@ import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { CartHeaderButton } from 'src/widgets/Marketplace/CartHeaderButton';
-import { marketplaceOrderUnitLabel, marketplaceUnitLabel } from 'src/shared/lib/consts';
-import { marketplaceOfferImageUrls, formatAsset2Digits } from 'src/shared/lib/utils';
+import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
+import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { useMarketplaceRealtime, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
@@ -43,8 +43,6 @@ const readonly = computed(() => route.meta?.readonly === true);
 // реферрером), это лишь корректные подпись и fallback-маршрут.
 const backTarget = computed<{ label: string; name: string }>(() => {
   if (route.query.from === 'cart') return { label: 'В корзину', name: 'marketplace-cart' };
-  if (route.query.from === 'consolidated')
-    return { label: 'К коллективному заказу', name: 'marketplace-consolidated' };
   // Стол администратора: карточку открывают из разных реестров — подпись и
   // fallback-маршрут «назад» зависят от того, откуда пришли (query `from`).
   if (route.query.from === 'orders')
@@ -84,7 +82,7 @@ const images = computed(() => (offer.value ? marketplaceOfferImageUrls(offer.val
 
 // Подпись единицы заказа (фасовки): «100 г», «упаковка 8 шт», «шт»…
 const unitShort = computed(() =>
-  offer.value ? marketplaceOrderUnitLabel(offer.value.unit_of_measure, offer.value.order_unit_size) : '',
+  offer.value ? marketplaceOrderUnitLabel(offer.value.unit_of_measure) : '',
 );
 
 const categoryLabel = computed(() => {
@@ -117,15 +115,9 @@ const priceLabel = computed(() =>
     ? `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} / ${unitShort.value}`
     : '',
 );
-// Справочная цена за базовую единицу (за кг / л / шт) для сравнения — только
-// когда единица заказа ≠ базовой (фасовка). От цены заказчика (с взносом).
-const referenceNote = computed(() => {
-  if (!offer.value) return '';
-  const size = Number.parseFloat(String(offer.value.order_unit_size ?? '1'));
-  if (!Number.isFinite(size) || size <= 0 || size === 1) return '';
-  const formatted = formatAsset2Digits(`${priceWithFee.value / size} ${system.governSymbol}`);
-  return `≈ ${formatted} за ${marketplaceUnitLabel(offer.value.unit_of_measure)}`;
-});
+// Цена всегда задаётся за базовую единицу (Эпик 17) — справочный пересчёт из
+// фасовки больше не нужен.
+const referenceNote = computed(() => '');
 
 const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({

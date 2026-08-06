@@ -1,27 +1,39 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, debounce } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { debounce } from 'quasar';
+import { Zeus } from '@coopenomics/sdk';
+import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { Map as MapView } from 'src/shared/ui/Map';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
+import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
 import {
   HandoffTokenKind,
   useMarketplaceRealtime,
   applyMembershipFee,
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
-import { orderStatusDisplay } from 'src/widgets/Marketplace/OrderCard';
-import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units';
+import { orderStatusDisplay, orderProgress } from 'src/widgets/Marketplace/OrderCard';
+import { marketplaceOrderUnitLabel, marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates';
-import { cancelOrder, fetchOrder } from '../../MyOrders/api';
+import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
+import { fetchOrder } from '../../MyOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { fetchOffer } from '../../MarketplaceOfferDetail/api';
+import {
+  SubmitReturnClaimDialog,
+  ReturnClaimDetailsDialog,
+  listMyReturnClaims,
+  returnClaimStatusLabel,
+  returnClaimStatusVariant,
+  returnClaimDecisionLabel,
+  OPEN_RETURN_CLAIM_STATUSES,
+  type MarketplaceReturnClaimView,
+} from '../../OrdererReturnClaims';
 
 /**
  * Детальная страница заказа заказчика. Открывается кликом по карточке на
@@ -30,6 +42,11 @@ import { fetchOffer } from '../../MarketplaceOfferDetail/api';
  * выдачи. Управление (отмена до акцепта, «Подписать и получить» на этапе
  * выдачи) — здесь же, дублируя действия карточки. Источник заказа —
  * `marketplaceGetOrder`; обложка догружается из оферты по `offer_id`.
+ *
+ * Гарантийный возврат живёт тоже здесь (не отдельным разделом меню): пока
+ * заказ RECEIVED и не истёк `warranty_until`, доступна подача заявления;
+ * статус уже поданной заявки виден рядом — заказчик отслеживает возврат в
+ * контексте самого заказа, а не переключаясь на отдельный стол.
  *
  * Live-обновления — realtime: статус ИМЕННО ЭТОГО заказа сменился →
  * персональный ws-сигнал, карточка тихо перечитывается (чужие заказы
@@ -47,11 +64,110 @@ const loading = ref(false);
 
 const receiveDialogOpen = ref(false);
 
+// Гарантийный возврат: подача заявления и его статус живут прямо на странице
+// заказа (не отдельным разделом меню) — заказчик видит срок и действие там же,
+// где остальную хронологию, вместо отдельного стола с select'ом заказа.
+const returnClaims = ref<MarketplaceReturnClaimView[]>([]);
+const submitReturnDialogOpen = ref(false);
+const returnDetailsDialogOpen = ref(false);
+const selectedReturnClaim = ref<MarketplaceReturnClaimView | null>(null);
+
 const status = computed(() => (order.value ? orderStatusDisplay(order.value.status) : null));
+// Пока заказ копится с другими пайщиками до минимального объёма поставки —
+// та же полоса, что и на карточке в «Моих заказах» (жалоба 2026-08-02: должна
+// быть видна и на самой странице заказа, не только в списке).
+const progress = computed(() => (order.value ? orderProgress(order.value) : undefined));
 const unitShort = computed(() =>
-  marketplaceOrderUnitLabel(order.value?.unit_of_measure, order.value?.order_unit_size),
+  marketplaceOrderUnitLabel(order.value?.unit_of_measure),
 );
-const cancellable = computed(() => order.value?.status === 'ACTIVE');
+// Кол-во «как заказывал» (Эпик 18): по мере — базовое количество, упаковкой —
+// число упаковок (а не итоговый объём в базовой единице). Для сверки
+// «Заказ vs Факт» ниже используется база (unitShort) — там сравниваются
+// количества в одной мере, включая возможную недопоставку неполной упаковки.
+const orderSaleUnit = computed(() =>
+  order.value
+    ? marketplaceOrderSaleUnit(order.value.quantity, order.value.unit_of_measure, order.value.package_size)
+    : { units: 0, unitLabel: '' },
+);
+// Бесплатная отмена (без штрафа) доступна, пока поставщик ещё НЕ акцептовал
+// заказ: on-chain это статус ACTIVE; ACCEPTED_PENDING_SUPPLIER(_INDIVIDUAL) —
+// тот же ACTIVE on-chain, backend лишь пометил «ждём нажатия Accept
+// поставщиком» (см. marketplace-order.types.ts). После акцепта (ACCEPTED и
+// далее) контракт уже удерживает штраф при отмене — кнопку скрываем.
+const CANCELLABLE_FREE_STATUSES: ReadonlySet<string> = new Set([
+  Zeus.MarketplaceOrderStatus.ACTIVE,
+  Zeus.MarketplaceOrderStatus.ACCEPTED_PENDING_SUPPLIER,
+  Zeus.MarketplaceOrderStatus.ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL,
+]);
+const cancellable = computed(() => !!order.value && CANCELLABLE_FREE_STATUSES.has(order.value.status));
+const cancelDialogOpen = ref(false);
+const cancelMessage = computed(() => {
+  const o = order.value;
+  if (!o) return '';
+  return `Заказ № ${o.id.slice(0, 8)} (${orderSaleUnit.value.units}×${orderSaleUnit.value.unitLabel || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён.`;
+});
+
+// Заявление подаётся только по выданному заказу (RECEIVED) в пределах окна
+// warranty_until — то же поле, которое ПВЗ-оператор устанавливает при
+// публикации оффера (Offer.warranty_days), контракт фиксирует на выдаче.
+const warrantyUntil = computed(() =>
+  order.value?.warranty_until ? new Date(String(order.value.warranty_until)) : null,
+);
+const warrantyActive = computed(
+  () => warrantyUntil.value !== null && warrantyUntil.value.getTime() > Date.now(),
+);
+// Дата гарантийного срока — форматированная строка для подписи в hero-блоке
+// возврата ниже (returnSecondaryText), не отдельная строка сама по себе.
+const warrantyRowValue = computed(() =>
+  order.value?.warranty_until ? formatDate(order.value.warranty_until) : null,
+);
+// Возврат допустим по факту выдачи — если выдано меньше заказанного, вернуть
+// можно только фактически полученное (backend отклонит запрос сверх этого).
+const maxReturnQuantity = computed(
+  () => issuanceFact.value?.actual_quantity ?? order.value?.quantity ?? 0,
+);
+const orderReturnClaims = computed(() =>
+  returnClaims.value.filter((c) => c.order_id === orderId.value),
+);
+// Открытая заявка блокирует подачу новой — backend всё равно отклонит повтор.
+const openReturnClaim = computed(
+  () => orderReturnClaims.value.find((c) => OPEN_RETURN_CLAIM_STATUSES.has(c.status)) ?? null,
+);
+// Архивная (решённая) заявка — последняя по дате подачи, чтобы показать её
+// исход, даже если по этому же заказу уже можно подать новую.
+const latestArchivedReturnClaim = computed(() => {
+  const archived = orderReturnClaims.value
+    .filter((c) => !OPEN_RETURN_CLAIM_STATUSES.has(c.status))
+    .sort((a, b) => new Date(String(b.created_at)).getTime() - new Date(String(a.created_at)).getTime());
+  return archived[0] ?? null;
+});
+const canSubmitReturn = computed(
+  () => order.value?.status === 'RECEIVED' && warrantyActive.value && !openReturnClaim.value,
+);
+// Что показать в блоке возврата: открытая заявка приоритетнее архивной.
+const displayedReturnClaim = computed(() => openReturnClaim.value ?? latestArchivedReturnClaim.value);
+
+// Иконка+заголовок+подпись — единая композиция «что сейчас с возвратом»
+// (как .onsite-gate__head рядом: иконка слева, жирная строка состояния,
+// под ней приглушённая деталь). Статус заявления, если она есть, выносится
+// в BaseBadge отдельно — здесь заголовок общий («Заявление на возврат»),
+// чтобы не дублировать один и тот же текст дважды.
+const returnHeroIcon = computed(() => {
+  if (displayedReturnClaim.value) return 'inventory_2';
+  if (canSubmitReturn.value) return 'event_available';
+  return 'event_busy';
+});
+const returnPrimaryText = computed(() => {
+  if (displayedReturnClaim.value) return 'Заявление на возврат';
+  if (canSubmitReturn.value) return 'Гарантийный возврат доступен';
+  return warrantyUntil.value ? 'Гарантийный срок истёк' : 'Гарантийный возврат не предусмотрен';
+});
+const returnSecondaryText = computed(() => {
+  if (!warrantyRowValue.value) return '';
+  return displayedReturnClaim.value || canSubmitReturn.value
+    ? `Гарантийный срок — до ${warrantyRowValue.value}`
+    : warrantyRowValue.value;
+});
 
 // requirement b6: заказчику показываем цену С членским взносом (как в
 // каталоге) — order.total_cost_with_fee уже посчитан бэком (total_cost +
@@ -99,17 +215,46 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
     }
   };
   add('created', 'create', 'shopping_cart', 'Заказ оформлен', o.created_at);
-  add('accepted', 'sign', 'inventory_2', 'Принят поставщиком', o.accepted_at);
+  add('accepted', 'sign', 'inventory_2', 'Ожидает отгрузки', o.accepted_at);
   add('opened', 'system', 'lock_open', 'Выдача открыта на пункте', o.chairman_signed_at);
   add('received', 'sign', 'check_circle', 'Заказ получен', o.received_at);
   add('cancelled', 'reject', 'cancel', 'Заказ отменён', o.cancelled_at);
-  return events;
+
+  // Гарантийный возврат — часть истории заказа, не только текущий статус в
+  // карточке выше: подача заявления и каждое решение председателя тоже
+  // попадают в общую хронологию.
+  for (const claim of orderReturnClaims.value) {
+    add(
+      `return-submitted-${claim.id}`,
+      'create',
+      'assignment_return',
+      'Заявление на гарантийный возврат подано',
+      claim.created_at,
+    );
+    for (const entry of claim.decision_log) {
+      const isReject = entry.decision === 'reject_remote' || entry.decision === 'reject_at_visit';
+      add(
+        `return-decision-${claim.id}-${entry.tx_hash}`,
+        isReject ? 'reject' : 'sign',
+        isReject ? 'cancel' : 'check_circle',
+        returnClaimDecisionLabel(entry.decision),
+        entry.at,
+      );
+    }
+  }
+
+  // Заказные и возвратные события идут из независимых источников — сводим в
+  // единую хронологию сортировкой по факту времени (день группирует шаблон
+  // ActivityTimeline сам, но порядок ВНУТРИ дня он не переставляет).
+  return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 });
 
 function formatDate(value: unknown): string {
-  // Время с бэкенда в UTC — показываем в локальном поясе пользователя.
+  // Время с бэкенда в UTC — показываем в настроенном поясе платформы (по
+  // умолчанию МСК, см. getTimezone()/env.TIMEZONE) и подписываем его явно:
+  // «27.07.2026 19:33» без пояса неоднозначно для пайщика.
   const out = formatDateToLocalTimezone(value, 'DD.MM.YYYY HH:mm');
-  return out || '—';
+  return out ? `${out} ${getTimezoneLabel()}` : '—';
 }
 
 function formatPrice(value: string | null | undefined): string {
@@ -149,28 +294,34 @@ function goReceive(): void {
   receiveDialogOpen.value = true;
 }
 
-function confirmCancel(): void {
-  const o = order.value;
-  if (!o) return;
-  Dialog.create({
-    title: 'Отменить заказ?',
-    message: `Заказ № ${o.id.slice(0, 8)} (${o.quantity}×${unitShort.value || 'ед.'}, ${formatPrice(o.total_cost_with_fee)}) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
-    cancel: { label: 'Не отменять', flat: true },
-    ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const result = await cancelOrder(o.id);
-      SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
-      await load();
-    } catch (e) {
-      FailAlert(e);
-    }
-  });
+async function loadReturnClaims(): Promise<void> {
+  try {
+    returnClaims.value = await listMyReturnClaims();
+  } catch {
+    // Некритично для страницы заказа — без данных просто не покажем блок возврата.
+  }
+}
+
+function openSubmitReturn(): void {
+  submitReturnDialogOpen.value = true;
+}
+
+function openReturnDetails(claim: MarketplaceReturnClaimView): void {
+  selectedReturnClaim.value = claim;
+  returnDetailsDialogOpen.value = true;
+}
+
+function openCancelDialog(): void {
+  cancelDialogOpen.value = true;
+}
+
+async function onOrderCancelled(): Promise<void> {
+  await load();
 }
 
 onMounted(() => {
   void load();
+  void loadReturnClaims();
   void getMembershipFeePercent()
     .then((p) => {
       feePercent.value = p;
@@ -189,6 +340,9 @@ useMarketplaceRealtime(
     MarketplaceOrderStatusChangedEvent: (event) => {
       if (event.order_id === orderId.value) reloadLive();
     },
+    // Председатель решил по заявлению (в т.ч. пока пайщик стоит у стойки на
+    // очном осмотре) — вердикт обновляется сразу, без перезахода на страницу.
+    MarketplaceReturnClaimStatusChangedEvent: () => void loadReturnClaims(),
   },
   { onResync: () => reloadLive() }
 );
@@ -226,16 +380,32 @@ q-page.order-detail(role="region", aria-label="Заказ")
               span(aria-hidden="true") ·
               span {{ formatDate(order.created_at) }}
 
+            .order-detail__progress(v-if="progress !== undefined")
+              .order-detail__progress-label
+                | коллективный заказ · {{ Math.round(progress * 100) }}%
+                q-icon(name="help_outline", size="14px", class="order-detail__progress-help")
+                  q-tooltip Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.
+              q-linear-progress.order-detail__progress-bar(
+                :value="progress",
+                rounded,
+                size="4px",
+                color="primary",
+                track-color="grey-3"
+              )
+
             .order-detail__facts
               .order-detail__fact
                 .order-detail__fact-label Сумма заказа
                 .order-detail__fact-value--money {{ formatPrice(String(totalWithFee)) }}
               .order-detail__fact
                 .order-detail__fact-label Количество
-                .order-detail__fact-value {{ order.quantity }}×{{ unitShort }}
+                .order-detail__fact-value {{ orderSaleUnit.units }}×{{ orderSaleUnit.unitLabel }}
               .order-detail__fact
                 .order-detail__fact-label Цена за единицу
                 .order-detail__fact-value {{ formatPrice(String(unitPriceWithFee)) }}
+
+            .order-detail__hero-cancel(v-if="cancellable")
+              BaseButton(variant="danger", size="sm", @click="openCancelDialog") Отменить заказ
 
       BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
         template(#head)
@@ -266,15 +436,59 @@ q-page.order-detail(role="region", aria-label="Заказ")
               td.text-right {{ formatPrice(String(totalWithFee)) }}
               td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
+      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
+        template(#head)
+          .t-h3 Гарантийный возврат
+        .order-detail__return
+          .order-detail__return-hero
+            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
+            .order-detail__return-text
+              .order-detail__return-primary {{ returnPrimaryText }}
+              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
+            BaseBadge.order-detail__return-badge(
+              v-if="displayedReturnClaim"
+              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
+            )
+              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
+
+          .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
+            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") Подробнее
+            BaseButton(
+              v-if="canSubmitReturn"
+              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
+              size="sm"
+              @click="openSubmitReturn"
+            )
+              template(#icon-left)
+                q-icon(name="assignment", size="16px")
+              | {{ displayedReturnClaim ? 'Подать новое заявление' : 'Подать заявление на возврат' }}
+
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
           .t-h3 Хронология
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
-      .order-detail__actions(v-if="cancellable")
-        BaseButton(variant="danger", @click="confirmCancel") Отменить заказ
-
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+    CancelOrderDialog(
+      v-model="cancelDialogOpen",
+      :order-id="orderId",
+      :message="cancelMessage",
+      @cancelled="onOrderCancelled"
+    )
+
+    SubmitReturnClaimDialog(
+      v-model="submitReturnDialogOpen",
+      :order-id="orderId",
+      :max-quantity="maxReturnQuantity",
+      :unit-of-measure="order?.unit_of_measure ?? null",
+      @submitted="loadReturnClaims"
+    )
+
+    ReturnClaimDetailsDialog(
+      v-model="returnDetailsDialogOpen",
+      :claim="selectedReturnClaim"
+    )
 </template>
 
 <style scoped lang="scss">
@@ -356,6 +570,30 @@ q-page.order-detail(role="region", aria-label="Заказ")
     font-family: var(--p-mono);
   }
 
+  &__progress {
+    max-width: 280px;
+  }
+
+  &__progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--p-fs-eyebrow, 11px);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--p-ink-3);
+    margin-bottom: 4px;
+  }
+
+  &__progress-help {
+    color: var(--p-ink-3);
+    cursor: help;
+  }
+
+  &__progress-bar {
+    border-radius: var(--p-r-sm, 8px);
+  }
+
   &__facts {
     display: flex;
     flex-wrap: wrap;
@@ -418,11 +656,65 @@ q-page.order-detail(role="region", aria-label="Заказ")
     }
   }
 
-  &__actions {
+  &__return {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4, 16px);
+  }
+
+  // Иконка + жирная строка состояния + приглушённая деталь снизу — тот же
+  // приём, что и .onsite-gate__head (гейт подписи): визуальный якорь слева,
+  // иерархия размером/весом текста, а не бейджем-предложением.
+  &__return-hero {
+    display: flex;
+    align-items: center;
+    gap: var(--p-3, 12px);
+    min-width: 0;
+  }
+
+  &__return-icon {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
+  }
+
+  &__return-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  &__return-primary {
+    font-size: var(--p-fs-h3, 15px);
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__return-secondary {
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
+  }
+
+  &__return-badge {
+    flex: 0 0 auto;
+  }
+
+  &__return-actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-end;
-    gap: var(--p-2, 8px);
+    gap: var(--p-3, 12px);
+    padding-top: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  // Кнопка отмены — внутри карточки товара, правый нижний угол (единственное
+  // место отмены заказа во всём Marketplace, см. review 2026-07-28).
+  &__hero-cancel {
+    display: flex;
+    justify-content: flex-end;
   }
 }
 

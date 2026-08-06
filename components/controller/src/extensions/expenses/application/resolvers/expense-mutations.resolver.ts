@@ -56,13 +56,17 @@ export class ExpenseMutationsResolver {
     }
   }
 
+  // Записку на расход оформляет не только совет: расход кооперативного
+  // участка подаёт его председатель — обычный пайщик. Сама по себе генерация
+  // прав не даёт (это рендер документа для подписи), а право подать расход
+  // проверяет расширение-инициатор при отправке на цепь.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateExpenseProposalStatementDocument',
     description: 'Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @AuthRoles(['chairman', 'member', 'user'])
   async generateExpenseProposalStatementDocument(
     @Args('data', { type: () => ExpenseProposalStatementGenerateDocumentInputDTO })
     data: ExpenseProposalStatementGenerateDocumentInputDTO,

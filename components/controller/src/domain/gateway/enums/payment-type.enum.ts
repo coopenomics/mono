@@ -30,6 +30,12 @@ export enum PaymentTypeEnum {
   // подтверждение кассиром (выплата) проводит on-chain expense::overspendexp и
   // закрывает позицию expense::reportexp.
   EXPENSE_OVERSPEND = 'expense_overspend',
+  // Исходящая материальная помощь доверенному кооперативного участка (Стол
+  // заказов, requirement b6) — выплата с его персонального кошелька членских
+  // средств на реквизиты. Подтверждение кассиром проводит on-chain
+  // branch::aidconfirm; отказ — branch::aiddecline (средства остаются на
+  // персональном кошельке).
+  AID = 'aid',
 }
 
 /**
@@ -53,6 +59,7 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
   [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
   [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
+  [PaymentTypeEnum.AID]: 'Материальная помощь',
 };
 
 /**
@@ -97,4 +104,5 @@ export const OUTGOING_PAYMENT_TYPES = [
   PaymentTypeEnum.MEMBERSHIP_EXIT,
   PaymentTypeEnum.EXPENSE,
   PaymentTypeEnum.EXPENSE_OVERSPEND,
+  PaymentTypeEnum.AID,
 ];

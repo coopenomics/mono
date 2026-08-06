@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Dialog, debounce } from 'quasar';
-import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { debounce } from 'quasar';
+import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { OrderCard, toOrderCardModel, type Order as OrderCardModel } from 'src/widgets/Marketplace/OrderCard';
 import { BaseButton, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
@@ -11,16 +11,16 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
-import { cancelOrder, fetchMyOrders } from '../api';
+import { fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
 /**
  * Story 4.6: orderer-стол «Мои заказы».
  *
  * Единый список всех заказов пайщика во всех статусах. Канон —
- * `widgets/Marketplace/OrderCard`. Управление заказом живёт прямо в карточке:
- * «Отменить» (до приёма поставщиком). Получение оформляется у стойки ПВЗ —
+ * `widgets/Marketplace/OrderCard`. Отмена заказа — только на детальной
+ * странице заказа (см. OrdererOrderDetailPage), не в карточке списка.
+ * Получение оформляется у стойки ПВЗ —
  * оператор формирует акт-бандл, пайщик подписывает его в гейте «подпись на
  * месте» (единый путь выдачи), поэтому подписи получения в этой карточке нет.
  * Клик по карточке открывает детальную страницу заказа.
@@ -248,24 +248,6 @@ async function onLoadMore(): Promise<void> {
   await load(currentPage.value + 1, true);
 }
 
-function confirmCancel(order: MarketplaceOrderView): void {
-  Dialog.create({
-    title: 'Отменить заказ?',
-    message: `Заказ № ${order.id.slice(0, 8)} (${marketplaceQuantityLabel(order.quantity, order.unit_of_measure, order.order_unit_size)}, ${money(order.total_cost_with_fee)} ₽) будет отменён. Средства разблокируются на кошельке Стола заказов.`,
-    cancel: { label: 'Не отменять', flat: true },
-    ok: { label: 'Отменить заказ', color: 'negative', unelevated: true },
-    persistent: true,
-  }).onOk(async () => {
-    try {
-      const result = await cancelOrder(order.id);
-      SuccessAlert(`Заказ отменён. Средства разблокированы (tx ${result.tx_hash.slice(0, 8)}).`);
-      await load(1, false);
-    } catch (e) {
-      FailAlert(e);
-    }
-  });
-}
-
 function openDetail(order: OrderCardModel): void {
   void router.push({
     name: 'marketplace-order-detail',
@@ -275,12 +257,6 @@ function openDetail(order: OrderCardModel): void {
 
 function goReceive(): void {
   receiveDialogOpen.value = true;
-}
-
-function onCardAction(payload: { key: string; order: OrderCardModel }): void {
-  const found = items.value.find((o) => o.id === payload.order.id);
-  if (!found) return;
-  if (payload.key === 'cancel') confirmCancel(found);
 }
 
 onMounted(() => {
@@ -313,10 +289,9 @@ q-page.orders(role="region", aria-label="Мои заказы")
       | Получить заказ
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
-    | Все ваши заказы и их движение до выдачи на пункте. Заказ можно отменить
-    | до приёма поставщиком. Получение оформляется на пункте выдачи: оператор
-    | сформирует акт, а вы подпишете его на месте. Откройте карточку, чтобы
-    | увидеть подробности.
+    | Здесь все ваши заказы — от оформления до получения на пункте выдачи.
+    | Отменить заказ можно, пока его не принял поставщик. Получение оформит
+    | оператор на месте — акт вы подпишете там же.
 
   PageTabs.orders__tabs(:tabs="tabs", :active-key="activeKey", @select="onSelectTab")
 
@@ -347,8 +322,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
             :key="o.id",
             :order="toCardModel(o)",
             role="orderer",
+            layout="row",
             openable,
-            @action="onCardAction",
             @open="openDetail",
             @map="openMap"
           )
@@ -358,8 +333,8 @@ q-page.orders(role="region", aria-label="Мои заказы")
           :key="o.id",
           :order="toCardModel(o)",
           role="orderer",
+          layout="row",
           openable,
-          @action="onCardAction",
           @open="openDetail",
           @map="openMap"
         )
@@ -392,14 +367,13 @@ q-page.orders(role="region", aria-label="Мои заказы")
     }
   }
 
-  // Сетка карточек: auto-fill по 280px-трекам, растянутым до 1fr. Одиночные
-  // заказы теперь сливаются в один grid (renderRows) — раскладываются в 2+
-  // колонки; одинокая карточка не «размазывается» на всю ширину (пустые треки
-  // auto-fill сохраняются), а заполняет свой трек ~ширины колонки.
+  // Список строк на всю ширину (OrderCard layout="row"), не сетка плиток:
+  // сверху вниз — от самого нового к самому старому, порядок читается
+  // однозначно (в 2-колоночной сетке было неясно, что новее).
   &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--p-4, 16px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
   }
 
   // Список групп заказов-агрегатов: вертикальный ритм между группами.

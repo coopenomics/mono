@@ -33,6 +33,76 @@ namespace Marketplace {
 
 using namespace eosio;
 
+// ── Количество как fixed-point asset (Эпик 17, L14) ─────────────────────
+//
+// quantity/actual_quantity — asset с символом единицы измерения (KG/LTR/PCS);
+// дробность веса/объёма выражается младшими единицами (0.500 KG = 500 г).
+// Штука (PCS, precision 0) неделима на уровне типа. Цена задаётся за одну
+// базовую единицу (кг/литр/штуку) money-asset'ом _root_govern_symbol.
+
+inline bool is_valid_unit_symbol(const eosio::symbol& sym) {
+  return sym == _unit_kg || sym == _unit_liter || sym == _unit_piece;
+}
+
+/// Валидация количества: корректный asset, известная единица, положительное.
+inline void check_quantity(const eosio::asset& quantity) {
+  eosio::check(quantity.is_valid() && is_valid_unit_symbol(quantity.symbol),
+               "Недопустимая единица измерения количества");
+  eosio::check(quantity.amount > 0, "Количество должно быть больше нуля");
+}
+
+/// Валидация упаковочного отпуска. `package_size` — содержимое одной упаковки
+/// в базовой единице (той же, что и количество). package_size.amount == 0 —
+/// отпуск «по мере» (весовой/наливной/поштучный): проверок нет, цена за
+/// базовую единицу. package_size.amount > 0 — упаковочный отпуск: символ
+/// упаковки равен символу количества, размер положителен, а количество кратно
+/// упаковке (заказать/выдать можно только целое число упаковок).
+inline void check_packaging(const eosio::asset& quantity, const eosio::asset& package_size) {
+  if (package_size.amount == 0) return;  // отпуск по мере
+  eosio::check(package_size.is_valid() && package_size.symbol == quantity.symbol,
+               "Единица упаковки не совпадает с единицей количества");
+  eosio::check(package_size.amount > 0, "Размер упаковки должен быть больше нуля");
+  eosio::check(quantity.amount % package_size.amount == 0,
+               "Количество должно быть кратно размеру упаковки");
+}
+
+/// Стоимость заказа. Два режима отпуска (Эпик 18):
+///  - по мере (package_size.amount == 0): `unit_price` — цена за базовую
+///    единицу; cost = количество × цена / 10^precision(количества), half-up.
+///  - упаковкой (package_size.amount > 0): `unit_price` — цена за упаковку;
+///    cost = (количество / размер_упаковки) × цена. Деление точное —
+///    кратность гарантирует `check_packaging`, копейка не округляется.
+/// Цена — money-asset в _root_govern_symbol; результат — в её символе.
+/// int128 против переполнения (крупные партии: тонны × цена).
+inline eosio::asset calc_cost(const eosio::asset& quantity, const eosio::asset& unit_price,
+                              const eosio::asset& package_size = eosio::asset(0, _unit_piece)) {
+  if (package_size.amount > 0) {
+    const int64_t packages = quantity.amount / package_size.amount;  // точно (кратность — check_packaging)
+    const uint128_t total = static_cast<uint128_t>(packages) *
+                            static_cast<uint128_t>(unit_price.amount);
+    return eosio::asset(static_cast<int64_t>(total), unit_price.symbol);
+  }
+  int64_t scale = 1;
+  for (uint8_t i = 0; i < quantity.symbol.precision(); ++i) scale *= 10;
+  const uint128_t num = static_cast<uint128_t>(quantity.amount) *
+                        static_cast<uint128_t>(unit_price.amount);
+  const int64_t amount = static_cast<int64_t>((num + static_cast<uint128_t>(scale) / 2) / scale);
+  return eosio::asset(amount, unit_price.symbol);
+}
+
+/// Доля суммы, пропорциональная части от целого, с округлением половины вверх
+/// (то же правило, что в `calc_cost`). Применяется там, где сумму нельзя
+/// пересчитать от цены — её надо разделить ровно так, как она сложилась:
+/// стоимость возвращаемой части выданного, доля членского взноса и т. п.
+/// При part == whole результат равен исходной сумме без потери копейки.
+inline eosio::asset pro_rata(const eosio::asset& total, int64_t part, int64_t whole) {
+  eosio::check(whole > 0, "Некорректная база для расчёта пропорциональной доли");
+  const uint128_t num = static_cast<uint128_t>(total.amount) * static_cast<uint128_t>(part);
+  const int64_t amount =
+      static_cast<int64_t>((num + static_cast<uint128_t>(whole) / 2) / static_cast<uint128_t>(whole));
+  return eosio::asset(amount, total.symbol);
+}
+
 // ── Orders ──────────────────────────────────────────────────────────────
 
 inline std::optional<order> get_order_by_hash(eosio::name coopname, const checksum256& order_hash) {
@@ -103,6 +173,17 @@ inline void erase_return_request(eosio::name coopname, uint64_t request_id) {
   requests.erase(it);
 }
 
+/// Заявление на возврат рассматривает кооперативный участок выдачи заказа:
+/// имущество вернётся на его склад, а членский взнос списывается с его общего
+/// кошелька. Участок приходит параметром действия, поэтому сверяется с заказом
+/// на цепи — уполномоченный чужого участка решение по заявлению не проводит.
+inline void check_return_request_branch(eosio::name coopname, const return_request& r,
+                                        eosio::name braname) {
+  auto o = get_order_by_hash_or_fail(coopname, r.original_order_hash);
+  eosio::check(o.delivery_braname == braname,
+               "Заявление на возврат рассматривает кооперативный участок выдачи заказа");
+}
+
 // ── Writeoff proposals ──────────────────────────────────────────────────
 
 inline std::optional<writeoff_proposal> get_writeoff_proposal_by_hash(eosio::name coopname,
@@ -171,11 +252,17 @@ inline UserWalletAvailable get_user_wallet_balance(eosio::name coopname,
 
 // ── Членский взнос «Стола заказов» (requirement b6 «Экономика КУ») ──────
 
+/// Дефолтная ставка членского взноса нового кооператива — 30% (HUNDR_PERCENTS
+/// = 100%). Действует, пока председатель явно не настроит свою ставку через
+/// `setfee` (в т.ч. явный 0 — взнос осознанно отключён, это по-прежнему
+/// доступно, просто больше не подразумевается молчаливым «не настроено»).
+constexpr uint64_t DEFAULT_MEMBERSHIP_FEE_PERCENT = 300000;
+
 /// Единая ставка членского взноса кооператива (HUNDR_PERCENTS = 100%);
-/// 0 — взнос не настроен и не начисляется.
+/// нет явной настройки (singleton не создан) — берётся стандартный дефолт.
 inline uint64_t get_membership_fee_percent(eosio::name coopname) {
   mkt_config_singleton cfg(_marketplace, coopname.value);
-  return cfg.exists() ? cfg.get().membership_fee_percent : 0;
+  return cfg.exists() ? cfg.get().membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT;
 }
 
 /// Сумма членского взноса от базы по ставке (целочисленно, вниз).
@@ -185,11 +272,9 @@ inline eosio::asset calc_membership_fee(const eosio::asset& base, uint64_t fee_p
   return eosio::asset(amount, _root_govern_symbol);
 }
 
-/// Членский взнос заказа (binary_extension: для исторических Order'ов — 0).
+/// Членский взнос заказа (ноль — взнос не начислялся).
 inline eosio::asset get_order_membership_fee(const order& o) {
-  return o.membership_fee.has_value()
-      ? o.membership_fee.value()
-      : eosio::asset(0, _root_govern_symbol);
+  return o.membership_fee;
 }
 
 /// Полный возврат членского взноса заказа на членский кошелёк «Стола

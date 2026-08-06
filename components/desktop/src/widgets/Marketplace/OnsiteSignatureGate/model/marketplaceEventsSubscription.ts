@@ -35,6 +35,9 @@ const GATE_EVENT_TYPES = new Set<MarketplaceRealtimeEvent['__typename']>([
   'MarketplaceStockProposalResolvedEvent',
 ]);
 
+/** Схлопывает шквал open при флапающем бэкенде (рестарт/checkout ветки). */
+const CATCH_UP_DEBOUNCE_MS = 2_000;
+
 export function createMarketplaceEventsSubscription(): RealtimeSubscription {
   return {
     id: 'marketplace:events',
@@ -46,6 +49,16 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
         Subscriptions.Marketplace.Events.subscription,
         { variables: { input: { coopname } } },
       );
+
+      let catchUpTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleCatchUp = (reason: string) => {
+        if (catchUpTimer) clearTimeout(catchUpTimer);
+        catchUpTimer = setTimeout(() => {
+          catchUpTimer = null;
+          void gate.refresh(`ПОДПИСКА (${reason})`);
+          resyncMarketplaceConsumers(reason);
+        }, CATCH_UP_DEBOUNCE_MS);
+      };
 
       // Сигнал пришёл → раздаём по типу: гейт дочитывает своё состояние,
       // каталожные события уходят подписанным страницам через диспетчер.
@@ -59,11 +72,10 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
         dispatchMarketplaceEvent(event);
       });
 
-      // graphql-ws сам реконнектит; на каждый (ре)коннект — catch-up, чтобы
-      // подхватить то, что прилетело, пока сокет был оборван.
+      // graphql-ws сам реконнектит; catch-up debounce'им — иначе при дрожащем
+      // бэкенде каждый open → шквал refresh и вкладка встаёт.
       stream.open(() => {
-        void gate.refresh('ПОДПИСКА (ws-реконнект)');
-        resyncMarketplaceConsumers('ws-реконнект');
+        scheduleCatchUp('ws-реконнект');
       });
 
       // Транзиентная ошибка ws — реконнект отрабатывает сам, гасить не нужно,
@@ -72,7 +84,17 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
         console.warn('[OnsiteGate] ⚠ ПОДПИСКА: ws-ошибка (реконнект сам)', err);
       });
 
-      return { close: () => stream.ws.close() };
+      return {
+        close: () => {
+          if (catchUpTimer) {
+            clearTimeout(catchUpTimer);
+            catchUpTimer = null;
+          }
+          stream.ws.close();
+          // Гасим shared-транспорт целиком: обрывает in-flight reconnect loop.
+          client.disposeSubscriptions();
+        },
+      };
     },
     resync(reason?: string) {
       resyncMarketplaceConsumers(reason);

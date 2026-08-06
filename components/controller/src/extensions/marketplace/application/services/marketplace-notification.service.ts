@@ -25,6 +25,10 @@ import {
   MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT,
   MARKETPLACE_NEW_SUPPLIER_REQUEST_EVENT,
   MARKETPLACE_SUPPLIER_APPROVED_EVENT,
+  MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT,
+  MARKETPLACE_AID_COUNCIL_DECIDED_EVENT,
+  type MarketplaceAidPayoutConfirmedEvent,
+  type MarketplaceAidCouncilDecidedEvent,
   type MarketplaceAplSupplierSignRequestEvent,
   type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
@@ -283,9 +287,15 @@ export class MarketplaceNotificationService implements OnModuleInit {
   async handleOrderReadyToReceive(event: MarketplaceOrderReadyToReceiveEvent): Promise<void> {
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
       const payload: Workflows.MarketplaceOrderReady.IPayload = {
         ordererName,
-        kuName: event.braname,
+        kuName,
         coopname: event.coopname,
         order_id: event.order_id,
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/my-orders`,
@@ -370,11 +380,17 @@ export class MarketplaceNotificationService implements OnModuleInit {
     }
     try {
       const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
-      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${event.braname}`;
+      let kuName = event.braname;
+      try {
+        kuName = await this.accountPort.getDisplayName(event.braname);
+      } catch {
+        /* оставляем braname */
+      }
+      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${kuName}`;
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
         decisionHuman,
-        brananame: event.braname,
+        brananame: kuName,
         coopname: event.coopname,
         claim_id: event.claim_id,
         order_id: '',
@@ -425,6 +441,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         claim_id: event.claim_id,
         order_id: '',
         returnedAmount,
+        // Готовый суффикс для in-app/push — {% if %} в теле шага Центром
+        // уведомлений не вычисляется (см. комментарий в схеме воркфлоу).
+        returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
         deepLinkUrl: `${config.frontend_url}/${event.coopname}/market/returns/${event.claim_id}`,
       };
       await this.notificationSenderService.sendNotificationToUser(
@@ -466,6 +485,63 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Payment ${event.payment_request_id}: ошибка отправки push поставщику об отказе (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_AID_COUNCIL_DECIDED_EVENT)
+  async handleAidCouncilDecided(event: MarketplaceAidCouncilDecidedEvent): Promise<void> {
+    try {
+      const memberName = await this.accountPort.getDisplayName(event.member_account);
+      const outcomeHuman = event.approved
+        ? 'Совет одобрил выплату — заявка передана кассиру, ожидайте перевод на указанные реквизиты.'
+        : 'Совет отказал в выплате — средства остались на вашем кошельке, заявление можно подать заново.';
+      const payload: Workflows.MarketplaceAidCouncilDecided.IPayload = {
+        memberName,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
+        outcomeHuman,
+        // Готовый суффикс: ветвление в теле шага Центром уведомлений не вычисляется.
+        reasonSuffix: !event.approved && event.reason ? ` Причина: ${event.reason}.` : '',
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.member_account,
+        Workflows.MarketplaceAidCouncilDecided.id,
+        payload
+      );
+      this.logger.log(
+        `Матпомощь ${event.member_account}: push о решении совета отправлен (approved=${event.approved}).`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Матпомощь ${event.member_account}: ошибка отправки push о решении совета (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_AID_PAYOUT_CONFIRMED_EVENT)
+  async handleAidPayoutConfirmed(event: MarketplaceAidPayoutConfirmedEvent): Promise<void> {
+    try {
+      const memberName = await this.accountPort.getDisplayName(event.member_account);
+      const payload: Workflows.MarketplaceAidPayoutConfirmed.IPayload = {
+        memberName,
+        amount: AmountFormatterUtils.formatAmountSafe(event.amount),
+        paymentDestination: event.payment_destination ?? '',
+        coopname: event.coopname,
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-pvz/economy`,
+      };
+      await this.notificationSenderService.sendNotificationToUser(
+        event.member_account,
+        Workflows.MarketplaceAidPayoutConfirmed.id,
+        payload
+      );
+      this.logger.log(
+        `Матпомощь ${event.member_account}: push о выплате отправлен.`
+      );
+    } catch (err: any) {
+      this.logger.warn(
+        `Матпомощь ${event.member_account}: ошибка отправки push о выплате (${err.message}) — flow не блокируется.`
       );
     }
   }

@@ -4,19 +4,31 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
+import { registerEnumType } from '@nestjs/graphql';
 import { createHash, randomBytes } from 'crypto';
 import { Cooperative, type BranchContract } from 'cooptypes';
 import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
+import {
+  INTER_LEDGER2_HISTORY,
+  type InterLedger2HistoryPort,
+  type InterLedger2HistoryResult,
+} from '@coopenomics/inter';
 import { HttpApiError } from '~/utils/httpApiError';
 import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
+import { PaginationInputDTO, type PaginationResult } from '~/application/common/dto/pagination.dto';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
 } from '../../domain/ports/marketplace-canonical-blockchain.port';
+import {
+  MARKETPLACE_ORDER_REPOSITORY,
+  type MarketplaceOrderDomainRepository,
+} from '../../domain/repositories/marketplace-order.repository';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -26,16 +38,45 @@ import {
   type MarketplaceKuChairmanService,
 } from './marketplace-ku-chairman.service';
 import { rethrowChainError } from '../shared/chain-tx.util';
+import { formatPayoutDestination } from '../shared/payout-destination.util';
 import {
   EXPENSE_PLANS_SERVICE,
   EXPENSE_RESERVE_HORIZON_DAYS,
   type ExpensePlansService,
 } from '../../../expenses/application/services/expense-plans.service';
+import {
+  GATEWAY_INTERACTOR_PORT,
+  type GatewayInteractorPort,
+} from '~/domain/wallet/ports/gateway-interactor.port';
+import {
+  PAYMENT_METHOD_REPOSITORY,
+  type PaymentMethodRepository,
+} from '~/domain/common/repositories/payment-method.repository';
+import { INTER_EXPENSE_CHASSIS, type InterExpenseChassisPort } from '@coopenomics/inter';
+import { type CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
+import { ExpenseMechanics } from '../../../expenses/domain/enums/expense-mechanics.enum';
+import { ExpenseRecipientType } from '../../../expenses/domain/enums/expense-recipient-type.enum';
+import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
+import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
+
+/** Значение `aids.status` на цепи, означающее «совет одобрил, ждёт выплаты». */
+const BRANCH_AID_STATUS_AUTHORIZED = 'authorized';
 
 export const MARKETPLACE_ECONOMY_SERVICE = Symbol('MARKETPLACE_ECONOMY_SERVICE');
 
 /** Контрактная шкала процентов: HUNDR_PERCENTS (1000000) = 100%. */
 const HUNDR_PERCENTS = 1_000_000;
+
+/**
+ * Дефолт ставки членского взноса нового кооператива — 30% в контрактной
+ * шкале, зеркалит `DEFAULT_MEMBERSHIP_FEE_PERCENT` из marketplace.hpp.
+ * Пока singleton `config` не создан on-chain (кооператив ещё не вызывал
+ * `setfee`), И контракт (расчёт взноса при заказе), И бэкенд (зеркальный
+ * расчёт суммы конвертации для чекаута) обязаны согласованно использовать
+ * один и тот же дефолт — иначе сумма в чекауте разойдётся с фактическим
+ * списанием on-chain.
+ */
+const DEFAULT_MEMBERSHIP_FEE_PERCENT = 300_000;
 
 /** Контракт-источник распределения в реестре весов branch::weights. */
 const MARKETPLACE_SOURCE_CONTRACT = 'marketplace';
@@ -61,6 +102,46 @@ export interface MarketplaceBranchEconomyView {
   available_to_distribute: string;
 }
 
+/** Одно движение по общему кошельку КУ (`w.brn.common`) — только apply-записи ledger2 (несут operation_code + memo). */
+export interface MarketplaceBranchWalletOperationView {
+  global_sequence: string;
+  operation_code: string;
+  quantity: string | null;
+  memo: string | null;
+  /** Хэш заказа-источника (order_hash из p.mkt.supply) — адресация в реестр заказов КУ. Null для движений без заказа (распределение, оплата расхода). */
+  order_hash: string | null;
+  /** Идентификатор заказа-источника — прямая ссылка на страницу заказа. Null, если движение не связано с заказом. */
+  order_id: string | null;
+  created_at: Date;
+}
+
+/** Стадия заявления на материальную помощь. */
+export enum MarketplaceAidStage {
+  /** Заявление подписано и внесено на рассмотрение совета. */
+  ON_COUNCIL = 'ON_COUNCIL',
+  /** Совет одобрил выплату — заявка передана кассиру. */
+  AWAITING_PAYOUT = 'AWAITING_PAYOUT',
+}
+
+registerEnumType(MarketplaceAidStage, {
+  name: 'MarketplaceAidStage',
+  description: 'Стадия заявления на материальную помощь: рассмотрение советом или ожидание выплаты.',
+});
+
+/** Заявление на материальную помощь со стадией и статусом выплаты у кассира. */
+export interface MarketplaceAidView {
+  hash: string;
+  username: string;
+  braname: string;
+  amount: string;
+  /** Стадия заявления: на рассмотрении совета либо одобрено и ждёт выплаты. */
+  stage: MarketplaceAidStage;
+  /** Null — платёж не найден в реестре, статус выплаты неизвестен. */
+  payment_status: PaymentStatusEnum | null;
+  /** Маскированная подпись реквизитов («Сбербанк •1234»), null — реквизиты недоступны. */
+  payment_destination: string | null;
+}
+
 /**
  * requirement b6 «Экономика КУ» (раунд 5 — приоритет общего кошелька):
  * единая ставка членского взноса (стол администратора), веса распределения
@@ -77,6 +158,8 @@ export interface MarketplaceBranchEconomyView {
  */
 @Injectable()
 export class MarketplaceEconomyService {
+  private readonly logger = new Logger(MarketplaceEconomyService.name);
+
   constructor(
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
@@ -86,7 +169,17 @@ export class MarketplaceEconomyService {
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly documentDomainService: DocumentDomainService,
     @Inject(EXPENSE_PLANS_SERVICE)
-    private readonly expensePlansService: ExpensePlansService
+    private readonly expensePlansService: ExpensePlansService,
+    @Inject(INTER_LEDGER2_HISTORY)
+    private readonly ledger2History: InterLedger2HistoryPort,
+    @Inject(GATEWAY_INTERACTOR_PORT)
+    private readonly coreGateway: GatewayInteractorPort,
+    @Inject(PAYMENT_METHOD_REPOSITORY)
+    private readonly paymentMethodRepo: PaymentMethodRepository,
+    @Inject(MARKETPLACE_ORDER_REPOSITORY)
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
+    @Inject(INTER_EXPENSE_CHASSIS)
+    private readonly expenseChassis: InterExpenseChassisPort
   ) {}
 
   // ── Проценты: human (1.5 = 1.5%) ↔ контрактная шкала HUNDR_PERCENTS ──
@@ -114,7 +207,9 @@ export class MarketplaceEconomyService {
 
   async getMembershipFeePercent(coopname: string): Promise<number> {
     const config = await this.chainPort.getEconomyConfig(coopname);
-    return config ? this.toHumanPercent(config.membership_fee_percent) : 0;
+    return this.toHumanPercent(
+      config ? config.membership_fee_percent : DEFAULT_MEMBERSHIP_FEE_PERCENT
+    );
   }
 
   /**
@@ -125,7 +220,7 @@ export class MarketplaceEconomyService {
    */
   async getMembershipFeeContractPercent(coopname: string): Promise<number> {
     const config = await this.chainPort.getEconomyConfig(coopname);
-    return config ? Number(config.membership_fee_percent) : 0;
+    return config ? Number(config.membership_fee_percent) : DEFAULT_MEMBERSHIP_FEE_PERCENT;
   }
 
   /** Членский взнос в минимальных единицах валюты — формула контракта. */
@@ -229,6 +324,96 @@ export class MarketplaceEconomyService {
       common_balance: commonBalance,
       reserve_amount: this.formatAsset(reserve),
       available_to_distribute: this.formatAsset(available),
+    };
+  }
+
+  /**
+   * Движения по общему кошельку КУ (`w.brn.common`) — членские взносы с
+   * исполненных заказов, изъятия в распределение, оплата плановых расходов.
+   * Читается через `INTER_LEDGER2_HISTORY` (ядро ledger2, журнал
+   * blockchain_actions) — только apply-записи: они несут operation_code +
+   * memo (человекочитаемое назначение, например «по заказу № 123»),
+   * walletop/debit/credit того же apply в UI-журнале избыточны.
+   *
+   * Авторизацию (кто вправе смотреть кошелёк ИМЕННО этого КУ) порт не
+   * делает — обязан проверить вызывающий resolver ДО вызова этого метода.
+   */
+  async getBranchWalletHistory(
+    coopname: string,
+    braname: string,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      walletName: 'w.brn.common',
+      username: braname,
+      actionNames: ['apply'],
+      page: options?.page ?? 1,
+      limit: options?.limit ?? 20,
+      sortOrder: options?.sortOrder,
+    });
+    return this.toWalletHistoryResult(coopname, result);
+  }
+
+  /**
+   * Движения по персональному кошельку членских средств (`w.brn.person`) —
+   * только сами «получения»: перевод в Стол заказов (`o.brn.conv`) и
+   * завершённая (подтверждённая кассиром) материальная помощь (`o.brn.aid`).
+   * Изъятие из общего кошелька в персональный (`o.brn.release`) сюда не
+   * входит — это пассивное распределение председателем, не действие самого
+   * получателя; смотреть в «Кошельке участка».
+   *
+   * Вместе с ещё не завершёнными заявками (`listAids`) образует полную
+   * историю «Получить» на вкладке «Мои средства» — на фронте объединяются
+   * в одну ленту карточек.
+   */
+  async getPersonalWalletHistory(
+    coopname: string,
+    username: string,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
+    const result = await this.ledger2History.getHistory({
+      coopname,
+      walletName: 'w.brn.person',
+      username,
+      actionNames: ['apply'],
+      operationCodes: ['o.brn.conv', 'o.brn.aid'],
+      page: options?.page ?? 1,
+      limit: options?.limit ?? 20,
+      sortOrder: options?.sortOrder,
+    });
+    return this.toWalletHistoryResult(coopname, result);
+  }
+
+  /**
+   * Движение книги учёта знает заказ-источник только по хэшу процесса
+   * поставки, а ссылка «Заказ» ведёт на страницу заказа по его
+   * идентификатору — резолвим хэши страницы одним батчем.
+   */
+  private async toWalletHistoryResult(
+    coopname: string,
+    result: InterLedger2HistoryResult
+  ): Promise<PaginationResult<MarketplaceBranchWalletOperationView>> {
+    const hashes = result.items
+      .map((op) => op.processHash)
+      .filter((h): h is string => !!h);
+    const orders = await this.orderRepo.findByOrderHashes(coopname, hashes);
+    const orderIdByHash = new Map(orders.map((o) => [o.order_hash, o.id]));
+    return {
+      items: result.items.map((op) => ({
+        global_sequence: op.globalSequence,
+        operation_code: op.operationCode ?? '',
+        quantity: op.quantity ?? null,
+        memo: op.memo ?? null,
+        order_hash: op.processHash ?? null,
+        order_id: op.processHash
+          ? (orderIdByHash.get(op.processHash.toLowerCase()) ?? null)
+          : null,
+        created_at: op.createdAt,
+      })),
+      totalCount: result.totalCount,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
     };
   }
 
@@ -408,7 +593,8 @@ export class MarketplaceEconomyService {
     braname: string,
     amount: number,
     aidHash: string,
-    signedStatement: SignedDigitalDocumentInputDTO
+    signedStatement: SignedDigitalDocumentInputDTO,
+    paymentMethodId: string
   ): Promise<string> {
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new BadRequestException('Сумма материальной помощи должна быть больше нуля');
@@ -446,25 +632,248 @@ export class MarketplaceEconomyService {
       );
     }
 
+    // Реквизиты обязаны существовать и принадлежать самому получателю —
+    // get скоупится по username, чужой method_id сюда не пролезет.
+    let payoutMethod;
+    try {
+      payoutMethod = await this.paymentMethodRepo.get({ username, method_id: paymentMethodId });
+    } catch {
+      throw new BadRequestException(
+        'Реквизиты не найдены. Добавьте их в разделе «Реквизиты» стола пайщика и выберите снова.'
+      );
+    }
+
+    // Core-платёж создаётся ДО отправки на цепь и скрыт от кассира
+    // (AWAITING_AUTHORIZATION): реквизиты нужно запомнить в момент подачи, а
+    // показывать выплату кассиру можно только после решения совета. Перевод в
+    // PENDING делает MarketplaceAidCouncilSyncService по callback'у onaidauth.
+    // payment_hash обязан совпадать с on-chain outcome_hash — им становится сам
+    // aid_hash, по нему же платёж находят слушатели решения совета и кассира.
+    try {
+      await this.coreGateway.createSystemOutgoingPayment({
+        coopname,
+        username,
+        quantity: amount,
+        symbol: this.assetConfig.symbol,
+        // Назначение платежа кассир копирует в банк как есть — там нужна только
+        // суть выплаты, без служебных идентификаторов участка.
+        memo: 'Материальная помощь',
+        type: PaymentTypeEnum.AID,
+        status: PaymentStatusEnum.AWAITING_AUTHORIZATION,
+        related_extension: 'marketplace',
+        related_entity_id: aidHash,
+        payment_hash: aidHash,
+        payment_method_id: payoutMethod.method_id,
+        payment_details: {
+          data: payoutMethod.data,
+          amount_plus_fee: asset,
+          amount_without_fee: asset,
+          fee_amount: '0',
+          fee_percent: 0,
+          fact_fee_percent: 0,
+          tolerance_percent: 0,
+        },
+      });
+    } catch (e: any) {
+      throw new ConflictException(
+        `Не удалось зарегистрировать выплату в реестре платежей: ${e.message}. Заявление не подано, повторите попытку.`
+      );
+    }
+
+    // Заявление уходит не кассиру, а на повестку совета: выплата денег из
+    // кооператива — его компетенция. `meta` дублирует ключевые поля заявления
+    // для реестра повесток; сам документ едет в `statement`.
     try {
       await this.chainPort.createAid({
         coopname,
         username,
+        braname,
         aid_hash: aidHash,
         amount: asset,
         statement: new SignedDigitalDocumentInputDTO(
           signedStatement
         ).toDocument() as BranchContract.Actions.CreateAid.ICreateaid['statement'],
+        meta: JSON.stringify({
+          registry_id: Cooperative.Registry.BranchFinancialAidStatement.registry_id,
+          aid_hash: aidHash,
+          braname,
+          amount: asset,
+        }),
+      });
+    } catch (e) {
+      // Заявление на повестку не встало — гасим уже созданный платёж, иначе он
+      // навсегда останется в AWAITING_AUTHORIZATION без решения совета.
+      await this.cancelAidPayment(
+        coopname,
+        aidHash,
+        'Заявление не удалось внести на рассмотрение совета'
+      );
+      rethrowChainError(e);
+    }
+
+    return asset;
+  }
+
+  /**
+   * Подать расход кооперативного участка на решение совета через шасси
+   * расходов (requirement b6, процесс p.brn.spend).
+   *
+   * Сумма расхода выделяется из общего кошелька участка в пул расходов
+   * (контракт делает это в одной транзакции с подачей записки), после чего
+   * расходом занимается шасси: совет принимает решение, кассир платит по
+   * реквизитам либо выдаёт аванс под отчёт, получатель отчитывается чеками.
+   * Неизрасходованный остаток возвращается участку автоматически.
+   *
+   * Реквизиты получателей в цепь не уходят: до отправки они проверяются, а
+   * после успешной подачи фиксируются снимком шасси — последующее изменение
+   * реквизитов не меняет то, куда платить по уже поданному расходу.
+   */
+  async createBranchExpense(
+    coopname: string,
+    username: string,
+    input: CreateBranchExpenseInputDTO
+  ): Promise<string> {
+    // Отправить расход на решение совета — полномочие председателя участка:
+    // с этого момента средства участка выделяются под расход. Планировать
+    // расходы может любой оператор участка (см. реестр плановых расходов),
+    // но подаёт председатель. Тот же guard стоит в контракте.
+    const trustee = await this.kuChairmanService.getTrusteeOfBranch(coopname, input.braname);
+    if (trustee !== username) {
+      throw new ForbiddenException(
+        'Расход на оплату подаёт только председатель этого кооперативного участка'
+      );
+    }
+
+    this.verifyDocumentSignature(input.statement as unknown as SignedDigitalDocumentInputDTO, username);
+
+    const requisiteItems = input.items.map((item) => ({
+      proposalHash: input.expense_hash,
+      itemHash: item.item_hash,
+      recipient: item.recipient_type === ExpenseRecipientType.ORG ? '' : item.recipient,
+      isOrganization: item.recipient_type === ExpenseRecipientType.ORG,
+      mechanics: item.mechanics as 'ADVANCE' | 'DIRECT',
+      paymentMethodId: item.payment_method_id,
+      requisites: item.requisites,
+      paymentPurpose: item.payment_purpose,
+    }));
+
+    // Реквизиты проверяются ДО цепи: расход без реквизитов кассир не оплатит.
+    await this.expenseChassis.validateRequisites(coopname, requisiteItems);
+
+    const items = input.items.map((item) => ({
+      item_hash: item.item_hash,
+      mechanics: item.mechanics === ExpenseMechanics.DIRECT ? 1 : 0,
+      recipient_type:
+        item.recipient_type === ExpenseRecipientType.SELF
+          ? 0
+          : item.recipient_type === ExpenseRecipientType.MEMBER
+            ? 1
+            : 2,
+      recipient: item.recipient_type === ExpenseRecipientType.ORG ? '' : item.recipient,
+      description: item.description,
+      planned_amount: item.planned_amount,
+      actual_amount: this.zeroAsset(),
+      status: 0,
+    }));
+
+    try {
+      await this.chainPort.createBranchExpense({
+        coopname,
+        braname: input.braname,
+        creator: username,
+        expense_hash: input.expense_hash,
+        items,
+        statement: new SignedDigitalDocumentInputDTO(
+          input.statement as unknown as SignedDigitalDocumentInputDTO
+        ).toDocument() as BranchContract.Actions.CreateExp.ICreateexp['statement'],
       });
     } catch (e) {
       rethrowChainError(e);
     }
-    return asset;
+
+    // Снимок реквизитов — только после успешной подачи (канон шасси).
+    await this.expenseChassis.snapshotRequisites(coopname, requisiteItems);
+
+    if (input.plan_id) {
+      await this.expensePlansService.attachProposal(coopname, input.plan_id, input.expense_hash);
+    }
+
+    return input.expense_hash;
   }
 
-  async listAids(coopname: string, username?: string): Promise<BranchContract.Tables.Aids.IBranchAid[]> {
+  /** Отменить core-платёж заявки по её hash. Молчит, если платежа нет. */
+  private async cancelAidPayment(coopname: string, aidHash: string, reason: string): Promise<void> {
+    try {
+      const found = await this.coreGateway.getPayments(
+        { coopname, hash: aidHash.toLowerCase() },
+        { page: 1, limit: 1, sortOrder: 'DESC' }
+      );
+      const payment = found.items[0];
+      if (payment?.id) {
+        await this.coreGateway.setPaymentStatus({
+          id: payment.id,
+          status: PaymentStatusEnum.CANCELLED,
+          message: reason,
+        });
+      }
+    } catch (e: any) {
+      this.logger.warn(`Не удалось отменить платёж заявки ${aidHash}: ${e.message}`);
+    }
+  }
+
+  async listAids(coopname: string, username?: string): Promise<MarketplaceAidView[]> {
     const aids = await this.chainPort.listAids(coopname);
-    return username ? aids.filter((a) => a.username === username) : aids;
+    const scoped = username ? aids.filter((a) => a.username === username) : aids;
+    return Promise.all(scoped.map((aid) => this.toAidView(coopname, aid)));
+  }
+
+  /**
+   * Статус и реквизиты core-платежа заявки, по её hash. `null`/`null` —
+   * платёж не создался (см. предупреждение в createAid) либо реквизиты с тех
+   * пор удалены получателем — не блокирует отображение самой заявки.
+   */
+  private async toAidView(
+    coopname: string,
+    aid: BranchContract.Tables.Aids.IBranchAid
+  ): Promise<MarketplaceAidView> {
+    const hash = String(aid.hash);
+    let payment_status: PaymentStatusEnum | null = null;
+    let payment_destination: string | null = null;
+    try {
+      const found = await this.coreGateway.getPayments(
+        { coopname, hash: hash.toLowerCase() },
+        { page: 1, limit: 1, sortOrder: 'DESC' }
+      );
+      const payment = found.items[0];
+      if (payment) {
+        payment_status = payment.status;
+        if (payment.payment_method_id) {
+          try {
+            const method = await this.paymentMethodRepo.get({
+              username: aid.username,
+              method_id: payment.payment_method_id,
+            });
+            payment_destination = formatPayoutDestination(method);
+          } catch {
+            // Реквизиты удалены получателем после подачи заявки — не блокирует.
+          }
+        }
+      }
+    } catch {
+      // Платёж не найден в реестре — статус выплаты неизвестен.
+    }
+    return {
+      hash,
+      username: aid.username,
+      braname: String(aid.braname),
+      amount: aid.amount,
+      stage:
+        String(aid.status) === BRANCH_AID_STATUS_AUTHORIZED
+          ? MarketplaceAidStage.AWAITING_PAYOUT
+          : MarketplaceAidStage.ON_COUNCIL,
+      payment_status,
+      payment_destination,
+    };
   }
 
   // ── Внутреннее ────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { BaseButton, BaseCard, BaseChip, BaseDialog } from 'src/shared/ui/base';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { type ReceptionGroup, computeStockProposalCharges } from 'src/shared/lib/marketplace';
-import { marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
+import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
+import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
@@ -26,7 +26,6 @@ const {
   signingKey,
   supplierTasks,
   proposalTasks,
-  proposalSums,
   refresh,
   signSupplier,
   cancelSupplier,
@@ -61,8 +60,24 @@ function proposalLineCost(i: { quantity: number; unit_price: string }): string {
   return (i.quantity * Number.parseFloat(i.unit_price)).toFixed(4);
 }
 
-function proposalCharges(p: { id: string; total_cost: string }) {
-  return computeStockProposalCharges(p.total_cost, proposalSums.value[p.id]);
+// Себестоимость акта (p.total_cost) — без членского взноса; пайщик платит
+// взнос сверх неё (requirement b6, та же формула, что в каталоге/корзине).
+// Раньше на этом экране взнос не был виден вовсе — жалоба 2026-08-02.
+const feePercent = ref(0);
+function proposalFeeAmount(p: { total_cost: string }): string {
+  return (applyMembershipFee(Number(p.total_cost), feePercent.value) - Number(p.total_cost)).toFixed(4);
+}
+function proposalTotalWithFee(p: { total_cost: string }): string {
+  return applyMembershipFee(Number(p.total_cost), feePercent.value).toFixed(4);
+}
+
+function receptionLineQuantity(l: { quantity: number; unit: string; packageSize: number | null }): string {
+  const saleUnit = marketplaceOrderSaleUnit(l.quantity, l.unit, l.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
+}
+
+function proposalItemQuantity(i: { quantity: number; unit_of_measure: string | null }): string {
+  return marketplaceQuantityLabel(i.quantity, i.unit_of_measure);
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;
@@ -74,6 +89,9 @@ const anySigning = computed(() => signingKey.value !== null);
 // канала ядра — поллинга больше нет (Фаза 2).
 onMounted(() => {
   void refresh();
+  getMembershipFeePercent()
+    .then((p) => (feePercent.value = p))
+    .catch(() => undefined); // нет ставки — сумму покажем без взноса
 });
 </script>
 
@@ -115,7 +133,7 @@ BaseDialog(
         tbody
           tr(v-for='l in g.lines', :key='l.key')
             td {{ l.productName }}
-            td.num {{ marketplaceQuantityLabel(l.quantity, l.unit, l.orderUnitSize) }}
+            td.num {{ receptionLineQuantity(l) }}
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
@@ -161,17 +179,21 @@ BaseDialog(
         tbody
           tr(v-for='i in p.items', :key='i.offer_id')
             td {{ i.product_name }}
-            td.num {{ i.quantity }}
+            td.num {{ proposalItemQuantity(i) }}
             td.num {{ formatAsset2Digits(proposalLineCost(i)) }} ₽
         tfoot
-          tr(v-if='proposalCharges(p).member > 0')
-            td Спишется с кошелька членских взносов «Стола заказов»
+          tr(v-if='feePercent > 0')
+            td Себестоимость
             td.num
-            td.num {{ formatAsset2Digits(proposalCharges(p).member.toFixed(4)) }} ₽
+            td.num {{ formatAsset2Digits(p.total_cost) }} ₽
+          tr(v-if='feePercent > 0')
+            td Членский взнос ({{ feePercent }}%)
+            td.num
+            td.num {{ formatAsset2Digits(proposalFeeAmount(p)) }} ₽
           tr
-            td Спишется с главного паевого кошелька
+            td К оплате
             td.num
-            td.num {{ formatAsset2Digits(proposalCharges(p).share.toFixed(4)) }} ₽
+            td.num {{ formatAsset2Digits(proposalTotalWithFee(p)) }} ₽
 
       .onsite-gate__foot
         BaseButton(

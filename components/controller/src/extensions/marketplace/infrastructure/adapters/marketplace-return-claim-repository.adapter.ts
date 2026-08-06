@@ -47,6 +47,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
       expected_resolution: input.expected_resolution,
       actual_quantity: input.actual_quantity,
       fact_cost: input.fact_cost,
+      fee_refund: input.fee_refund,
       photos: input.photos,
       statement: input.statement,
       submretrn_tx_hash: input.submretrn_tx_hash,

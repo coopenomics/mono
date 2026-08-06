@@ -10,6 +10,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import type { MarketContract } from 'cooptypes';
 import { computeStockOrderHash } from '../shared/order-hash.util';
+import { toQuantityAsset } from '../shared/quantity.util';
+import { resolveSaleUnit } from '../shared/packaging.util';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
@@ -38,7 +40,7 @@ import {
 import {
   MarketplaceInventoryOwnerships,
 } from '../../domain/entities/marketplace-inventory.types';
-import { MarketplaceOfferStatuses } from '../../domain/entities/marketplace-offer.types';
+import { MarketplaceOfferStatuses, type MarketplaceOfferPackage } from '../../domain/entities/marketplace-offer.types';
 import {
   MarketplaceOrderStatuses,
   type MarketplaceOrderCreateTxSnapshot,
@@ -59,6 +61,13 @@ export interface MarketplaceStockPublishInput {
    * позиции; указана меньше цены прибытия — уценка (requirement 76, решение 12).
    */
   price_per_unit?: string | null;
+  /**
+   * Срок гарантийного возврата (дней) для этой публикации — оператор ПВЗ
+   * задаёт его сам (не наследует от исходного товара автоматически): скоропорт
+   * вроде молока по докладке обычно возвращать нельзя, срок = 0. Не указан —
+   * переносим срок исходного товара.
+   */
+  warranty_days?: number | null;
 }
 
 export interface MarketplaceStockUnpublishInput {
@@ -72,7 +81,13 @@ export interface MarketplaceStockOrderCreateInput {
   orderer_account: string;
   /** Оффер кооператива (stock_braname non-null). */
   offer_id: string;
+  /**
+   * По мере — количество в базовой единице; упаковкой (Эпик 18) — целое число
+   * упаковок выбранного `package_id`.
+   */
   quantity: number;
+  /** Выбранная упаковка каталога (Эпик 18) — обязательна при отпуске упаковкой. */
+  package_id?: string | null;
   /** Грань «заказ заказчика» — общий id строк одного оформления/предложения. */
   checkout_id?: string | null;
   /** Предвычисленный order_hash из заявления о конвертации (см. order-create). */
@@ -196,9 +211,23 @@ export class MarketplaceStockService {
         input.price_per_unit ??
         group.find((p) => p.arrival_price !== null)?.arrival_price ??
         origin.price_per_unit;
-
       let coopOffer = await this.findCoopOffer(input.coopname, braname, origin.id);
+
+      // Каталог упаковок остатка сужаем до тех фасовок, что физически принимались
+      // на склад — иначе заказчик видит в диалоге ВСЕ фасовки origin-оффера
+      // поставщика (напр. и «литрушку», и «поллитрушку»), хотя на складе
+      // кооператива реально лежит только одна из них (review 2026-07-28).
+      // При повторной публикации того же оффера учитываем И уже опубликованные
+      // ранее позиции — иначе публикация новой партии стирает фасовки, уже
+      // выставленные предыдущими публикациями этого же оффера.
+      const alreadyPublished = coopOffer
+        ? await this.inventoryRepo.list({ coopname: input.coopname, published_offer_id: coopOffer.id })
+        : [];
+      const receivedPackageSizes = await this.resolveReceivedPackageSizes([...group, ...alreadyPublished]);
+      const availablePackages = this.filterReceivedPackages(origin.packages, receivedPackageSizes);
+
       if (!coopOffer) {
+        const normalizedPrice = this.normalizePrice(price);
         coopOffer = await this.offerRepo.create({
           coopname: input.coopname,
           supplier_account: input.coopname, // продавец — сам кооператив
@@ -206,15 +235,25 @@ export class MarketplaceStockService {
           product_name: origin.product_name,
           description: origin.description,
           category_id: origin.category_id,
-          price_per_unit: this.normalizePrice(price),
+          price_per_unit: normalizedPrice,
           unit_of_measure: origin.unit_of_measure,
-          order_unit_size: origin.order_unit_size,
+          // Способ отпуска остатка — ТОТ ЖЕ, что у исходного оффера партии
+          // (Эпик 18): группа позиций всегда привязана к одному origin
+          // (groupByOriginOffer), поэтому sale_form/packages однозначны и
+          // безопасны к переносу — молоко бутылками остаётся бутылками и на
+          // остатке, контрактный check_packaging не даёт дробить упаковку.
+          // Цены упаковок масштабируются тем же коэффициентом, что и
+          // цена/уценка базовой единицы — иначе чекаут packaged-оффера
+          // (считает исключительно из packages[].price) молча игнорирует
+          // уценку кооператива.
+          sale_form: origin.sale_form,
+          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, normalizedPrice),
           quantity_available: qty,
           unlimited_flag: false,
           // Исполнение мгновенное со склада этого КУ — доставка только сюда.
           delivery_points: [{ braname, min_supply_volume: 1 }],
           shelf_life_days: origin.shelf_life_days,
-          warranty_days: origin.warranty_days,
+          warranty_days: input.warranty_days ?? origin.warranty_days,
           barcode_strategy: origin.barcode_strategy,
           pack_size: origin.pack_size,
           images: origin.images,
@@ -222,9 +261,26 @@ export class MarketplaceStockService {
           stock_origin_offer_id: origin.id,
         });
       } else {
+        // Цель масштабирования упаковок — новая явная цена (uценка), иначе
+        // уже применённая ранее (coopOffer.price_per_unit): повторная
+        // публикация без изменения цены не должна сбрасывать упаковки назад
+        // к недисконтированным ценам origin.
+        const targetPrice = input.price_per_unit
+          ? this.normalizePrice(input.price_per_unit)
+          : coopOffer.price_per_unit;
         coopOffer = await this.offerRepo.applyUpdate(coopOffer.id, {
           quantity_available: coopOffer.quantity_available + qty,
-          ...(input.price_per_unit ? { price_per_unit: this.normalizePrice(input.price_per_unit) } : {}),
+          // Ресинк способа отпуска с origin при каждой публикации — та же
+          // причина, что и в create-ветке выше: снятая-с-публикации запись
+          // остатка никуда не девается (unpublishStock только отвязывает
+          // позиции), повторная публикация должна ЛЕЧИТЬ устаревший
+          // sale_form/packages, а не консервировать его навсегда.
+          sale_form: origin.sale_form,
+          packages: this.scalePackagePrices(availablePackages, origin.price_per_unit, targetPrice),
+          ...(input.price_per_unit ? { price_per_unit: targetPrice } : {}),
+          ...(input.warranty_days !== undefined && input.warranty_days !== null
+            ? { warranty_days: input.warranty_days }
+            : {}),
           status: MarketplaceOfferStatuses.ACTIVE,
         });
       }
@@ -247,6 +303,58 @@ export class MarketplaceStockService {
       );
     }
     return touched;
+  }
+
+  /**
+   * Размеры упаковок (Эпик 18), которыми переданные позиции физически
+   * прибыли на склад, — по `package_size` их исходных заказов. Позиции без
+   * заказа/package_size (легаси, докладка вручную) в множество не попадают —
+   * тогда фильтр `filterReceivedPackages` честно откатится к полному
+   * каталогу origin (см. её комментарий).
+   */
+  private async resolveReceivedPackageSizes(
+    positions: MarketplaceInventoryDomainEntity[]
+  ): Promise<Set<number>> {
+    const orderIds = [...new Set(positions.map((p) => p.order_id).filter((id): id is string => Boolean(id)))];
+    const orders = await Promise.all(orderIds.map((id) => this.orderRepo.findById(id)));
+    return new Set(orders.map((o) => o?.package_size).filter((s): s is number => Boolean(s)));
+  }
+
+  /**
+   * Сужает каталог упаковок оффера остатка до фасовок, реально принятых на
+   * склад (`receivedSizes`) — иначе заказчик видит в диалоге «В корзину» ВСЕ
+   * фасовки origin-оффера поставщика, хотя физически на складе кооператива
+   * может лежать только часть из них. Пустой `receivedSizes` (нет
+   * заказов-провенансов — легаси/ручная докладка) или пустое пересечение
+   * (расхождение данных) — откат к полному каталогу origin, не к пустому
+   * списку: лучше показать лишний вариант, чем не дать выбрать никакой.
+   */
+  private filterReceivedPackages(
+    packages: MarketplaceOfferPackage[],
+    receivedSizes: Set<number>
+  ): MarketplaceOfferPackage[] {
+    if (receivedSizes.size === 0) return packages;
+    const filtered = packages.filter((p) => receivedSizes.has(p.size));
+    return filtered.length > 0 ? filtered : packages;
+  }
+
+  /**
+   * Размер упаковки, в которой остаток фактически принимался на склад
+   * (Эпик 18) — для показа докладки «как витрины на месте»: столько же
+   * упаковок, сколько поставщик передал по акту, не голое число базовых
+   * единиц. Оффер остатка — агрегат произвольного числа партий приёмки
+   * (`groupByOriginOffer`), поэтому берём package_size их исходных заказов;
+   * если партии разнофасовочные (или без заказа — легаси/докладка вручную) —
+   * null, честно откатываемся к отображению по мере (тот же гвард, что и в
+   * агрегации «Входящие заказы»/«Коллективный заказ»).
+   */
+  async resolveStockPackageSize(coopname: string, published_offer_id: string): Promise<number | null> {
+    const rows = await this.inventoryRepo.list({ coopname, published_offer_id });
+    const orderIds = [...new Set(rows.map((r) => r.order_id).filter((id): id is string => Boolean(id)))];
+    if (orderIds.length === 0) return null;
+    const orders = await Promise.all(orderIds.map((id) => this.orderRepo.findById(id)));
+    const sizes = new Set(orders.map((o) => o?.package_size || null));
+    return sizes.size === 1 ? [...sizes][0] : null;
   }
 
   /** Снятие свободных позиций с публикации (зарезервированные не трогаем). */
@@ -315,8 +423,8 @@ export class MarketplaceStockService {
   async createStockOrder(
     input: MarketplaceStockOrderCreateInput
   ): Promise<MarketplaceStockOrderCreateResult> {
-    if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-      throw new BadRequestException('Количество должно быть целым числом больше нуля.');
+    if (!(input.quantity > 0)) {
+      throw new BadRequestException('Количество должно быть больше нуля.');
     }
     const offer = await this.offerRepo.findById(input.offer_id);
     if (!offer || offer.coopname !== input.coopname) {
@@ -328,18 +436,22 @@ export class MarketplaceStockService {
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
       throw new BadRequestException(`Предложение не активно (статус «${offer.status}»).`);
     }
-    if (offer.quantity_available < input.quantity) {
+    // Эпик 18: способ отпуска → базовое количество/цена/упаковка (как в order-create).
+    const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
+    if (offer.quantity_available < resolved.baseQuantity) {
       throw new BadRequestException(
-        `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${input.quantity}.`
+        `На складе доступно только ${offer.quantity_available} ед.; нельзя заказать ${resolved.baseQuantity}.`
       );
     }
 
     const order_hash =
       input.order_hash ?? computeStockOrderHash(input.coopname, input.orderer_account, offer.id);
     const offer_hash = createHash('sha256').update(`offer:${offer.id}`).digest('hex');
-    const priceFloat = Number.parseFloat(offer.price_per_unit);
-    const total_cost = (priceFloat * input.quantity).toFixed(this.assetConfig.decimals);
+    const priceFloat = Number.parseFloat(resolved.unitPrice);
+    const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
+    const total_cost = (priceFloat * saleUnitCount).toFixed(this.assetConfig.decimals);
     const unit_price_asset = `${priceFloat.toFixed(this.assetConfig.decimals)} ${this.assetConfig.symbol}`;
+    const package_size_asset = toQuantityAsset(resolved.packageSize, offer.unit_of_measure);
     const warranty_period_secs = offer.warranty_days * 86_400;
 
     // Заказ из остатка фондируется из членского кошелька. Если передано
@@ -361,7 +473,7 @@ export class MarketplaceStockService {
     }
 
     // Optimistic counter ДО chain submit (как в createOrder поставщика).
-    await this.offerCounters.onOrderBlocked(offer.id, input.quantity);
+    await this.offerCounters.onOrderBlocked(offer.id, resolved.baseQuantity);
 
     let txHash: string;
     try {
@@ -371,8 +483,9 @@ export class MarketplaceStockService {
         order_hash,
         offer_hash,
         delivery_braname: offer.stock_braname,
-        quantity: input.quantity,
+        quantity: toQuantityAsset(resolved.baseQuantity, offer.unit_of_measure),
         unit_price: unit_price_asset,
+        package_size: package_size_asset,
         warranty_period_secs,
         batch_hash: MarketplaceStockService.ZERO_HASH,
       });
@@ -386,7 +499,7 @@ export class MarketplaceStockService {
         error.stack
       );
       try {
-        await this.offerCounters.onOrderRolledBack(offer.id, input.quantity);
+        await this.offerCounters.onOrderRolledBack(offer.id, resolved.baseQuantity);
       } catch (compErr: any) {
         this.logger.error(
           `createStockOrder: compensating onOrderRolledBack упал (offer=${offer.id}): ${compErr.message}. РУЧНОЙ ФИКС counter!`
@@ -410,8 +523,10 @@ export class MarketplaceStockService {
       offer_hash,
       supplier_account: input.coopname, // продавец — кооператив (маркер stock-ордера)
       delivery_braname: offer.stock_braname,
-      quantity: input.quantity,
-      price_per_unit: offer.price_per_unit,
+      quantity: resolved.baseQuantity,
+      unit_of_measure: offer.unit_of_measure,
+      price_per_unit: resolved.unitPrice,
+      package_size: resolved.packageSize,
       total_cost,
       cycle_id: null,
       checkout_id: input.checkout_id ?? null,
@@ -426,7 +541,7 @@ export class MarketplaceStockService {
     // овер-резерв; падение здесь — рассинхрон counters↔позиции, компенсируем
     // отменой заказа на цепи.
     try {
-      await this.inventoryRepo.reserveStock(input.coopname, offer.id, input.quantity, order.id);
+      await this.inventoryRepo.reserveStock(input.coopname, offer.id, resolved.baseQuantity, order.id);
     } catch (error: any) {
       this.logger.error(
         `createStockOrder: резерв позиций не удался (order=${order.id}) — компенсирующая отмена. ${error.message}`
@@ -437,7 +552,7 @@ export class MarketplaceStockService {
           orderer: input.orderer_account,
           order_hash,
         });
-        await this.offerCounters.onOrderUnblocked(offer.id, input.quantity);
+        await this.offerCounters.onOrderUnblocked(offer.id, resolved.baseQuantity);
         await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', 'Недостаточно свободного остатка на складе');
       } catch (compErr: any) {
         this.logger.error(
@@ -596,6 +711,31 @@ export class MarketplaceStockService {
 
   private normalizePrice(price: string): string {
     return Number.parseFloat(price).toFixed(this.assetConfig.decimals);
+  }
+
+  /**
+   * Масштабирует цены упаковок остатка тем же коэффициентом, каким целевая
+   * цена базовой единицы (уценка/цена прибытия) отличается от origin's
+   * price_per_unit. Для sale_form=packaged чекаут (`resolveSaleUnit`) берёт
+   * цену ИСКЛЮЧИТЕЛЬНО из `packages[].price` — price_per_unit там витринный,
+   * без масштабирования уценка кооператива молча не доходила бы до цены в
+   * корзине (review 2026-07-28).
+   */
+  private scalePackagePrices(
+    packages: MarketplaceOfferPackage[],
+    originPricePerUnit: string,
+    targetPricePerUnit: string
+  ): MarketplaceOfferPackage[] {
+    const originPrice = Number.parseFloat(originPricePerUnit);
+    const targetPrice = Number.parseFloat(targetPricePerUnit);
+    if (!(originPrice > 0) || !(targetPrice > 0) || originPrice === targetPrice) {
+      return packages;
+    }
+    const ratio = targetPrice / originPrice;
+    return packages.map((p) => ({
+      ...p,
+      price: this.normalizePrice(String(Number.parseFloat(p.price) * ratio)),
+    }));
   }
 
 }

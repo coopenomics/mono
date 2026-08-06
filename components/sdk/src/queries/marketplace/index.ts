@@ -6,6 +6,7 @@ export * as ListKUDetails from './listKUDetails'
 export * as ListMyOrders from './listMyOrders'
 /** Реестр всех заказов кооператива со статусами (стол администратора, Order:read:all) */
 export * as ListAllOrders from './listAllOrders'
+export * as ListBranchOrders from './listBranchOrders'
 /** Один заказ по идентификатору */
 export * as GetOrder from './getOrder'
 /** Базовый справочник категорий товаров */
@@ -54,8 +55,12 @@ export * as IssueActChairmanSignablePayload from './issueActChairmanSignablePayl
 export * as ListMyReturnClaims from './listMyReturnClaims'
 /** Эпик 7: заявления на возврат текущего КУ для operator-стола */
 export * as ListReturnClaimsByBraname from './listReturnClaimsByBraname'
+/** Эпик 7: одно заявление на возврат по id — для детальной страницы возврата */
+export * as ReturnClaim from './returnClaim'
 /** Эпик 7: превью заявления на гарантийный возврат для подписи заказчиком */
 export * as ReturnClaimSignablePayload from './returnClaimSignablePayload'
+/** Эпик 7: заявление на возврат с подписью пайщика, для со-подписи председателя при приёме на очном осмотре */
+export * as ReturnClaimChairmanSignablePayload from './returnClaimChairmanSignablePayload'
 /** Эпик 8: текущий открытый черновик проекта списания (если есть) */
 export * as OpenWriteoffDraft from './openWriteoffDraft'
 /** Эпик 8: лента проектов списания скоропорта с фильтром по статусу */
@@ -104,6 +109,8 @@ export * as GetEconomyConfig from './getEconomyConfig'
 /** Настройки выплат поставщика: выбранные реквизиты и готовность к публикации */
 export * as GetSupplierPaymentSettings from './getSupplierPaymentSettings'
 export * as GetBranchEconomy from './getBranchEconomy'
+export * as GetBranchWalletHistory from './getBranchWalletHistory'
+export * as GetPersonalWalletHistory from './getPersonalWalletHistory'
 export * as GetPersonalEconomy from './getPersonalEconomy'
 export * as ListAids from './listAids'
 export * as AidStatementSignablePayload from './aidStatementSignablePayload'

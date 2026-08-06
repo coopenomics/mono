@@ -2,6 +2,7 @@ export {
   HandoffTokenKind,
   encodeHandoffToken,
   decodeHandoffToken,
+  decodeScannedCode,
   type HandoffToken,
 } from './handoff-token';
 export {
@@ -13,10 +14,11 @@ export {
 export {
   resolveHandoffTarget,
   handoffStageRoute,
-  HANDOFF_QUERY,
   type HandoffStage,
   type HandoffRouteTarget,
 } from './handoff-routing';
+export { useMarketplaceHandoffSignal } from './handoff-signal';
+export { encodeReturnClaimCode, decodeReturnClaimCode } from './return-claim-code';
 export { useActsPreview } from './useActsPreview';
 export {
   getMembershipFeePercent,
@@ -29,6 +31,11 @@ export {
   computeStockProposalCharges,
   type StockProposalChargeSums,
 } from './stock-proposal-charges';
+export {
+  saleQuantityStep,
+  quantizeSaleQuantity,
+  type SaleQuantityOffer,
+} from './sale-quantity-step';
 export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,

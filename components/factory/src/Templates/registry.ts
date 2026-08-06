@@ -94,6 +94,7 @@ import * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStateme
 import * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
 import * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
 import * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
+import * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
 import * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
 
 export const Registry = {
@@ -178,6 +179,7 @@ export const Registry = {
   1109: BranchFinancialAidStatement,
   1110: MarketplaceConvertStatement,
   1111: MarketplaceWriteoffServiceMemo,
+  1112: BranchFinancialAidProtocol,
   2010: ExpenseProposalStatement,
   2011: ExpenseProposalDecision,
 }

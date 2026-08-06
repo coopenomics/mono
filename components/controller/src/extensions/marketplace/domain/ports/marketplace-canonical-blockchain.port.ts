@@ -311,6 +311,9 @@ export interface MarketplaceCanonicalBlockchainPort {
   /** Заявка на материальную помощь доверенного (branch::createaid → gateway). */
   createAid(data: BranchContract.Actions.CreateAid.ICreateaid): Promise<TransactResult>;
 
+  /** Подача расхода участка в шасси расходов (branch::createexp). */
+  createBranchExpense(data: BranchContract.Actions.CreateExp.ICreateexp): Promise<TransactResult>;
+
   // ── Чтение on-chain состояния экономики КУ ───────────────────────────
 
   /** Singleton-конфигурация «Стола заказов» (единая ставка взноса); null — не настроена. */

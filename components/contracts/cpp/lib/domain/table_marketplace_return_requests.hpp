@@ -70,8 +70,19 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] return_request {
   checksum256 original_order_hash;                            ///< process_hash оригинального p.mkt.supply
   checksum256 original_consume_op_id;                         ///< ссылка на оригинальный o.mkt.consum (для journal трассировки compensating forward; см. d6 A4)
 
-  uint64_t actual_quantity = 0;                               ///< возвращаемое количество (по умолчанию = order.actual_quantity, может быть меньше)
-  eosio::asset fact_cost = asset(0, _root_govern_symbol);     ///< возвращаемая сумма (actual_quantity * unit_price)
+  eosio::asset actual_quantity = asset(0, _unit_piece);       ///< возвращаемое количество (asset единицы; по умолчанию = order.actual_quantity, может быть меньше)
+  eosio::asset fact_cost = asset(0, _root_govern_symbol);     ///< возвращаемая стоимость имущества (actual_quantity * unit_price / 10^precision)
+
+  /**
+   * Доля членского взноса, приходящаяся на возвращаемое имущество. Считается
+   * при подаче заявления пропорционально возвращаемому количеству от взноса,
+   * фактически принятого кооперативом на выдаче заказа. При приёме возврата
+   * возвращается пайщику вместе со стоимостью имущества — из общего кошелька
+   * участка, куда взнос ушёл на выдаче (o.brn.retfee + o.mkt.refund).
+   * Возврат при полном количестве возвращает пайщику ровно ту сумму, которую
+   * он заплатил за заказ. Ноль — взнос не возвращается.
+   */
+  eosio::asset fee_refund = asset(0, _root_govern_symbol);
 
   std::string reason_text;                                    ///< причина обращения (≤ 500 символов)
   std::vector<checksum256> photos;                            ///< хеши файлов в bucket'е stol-zakazov:images

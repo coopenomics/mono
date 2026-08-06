@@ -94,8 +94,9 @@ public:
                                       checksum256 offer_hash,
                                       eosio::name offerer,
                                       eosio::name delivery_braname,
-                                      uint64_t quantity,
+                                      eosio::asset quantity,
                                       eosio::asset unit_price,
+                                      eosio::asset package_size,
                                       uint32_t warranty_period_secs,
                                       checksum256 batch_hash,
                                       document2 convert_statement);
@@ -120,8 +121,9 @@ public:
                                      checksum256 order_hash,
                                      checksum256 offer_hash,
                                      eosio::name delivery_braname,
-                                     uint64_t quantity,
+                                     eosio::asset quantity,
                                      eosio::asset unit_price,
+                                     eosio::asset package_size,
                                      uint32_t warranty_period_secs,
                                      checksum256 batch_hash);
 
@@ -220,7 +222,7 @@ public:
   [[eosio::action]] void signchair(eosio::name coopname,
                                     eosio::name signer,
                                     checksum256 order_hash,
-                                    uint64_t actual_quantity,
+                                    eosio::asset actual_quantity,
                                     eosio::asset actual_unit_price,
                                     document2 act);
 
@@ -297,7 +299,7 @@ public:
   [[eosio::action]] void signiss2(eosio::name coopname,
                                    eosio::name orderer,
                                    checksum256 order_hash,
-                                   uint64_t actual_quantity,
+                                   eosio::asset actual_quantity,
                                    eosio::asset actual_unit_price,
                                    eosio::name delivery_signer,
                                    document2 act);
@@ -322,7 +324,7 @@ public:
                                     eosio::name orderer,
                                     checksum256 request_hash,
                                     checksum256 original_order_hash,
-                                    uint64_t actual_quantity,
+                                    eosio::asset actual_quantity,
                                     std::string reason_text,
                                     std::vector<checksum256> photos,
                                     document2 statement);

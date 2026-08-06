@@ -1,7 +1,6 @@
 #pragma once
 
 #include <eosio/asset.hpp>
-#include <eosio/binary_extension.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
@@ -91,8 +90,7 @@ namespace OrderPayoutStatus {
  *
  * История внутренних передач между КУ (заготовочный → точка выдачи и т.п.)
  * с подписью ТТН — отложена. Backend может реконструировать движение из
- * blockchain_actions если потребуется. Поле введено заранее, чтобы не
- * добавлять его потом через binary_extension.
+ * blockchain_actions если потребуется.
  *
  * `acceptance_act` (АПП приёмки) и `issue_act` (АПП выдачи) хранятся
  * полным document2 — это дублирование в случае batch-поставки (один
@@ -123,11 +121,12 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   eosio::name accept_braname;                                 ///< КУ приёмки от поставщика (заполняется на signsupp); проверка signchair через Branch::is_user_authorized
   eosio::name current_warehouse_braname;                      ///< текущая точка хранения; signchair: = accept_braname; signiss1: = delivery_braname (фиксация готовности к выдаче)
 
-  uint64_t quantity = 0;                                      ///< заказанное количество
-  uint64_t actual_quantity = 0;                               ///< фактически выданное (signiss2); до signiss2 == quantity
-  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за единицу
-  eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price (заблокированная сумма)
-  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price (после signiss2)
+  eosio::asset quantity = asset(0, _unit_piece);              ///< заказанное количество (asset с символом единицы KG/LTR/PCS, Эпик 17)
+  eosio::asset actual_quantity = asset(0, _unit_piece);       ///< фактически выданное (signiss2); до signiss2 == quantity
+  eosio::asset package_size = asset(0, _unit_piece);          ///< Эпик 18: содержимое упаковки в базовой единице. 0 = отпуск по мере (unit_price за базовую единицу); >0 = упаковкой (unit_price за упаковку, quantity/actual_quantity кратны package_size)
+  eosio::asset unit_price = asset(0, _root_govern_symbol);    ///< цена за единицу отпуска: за базовую единицу (кг/литр/штуку) при package_size==0, либо за упаковку при package_size>0
+  eosio::asset total_cost = asset(0, _root_govern_symbol);    ///< quantity * unit_price / 10^precision (заблокированная сумма)
+  eosio::asset fact_cost  = asset(0, _root_govern_symbol);    ///< actual_quantity * unit_price / 10^precision (после signiss2)
 
   uint32_t warranty_period_secs = 0;                          ///< из Offer'а — для submretrn гард'а
   time_point_sec warranty_until = time_point_sec(0);          ///< now() + warranty_period_secs (заполняется в signiss2)
@@ -148,11 +147,10 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
   /**
    * Списанная уценка по заказу из остатка кооператива (o.mkt.loss, Дт 91 / Кт 10):
    * разница между стоимостью прибытия выданного и фактической суммой выдачи.
-   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
-   * старых строк эквивалентно «уценка не списывалась». Guard идемпотентности
-   * action'а `markdown` (повторное списание по заказу не пройдёт).
+   * Ноль — уценка не списывалась; это же guard идемпотентности action'а
+   * `markdown` (повторное списание по заказу не пройдёт).
    */
-  eosio::binary_extension<eosio::asset> markdown_cost;
+  eosio::asset markdown_cost = asset(0, _root_govern_symbol);
 
   /**
    * Членский взнос по заказу (requirement b6 «Экономика КУ»): считается от
@@ -161,10 +159,9 @@ struct [[eosio::table, eosio::contract(MARKETPLACE)]] order {
    * Включается в общую стоимость заказа для заказчика. При отмене
    * возвращается полностью (o.mkt.refund); при финализации пересчитывается
    * пропорционально факту и распределяется в кошельки КУ (branch::distribute).
-   * binary_extension — поле добавлено к живой таблице; отсутствие значения у
-   * старых строк эквивалентно «взнос не начислялся».
+   * Ноль — взнос не начислялся.
    */
-  eosio::binary_extension<eosio::asset> membership_fee;
+  eosio::asset membership_fee = asset(0, _root_govern_symbol);
 
   // Все timestamp'ы переходов состояний (createorder/accepted/received_to_coop/
   // ready/received/cancelled) восстанавливаются на бэкенде из blockchain_actions[at]

@@ -30,7 +30,8 @@ export interface GroupableReception {
     product_name?: string | null;
     fact_quantity: number | string;
     unit_of_measure?: string | null;
-    order_unit_size?: string | null;
+    /** Содержимое одной упаковки в базовой единице (Эпик 18); null/0 — отпуск по мере. */
+    package_size?: number | null;
     fact_unit_price?: string | null;
   }>;
 }
@@ -41,7 +42,8 @@ export interface ReceptionGroupLine {
   key: string;
   productName: string;
   unit: string;
-  orderUnitSize: string | null;
+  /** null, если позиции с разным package_size попали в одну группу товара (не должно случаться — гвард). */
+  packageSize: number | null;
   quantity: number;
   amount: number;
 }
@@ -113,12 +115,13 @@ export function groupAplReceptions<T extends GroupableReception>(
         if (ex) {
           ex.quantity += qty;
           ex.amount += qty * price;
+          if (ex.packageSize !== (f.package_size ?? null)) ex.packageSize = null;
         } else {
           lineMap.set(lk, {
             key: lk,
             productName: f.product_name || 'Товар по предложению',
             unit: f.unit_of_measure ?? '',
-            orderUnitSize: f.order_unit_size ?? null,
+            packageSize: f.package_size ?? null,
             quantity: qty,
             amount: qty * price,
           });

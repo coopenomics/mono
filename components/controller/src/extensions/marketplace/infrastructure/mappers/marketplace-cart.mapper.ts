@@ -23,6 +23,7 @@ export class MarketplaceCartMapper {
         cart_id: i.cart_id,
         coopname: i.coopname,
         offer_id: i.offer_id,
+        package_id: i.package_id ?? '',
         quantity: i.quantity,
         created_at: i.created_at,
         updated_at: i.updated_at,

@@ -1,10 +1,12 @@
-import { Field, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { createPaginationResult } from '~/application/common/dto/pagination.dto';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import {
   MarketplaceOfferStatuses,
+  MarketplaceSaleForms,
   MarketplaceUnitsOfMeasure,
   type MarketplaceOfferImage,
+  type MarketplaceOfferPackage,
 } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceBarcodeStrategyEnum } from './marketplace-inventory.dto';
 
@@ -27,8 +29,18 @@ registerEnumType(MarketplaceUnitOfMeasureEnum, {
   name: 'MarketplaceUnitOfMeasure',
   description:
     'Базовая единица измерения товара: piece — штука, kg — килограмм, liter — литр. ' +
-    'Фасовка (например, заказ по 100 г или упаковками по 8 штук) задаётся отдельно ' +
-    'размером единицы заказа.',
+    'Количество и цена ведутся прямо в ней.',
+});
+
+export const MarketplaceSaleFormEnum = MarketplaceSaleForms;
+export type MarketplaceSaleFormEnum =
+  (typeof MarketplaceSaleFormEnum)[keyof typeof MarketplaceSaleFormEnum];
+registerEnumType(MarketplaceSaleFormEnum, {
+  name: 'MarketplaceSaleForm',
+  description:
+    'Способ отпуска товара: by_measure — по мере (делимый, заказывают ' +
+    'произвольное количество, цена за базовую единицу); packaged — упаковкой ' +
+    '(целыми упаковками фиксированного содержимого, у каждой своя цена).',
 });
 
 @ObjectType('MarketplaceOfferImage')
@@ -65,7 +77,7 @@ export class MarketplaceOfferDeliveryPointDTO {
   @Field(() => String, { description: 'Кооперативный участок (ПВЗ) поставки.' })
   public readonly braname!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     description:
       'Минимальный объём, от которого поставщик готов везти на этот участок ' +
       '(в единицах товара). Ориентир для накопления партии, не жёсткий порог.',
@@ -73,6 +85,33 @@ export class MarketplaceOfferDeliveryPointDTO {
   public readonly min_supply_volume!: number;
 
   constructor(init: Partial<MarketplaceOfferDeliveryPointDTO>) {
+    Object.assign(this, init);
+  }
+}
+
+@ObjectType('MarketplaceOfferPackage')
+export class MarketplaceOfferPackageDTO {
+  @Field(() => String, { description: 'Идентификатор упаковки в каталоге предложения.' })
+  public readonly id!: string;
+
+  @Field(() => Float, {
+    description: 'Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт).',
+  })
+  public readonly size!: number;
+
+  @Field(() => String, { description: 'Цена за одну упаковку (numeric-строка).' })
+  public readonly price!: string;
+
+  @Field(() => String, { nullable: true, description: 'Подпись упаковки («Пакет 0,5 л»).' })
+  public readonly label!: string | null;
+
+  @Field(() => Int, { description: 'Порядок показа упаковки в карточке.' })
+  public readonly sort_order!: number;
+
+  @Field(() => Boolean, { description: 'Упаковка по умолчанию (для витрины и сортировки).' })
+  public readonly is_default!: boolean;
+
+  constructor(init: Partial<MarketplaceOfferPackageDTO>) {
     Object.assign(this, init);
   }
 }
@@ -94,22 +133,24 @@ export class MarketplaceOfferDTO {
   })
   public readonly price_per_unit!: string;
 
+  @Field(() => MarketplaceSaleFormEnum, {
+    description: 'Способ отпуска: по мере (by_measure) или упаковкой (packaged).',
+  })
+  public readonly sale_form!: MarketplaceSaleFormEnum;
+
+  @Field(() => [MarketplaceOfferPackageDTO], {
+    description: 'Каталог упаковок при отпуске упаковкой (у каждой своя цена). Пустой при отпуске по мере.',
+  })
+  public readonly packages!: MarketplaceOfferPackageDTO[];
+
   @Field(() => MarketplaceUnitOfMeasureEnum, {
     description: 'Базовая единица измерения товара (штука, килограмм, литр).',
   })
   public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum;
 
-  @Field(() => String, {
-    description:
-      'Размер единицы заказа (фасовки) в базовых единицах: сколько базовых единиц ' +
-      'входит в одну единицу заказа. Например, «0.1» — заказ по 100 г, «8» — упаковка ' +
-      'из 8 штук, «1» — поштучно/на развес по базовой единице. numeric как string.',
-  })
-  public readonly order_unit_size!: string;
-
-  @Field(() => Int) public readonly quantity_available!: number;
-  @Field(() => Int) public readonly quantity_blocked!: number;
-  @Field(() => Int) public readonly quantity_consumed!: number;
+  @Field(() => Float) public readonly quantity_available!: number;
+  @Field(() => Float) public readonly quantity_blocked!: number;
+  @Field(() => Float) public readonly quantity_consumed!: number;
   @Field(() => Boolean) public readonly unlimited_flag!: boolean;
 
   @Field(() => [MarketplaceOfferDeliveryPointDTO], {
@@ -186,7 +227,8 @@ export function toMarketplaceOfferDTO(o: MarketplaceOfferDomainEntity): Marketpl
     category_id: o.category_id,
     price_per_unit: o.price_per_unit,
     unit_of_measure: o.unit_of_measure as MarketplaceUnitOfMeasureEnum,
-    order_unit_size: o.order_unit_size,
+    sale_form: o.sale_form as MarketplaceSaleFormEnum,
+    packages: (o.packages ?? []).map((p) => new MarketplaceOfferPackageDTO(p)),
     quantity_available: o.quantity_available,
     quantity_blocked: o.quantity_blocked,
     quantity_consumed: o.quantity_consumed,

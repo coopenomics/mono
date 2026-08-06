@@ -6,8 +6,10 @@ export const expensePlanSelector = Selector('ExpensePlan')({
   title: true,
   amount: true,
   due_date: true,
-  priority: true,
+  recurrence: true,
   pay_to: true,
   creator: true,
   created_at: true,
+  proposal_hash: true,
+  paid_at: true,
 })

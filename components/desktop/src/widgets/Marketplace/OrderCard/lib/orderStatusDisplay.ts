@@ -25,7 +25,7 @@ const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
   ACTIVE: { label: 'Ожидает сборки партии', variant: 'neutral' },
   ACCEPTED_PENDING_SUPPLIER: { label: 'Ждёт акцепта', variant: 'info' },
   ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: { label: 'Ждёт акцепта', variant: 'info' },
-  ACCEPTED: { label: 'Принят поставщиком', variant: 'info' },
+  ACCEPTED: { label: 'Ожидает отгрузки', variant: 'info' },
   // SUPPLY_PREPARED = поставщик СОБРАЛ партию (выбран вариант доставки, для
   // экспедитора выпущена ТТН), но имущество ещё НЕ отгружено и НЕ принято на КУ
   // (приёмки ПВЗ и подписи председателя ещё не было). Поэтому «Поставка готова»

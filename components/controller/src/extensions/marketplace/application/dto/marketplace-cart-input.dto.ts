@@ -1,5 +1,5 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Field, Float, InputType } from '@nestjs/graphql';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 @InputType('MarketplaceAddToCartInput', {
   description: 'Добавить позицию в корзину (с привязкой к пункту выдачи).',
@@ -9,10 +9,22 @@ export class MarketplaceAddToCartInputDTO {
   @IsString()
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Количество единиц (целое, ≥ 1).' })
-  @IsInt()
-  @Min(1)
+  @Field(() => Float, {
+    description:
+      'Количество: при отпуске по мере — в базовой единице (дробное для веса/объёма); ' +
+      'при отпуске упаковкой — целое число упаковок.',
+  })
+  @IsNumber()
+  @Min(0)
   public readonly quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка (при отпуске упаковкой). Не указывается при отпуске по мере.',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly package_id?: string | null;
 
   @Field(() => String, {
     nullable: true,
@@ -33,10 +45,20 @@ export class MarketplaceUpdateCartItemInputDTO {
   @IsString()
   public readonly offer_id!: string;
 
-  @Field(() => Int, { description: 'Новое количество единиц (целое, ≥ 1).' })
-  @IsInt()
-  @Min(1)
+  @Field(() => Float, {
+    description: 'Новое количество: базовое (по мере) или число упаковок (упаковкой).',
+  })
+  @IsNumber()
+  @Min(0)
   public readonly quantity!: number;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Выбранная упаковка (при отпуске упаковкой).',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly package_id?: string | null;
 }
 
 @InputType('MarketplaceRemoveFromCartInput', { description: 'Убрать позицию из корзины.' })
@@ -44,6 +66,14 @@ export class MarketplaceRemoveFromCartInputDTO {
   @Field(() => String, { description: 'Идентификатор предложения позиции.' })
   @IsString()
   public readonly offer_id!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать.',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly package_id?: string | null;
 }
 
 @InputType('MarketplaceSetCartDeliveryPointInput', {

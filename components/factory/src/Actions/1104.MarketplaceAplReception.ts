@@ -61,9 +61,9 @@ export class Factory extends DocFactory<MarketplaceAplReception.Action> {
     if (data.braname)
       branch = await this.getOrganization(data.braname, data.block_num)
 
-    // Имя ЦПП фиксировано для членского стола заказов (не из реестра программ —
+    // Имя ЦПП фиксировано для стола заказов (не из реестра программ —
     // там может стоять пилотное имя кооператива). Согласовано с пользователем.
-    const program: MarketplaceAplReception.Model['program'] = { name: 'Членский стол заказов' }
+    const program: MarketplaceAplReception.Model['program'] = { name: 'Стол заказов' }
 
     // АПП приёмки не сопровождается протоколом совета — поле `decision`
     // заполняем заглушкой для совместимости с общей моделью (в тексте акта

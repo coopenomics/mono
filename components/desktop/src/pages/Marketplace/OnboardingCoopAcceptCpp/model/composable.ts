@@ -98,16 +98,10 @@ export const useMarketplaceOnboarding = () => {
     })),
   );
 
-  const expireAt = computed(() => {
-    const value = onboardingState.value?.onboarding_expire_at;
-    if (!value) return null;
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  });
-
   const config = computed<ICouncilOnboardingConfig>(() => ({
     steps: stepsConfig.value,
-    expireAt: expireAt.value,
+    // Счётчик срока адаптации на Столе заказов не показываем — подключение
+    // ЦПП не привязано к дедлайну онбординга платформы.
     completionTitle: 'ЦПП «Стол заказов» подключена!',
     completionMessage:
       'Совет утвердил Положение и шаблон оферты. Пайщики могут пользоваться Столом заказов.',

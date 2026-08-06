@@ -1,14 +1,20 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import {
+  createPaginationResult,
+  PaginationInputDTO,
+  type PaginationResult,
+} from '~/application/common/dto/pagination.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
+import { CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import {
@@ -22,6 +28,7 @@ import {
 import {
   MarketplaceAidDTO,
   MarketplaceBranchEconomyDTO,
+  MarketplaceBranchWalletOperationDTO,
   MarketplaceConvertBranchFundsInputDTO,
   MarketplaceCreateAidInputDTO,
   MarketplaceDeleteTrusteeWeightInputDTO,
@@ -34,7 +41,13 @@ import {
   MarketplaceAidStatementSignablePayloadInputDTO,
   toMarketplaceAidDTO,
   toMarketplaceBranchEconomyDTO,
+  toMarketplaceBranchWalletOperationDTO,
 } from '../dto/marketplace-economy.dto';
+
+const paginatedBranchWalletHistoryResult = createPaginationResult(
+  MarketplaceBranchWalletOperationDTO,
+  'MarketplaceBranchWalletHistory'
+);
 
 function toGeneratedDocumentDTO(e: DocumentDomainEntity): GeneratedDocumentDTO {
   const dto = new GeneratedDocumentDTO();
@@ -111,6 +124,26 @@ export class MarketplaceEconomyResolver {
     await this.assertBranchScope(member, braname);
     const view = await this.economyService.getBranchEconomy(config.coopname, braname);
     return toMarketplaceBranchEconomyDTO(view);
+  }
+
+  @Query(() => paginatedBranchWalletHistoryResult, {
+    name: 'marketplaceGetBranchWalletHistory',
+    description:
+      'Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Economy', 'read:own-KU')
+  async marketplaceGetBranchWalletHistory(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('braname') braname: string,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceBranchWalletOperationDTO>> {
+    await this.assertBranchScope(member, braname);
+    const result = await this.economyService.getBranchWalletHistory(config.coopname, braname, options);
+    return {
+      ...result,
+      items: result.items.map(toMarketplaceBranchWalletOperationDTO),
+    };
   }
 
   @Mutation(() => Boolean, {
@@ -193,6 +226,28 @@ export class MarketplaceEconomyResolver {
     return { personal_balance };
   }
 
+  @Query(() => paginatedBranchWalletHistoryResult, {
+    name: 'marketplaceGetPersonalWalletHistory',
+    description:
+      'Движения по персональному кошельку членских средств текущего пайщика: переводы в Стол заказов и завершённая материальная помощь.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Economy', 'use:own')
+  async marketplaceGetPersonalWalletHistory(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('options', { nullable: true }) options?: PaginationInputDTO
+  ): Promise<PaginationResult<MarketplaceBranchWalletOperationDTO>> {
+    const result = await this.economyService.getPersonalWalletHistory(
+      config.coopname,
+      member.username,
+      options
+    );
+    return {
+      ...result,
+      items: result.items.map(toMarketplaceBranchWalletOperationDTO),
+    };
+  }
+
   @Mutation(() => Boolean, {
     name: 'marketplaceConvertBranchFunds',
     description:
@@ -231,7 +286,7 @@ export class MarketplaceEconomyResolver {
   @Mutation(() => Boolean, {
     name: 'marketplaceCreateAid',
     description:
-      'Подать заявку на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление уходит кассиру, выплата подтверждается фактическим банковским переводом. Налог с дохода получатель оплачивает самостоятельно.',
+      'Подать заявление на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление выносится на рассмотрение совета, и только по его положительному решению заявка передаётся кассиру. Налог с дохода получатель оплачивает самостоятельно.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Economy', 'use:own')
@@ -245,15 +300,30 @@ export class MarketplaceEconomyResolver {
       data.braname,
       data.amount,
       data.aid_hash,
-      data.statement
+      data.statement,
+      data.payment_method_id
     );
     return true;
+  }
+
+  @Mutation(() => String, {
+    name: 'marketplaceCreateBranchExpense',
+    description:
+      'Подать расход кооперативного участка: сумма расхода выделяется из общего кошелька участка, а сам расход выносится на решение совета. После одобрения кассир платит по реквизитам либо выдаёт аванс под отчёт; неизрасходованное возвращается участку. Возвращает идентификатор расхода.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('Economy', 'use:own')
+  async marketplaceCreateBranchExpense(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: CreateBranchExpenseInputDTO
+  ): Promise<string> {
+    return this.economyService.createBranchExpense(config.coopname, member.username, data);
   }
 
   @Query(() => [MarketplaceAidDTO], {
     name: 'marketplaceListAids',
     description:
-      'Заявки на материальную помощь: свои — для доверенного; все заявки кооператива — для администратора.',
+      'Заявления на материальную помощь: свои — для доверенного; все заявления кооператива — для администратора. Показывает стадию (рассмотрение советом либо ожидание выплаты) и статус выплаты у кассира.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Economy', 'use:own')
@@ -275,13 +345,11 @@ export class MarketplaceEconomyResolver {
     braname: string
   ): Promise<void> {
     if (canAccess(member.marketplace_roles as MarketplaceRole[], 'Economy', 'read:all')) return;
-    const isMember = await this.kuChairmanService.isMemberOfBranch(
+    await this.kuChairmanService.assertIsMemberOfBranch(
       config.coopname,
       braname,
-      member.username
+      member.username,
+      'Экономика участка доступна его председателю и доверенным'
     );
-    if (!isMember) {
-      throw new ForbiddenException('Экономика участка доступна его председателю и доверенным');
-    }
   }
 }

@@ -1,7 +1,7 @@
 import { Field, Float, GraphQLISODateTime, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { Type } from 'class-transformer';
 import { IsDate, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { ExpensePlanPriority } from '../../domain/expense-plan.types';
+import { ExpensePlanRecurrence } from '../../domain/expense-plan.types';
 import type { ExpensePlanView } from '../services/expense-plans.service';
 
 @ObjectType('ExpensePlan', {
@@ -23,14 +23,15 @@ export class ExpensePlanDTO {
 
   @Field(() => GraphQLISODateTime, {
     nullable: true,
-    description: 'Срок оплаты (для расходов с оплатой к дате).',
+    description: 'Дата, к которой расход должен быть оплачен.',
   })
   due_date?: Date | null;
 
-  @Field(() => ExpensePlanPriority, {
-    description: 'Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве).',
+  @Field(() => ExpensePlanRecurrence, {
+    description:
+      'Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока.',
   })
-  priority!: ExpensePlanPriority;
+  recurrence!: ExpensePlanRecurrence;
 
   @Field({ description: 'Реквизиты получателя платежа.' })
   pay_to!: string;
@@ -40,6 +41,18 @@ export class ExpensePlanDTO {
 
   @Field(() => GraphQLISODateTime, { description: 'Когда добавлена запись.' })
   created_at!: Date;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Расход, которым оплачивается запись; пусто — оплата ещё не запускалась.',
+  })
+  proposal_hash?: string | null;
+
+  @Field(() => GraphQLISODateTime, {
+    nullable: true,
+    description: 'Когда расход фактически оплачен; оплаченные записи не удерживают резерв.',
+  })
+  paid_at?: Date | null;
 }
 
 @InputType('ListExpensePlansInput')
@@ -68,19 +81,21 @@ export class CreateExpensePlanInputDTO {
   amount!: number;
 
   @Field(() => GraphQLISODateTime, {
-    nullable: true,
-    description: 'Срок оплаты — обязателен для расходов с оплатой к дате.',
+    description: 'Дата, к которой расход должен быть оплачен.',
   })
-  @IsOptional()
   @IsDate()
   @Type(() => Date)
-  due_date?: Date | null;
+  due_date!: Date;
 
-  @Field(() => ExpensePlanPriority, {
-    description: 'Приоритет: к дате / срочный (всегда в резерве) / необязательный (не в резерве).',
+  @Field(() => ExpensePlanRecurrence, {
+    nullable: true,
+    defaultValue: ExpensePlanRecurrence.NONE,
+    description:
+      'Периодичность: разовый расход либо повторяющийся — следующий экземпляр добавляется автоматически по наступлении срока.',
   })
-  @IsEnum(ExpensePlanPriority)
-  priority!: ExpensePlanPriority;
+  @IsOptional()
+  @IsEnum(ExpensePlanRecurrence)
+  recurrence?: ExpensePlanRecurrence;
 
   @Field({ description: 'Реквизиты получателя платежа (передаются в платёжку кассиру).' })
   @IsString()

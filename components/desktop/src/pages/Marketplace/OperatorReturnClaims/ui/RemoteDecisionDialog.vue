@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { TakeoverDialog } from 'src/widgets/Marketplace/TakeoverDialog';
+import { formatAsset2Digits } from 'src/shared/lib/utils';
 import {
   approveReturnVisit,
   rejectReturnRemote,
@@ -16,8 +17,8 @@ import {
  *  - «Пригласить на очный осмотр» → aprretrem (`APPROVED_FOR_VISIT`);
  *  - «Отказать удалённо»          → rejretrem (`REJECTED_REMOTELY`, final).
  *
- * Comment обязателен; пустой comment — ранний фейл на клиенте до запроса
- * (UX-DR36 decision pattern).
+ * Comment обязателен только при отказе (пайщик должен видеть причину);
+ * приглашение на осмотр самодостаточно и не требует пояснения.
  */
 
 const props = defineProps<{
@@ -52,8 +53,8 @@ watch(
 
 async function confirm(): Promise<void> {
   if (!props.claim) return;
-  if (!comment.value.trim()) {
-    FailAlert(new Error('Укажите комментарий: пайщик его увидит в уведомлении.'));
+  if (decision.value === DECISION_REJECT && !comment.value.trim()) {
+    FailAlert(new Error('Укажите причину отказа: пайщик её увидит в уведомлении.'));
     return;
   }
   if (!props.braname.trim()) {
@@ -96,6 +97,11 @@ const kind = computed<'info' | 'warning'>(() =>
 const confirmLabel = computed(() =>
   decision.value === DECISION_APPROVE ? 'Пригласить на очный осмотр' : 'Отказать удалённо',
 );
+// Мотивировать нужно только отказ — приглашение на очный осмотр самодостаточно.
+const commentRequired = computed(() => decision.value === DECISION_REJECT);
+const commentLabel = computed(() =>
+  commentRequired.value ? 'Комментарий для пайщика (обязательно)' : 'Комментарий для пайщика (необязательно)',
+);
 
 const decisionOptions = [
   { label: 'Пригласить заказчика на очный осмотр на КУ', value: DECISION_APPROVE, color: 'primary' },
@@ -107,12 +113,12 @@ const decisionOptions = [
 TakeoverDialog(
   :model-value="modelValue"
   :title="claim ? `Удалённое решение по заявлению ${claim.id.slice(0, 8)}` : 'Заявление'"
-  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_account} · ${claim.fact_cost} ₽` : ''"
+  :lead-text="claim ? `Заказ ${claim.order_id.slice(0, 8)} · заказчик ${claim.orderer_name || claim.orderer_account} · ${formatAsset2Digits(claim.fact_cost)} ₽` : ''"
   :kind="kind"
   :confirm-label="confirmLabel"
   cancel-label="Закрыть"
   :loading="submitting"
-  :disable-confirm="!comment.trim() || submitting"
+  :disable-confirm="(commentRequired && !comment.trim()) || submitting"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   @confirm="confirm"
   @cancel="cancel"
@@ -151,7 +157,7 @@ TakeoverDialog(
           autogrow
           counter
           maxlength="500"
-          label="Комментарий для пайщика (обязательно)"
+          :label="commentLabel"
           :placeholder="decision === DECISION_APPROVE ? 'Например: приходите с продукцией в часы работы участка.' : 'Например: гарантийный срок возврата не покрывает данный тип повреждений.'"
         )
 </template>

@@ -26,6 +26,7 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
+import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,
@@ -35,6 +36,7 @@ import {
   type MarketplaceOfferDomainRepository,
 } from '../../domain/repositories/marketplace-offer.repository';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceOrderDisplayService } from './marketplace-order-display.service';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -109,11 +111,12 @@ export interface MarketplaceWriteoffCandidateView {
   braname: string;
   branch_name: string;
   asset_title: string;
+  unit_of_measure: MarketplaceUnitOfMeasure | null;
+  package_size: number | null;
   /** Суммарное количество по всем партиям агрегата. */
   quantity: string;
   /** Суммарная стоимость по всем партиям агрегата. */
   amount: string;
-  reason: string;
   /** Ближайший (самый срочный) срок годности среди партий агрегата. */
   expiry_date: string | null;
   is_expired: boolean;
@@ -129,7 +132,9 @@ export interface MarketplaceWriteoffConfirmationGroup {
   cycle_started_at: string;
   authorized_at: string | null;
   protocol_doc: unknown;
-  items: MarketplaceWriteoffProposalItem[];
+  items: Array<
+    MarketplaceWriteoffProposalItem & { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }
+  >;
   total_amount: string;
 }
 
@@ -232,7 +237,48 @@ export class MarketplaceWriteoffService {
     if (!offerId) return FALLBACK;
     const offer = await this.offerRepo.findById(offerId);
     if (!offer) return FALLBACK;
-    return marketplaceOrderUnitLabel(offer.unit_of_measure, offer.order_unit_size);
+    return marketplaceOrderUnitLabel(offer.unit_of_measure);
+  }
+
+  /**
+   * Базовая единица измерения + содержимое упаковки (Эпик 18) для строк
+   * списания/кандидатов — по первой партии каждой строки: inventory → offer
+   * (published_offer_id либо через заказ) для unit_of_measure, заказ →
+   * package_size (упаковка — атрибут заказа, не оффера). Ключ карты — id
+   * первой партии строки; дедуп по нему экономит запросы при повторных
+   * позициях одного склада/заказа.
+   */
+  async resolveItemDisplayMap(
+    items: { inventory_ids: string[] }[]
+  ): Promise<Map<string, { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }>> {
+    const map = new Map<string, { unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }>();
+    const invIds = [...new Set(items.map((it) => it.inventory_ids[0]).filter((id): id is string => Boolean(id)))];
+    await Promise.all(
+      invIds.map(async (invId) => {
+        map.set(invId, await this.resolveItemDisplay(invId));
+      })
+    );
+    return map;
+  }
+
+  private async resolveItemDisplay(
+    invId: string
+  ): Promise<{ unit_of_measure: MarketplaceUnitOfMeasure | null; package_size: number | null }> {
+    const EMPTY = { unit_of_measure: null, package_size: null };
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv) return EMPTY;
+    let offerId = inv.published_offer_id;
+    let package_size: number | null = null;
+    if (inv.order_id) {
+      const order = await this.orderRepo.findById(inv.order_id);
+      if (order) {
+        offerId = offerId ?? order.offer_id;
+        package_size = order.package_size || null;
+      }
+    }
+    if (!offerId) return { unit_of_measure: null, package_size };
+    const offer = await this.offerRepo.findById(offerId);
+    return { unit_of_measure: offer?.unit_of_measure ?? null, package_size };
   }
 
   /**
@@ -254,8 +300,9 @@ export class MarketplaceWriteoffService {
     // визуально неразличимы (та же дата «годен до», тот же КУ) — пайщик видит
     // «прыгающее количество». Сливаем их в одну строку-агрегат: суммарное
     // кол-во + сумма, под капотом — список всех партий. Ключ группировки
-    // включает состояние (просрочено / без гарантии / годно), потому что у них
-    // разный визуальный статус и разная причина по умолчанию.
+    // включает состояние (просрочено / без гарантии / годно) — у них разный
+    // визуальный статус. Причину кандидат не несёт: председатель указывает её
+    // явно при отправке (одна причина на всю подборку), backend её не угадывает.
     const groups = new Map<
       string,
       {
@@ -265,7 +312,6 @@ export class MarketplaceWriteoffService {
         asset_title: string;
         quantity: number;
         amount: number;
-        reason: string;
         expiry_ms: number | null;
         is_expired: boolean;
         state: string;
@@ -298,11 +344,6 @@ export class MarketplaceWriteoffService {
           asset_title: c.asset_title,
           quantity: c.quantity,
           amount,
-          // Причина по умолчанию: просрочка ИЛИ товар без гарантии (его считаем
-          // уже непригодным) → «Истёк срок годности»; ещё годное, списываемое
-          // вручную (порча/использование) → «Списание вручную». Председатель
-          // может уточнить причину в поле перед отправкой.
-          reason: state === 'valid' ? 'Списание вручную' : 'Истёк срок годности',
           expiry_ms: expiryMs,
           is_expired: c.is_expired,
           state,
@@ -324,13 +365,20 @@ export class MarketplaceWriteoffService {
         braname: g.braname,
         branch_name: branchName,
         asset_title: g.asset_title,
+        unit_of_measure: null,
+        package_size: null,
         quantity: String(g.quantity),
         amount: this.formatAssetNumber(g.amount),
-        reason: g.reason,
         expiry_date: g.expiry_ms !== null ? new Date(g.expiry_ms).toISOString() : null,
         is_expired: g.is_expired,
         lots_count: g.inventory_ids.length,
       });
+    }
+    const display = await this.resolveItemDisplayMap(result);
+    for (const r of result) {
+      const d = display.get(r.inventory_ids[0] ?? '');
+      r.unit_of_measure = d?.unit_of_measure ?? null;
+      r.package_size = d?.package_size ?? null;
     }
     // Просроченное — наверх (первоочередные кандидаты), затем остальное.
     result.sort((a, b) => Number(b.is_expired) - Number(a.is_expired));
@@ -351,6 +399,7 @@ export class MarketplaceWriteoffService {
       coopname,
       statuses: ['PENDING_CONFIRMATION'],
     });
+    const display = await this.resolveItemDisplayMap(items.flatMap((p) => p.items));
     const groups: MarketplaceWriteoffConfirmationGroup[] = [];
     const branchNameCache = new Map<string, string>();
     for (const p of items) {
@@ -365,7 +414,12 @@ export class MarketplaceWriteoffService {
           name = branch.name || bn;
           branchNameCache.set(bn, name);
         }
-        const groupItems = p.items.filter((it) => it.braname === bn && !it.executed);
+        const groupItems = p.items
+          .filter((it) => it.braname === bn && !it.executed)
+          .map((it) => {
+            const d = display.get(it.inventory_ids[0] ?? '');
+            return { ...it, unit_of_measure: d?.unit_of_measure ?? null, package_size: d?.package_size ?? null };
+          });
         groups.push({
           proposal_id: p.id,
           proposal_hash: p.proposal_hash,
@@ -756,6 +810,7 @@ export class MarketplaceWriteoffService {
       // следующий cron-цикл. Если update упадёт — re-throw, чтобы видна была
       // проблема и proposal остался в EXECUTING для retry.
       for (const invId of item.inventory_ids ?? []) {
+        await this.releasePublishedStockOnWriteoff(invId);
         await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
@@ -851,6 +906,7 @@ export class MarketplaceWriteoffService {
         },
       });
       for (const invId of proposal.items[idx].inventory_ids ?? []) {
+        await this.releasePublishedStockOnWriteoff(invId);
         await this.inventoryRepo.applyStatusTransition(invId, 'WRITTEN_OFF');
       }
     }
@@ -875,6 +931,27 @@ export class MarketplaceWriteoffService {
   }
 
   // ── Утилиты ────────────────────────────────────────────────────────
+
+  /**
+   * Списание позиции обезличенного остатка (requirement 76), уже
+   * опубликованной оффером кооператива в каталог, снимает списанное
+   * количество и с витрины — иначе `quantity_available` оффера остаётся
+   * завышенным на списанную партию, и заказчик продолжает видеть/пытаться
+   * заказать то, чего на складе уже нет (публикация сама по себе не
+   * откатывается: `unpublishStock` — отдельное осознанное действие
+   * оператора, здесь же позиция физически уничтожена/испорчена).
+   */
+  private async releasePublishedStockOnWriteoff(invId: string): Promise<void> {
+    const inv = await this.inventoryRepo.findById(invId);
+    if (!inv || inv.ownership !== MarketplaceInventoryOwnerships.COOP || !inv.published_offer_id) {
+      return;
+    }
+    const offer = await this.offerRepo.findById(inv.published_offer_id);
+    if (!offer) return;
+    await this.offerRepo.applyUpdate(offer.id, {
+      quantity_available: Math.max(0, offer.quantity_available - inv.quantity_per_label),
+    });
+  }
 
   computeProposalHash(input: {
     coopname: string;
@@ -913,12 +990,22 @@ export class MarketplaceWriteoffService {
           `Некорректная сумма позиции "${it.asset_title}": ${it.amount}`
         );
       }
+      // Причина обязательна для любой позиции: автоматическое (крон) списание
+      // само подставляет «Истёк срок годности»/«Срок годности не задан»
+      // (см. MarketplaceWriteoffCronService.deriveReason); ручное — председатель
+      // указывает её явно, одну на всю подборку. Угадывать причину backend'у
+      // запрещено (см. историю 2026-07-29): непроверенный дефолт молча уходил
+      // в документы 1108/1111 как будто реально заявленная причина.
+      const reason = it.reason?.trim();
+      if (!reason) {
+        throw new BadRequestException(`Не указана причина списания позиции "${it.asset_title}"`);
+      }
       return {
         braname: it.braname,
         asset_title: it.asset_title,
         quantity: it.quantity,
         amount: this.formatAssetNumber(amount),
-        reason: it.reason ?? '',
+        reason,
         inventory_ids: it.inventory_ids ?? [],
         executed: false,
       };

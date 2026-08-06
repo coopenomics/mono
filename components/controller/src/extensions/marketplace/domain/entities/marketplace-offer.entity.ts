@@ -2,7 +2,9 @@ import type {
   MarketplaceBarcodeStrategy,
   MarketplaceOfferDeliveryPoint,
   MarketplaceOfferImage,
+  MarketplaceOfferPackage,
   MarketplaceOfferStatus,
+  MarketplaceSaleForm,
   MarketplaceUnitOfMeasure,
 } from './marketplace-offer.types';
 
@@ -34,11 +36,15 @@ export class MarketplaceOfferDomainEntity {
   public readonly unit_of_measure!: MarketplaceUnitOfMeasure;
 
   /**
-   * Размер единицы заказа (фасовки) в базовых единицах `unit_of_measure`.
-   * За неё указана `price_per_unit`; `quantity` заказа — целое число фасовок.
-   * numeric → string. Справочная цена за базовую единицу считается делением.
+   * Способ отпуска (Эпик 18): `by_measure` — по мере (цена за базовую единицу),
+   * `packaged` — упаковкой (цена за упаковку из `packages`).
    */
-  public readonly order_unit_size!: string;
+  public readonly sale_form!: MarketplaceSaleForm;
+  /**
+   * Каталог упаковок при `sale_form = packaged` (у каждой своя цена). Пустой
+   * массив при отпуске по мере. Value object в jsonb, как `delivery_points`.
+   */
+  public readonly packages!: MarketplaceOfferPackage[];
 
   public readonly quantity_available!: number;
   public readonly quantity_blocked!: number;
@@ -97,7 +103,8 @@ export class MarketplaceOfferDomainEntity {
     category_id: number;
     price_per_unit: string;
     unit_of_measure: MarketplaceUnitOfMeasure;
-    order_unit_size: string;
+    sale_form: MarketplaceSaleForm;
+    packages: MarketplaceOfferPackage[];
     quantity_available: number;
     quantity_blocked: number;
     quantity_consumed: number;

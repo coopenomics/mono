@@ -283,7 +283,7 @@ BaseDialog(
             .create-shipment__line(v-for='l in availableLines', :key='l.id')
               .create-shipment__line-info
                 .create-shipment__line-title {{ l.title }}
-                .create-shipment__line-meta {{ l.quantity }}×{{ l.unit }} · {{ formatPrice(l.sum) }}
+                .create-shipment__line-meta {{ l.units }}×{{ l.unitLabel }} · {{ formatPrice(l.sum) }}
               BaseButton(variant='ghost', size='sm', icon-only, aria-label='В партию', @click='include(l.id)')
                 template(#icon-left)
                   q-icon(name='chevron_right', size='18px')
@@ -301,7 +301,7 @@ BaseDialog(
                   q-icon(name='chevron_left', size='18px')
               .create-shipment__line-info
                 .create-shipment__line-title {{ l.title }}
-                .create-shipment__line-meta {{ l.quantity }}×{{ l.unit }} · {{ formatPrice(l.sum) }}
+                .create-shipment__line-meta {{ l.units }}×{{ l.unitLabel }} · {{ formatPrice(l.sum) }}
               BaseInput.create-shipment__pack-input(
                 v-if='isExpeditor',
                 v-model='packaging[l.id]',

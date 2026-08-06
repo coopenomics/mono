@@ -1,8 +1,8 @@
 import {
   Field,
+  Float,
   ID,
   InputType,
-  Int,
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
@@ -11,7 +11,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsEnum,
-  IsInt,
+  IsNumber,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -29,6 +29,7 @@ import {
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
+import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 
 /**
  * Эпик 7: GraphQL enum'ы статуса заявления и категории дефекта. Регистрируются
@@ -108,13 +109,13 @@ export class MarketplaceCreateReturnClaimInputDTO {
   @IsEnum(MarketplaceReturnClaimDefectCategoryEnum)
   public readonly defect_category?: MarketplaceReturnClaimDefectCategory;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description: 'Возвращаемое количество единиц (по умолчанию — выданное количество).',
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   public readonly actual_quantity?: number;
 
   @Field(() => MarketplaceReturnStatementSignedInputDTO, {
@@ -142,13 +143,13 @@ export class MarketplaceReturnClaimSignablePayloadInputDTO {
   @IsNotEmpty()
   public readonly order_id!: string;
 
-  @Field(() => Int, {
+  @Field(() => Float, {
     nullable: true,
     description: 'Возвращаемое количество (если не указано — выданное количество).',
   })
   @IsOptional()
-  @IsInt()
-  @Min(1)
+  @IsNumber()
+  @Min(0)
   public readonly actual_quantity?: number;
 
   @Field({
@@ -158,14 +159,6 @@ export class MarketplaceReturnClaimSignablePayloadInputDTO {
   @IsOptional()
   @IsString()
   public readonly reason_text?: string;
-
-  @Field(() => MarketplaceReturnClaimDefectCategoryEnum, {
-    nullable: true,
-    description: 'Категория дефекта (опционально, дублируется в meta документа).',
-  })
-  @IsOptional()
-  @IsEnum(MarketplaceReturnClaimDefectCategoryEnum)
-  public readonly defect_category?: MarketplaceReturnClaimDefectCategory;
 }
 
 @InputType('MarketplaceApproveReturnVisitInput')
@@ -178,10 +171,13 @@ export class MarketplaceApproveReturnVisitInputDTO {
   @IsString()
   public readonly braname!: string;
 
-  @Field({ description: 'Комментарий председателя (обязательно, 1-500 символов).' })
+  @Field({
+    nullable: true,
+    description: 'Комментарий председателя (опционально при приглашении на осмотр, до 500 символов).',
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  public readonly comment!: string;
+  public readonly comment?: string;
 }
 
 @InputType('MarketplaceRejectReturnRemoteInput')
@@ -315,8 +311,14 @@ export class MarketplaceReturnClaimDecisionEntryDTO {
   @Field({ description: 'Аккаунт председателя, принявшего решение.' })
   public readonly by_chairman_account!: string;
 
+  @Field(() => String, { nullable: true, description: 'ФИО председателя, принявшего решение.' })
+  public readonly by_chairman_name!: string | null;
+
   @Field({ description: 'Кооперативный участок, под чьей юрисдикцией решение.' })
   public readonly braname!: string;
+
+  @Field(() => String, { nullable: true, description: 'Человекочитаемое название кооперативного участка.' })
+  public readonly braname_name!: string | null;
 
   @Field({ description: 'Комментарий / причина / результат осмотра.' })
   public readonly comment!: string;
@@ -355,7 +357,7 @@ export class MarketplaceReturnClaimLedgerSnapshotDTO {
   @Field({ description: 'Сумма compensating-forward (восстановленная на программный кошелёк).' })
   public readonly amount!: string;
 
-  @Field(() => Int, { description: 'Возвращённое количество единиц имущества.' })
+  @Field(() => Float, { description: 'Возвращённое количество единиц имущества.' })
   public readonly returned_quantity!: number;
 
   @Field({ description: 'Хэш транзакции accretrn в блокчейне.' })
@@ -377,8 +379,30 @@ export class MarketplaceReturnClaimDTO {
   @Field() public readonly order_id!: string;
   @Field() public readonly order_hash!: string;
 
+  @Field(() => String, { nullable: true, description: 'Наименование товара исходного заказа.' })
+  public readonly product_name!: string | null;
+
+  @Field(() => MarketplaceUnitOfMeasureEnum, { nullable: true, description: 'Базовая единица измерения товара (штука, килограмм, литр).' })
+  public readonly unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере.',
+  })
+  public readonly package_size!: number | null;
+
   @Field({ description: 'Аккаунт пайщика-заявителя.' })
   public readonly orderer_account!: string;
+
+  @Field(() => String, { nullable: true, description: 'ФИО (или наименование организации) пайщика-заявителя.' })
+  public readonly orderer_name!: string | null;
+
+  @Field(() => Date, {
+    nullable: true,
+    description: 'Гарантийный срок возврата исходного заказа (если установлен предложением).',
+  })
+  public readonly warranty_until!: Date | null;
 
   @Field({ description: 'КУ доставки исходного заказа (куда подаётся заявление).' })
   public readonly delivery_braname!: string;
@@ -401,8 +425,15 @@ export class MarketplaceReturnClaimDTO {
   @Field(() => MarketplaceReturnClaimExpectedResolutionEnum)
   public readonly expected_resolution!: MarketplaceReturnClaimExpectedResolution;
 
-  @Field(() => Int) public readonly actual_quantity!: number;
-  @Field() public readonly fact_cost!: string;
+  @Field(() => Float) public readonly actual_quantity!: number;
+  @Field({ description: 'Возвращаемая стоимость имущества.' })
+  public readonly fact_cost!: string;
+
+  @Field({ description: 'Возвращаемая часть членского взноса, уплаченного за это имущество.' })
+  public readonly fee_refund!: string;
+
+  @Field({ description: 'Полная сумма к возврату пайщику: стоимость имущества вместе с членским взносом.' })
+  public readonly total_refund!: string;
 
   @Field(() => [MarketplaceReturnClaimPhotoDTO], { description: 'Фотографии товара, приложенные пайщиком.' })
   public readonly photos!: MarketplaceReturnClaimPhotoDTO[];
