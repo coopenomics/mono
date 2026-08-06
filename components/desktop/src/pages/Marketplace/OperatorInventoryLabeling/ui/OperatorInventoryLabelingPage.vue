@@ -31,14 +31,12 @@ import {
 } from 'src/entities/MarketplaceStorage'
 import {
   assignInventoryPlacement,
-  listInventory,
-  type MarketplaceInventoryItemView,
-} from 'src/entities/MarketplaceInventory'
-import {
   bindInventoryBarcode,
   clearInventoryLabel,
+  listInventory,
   splitInventory,
-} from '../api'
+  type MarketplaceInventoryItemView,
+} from 'src/entities/MarketplaceInventory'
 
 /**
  * Стол ПВЗ, «Раскладка и маркировка».

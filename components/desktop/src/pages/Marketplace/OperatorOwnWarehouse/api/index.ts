@@ -1,65 +1,18 @@
 import { Mutations, Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import type { MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory';
 
-export type MarketplaceInventoryItemView =
-  Queries.Marketplace.ListInventory.IOutput['marketplaceListInventory'][number];
+/**
+ * Остаток кооператива (requirement 76): обезличенные позиции, оставшиеся после
+ * недовыдач и отказов, и их публикация в каталог предложением от кооператива.
+ *
+ * Обычные операции склада — список позиций, назначение места, маркировка — живут
+ * в `entities/MarketplaceInventory`: ими пользуется не только эта страница.
+ */
 
-export type IListInventoryInput = Queries.Marketplace.ListInventory.IInput['data'];
+/** Позиция обезличенного остатка склада КУ — то же представление, что у инвентаря. */
+export type { MarketplaceInventoryItemView };
 
-export async function listInventory(
-  data: IListInventoryInput,
-): Promise<MarketplaceInventoryItemView[]> {
-  const { [Queries.Marketplace.ListInventory.name]: result } = await client.Query(
-    Queries.Marketplace.ListInventory.query,
-    { variables: { data } },
-  );
-  return result;
-}
-
-// ─── Инлайн-действия оператора над позицией склада ───
-// Все мутации возвращают затронутые позиции — страница точечно обновляет строки.
-
-export type IAssignPlacementInput =
-  Mutations.Marketplace.AssignInventoryPlacement.IInput['data'];
-
-/** Положить позицию в бокс либо в ячейку напрямую (негабарит); ровно одно из двух. */
-export async function assignInventoryPlacement(
-  data: IAssignPlacementInput,
-): Promise<MarketplaceInventoryItemView[]> {
-  const { [Mutations.Marketplace.AssignInventoryPlacement.name]: result } = await client.Mutation(
-    Mutations.Marketplace.AssignInventoryPlacement.mutation,
-    { variables: { data } },
-  );
-  return result.inventory;
-}
-
-export type IGenerateLabelInput = Mutations.Marketplace.GenerateInventoryLabel.IInput['data'];
-
-export async function generateInventoryLabel(
-  data: IGenerateLabelInput,
-): Promise<MarketplaceInventoryItemView[]> {
-  const { [Mutations.Marketplace.GenerateInventoryLabel.name]: result } = await client.Mutation(
-    Mutations.Marketplace.GenerateInventoryLabel.mutation,
-    { variables: { data } },
-  );
-  return result.inventory;
-}
-
-export type IBindBarcodeInput = Mutations.Marketplace.BindInventoryBarcode.IInput['data'];
-
-export async function bindInventoryBarcode(
-  data: IBindBarcodeInput,
-): Promise<MarketplaceInventoryItemView[]> {
-  const { [Mutations.Marketplace.BindInventoryBarcode.name]: result } = await client.Mutation(
-    Mutations.Marketplace.BindInventoryBarcode.mutation,
-    { variables: { data } },
-  );
-  return result.inventory;
-}
-
-// ─── Остаток кооператива (requirement 76): публикация в каталог ───
-
-/** Позиция обезличенного остатка склада КУ (то же представление, что у инвентаря). */
 export async function listStock(braname?: string | null): Promise<MarketplaceInventoryItemView[]> {
   const { [Queries.Marketplace.ListStock.name]: result } = await client.Query(
     Queries.Marketplace.ListStock.query,

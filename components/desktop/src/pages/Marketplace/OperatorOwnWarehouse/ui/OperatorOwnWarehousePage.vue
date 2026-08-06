@@ -1,12 +1,19 @@
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
-import { BaseBadge, BaseButton, BaseInput, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import {
+  BaseBadge,
+  BaseButton,
+  BaseInput,
+  BaseSelect,
+  EmptyState,
+  TableSkeleton,
+} from 'src/shared/ui/base'
+import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base'
 import type { TableSkeletonColumn } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
@@ -15,17 +22,28 @@ import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-unit
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
-  listInventory,
-  assignInventoryShelf,
+  containerLabel,
+  locationLabel,
+  locationSearchTokens,
+  useMarketplaceStorageStore,
+} from 'src/entities/MarketplaceStorage'
+import {
+  assignInventoryPlacement,
   generateInventoryLabel,
+  listInventory,
   type MarketplaceInventoryItemView,
-} from '../api'
+} from 'src/entities/MarketplaceInventory'
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute()
 const store = useOperatorBranchStore()
+const storage = useMarketplaceStorageStore()
 const coopname = computed(() => String(route.params.coopname ?? ''))
 const braname = computed(() => store.activeBraname ?? '')
+
+const containersEnabled = computed(() => store.warehouseSettings.containers_enabled)
+const cellsEnabled = computed(() => store.warehouseSettings.cells_enabled)
+const placementEnabled = computed(() => store.addressedStorageEnabled)
 
 const search = ref<string>('')
 const items = ref<MarketplaceInventoryItemView[]>([])
@@ -35,21 +53,21 @@ const loading = ref(true)
 // карточка, которая появляется/исчезает в зависимости от наличия остатков
 // (жалоба 2026-08-02: мигало на каждый заход). Активный раздел всегда
 // показывается — без фильтрации содержимого, только переключение видимости.
-const activeTab = ref<'shelf' | 'stock'>('shelf')
+const activeTab = ref<'warehouse' | 'stock'>('warehouse')
 const coopStockCount = ref(0)
 const tabs = computed<PageTab[]>(() => [
-  { key: 'shelf', label: 'Склад', count: sortedRows.value.length },
+  { key: 'warehouse', label: 'Склад', count: sortedRows.value.length },
   { key: 'stock', label: 'Остатки', count: coopStockCount.value },
 ])
 function onSelectTab(tab: PageTab): void {
   activeTab.value = tab.key as typeof activeTab.value
 }
 
-// Склад — это «что сейчас физически лежит на полке», не история движений.
-// Выданное пайщику и списанное уже не на полке — им место в будущей истории
+// Склад — это «что сейчас физически лежит на складе», не история движений.
+// Выданное пайщику и списанное уже не на складе — им место в будущей истории
 // заказов, не здесь. Поэтому фильтр не выбирается оператором, а зашит: только
 // 3 состояния, которые вообще бывают «на складе».
-const ON_SHELF_STATUSES = [
+const ON_WAREHOUSE_STATUSES = [
   Zeus.MarketplaceInventoryStatus.RECEIVED,
   Zeus.MarketplaceInventoryStatus.LABELED,
   Zeus.MarketplaceInventoryStatus.RETURNED,
@@ -68,7 +86,8 @@ function quantityLabel(row: MarketplaceInventoryItemView): string {
 }
 
 // Омни-поиск: одно поле ищет по нескольким способам сразу — заказчик (ФИО и
-// аккаунт), товар, полка, штрих-код. Оператор не выбирает режим заранее.
+// аккаунт), товар, место (код бокса и координата ячейки), штрих-код. Оператор
+// не выбирает режим заранее.
 const filteredRows = computed(() => {
   const q = search.value.trim().toLowerCase()
   return items.value.filter((row) => {
@@ -77,8 +96,8 @@ const filteredRows = computed(() => {
         row.orderer_name,
         row.orderer_account_snapshot,
         row.product_name_snapshot,
-        row.shelf,
         row.barcode_value,
+        ...locationSearchTokens(row, storage.index),
       ]
         .filter(Boolean)
         .join(' ')
@@ -105,7 +124,7 @@ const sortedRows = computed(() => {
 })
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Полка', class: 'col-shelf', cell: 'text' },
+  { label: 'Место', class: 'col-place', cell: 'text' },
   { label: 'Товар', cell: 'text' },
   { label: 'Заказчик', class: 'col-orderer', cell: 'text' },
   { label: 'Кол-во', class: 'col-qty', cell: 'text', cellWidth: '120px' },
@@ -122,7 +141,17 @@ async function load(): Promise<void> {
   }
   loading.value = true
   try {
-    items.value = await listInventory({ braname: braname.value.trim(), statuses: ON_SHELF_STATUSES })
+    const [list] = await Promise.all([
+      listInventory({ braname: braname.value.trim(), statuses: ON_WAREHOUSE_STATUSES }),
+      // Места нужны, чтобы показать адрес: позиция несёт лишь идентификаторы.
+      placementEnabled.value
+        ? storage.load(braname.value.trim(), {
+            containers: containersEnabled.value,
+            cells: cellsEnabled.value,
+          })
+        : Promise.resolve(),
+    ])
+    items.value = list
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить склад участка')
   } finally {
@@ -168,33 +197,71 @@ onMounted(async () => {
   void load()
 })
 
-// ─── Инлайн-правка полки: поле всегда редактируемо, сохраняем по blur/Enter,
-// только если значение изменилось. Без кнопок по бокам — просто кликаешь и правишь.
-const shelfDraft = reactive<Record<string, string>>({})
-const savingShelfId = ref<string | null>(null)
+// ─── Инлайн-правка места: выбор из заведённых боксов и ячеек ───
+// Свободного текста здесь больше нет: место — это запись в справочнике, а не
+// строка, которую каждый оператор пишет по-своему. Пустые боксы предлагаются
+// первыми, у занятых видно число позиций.
+const savingPlaceId = ref<string | null>(null)
 
-function shelfValue(row: MarketplaceInventoryItemView): string {
-  return shelfDraft[row.id] ?? row.shelf ?? ''
+function itemsInContainer(containerId: string): number {
+  return items.value.filter((i) => i.container_id === containerId).length
 }
-function onShelfInput(row: MarketplaceInventoryItemView, value: string): void {
-  shelfDraft[row.id] = value
+
+const placementOptions = computed<BaseSelectOption[]>(() => {
+  const out: BaseSelectOption[] = []
+  if (containersEnabled.value) {
+    const boxes = [...storage.activeContainers].sort((a, b) => {
+      const diff = itemsInContainer(a.id) - itemsInContainer(b.id)
+      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
+    })
+    for (const c of boxes) {
+      const count = itemsInContainer(c.id)
+      out.push({
+        value: `container:${c.id}`,
+        label: `Бокс ${containerLabel(c, storage.index)} — ${count ? `${count} поз.` : 'пусто'}`,
+      })
+    }
+  }
+  if (cellsEnabled.value) {
+    for (const cell of storage.activeCells) {
+      out.push({ value: `cell:${cell.id}`, label: `Ячейка ${cell.code} (негабарит)` })
+    }
+  }
+  return out
+})
+
+function placementValue(row: MarketplaceInventoryItemView): string | null {
+  if (row.container_id) return `container:${row.container_id}`
+  if (row.cell_id) return `cell:${row.cell_id}`
+  return null
 }
-async function commitShelf(row: MarketplaceInventoryItemView): Promise<void> {
-  const draft = (shelfDraft[row.id] ?? row.shelf ?? '').trim()
-  if (draft === (row.shelf ?? '').trim()) return
-  savingShelfId.value = row.id
+
+function placeLabel(row: MarketplaceInventoryItemView): string {
+  return locationLabel(row, storage.index)
+}
+
+async function commitPlacement(
+  row: MarketplaceInventoryItemView,
+  value: string | number | null,
+): Promise<void> {
+  const raw = value === null || value === undefined ? '' : String(value)
+  const container_id = raw.startsWith('container:') ? raw.slice(10) : null
+  const cell_id = raw.startsWith('cell:') ? raw.slice(5) : null
+  if ((row.container_id ?? null) === container_id && (row.cell_id ?? null) === cell_id) return
+
+  savingPlaceId.value = row.id
   try {
-    const updated = await assignInventoryShelf({
+    const updated = await assignInventoryPlacement({
       inventory_id: row.id,
-      shelf: draft || null,
+      container_id,
+      cell_id,
     })
     applyUpdated(updated)
-    delete shelfDraft[row.id]
-    SuccessAlert('Полка обновлена')
+    SuccessAlert('Место обновлено')
   } catch (e) {
-    FailAlert(e, 'Не удалось сохранить полку')
+    FailAlert(e, 'Не удалось сохранить место')
   } finally {
-    savingShelfId.value = null
+    savingPlaceId.value = null
   }
 }
 
@@ -281,19 +348,19 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 
   template(v-else)
     PageHint(storage-key='mp:operator-warehouse:banner-dismissed')
-      | Имущество, принятое на ваш пункт выдачи: что лежит на складе, на какой
-      | полке, заказчик и состояние. Полку можно поправить, а штрих-код выпустить
-      | прямо в строке. Штрих-код есть не у всех позиций — он опционален.
+      | Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком
+      | месте, заказчик и состояние. Место можно переназначить, а штрих-код
+      | выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
     PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
 
-    template(v-if='activeTab === "shelf"')
+    template(v-if='activeTab === "warehouse"')
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
-      //- поле «скачет» относительно чипов). Ниже — чипы-фильтры состояния.
+      //- поле «скачет» относительно чипов).
       BaseInput.warehouse__search(
         v-model='search',
         type='search',
-        placeholder='Поиск: заказчик, товар, полка, штрих-код',
+        placeholder='Поиск: заказчик, товар, бокс, адрес, штрих-код',
         clearable
       )
 
@@ -309,7 +376,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
           table.table
             thead
               tr
-                th.col-shelf Полка
+                th.col-place Место
                 th.col-product Товар
                 th.col-orderer Заказчик
                 th.col-qty Кол-во
@@ -319,18 +386,19 @@ q-page.warehouse(role='region', aria-label='Склад участка')
                 th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
             tbody
               tr(v-for='row in sortedRows', :key='row.id')
-                //- Полка — инлайн-правка: поле всегда редактируемо, сохраняется по
-                //- уходу фокуса или Enter. Никаких кнопок по бокам.
-                td.col-shelf
-                  BaseInput.warehouse__shelf-input(
-                    :model-value='shelfValue(row)',
-                    placeholder='Указать полку',
-                    flat,
-                    :readonly='savingShelfId === row.id',
-                    @update:model-value='(v) => onShelfInput(row, v)',
-                    @blur='commitShelf(row)',
-                    @keyup.enter='commitShelf(row)'
+                //- Место — выбор из заведённых боксов и ячеек прямо в строке.
+                //- Когда адресное хранение выключено, колонка показывает прочерк:
+                //- места в кооперативе просто нет.
+                td.col-place
+                  BaseSelect.warehouse__place-input(
+                    v-if='placementEnabled',
+                    :model-value='placementValue(row)',
+                    :options='placementOptions',
+                    placeholder='Указать место',
+                    :disabled='savingPlaceId === row.id',
+                    @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
                   )
+                  span.warehouse__place-static(v-else) {{ placeLabel(row) }}
 
                 td.col-product.warehouse__product {{ row.product_name_snapshot }}
 
@@ -397,8 +465,19 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     }
   }
 
-  &__shelf-input {
+  &__place-input {
     width: 100%;
+
+    // Селект в ячейке таблицы не показывает hint/error — резерв строки под них
+    // растянул бы строку и заставил её «прыгать» относительно соседних.
+    :deep(.q-field__bottom) {
+      min-height: 0;
+      padding-top: 0;
+    }
+  }
+
+  &__place-static {
+    color: var(--p-ink-2);
   }
 
   &__issue {
@@ -438,8 +517,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   min-width: 1380px;
 }
 
-.col-shelf {
-  width: 200px;
+.col-place {
+  width: 240px;
 }
 .col-product {
   width: 240px;

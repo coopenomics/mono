@@ -34,6 +34,7 @@ import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
 import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
+import { AdminContainerRegistryPage } from 'src/pages/Marketplace/AdminContainerRegistry'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
@@ -891,6 +892,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Сводный склад',
                 icon: 'fa-solid fa-warehouse',
                 requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 19: сводный реестр тары кооператива. Оператор видит боксы
+              // только своего участка — здесь виден весь парк с заполненностью и
+              // суммарным объёмом (задел под перевозку между участками).
+              // Скрывается сам при выключенных боксах: backend не выдаёт
+              // `Container:read:all`, пока контур не включён в настройках.
+              path: 'containers',
+              name: 'marketplace-admin-containers',
+              component: markRaw(AdminContainerRegistryPage),
+              meta: {
+                title: 'Боксы кооператива',
+                icon: 'inbox',
+                requires: 'Container:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
