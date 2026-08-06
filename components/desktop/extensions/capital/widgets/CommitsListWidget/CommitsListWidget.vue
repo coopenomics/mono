@@ -91,14 +91,14 @@
           .commits-list__feedback(v-if='getGitData(row.data)?.url')
             .t-sm.t-muted Ссылка
             a.commits-list__url(
-              :href='getGitData(row.data).url',
+              :href='getGitData(row.data)?.url',
               target='_blank',
               rel='noopener noreferrer'
-            ) {{ getGitData(row.data).url }}
+            ) {{ getGitData(row.data)?.url }}
 
           .commits-list__feedback(v-if='getGitData(row.data)?.diff')
             .t-sm.t-muted Изменения
-            DiffViewer(:diff='getGitData(row.data).diff')
+            DiffViewer(:diff="getGitData(row.data)?.diff ?? ''")
 
     .commits-list__foot.t-sm.t-muted(v-if='pagination.rowsNumber > pagination.rowsPerPage')
       span {{ rangeLabel }}

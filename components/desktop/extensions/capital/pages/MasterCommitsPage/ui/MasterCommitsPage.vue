@@ -246,7 +246,7 @@ const reviewAggregates = computed(() => {
     if (row.status !== Zeus.CommitStatus.CREATED) continue;
     pendingCount += 1;
     pendingHours += Number(row.amounts?.creators_hours) || 0;
-    pendingSum += parseAssetAmount(row.amounts?.creators_base_pool);
+    pendingSum += parseAssetAmount(row.amounts?.creators_base_pool ?? undefined);
   }
 
   const sumAsset = `${pendingSum.toFixed(4)} ${governSymbol.value}`;

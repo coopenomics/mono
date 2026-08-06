@@ -40,6 +40,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
 import { useTimeIssuesStore } from 'app/extensions/capital/entities/TimeIssues/model';
+import type { ITimeIssuesPagination } from 'app/extensions/capital/entities/TimeIssues/model/types'
 import { formatHours } from 'src/shared/lib/utils';
 
 const props = defineProps<{
@@ -60,7 +61,9 @@ const router = useRouter();
 const { info } = useSystemStore();
 const timeIssuesStore = useTimeIssuesStore();
 
-const timeIssues = ref<{ items?: Array<Record<string, any>>; totalCount?: number } | null>(null);
+// Тип из SDK, а не Record<string, any>: иначе строка не совпадает с
+// сигнатурой goToIssue и проверка типов её не пропускает.
+const timeIssues = ref<ITimeIssuesPagination | null>(null);
 const loading = ref(false);
 
 const rows = computed(() => timeIssues.value?.items ?? []);

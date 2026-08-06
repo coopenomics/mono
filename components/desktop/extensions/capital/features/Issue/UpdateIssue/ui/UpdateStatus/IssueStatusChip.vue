@@ -60,7 +60,10 @@ interface Props {
   modelValue: Zeus.IssueStatus;
   issueHash: string;
   /** Явный hash проекта/компонента — на вложенных списках мастерской в URL нет project_hash */
-  projectHash?: string;
+  // null допустим: у свободной задачи проекта нет (IIssue.project_hash
+  // приходит из GraphQL как string | null). Пустое значение компонент
+  // обрабатывает сам — ниже по коду.
+  projectHash?: string | null;
   readonly?: boolean;
   allowedTransitions?: string[];
 }

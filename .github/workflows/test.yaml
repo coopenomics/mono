@@ -113,6 +113,31 @@ jobs:
       - name: Build all workspace packages
         run: pnpm lerna run build
 
+      # Генератор документов спавнит `/venv/bin/python3` и импортирует weasyprint
+      # (components/factory/src/Services/Generator/index.ts, pythonBin()).
+      # На ubuntu-latest его нет, поэтому повторяем ровно то, что делает образ
+      # controller'а (components/controller/Dockerfile) — включая системный
+      # шрифт Arial: он влияет на вёрстку PDF, а base64-встраивание в html
+      # намеренно не используется.
+      - name: WeasyPrint и шрифт Arial (как в образе controller)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-venv \
+            libpango-1.0-0 \
+            libpangoft2-1.0-0 \
+            libjpeg-dev \
+            libopenjp2-7-dev \
+            libffi-dev \
+            libharfbuzz-dev \
+            libcairo2 \
+            fontconfig
+          sudo python3 -m venv /venv
+          sudo /venv/bin/pip install --no-cache-dir WeasyPrint==67
+          sudo install -D components/controller/assets/fonts/arial.ttf \
+            /usr/share/fonts/truetype/arial/arial.ttf
+          sudo fc-cache -f
+
       # SKIP_BLOCK_FETCH=TRUE отключает поход в блокчейн за номером блока
       # (src/Utils/getCurrentBlock.ts) — без него набор требовал бы живую ноду.
       - name: Component-тесты (factory)

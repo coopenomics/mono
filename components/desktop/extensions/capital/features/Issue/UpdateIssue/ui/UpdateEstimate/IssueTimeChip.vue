@@ -70,7 +70,10 @@ import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
 interface Props {
   issueHash: string;
   /** Явный hash проекта/компонента — обязателен на вложенных списках мастерской, где в URL нет project_hash */
-  projectHash?: string;
+  // null допустим: у свободной задачи проекта нет (IIssue.project_hash
+  // приходит из GraphQL как string | null). Пустое значение компонент
+  // обрабатывает сам — ниже по коду.
+  projectHash?: string | null;
   estimate?: number | null;
   fact?: number | null;
   readonly?: boolean;

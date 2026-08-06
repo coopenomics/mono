@@ -40,7 +40,15 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     }
   };
 
-  const updateIssueByHash = async (projectHash: string, issueHash: string): Promise<void> => {
+  // projectHash допускает null: у свободной задачи проекта нет (см. IIssue).
+  // Обновлять в этом случае нечего — кэша по проекту не существует.
+  const updateIssueByHash = async (
+    projectHash: string | null | undefined,
+    issueHash: string,
+  ): Promise<void> => {
+    if (!projectHash) {
+      return;
+    }
     try {
       const updatedIssue = await api.loadIssue({ issue_hash: issueHash });
       if (!updatedIssue) {
@@ -65,7 +73,9 @@ export const useIssueStore = defineStore(namespace, (): IIssueStore => {
     }
   };
 
-  const addIssue = (projectHash: string, issueData: IIssue) => {
+  // projectHash допускает null по той же причине; пустой уже обрабатывался
+  // ниже, тип лишь приведён к фактическому контракту.
+  const addIssue = (projectHash: string | null | undefined, issueData: IIssue) => {
     if (!projectHash) {
       console.warn('issueStore.addIssue: empty projectHash, skip cache write');
       return;

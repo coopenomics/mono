@@ -70,7 +70,10 @@ import type { IContributor } from '../model/types';
 
 interface Props {
   modelValue?: IContributor | IContributor[] | null;
-  projectHash?: string;
+  // null допустим: у свободной задачи проекта нет (IIssue.project_hash
+  // приходит из GraphQL как string | null). Пустое значение компонент
+  // обрабатывает сам — ниже по коду.
+  projectHash?: string | null;
   coopname?: string;
   multiSelect?: boolean;
   placeholder?: string;
@@ -116,7 +119,7 @@ const {
   removeContributor: baseRemoveContributor,
   clearSearch: baseClearSearch,
 } = useContributorSearch({
-  projectHash: props.projectHash,
+  projectHash: props.projectHash ?? undefined,
   coopname: props.coopname,
   multiSelect: props.multiSelect,
 });

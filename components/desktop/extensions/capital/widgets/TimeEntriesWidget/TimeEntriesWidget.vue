@@ -97,6 +97,7 @@ import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model'
+import type { ITimeEntriesPagination } from 'app/extensions/capital/entities/TimeEntries/model/types'
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model'
 import { formatHours } from 'src/shared/lib/utils'
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput } from 'src/shared/ui/base'
@@ -124,7 +125,9 @@ const session = useSessionStore()
 const timeEntriesStore = useTimeEntriesStore()
 const contributorStore = useContributorStore()
 
-const timeEntries = ref<{ items?: Array<Record<string, unknown>>; totalCount?: number } | null>(null)
+// Тип из SDK, а не Record<string, unknown>: иначе каждое поле записи —
+// unknown, и обращения в шаблоне не проходят проверку типов.
+const timeEntries = ref<ITimeEntriesPagination | null>(null)
 const loading = ref(false)
 const worklogSaving = ref(false)
 const timerBusy = ref(false)

@@ -26,6 +26,7 @@
  */
 import type { IMetricWave } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { Zeus } from '@coopenomics/sdk';
+import type { ApexTooltipCustomOpts } from 'apexcharts';
 
 export type ForecastPath = [number, number];
 
@@ -47,23 +48,10 @@ export function formatMetric(v: number, digits = 2): string {
  */
 export function buildSparseTooltip(opts?: { signed?: boolean }) {
   const signed = opts?.signed ?? false;
-  return ({
-    series,
-    dataPointIndex,
-    w,
-  }: {
-    series: number[][];
-    dataPointIndex: number;
-    w: {
-      globals: {
-        categoryLabels?: string[];
-        labels?: string[];
-        seriesNames: string[];
-        colors: string[];
-      };
-      config: { series?: Array<{ data?: Array<number | null> }> };
-    };
-  }) => {
+  // Параметр описывается типом самого apexcharts, а не самописной структурой:
+  // с версии 6 сигнатура tooltip.custom проверяется строго, и рукописная
+  // форма перестала быть совместимой.
+  return ({ series, dataPointIndex, w }: ApexTooltipCustomOpts) => {
     const label =
       w.globals.categoryLabels?.[dataPointIndex] ??
       w.globals.labels?.[dataPointIndex] ??
