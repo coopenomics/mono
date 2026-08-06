@@ -20,6 +20,7 @@ import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnCl
 import { OperatorReturnClaimDetailPage } from 'src/pages/Marketplace/OperatorReturnClaimDetail'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
 import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
+import { OperatorContainersPage } from 'src/pages/Marketplace/OperatorContainers'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
@@ -496,6 +497,27 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Раскладка и маркировка',
                 icon: 'fa-solid fa-tag',
                 requires: 'Warehouse:read:own-KU',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+            },
+            {
+              // Эпик 19: боксы участка — тара со своим QR-кодом, в которую
+              // кладётся имущество. Стоит рядом с раскладкой: сначала заводим
+              // и размечаем тару, потом раскладываем в неё принятое.
+              //
+              // Видимость страницы гейтится грантом, а не ролью: когда в
+              // настройках расширения выключены боксы, backend
+              // (MarketplaceDesktopGrantsProvider) не выдаёт `Container:*`, и
+              // пункт исчезает из меню сам — кооперативному кафе складской
+              // контур не мешает.
+              path: 'containers',
+              name: 'marketplace-pvz-containers',
+              component: markRaw(OperatorContainersPage),
+              meta: {
+                title: 'Боксы',
+                icon: 'inbox',
+                requires: 'Container:manage:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },

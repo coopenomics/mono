@@ -159,7 +159,7 @@ const correctionRows = computed<CorrectionRow[]>(() =>
       unit: marketplaceOrderUnitLabel(o.unit_of_measure),
       expected: o.quantity,
       available: availableOf(o),
-      shelf: (o.warehouse_shelves ?? []).join(', ') || undefined,
+      location: (o.warehouse_locations ?? []).join(', ') || undefined,
       fact: f?.qty ?? Math.min(o.quantity, availableOf(o)),
       expectedPrice: Number.parseFloat(o.price_per_unit),
       factPrice: f?.price ?? Number.parseFloat(o.price_per_unit),

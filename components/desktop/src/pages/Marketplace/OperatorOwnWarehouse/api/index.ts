@@ -19,13 +19,15 @@ export async function listInventory(
 // ─── Инлайн-действия оператора над позицией склада ───
 // Все мутации возвращают затронутые позиции — страница точечно обновляет строки.
 
-export type IAssignShelfInput = Mutations.Marketplace.AssignInventoryShelf.IInput['data'];
+export type IAssignPlacementInput =
+  Mutations.Marketplace.AssignInventoryPlacement.IInput['data'];
 
-export async function assignInventoryShelf(
-  data: IAssignShelfInput,
+/** Положить позицию в бокс либо в ячейку напрямую (негабарит); ровно одно из двух. */
+export async function assignInventoryPlacement(
+  data: IAssignPlacementInput,
 ): Promise<MarketplaceInventoryItemView[]> {
-  const { [Mutations.Marketplace.AssignInventoryShelf.name]: result } = await client.Mutation(
-    Mutations.Marketplace.AssignInventoryShelf.mutation,
+  const { [Mutations.Marketplace.AssignInventoryPlacement.name]: result } = await client.Mutation(
+    Mutations.Marketplace.AssignInventoryPlacement.mutation,
     { variables: { data } },
   );
   return result.inventory;

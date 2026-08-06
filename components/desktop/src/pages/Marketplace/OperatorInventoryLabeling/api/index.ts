@@ -8,7 +8,7 @@ type _RawInventoryItem =
 export type MarketplaceInventoryItemView = Omit<_RawInventoryItem, 'id'> & { id: string }
 
 export type IListInventoryInput = Queries.Marketplace.ListInventory.IInput['data']
-export type IAssignShelfInput = Mutations.Marketplace.AssignInventoryShelf.IInput['data']
+export type IAssignPlacementInput = Mutations.Marketplace.AssignInventoryPlacement.IInput['data']
 export type ISplitInventoryInput = Mutations.Marketplace.SplitInventory.IInput['data']
 export type IGenerateLabelInput = Mutations.Marketplace.GenerateInventoryLabel.IInput['data']
 export type IBindBarcodeInput = Mutations.Marketplace.BindInventoryBarcode.IInput['data']
@@ -23,11 +23,12 @@ export async function fetchInventoryByBraname(braname: string): Promise<Marketpl
   return result as MarketplaceInventoryItemView[]
 }
 
-export async function assignInventoryShelf(
-  data: IAssignShelfInput,
+/** Положить позицию в бокс либо в ячейку напрямую (негабарит); ровно одно из двух. */
+export async function assignInventoryPlacement(
+  data: IAssignPlacementInput,
 ): Promise<MarketplaceInventoryItemView[]> {
-  const { [Mutations.Marketplace.AssignInventoryShelf.name]: result } = await client.Mutation(
-    Mutations.Marketplace.AssignInventoryShelf.mutation,
+  const { [Mutations.Marketplace.AssignInventoryPlacement.name]: result } = await client.Mutation(
+    Mutations.Marketplace.AssignInventoryPlacement.mutation,
     { variables: { data } },
   )
   return result.inventory as MarketplaceInventoryItemView[]

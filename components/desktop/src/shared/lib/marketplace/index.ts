@@ -37,6 +37,11 @@ export {
   type SaleQuantityOffer,
 } from './sale-quantity-step';
 export {
+  printLabelSheet,
+  escapeHtml,
+  type PrintLabelSheetOptions,
+} from './print-sheet';
+export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,
   dispatchMarketplaceEvent,
