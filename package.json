@@ -11,7 +11,6 @@
       "core-js",
       "cpu-features",
       "esbuild",
-      "libxmljs2",
       "msgpackr-extract",
       "nx",
       "protobufjs",
@@ -20,6 +19,9 @@
       "ssh2",
       "unrs-resolver",
       "vue-demi"
+    ],
+    "ignoredBuiltDependencies": [
+      "libxmljs2"
     ]
   },
   "dependencies": {
@@ -44,6 +46,7 @@
     "migrator": "workspace:*"
   },
   "scripts": {
+    "postinstall": "node scripts/install-native-prebuilds.mjs",
     "setup": "lerna run setup --scope @coopenomics/setup",
     "boot": "lerna run boot --scope @coopenomics/boot",
     "reboot": "cd components/boot/scripts && bash reboot.sh",
