@@ -1244,7 +1244,13 @@ export class MarketplaceAplReceptionService {
       resolved.set(placement.order_id, { container_id: null, cell_id });
     }
 
-    if (settings.posting_on_reception_required) {
+    // Требовать место можно, только если его есть куда указать. Иначе включённый
+    // в одиночку флаг обязательности заблокировал бы приёмку намертво: председатель
+    // видел бы отказ, а положить имущество было бы физически некуда — ни боксов,
+    // ни ячеек в кооперативе не заведено.
+    const hasSomewhereToPlace = settings.containers_enabled || settings.cells_enabled;
+
+    if (settings.posting_on_reception_required && hasSomewhereToPlace) {
       const missing = targetOrders.filter((o) => !resolved.has(o.id));
       if (missing.length > 0) {
         throw new BadRequestException(

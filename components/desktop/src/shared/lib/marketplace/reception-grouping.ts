@@ -27,6 +27,8 @@ export interface GroupableReception {
   created_at?: string | null;
   supplier_signed_at?: string | null;
   fact_quantity_per_order: ReadonlyArray<{
+    /** Заказ, к которому относится строка факта. Нужен для оприходования (Эпик 19). */
+    order_id: string;
     product_name?: string | null;
     fact_quantity: number | string;
     unit_of_measure?: string | null;
@@ -46,6 +48,12 @@ export interface ReceptionGroupLine {
   packageSize: number | null;
   quantity: number;
   amount: number;
+  /**
+   * Заказы, слитые в эту строку. Строка агрегирована по товару, а место
+   * хранения при оприходовании назначается заказу — поэтому связь нужна здесь
+   * (Эпик 19, закрывающая подпись).
+   */
+  orderIds: string[];
 }
 
 export interface ReceptionGroup<T extends GroupableReception = GroupableReception> {
@@ -115,6 +123,7 @@ export function groupAplReceptions<T extends GroupableReception>(
         if (ex) {
           ex.quantity += qty;
           ex.amount += qty * price;
+          if (!ex.orderIds.includes(f.order_id)) ex.orderIds.push(f.order_id);
           if (ex.packageSize !== (f.package_size ?? null)) ex.packageSize = null;
         } else {
           lineMap.set(lk, {
@@ -124,6 +133,7 @@ export function groupAplReceptions<T extends GroupableReception>(
             packageSize: f.package_size ?? null,
             quantity: qty,
             amount: qty * price,
+            orderIds: [f.order_id],
           });
         }
       }

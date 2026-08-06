@@ -93,18 +93,34 @@ export interface SignReceptionsChairmanResult {
 }
 
 /**
+ * Эпик 19: место хранения, назначаемое заказу прямо в момент закрывающей
+ * подписи. Ровно одно из двух — бокс либо ячейка напрямую (негабарит).
+ */
+export interface ChairmanPlacement {
+  order_id: string;
+  container_id?: string | null;
+  cell_id?: string | null;
+}
+
+/**
  * Закрывающая подпись председателя по группе приёмок (зеркало
  * signReceptionGroupAsSupplier). По каждой приёмке — отдельная мутация
  * (блокчейн не проведёт всю поставку одной tx), идут параллельно; ошибка по
  * одной не теряет уже подписанные — копится по-актно, остальные продолжаются.
  * Внутри приёмки подпись поверх подписи поставщика тем же ключом активной
  * сессии, документ не перегенерируется.
+ *
+ * Оприходование (Эпик 19) едет тем же вызовом: backend валидирует места ДО
+ * отправки в цепь, поэтому подписанного акта с неразмещаемым имуществом не
+ * возникает. Каждому акту уходят только ЕГО размещения — на чужой `order_id`
+ * сервер отвечает отказом, а акты подписываются параллельно и независимо.
  */
 export async function signReceptionGroupAsChairman(
-  receptions: Pick<MarketplaceAplReceptionView, 'id'>[],
+  receptions: Pick<MarketplaceAplReceptionView, 'id' | 'fact_quantity_per_order'>[],
   wif: string,
   username: string,
   onProgress?: (done: number) => void,
+  placements: ChairmanPlacement[] = [],
 ): Promise<SignReceptionsChairmanResult> {
   const signer = new Classes.Document(wif);
   let done = 0;
@@ -123,7 +139,13 @@ export async function signReceptionGroupAsChairman(
           ]);
           signed_documents.push(signed);
         }
-        await signAsChairman({ apl_reception_id: r.id, signed_documents });
+        const ownOrderIds = new Set(r.fact_quantity_per_order.map((f) => f.order_id));
+        const ownPlacements = placements.filter((p) => ownOrderIds.has(p.order_id));
+        await signAsChairman({
+          apl_reception_id: r.id,
+          signed_documents,
+          ...(ownPlacements.length ? { placements: ownPlacements } : {}),
+        });
         done += 1;
         onProgress?.(done);
       } catch (error) {

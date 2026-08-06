@@ -32,6 +32,8 @@ const cell = (over: Record<string, unknown> = {}) =>
  */
 const makeService = (over: {
   required?: boolean;
+  containersEnabled?: boolean;
+  cellsEnabled?: boolean;
   containerRepo?: any;
   cellRepo?: any;
 } = {}) => {
@@ -39,8 +41,8 @@ const makeService = (over: {
   const cellRepo = { findById: jest.fn(async () => cell()), ...over.cellRepo };
   const warehouseSettings = {
     get: jest.fn(async () => ({
-      containers_enabled: true,
-      cells_enabled: true,
+      containers_enabled: over.containersEnabled ?? true,
+      cells_enabled: over.cellsEnabled ?? true,
       posting_on_reception_required: over.required ?? false,
     })),
   };
@@ -160,6 +162,20 @@ describe('resolveReceptionPlacements — требование указывать
 
   it('при выключенном требовании пустой список — не ошибка', async () => {
     const { resolve } = makeService({ required: false });
+
+    const map = await resolve([order('o1')], []);
+
+    expect(map.size).toBe(0);
+  });
+
+  it('требование не действует, когда класть некуда — ни боксов, ни ячеек', async () => {
+    // Флаг обязательности, включённый в одиночку, иначе заблокировал бы приёмку
+    // намертво: председатель видит отказ, а положить имущество физически некуда.
+    const { resolve } = makeService({
+      required: true,
+      containersEnabled: false,
+      cellsEnabled: false,
+    });
 
     const map = await resolve([order('o1')], []);
 
