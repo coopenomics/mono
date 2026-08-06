@@ -22,9 +22,11 @@ import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-unit
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
 import {
-  containerLabel,
+  buildPlacementOptions,
   locationLabel,
   locationSearchTokens,
+  parsePlacementValue,
+  placementValueOf,
   useMarketplaceStorageStore,
 } from 'src/entities/MarketplaceStorage'
 import {
@@ -207,33 +209,19 @@ function itemsInContainer(containerId: string): number {
   return items.value.filter((i) => i.container_id === containerId).length
 }
 
-const placementOptions = computed<BaseSelectOption[]>(() => {
-  const out: BaseSelectOption[] = []
-  if (containersEnabled.value) {
-    const boxes = [...storage.activeContainers].sort((a, b) => {
-      const diff = itemsInContainer(a.id) - itemsInContainer(b.id)
-      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
-    })
-    for (const c of boxes) {
-      const count = itemsInContainer(c.id)
-      out.push({
-        value: `container:${c.id}`,
-        label: `Бокс ${containerLabel(c, storage.index)} — ${count ? `${count} поз.` : 'пусто'}`,
-      })
-    }
-  }
-  if (cellsEnabled.value) {
-    for (const cell of storage.activeCells) {
-      out.push({ value: `cell:${cell.id}`, label: `Ячейка ${cell.code} (негабарит)` })
-    }
-  }
-  return out
-})
+const placementOptions = computed<BaseSelectOption[]>(() =>
+  buildPlacementOptions({
+    containers: storage.activeContainers,
+    cells: storage.activeCells,
+    index: storage.index,
+    countOf: itemsInContainer,
+    containersEnabled: containersEnabled.value,
+    cellsEnabled: cellsEnabled.value,
+  }),
+)
 
 function placementValue(row: MarketplaceInventoryItemView): string | null {
-  if (row.container_id) return `container:${row.container_id}`
-  if (row.cell_id) return `cell:${row.cell_id}`
-  return null
+  return placementValueOf(row)
 }
 
 function placeLabel(row: MarketplaceInventoryItemView): string {
@@ -244,9 +232,7 @@ async function commitPlacement(
   row: MarketplaceInventoryItemView,
   value: string | number | null,
 ): Promise<void> {
-  const raw = value === null || value === undefined ? '' : String(value)
-  const container_id = raw.startsWith('container:') ? raw.slice(10) : null
-  const cell_id = raw.startsWith('cell:') ? raw.slice(5) : null
+  const { container_id, cell_id } = parsePlacementValue(value)
   if ((row.container_id ?? null) === container_id && (row.cell_id ?? null) === cell_id) return
 
   savingPlaceId.value = row.id

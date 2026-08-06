@@ -21,10 +21,13 @@ import type { BaseSelectOption } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { useMarketplaceRealtime, printLabelSheet } from 'src/shared/lib/marketplace'
 import {
+  buildPlacementOptions,
   containerLabel,
   createStorageGrid,
   locationLabel,
   moveContainer,
+  parsePlacementValue,
+  placementValueOf,
   useMarketplaceStorageStore,
   type MarketplaceContainerView,
   type MarketplaceStorageCellView,
@@ -341,50 +344,19 @@ async function placeContainer(containerId: string, cellId: string | null): Promi
 }
 
 // ─── Варианты мест для выпадающих списков ──
-// Пустые боксы идут первыми: чаще всего кладут в свободную тару, а докладка в
-// занятый бокс — штатный, но второй по частоте сценарий.
-const placementOptions = computed<BaseSelectOption[]>(() => {
-  const out: BaseSelectOption[] = []
-  if (containersEnabled.value) {
-    const boxes = [...storage.activeContainers].sort((a, b) => {
-      const diff = itemsInContainer(a.id).length - itemsInContainer(b.id).length
-      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru')
-    })
-    for (const c of boxes) {
-      const count = itemsInContainer(c.id).length
-      out.push({
-        value: `container:${c.id}`,
-        label: `Бокс ${containerLabel(c, storage.index)} — ${count ? `${count} поз.` : 'пусто'}`,
-      })
-    }
-  }
-  if (cellsEnabled.value) {
-    for (const cell of storage.activeCells) {
-      out.push({ value: `cell:${cell.id}`, label: `Ячейка ${cell.code} (негабарит)` })
-    }
-  }
-  return out
-})
-
-/** Значение выпадающего списка → пара идентификаторов места. */
-function parsePlacementOption(value: string | number | null): {
-  container_id: string | null
-  cell_id: string | null
-} {
-  const raw = value === null || value === undefined ? '' : String(value)
-  if (raw.startsWith('container:')) return { container_id: raw.slice(10), cell_id: null }
-  if (raw.startsWith('cell:')) return { container_id: null, cell_id: raw.slice(5) }
-  return { container_id: null, cell_id: null }
-}
-
-function placementOptionOf(item: {
-  container_id?: string | null
-  cell_id?: string | null
-}): string | null {
-  if (item.container_id) return `container:${item.container_id}`
-  if (item.cell_id) return `cell:${item.cell_id}`
-  return null
-}
+// Порядок и подписи — общие для всех столов (entities/MarketplaceStorage),
+// чтобы один и тот же бокс выглядел одинаково в раскладке, на складе участка
+// и в окне закрывающей подписи.
+const placementOptions = computed<BaseSelectOption[]>(() =>
+  buildPlacementOptions({
+    containers: storage.activeContainers,
+    cells: storage.activeCells,
+    index: storage.index,
+    countOf: (id) => itemsInContainer(id).length,
+    containersEnabled: containersEnabled.value,
+    cellsEnabled: cellsEnabled.value,
+  }),
+)
 
 // ─── Содержимое бокса ──
 const boxDialogOpen = ref(false)
@@ -558,7 +530,7 @@ function openSplit(item: MarketplaceInventoryItemView): void {
   const pool = orderPool(item)
   splitRows.value = pool.map((p) => ({
     quantity: p.quantity_per_label as number | null,
-    placement: placementOptionOf(p),
+    placement: placementValueOf(p),
   }))
   if (splitRows.value.length === 1) splitRows.value.push({ quantity: null, placement: null })
   splitDialogOpen.value = true
@@ -582,7 +554,7 @@ async function applySplit(): Promise<void> {
       inventory_id: target.id,
       splits: splitRows.value.map((r) => ({
         quantity: Number(r.quantity),
-        ...parsePlacementOption(r.placement),
+        ...parsePlacementValue(r.placement),
       })),
     })
     SuccessAlert(
@@ -744,7 +716,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                               :key='opt.value',
                               clickable,
                               v-close-popup,
-                              @click='movePlacement(item, parsePlacementOption(opt.value))'
+                              @click='movePlacement(item, parsePlacementValue(opt.value))'
                             )
                               q-item-section {{ opt.label }}
                             q-separator

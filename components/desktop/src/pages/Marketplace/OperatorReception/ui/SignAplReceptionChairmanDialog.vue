@@ -10,7 +10,9 @@ import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch';
 import {
-  containerLabel,
+  buildPlacementOptions,
+  parsePlacementValue,
+  placementValueOf,
   resolveContainerByCode,
   useMarketplaceStorageStore,
 } from 'src/entities/MarketplaceStorage';
@@ -138,33 +140,16 @@ async function loadStorage(): Promise<void> {
   }
 }
 
-/**
- * Пустые боксы идут первыми: чаще всего кладут в свободную тару. Занятые ниже,
- * с числом позиций — докладка в занятый бокс штатна (бокс большой, а привезли
- * две банки), и оператор должен видеть, что там уже лежит.
- */
-const placementOptions = computed<BaseSelectOption[]>(() => {
-  const out: BaseSelectOption[] = [];
-  if (containersEnabled.value) {
-    const boxes = [...storage.activeContainers].sort((a, b) => {
-      const diff = countIn(a.id) - countIn(b.id);
-      return diff !== 0 ? diff : a.code.localeCompare(b.code, 'ru');
-    });
-    for (const c of boxes) {
-      const count = countIn(c.id);
-      out.push({
-        value: `container:${c.id}`,
-        label: `Бокс ${containerLabel(c, storage.index)} — ${count ? `${count} поз.` : 'пусто'}`,
-      });
-    }
-  }
-  if (cellsEnabled.value) {
-    for (const cell of storage.activeCells) {
-      out.push({ value: `cell:${cell.id}`, label: `Ячейка ${cell.code} (негабарит)` });
-    }
-  }
-  return out;
-});
+const placementOptions = computed<BaseSelectOption[]>(() =>
+  buildPlacementOptions({
+    containers: storage.activeContainers,
+    cells: storage.activeCells,
+    index: storage.index,
+    countOf: countIn,
+    containersEnabled: containersEnabled.value,
+    cellsEnabled: cellsEnabled.value,
+  }),
+);
 
 function countIn(containerId: string): number {
   return inventoryCountByContainer.value[containerId] ?? 0;
@@ -183,7 +168,7 @@ const signBlocked = computed(
   () => placementEnabled.value && placementRequired.value && !allPlaced.value,
 );
 
-function setPlacementForAll(value: string): void {
+function setPlacementForAll(value: string | null): void {
   const next: Record<string, string | null> = {};
   for (const line of props.group?.lines ?? []) next[line.key] = value;
   placementByLine.value = next;
@@ -208,7 +193,7 @@ async function onScanned(raw: string): Promise<void> {
       );
       return;
     }
-    setPlacementForAll(`container:${container.id}`);
+    setPlacementForAll(placementValueOf({ container_id: container.id }));
     SuccessAlert(`Всё принятое ляжет в бокс ${container.code}`);
     scannerOpen.value = false;
   } catch (e) {
@@ -224,8 +209,7 @@ function buildPlacements(): ChairmanPlacement[] {
   for (const line of props.group?.lines ?? []) {
     const value = placementByLine.value[line.key];
     if (!value) continue;
-    const container_id = value.startsWith('container:') ? value.slice(10) : null;
-    const cell_id = value.startsWith('cell:') ? value.slice(5) : null;
+    const { container_id, cell_id } = parsePlacementValue(value);
     for (const order_id of line.orderIds) out.push({ order_id, container_id, cell_id });
   }
   return out;
@@ -354,10 +338,13 @@ BaseDialog(
           td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
           td.sign-apl__where(v-if="placementEnabled")
 
+    //- Канон загрузки: скелетон, а не спиннер поверх контента. Повторное
+    //- открытие актов обновляет их молча — уже показанный документ не мигает.
     .sign-apl__preview(v-else)
-      q-inner-loading(:showing="previewLoading")
-        q-spinner(size="28px")
-      div(v-if="previewHtml", v-html="previewHtml")
+      .sign-apl__preview-skel(v-if="previewLoading && !previewHtml")
+        .skel.skel--title
+        .skel.skel--text(v-for="n in 8", :key="n")
+      div(v-else-if="previewHtml", v-html="previewHtml")
 
     //- Оприходование: место назначается здесь же, в момент закрывающей подписи.
     //- Блок держит высоту всегда, когда контур включён, — чтобы таблица не
@@ -492,6 +479,28 @@ BaseDialog(
     min-height: 120px;
     max-height: 55vh;
     overflow: auto;
+  }
+
+  // Каркас документа: строка-заголовок и строки текста — держит высоту области,
+  // пока акты загружаются, вместо прыжка от пустоты к готовому документу.
+  &__preview-skel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) 0;
+
+    .skel--title {
+      width: 46%;
+      margin-bottom: var(--p-2, 8px);
+    }
+
+    .skel--text:nth-child(even) {
+      width: 92%;
+    }
+
+    .skel--text:nth-child(odd) {
+      width: 78%;
+    }
   }
 
   // Колонка «Куда» шире прочих: в подписи места видны и код бокса, и адрес.
