@@ -1,35 +1,13 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import path from 'path';
+import { PLACEHOLDER_ENV_DEFAULTS } from './placeholder-env';
 
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 /** Устанавливается через `scripts/register-schema-gen-env.cjs` (-r) перед запуском generate-schema */
 const isSchemaGeneration = process.env.CONTROLLER_SCHEMA_GEN === '1';
 
-/**
- * Заглушки только для режима генерации schema.gql: реальные сервисы не вызываются,
- * но Zod и импорты резолверов получают валидный объект env.
- */
-const SCHEMA_GEN_ENV_DEFAULTS: Record<string, string> = {
-  NODE_ENV: 'development',
-  BACKEND_URL: 'http://127.0.0.1:2998',
-  FRONTEND_URL: 'http://127.0.0.1:2999',
-  SERVER_SECRET: 'schema-gen-server-secret',
-  MONGODB_URL: 'mongodb://127.0.0.1:27017/schema-gen',
-  JWT_SECRET: 'schema-gen-jwt-secret-min-length-placeholder-32',
-  POSTGRES_USERNAME: 'postgres',
-  POSTGRES_PASSWORD: 'postgres',
-  POSTGRES_DATABASE: 'postgres',
-  REDIS_HOST: '127.0.0.1',
-  REDIS_PASSWORD: '',
-  BLOCKCHAIN_RPC: 'http://127.0.0.1:8888',
-  CHAIN_ID: 'cf057bbfb72640471fd910bcb67639c22df9f238706fab5919ce743a1f9efa38',
-  VAPID_PUBLIC_KEY: 'BM_schema_gen_placeholder_public_key____________________________',
-  VAPID_PRIVATE_KEY: 'schema_gen_placeholder_private_key',
-  MATRIX_ADMIN_USERNAME: 'schema-gen',
-  MATRIX_ADMIN_PASSWORD: 'schema-gen',
-};
 
 const envVarsSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
@@ -195,7 +173,7 @@ const envVarsSchema = z.object({
     .describe('Минимум членов совета при install; пусто — 3 на production, 1 на development/test'),
 });
 
-const envInput = isSchemaGeneration ? { ...SCHEMA_GEN_ENV_DEFAULTS, ...process.env } : process.env;
+const envInput = isSchemaGeneration ? { ...PLACEHOLDER_ENV_DEFAULTS, ...process.env } : process.env;
 
 // Валидация переменных окружения
 const envVars = envVarsSchema.safeParse(envInput);
@@ -209,7 +187,7 @@ if (!envVars.success) {
     .join('\n');
 
   const hint = isSchemaGeneration
-    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в SCHEMA_GEN_ENV_DEFAULTS в src/config/config.ts.)\n'
+    ? '\n(Режим CONTROLLER_SCHEMA_GEN: проверьте, что новые обязательные поля добавлены в PLACEHOLDER_ENV_DEFAULTS в src/config/placeholder-env.ts.)\n'
     : '\n';
   console.error('❌ Ошибка конфигурации:\n', errorMessages, hint);
   process.exit(1); // Завершаем приложение в случае ошибки
