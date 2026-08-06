@@ -13,13 +13,13 @@ export interface MarketplaceContainerTypeCreateInput {
   width_mm: number;
   height_mm: number;
   /** Полезный объём; не задан — считается из габаритов. */
-  volume_liters?: string;
+  volume_m3?: string;
   max_weight_kg?: string | null;
 }
 
 export interface MarketplaceContainerTypePatch {
   name?: string;
-  volume_liters?: string;
+  volume_m3?: string;
   max_weight_kg?: string | null;
   is_active?: boolean;
 }

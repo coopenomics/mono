@@ -20,11 +20,12 @@ import {
   containerLabel,
   createContainerType,
   createContainers,
-  formatVolumeLiters,
+  formatTotalVolumeM3,
+  formatVolumeM3,
   moveContainer,
   updateContainer,
   useMarketplaceStorageStore,
-  volumeLitersOf,
+  volumeM3Of,
   type MarketplaceContainerTypeView,
   type MarketplaceContainerView,
 } from 'src/entities/MarketplaceStorage'
@@ -108,7 +109,7 @@ function typeNameOf(container: MarketplaceContainerView): string {
 
 function volumeOf(container: MarketplaceContainerView): string {
   const type = storage.typeById(container.container_type_id)
-  return type ? formatVolumeLiters(type.volume_liters) : '—'
+  return type ? formatVolumeM3(type.volume_m3) : '—'
 }
 
 /** Суммарный объём боксов участка — задел под расчёт транспорта между КУ. */
@@ -116,9 +117,9 @@ const totalVolume = computed(() => {
   let sum = 0
   for (const c of storage.activeContainers) {
     const type = storage.typeById(c.container_type_id)
-    if (type) sum += volumeLitersOf(type.volume_liters)
+    if (type) sum += volumeM3Of(type.volume_m3)
   }
-  return `${sum.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л`
+  return formatTotalVolumeM3(sum)
 })
 
 const cellOptions = computed<BaseSelectOption[]>(() =>
@@ -131,7 +132,7 @@ const cellOptions = computed<BaseSelectOption[]>(() =>
 const typeOptions = computed<BaseSelectOption[]>(() =>
   storage.activeTypes.map((t) => ({
     value: t.id,
-    label: `${t.name} — ${formatVolumeLiters(t.volume_liters)}`,
+    label: `${t.name} — ${formatVolumeM3(t.volume_m3)}`,
   })),
 )
 
@@ -187,7 +188,7 @@ const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(()
     numeric: true,
     nowrap: true,
     sortable: true,
-    field: (row) => volumeLitersOf(row.volume_liters),
+    field: (row) => volumeM3Of(row.volume_m3),
   },
   { key: 'weight', label: 'Макс. вес', width: '120px', nowrap: true },
   {
@@ -339,8 +340,7 @@ const typeVolumePreview = computed(() => {
   const w = Number(typeForm.value.width_mm)
   const h = Number(typeForm.value.height_mm)
   if (!(l > 0 && w > 0 && h > 0)) return ''
-  const liters = (l * w * h) / 1_000_000
-  return `${liters.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л`
+  return formatVolumeM3(String((l * w * h) / 1_000_000_000))
 })
 
 function openType(): void {
@@ -553,7 +553,7 @@ q-page.containers(role='region', aria-label='Боксы участка')
         template(#cell-dims='{ row }')
           | {{ row.length_mm }} × {{ row.width_mm }} × {{ row.height_mm }}
         template(#cell-volume='{ row }')
-          | {{ formatVolumeLiters(row.volume_liters) }}
+          | {{ formatVolumeM3(row.volume_m3) }}
         template(#cell-weight='{ row }')
           | {{ row.max_weight_kg ? `${row.max_weight_kg} кг` : '—' }}
 
@@ -582,8 +582,8 @@ q-page.containers(role='region', aria-label='Боксы участка')
   BaseDialog(v-model='typeOpen', title='Тип боксов', size='sm')
     .containers__form
       .containers__note
-        | Габариты нужны, чтобы посчитать объём тары: по нему в дальнейшем
-        | определяется, сколько места займёт перевозка боксов между участками.
+        | Габариты нужны, чтобы посчитать объём тары в кубометрах: по нему
+        | определяется, какая машина увезёт партию боксов между участками.
       BaseInput(v-model='typeForm.name', label='Название', placeholder='Ящик 600×400×300')
       .containers__dims
         BaseInput(v-model.number='typeForm.length_mm', type='number', label='Длина, мм')

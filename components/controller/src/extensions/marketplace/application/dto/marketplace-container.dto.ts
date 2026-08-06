@@ -22,8 +22,8 @@ export class MarketplaceContainerTypeDTO {
   @Field(() => Int, { description: 'Высота в миллиметрах.' })
   height_mm!: number;
 
-  @Field(() => String, { description: 'Полезный объём в литрах.' })
-  volume_liters!: string;
+  @Field(() => String, { description: 'Полезный объём в кубометрах.' })
+  volume_m3!: string;
 
   @Field(() => String, { nullable: true, description: 'Предельная загрузка в килограммах.' })
   max_weight_kg!: string | null;
@@ -41,7 +41,7 @@ export function toMarketplaceContainerTypeDTO(
     length_mm: type.length_mm,
     width_mm: type.width_mm,
     height_mm: type.height_mm,
-    volume_liters: type.volume_liters,
+    volume_m3: type.volume_m3,
     max_weight_kg: type.max_weight_kg,
     is_active: type.is_active,
   };
@@ -112,11 +112,11 @@ export class MarketplaceCreateContainerTypeInputDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Полезный объём в литрах. Не указан — считается из габаритов.',
+    description: 'Полезный объём в кубометрах. Не указан — считается из габаритов.',
   })
   @IsOptional()
   @IsString()
-  volume_liters?: string | null;
+  volume_m3?: string | null;
 
   @Field(() => String, { nullable: true, description: 'Предельная загрузка в килограммах.' })
   @IsOptional()

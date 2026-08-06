@@ -64,7 +64,7 @@ export class MarketplaceContainerResolver {
       length_mm: data.length_mm,
       width_mm: data.width_mm,
       height_mm: data.height_mm,
-      volume_liters: data.volume_liters ?? null,
+      volume_m3: data.volume_m3 ?? null,
       max_weight_kg: data.max_weight_kg ?? null,
     });
     return toMarketplaceContainerTypeDTO(type);

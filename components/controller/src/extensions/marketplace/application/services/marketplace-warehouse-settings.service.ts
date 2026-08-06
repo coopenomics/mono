@@ -1,6 +1,6 @@
-import { Injectable, Optional } from '@nestjs/common';
-import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
-import { defaultConfig, type IConfig, type IWarehouseConfig } from '../../types';
+import { Injectable } from '@nestjs/common';
+import { defaultConfig, type IWarehouseConfig } from '../../types';
+import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
 
 /**
  * Настройки адресного хранения из конфига расширения «Стол заказов» (Эпик 19).
@@ -14,16 +14,10 @@ import { defaultConfig, type IConfig, type IWarehouseConfig } from '../../types'
  */
 @Injectable()
 export class MarketplaceWarehouseSettingsService {
-  constructor(
-    @Optional()
-    private readonly extensionDomainService: ExtensionDomainService | null
-  ) {}
+  constructor(private readonly extensionConfig: MarketplaceExtensionConfigService) {}
 
   async get(): Promise<IWarehouseConfig> {
-    const extension = this.extensionDomainService
-      ? await this.extensionDomainService.getAppByName('market')
-      : null;
-    const cfg = extension?.config as IConfig | undefined;
+    const cfg = await this.extensionConfig.get();
     const fallback = defaultConfig.warehouse;
 
     return {

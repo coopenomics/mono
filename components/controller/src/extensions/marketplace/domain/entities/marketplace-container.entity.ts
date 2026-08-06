@@ -11,7 +11,7 @@ export class MarketplaceContainerTypeDomainEntity {
   public readonly length_mm: number;
   public readonly width_mm: number;
   public readonly height_mm: number;
-  public readonly volume_liters: string;
+  public readonly volume_m3: string;
   public readonly max_weight_kg: string | null;
   public readonly is_active: boolean;
   public readonly created_at: Date;
@@ -36,7 +36,7 @@ export class MarketplaceContainerTypeDomainEntity {
     this.length_mm = props.length_mm;
     this.width_mm = props.width_mm;
     this.height_mm = props.height_mm;
-    this.volume_liters = props.volume_liters;
+    this.volume_m3 = props.volume_m3;
     this.max_weight_kg = props.max_weight_kg ?? null;
     this.is_active = props.is_active;
     this.created_at = props.created_at;

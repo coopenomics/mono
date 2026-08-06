@@ -17,7 +17,7 @@ export interface MarketplaceContainerTypeProps {
   width_mm: number;
   height_mm: number;
   /** Полезный объём в литрах (numeric-строка). */
-  volume_liters: string;
+  volume_m3: string;
   /** Предельная загрузка в килограммах; NULL — не нормируется. */
   max_weight_kg: string | null;
   is_active: boolean;
@@ -63,10 +63,15 @@ export function parseContainerCodeSequence(code: string): number | null {
 }
 
 /**
- * Полезный объём в литрах из габаритов в миллиметрах. Округляем до трёх
- * знаков — этого хватает и коробке из-под обуви, и паллете.
+ * Полезный объём в кубометрах из габаритов в миллиметрах.
+ *
+ * Кубометры, а не литры: объём тары нужен ровно для одного — прикинуть, какая
+ * машина увезёт партию боксов между участками. Перевозку считают кубами
+ * («нужно 10 кубов»), и переводить литры в кубы в уме на погрузке никто не
+ * станет. Четыре знака после запятой — чтобы и мелкая коробка не схлопнулась
+ * в ноль.
  */
-export function computeVolumeLiters(length_mm: number, width_mm: number, height_mm: number): string {
-  const liters = (length_mm * width_mm * height_mm) / 1_000_000;
-  return liters.toFixed(3);
+export function computeVolumeM3(length_mm: number, width_mm: number, height_mm: number): string {
+  const m3 = (length_mm * width_mm * height_mm) / 1_000_000_000;
+  return m3.toFixed(4);
 }

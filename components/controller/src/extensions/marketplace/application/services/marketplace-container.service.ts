@@ -11,7 +11,7 @@ import type {
 } from '../../domain/entities/marketplace-container.entity';
 import {
   buildContainerCode,
-  computeVolumeLiters,
+  computeVolumeM3,
 } from '../../domain/entities/marketplace-container.types';
 import {
   MARKETPLACE_CONTAINER_REPOSITORY,
@@ -42,7 +42,7 @@ export interface CreateContainerTypeInput {
   length_mm: number;
   width_mm: number;
   height_mm: number;
-  volume_liters?: string | null;
+  volume_m3?: string | null;
   max_weight_kg?: string | null;
 }
 
@@ -110,9 +110,9 @@ export class MarketplaceContainerService {
       height_mm: input.height_mm,
       // Объём можно задать вручную — у тары неправильной формы габаритный
       // объём завышен, и для расчёта транспорта важен полезный.
-      volume_liters:
-        input.volume_liters ??
-        computeVolumeLiters(input.length_mm, input.width_mm, input.height_mm),
+      volume_m3:
+        input.volume_m3 ??
+        computeVolumeM3(input.length_mm, input.width_mm, input.height_mm),
       max_weight_kg: input.max_weight_kg ?? null,
     });
   }
@@ -249,16 +249,16 @@ export class MarketplaceContainerService {
   }
 
   /**
-   * Суммарный объём выборки боксов в литрах — опора расчёта потребного объёма
+   * Суммарный объём выборки боксов в кубометрах — опора расчёта потребного объёма
    * транспорта при передаче боксов между участками.
    */
-  async sumVolumeLiters(
+  async sumVolumeM3(
     coopname: string,
     containers: readonly MarketplaceContainerDomainEntity[]
   ): Promise<string> {
     if (containers.length === 0) return '0.000';
     const types = await this.typeRepo.list(coopname);
-    const volumeByType = new Map(types.map((t) => [t.id, Number(t.volume_liters)]));
+    const volumeByType = new Map(types.map((t) => [t.id, Number(t.volume_m3)]));
     const total = containers.reduce(
       (sum, container) => sum + (volumeByType.get(container.container_type_id) ?? 0),
       0

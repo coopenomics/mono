@@ -8367,8 +8367,8 @@ export type ValueTypes = {
 	max_weight_kg?:boolean | `@${string}`,
 	/** Название типа, например «Ящик 600×400×300». */
 	name?:boolean | `@${string}`,
-	/** Полезный объём в литрах. */
-	volume_liters?:boolean | `@${string}`,
+	/** Полезный объём в кубометрах. */
+	volume_m3?:boolean | `@${string}`,
 	/** Ширина в миллиметрах. */
 	width_mm?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -8458,8 +8458,8 @@ export type ValueTypes = {
 	max_weight_kg?: string | undefined | null | Variable<any, string>,
 	/** Название типа боксов. */
 	name: string | Variable<any, string>,
-	/** Полезный объём в литрах. Не указан — считается из габаритов. */
-	volume_liters?: string | undefined | null | Variable<any, string>,
+	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
+	volume_m3?: string | undefined | null | Variable<any, string>,
 	/** Ширина в миллиметрах. */
 	width_mm: number | Variable<any, string>
 };
@@ -21769,8 +21769,8 @@ export type ResolverInputTypes = {
 	max_weight_kg?:boolean | `@${string}`,
 	/** Название типа, например «Ящик 600×400×300». */
 	name?:boolean | `@${string}`,
-	/** Полезный объём в литрах. */
-	volume_liters?:boolean | `@${string}`,
+	/** Полезный объём в кубометрах. */
+	volume_m3?:boolean | `@${string}`,
 	/** Ширина в миллиметрах. */
 	width_mm?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -21858,8 +21858,8 @@ export type ResolverInputTypes = {
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
-	/** Полезный объём в литрах. Не указан — считается из габаритов. */
-	volume_liters?: string | undefined | null,
+	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
+	volume_m3?: string | undefined | null,
 	/** Ширина в миллиметрах. */
 	width_mm: number
 };
@@ -34768,8 +34768,8 @@ export type ModelTypes = {
 	max_weight_kg?: string | undefined | null,
 	/** Название типа, например «Ящик 600×400×300». */
 	name: string,
-	/** Полезный объём в литрах. */
-	volume_liters: string,
+	/** Полезный объём в кубометрах. */
+	volume_m3: string,
 	/** Ширина в миллиметрах. */
 	width_mm: number
 };
@@ -34855,8 +34855,8 @@ export type ModelTypes = {
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
-	/** Полезный объём в литрах. Не указан — считается из габаритов. */
-	volume_liters?: string | undefined | null,
+	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
+	volume_m3?: string | undefined | null,
 	/** Ширина в миллиметрах. */
 	width_mm: number
 };
@@ -48903,8 +48903,8 @@ export type GraphQLTypes = {
 	max_weight_kg?: string | undefined | null,
 	/** Название типа, например «Ящик 600×400×300». */
 	name: string,
-	/** Полезный объём в литрах. */
-	volume_liters: string,
+	/** Полезный объём в кубометрах. */
+	volume_m3: string,
 	/** Ширина в миллиметрах. */
 	width_mm: number,
 	['...on MarketplaceContainerType']: Omit<GraphQLTypes["MarketplaceContainerType"], "...on MarketplaceContainerType">
@@ -48993,8 +48993,8 @@ export type GraphQLTypes = {
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
-	/** Полезный объём в литрах. Не указан — считается из габаритов. */
-	volume_liters?: string | undefined | null,
+	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
+	volume_m3?: string | undefined | null,
 	/** Ширина в миллиметрах. */
 	width_mm: number
 };

@@ -5200,7 +5200,7 @@ export const ReturnTypes: Record<string,any> = {
 		length_mm:"Int",
 		max_weight_kg:"String",
 		name:"String",
-		volume_liters:"String",
+		volume_m3:"String",
 		width_mm:"Int"
 	},
 	MarketplaceCppStatus:{

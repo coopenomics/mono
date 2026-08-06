@@ -10,11 +10,12 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import {
   buildStorageIndex,
-  formatVolumeLiters,
+  formatTotalVolumeM3,
+  formatVolumeM3,
   listContainerTypes,
   listContainers,
   listStorageCells,
-  volumeLitersOf,
+  volumeM3Of,
   type MarketplaceContainerTypeView,
   type MarketplaceContainerView,
   type MarketplaceStorageCellView,
@@ -87,7 +88,7 @@ function typeNameOf(container: MarketplaceContainerView): string {
 
 function volumeOf(container: MarketplaceContainerView): string {
   const type = typeById.value.get(container.container_type_id)
-  return type ? formatVolumeLiters(type.volume_liters) : '—'
+  return type ? formatVolumeM3(type.volume_m3) : '—'
 }
 
 // Порядок строк задаёт сама таблица (сортировка по клику на заголовок);
@@ -110,9 +111,9 @@ const totalVolume = computed(() => {
   let sum = 0
   for (const c of rows.value) {
     const type = typeById.value.get(c.container_type_id)
-    if (type) sum += volumeLitersOf(type.volume_liters)
+    if (type) sum += volumeM3Of(type.volume_m3)
   }
-  return `${sum.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л`
+  return formatTotalVolumeM3(sum)
 })
 
 const filledCount = computed(
@@ -121,7 +122,7 @@ const filledCount = computed(
 
 // Сортировка родная для таблицы: по участку, коду и типу — то, чем реально
 // пользуются, когда ищут тару глазами. Объём и заполненность сортируются
-// числом, иначе «10 л» встало бы между «1 л» и «2 л».
+// числом, иначе «10 м³» встало бы между «1 м³» и «2 м³».
 const columns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
   {
     key: 'branch',
@@ -145,7 +146,7 @@ const columns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
     numeric: true,
     nowrap: true,
     sortable: true,
-    field: (row) => volumeLitersOf(typeById.value.get(row.container_type_id)?.volume_liters),
+    field: (row) => volumeM3Of(typeById.value.get(row.container_type_id)?.volume_m3),
   },
   { key: 'cell', label: 'Ячейка', width: '120px', field: (row) => cellCodeOf(row) },
   {

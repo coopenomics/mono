@@ -18,7 +18,7 @@ export class MarketplaceContainerTypeMapper {
       length_mm: row.length_mm,
       width_mm: row.width_mm,
       height_mm: row.height_mm,
-      volume_liters: row.volume_liters,
+      volume_m3: row.volume_m3,
       max_weight_kg: row.max_weight_kg,
       is_active: row.is_active,
       created_at: row.created_at,

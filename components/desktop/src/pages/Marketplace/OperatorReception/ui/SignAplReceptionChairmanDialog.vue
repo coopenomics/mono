@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Avatar, BaseBadge, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
 import type { BaseSelectOption } from 'src/shared/ui/base';
 import { AccountBadge } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
@@ -163,9 +163,21 @@ const allPlaced = computed(
   () => !!props.group && placedLinesCount.value === props.group.lines.length,
 );
 
-/** Подпись блокируется, только если кооператив потребовал место обязательным. */
+/** Есть ли вообще куда класть: заведена ли на участке тара или ячейки. */
+const hasPlacementTargets = computed(() => placementOptions.value.length > 0);
+
+/**
+ * Подпись блокируется, только если кооператив потребовал место обязательным
+ * И положить действительно есть куда. Если тара ещё не заведена, блокировать
+ * бессмысленно: председатель стоит с коробками, а выхода из окна нет — вместо
+ * запрета показываем, что нужно завести боксы, и даём принять как есть.
+ */
 const signBlocked = computed(
-  () => placementEnabled.value && placementRequired.value && !allPlaced.value,
+  () =>
+    placementEnabled.value &&
+    placementRequired.value &&
+    hasPlacementTargets.value &&
+    !allPlaced.value,
 );
 
 function setPlacementForAll(value: string | null): void {
@@ -354,7 +366,14 @@ BaseDialog(
         .sign-apl__placement-head
           q-icon(name="inventory_2", size="18px")
           span Размещение
-        .sign-apl__placement-body
+        //- Класть некуда — вместо запрета объясняем, что делать. Председатель
+        //- стоит у стойки с коробками, тупик в этом окне недопустим.
+        BaseBanner(v-if="!hasPlacementTargets", variant="warn")
+          | На участке ещё не заведена тара. Подпишите приёмку как есть — имущество
+          | встанет на склад без места. Затем заведите боксы на столе «Боксы» и
+          | разложите принятое на столе «Раскладка и маркировка».
+
+        .sign-apl__placement-body(v-else)
           BaseButton(
             v-if="containersEnabled",
             variant="secondary",

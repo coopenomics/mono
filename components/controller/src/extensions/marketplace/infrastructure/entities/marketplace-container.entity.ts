@@ -34,8 +34,11 @@ export class MarketplaceContainerTypeEntity {
   @Column({ type: 'integer' })
   public height_mm!: number;
 
-  @Column({ type: 'numeric', precision: 12, scale: 3 })
-  public volume_liters!: string;
+  // default нужен, чтобы TypeORM смог добавить NOT NULL колонку на уже
+  // существующих строках (расширение работает на synchronize). Реальное
+  // значение проставит миграция v15, пересчитав его из габаритов.
+  @Column({ type: 'numeric', precision: 12, scale: 4, default: 0 })
+  public volume_m3!: string;
 
   @Column({ type: 'numeric', precision: 10, scale: 3, nullable: true })
   public max_weight_kg!: string | null;

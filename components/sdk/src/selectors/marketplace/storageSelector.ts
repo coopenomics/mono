@@ -42,7 +42,7 @@ const rawContainerTypeSelector = {
   length_mm: true,
   width_mm: true,
   height_mm: true,
-  volume_liters: true,
+  volume_m3: true,
   max_weight_kg: true,
   is_active: true,
 }

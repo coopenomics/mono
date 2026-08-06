@@ -6,7 +6,7 @@ import {
   MarketplaceContainerTypeDomainEntity,
 } from '../../domain/entities/marketplace-container.entity';
 import {
-  computeVolumeLiters,
+  computeVolumeM3,
   parseContainerCodeSequence,
 } from '../../domain/entities/marketplace-container.types';
 import type {
@@ -47,8 +47,8 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
       length_mm: input.length_mm,
       width_mm: input.width_mm,
       height_mm: input.height_mm,
-      volume_liters:
-        input.volume_liters ?? computeVolumeLiters(input.length_mm, input.width_mm, input.height_mm),
+      volume_m3:
+        input.volume_m3 ?? computeVolumeM3(input.length_mm, input.width_mm, input.height_mm),
       max_weight_kg: input.max_weight_kg ?? null,
       is_active: true,
     });
@@ -74,7 +74,7 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
     const row = await this.repo.findOne({ where: { id } });
     if (!row) return null;
     if (patch.name !== undefined) row.name = patch.name.trim();
-    if (patch.volume_liters !== undefined) row.volume_liters = patch.volume_liters;
+    if (patch.volume_m3 !== undefined) row.volume_m3 = patch.volume_m3;
     if (patch.max_weight_kg !== undefined) row.max_weight_kg = patch.max_weight_kg;
     if (patch.is_active !== undefined) row.is_active = patch.is_active;
     return this.mapper.toDomain(await this.repo.save(row));

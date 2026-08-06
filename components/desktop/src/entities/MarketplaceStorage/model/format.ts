@@ -82,14 +82,23 @@ export function locationSearchTokens(
   return tokens
 }
 
-/** Объём в литрах из строки-десятичной дроби бэкенда; нечисло — 0. */
-export function volumeLitersOf(value: string | null | undefined): number {
+/** Объём в кубометрах из строки-десятичной дроби бэкенда; нечисло — 0. */
+export function volumeM3Of(value: string | null | undefined): number {
   const n = Number.parseFloat(String(value ?? ''))
   return Number.isFinite(n) ? n : 0
 }
 
-/** «12,5 л» — литры показываем с одним знаком, без хвоста нулей. */
-export function formatVolumeLiters(value: string | null | undefined): string {
-  const n = volumeLitersOf(value)
-  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} л`
+/**
+ * «0,072 м³» — объём тары показываем кубами, потому что перевозку считают
+ * кубами. У одного бокса значение мелкое, поэтому до трёх знаков; у суммы по
+ * складу — до двух, там третий знак уже не важен.
+ */
+export function formatVolumeM3(value: string | null | undefined): string {
+  const n = volumeM3Of(value)
+  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: 3 })} м³`
+}
+
+/** Суммарный объём выборки — «10,25 м³». */
+export function formatTotalVolumeM3(m3: number): string {
+  return `${m3.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} м³`
 }
