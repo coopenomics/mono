@@ -25,6 +25,10 @@ import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entit
 import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
 import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
 import { MarketplaceStorageCellEntity } from './entities/marketplace-storage-cell.entity';
+import {
+  MarketplaceContainerEntity,
+  MarketplaceContainerTypeEntity,
+} from './entities/marketplace-container.entity';
 import { MarketplaceStockProposalEntity } from './entities/marketplace-stock-proposal.entity';
 import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
@@ -57,6 +61,10 @@ import { MarketplaceShipmentRepositoryAdapter } from './adapters/marketplace-shi
 import { MarketplaceSupplyValidationLogRepositoryAdapter } from './adapters/marketplace-supply-validation-log-repository.adapter';
 import { MarketplaceInventoryRepositoryAdapter } from './adapters/marketplace-inventory-repository.adapter';
 import { MarketplaceStorageCellRepositoryAdapter } from './adapters/marketplace-storage-cell-repository.adapter';
+import {
+  MarketplaceContainerRepositoryAdapter,
+  MarketplaceContainerTypeRepositoryAdapter,
+} from './adapters/marketplace-container-repository.adapter';
 import { MarketplaceStockProposalRepositoryAdapter } from './adapters/marketplace-stock-proposal-repository.adapter';
 import { MarketplaceAplReceptionRepositoryAdapter } from './adapters/marketplace-apl-reception-repository.adapter';
 import { MarketplaceOutgoingPaymentRequestRepositoryAdapter } from './adapters/marketplace-outgoing-payment-request-repository.adapter';
@@ -79,6 +87,10 @@ import { MarketplaceShipmentMapper } from './mappers/marketplace-shipment.mapper
 import { MarketplaceSupplyValidationLogMapper } from './mappers/marketplace-supply-validation-log.mapper';
 import { MarketplaceInventoryMapper } from './mappers/marketplace-inventory.mapper';
 import { MarketplaceStorageCellMapper } from './mappers/marketplace-storage-cell.mapper';
+import {
+  MarketplaceContainerMapper,
+  MarketplaceContainerTypeMapper,
+} from './mappers/marketplace-container.mapper';
 import { MarketplaceStockProposalMapper } from './mappers/marketplace-stock-proposal.mapper';
 import { MarketplaceAplReceptionMapper } from './mappers/marketplace-apl-reception.mapper';
 import { MarketplaceAplReceptionIndexInitializer } from './services/marketplace-apl-reception-index-initializer.service';
@@ -110,6 +122,10 @@ import { MARKETPLACE_SHIPMENT_REPOSITORY } from '../domain/repositories/marketpl
 import { MARKETPLACE_SUPPLY_VALIDATION_LOG_REPOSITORY } from '../domain/repositories/marketplace-supply-validation-log.repository';
 import { MARKETPLACE_INVENTORY_REPOSITORY } from '../domain/repositories/marketplace-inventory.repository';
 import { MARKETPLACE_STORAGE_CELL_REPOSITORY } from '../domain/repositories/marketplace-storage-cell.repository';
+import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  MARKETPLACE_CONTAINER_TYPE_REPOSITORY,
+} from '../domain/repositories/marketplace-container.repository';
 import { MARKETPLACE_STOCK_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-stock-proposal.repository';
 import { MARKETPLACE_APL_RECEPTION_REPOSITORY } from '../domain/repositories/marketplace-apl-reception.repository';
 import { MARKETPLACE_OUTGOING_PAYMENT_REQUEST_REPOSITORY } from '../domain/repositories/marketplace-outgoing-payment-request.repository';
@@ -154,6 +170,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
         MarketplaceStorageCellEntity,
+        MarketplaceContainerTypeEntity,
+        MarketplaceContainerEntity,
         MarketplaceStockProposalEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
@@ -192,6 +210,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
         MarketplaceSupplyValidationLogEntity,
         MarketplaceInventoryEntity,
         MarketplaceStorageCellEntity,
+        MarketplaceContainerTypeEntity,
+        MarketplaceContainerEntity,
         MarketplaceStockProposalEntity,
         MarketplaceAplReceptionEntity,
         MarketplaceOutgoingPaymentRequestEntity,
@@ -304,6 +324,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     // Story 5.5 — инвентарь КУ с маркировкой штрих-кодом
     MarketplaceInventoryMapper,
     MarketplaceStorageCellMapper,
+    MarketplaceContainerTypeMapper,
+    MarketplaceContainerMapper,
     {
       provide: MARKETPLACE_INVENTORY_REPOSITORY,
       useClass: MarketplaceInventoryRepositoryAdapter,
@@ -311,6 +333,14 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     {
       provide: MARKETPLACE_STORAGE_CELL_REPOSITORY,
       useClass: MarketplaceStorageCellRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_CONTAINER_TYPE_REPOSITORY,
+      useClass: MarketplaceContainerTypeRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_CONTAINER_REPOSITORY,
+      useClass: MarketplaceContainerRepositoryAdapter,
     },
     MarketplaceStockProposalMapper,
     {
@@ -385,6 +415,8 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
     // Story 5.5
     MARKETPLACE_INVENTORY_REPOSITORY,
     MARKETPLACE_STORAGE_CELL_REPOSITORY,
+    MARKETPLACE_CONTAINER_TYPE_REPOSITORY,
+    MARKETPLACE_CONTAINER_REPOSITORY,
     MARKETPLACE_STOCK_PROPOSAL_REPOSITORY,
     // Story 5.3 / 5.4
     MARKETPLACE_APL_RECEPTION_REPOSITORY,

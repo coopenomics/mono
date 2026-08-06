@@ -19,6 +19,7 @@ export class MarketplaceInventoryMapper {
       orderer_account_snapshot: row.orderer_account_snapshot,
       shelf: row.shelf,
       cell_id: row.cell_id,
+      container_id: row.container_id,
       // Legacy-записи (промаркированы до перехода на приёмочную модель) не имеют
       // received_at/by — берём created_at и оператора маркировки как опору.
       received_at: row.received_at ?? row.created_at,

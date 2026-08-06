@@ -37,6 +37,7 @@ import type {
 @Index(['coopname', 'published_offer_id'])
 // Эпик 19: содержимое ячейки — сетка склада и гард «непустую не деактивировать».
 @Index(['coopname', 'cell_id'])
+@Index(['coopname', 'container_id'])
 export class MarketplaceInventoryEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -86,6 +87,11 @@ export class MarketplaceInventoryEntity {
   // Взаимоисключающа с `container_id`; обе NULL — место ещё не назначено.
   @Column({ type: 'uuid', nullable: true })
   public cell_id!: string | null;
+
+  // Бокс, в котором лежит позиция — основной путь размещения.
+  // Взаимоисключающ с `cell_id`; ячейка выводится через сам бокс.
+  @Column({ type: 'uuid', nullable: true })
+  public container_id!: string | null;
 
   // Момент и оператор приёмки кооперативом по акту. nullable — synchronize
   // добавляет колонку без backfill для исторических записей.

@@ -26,6 +26,7 @@ export class MarketplaceInventoryDomainEntity {
   public readonly orderer_account_snapshot: string;
   public readonly shelf: string | null;
   public readonly cell_id: string | null;
+  public readonly container_id: string | null;
   public readonly received_at: Date;
   public readonly received_by_operator_account: string;
   public readonly labeled_at: Date | null;
@@ -60,6 +61,7 @@ export class MarketplaceInventoryDomainEntity {
     this.orderer_account_snapshot = props.orderer_account_snapshot;
     this.shelf = props.shelf ?? null;
     this.cell_id = props.cell_id ?? null;
+    this.container_id = props.container_id ?? null;
     this.received_at = props.received_at;
     this.received_by_operator_account = props.received_by_operator_account;
     this.labeled_at = props.labeled_at ?? null;

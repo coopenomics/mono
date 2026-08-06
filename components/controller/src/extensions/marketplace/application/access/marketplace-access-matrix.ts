@@ -83,6 +83,9 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // Эпик 19: председатель КУ ведёт топологию склада своего участка —
     // заводит сетку ячеек, правит подписи, выводит пустые из оборота.
     StorageCell: ['manage:own-KU', 'read:own-KU'],
+    // Эпик 19: председатель КУ ведёт реестр боксов своего участка —
+    // заводит партии, печатает этикетки, ставит в ячейки, выводит пустые.
+    Container: ['manage:own-KU', 'read:own-KU'],
     KU: ['read:own-KU'],
     Vitrine: ['read'],
     // Story 7.2 / 7.3 / FR30-FR32: председатель КУ доставки видит заявления
@@ -122,6 +125,8 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     Warehouse: ['read:all'],
     // Эпик 19: администратор видит топологию складов всех участков.
     StorageCell: ['read:all'],
+    // Эпик 19: сводный реестр боксов кооператива с объёмом и заполненностью.
+    Container: ['read:all', 'read:own-KU'],
     Shipment: ['read:all'],
     Payment: ['read:all'],
     Extension: ['configure'],

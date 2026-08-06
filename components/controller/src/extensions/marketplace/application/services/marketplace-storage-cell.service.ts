@@ -7,6 +7,10 @@ import {
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
 import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  type MarketplaceContainerDomainRepository,
+} from '../../domain/repositories/marketplace-container.repository';
+import {
   MARKETPLACE_STORAGE_CELL_REPOSITORY,
   type MarketplaceStorageCellCreateInput,
   type MarketplaceStorageCellDomainRepository,
@@ -54,7 +58,9 @@ export class MarketplaceStorageCellService {
     @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
     private readonly cellRepo: MarketplaceStorageCellDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
-    private readonly inventoryRepo: MarketplaceInventoryDomainRepository
+    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
+    private readonly containerRepo: MarketplaceContainerDomainRepository
   ) {}
 
   async createCell(input: CreateStorageCellInput): Promise<MarketplaceStorageCellDomainEntity> {
@@ -147,15 +153,23 @@ export class MarketplaceStorageCellService {
   }
 
   /**
-   * Ячейка считается пустой, если в ней нет имущества, лежащего напрямую.
-   * Боксы, стоящие в ячейке, добавляются к этой проверке вместе с реестром
-   * боксов — до его появления прямое содержимое единственный вид занятости.
+   * Ячейка пуста, если в ней нет ни имущества, лежащего напрямую, ни боксов.
+   * Обе занятости равнозначны: вывести адрес из оборота, оставив там что-то
+   * физически стоящее, значит потерять это для оператора.
    */
   private async assertCellIsEmpty(cell: MarketplaceStorageCellDomainEntity): Promise<void> {
-    const occupied = await this.inventoryRepo.countOnWarehouseByCell(cell.coopname, cell.id);
-    if (occupied > 0) {
+    const [items, containers] = await Promise.all([
+      this.inventoryRepo.countOnWarehouseByCell(cell.coopname, cell.id),
+      this.containerRepo.countByCell(cell.coopname, cell.id),
+    ]);
+    if (containers > 0) {
       throw new ConflictException(
-        `В ячейке «${cell.code}» лежит имущество (позиций: ${occupied}). Переложите его, прежде чем выводить ячейку из оборота.`
+        `В ячейке «${cell.code}» стоят боксы (${containers}). Переставьте их, прежде чем выводить ячейку из оборота.`
+      );
+    }
+    if (items > 0) {
+      throw new ConflictException(
+        `В ячейке «${cell.code}» лежит имущество (позиций: ${items}). Переложите его, прежде чем выводить ячейку из оборота.`
       );
     }
   }

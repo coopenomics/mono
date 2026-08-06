@@ -40,6 +40,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       orderer_account_snapshot: input.orderer_account_snapshot,
       shelf: input.shelf ?? null,
       cell_id: input.cell_id ?? null,
+      container_id: input.container_id ?? null,
       received_at: input.received_at,
       received_by_operator_account: input.received_by_operator_account,
       labeled_at: input.labeled_at ?? null,
@@ -206,6 +207,16 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       where: {
         coopname,
         cell_id,
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+      },
+    });
+  }
+
+  async countOnWarehouseByContainer(coopname: string, container_id: string): Promise<number> {
+    return this.repo.count({
+      where: {
+        coopname,
+        container_id,
         status: In([...MarketplaceInventoryOnWarehouseStatuses]),
       },
     });
@@ -498,6 +509,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       shelf: row.shelf,
       // Отколотый остаток остаётся там же, где лежала исходная позиция.
       cell_id: row.cell_id,
+      container_id: row.container_id,
       received_at: row.received_at,
       received_by_operator_account: row.received_by_operator_account,
       labeled_at: null,

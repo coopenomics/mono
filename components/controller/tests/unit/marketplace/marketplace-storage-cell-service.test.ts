@@ -29,7 +29,7 @@ const makeCell = (over: Partial<Record<string, unknown>> = {}) =>
     ...over,
   }) as any;
 
-const makeService = (over: { cellRepo?: any; inventoryRepo?: any } = {}) => {
+const makeService = (over: { cellRepo?: any; inventoryRepo?: any; containerRepo?: any } = {}) => {
   const cellRepo = {
     create: jest.fn(async (input: any) => makeCell(input)),
     createGrid: jest.fn(async (inputs: any[]) => inputs.map((i, idx) => makeCell({ ...i, id: `cell-${idx}` }))),
@@ -43,10 +43,19 @@ const makeService = (over: { cellRepo?: any; inventoryRepo?: any } = {}) => {
     countOnWarehouseByCell: jest.fn(async () => 0),
     ...over.inventoryRepo,
   };
+  const containerRepo = {
+    countByCell: jest.fn(async () => 0),
+    ...over.containerRepo,
+  };
   return {
-    service: new MarketplaceStorageCellService(cellRepo as any, inventoryRepo as any),
+    service: new MarketplaceStorageCellService(
+      cellRepo as any,
+      inventoryRepo as any,
+      containerRepo as any
+    ),
     cellRepo,
     inventoryRepo,
+    containerRepo,
   };
 };
 
@@ -135,6 +144,17 @@ describe('MarketplaceStorageCellService.update', () => {
     await service.update({ coopname: COOPNAME, id: 'cell-1', is_active: false });
 
     expect(cellRepo.update).toHaveBeenCalledWith('cell-1', { label: undefined, is_active: false });
+  });
+
+  it('не даёт вывести из оборота ячейку, в которой стоят боксы', async () => {
+    const { service, cellRepo } = makeService({
+      containerRepo: { countByCell: jest.fn(async () => 2) },
+    });
+
+    await expect(
+      service.update({ coopname: COOPNAME, id: 'cell-1', is_active: false })
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(cellRepo.update).not.toHaveBeenCalled();
   });
 
   it('правит подпись без проверки на пустоту — содержимое ей не мешает', async () => {
