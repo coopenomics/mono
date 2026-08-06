@@ -47,6 +47,30 @@ export interface IWriteoffConfig {
   post_expiry_grace_days: number;
 }
 
+/**
+ * Эпик 19: адресное хранение на складе КУ. Три независимых переключателя —
+ * модели работы кооперативов расходятся, и включать их вместе неверно.
+ *
+ * `containers_enabled` — используются ли боксы (тара со своим QR). Основная
+ * ожидаемая модель: наполнил бокс и поставил в угол, без координат.
+ *
+ * `cells_enabled` — используется ли координатная сетка ячеек «секция × ярус».
+ * Нужна там, где склад работает на выдачу и место надо искать по адресу; на
+ * маленьком складе только мешает.
+ *
+ * `posting_on_reception_required` — обязан ли председатель указать место
+ * хранения прямо в окне закрывающей подписи акта приёмки. Выключено —
+ * принятое падает в «без места», как было до Эпика 19.
+ *
+ * Все три по умолчанию выключены: кооперативы, установившие «Стол заказов»
+ * раньше, поведения не меняют. Кооперативному кафе не нужно ничего из этого.
+ */
+export interface IWarehouseConfig {
+  containers_enabled: boolean;
+  cells_enabled: boolean;
+  posting_on_reception_required: boolean;
+}
+
 // Конфигурация для расширения marketplace
 export interface IConfig {
   // Story 1.9: статус принятия положения ЦПП Советом кооператива (системное
@@ -54,6 +78,9 @@ export interface IConfig {
   coopAcceptance: ICoopAcceptanceConfig;
   // Story 8.3 (Эпик 8): настройки крона списания скоропорта.
   writeoff: IWriteoffConfig;
+  // Эпик 19: адресное хранение (боксы, координатные ячейки, обязательность
+  // указания места при приёмке).
+  warehouse: IWarehouseConfig;
 }
 
 // Дефолтные параметры конфигурации
@@ -67,6 +94,11 @@ export const defaultConfig: IConfig = {
   writeoff: {
     auto_proposal_enabled: true,
     post_expiry_grace_days: 7,
+  },
+  warehouse: {
+    containers_enabled: false,
+    cells_enabled: false,
+    posting_on_reception_required: false,
   },
 };
 
@@ -123,6 +155,47 @@ export const Schema = z.object({
       describeField({
         label: 'Списание скоропорта',
         note: 'Настройки автоматического списания товаров с истёкшим сроком годности.',
+      })
+    ),
+  warehouse: z
+    .object({
+      containers_enabled: z
+        .boolean()
+        .default(false)
+        .describe(
+          describeField({
+            label: 'Использовать боксы',
+            note: 'Имущество складывается в боксы — тару со своим QR-кодом. Бокс можно поставить в ячейку, а можно оставить без адреса. Выключено — раздел боксов недоступен.',
+          })
+        ),
+      cells_enabled: z
+        .boolean()
+        .default(false)
+        .describe(
+          describeField({
+            label: 'Использовать координатные ячейки',
+            note: 'Склад адресуется координатами «секция × ярус» и читается как таблица — место находится по адресу. Нужно там, где склад работает на выдачу. Выключено — понятий секции и яруса в интерфейсе нет.',
+          })
+        ),
+      posting_on_reception_required: z
+        .boolean()
+        .default(false)
+        .describe(
+          describeField({
+            label: 'Требовать указание места при приёмке',
+            note: 'Председатель указывает место хранения прямо при закрывающей подписи акта приёмки и не может подписать, пока размещено не всё. Выключено — принятое попадает на склад без места, разложить можно позже.',
+          })
+        ),
+    })
+    .default({
+      containers_enabled: false,
+      cells_enabled: false,
+      posting_on_reception_required: false,
+    })
+    .describe(
+      describeField({
+        label: 'Адресное хранение на складе',
+        note: 'Боксы и координатные ячейки на складах кооперативных участков. Кооперативной закупке нужны, небольшому кооперативному кафе будут мешать.',
       })
     ),
 });

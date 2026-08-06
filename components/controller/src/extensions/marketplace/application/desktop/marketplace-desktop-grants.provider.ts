@@ -132,6 +132,24 @@ export class MarketplaceDesktopGrantsProvider
       grants.add('Onboarding:offerer');
     }
 
+    // Эпик 19: адресное хранение опционально. Права на боксы и на топологию
+    // ячеек выдаются только там, где кооператив включил соответствующий
+    // переключатель — иначе разделы просто не появляются на столе, и никакого
+    // отдельного гейта во фронте не требуется.
+    const warehouse = ctx.config?.warehouse as
+      | { containers_enabled?: boolean; cells_enabled?: boolean }
+      | undefined;
+    if (!warehouse?.containers_enabled) {
+      for (const g of [...grants]) {
+        if (g.startsWith('Container:')) grants.delete(g);
+      }
+    }
+    if (!warehouse?.cells_enabled) {
+      for (const g of [...grants]) {
+        if (g.startsWith('StorageCell:')) grants.delete(g);
+      }
+    }
+
     return [...grants];
   }
 }
