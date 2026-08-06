@@ -14,7 +14,6 @@ import type {
   DeleteProjectInputDTO,
   EditProjectInputDTO,
   FinalizeProjectInputDTO,
-  CancelProjectInputDTO,
 } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
@@ -161,15 +160,6 @@ export class ProjectManagementService {
    */
   async finalizeProject(data: FinalizeProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.finalizeProject(data, currentUser);
-    return await this.projectMapperService.mapToDTO(project, currentUser);
-  }
-
-  /**
-   * Отмена проекта CAPITAL контракта
-   * Прекращение работ с возвратом неизрасходованных средств в программу
-   */
-  async cancelProject(data: CancelProjectInputDTO, currentUser: MonoAccountDomainInterface): Promise<ProjectOutputDTO> {
-    const project = await this.projectManagementInteractor.cancelProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
 

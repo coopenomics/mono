@@ -103,5 +103,4 @@ export * as RegisterShare from './registerShare'
 export * as RefreshContributor from './refreshContributor'
 
 // Финализация проекта
-export * as CancelProject from './cancelProject'
 export * as FinalizeProject from './finalizeProject'

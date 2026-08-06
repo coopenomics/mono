@@ -15,26 +15,6 @@ q-select(
   @update:model-value="handleStatusChange"
 )
 
-//- Отмена необратима и возвращает средства в программу — спрашиваем прежде,
-//- чем выполнять. Пока это простое подтверждение; решение совета будет позже.
-BaseDialog(
-  v-model="confirmCancelOpen"
-  title="Отменить проект?"
-  size="sm"
-  @update:model-value="onConfirmDialogToggle"
-)
-  .cancel-confirm
-    p.cancel-confirm__text Работы по проекту прекратятся, а неизрасходованные средства вернутся в программу.
-    p.cancel-confirm__text.t-sm.t-muted Возобновить отменённый проект нельзя.
-
-  template(#footer)
-    .cancel-confirm__actions
-      BaseButton(variant="ghost" @click="rejectCancel") Не отменять
-      BaseButton(
-        variant="danger"
-        :loading="cancelling"
-        @click="confirmCancel"
-      ) Отменить проект
 </template>
 
 <script setup lang="ts">
@@ -45,8 +25,6 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { useUpdateProjectStatus } from '../model'
 import { getProjectStatusLabel } from 'app/extensions/capital/shared/lib/projectStatus'
 import { FailAlert } from 'src/shared/api/alerts'
-import { BaseDialog } from 'src/shared/ui/base/BaseDialog'
-import { BaseButton } from 'src/shared/ui/base/BaseButton'
 
 interface Props {
   project: IProject | undefined
@@ -77,14 +55,15 @@ const readonly = computed(() => {
 })
 
 
-// Опции для выбора статуса
+// Опции для выбора статуса.
+// «Отменён» не предлагаем: прекращение проекта — это его удаление, при котором
+// средства возвращаются в программу. Отдельный статус отмены дублировал бы его.
 const statusOptions = [
   { value: Zeus.ProjectStatus.PENDING, label: getProjectStatusLabel(Zeus.ProjectStatus.PENDING) },
   { value: Zeus.ProjectStatus.ACTIVE, label: getProjectStatusLabel(Zeus.ProjectStatus.ACTIVE) },
   { value: Zeus.ProjectStatus.VOTING, label: getProjectStatusLabel(Zeus.ProjectStatus.VOTING) },
   { value: Zeus.ProjectStatus.RESULT, label: getProjectStatusLabel(Zeus.ProjectStatus.RESULT) },
   { value: Zeus.ProjectStatus.FINALIZED, label: getProjectStatusLabel(Zeus.ProjectStatus.FINALIZED) },
-  { value: Zeus.ProjectStatus.CANCELLED, label: getProjectStatusLabel(Zeus.ProjectStatus.CANCELLED) },
 ]
 
 // Обработчик клика по селекту - переключает dropdown
@@ -94,36 +73,6 @@ const handleClick = () => {
   }
 }
 
-// Подтверждение отмены: статус выбран, но действие ещё не выполнено.
-const confirmCancelOpen = ref(false)
-const cancelling = ref(false)
-
-/** Возврат селекта к тому статусу, который реально стоит у проекта. */
-const revertSelection = () => {
-  selectedStatus.value = previousStatus.value
-}
-
-const rejectCancel = () => {
-  confirmCancelOpen.value = false
-  revertSelection()
-}
-
-/** Закрытие диалога мимо кнопок (крестик, клик вне) — тоже отказ. */
-const onConfirmDialogToggle = (open: boolean) => {
-  if (!open && !cancelling.value) revertSelection()
-}
-
-const confirmCancel = async () => {
-  cancelling.value = true
-  try {
-    await applyStatusChange(Zeus.ProjectStatus.CANCELLED)
-    confirmCancelOpen.value = false
-  } finally {
-    cancelling.value = false
-  }
-}
-
-/** Собственно смена статуса — общая для обычных переходов и подтверждённой отмены. */
 const applyStatusChange = async (newStatus: Zeus.ProjectStatus) => {
   if (!props.project) return
 
@@ -147,12 +96,6 @@ const applyStatusChange = async (newStatus: Zeus.ProjectStatus) => {
 const handleStatusChange = async (newStatus: Zeus.ProjectStatus) => {
   if (!newStatus || !props.project || newStatus === previousStatus.value || readonly.value) return
 
-  // Отмена необратима — сначала спрашиваем, и только потом выполняем.
-  if (newStatus === Zeus.ProjectStatus.CANCELLED) {
-    confirmCancelOpen.value = true
-    return
-  }
-
   await applyStatusChange(newStatus)
 }
 
@@ -165,20 +108,3 @@ watch(() => props.project?.status, (newStatus) => {
 })
 </script>
 
-<style lang="scss" scoped>
-.cancel-confirm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-}
-
-.cancel-confirm__text {
-  margin: 0;
-}
-
-.cancel-confirm__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--p-2);
-}
-</style>

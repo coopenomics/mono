@@ -40,7 +40,6 @@
 #include "app/project_managment/start_project/startproject.cpp"
 #include "app/project_managment/start_voting/startvoting.cpp"
 #include "app/project_managment/stop_project/stopproject.cpp"
-#include "app/project_managment/cancel_project/cancelproj.cpp"
 #include "app/project_managment/finalize_project/finalizeproj.cpp"
 #include "app/project_managment/finalize_project/returntopool.cpp"
 

@@ -104,74 +104,28 @@ namespace Capital::Core {
   /**
    * @brief Возвращает неизрасходованные средства проекта в программу
    *
-   * Списывает возвращаемую сумму с пулов проекта и отправляет трекинговое
-   * действие returntopool, которое зачислит её в свободные средства программы.
-   *
-   * Списание обязательно: без него повторный возврат по тому же проекту отдал
-   * бы те же деньги ещё раз. Это не умозрительный случай — проект можно
-   * остановить (возврат), запустить снова и затем отменить (второй возврат).
-   * После списания повторный вызов вернёт ноль и ничего не отправит.
-   *
-   * Раскладка возврата обратна раскладке аллокации: сначала снимается
-   * незадействованный резерв расходов (accumulated_expense_pool сверх
-   * потраченного), остаток — с инвестиционных пулов.
+   * Отправляет трекинговое действие returntopool, если возвращать есть что.
+   * Действие исполняется вложенно — уже после того, как вызывающий код
+   * закончил работу, в том числе после удаления строки проекта. Поэтому
+   * returntopool не требует существования проекта.
    *
    * @param coopname Имя кооператива
    * @param project_id ID проекта
-   * @return Возвращённая сумма (ноль, если возвращать нечего)
    */
-  eosio::asset return_unused_investments(eosio::name coopname, uint64_t project_id) {
+  void return_unused_investments(eosio::name coopname, uint64_t project_id) {
     Capital::project_index projects(_capital, coopname.value);
     auto project = projects.find(project_id);
     eosio::check(project != projects.end(), "Проект не найден");
 
     eosio::asset unused = Capital::Projects::calculate_unused_investments(*project);
-    if (unused.amount == 0) return unused;
+    if (unused.amount == 0) return;
 
-    projects.modify(project, coopname, [&](auto &p) {
-      // Незадействованный резерв расходов — первая часть возврата.
-      int64_t expense_reserve = p.fact.accumulated_expense_pool.amount - p.fact.used_expense_pool.amount;
-      int64_t from_expense = expense_reserve > 0 ? std::min(expense_reserve, unused.amount) : 0;
-      int64_t from_invest = unused.amount - from_expense;
-
-      p.fact.accumulated_expense_pool -= eosio::asset(from_expense, _root_govern_symbol);
-
-      // Инвестиционные пулы уменьшаем в пределах их остатка: часть возврата
-      // может приходиться на прямые инвестиции пайщиков, которых нет в
-      // программном пуле.
-      int64_t from_program = std::min(from_invest, p.fact.program_invest_pool.amount);
-      p.fact.program_invest_pool -= eosio::asset(from_program, _root_govern_symbol);
-
-      int64_t from_invest_pool = std::min(from_invest, p.fact.invest_pool.amount);
-      p.fact.invest_pool -= eosio::asset(from_invest_pool, _root_govern_symbol);
-
-      p.fact.total_received_investments -= unused;
-      p.fact.total_returned_investments += unused;
-
-      // Пересчитываем коэффициенты — те же формулы, что при аллокации.
-      p.fact.return_base_percent = Capital::Core::Generation::calculate_return_base_percent(
-        p.fact.creators_base_pool, p.fact.authors_base_pool, p.fact.coordinators_base_pool, p.fact.invest_pool);
-      p.fact.use_invest_percent = Capital::Core::Generation::calculate_use_invest_percent(
-        p.fact.creators_base_pool, p.fact.authors_base_pool, p.fact.coordinators_base_pool,
-        p.fact.accumulated_expense_pool, p.fact.used_expense_pool, p.fact.total_received_investments);
-
-      p.fact.total_used_investments = eosio::asset(
-        static_cast<int64_t>(static_cast<double>(p.fact.total_received_investments.amount) * (p.fact.use_invest_percent / 100.0)),
-        _root_govern_symbol);
-      p.fact.total_with_investments = p.fact.total + p.fact.total_used_investments;
-    });
-
-    // Зачисление в программу — трекинговым действием, чтобы возврат был виден
-    // в истории отдельной записью. Оно исполняется после текущего действия,
-    // в том числе после удаления строки проекта.
     action(
       permission_level{_capital, "active"_n},
       _capital,
       "returntopool"_n,
       std::make_tuple(coopname, project->project_hash, unused)
     ).send();
-
-    return unused;
   }
 
 } // namespace Capital::Core

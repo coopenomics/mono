@@ -139,9 +139,6 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CalendarEntryStatus: "enum" as const,
-	CancelProjectInput:{
-
-	},
 	CancelRequestInput:{
 
 	},
@@ -830,9 +827,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
-		},
-		capitalCancelProject:{
-			data:"CancelProjectInput"
 		},
 		capitalCloseProject:{
 			data:"CloseProjectInput"
@@ -4253,7 +4247,6 @@ export const ReturnTypes: Record<string,any> = {
 		capitalApproveCommit:"CapitalCommit",
 		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
-		capitalCancelProject:"CapitalProject",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
 		capitalCompleteRegistration:"Transaction",

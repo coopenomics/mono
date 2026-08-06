@@ -3,10 +3,13 @@ title: Направление средств программы в проект 
 
 # Движение денег программы «Благорост» между свободным остатком и бюджетами
 # проектов: аллокация (allocate) и обратный возврат неизрасходованного при
-# каждом выбытии проекта из работы — остановка (stopproject), отмена
-# (cancelproj), завершение (finalizeproj), удаление (delproject) и отклонение
-# советом (declprj). Приём взносов в саму программу (createpinv, fundprog) —
-# соседний слайс, здесь не заводится.
+# выбытии проекта — завершение (finalizeproj), удаление (delproject) и
+# отклонение советом (declprj). Приём взносов в саму программу (createpinv,
+# fundprog) — соседний слайс, здесь не заводится.
+#
+# Отдельной отмены проекта нет намеренно: прекращение проекта — это его
+# удаление, при котором средства возвращаются. Статус «отменён» в интерфейсе
+# не предлагается, чтобы не дублировать удаление.
 #
 # Ручной деаллокации нет намеренно: возврат происходит сам. Действие diallocate
 # в контракте осталось от прежней схемы, наружу не выведено
@@ -14,16 +17,13 @@ title: Направление средств программы в проект 
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/allocate/**
-    - components/contracts/cpp/capital/app/project_managment/cancel_project/**
     - components/contracts/cpp/capital/app/project_managment/delete_project/**
     - components/contracts/cpp/capital/app/project_managment/finalize_project/**
-    - components/contracts/cpp/capital/app/project_managment/stop_project/**
     - components/contracts/cpp/capital/app/project_managment/init_project/declprj.cpp
     - components/contracts/cpp/capital/domain/core/program_investment.cpp
     - components/contracts/cpp/capital/domain/entities/projects.hpp
   backend:
     - components/controller/src/extensions/capital/application/dto/invests_management/allocate-funds.input.ts
-    - components/controller/src/extensions/capital/application/dto/project_management/cancel-project-input.dto.ts
     - components/controller/src/extensions/capital/application/services/invests-management.service.ts
     - components/controller/src/extensions/capital/application/use-cases/invests-management.interactor.ts
     - components/controller/src/extensions/capital/application/resolvers/invests-management.resolver.ts
@@ -156,45 +156,6 @@ cases:
     test: ~
     status: missing
 
-  - id: cap.alloc.happy.07
-    level: contract
-    kind: happy
-    scenario: >
-      Председатель отменяет проект, по которому уже шли работы.
-    expect: >
-      неизрасходованный остаток возвращается в программу, сегменты участников
-      и запись проекта удаляются из оперативной памяти цепи
-    test: ~
-    status: missing
-
-  - id: cap.alloc.side.19
-    level: contract
-    kind: side
-    scenario: >
-      проект останавливают (возврат остатка), запускают снова и затем отменяют
-    expect: >
-      второй возврат не отдаёт те же деньги повторно: возвращённое списано с
-      пулов проекта при первом возврате. Без списания программа получила бы
-      сумму дважды — деньги из воздуха
-    test: ~
-    status: missing
-
-  - id: cap.alloc.side.22
-    level: contract
-    kind: side
-    scenario: отмена проекта, у которого есть компоненты
-    expect: отказ с требованием сначала отменить компоненты
-    test: ~
-    status: missing
-
-  - id: cap.alloc.side.23
-    level: contract
-    kind: side
-    scenario: отмена финализированного проекта
-    expect: отказ — средства такого проекта уже возвращены, а работы завершены
-    test: ~
-    status: missing
-
   - id: cap.alloc.decision.01
     level: contract
     kind: side
@@ -204,44 +165,11 @@ cases:
       100% — иначе завершается успешно, ничего не изменив.
     expect: >
       наружу не выводится. Возврат средств покрыт выбытием проекта
-      (stopproject / cancelproj / finalizeproj / delproject / declprj). Судьба
-      самого действия — удалить или переписать под сумму — решается отдельно
+      (finalizeproj / delproject / declprj). Судьба самого действия — удалить
+      или переписать под сумму — решается отдельно
     decision_needed: true
     test: ~
     status: missing
-
-  - id: cap.alloc.decision.02
-    level: contract
-    kind: side
-    scenario: >
-      Раскладка возврата по пулам проекта: сначала снимается незадействованный
-      резерв расходов (accumulated_expense_pool сверх потраченного), остаток —
-      с инвестиционных пулов; коэффициенты пересчитываются теми же формулами,
-      что при аллокации.
-    expect: >
-      раскладка выведена из того, как аллокация раскладывает поступление, и
-      требует проверки методологом: от неё зависят коэффициенты возврата и
-      использования, а значит и расчёт долей участников
-    decision_needed: true
-    test: ~
-    status: missing
-
-  - id: cap.alloc.decision.03
-    level: contract
-    kind: side
-    scenario: >
-      Отмена проекта, по которому участники уже сделали коммиты: сегменты
-      удаляются вместе с проектом.
-    expect: >
-      судьба незаконвертированного вклада участников отменённого проекта не
-      описана ни в стандарте, ни в коде — решается отдельно
-    decision_needed: true
-    test: ~
-    status: missing
-
-  # ── Уровень бэкенда ───────────────────────────────────────────────────────
-  # Интерфейс показывает кнопку только председателю и подставляет проект из
-  # списка, но сервер обязан отказывать сам — случаи ниже проверяются мимо него.
 
   - id: cap.alloc.happy.02
     level: backend
@@ -283,41 +211,6 @@ cases:
     scenario: сумма указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
-    status: passing
-
-  - id: cap.alloc.happy.08
-    level: backend
-    kind: happy
-    scenario: отмена проекта председателем
-    expect: >
-      статус «отменён» проставляется в учётной базе: цепь стирает запись, и
-      оттуда статус уже не придёт — без этого отменённый проект остался бы
-      в базе с прежним статусом и выглядел живым
-    test: components/controller/tests/unit/capital/project-cancellation.test.ts
-    status: passing
-
-  - id: cap.alloc.side.24
-    level: backend
-    kind: side
-    scenario: цепь отклонила отмену (недоступна либо не прошли проверки)
-    expect: статус в базе не меняется — иначе учёт разошёлся бы с цепью
-    test: components/controller/tests/unit/capital/project-cancellation.test.ts
-    status: passing
-
-  - id: cap.alloc.side.20
-    level: backend
-    kind: side
-    scenario: отмена персонального проекта пайщика
-    expect: отказ до обращения к цепи
-    test: components/controller/tests/unit/capital/project-cancellation.test.ts
-    status: passing
-
-  - id: cap.alloc.side.21
-    level: backend
-    kind: side
-    scenario: отмена компонента с закреплённым объявлением
-    expect: закреплённое объявление снимается, как при удалении компонента
-    test: components/controller/tests/unit/capital/project-cancellation.test.ts
     status: passing
 
   - id: cap.alloc.side.12
@@ -399,31 +292,12 @@ cases:
   - id: cap.alloc.side.25
     level: ui
     kind: side
-    scenario: в списке статусов проекта выбран «Отменён»
-    expect: >
-      сначала показывается подтверждение с предупреждением о возврате средств
-      и невозможности возобновления; до подтверждения ничего не выполняется
-    test: ~
-    status: missing
-
-  - id: cap.alloc.side.26
-    level: ui
-    kind: side
-    scenario: подтверждение отмены закрыто отказом либо мимо кнопок
-    expect: >
-      выбор статуса возвращается к прежнему значению, отмена не выполняется.
-      Иначе селект показывал бы «Отменён» на неотменённом проекте
-    test: ~
-    status: missing
-
-  - id: cap.alloc.side.27
-    level: ui
-    kind: side
     scenario: >
-      прежнее поведение: выбор «Отменён» вызывал закрытие приёма инвестиций
-      (closeProject) и статус проекта не менялся вовсе
+      прежнее поведение: в списке статусов был пункт «Отменён», который вызывал
+      закрытие приёма инвестиций (closeProject) и статуса не менял вовсе
     expect: >
-      выбор «Отменён» вызывает отмену проекта. Закрытие приёма инвестиций —
-      отдельная операция, к отмене отношения не имеющая
+      пункта «Отменён» в списке статусов нет. Прекращение проекта — удаление,
+      при котором средства возвращаются в программу; закрытие приёма инвестиций
+      остаётся отдельной операцией
     test: ~
     status: missing

@@ -11,7 +11,6 @@ import { DeleteProjectInputDTO } from '../dto/project_management/delete-project-
 import { CreateProjectInputDTO } from '../dto/project_management/create-project-input.dto';
 import { EditProjectInputDTO } from '../dto/project_management/edit-project-input.dto';
 import { FinalizeProjectInputDTO } from '../dto/project_management/finalize-project-input.dto';
-import { CancelProjectInputDTO } from '../dto/project_management/cancel-project-input.dto';
 import { GetProjectInputDTO } from '../dto/project_management/get-project-input.dto';
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
@@ -233,22 +232,6 @@ export class ProjectManagementResolver {
   ): Promise<ProjectOutputDTO> {
     const result = await this.projectManagementService.finalizeProject(data, currentUser);
     return result;
-  }
-
-  /**
-   * Мутация для отмены проекта CAPITAL контракта
-   */
-  @Mutation(() => ProjectOutputDTO, {
-    name: 'capitalCancelProject',
-    description: 'Отмена проекта: возврат неизрасходованных средств в программу и прекращение работ',
-  })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
-  async cancelCapitalProject(
-    @Args('data', { type: () => CancelProjectInputDTO }) data: CancelProjectInputDTO,
-    @CurrentUser() currentUser: MonoAccountDomainInterface
-  ): Promise<ProjectOutputDTO> {
-    return await this.projectManagementService.cancelProject(data, currentUser);
   }
 
   /**

@@ -26,10 +26,6 @@ export type IFinalizeProjectInput = Mutations.Capital.FinalizeProject.IInput['da
 export type IFinalizeProjectOutput =
   Mutations.Capital.FinalizeProject.IOutput[typeof Mutations.Capital.FinalizeProject.name];
 
-export type ICancelProjectInput = Mutations.Capital.CancelProject.IInput['data'];
-export type ICancelProjectOutput =
-  Mutations.Capital.CancelProject.IOutput[typeof Mutations.Capital.CancelProject.name];
-
 async function startProject(
   data: IStartProjectInput,
 ): Promise<IStartProjectOutput> {
@@ -109,19 +105,6 @@ async function finalizeProject(
   return result;
 }
 
-async function cancelProject(
-  data: ICancelProjectInput,
-): Promise<ICancelProjectOutput> {
-  const { [Mutations.Capital.CancelProject.name]: result } =
-    await client.Mutation(Mutations.Capital.CancelProject.mutation, {
-      variables: {
-        data,
-      },
-    });
-
-  return result;
-}
-
 export const api = {
   startProject,
   stopProject,
@@ -129,5 +112,4 @@ export const api = {
   closeProject,
   completeVoting,
   finalizeProject,
-  cancelProject,
 };

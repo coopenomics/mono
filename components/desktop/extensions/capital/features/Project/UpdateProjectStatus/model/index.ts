@@ -36,16 +36,6 @@ export function useUpdateProjectStatus() {
         });
         break;
 
-      // Отмена — не то же самое, что закрытие приёма инвестиций (closeProject).
-      // Она прекращает работы, возвращает средства в программу и убирает проект
-      // из блокчейна. Возобновить отменённый проект нельзя.
-      case Zeus.ProjectStatus.CANCELLED:
-        updatedProject = await api.cancelProject({
-          project_hash: projectHash,
-          coopname,
-        });
-        break;
-
       case Zeus.ProjectStatus.RESULT:
         updatedProject = await api.completeVoting({
           project_hash: projectHash,

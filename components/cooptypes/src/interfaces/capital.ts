@@ -522,11 +522,6 @@ export interface IFactPool {
   total_with_investments: IAsset
 }
 
-export interface ICancelproj {
-  coopname: IName
-  project_hash: IChecksum256
-}
-
 export interface IFinalizeproj {
   coopname: IName
   project_hash: IChecksum256

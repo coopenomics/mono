@@ -119,10 +119,6 @@ public:
     [[eosio::action]]
     void finalizeproj(name coopname, checksum256 project_hash);
 
-    // Отменить проект с возвратом неизрасходованных средств в программу
-    [[eosio::action]]
-    void cancelproj(name coopname, checksum256 project_hash);
-
     // Возврат неиспользованных инвестиций в глобальный пул (трекинговое действие)
     [[eosio::action]]
     void returntopool(name coopname, checksum256 project_hash, asset amount);
