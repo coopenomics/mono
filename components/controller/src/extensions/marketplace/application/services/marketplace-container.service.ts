@@ -39,9 +39,9 @@ const CODE_ALLOCATION_ATTEMPTS = 3;
 export interface CreateContainerTypeInput {
   coopname: string;
   name: string;
-  length_mm: number;
-  width_mm: number;
-  height_mm: number;
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
   volume_m3?: string | null;
   max_weight_kg?: string | null;
 }
@@ -91,9 +91,9 @@ export class MarketplaceContainerService {
 
   async createType(input: CreateContainerTypeInput): Promise<MarketplaceContainerTypeDomainEntity> {
     for (const [label, value] of [
-      ['Длина', input.length_mm],
-      ['Ширина', input.width_mm],
-      ['Высота', input.height_mm],
+      ['Длина', input.length_cm],
+      ['Ширина', input.width_cm],
+      ['Высота', input.height_cm],
     ] as const) {
       if (!Number.isFinite(value) || value <= 0) {
         throw new BadRequestException(`${label} должна быть больше нуля.`);
@@ -105,14 +105,14 @@ export class MarketplaceContainerService {
     return this.typeRepo.create({
       coopname: input.coopname,
       name: input.name,
-      length_mm: input.length_mm,
-      width_mm: input.width_mm,
-      height_mm: input.height_mm,
+      length_cm: input.length_cm,
+      width_cm: input.width_cm,
+      height_cm: input.height_cm,
       // Объём можно задать вручную — у тары неправильной формы габаритный
       // объём завышен, и для расчёта транспорта важен полезный.
       volume_m3:
         input.volume_m3 ??
-        computeVolumeM3(input.length_mm, input.width_mm, input.height_mm),
+        computeVolumeM3(input.length_cm, input.width_cm, input.height_cm),
       max_weight_kg: input.max_weight_kg ?? null,
     });
   }

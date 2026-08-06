@@ -8355,22 +8355,22 @@ export type ValueTypes = {
 	['...on MarketplaceContainer']?: Omit<ValueTypes["MarketplaceContainer"], "...on MarketplaceContainer">
 }>;
 	["MarketplaceContainerType"]: AliasType<{
-	/** Высота в миллиметрах. */
-	height_mm?:boolean | `@${string}`,
+	/** Высота в сантиметрах. */
+	height_cm?:boolean | `@${string}`,
 	/** Идентификатор типа боксов. */
 	id?:boolean | `@${string}`,
 	/** Тип в обороте и предлагается при заведении боксов. */
 	is_active?:boolean | `@${string}`,
-	/** Длина в миллиметрах. */
-	length_mm?:boolean | `@${string}`,
+	/** Длина в сантиметрах. */
+	length_cm?:boolean | `@${string}`,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?:boolean | `@${string}`,
 	/** Название типа, например «Ящик 600×400×300». */
 	name?:boolean | `@${string}`,
 	/** Полезный объём в кубометрах. */
 	volume_m3?:boolean | `@${string}`,
-	/** Ширина в миллиметрах. */
-	width_mm?:boolean | `@${string}`,
+	/** Ширина в сантиметрах. */
+	width_cm?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceContainerType']?: Omit<ValueTypes["MarketplaceContainerType"], "...on MarketplaceContainerType">
 }>;
@@ -8450,18 +8450,18 @@ export type ValueTypes = {
 	shipment_id: string | Variable<any, string>
 };
 	["MarketplaceCreateContainerTypeInput"]: {
-	/** Высота в миллиметрах. */
-	height_mm: number | Variable<any, string>,
-	/** Длина в миллиметрах. */
-	length_mm: number | Variable<any, string>,
+	/** Высота в сантиметрах. */
+	height_cm: number | Variable<any, string>,
+	/** Длина в сантиметрах. */
+	length_cm: number | Variable<any, string>,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null | Variable<any, string>,
 	/** Название типа боксов. */
 	name: string | Variable<any, string>,
 	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
 	volume_m3?: string | undefined | null | Variable<any, string>,
-	/** Ширина в миллиметрах. */
-	width_mm: number | Variable<any, string>
+	/** Ширина в сантиметрах. */
+	width_cm: number | Variable<any, string>
 };
 	["MarketplaceCreateContainersInput"]: {
 	/** Кооперативный участок, за которым закрепляются боксы. */
@@ -21757,22 +21757,22 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceContainerType"]: AliasType<{
-	/** Высота в миллиметрах. */
-	height_mm?:boolean | `@${string}`,
+	/** Высота в сантиметрах. */
+	height_cm?:boolean | `@${string}`,
 	/** Идентификатор типа боксов. */
 	id?:boolean | `@${string}`,
 	/** Тип в обороте и предлагается при заведении боксов. */
 	is_active?:boolean | `@${string}`,
-	/** Длина в миллиметрах. */
-	length_mm?:boolean | `@${string}`,
+	/** Длина в сантиметрах. */
+	length_cm?:boolean | `@${string}`,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?:boolean | `@${string}`,
 	/** Название типа, например «Ящик 600×400×300». */
 	name?:boolean | `@${string}`,
 	/** Полезный объём в кубометрах. */
 	volume_m3?:boolean | `@${string}`,
-	/** Ширина в миллиметрах. */
-	width_mm?:boolean | `@${string}`,
+	/** Ширина в сантиметрах. */
+	width_cm?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceConvertBranchFundsInput"]: {
@@ -21850,18 +21850,18 @@ export type ResolverInputTypes = {
 	shipment_id: string
 };
 	["MarketplaceCreateContainerTypeInput"]: {
-	/** Высота в миллиметрах. */
-	height_mm: number,
-	/** Длина в миллиметрах. */
-	length_mm: number,
+	/** Высота в сантиметрах. */
+	height_cm: number,
+	/** Длина в сантиметрах. */
+	length_cm: number,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
 	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
 	volume_m3?: string | undefined | null,
-	/** Ширина в миллиметрах. */
-	width_mm: number
+	/** Ширина в сантиметрах. */
+	width_cm: number
 };
 	["MarketplaceCreateContainersInput"]: {
 	/** Кооперативный участок, за которым закрепляются боксы. */
@@ -34756,22 +34756,22 @@ export type ModelTypes = {
 	label?: string | undefined | null
 };
 	["MarketplaceContainerType"]: {
-		/** Высота в миллиметрах. */
-	height_mm: number,
+		/** Высота в сантиметрах. */
+	height_cm: number,
 	/** Идентификатор типа боксов. */
 	id: string,
 	/** Тип в обороте и предлагается при заведении боксов. */
 	is_active: boolean,
-	/** Длина в миллиметрах. */
-	length_mm: number,
+	/** Длина в сантиметрах. */
+	length_cm: number,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null,
 	/** Название типа, например «Ящик 600×400×300». */
 	name: string,
 	/** Полезный объём в кубометрах. */
 	volume_m3: string,
-	/** Ширина в миллиметрах. */
-	width_mm: number
+	/** Ширина в сантиметрах. */
+	width_cm: number
 };
 	["MarketplaceConvertBranchFundsInput"]: {
 	/** Сумма перевода в членский кошелёк «Стола заказов». */
@@ -34847,18 +34847,18 @@ export type ModelTypes = {
 	shipment_id: string
 };
 	["MarketplaceCreateContainerTypeInput"]: {
-	/** Высота в миллиметрах. */
-	height_mm: number,
-	/** Длина в миллиметрах. */
-	length_mm: number,
+	/** Высота в сантиметрах. */
+	height_cm: number,
+	/** Длина в сантиметрах. */
+	length_cm: number,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
 	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
 	volume_m3?: string | undefined | null,
-	/** Ширина в миллиметрах. */
-	width_mm: number
+	/** Ширина в сантиметрах. */
+	width_cm: number
 };
 	["MarketplaceCreateContainersInput"]: {
 	/** Кооперативный участок, за которым закрепляются боксы. */
@@ -48891,22 +48891,22 @@ export type GraphQLTypes = {
 };
 	["MarketplaceContainerType"]: {
 	__typename: "MarketplaceContainerType",
-	/** Высота в миллиметрах. */
-	height_mm: number,
+	/** Высота в сантиметрах. */
+	height_cm: number,
 	/** Идентификатор типа боксов. */
 	id: string,
 	/** Тип в обороте и предлагается при заведении боксов. */
 	is_active: boolean,
-	/** Длина в миллиметрах. */
-	length_mm: number,
+	/** Длина в сантиметрах. */
+	length_cm: number,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null,
 	/** Название типа, например «Ящик 600×400×300». */
 	name: string,
 	/** Полезный объём в кубометрах. */
 	volume_m3: string,
-	/** Ширина в миллиметрах. */
-	width_mm: number,
+	/** Ширина в сантиметрах. */
+	width_cm: number,
 	['...on MarketplaceContainerType']: Omit<GraphQLTypes["MarketplaceContainerType"], "...on MarketplaceContainerType">
 };
 	["MarketplaceConvertBranchFundsInput"]: {
@@ -48985,18 +48985,18 @@ export type GraphQLTypes = {
 	shipment_id: string
 };
 	["MarketplaceCreateContainerTypeInput"]: {
-		/** Высота в миллиметрах. */
-	height_mm: number,
-	/** Длина в миллиметрах. */
-	length_mm: number,
+		/** Высота в сантиметрах. */
+	height_cm: number,
+	/** Длина в сантиметрах. */
+	length_cm: number,
 	/** Предельная загрузка в килограммах. */
 	max_weight_kg?: string | undefined | null,
 	/** Название типа боксов. */
 	name: string,
 	/** Полезный объём в кубометрах. Не указан — считается из габаритов. */
 	volume_m3?: string | undefined | null,
-	/** Ширина в миллиметрах. */
-	width_mm: number
+	/** Ширина в сантиметрах. */
+	width_cm: number
 };
 	["MarketplaceCreateContainersInput"]: {
 		/** Кооперативный участок, за которым закрепляются боксы. */

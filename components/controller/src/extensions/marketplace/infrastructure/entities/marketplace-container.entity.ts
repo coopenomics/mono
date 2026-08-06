@@ -25,14 +25,14 @@ export class MarketplaceContainerTypeEntity {
   @Column({ type: 'varchar', length: 128 })
   public name!: string;
 
-  @Column({ type: 'integer' })
-  public length_mm!: number;
+  @Column({ type: 'integer', default: 0 })
+  public length_cm!: number;
 
-  @Column({ type: 'integer' })
-  public width_mm!: number;
+  @Column({ type: 'integer', default: 0 })
+  public width_cm!: number;
 
-  @Column({ type: 'integer' })
-  public height_mm!: number;
+  @Column({ type: 'integer', default: 0 })
+  public height_cm!: number;
 
   // default нужен, чтобы TypeORM смог добавить NOT NULL колонку на уже
   // существующих строках (расширение работает на synchronize). Реальное

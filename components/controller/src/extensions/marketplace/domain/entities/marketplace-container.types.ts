@@ -13,9 +13,9 @@ export interface MarketplaceContainerTypeProps {
   coopname: string;
   /** Название типа: «Ящик 600×400×300». */
   name: string;
-  length_mm: number;
-  width_mm: number;
-  height_mm: number;
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
   /** Полезный объём в литрах (numeric-строка). */
   volume_m3: string;
   /** Предельная загрузка в килограммах; NULL — не нормируется. */
@@ -63,15 +63,18 @@ export function parseContainerCodeSequence(code: string): number | null {
 }
 
 /**
- * Полезный объём в кубометрах из габаритов в миллиметрах.
+ * Полезный объём в кубометрах из габаритов в сантиметрах.
  *
- * Кубометры, а не литры: объём тары нужен ровно для одного — прикинуть, какая
- * машина увезёт партию боксов между участками. Перевозку считают кубами
- * («нужно 10 кубов»), и переводить литры в кубы в уме на погрузке никто не
- * станет. Четыре знака после запятой — чтобы и мелкая коробка не схлопнулась
+ * Сантиметры, потому что в них тару меряют на месте: «ящик сто на сто на
+ * тридцать». Миллиметры — язык каталогов поставщиков тары, а не кладовщика с
+ * рулеткой, и на них легко ошибиться на порядок.
+ *
+ * Объём — в кубометрах: он нужен ровно для одного, прикинуть какая машина
+ * увезёт партию боксов между участками. Перевозку считают кубами («нужно 10
+ * кубов»). Четыре знака после запятой — чтобы и мелкая коробка не схлопнулась
  * в ноль.
  */
-export function computeVolumeM3(length_mm: number, width_mm: number, height_mm: number): string {
-  const m3 = (length_mm * width_mm * height_mm) / 1_000_000_000;
+export function computeVolumeM3(length_cm: number, width_cm: number, height_cm: number): string {
+  const m3 = (length_cm * width_cm * height_cm) / 1_000_000;
   return m3.toFixed(4);
 }

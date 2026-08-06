@@ -61,9 +61,9 @@ export class MarketplaceContainerResolver {
     const type = await this.containerService.createType({
       coopname: config.coopname,
       name: data.name,
-      length_mm: data.length_mm,
-      width_mm: data.width_mm,
-      height_mm: data.height_mm,
+      length_cm: data.length_cm,
+      width_cm: data.width_cm,
+      height_cm: data.height_cm,
       volume_m3: data.volume_m3 ?? null,
       max_weight_kg: data.max_weight_kg ?? null,
     });

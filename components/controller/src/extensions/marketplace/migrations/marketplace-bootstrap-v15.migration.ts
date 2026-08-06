@@ -18,11 +18,11 @@ import { IConfig } from '../types';
 export const RECOMPUTE_CONTAINER_VOLUME_SQL = `
   UPDATE marketplace_container_type
      SET volume_m3 = ROUND(
-           (length_mm::numeric * width_mm::numeric * height_mm::numeric) / 1000000000,
+           (length_cm::numeric * width_cm::numeric * height_cm::numeric) / 1000000,
            4
          )
    WHERE volume_m3 IS DISTINCT FROM ROUND(
-           (length_mm::numeric * width_mm::numeric * height_mm::numeric) / 1000000000,
+           (length_cm::numeric * width_cm::numeric * height_cm::numeric) / 1000000,
            4
          )
    RETURNING id`;

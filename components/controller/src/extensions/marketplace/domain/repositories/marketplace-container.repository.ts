@@ -9,9 +9,9 @@ export const MARKETPLACE_CONTAINER_TYPE_REPOSITORY = Symbol('MARKETPLACE_CONTAIN
 export interface MarketplaceContainerTypeCreateInput {
   coopname: string;
   name: string;
-  length_mm: number;
-  width_mm: number;
-  height_mm: number;
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
   /** Полезный объём; не задан — считается из габаритов. */
   volume_m3?: string;
   max_weight_kg?: string | null;

@@ -39,9 +39,9 @@ export const marketplaceContainerSelector = Selector('MarketplaceContainer')(raw
 const rawContainerTypeSelector = {
   id: true,
   name: true,
-  length_mm: true,
-  width_mm: true,
-  height_mm: true,
+  length_cm: true,
+  width_cm: true,
+  height_cm: true,
   volume_m3: true,
   max_weight_kg: true,
   is_active: true,

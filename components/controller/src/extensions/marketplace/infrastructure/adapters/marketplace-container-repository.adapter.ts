@@ -44,11 +44,11 @@ export class MarketplaceContainerTypeRepositoryAdapter implements MarketplaceCon
     const row = this.repo.create({
       coopname: input.coopname,
       name,
-      length_mm: input.length_mm,
-      width_mm: input.width_mm,
-      height_mm: input.height_mm,
+      length_cm: input.length_cm,
+      width_cm: input.width_cm,
+      height_cm: input.height_cm,
       volume_m3:
-        input.volume_m3 ?? computeVolumeM3(input.length_mm, input.width_mm, input.height_mm),
+        input.volume_m3 ?? computeVolumeM3(input.length_cm, input.width_cm, input.height_cm),
       max_weight_kg: input.max_weight_kg ?? null,
       is_active: true,
     });

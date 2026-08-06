@@ -5194,14 +5194,14 @@ export const ReturnTypes: Record<string,any> = {
 		label:"String"
 	},
 	MarketplaceContainerType:{
-		height_mm:"Int",
+		height_cm:"Int",
 		id:"String",
 		is_active:"Boolean",
-		length_mm:"Int",
+		length_cm:"Int",
 		max_weight_kg:"String",
 		name:"String",
 		volume_m3:"String",
-		width_mm:"Int"
+		width_cm:"Int"
 	},
 	MarketplaceCppStatus:{
 		accepted_at:"String",

@@ -13,14 +13,14 @@ export class MarketplaceContainerTypeDTO {
   @Field(() => String, { description: 'Название типа, например «Ящик 600×400×300».' })
   name!: string;
 
-  @Field(() => Int, { description: 'Длина в миллиметрах.' })
-  length_mm!: number;
+  @Field(() => Int, { description: 'Длина в сантиметрах.' })
+  length_cm!: number;
 
-  @Field(() => Int, { description: 'Ширина в миллиметрах.' })
-  width_mm!: number;
+  @Field(() => Int, { description: 'Ширина в сантиметрах.' })
+  width_cm!: number;
 
-  @Field(() => Int, { description: 'Высота в миллиметрах.' })
-  height_mm!: number;
+  @Field(() => Int, { description: 'Высота в сантиметрах.' })
+  height_cm!: number;
 
   @Field(() => String, { description: 'Полезный объём в кубометрах.' })
   volume_m3!: string;
@@ -38,9 +38,9 @@ export function toMarketplaceContainerTypeDTO(
   return {
     id: type.id,
     name: type.name,
-    length_mm: type.length_mm,
-    width_mm: type.width_mm,
-    height_mm: type.height_mm,
+    length_cm: type.length_cm,
+    width_cm: type.width_cm,
+    height_cm: type.height_cm,
     volume_m3: type.volume_m3,
     max_weight_kg: type.max_weight_kg,
     is_active: type.is_active,
@@ -95,20 +95,20 @@ export class MarketplaceCreateContainerTypeInputDTO {
   @IsNotEmpty()
   name!: string;
 
-  @Field(() => Int, { description: 'Длина в миллиметрах.' })
+  @Field(() => Int, { description: 'Длина в сантиметрах.' })
   @IsInt()
   @Min(1)
-  length_mm!: number;
+  length_cm!: number;
 
-  @Field(() => Int, { description: 'Ширина в миллиметрах.' })
+  @Field(() => Int, { description: 'Ширина в сантиметрах.' })
   @IsInt()
   @Min(1)
-  width_mm!: number;
+  width_cm!: number;
 
-  @Field(() => Int, { description: 'Высота в миллиметрах.' })
+  @Field(() => Int, { description: 'Высота в сантиметрах.' })
   @IsInt()
   @Min(1)
-  height_mm!: number;
+  height_cm!: number;
 
   @Field(() => String, {
     nullable: true,

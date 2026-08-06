@@ -12,7 +12,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import {
   buildContainerCode,
-  computeVolumeLiters,
+  computeVolumeM3,
   parseContainerCodeSequence,
 } from '~/extensions/marketplace/domain/entities/marketplace-container.types';
 import { MarketplaceContainerService } from '~/extensions/marketplace/application/services/marketplace-container.service';
@@ -55,9 +55,9 @@ const makeType = (over: Record<string, unknown> = {}) =>
     id: 'type-1',
     coopname: COOPNAME,
     name: 'Ящик 600×400×300',
-    length_mm: 600,
-    width_mm: 400,
-    height_mm: 300,
+    length_cm: 60,
+    width_cm: 40,
+    height_cm: 30,
     volume_liters: '72.000',
     max_weight_kg: null,
     is_active: true,
@@ -122,8 +122,14 @@ describe('коды и объём боксов', () => {
     expect(parseContainerCodeSequence('Коробка Маши')).toBeNull();
   });
 
-  it('объём считается из габаритов в литрах', () => {
-    expect(computeVolumeLiters(600, 400, 300)).toBe('72.000');
+  it('объём считается из габаритов в сантиметрах и выражается в кубометрах', () => {
+    // Стандартный ящик 60×40×30 см — 0,072 куба.
+    expect(computeVolumeM3(60, 40, 30)).toBe('0.0720');
+  });
+
+  it('мелкая тара не схлопывается в ноль', () => {
+    // Коробка 10×10×3 см: четырёх знаков хватает, чтобы объём остался виден.
+    expect(computeVolumeM3(10, 10, 3)).toBe('0.0003');
   });
 });
 

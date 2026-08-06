@@ -179,7 +179,7 @@ const containerColumns = computed<BaseTableColumn<MarketplaceContainerView>[]>((
 
 const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(() => [
   { key: 'name', label: 'Название', sortable: true, field: 'name' },
-  { key: 'dims', label: 'Габариты, мм', width: '200px', nowrap: true },
+  { key: 'dims', label: 'Габариты, см', width: '200px', nowrap: true },
   {
     key: 'volume',
     label: 'Объём',
@@ -313,14 +313,14 @@ const typeOpen = ref(false)
 const typeSaving = ref(false)
 interface ContainerTypeForm {
   name: string
-  length_mm: number | null
-  width_mm: number | null
-  height_mm: number | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
   max_weight_kg: string
 }
 
 function emptyTypeForm(): ContainerTypeForm {
-  return { name: '', length_mm: null, width_mm: null, height_mm: null, max_weight_kg: '' }
+  return { name: '', length_cm: null, width_cm: null, height_cm: null, max_weight_kg: '' }
 }
 
 const typeForm = ref<ContainerTypeForm>(emptyTypeForm())
@@ -328,18 +328,18 @@ const typeForm = ref<ContainerTypeForm>(emptyTypeForm())
 const typeValid = computed(
   () =>
     typeForm.value.name.trim().length > 0 &&
-    Number(typeForm.value.length_mm) > 0 &&
-    Number(typeForm.value.width_mm) > 0 &&
-    Number(typeForm.value.height_mm) > 0,
+    Number(typeForm.value.length_cm) > 0 &&
+    Number(typeForm.value.width_cm) > 0 &&
+    Number(typeForm.value.height_cm) > 0,
 )
 
 /** Объём считает бэкенд, но оператор должен видеть его до сохранения. */
 const typeVolumePreview = computed(() => {
-  const l = Number(typeForm.value.length_mm)
-  const w = Number(typeForm.value.width_mm)
-  const h = Number(typeForm.value.height_mm)
+  const l = Number(typeForm.value.length_cm)
+  const w = Number(typeForm.value.width_cm)
+  const h = Number(typeForm.value.height_cm)
   if (!(l > 0 && w > 0 && h > 0)) return ''
-  return formatVolumeM3(String((l * w * h) / 1_000_000_000))
+  return formatVolumeM3(String((l * w * h) / 1_000_000))
 })
 
 function openType(): void {
@@ -353,9 +353,9 @@ async function submitType(): Promise<void> {
   try {
     await createContainerType({
       name: typeForm.value.name.trim(),
-      length_mm: Math.trunc(Number(typeForm.value.length_mm)),
-      width_mm: Math.trunc(Number(typeForm.value.width_mm)),
-      height_mm: Math.trunc(Number(typeForm.value.height_mm)),
+      length_cm: Math.trunc(Number(typeForm.value.length_cm)),
+      width_cm: Math.trunc(Number(typeForm.value.width_cm)),
+      height_cm: Math.trunc(Number(typeForm.value.height_cm)),
       max_weight_kg: typeForm.value.max_weight_kg.trim() || null,
     })
     SuccessAlert('Тип боксов заведён')
@@ -550,7 +550,7 @@ q-page.containers(role='region', aria-label='Боксы участка')
         sort-by='name'
       )
         template(#cell-dims='{ row }')
-          | {{ row.length_mm }} × {{ row.width_mm }} × {{ row.height_mm }}
+          | {{ row.length_cm }} × {{ row.width_cm }} × {{ row.height_cm }}
         template(#cell-volume='{ row }')
           | {{ formatVolumeM3(row.volume_m3) }}
         template(#cell-weight='{ row }')
@@ -581,13 +581,14 @@ q-page.containers(role='region', aria-label='Боксы участка')
   BaseDialog(v-model='typeOpen', title='Тип боксов', size='sm')
     .containers__form
       .containers__note
-        | Габариты нужны, чтобы посчитать объём тары в кубометрах: по нему
-        | определяется, какая машина увезёт партию боксов между участками.
-      BaseInput(v-model='typeForm.name', label='Название', placeholder='Ящик 600×400×300')
+        | Габариты задаются в сантиметрах — так тару меряют на месте. По ним
+        | считается объём в кубометрах: он показывает, какая машина увезёт
+        | партию боксов между участками.
+      BaseInput(v-model='typeForm.name', label='Название', placeholder='Ящик 60×40×30')
       .containers__dims
-        BaseInput(v-model.number='typeForm.length_mm', type='number', label='Длина, мм')
-        BaseInput(v-model.number='typeForm.width_mm', type='number', label='Ширина, мм')
-        BaseInput(v-model.number='typeForm.height_mm', type='number', label='Высота, мм')
+        BaseInput(v-model.number='typeForm.length_cm', type='number', label='Длина, см')
+        BaseInput(v-model.number='typeForm.width_cm', type='number', label='Ширина, см')
+        BaseInput(v-model.number='typeForm.height_cm', type='number', label='Высота, см')
       BaseInput(v-model='typeForm.max_weight_kg', label='Предельный вес, кг', placeholder='Необязательно')
       .containers__note(v-if='typeVolumePreview') Полезный объём: {{ typeVolumePreview }}
     template(#footer)

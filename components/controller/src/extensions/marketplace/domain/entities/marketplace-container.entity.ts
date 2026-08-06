@@ -8,9 +8,9 @@ export class MarketplaceContainerTypeDomainEntity {
   public readonly id: string;
   public readonly coopname: string;
   public readonly name: string;
-  public readonly length_mm: number;
-  public readonly width_mm: number;
-  public readonly height_mm: number;
+  public readonly length_cm: number;
+  public readonly width_cm: number;
+  public readonly height_cm: number;
   public readonly volume_m3: string;
   public readonly max_weight_kg: string | null;
   public readonly is_active: boolean;
@@ -22,9 +22,9 @@ export class MarketplaceContainerTypeDomainEntity {
       throw new Error('MarketplaceContainerTypeDomainEntity: название типа не может быть пустым.');
     }
     for (const [label, value] of [
-      ['длина', props.length_mm],
-      ['ширина', props.width_mm],
-      ['высота', props.height_mm],
+      ['длина', props.length_cm],
+      ['ширина', props.width_cm],
+      ['высота', props.height_cm],
     ] as const) {
       if (!Number.isFinite(value) || value <= 0) {
         throw new Error(`MarketplaceContainerTypeDomainEntity: ${label} должна быть положительной.`);
@@ -33,9 +33,9 @@ export class MarketplaceContainerTypeDomainEntity {
     this.id = props.id;
     this.coopname = props.coopname;
     this.name = props.name;
-    this.length_mm = props.length_mm;
-    this.width_mm = props.width_mm;
-    this.height_mm = props.height_mm;
+    this.length_cm = props.length_cm;
+    this.width_cm = props.width_cm;
+    this.height_cm = props.height_cm;
     this.volume_m3 = props.volume_m3;
     this.max_weight_kg = props.max_weight_kg ?? null;
     this.is_active = props.is_active;
