@@ -269,7 +269,10 @@ describe('ResultSubmissionInteractor', () => {
         { username: 'alice' } as any
       );
 
-      expect(segmentRepository.markAsCompleted).toHaveBeenCalledWith('coop', 'PH', 'alice');
+      // Хэш нормализуется: в базе project_hash всегда в нижнем регистре,
+      // а цепь регистр не различает. Иначе конвертация проходит в цепи,
+      // но отметка в базе не находит строку.
+      expect(segmentRepository.markAsCompleted).toHaveBeenCalledWith('coop', 'ph', 'alice');
       expect(segmentSyncService.syncSegment).not.toHaveBeenCalled();
       expect(returned).toBe(segment);
     });

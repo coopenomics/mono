@@ -472,6 +472,18 @@ cases:
     test: ~
     status: missing
 
+  - id: cap.rid.side.53
+    level: backend
+    kind: side
+    scenario: convertSegment с project_hash в верхнем регистре
+    expect: >
+      отметка сегмента завершённым находит строку: хэш нормализуется так же,
+      как при поиске проекта строкой выше. Прежде цепь конвертацию принимала
+      (checksum256 регистр не различает), а markAsCompleted искал по исходному
+      регистру и не находил — пайщик получал ошибку на успешной операции
+    test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    status: passing
+
   - id: cap.rid.break.01
     level: backend
     kind: break
@@ -487,11 +499,14 @@ cases:
       convertSegment — цепь применила конвертацию, но пометить сегмент
       завершённым в БД не удалось
     expect: >
-      исключение; сегмент удалён в цепи, но остаётся активным в БД —
-      рассинхрон требует решения
+      исключение пайщику, но состояние сходится само: markAsCompleted — лишь
+      оптимистичное сокращение, чтобы ответить сразу, не дожидаясь дельты.
+      Дельта об удалении сегмента приходит от парсера, и updateFromBlockchain
+      при present=false ставит ровно то же самое — status=FINALIZED,
+      is_completed=true (segment.entity.ts:268). Потери состояния нет.
+      Неудачен только текст ошибки: пайщик считает, что конвертация не прошла
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
     status: passing
-    decision_needed: true
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 

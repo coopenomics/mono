@@ -97,8 +97,16 @@ export class ResultSubmissionInteractor {
     await this.capitalBlockchainPort.convertSegment(blockchainData);
 
     // После успешной конвертации сегмент удаляется из блокчейна,
-    // поэтому устанавливаем флаг завершения вместо синхронизации
-    const segmentEntity = await this.segmentRepository.markAsCompleted(data.coopname, data.project_hash, data.username);
+    // поэтому устанавливаем флаг завершения вместо синхронизации.
+    // Хэш приводим к нижнему регистру, как и при поиске проекта выше: в базе
+    // project_hash всегда нормализован (segment.entity.ts, segment.mapper.ts),
+    // а цепь регистр не различает — checksum256 парсится из hex. Без этого
+    // запрос с заглавными проходил в цепи, но не находил строку в базе.
+    const segmentEntity = await this.segmentRepository.markAsCompleted(
+      data.coopname,
+      data.project_hash.toLowerCase(),
+      data.username
+    );
 
     if (!segmentEntity) {
       throw new Error(
