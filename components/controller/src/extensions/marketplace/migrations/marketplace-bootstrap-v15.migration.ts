@@ -7,6 +7,27 @@ import type {
 import { IConfig } from '../types';
 
 /**
+ * Пересчёт объёма тары из габаритов. Габариты — первоисточник, объём от них
+ * производная, поэтому пересчитываем БЕЗУСЛОВНО.
+ *
+ * Условие «только там, где ноль» было бы ошибкой: при переименовании колонки
+ * старое значение может уцелеть, и тогда литры молча останутся лежать в поле
+ * кубометров — расхождение в тысячу раз, которое никто не заметит глазами
+ * (0,3 вместо 0,0003).
+ */
+export const RECOMPUTE_CONTAINER_VOLUME_SQL = `
+  UPDATE marketplace_container_type
+     SET volume_m3 = ROUND(
+           (length_mm::numeric * width_mm::numeric * height_mm::numeric) / 1000000000,
+           4
+         )
+   WHERE volume_m3 IS DISTINCT FROM ROUND(
+           (length_mm::numeric * width_mm::numeric * height_mm::numeric) / 1000000000,
+           4
+         )
+   RETURNING id`;
+
+/**
  * Bootstrap-миграция v15 расширения `market` — объём тары переезжает с литров
  * на кубометры (Эпик 19).
  *
@@ -24,7 +45,8 @@ import { IConfig } from '../types';
  * никуда не делись. Пересчёт, а не деление старого значения на тысячу, потому
  * что габариты — первоисточник, а прежний объём мог быть введён руками.
  *
- * Идемпотентна: трогает только строки с нулевым объёмом.
+ * Идемпотентна: обновляются только строки, где хранимое значение расходится с
+ * расчётным.
  *
  * Конфиг расширения не меняется — `migrate` тождественный.
  */
@@ -45,13 +67,7 @@ export const marketplaceBootstrapV15Migration: IExtensionSchemaMigration<Partial
     if (!dataSource) return;
 
     const result: Array<{ id: string }> = await dataSource.query(
-      `UPDATE marketplace_container_type
-          SET volume_m3 = ROUND(
-                (length_mm::numeric * width_mm::numeric * height_mm::numeric) / 1000000000,
-                4
-              )
-        WHERE volume_m3 IS NULL OR volume_m3 = 0
-        RETURNING id`
+      RECOMPUTE_CONTAINER_VOLUME_SQL
     );
 
     if (result.length > 0) {
