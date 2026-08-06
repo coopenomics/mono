@@ -116,7 +116,7 @@ pnpm exec jest -i                                          # только по �
 | `pnpm test:ci` | unit + component (component нужен MongoDB) — тяжело, по просьбе |
 | `pnpm test:integration` | sdk, boot — **нужен поднятый стек**, по просьбе |
 
-CI: Actions работают на GitHub-зеркале; PR туда не попадают, поэтому рабочий триггер — `push` в `dev`. Тесты гоняются не на каждый push, а как релизный гейт: `release` объявлен `needs: tests`, красные тесты останавливают релиз.
+CI: Actions работают на GitHub-зеркале; PR туда не попадают, поэтому триггер — `push`, а не `pull_request`. На каждый коммит в `dev` не гоняется ничего: лимиты раннеров. `check` и `typecheck` — на `push` в `testnet`/`main`, тесты — релизным гейтом (`release` объявлен `needs: tests`, красные тесты останавливают релиз). Прогнать вручную до релиза: `workflow_dispatch` у `check`/`typecheck`, а весь релизный набор тестов — пушем в ветку-полигон `ci/tests`.
 
 ## SDK login canon
 
