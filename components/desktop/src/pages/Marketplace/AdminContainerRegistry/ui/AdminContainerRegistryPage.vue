@@ -3,8 +3,8 @@ import { computed, onMounted, ref } from 'vue'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert } from 'src/shared/api'
-import { BaseBadge, BaseInput, BaseSelect, EmptyState, TableSkeleton } from 'src/shared/ui/base'
-import type { BaseSelectOption, TableSkeletonColumn } from 'src/shared/ui/base'
+import { BaseBadge, BaseInput, BaseSelect, BaseTable, EmptyState } from 'src/shared/ui/base'
+import type { BaseSelectOption, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
@@ -90,23 +90,19 @@ function volumeOf(container: MarketplaceContainerView): string {
   return type ? formatVolumeLiters(type.volume_liters) : '—'
 }
 
+// Порядок строк задаёт сама таблица (сортировка по клику на заголовок);
+// здесь только отбор.
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return containers.value
-    .filter((c) => {
-      if (branchFilter.value && c.braname !== branchFilter.value) return false
-      if (!q) return true
-      const hay = [c.code, c.label, cellCodeOf(c), typeNameOf(c), branchName(c.braname)]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return hay.includes(q)
-    })
-    .sort(
-      (a, b) =>
-        branchName(a.braname).localeCompare(branchName(b.braname), 'ru') ||
-        a.code.localeCompare(b.code, 'ru'),
-    )
+  return containers.value.filter((c) => {
+    if (branchFilter.value && c.braname !== branchFilter.value) return false
+    if (!q) return true
+    const hay = [c.code, c.label, cellCodeOf(c), typeNameOf(c), branchName(c.braname)]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    return hay.includes(q)
+  })
 })
 
 /** Суммарный объём выборки — сколько места займёт перевозка этих боксов. */
@@ -123,14 +119,43 @@ const filledCount = computed(
   () => rows.value.filter((c) => (countByContainer.value.get(c.id) ?? 0) > 0).length,
 )
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок', class: 'col-branch', cell: 'text' },
-  { label: 'Код', class: 'col-code', cell: 'text' },
-  { label: 'Тип', cell: 'text' },
-  { label: 'Объём', class: 'col-volume', cell: 'text' },
-  { label: 'Ячейка', class: 'col-cell', cell: 'text' },
-  { label: 'Заполнен', class: 'col-count', cell: 'badge' },
-]
+// Сортировка родная для таблицы: по участку, коду и типу — то, чем реально
+// пользуются, когда ищут тару глазами. Объём и заполненность сортируются
+// числом, иначе «10 л» встало бы между «1 л» и «2 л».
+const columns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
+  {
+    key: 'branch',
+    label: 'Участок',
+    width: '260px',
+    sortable: true,
+    field: (row) => branchName(row.braname),
+  },
+  { key: 'code', label: 'Код', width: '150px', sortable: true, field: 'code' },
+  {
+    key: 'type',
+    label: 'Тип',
+    width: '200px',
+    sortable: true,
+    field: (row) => typeNameOf(row),
+  },
+  {
+    key: 'volume',
+    label: 'Объём',
+    width: '110px',
+    numeric: true,
+    nowrap: true,
+    sortable: true,
+    field: (row) => volumeLitersOf(typeById.value.get(row.container_type_id)?.volume_liters),
+  },
+  { key: 'cell', label: 'Ячейка', width: '120px', field: (row) => cellCodeOf(row) },
+  {
+    key: 'count',
+    label: 'Заполнен',
+    width: '130px',
+    sortable: true,
+    field: (row) => countByContainer.value.get(row.id) ?? 0,
+  },
+])
 
 async function load(): Promise<void> {
   loading.value = true
@@ -197,39 +222,28 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
       placeholder='Все участки'
     )
 
-  TableSkeleton(
-    v-if='loading && !containers.length',
-    :columns='skeletonColumns',
-    :rows='8',
-    min-width='900px'
+  BaseTable(
+    v-if='loading || rows.length',
+    :columns='columns',
+    :rows='rows',
+    row-key='id',
+    hover,
+    sticky-header,
+    :loading='loading',
+    :skeleton-rows='8',
+    min-width='900px',
+    sort-by='branch'
   )
-
-  .table-wrap(v-else-if='rows.length')
-    .table-scroll
-      table.table
-        thead
-          tr
-            th.col-branch Участок
-            th.col-code Код
-            th.col-type Тип
-            th.col-volume Объём
-            th.col-cell Ячейка
-            th.col-count Заполнен
-        tbody
-          tr(v-for='c in rows', :key='c.id')
-            td.col-branch.boxreg__branch-cell {{ branchName(c.braname) }}
-            td.col-code
-              span.boxreg__code {{ c.code }}
-              .boxreg__sub(v-if='c.label') {{ c.label }}
-            td.col-type {{ typeNameOf(c) }}
-            td.col-volume {{ volumeOf(c) }}
-            td.col-cell {{ cellCodeOf(c) }}
-            td.col-count
-              BaseBadge(v-if='countByContainer.get(c.id)', variant='info')
-                | {{ countByContainer.get(c.id) }} поз.
-              BaseBadge(v-else, variant='neutral') Пусто
-
-    .table-foot
+    template(#cell-code='{ row }')
+      span.boxreg__code {{ row.code }}
+      .boxreg__sub(v-if='row.label') {{ row.label }}
+    template(#cell-volume='{ row }')
+      | {{ volumeOf(row) }}
+    template(#cell-count='{ row }')
+      BaseBadge(v-if='countByContainer.get(row.id)', variant='info')
+        | {{ countByContainer.get(row.id) }} поз.
+      BaseBadge(v-else, variant='neutral') Пусто
+    template(#footer)
       span
         | Боксов: {{ rows.length }} · заполнено {{ filledCount }} · суммарный объём {{ totalVolume }}
 
@@ -288,40 +302,6 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
     color: var(--p-ink-3);
     overflow-wrap: anywhere;
   }
-
-  &__branch-cell {
-    overflow-wrap: anywhere;
-  }
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-// Сумма ширин колонок = min-width: колонки не схлопываются, а на узком экране
-// включается горизонтальная прокрутка вместо наезжающих друг на друга ячеек.
-.table {
-  table-layout: fixed;
-  min-width: 900px;
-}
-
-.col-branch {
-  width: 260px;
-}
-.col-code {
-  width: 150px;
-}
-.col-type {
-  width: 200px;
-}
-.col-volume {
-  width: 110px;
-  white-space: nowrap;
-}
-.col-cell {
-  width: 120px;
-}
-.col-count {
-  width: 130px;
 }
 
 @media (max-width: 768px) {

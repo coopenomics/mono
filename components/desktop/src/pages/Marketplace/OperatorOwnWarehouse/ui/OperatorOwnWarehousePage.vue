@@ -10,11 +10,14 @@ import {
   BaseButton,
   BaseInput,
   BaseSelect,
+  BaseTable,
   EmptyState,
-  TableSkeleton,
 } from 'src/shared/ui/base'
-import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base'
-import type { TableSkeletonColumn } from 'src/shared/ui/base'
+import type {
+  BaseBadgeVariant,
+  BaseSelectOption,
+  BaseTableColumn,
+} from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
@@ -58,7 +61,7 @@ const loading = ref(true)
 const activeTab = ref<'warehouse' | 'stock'>('warehouse')
 const coopStockCount = ref(0)
 const tabs = computed<PageTab[]>(() => [
-  { key: 'warehouse', label: 'Склад', count: sortedRows.value.length },
+  { key: 'warehouse', label: 'Склад', count: filteredRows.value.length },
   { key: 'stock', label: 'Остатки', count: coopStockCount.value },
 ])
 function onSelectTab(tab: PageTab): void {
@@ -110,31 +113,26 @@ const filteredRows = computed(() => {
   })
 })
 
-// Сортировка по дате приёмки; по умолчанию свежие сверху.
-const sortDir = ref<'asc' | 'desc'>('desc')
-const sortMark = computed(() => (sortDir.value === 'asc' ? '↑' : '↓'))
-function toggleSort(): void {
-  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-}
-const sortedRows = computed(() => {
-  const list = [...filteredRows.value]
-  list.sort((a, b) => {
-    const diff = new Date(String(a.received_at)).getTime() - new Date(String(b.received_at)).getTime()
-    return sortDir.value === 'asc' ? diff : -diff
-  })
-  return list
-})
+// Сортировку ведёт сама таблица: по умолчанию свежие приёмки сверху.
+// Дату сравниваем как время, а не как строку — иначе «09.08» встало бы
+// раньше «10.07».
+const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
+  { key: 'place', label: 'Место', width: '240px', field: (row) => placeLabel(row) },
+  { key: 'product', label: 'Товар', width: '240px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'orderer', label: 'Заказчик', width: '200px', sortable: true, field: (row) => ordererName(row) },
+  { key: 'qty', label: 'Кол-во', width: '130px', numeric: true, nowrap: true },
+  { key: 'barcode', label: 'Штрих-код', width: '150px' },
+  { key: 'status', label: 'Состояние', width: '140px', sortable: true, field: 'status' },
+  { key: 'expiry', label: 'Годен до', width: '120px', nowrap: true, sortable: true, field: (row) => timeOf(row.expiry_date) },
+  { key: 'received', label: 'Принято', width: '160px', nowrap: true, sortable: true, field: (row) => timeOf(row.received_at) },
+])
 
-const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Место', class: 'col-place', cell: 'text' },
-  { label: 'Товар', cell: 'text' },
-  { label: 'Заказчик', class: 'col-orderer', cell: 'text' },
-  { label: 'Кол-во', class: 'col-qty', cell: 'text', cellWidth: '120px' },
-  { label: 'Штрих-код', class: 'col-barcode', cell: 'text' },
-  { label: 'Состояние', class: 'col-status', cell: 'badge' },
-  { label: 'Годен до', class: 'col-expiry', cell: 'text', cellWidth: '120px' },
-  { label: 'Принято', class: 'col-date', cell: 'text', cellWidth: '120px' },
-]
+/** Дата в миллисекундах для сортировки; пусто — в конец списка. */
+function timeOf(value: unknown): number {
+  if (value === null || value === undefined) return 0
+  const t = new Date(String(value)).getTime()
+  return Number.isFinite(t) ? t : 0
+}
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) {
@@ -350,74 +348,64 @@ q-page.warehouse(role='region', aria-label='Склад участка')
         clearable
       )
 
-      TableSkeleton(
-        v-if='loading && !items.length',
-        :columns='skeletonColumns',
-        :rows='6',
-        min-width='900px'
+      BaseTable(
+        v-if='loading || filteredRows.length',
+        :columns='columns',
+        :rows='filteredRows',
+        row-key='id',
+        hover,
+        sticky-header,
+        :loading='loading',
+        min-width='1380px',
+        sort-by='received',
+        descending
       )
+        //- Место — выбор из заведённых боксов и ячеек прямо в строке. Когда
+        //- адресное хранение выключено, показываем прочерк: места просто нет.
+        template(#cell-place='{ row }')
+          BaseSelect.warehouse__place-input(
+            v-if='placementEnabled',
+            :model-value='placementValue(row)',
+            :options='placementOptions',
+            placeholder='Указать место',
+            :disabled='savingPlaceId === row.id',
+            @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
+          )
+          span.warehouse__place-static(v-else) {{ placeLabel(row) }}
 
-      .table-wrap(v-else-if='sortedRows.length')
-        .table-scroll
-          table.table
-            thead
-              tr
-                th.col-place Место
-                th.col-product Товар
-                th.col-orderer Заказчик
-                th.col-qty Кол-во
-                th.col-barcode Штрих-код
-                th.col-status Состояние
-                th.col-expiry Годен до
-                th.col-sort.col-date(@click='toggleSort') Принято {{ sortMark }}
-            tbody
-              tr(v-for='row in sortedRows', :key='row.id')
-                //- Место — выбор из заведённых боксов и ячеек прямо в строке.
-                //- Когда адресное хранение выключено, колонка показывает прочерк:
-                //- места в кооперативе просто нет.
-                td.col-place
-                  BaseSelect.warehouse__place-input(
-                    v-if='placementEnabled',
-                    :model-value='placementValue(row)',
-                    :options='placementOptions',
-                    placeholder='Указать место',
-                    :disabled='savingPlaceId === row.id',
-                    @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
-                  )
-                  span.warehouse__place-static(v-else) {{ placeLabel(row) }}
+        template(#cell-orderer='{ row }')
+          .warehouse__orderer
+            span.warehouse__orderer-name {{ ordererName(row) }}
+            AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
 
-                td.col-product.warehouse__product {{ row.product_name_snapshot }}
+        template(#cell-qty='{ row }')
+          | {{ quantityLabel(row) }}
 
-                td.col-orderer
-                  .warehouse__orderer
-                    span.warehouse__orderer-name {{ ordererName(row) }}
-                    AccountBadge(:account-name='row.orderer_account_snapshot', size='sm')
+        //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
+        template(#cell-barcode='{ row }')
+          span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
+          BaseButton.warehouse__issue(
+            v-else,
+            variant='ghost',
+            size='sm',
+            :loading='issuingBarcodeId === row.id',
+            @click='issueBarcode(row)'
+          )
+            template(#icon-left)
+              q-icon(name='label', size='16px')
+            | Выпустить
 
-                td.col-qty {{ quantityLabel(row) }}
+        template(#cell-status='{ row }')
+          BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
 
-                //- Штрих-код — есть: моно-значение; нет: инлайн-выпуск.
-                td.col-barcode
-                  span.q-mono(v-if='row.barcode_value') {{ row.barcode_value }}
-                  BaseButton.warehouse__issue(
-                    v-else,
-                    variant='ghost',
-                    size='sm',
-                    :loading='issuingBarcodeId === row.id',
-                    @click='issueBarcode(row)'
-                  )
-                    template(#icon-left)
-                      q-icon(name='label', size='16px')
-                    | Выпустить
+        template(#cell-expiry='{ row }')
+          span(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
 
-                td.col-status
-                  BaseBadge(:variant='statusVariant(row.status)') {{ humanStatus(row.status) }}
+        template(#cell-received='{ row }')
+          | {{ formatDateTime(row.received_at) }}
 
-                td.col-expiry(:class='{ "warehouse__expired": isExpired(row.expiry_date) }') {{ formatDate(row.expiry_date) }}
-
-                td.col-date {{ formatDateTime(row.received_at) }}
-
-        .table-foot
-          span Позиций: {{ sortedRows.length }}
+        template(#footer)
+          span Позиций: {{ filteredRows.length }}
 
       EmptyState(
         v-else,
@@ -490,49 +478,6 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     color: var(--p-neg);
     font-weight: 600;
   }
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-// Сумма ширин колонок = min-width таблицы: при table-layout:fixed колонки
-// не схлопываются (товар не «зажат»), а на узких экранах включается горизонтальный
-// скролл вместо наезжающих друг на друга колонок.
-.table {
-  table-layout: fixed;
-  min-width: 1380px;
-}
-
-.col-place {
-  width: 240px;
-}
-.col-product {
-  width: 240px;
-}
-.col-orderer {
-  width: 200px;
-}
-.col-qty {
-  width: 130px;
-  text-align: right;
-}
-.col-barcode {
-  width: 150px;
-}
-.col-status {
-  width: 140px;
-}
-.col-expiry {
-  width: 120px;
-  white-space: nowrap;
-}
-.col-date {
-  width: 160px;
-  white-space: nowrap;
-}
-.col-sort {
-  cursor: pointer;
-  user-select: none;
 }
 
 @media (max-width: 768px) {

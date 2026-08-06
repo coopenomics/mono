@@ -9,10 +9,10 @@ import {
   BaseDialog,
   BaseInput,
   BaseSelect,
+  BaseTable,
   EmptyState,
-  TableSkeleton,
 } from 'src/shared/ui/base'
-import type { BaseSelectOption, TableSkeletonColumn } from 'src/shared/ui/base'
+import type { BaseSelectOption, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
@@ -25,6 +25,7 @@ import {
   updateContainer,
   useMarketplaceStorageStore,
   volumeLitersOf,
+  type MarketplaceContainerTypeView,
   type MarketplaceContainerView,
 } from 'src/entities/MarketplaceStorage'
 import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
@@ -134,15 +135,71 @@ const typeOptions = computed<BaseSelectOption[]>(() =>
   })),
 )
 
-const containerSkeleton: TableSkeletonColumn[] = [
-  { label: 'Код', class: 'col-code', cell: 'text' },
-  { label: 'Тип', cell: 'text' },
-  { label: 'Объём', class: 'col-volume', cell: 'text' },
-  { label: 'Ячейка', class: 'col-cell', cell: 'text' },
-  { label: 'Позиций', class: 'col-count', cell: 'text' },
-  { label: 'Содержимое', cell: 'text' },
-  { label: '', class: 'col-actions', cell: 'text' },
-]
+// Колонка адреса появляется только при включённых ячейках: без них у бокса
+// адреса не бывает, и пустой столбец только занимал бы место.
+const containerColumns = computed<BaseTableColumn<MarketplaceContainerView>[]>(() => [
+  { key: 'code', label: 'Код', width: '160px', sortable: true, field: 'code' },
+  {
+    key: 'type',
+    label: 'Тип',
+    width: '200px',
+    sortable: true,
+    field: (row) => typeNameOf(row),
+  },
+  {
+    key: 'volume',
+    label: 'Объём',
+    width: '110px',
+    numeric: true,
+    nowrap: true,
+    field: (row) => volumeOf(row),
+  },
+  ...(cellsEnabled.value
+    ? [
+        {
+          key: 'cell',
+          label: 'Ячейка',
+          width: '140px',
+          sortable: true,
+          field: (row: MarketplaceContainerView) => cellCodeOf(row),
+        },
+      ]
+    : []),
+  {
+    key: 'count',
+    label: 'Позиций',
+    width: '100px',
+    numeric: true,
+    sortable: true,
+    field: (row) => itemsOf(row).length,
+  },
+  { key: 'contents', label: 'Содержимое', width: '260px', field: (row) => contentsOf(row) },
+  { key: 'actions', label: '', width: '96px', align: 'right' },
+])
+
+const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(() => [
+  { key: 'name', label: 'Название', sortable: true, field: 'name' },
+  { key: 'dims', label: 'Габариты, мм', width: '200px', nowrap: true },
+  {
+    key: 'volume',
+    label: 'Объём',
+    width: '110px',
+    numeric: true,
+    nowrap: true,
+    sortable: true,
+    field: (row) => volumeLitersOf(row.volume_liters),
+  },
+  { key: 'weight', label: 'Макс. вес', width: '120px', nowrap: true },
+  {
+    key: 'boxes',
+    label: 'Боксов',
+    width: '100px',
+    numeric: true,
+    sortable: true,
+    field: (row) =>
+      storage.activeContainers.filter((c) => c.container_type_id === row.id).length,
+  },
+])
 
 async function load(): Promise<void> {
   if (!braname.value.trim()) {
@@ -412,92 +469,64 @@ q-page.containers(role='region', aria-label='Боксы участка')
 
     //- ─────────────────────────── Боксы ───────────────────────────
     template(v-if='activeTab === "containers"')
-      TableSkeleton(
-        v-if='loading && !storage.containers.length',
-        :columns='containerSkeleton',
-        :rows='6',
-        min-width='980px'
-      )
-
       EmptyState(
-        v-else-if='!storage.activeTypes.length',
+        v-if='!loading && !storage.activeTypes.length',
         title='Сначала заведите тип боксов',
         body='Габариты и объём задаёт тип, а не отдельный бокс: тару закупают одинаковыми партиями, а объём нужен агрегатом для расчёта перевозки.'
       )
         template(#icon)
           q-icon(name='straighten', size='48px')
 
-      .table-wrap(v-else-if='storage.activeContainers.length')
-        .table-scroll
-          table.table
-            thead
-              tr
-                th.col-code Код
-                th.col-type Тип
-                th.col-volume Объём
-                th.col-cell(v-if='cellsEnabled') Ячейка
-                th.col-count Позиций
-                th.col-contents Содержимое
-                th.col-actions
-            tbody
-              tr(v-for='c in storage.activeContainers', :key='c.id')
-                td.col-code
-                  span.containers__code {{ c.code }}
-                  .containers__sub(v-if='c.label') {{ c.label }}
-                td.col-type {{ typeNameOf(c) }}
-                td.col-volume {{ volumeOf(c) }}
-                td.col-cell(v-if='cellsEnabled')
-                  span(v-if='c.cell_id') {{ cellCodeOf(c) }}
-                  BaseBadge(v-else, variant='neutral') Без адреса
-                td.col-count {{ itemsOf(c).length }}
-                td.col-contents.containers__contents {{ contentsOf(c) }}
-                td.col-actions
-                  .containers__row-actions
-                    BaseButton(
-                      variant='ghost',
-                      size='sm',
-                      icon-only,
-                      aria-label='Печать QR-этикетки',
-                      :loading='printing',
-                      @click='printLabels([c])'
-                    )
-                      template(#icon-left)
-                        q-icon(name='print', size='18px')
-                        q-tooltip Печать QR-этикетки
-                    BaseButton(
-                      variant='ghost',
-                      size='sm',
-                      icon-only,
-                      aria-label='Действия с боксом'
-                    )
-                      template(#icon-left)
-                        q-icon(name='more_vert', size='18px')
-                        q-menu(anchor='bottom right', self='top right')
-                          q-list(dense, style='min-width: 220px')
-                            q-item(
-                              v-if='cellsEnabled',
-                              clickable,
-                              v-close-popup,
-                              @click='openPlace(c)'
-                            )
-                              q-item-section(avatar)
-                                q-icon(name='grid_view', size='18px')
-                              q-item-section {{ c.cell_id ? 'Переставить в ячейку…' : 'Поставить в ячейку…' }}
-                            q-item(
-                              v-if='!itemsOf(c).length',
-                              clickable,
-                              v-close-popup,
-                              @click='retire(c)'
-                            )
-                              q-item-section(avatar)
-                                q-icon(name='archive', size='18px')
-                              q-item-section Вывести из оборота
-                            q-item(v-else, disable)
-                              q-item-section(avatar)
-                                q-icon(name='info', size='18px')
-                              q-item-section Непустой бокс не выводится
-
-        .table-foot
+      BaseTable(
+        v-else-if='loading || storage.activeContainers.length',
+        :columns='containerColumns',
+        :rows='storage.activeContainers',
+        row-key='id',
+        hover,
+        sticky-header,
+        :loading='loading',
+        min-width='980px',
+        sort-by='code'
+      )
+        template(#cell-code='{ row }')
+          span.containers__code {{ row.code }}
+          .containers__sub(v-if='row.label') {{ row.label }}
+        template(#cell-cell='{ row }')
+          span(v-if='row.cell_id') {{ cellCodeOf(row) }}
+          BaseBadge(v-else, variant='neutral') Без адреса
+        template(#cell-contents='{ row }')
+          span.containers__contents {{ contentsOf(row) }}
+        template(#cell-actions='{ row }')
+          .containers__row-actions
+            BaseButton(
+              variant='ghost',
+              size='sm',
+              icon-only,
+              aria-label='Печать QR-этикетки',
+              :loading='printing',
+              @click='printLabels([row])'
+            )
+              template(#icon-left)
+                q-icon(name='print', size='18px')
+                q-tooltip Печать QR-этикетки
+            BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия с боксом')
+              template(#icon-left)
+                q-icon(name='more_vert', size='18px')
+                q-menu(anchor='bottom right', self='top right')
+                  q-list(dense, style='min-width: 220px')
+                    q-item(v-if='cellsEnabled', clickable, v-close-popup, @click='openPlace(row)')
+                      q-item-section(avatar)
+                        q-icon(name='grid_view', size='18px')
+                      q-item-section {{ row.cell_id ? 'Переставить в ячейку…' : 'Поставить в ячейку…' }}
+                    q-item(v-if='!itemsOf(row).length', clickable, v-close-popup, @click='retire(row)')
+                      q-item-section(avatar)
+                        q-icon(name='archive', size='18px')
+                      q-item-section Вывести из оборота
+                    q-item(v-else, disable)
+                      q-item-section(avatar)
+                        q-icon(name='info', size='18px')
+                      q-item-section Непустой бокс не выводится
+        template(#footer)
           span Боксов: {{ storage.activeContainers.length }} · суммарный объём {{ totalVolume }}
 
       EmptyState(
@@ -510,23 +539,23 @@ q-page.containers(role='region', aria-label='Боксы участка')
 
     //- ────────────────────────── Типы боксов ──────────────────────
     template(v-else)
-      .table-wrap(v-if='storage.activeTypes.length')
-        .table-scroll
-          table.table.containers__types
-            thead
-              tr
-                th Название
-                th.col-dims Габариты, мм
-                th.col-volume Объём
-                th.col-weight Макс. вес
-                th.col-count Боксов
-            tbody
-              tr(v-for='t in storage.activeTypes', :key='t.id')
-                td {{ t.name }}
-                td.col-dims {{ t.length_mm }} × {{ t.width_mm }} × {{ t.height_mm }}
-                td.col-volume {{ formatVolumeLiters(t.volume_liters) }}
-                td.col-weight {{ t.max_weight_kg ? `${t.max_weight_kg} кг` : '—' }}
-                td.col-count {{ storage.activeContainers.filter((c) => c.container_type_id === t.id).length }}
+      BaseTable(
+        v-if='loading || storage.activeTypes.length',
+        :columns='typeColumns',
+        :rows='storage.activeTypes',
+        row-key='id',
+        hover,
+        :loading='loading',
+        :skeleton-rows='4',
+        min-width='720px',
+        sort-by='name'
+      )
+        template(#cell-dims='{ row }')
+          | {{ row.length_mm }} × {{ row.width_mm }} × {{ row.height_mm }}
+        template(#cell-volume='{ row }')
+          | {{ formatVolumeLiters(row.volume_liters) }}
+        template(#cell-weight='{ row }')
+          | {{ row.max_weight_kg ? `${row.max_weight_kg} кг` : '—' }}
 
       EmptyState(
         v-else,
@@ -638,52 +667,6 @@ q-page.containers(role='region', aria-label='Боксы участка')
     grid-template-columns: repeat(3, 1fr);
     gap: var(--p-2, 8px);
   }
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-// Сумма ширин колонок = min-width: колонки не схлопываются, а на узком экране
-// включается горизонтальная прокрутка вместо наезжающих друг на друга ячеек.
-.table {
-  table-layout: fixed;
-  min-width: 980px;
-
-  &.containers__types {
-    min-width: 720px;
-  }
-}
-
-.col-code {
-  width: 160px;
-}
-.col-type {
-  width: 200px;
-}
-.col-dims {
-  width: 200px;
-  white-space: nowrap;
-}
-.col-volume {
-  width: 110px;
-  white-space: nowrap;
-}
-.col-weight {
-  width: 120px;
-  white-space: nowrap;
-}
-.col-cell {
-  width: 140px;
-}
-.col-count {
-  width: 100px;
-  text-align: right;
-}
-.col-contents {
-  width: 260px;
-}
-.col-actions {
-  width: 96px;
 }
 
 @media (max-width: 768px) {

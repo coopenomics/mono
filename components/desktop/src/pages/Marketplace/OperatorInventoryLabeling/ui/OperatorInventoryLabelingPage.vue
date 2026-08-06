@@ -13,6 +13,7 @@ import {
   BaseCheckbox,
   BaseDialog,
   BaseInput,
+  BaseMarkupTable,
   BaseSelect,
   CardListSkeleton,
   EmptyState,
@@ -763,16 +764,29 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
             template(#icon)
               q-icon(name='search_off', size='48px')
 
-          .place__grid-scroll(v-else)
-            table.place__grid
-              thead
-                tr
-                  th.place__grid-corner Ярус
-                  th(v-for='section in visibleSections', :key='section') {{ section }}
-              tbody
-                tr(v-for='row in gridRows', :key='row.level')
-                  th.place__grid-level {{ row.level }}
-                  td(v-for='slot in row.slots', :key='slot.section')
+          //- Сетка склада — не список строк, а карта помещения: столбцы это
+          //- секции, строки ярусы, в каждой ячейке зона сброса со стопкой
+          //- карточек. Сортировать и листать тут нечего, поэтому разметку
+          //- пишем сами — но через канон-обёртку над q-markup-table, а не
+          //- голым тегом.
+          BaseMarkupTable.place__grid(
+            v-else,
+            separator='cell',
+            dense,
+            bordered,
+            sticky-header,
+            sticky-first-column,
+            min-width='720px',
+            max-height='calc(100vh - 260px)'
+          )
+            thead
+              tr
+                th.place__grid-corner Ярус
+                th(v-for='section in visibleSections', :key='section') {{ section }}
+            tbody
+              tr(v-for='row in gridRows', :key='row.level')
+                th.place__grid-level {{ row.level }}
+                td(v-for='slot in row.slots', :key='slot.section')
                     .place__cell(
                       v-if='slot.cell',
                       :class='{ "is-over": dragOverKey === `cell:${slot.cell.id}` }',
@@ -1103,29 +1117,22 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     min-width: 0;
   }
 
-  &__grid-scroll {
-    overflow: auto;
-    max-height: calc(100vh - 260px);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-  }
-
+  // Рамки, прокрутку и липкие заголовки держит BaseMarkupTable; здесь остаётся
+  // только то, что специфично для карты склада.
   &__grid {
-    border-collapse: collapse;
-    width: 100%;
+    border-radius: var(--p-r-md, 12px);
+
+    :deep(table) {
+      width: 100%;
+    }
 
     th,
     td {
-      border: 1px solid var(--p-line);
       vertical-align: top;
       padding: var(--p-1, 4px);
     }
 
     thead th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: var(--p-surface-2);
       color: var(--p-ink-2);
       font-size: var(--p-fs-meta, 12px);
       font-weight: 600;
@@ -1142,7 +1149,6 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
 
   &__grid-level {
     width: 64px;
-    background: var(--p-surface-2);
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
     text-align: center;
