@@ -340,6 +340,10 @@ function plural(n: number, one: string, few: string, many: string): string {
   font-weight: 600;
   line-height: var(--p-lh-body-sm, 1.4);
   color: var(--p-ink);
+  /* Неразрывные токены (хэш, account-id, ссылка) переносим, а не распираем
+     ими панель — иначе строка уезжает за правый край списка. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .notification-center__item.is-unread .notification-center__item-title {
   color: var(--p-ink);
@@ -357,6 +361,8 @@ function plural(n: number, one: string, few: string, many: string): string {
   /* In-app тела несут перенос строки как \n (не HTML <br> — тело рендерится
      как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор). */
   white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

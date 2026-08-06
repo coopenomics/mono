@@ -364,10 +364,20 @@ body.body--dark {
   line-height: 1.45;
   gap: 12px;
 }
+/* Текстовая колонка тоста должна сжиматься до ширины контейнера: без min-width:0
+   flex-элемент не уже своего содержимого, и «длинное слово» (хэш, id, ссылка)
+   распирало тост, вылезая текстом за пределы тёмной подложки. */
+.q-notification__content {
+  min-width: 0;
+}
 .q-notification__message {
   color: inherit;
   font-weight: 500;
   padding: 2px 0;
+  /* Переносим по границе слова, а неразрывные длинные токены (sha256-хэш,
+     account-id, URL) — в любом месте, иначе они рвут ширину тоста. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__caption {
   color: inherit;
@@ -375,6 +385,8 @@ body.body--dark {
   font-size: var(--p-fs-meta, 12px);
   line-height: 1.45;
   padding-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__icon {
   color: inherit;
