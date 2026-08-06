@@ -155,3 +155,31 @@ export interface MarketplaceInventoryProps {
   created_at: Date;
   updated_at: Date;
 }
+
+/**
+ * Место хранения позиции склада: либо бокс, либо ячейка напрямую — ровно одно
+ * из двух. Ячейка позиции, лежащей в боксе, определяется по самому боксу и
+ * здесь не дублируется. Обе ссылки пустые — место ещё не назначено.
+ */
+export interface MarketplaceInventoryPlacement {
+  cell_id: string | null;
+  container_id: string | null;
+}
+
+/** Адрес, по которому оператор идёт за имуществом. */
+export interface MarketplaceInventoryLocation {
+  /** Код бокса, если позиция лежит в таре. */
+  container_code: string | null;
+  /** Адрес ячейки — своей либо той, в которой стоит бокс. */
+  cell_code: string | null;
+}
+
+/** Человекочитаемый адрес: «Бокс BX-0007 · A-02», «Ячейка A-02». */
+export function formatInventoryLocation(location: MarketplaceInventoryLocation): string {
+  if (location.container_code && location.cell_code) {
+    return `Бокс ${location.container_code} · ${location.cell_code}`;
+  }
+  if (location.container_code) return `Бокс ${location.container_code}`;
+  if (location.cell_code) return `Ячейка ${location.cell_code}`;
+  return 'Без места';
+}

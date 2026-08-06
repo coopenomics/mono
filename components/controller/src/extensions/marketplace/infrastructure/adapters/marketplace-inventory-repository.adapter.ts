@@ -2,6 +2,10 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, Repository, type EntityManager } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
+import type {
+  MarketplaceInventoryLocation,
+  MarketplaceInventoryPlacement,
+} from '../../domain/entities/marketplace-inventory.types';
 import {
   MarketplaceInventoryOnWarehouseStatuses,
   MarketplaceInventoryOwnerships,
@@ -93,28 +97,41 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return new Map(rows.map((r) => [r.order_id, Number(r.total)]));
   }
 
-  async shelvesOnWarehouseByOrders(
+  async locationsOnWarehouseByOrders(
     coopname: string,
     order_ids: string[]
-  ): Promise<Map<string, string[]>> {
+  ): Promise<Map<string, MarketplaceInventoryLocation[]>> {
     if (order_ids.length === 0) return new Map();
+    // Ячейка берётся у бокса, если позиция лежит в таре, и своя — если
+    // имущество положено в ячейку напрямую (негабарит).
     const rows = await this.repo
       .createQueryBuilder('inv')
       .select('inv.order_id', 'order_id')
-      .addSelect('inv.shelf', 'shelf')
+      .addSelect('box.code', 'container_code')
+      .addSelect('cell.code', 'cell_code')
+      .leftJoin('marketplace_container', 'box', 'box.id = inv.container_id')
+      .leftJoin(
+        'marketplace_storage_cell',
+        'cell',
+        'cell.id = COALESCE(box.cell_id, inv.cell_id)'
+      )
       .where('inv.coopname = :coopname', { coopname })
       .andWhere('inv.order_id IN (:...order_ids)', { order_ids })
       .andWhere('inv.ownership = :ownership', { ownership: MarketplaceInventoryOwnerships.ORDER })
       .andWhere('inv.status IN (:...statuses)', {
         statuses: MarketplaceInventoryOnWarehouseStatuses,
       })
-      .andWhere('inv.shelf IS NOT NULL')
+      .andWhere('(inv.container_id IS NOT NULL OR inv.cell_id IS NOT NULL)')
       .distinct(true)
-      .getRawMany<{ order_id: string; shelf: string }>();
-    const out = new Map<string, string[]>();
+      .getRawMany<{ order_id: string; container_code: string | null; cell_code: string | null }>();
+
+    const out = new Map<string, MarketplaceInventoryLocation[]>();
     for (const r of rows) {
       const arr = out.get(r.order_id) ?? [];
-      if (!arr.includes(r.shelf)) arr.push(r.shelf);
+      const already = arr.some(
+        (l) => l.container_code === r.container_code && l.cell_code === r.cell_code
+      );
+      if (!already) arr.push({ container_code: r.container_code, cell_code: r.cell_code });
       out.set(r.order_id, arr);
     }
     return out;
@@ -196,8 +213,14 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     return res.affected ?? 0;
   }
 
-  async assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity> {
-    await this.repo.update({ id }, { shelf });
+  async assignPlacement(
+    id: string,
+    placement: MarketplaceInventoryPlacement
+  ): Promise<MarketplaceInventoryDomainEntity> {
+    await this.repo.update(
+      { id },
+      { cell_id: placement.cell_id, container_id: placement.container_id }
+    );
     const row = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(row);
   }
@@ -258,9 +281,16 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
   async resize(
     id: string,
     quantity_per_label: number,
-    shelf: string | null
+    placement: MarketplaceInventoryPlacement
   ): Promise<MarketplaceInventoryDomainEntity> {
-    await this.repo.update({ id }, { quantity_per_label, shelf });
+    await this.repo.update(
+      { id },
+      {
+        quantity_per_label,
+        cell_id: placement.cell_id,
+        container_id: placement.container_id,
+      }
+    );
     const row = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(row);
   }

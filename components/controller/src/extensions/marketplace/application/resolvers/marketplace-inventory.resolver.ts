@@ -15,7 +15,7 @@ import {
 import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
-  MarketplaceAssignInventoryShelfInputDTO,
+  MarketplaceAssignInventoryPlacementInputDTO,
   MarketplaceBindInventoryBarcodeInputDTO,
   MarketplaceClearInventoryLabelInputDTO,
   MarketplaceGenerateInventoryLabelInputDTO,
@@ -53,20 +53,22 @@ export class MarketplaceInventoryResolver {
   ) {}
 
   @Mutation(() => MarketplaceInventoryMutationResultDTO, {
-    name: 'marketplaceAssignInventoryShelf',
-    description: 'Оператор КУ назначает позиции склада полку (свободная строка) или очищает её.',
+    name: 'marketplaceAssignInventoryPlacement',
+    description:
+      'Оператор КУ кладёт позицию склада в бокс либо в ячейку напрямую, или снимает её с места.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Inventory', 'label')
-  async marketplaceAssignInventoryShelf(
+  async marketplaceAssignInventoryPlacement(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
-    @Args('data') data: MarketplaceAssignInventoryShelfInputDTO
+    @Args('data') data: MarketplaceAssignInventoryPlacementInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    const result = await this.labelService.assignShelf({
+    const result = await this.labelService.assignPlacement({
       coopname: config.coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
-      shelf: data.shelf ?? null,
+      container_id: data.container_id ?? null,
+      cell_id: data.cell_id ?? null,
     });
     const dto = new MarketplaceInventoryMutationResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);
@@ -88,7 +90,11 @@ export class MarketplaceInventoryResolver {
       coopname: config.coopname,
       operator_account: member.username,
       inventory_id: data.inventory_id,
-      splits: data.splits.map((s) => ({ quantity: s.quantity, shelf: s.shelf ?? null })),
+      splits: data.splits.map((s) => ({
+        quantity: s.quantity,
+        container_id: s.container_id ?? null,
+        cell_id: s.cell_id ?? null,
+      })),
     });
     const dto = new MarketplaceInventoryMutationResultDTO();
     dto.inventory = result.inventory.map(toMarketplaceInventoryItemDTO);

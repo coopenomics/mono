@@ -177,10 +177,10 @@ export class MarketplaceOrderDTO {
     nullable: true,
     description:
       'Полки склада пункта выдачи, на которых лежат позиции заказа после ' +
-      'раскладки. Пусто — позиции ещё не разложены по полкам. Заполняется в ' +
+      'раскладки. Пусто — позиции ещё не размещены. Заполняется в ' +
       'лентах выдачи.',
   })
-  public readonly warehouse_shelves!: string[] | null;
+  public readonly warehouse_locations!: string[] | null;
 
   @Field(() => Float, {
     nullable: true,
@@ -406,7 +406,7 @@ export interface MarketplaceOrderDisplayFields {
   group_accumulated_quantity?: number | null;
   group_min_volume?: number | null;
   warehouse_quantity?: number | null;
-  warehouse_shelves?: string[] | null;
+  warehouse_locations?: string[] | null;
   warranty_until?: Date | null;
 }
 
@@ -446,7 +446,7 @@ export function toMarketplaceOrderDTO(
     quantity: o.quantity,
     package_size: o.package_size,
     warehouse_quantity: display?.warehouse_quantity ?? null,
-    warehouse_shelves: display?.warehouse_shelves ?? null,
+    warehouse_locations: display?.warehouse_locations ?? null,
     group_accumulated_quantity: display?.group_accumulated_quantity ?? null,
     group_min_volume: display?.group_min_volume ?? null,
     price_per_unit: o.price_per_unit,

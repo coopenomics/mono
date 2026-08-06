@@ -8,6 +8,14 @@ import {
 import { randomBytes } from 'crypto';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  type MarketplaceContainerDomainRepository,
+} from '../../domain/repositories/marketplace-container.repository';
+import {
+  MARKETPLACE_STORAGE_CELL_REPOSITORY,
+  type MarketplaceStorageCellDomainRepository,
+} from '../../domain/repositories/marketplace-storage-cell.repository';
+import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
@@ -15,6 +23,7 @@ import {
   MarketplaceBarcodeFormats,
   MarketplaceInventoryStatuses,
   type MarketplaceBarcodeFormat,
+  type MarketplaceInventoryPlacement,
 } from '../../domain/entities/marketplace-inventory.types';
 import type { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
 
@@ -40,17 +49,20 @@ export interface MarketplaceBindInventoryBarcodeInputDto {
   format?: MarketplaceBarcodeFormat;
 }
 
-export interface MarketplaceAssignInventoryShelfInputDto {
+export interface MarketplaceAssignInventoryPlacementInputDto {
   coopname: string;
   operator_account: string;
   inventory_id: string;
-  /** Полка/ячейка склада (свободная строка). Пустая строка → очистить полку. */
-  shelf: string | null;
+  /** Бокс, в который кладут позицию. */
+  container_id?: string | null;
+  /** Ячейка, если позиция кладётся напрямую (негабарит). */
+  cell_id?: string | null;
 }
 
 export interface MarketplaceInventorySplitEntry {
   quantity: number;
-  shelf?: string | null;
+  container_id?: string | null;
+  cell_id?: string | null;
 }
 
 export interface MarketplaceSplitInventoryInputDto {
@@ -69,9 +81,9 @@ export interface MarketplaceInventoryMutationResult {
  * Стол раскладки/маркировки склада КУ. Позиции склада рождаются на приёмке
  * (RECEIVED); этот сервис помогает оператору организовать склад:
  *
- *   - `assignShelf` — назначить/сменить/очистить полку (свободная строка);
- *   - `splitInventory` — разложить одну принятую позицию по нескольким полкам,
- *      разбив её на отдельные записи (например, 100 л на полки A и B);
+ *   - `assignPlacement` — положить позицию в бокс либо в ячейку, снять с места;
+ *   - `splitInventory` — разложить одну принятую позицию по нескольким местам,
+ *      разбив её на отдельные записи (например, 100 л в два бокса);
  *   - `generateLabel` — наклеить внутренний штрих-код (Code128/EAN-13) на
  *      позицию для быстрого поиска на полке (RECEIVED → LABELED).
  *
@@ -84,19 +96,82 @@ export class MarketplaceInventoryLabelService {
   constructor(
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
+    private readonly containerRepo: MarketplaceContainerDomainRepository,
+    @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
+    private readonly cellRepo: MarketplaceStorageCellDomainRepository,
     private readonly logger: WinstonLoggerService
   ) {
     this.logger.setContext(MarketplaceInventoryLabelService.name);
   }
 
-  /** Назначить/сменить/очистить полку склада для позиции. */
-  async assignShelf(
-    input: MarketplaceAssignInventoryShelfInputDto
+  /**
+   * Положить позицию в бокс либо в ячейку, или снять с места. Оба адреса
+   * пустые — позиция возвращается в «без места».
+   */
+  async assignPlacement(
+    input: MarketplaceAssignInventoryPlacementInputDto
   ): Promise<MarketplaceInventoryMutationResult> {
     const item = await this.loadOwned(input.coopname, input.inventory_id);
-    const shelf = input.shelf?.trim() ? input.shelf.trim() : null;
-    const updated = await this.inventoryRepo.assignShelf(item.id, shelf);
+    const placement = await this.resolvePlacement(input.coopname, item.braname, {
+      container_id: input.container_id ?? null,
+      cell_id: input.cell_id ?? null,
+    });
+    const updated = await this.inventoryRepo.assignPlacement(item.id, placement);
     return { inventory: [updated] };
+  }
+
+  /**
+   * Проверяет и нормализует место: ровно один адрес из двух, цель существует,
+   * в обороте и на том же участке, что и сама позиция. Разные участки развели
+   * бы учёт с физикой — имущество «переехало» бы мимо процесса передачи.
+   */
+  private async resolvePlacement(
+    coopname: string,
+    braname: string,
+    requested: MarketplaceInventoryPlacement
+  ): Promise<MarketplaceInventoryPlacement> {
+    const container_id = requested.container_id ?? null;
+    const cell_id = requested.cell_id ?? null;
+
+    if (container_id && cell_id) {
+      throw new BadRequestException(
+        'Укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
+      );
+    }
+    if (!container_id && !cell_id) {
+      return { container_id: null, cell_id: null };
+    }
+
+    if (container_id) {
+      const container = await this.containerRepo.findById(container_id);
+      if (!container || container.coopname !== coopname) {
+        throw new NotFoundException('Бокс не найден.');
+      }
+      if (!container.is_active) {
+        throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+      }
+      if (container.braname !== braname) {
+        throw new ConflictException(
+          `Бокс «${container.code}» числится за участком ${container.braname}, а имущество — за ${braname}.`
+        );
+      }
+      return { container_id, cell_id: null };
+    }
+
+    const cell = await this.cellRepo.findById(cell_id as string);
+    if (!cell || cell.coopname !== coopname) {
+      throw new NotFoundException('Ячейка не найдена.');
+    }
+    if (!cell.is_active) {
+      throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+    }
+    if (cell.braname !== braname) {
+      throw new ConflictException(
+        `Ячейка «${cell.code}» относится к участку ${cell.braname}, а имущество — к ${braname}.`
+      );
+    }
+    return { container_id: null, cell_id };
   }
 
   /**
@@ -147,18 +222,20 @@ export class MarketplaceInventoryLabelService {
     // target переиспользуем под первую долю (сохраняем id/историю), остальные
     // куски пула удаляем (схлопываем), затем создаём новые доли с тем же снапшотом.
     const first = input.splits[0];
-    result.push(
-      await this.inventoryRepo.resize(
-        target.id,
-        quantities[0],
-        first.shelf?.trim() ? first.shelf.trim() : null
-      )
-    );
+    const firstPlacement = await this.resolvePlacement(target.coopname, target.braname, {
+      container_id: first.container_id ?? null,
+      cell_id: first.cell_id ?? null,
+    });
+    result.push(await this.inventoryRepo.resize(target.id, quantities[0], firstPlacement));
     for (const piece of pool) {
       if (piece.id !== target.id) await this.inventoryRepo.deleteById(piece.id);
     }
     for (let i = 1; i < input.splits.length; i++) {
       const piece = input.splits[i];
+      const piecePlacement = await this.resolvePlacement(target.coopname, target.braname, {
+        container_id: piece.container_id ?? null,
+        cell_id: piece.cell_id ?? null,
+      });
       const created = await this.inventoryRepo.create({
         coopname: target.coopname,
         order_id: target.order_id,
@@ -168,7 +245,8 @@ export class MarketplaceInventoryLabelService {
         product_name_snapshot: target.product_name_snapshot,
         quantity_per_label: quantities[i],
         orderer_account_snapshot: target.orderer_account_snapshot,
-        shelf: piece.shelf?.trim() ? piece.shelf.trim() : null,
+        cell_id: piecePlacement.cell_id,
+        container_id: piecePlacement.container_id,
         received_at: target.received_at,
         received_by_operator_account: target.received_by_operator_account,
         barcode_value: null,
@@ -181,7 +259,7 @@ export class MarketplaceInventoryLabelService {
     }
 
     this.logger.log(
-      `Inventory: заказ ${target.order_id} перераскладкой собран из ${pool.length} в ${result.length} полок(и).`
+      `Inventory: заказ ${target.order_id} перераскладкой собран из ${pool.length} в ${result.length} мест(а).`
     );
     return { inventory: result };
   }

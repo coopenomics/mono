@@ -131,9 +131,16 @@ export class MarketplaceInventoryItemDTO {
 
   @Field(() => String, {
     nullable: true,
-    description: 'Полка/ячейка склада, куда положена позиция. Пусто — место не назначено.',
+    description: 'Бокс, в котором лежит позиция. Пусто — позиция лежит в ячейке либо без места.',
   })
-  shelf!: string | null;
+  container_id!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Ячейка, если имущество лежит на складе напрямую. Ячейку позиции, лежащей в боксе, определяет сам бокс.',
+  })
+  cell_id!: string | null;
 
   @Field(() => Date, { description: 'Момент приёмки имущества кооперативом по акту.' })
   received_at!: Date;
@@ -226,20 +233,28 @@ export class MarketplaceBindInventoryBarcodeInputDTO {
   format?: MarketplaceBarcodeFormatEnum;
 }
 
-@InputType('MarketplaceAssignInventoryShelfInput')
-export class MarketplaceAssignInventoryShelfInputDTO {
-  @Field(() => String, { description: 'Позиция склада, для которой назначается полка.' })
+@InputType('MarketplaceAssignInventoryPlacementInput')
+export class MarketplaceAssignInventoryPlacementInputDTO {
+  @Field(() => String, { description: 'Позиция склада, которой назначается место хранения.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
 
   @Field(() => String, {
     nullable: true,
-    description: 'Полка/ячейка склада (свободная строка). Пусто — очистить полку.',
+    description: 'Бокс, в который кладут позицию.',
   })
   @IsOptional()
   @IsString()
-  shelf?: string | null;
+  container_id?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Ячейка, если имущество кладут на склад напрямую (негабарит).',
+  })
+  @IsOptional()
+  @IsString()
+  cell_id?: string | null;
 }
 
 @InputType('MarketplaceClearInventoryLabelInput')
@@ -257,18 +272,20 @@ export class MarketplaceInventorySplitEntryInputDTO {
   @Min(1)
   quantity!: number;
 
-  @Field(() => String, {
-    nullable: true,
-    description: 'Полка/ячейка склада для этой доли (свободная строка).',
-  })
+  @Field(() => String, { nullable: true, description: 'Бокс для этой доли.' })
   @IsOptional()
   @IsString()
-  shelf?: string | null;
+  container_id?: string | null;
+
+  @Field(() => String, { nullable: true, description: 'Ячейка для этой доли (негабарит).' })
+  @IsOptional()
+  @IsString()
+  cell_id?: string | null;
 }
 
 @InputType('MarketplaceSplitInventoryInput')
 export class MarketplaceSplitInventoryInputDTO {
-  @Field(() => String, { description: 'Позиция склада, которую раскладывают по нескольким полкам.' })
+  @Field(() => String, { description: 'Позиция склада, которую раскладывают по нескольким местам.' })
   @IsString()
   @IsNotEmpty()
   inventory_id!: string;
@@ -338,7 +355,8 @@ export function toMarketplaceInventoryItemDTO(
   dto.package_size = null;
   dto.delivery_point_name = null;
   dto.delivery_point_address = null;
-  dto.shelf = e.shelf;
+  dto.container_id = e.container_id;
+  dto.cell_id = e.cell_id;
   dto.received_at = e.received_at;
   dto.expiry_date = e.expiry_date;
   dto.received_by_operator_account = e.received_by_operator_account;
