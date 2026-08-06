@@ -20,7 +20,6 @@ import {
   containerLabel,
   createContainerType,
   createContainers,
-  formatTotalVolumeM3,
   formatVolumeM3,
   moveContainer,
   updateContainer,
@@ -119,7 +118,7 @@ const totalVolume = computed(() => {
     const type = storage.typeById(c.container_type_id)
     if (type) sum += volumeM3Of(type.volume_m3)
   }
-  return formatTotalVolumeM3(sum)
+  return formatVolumeM3(sum)
 })
 
 const cellOptions = computed<BaseSelectOption[]>(() =>

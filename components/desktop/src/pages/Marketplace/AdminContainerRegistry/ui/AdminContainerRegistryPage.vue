@@ -10,7 +10,6 @@ import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import {
   buildStorageIndex,
-  formatTotalVolumeM3,
   formatVolumeM3,
   listContainerTypes,
   listContainers,
@@ -113,7 +112,7 @@ const totalVolume = computed(() => {
     const type = typeById.value.get(c.container_type_id)
     if (type) sum += volumeM3Of(type.volume_m3)
   }
-  return formatTotalVolumeM3(sum)
+  return formatVolumeM3(sum)
 })
 
 const filledCount = computed(

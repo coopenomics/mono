@@ -89,16 +89,18 @@ export function volumeM3Of(value: string | null | undefined): number {
 }
 
 /**
- * «0,072 м³» — объём тары показываем кубами, потому что перевозку считают
- * кубами. У одного бокса значение мелкое, поэтому до трёх знаков; у суммы по
- * складу — до двух, там третий знак уже не важен.
+ * Объём тары в кубометрах — «0,3 м³», «10,25 м³».
+ *
+ * Обычно хватает сотых: перевозку прикидывают кубами, третий знак там уже шум.
+ * Но фиксированная точность врёт на мелкой таре — объём схлопывается в «0 м³»,
+ * и оператор видит ноль там, где объём есть. Поэтому знаков ровно столько,
+ * сколько нужно, чтобы число не обнулилось: сколько посчитано, столько и
+ * показываем.
  */
-export function formatVolumeM3(value: string | null | undefined): string {
-  const n = volumeM3Of(value)
-  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: 3 })} м³`
-}
+export function formatVolumeM3(value: string | number | null | undefined): string {
+  const n = typeof value === 'number' ? value : volumeM3Of(value)
+  if (!Number.isFinite(n) || n === 0) return '0 м³'
 
-/** Суммарный объём выборки — «10,25 м³». */
-export function formatTotalVolumeM3(m3: number): string {
-  return `${m3.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} м³`
+  const digits = n >= 0.01 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.abs(n))) + 1)
+  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: digits })} м³`
 }
