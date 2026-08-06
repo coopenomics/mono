@@ -35,6 +35,8 @@ import type {
 @Index(['coopname', 'braname', 'ownership', 'status'])
 @Index(['coopname', 'reserved_order_id'])
 @Index(['coopname', 'published_offer_id'])
+// Эпик 19: содержимое ячейки — сетка склада и гард «непустую не деактивировать».
+@Index(['coopname', 'cell_id'])
 export class MarketplaceInventoryEntity {
   @PrimaryGeneratedColumn('uuid')
   public id!: string;
@@ -70,9 +72,20 @@ export class MarketplaceInventoryEntity {
   @Column({ type: 'varchar', length: 13 })
   public orderer_account_snapshot!: string;
 
-  // Полка/ячейка склада (свободная строка, напр. «A-12»). NULL — не назначена.
+  /**
+   * @deprecated Эпик 19 — прежняя полка свободной строкой. Код её больше не
+   * читает и не пишет: адрес переехал в `cell_id` (ячейка) / `container_id`
+   * (бокс). Колонка оставлена объявленной до подтверждения бэкфилла на проде —
+   * `synchronize:true` дропнул бы её на старте, раньше чем миграция v13
+   * успеет перенести адреса. Снимается отдельной миграцией следующим релизом.
+   */
   @Column({ type: 'varchar', length: 64, nullable: true })
   public shelf!: string | null;
+
+  // Ячейка хранения, если позиция лежит на складе напрямую (негабарит).
+  // Взаимоисключающа с `container_id`; обе NULL — место ещё не назначено.
+  @Column({ type: 'uuid', nullable: true })
+  public cell_id!: string | null;
 
   // Момент и оператор приёмки кооперативом по акту. nullable — synchronize
   // добавляет колонку без backfill для исторических записей.

@@ -97,6 +97,8 @@ import {
   MARKETPLACE_INVENTORY_LABEL_SERVICE,
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
+import { MarketplaceStorageCellResolver } from './resolvers/marketplace-storage-cell.resolver';
+import { MarketplaceStorageCellService } from './services/marketplace-storage-cell.service';
 import { MarketplaceStockResolver } from './resolvers/marketplace-stock.resolver';
 import { MarketplaceEconomyResolver } from './resolvers/marketplace-economy.resolver';
 import {
@@ -243,6 +245,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceStorageCellResolver,
+    MarketplaceStorageCellService,
     MarketplaceStockResolver,
     MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
@@ -498,6 +502,8 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceStorageCellResolver,
+    MarketplaceStorageCellService,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,

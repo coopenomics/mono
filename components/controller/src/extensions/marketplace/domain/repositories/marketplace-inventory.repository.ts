@@ -19,6 +19,8 @@ export interface MarketplaceInventoryCreateInput {
   quantity_per_label: number;
   orderer_account_snapshot: string;
   shelf?: string | null;
+  /** Ячейка хранения, если позиция кладётся на склад напрямую (негабарит). */
+  cell_id?: string | null;
   received_at: Date;
   received_by_operator_account: string;
   labeled_at?: Date | null;
@@ -143,6 +145,12 @@ export interface MarketplaceInventoryDomainRepository {
 
   /** Назначить/сменить/очистить полку склада для позиции. */
   assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity>;
+
+  /**
+   * Сколько позиций физически лежит в ячейке (статусы «на складе»). Опора
+   * гарда «непустую ячейку нельзя вывести из оборота».
+   */
+  countOnWarehouseByCell(coopname: string, cell_id: string): Promise<number>;
 
   /** Наложить штрих-код и перевести позицию в LABELED. */
   applyLabel(

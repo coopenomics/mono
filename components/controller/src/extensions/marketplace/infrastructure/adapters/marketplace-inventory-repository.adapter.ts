@@ -39,6 +39,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       quantity_per_label: input.quantity_per_label,
       orderer_account_snapshot: input.orderer_account_snapshot,
       shelf: input.shelf ?? null,
+      cell_id: input.cell_id ?? null,
       received_at: input.received_at,
       received_by_operator_account: input.received_by_operator_account,
       labeled_at: input.labeled_at ?? null,
@@ -198,6 +199,16 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
     await this.repo.update({ id }, { shelf });
     const row = await this.repo.findOneOrFail({ where: { id } });
     return this.mapper.toDomain(row);
+  }
+
+  async countOnWarehouseByCell(coopname: string, cell_id: string): Promise<number> {
+    return this.repo.count({
+      where: {
+        coopname,
+        cell_id,
+        status: In([...MarketplaceInventoryOnWarehouseStatuses]),
+      },
+    });
   }
 
   async applyLabel(
@@ -485,6 +496,8 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
       quantity_per_label: quantity,
       orderer_account_snapshot: row.orderer_account_snapshot,
       shelf: row.shelf,
+      // Отколотый остаток остаётся там же, где лежала исходная позиция.
+      cell_id: row.cell_id,
       received_at: row.received_at,
       received_by_operator_account: row.received_by_operator_account,
       labeled_at: null,
