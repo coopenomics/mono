@@ -149,6 +149,9 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalAddWorklogInput:{
 
 	},
+	CapitalAllocateFundsInput:{
+
+	},
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
@@ -354,8 +357,8 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateMeasureInput:{
 		series_mode:"MetricSeriesMode",
-		wave_period:"MetricSeriesPeriod",
-		tag:"MeasureCatalogTag"
+		tag:"MeasureCatalogTag",
+		wave_period:"MetricSeriesPeriod"
 	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
@@ -759,6 +762,7 @@ export const AllTypesProps: Record<string,any> = {
 		mark:"ReportSubmissionMark",
 		reportType:"ReportType"
 	},
+	MeasureCatalogTag: "enum" as const,
 	MembershipExitApplicationGenerateDocumentInput:{
 
 	},
@@ -777,7 +781,6 @@ export const AllTypesProps: Record<string,any> = {
 	MetricDriveDirection: "enum" as const,
 	MetricSeriesMode: "enum" as const,
 	MetricSeriesPeriod: "enum" as const,
-	MeasureCatalogTag: "enum" as const,
 	MetricStatus: "enum" as const,
 	ModerateRequestInput:{
 
@@ -812,6 +815,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalAddWorklog:{
 			data:"CapitalAddWorklogInput"
+		},
+		capitalAllocateFunds:{
+			data:"CapitalAllocateFundsInput"
 		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
@@ -854,6 +860,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
+		},
+		capitalCreateLocalProject:{
+			data:"CreateProjectInput"
 		},
 		capitalCreateMeasure:{
 			data:"CreateMeasureInput"
@@ -2253,9 +2262,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	UpdateMeasureInput:{
 		series_mode:"MetricSeriesMode",
-		wave_period:"MetricSeriesPeriod",
+		status:"MetricStatus",
 		tag:"MeasureCatalogTag",
-		status:"MetricStatus"
+		wave_period:"MetricSeriesPeriod"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -2493,8 +2502,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -2988,10 +2999,10 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		series_mode:"MetricSeriesMode",
 		status:"MetricStatus",
+		tag:"MeasureCatalogTag",
 		title:"String",
 		unit:"String",
-		wave_period:"MetricSeriesPeriod",
-		tag:"MeasureCatalogTag"
+		wave_period:"MetricSeriesPeriod"
 	},
 	CapitalMetricComponentRollup:{
 		fact_sum:"Float",
@@ -3173,8 +3184,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -3205,8 +3218,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -4228,6 +4243,7 @@ export const ReturnTypes: Record<string,any> = {
 		cancelRequest:"Transaction",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddWorklog:"CapitalTimeEntry",
+		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
 		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
@@ -4242,6 +4258,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateLocalProject:"CapitalProject",
 		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
@@ -5426,7 +5443,8 @@ export const ReturnTypes: Record<string,any> = {
 		okpo:"String",
 		oktmo:"String",
 		okved:"String",
-		orgName:"String"
+		orgName:"String",
+		phone:"String"
 	},
 	ZeroReportSignerEdits:{
 		chairmanPosition:"String",

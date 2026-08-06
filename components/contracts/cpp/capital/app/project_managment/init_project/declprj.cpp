@@ -2,6 +2,7 @@
  * @brief Отклоняет проект советом
  * Отклоняет проект советом кооператива:
  * - Проверяет что проект существует и не авторизован
+ * - Возвращает неиспользованные средства проекта в глобальный пул программы
  * - Удаляет проект из таблицы
  * @param coopname Наименование кооператива
  * @param project_hash Хеш проекта для отклонения
@@ -17,6 +18,10 @@ void capital::declprj(eosio::name coopname, checksum256 project_hash, std::strin
   // Проверяем статус проекта
   auto exist_project = Capital::Projects::get_project_or_fail(coopname, project_hash);
   // eosio::check(!exist_project.is_authorized, "Нельзя отклонить уже авторизованный проект");
+
+  // Возвращаем неиспользованные средства в глобальный пул программы: отклонённый
+  // проект исчезает из таблицы, и без возврата аллоцированные деньги потерялись бы.
+  Capital::Projects::return_unused_investments_to_pool(coopname, exist_project);
 
   // Удаляем проект
   Capital::Projects::delete_project(coopname, exist_project.id);

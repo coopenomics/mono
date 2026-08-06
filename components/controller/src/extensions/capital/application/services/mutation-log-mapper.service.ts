@@ -186,7 +186,7 @@ export class MutationLogMapperService {
     capitalEditContributor: LogEventType.CONTRIBUTOR_EDITED,
     capitalCreateProjectInvest: LogEventType.INVESTMENT_RECEIVED,
     capitalCreateProgramInvest: LogEventType.PROGRAM_INVESTMENT_RECEIVED,
-    capitalAllocate: LogEventType.FUNDS_ALLOCATED,
+    capitalAllocateFunds: LogEventType.FUNDS_ALLOCATED,
     capitalCreateProjectProperty: LogEventType.PROJECT_PROPERTY_RECEIVED,
     capitalCreateProgramProperty: LogEventType.PROGRAM_PROPERTY_RECEIVED,
     capitalCreateCommit: LogEventType.COMMIT_RECEIVED,

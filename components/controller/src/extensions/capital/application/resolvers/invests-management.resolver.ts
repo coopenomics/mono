@@ -2,6 +2,7 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { InvestsManagementService } from '../services/invests-management.service';
 import { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
+import { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
@@ -62,8 +63,19 @@ export class InvestsManagementResolver {
   }
 
   /**
-   * Мутация для возврата неиспользованных инвестиций CAPITAL контракта
+   * Мутация для направления средств программы в проект или компонент (allocate)
    */
+  @Mutation(() => TransactionDTO, {
+    name: 'capitalAllocateFunds',
+    description: 'Направление средств программы в проект или компонент',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async allocateFunds(
+    @Args('data', { type: () => AllocateFundsInputDTO }) data: AllocateFundsInputDTO
+  ): Promise<TransactionDTO> {
+    return await this.investsManagementService.allocateFunds(data);
+  }
 
   // ============ ЗАПРОСЫ ИНВЕСТИЦИЙ ============
 

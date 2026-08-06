@@ -2056,7 +2056,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -2066,10 +2066,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -2269,9 +2273,13 @@ export type ValueTypes = {
 	represented_by?:ValueTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты */
+	/** Доверенные аккаунты
+
+Требуемые роли: chairman, member.  */
 	trusted?:ValueTypes["Individual"],
-	/** Председатель кооперативного участка */
+	/** Председатель кооперативного участка
+
+Требуемые роли: chairman, member.  */
 	trustee?:ValueTypes["Individual"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
@@ -2406,6 +2414,14 @@ export type ValueTypes = {
 	issue_hash: string | Variable<any, string>,
 	/** Имя пользователя-исполнителя */
 	username: string | Variable<any, string>
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string | Variable<any, string>,
+	/** Имя кооператива. */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string | Variable<any, string>
 };
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
@@ -2932,7 +2948,7 @@ export type ValueTypes = {
 	present?:boolean | `@${string}`,
 	/** Приоритет задачи */
 	priority?:boolean | `@${string}`,
-	/** Хеш проекта */
+	/** Хеш проекта или компонента; пусто — свободная задача */
 	project_hash?:boolean | `@${string}`,
 	/** Порядок сортировки */
 	sort_order?:boolean | `@${string}`,
@@ -3122,10 +3138,14 @@ export type ValueTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalMeasure']?: Omit<ValueTypes["CapitalMeasure"], "...on CapitalMeasure">
 }>;
@@ -3459,7 +3479,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -3469,10 +3489,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -3524,7 +3548,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -3534,10 +3558,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -3670,6 +3698,8 @@ export type ValueTypes = {
 	is_planed?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null | Variable<any, string>,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу проекта */
@@ -4877,17 +4907,17 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Срок достижения цели */
 	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
-	/** Хеш меры из справочника; если не задан — создаётся/ищется по названию и единице */
-	measure_hash?: string | undefined | null | Variable<any, string>,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string | Variable<any, string>,
 	/** Хеш компонента */
 	project_hash: string | Variable<any, string>,
-	/** Режим ряда меры; учитывается при создании новой меры */
+	/** Не используется: режим ряда задан в справочнике мер */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
 	/** Целевое значение на компоненте */
 	target_value: number | Variable<any, string>,
-	/** Название меры (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Единица измерения (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	unit?: string | undefined | null | Variable<any, string>
 };
 	["CreateCycleInput"]: {
@@ -5041,8 +5071,8 @@ export type ValueTypes = {
 	labels?: Array<string> | undefined | null | Variable<any, string>,
 	/** Приоритет задачи */
 	priority?: ValueTypes["IssuePriority"] | undefined | null | Variable<any, string>,
-	/** Хеш проекта */
-	project_hash: string | Variable<any, string>,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Статус задачи */
@@ -5061,10 +5091,14 @@ export type ValueTypes = {
 	coopname: string | Variable<any, string>,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
 	/** Название меры */
 	title: string | Variable<any, string>,
 	/** Единица измерения */
-	unit: string | Variable<any, string>
+	unit: string | Variable<any, string>,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -6762,7 +6796,7 @@ export type ValueTypes = {
 	["GetMeasuresInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
-	/** Фильтр по статусу; по умолчанию активные */
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
 	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>
 };
 	["GetMeetInput"]: {
@@ -7210,6 +7244,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MatrixAccountStatusResponseDTO']?: Omit<ValueTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 }>;
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -7560,7 +7596,7 @@ export type ValueTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string | Variable<any, string>,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string | Variable<any, string>
 };
 	["Mutation"]: AliasType<{
@@ -7573,6 +7609,7 @@ cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: st
 cancelRequest?: [{	data: ValueTypes["CancelRequestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
+capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
@@ -7587,6 +7624,7 @@ capitalCreateCycle?: [{	data: ValueTypes["CreateCycleInput"] | Variable<any, str
 capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalCreateLocalProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCreateMeasure?: [{	data: ValueTypes["CreateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ValueTypes["CreateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -7663,7 +7701,9 @@ chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<a
 chairmanDeclineApprove?: [{	data: ValueTypes["DeclineApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
 chatcoopCreateAccount?: [{	data: ValueTypes["CreateMatrixAccountInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ValueTypes["CreateChatCoopCalendarEventInput"] | Variable<any, string>},ValueTypes["ChatCoopCalendarEvent"]],
-	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
+	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription?:ValueTypes["ChatCoopCalendarIcsUrlResponse"],
 chatcoopCreateSecretaryRoom?: [{	data: ValueTypes["CreateSecretaryRoomInput"] | Variable<any, string>},ValueTypes["ChatcoopSecretaryRoom"]],
 chatcoopDeleteCalendarEvent?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
@@ -9183,20 +9223,30 @@ capitalVotes?: [{	filter?: ValueTypes["VoteFilter"] | undefined | null | Variabl
 chairmanApproval?: [{	id: string | Variable<any, string>},ValueTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ValueTypes["ApprovalFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ValueTypes["CheckMatrixUsernameInput"] | Variable<any, string>},boolean | `@${string}`],
-	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL */
+	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetAccountStatus?:ValueTypes["MatrixAccountStatusResponseDTO"],
 chatcoopGetMaxOriginServerTsForRoom?: [{	data: ValueTypes["GetMaxOriginServerTsForRoomInput"] | Variable<any, string>},boolean | `@${string}`],
 chatcoopGetRoomMessagesForUtcDate?: [{	data: ValueTypes["GetRoomMessagesForUtcDateInput"] | Variable<any, string>},ValueTypes["ChatcoopRoomMessageLine"]],
 chatcoopGetTranscription?: [{	data: ValueTypes["GetTranscriptionInput"] | Variable<any, string>},ValueTypes["CallTranscriptionWithSegments"]],
 chatcoopGetTranscriptions?: [{	data?: ValueTypes["GetTranscriptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["CallTranscription"]],
-	/** Список событий календаря кооператива */
+	/** Список событий календаря кооператива
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListCalendarEvents?:ValueTypes["ChatCoopCalendarEvent"],
-	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря */
+	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms?:ValueTypes["ChatCoopCalendarRoomOption"],
-	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago */
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListNonProjectCommunicationRooms?:ValueTypes["ChatcoopNonProjectCommunicationRoom"],
 chatcoopListProjectCommunicationRooms?: [{	data: ValueTypes["GetProjectCommunicationRoomsInput"] | Variable<any, string>},ValueTypes["ChatcoopProjectCommunicationRoom"]],
-	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
 	chatcoopListSecretaryRooms?:ValueTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"] | Variable<any, string>},boolean | `@${string}`],
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
@@ -9212,18 +9262,28 @@ expenseRequisitesByProposal?: [{	coopname: string | Variable<any, string>,	propo
 getAccount?: [{	data: ValueTypes["GetAccountInput"] | Variable<any, string>},ValueTypes["Account"]],
 getAccounts?: [{	data?: ValueTypes["GetAccountsInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["AccountsPaginationResult"]],
 getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedActionsPaginationResult"]],
-	/** Получить список вопросов совета кооператива для голосования */
+	/** Получить список вопросов совета кооператива для голосования
+
+Требуемые роли: chairman, member.  */
 	getAgenda?:ValueTypes["AgendaWithDocuments"],
-	/** Получить список доступных типов отчётов */
+	/** Получить список доступных типов отчётов
+
+Требуемые роли: chairman.  */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ValueTypes["GetCapitalIssueLogsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить состояние онбординга capital */
+	/** Получить состояние онбординга capital
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ValueTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<any, string>},ValueTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить состояние онбординга председателя */
+	/** Получить состояние онбординга председателя
+
+Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
-	/** Получить текущий инстанс пользователя */
+	/** Получить текущий инстанс пользователя
+
+Требуемые роли: member, chairman, user.  */
 	getCurrentInstance?:ValueTypes["CurrentInstanceDTO"],
 getCurrentTableStates?: [{	filters?: ValueTypes["CurrentTableStatesFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCurrentTableStatesPaginationResult"]],
 getDeltas?: [{	filters?: ValueTypes["DeltaFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedDeltasPaginationResult"]],
@@ -9250,7 +9310,9 @@ getPayments?: [{	data?: ValueTypes["PaymentFiltersInput"] | undefined | null | V
 getProgramWallet?: [{	filter: ValueTypes["ProgramWalletFilterInput"] | Variable<any, string>},ValueTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ValueTypes["ProgramWalletFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number | Variable<any, string>},ValueTypes["ProviderSubscription"]],
-	/** Получить подписки пользователя у провайдера */
+	/** Получить подписки пользователя у провайдера
+
+Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ValueTypes["ProviderSubscription"],
 getRegistrationAgreements?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>,	program_key?: string | undefined | null | Variable<any, string>},ValueTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ValueTypes["AccountType"] | Variable<any, string>,	coopname: string | Variable<any, string>},ValueTypes["RegistrationConfig"]],
@@ -9259,13 +9321,17 @@ getReportCalendar?: [{	year: number | Variable<any, string>},ValueTypes["ReportC
 getReportDraft?: [{	period?: number | undefined | null | Variable<any, string>,	reportType: ValueTypes["ReportType"] | Variable<any, string>,	year: number | Variable<any, string>},ValueTypes["ReportDraft"]],
 getReportHistory?: [{	filter?: ValueTypes["ReportHistoryFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportHistoryPage"]],
 getReportPreview?: [{	input: ValueTypes["ReportPreviewInput"] | Variable<any, string>},ValueTypes["ReportPreview"]],
-	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля */
+	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+
+Требуемые роли: chairman.  */
 	getReportRequisites?:ValueTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ValueTypes["SystemInfo"],
 getUnreadNotificationsCount?: [{	coopname: string | Variable<any, string>},ValueTypes["UnreadNotificationsCount"]],
 getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] | Variable<any, string>},ValueTypes["WebPushSubscriptionDto"]],
-	/** Получить статистику веб-пуш подписок (только для председателя) */
+	/** Получить статистику веб-пуш подписок (только для председателя)
+
+Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ValueTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ValueTypes["ListReportDraftsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["ReportDraft"]],
 membershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExit"]],
@@ -10706,12 +10772,18 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string | Variable<any, string>,
-	/** Режим ряда */
+	/** Не используется: справочник меняется только через миграции */
 	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
-	/** Название меры */
+	/** Статус меры: активна или выключена (архив) */
+	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
 	title?: string | undefined | null | Variable<any, string>,
-	/** Единица измерения */
-	unit?: string | undefined | null | Variable<any, string>
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -11061,6 +11133,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	oktmo?:boolean | `@${string}`,
 	okved?:boolean | `@${string}`,
 	orgName?:boolean | `@${string}`,
+	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ZeroReportOrganizationEdits']?: Omit<ValueTypes["ZeroReportOrganizationEdits"], "...on ZeroReportOrganizationEdits">
 }>;
@@ -12012,7 +12085,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -12022,10 +12095,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -12219,9 +12296,13 @@ export type ResolverInputTypes = {
 	represented_by?:ResolverInputTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name?:boolean | `@${string}`,
-	/** Доверенные аккаунты */
+	/** Доверенные аккаунты
+
+Требуемые роли: chairman, member.  */
 	trusted?:ResolverInputTypes["Individual"],
-	/** Председатель кооперативного участка */
+	/** Председатель кооперативного участка
+
+Требуемые роли: chairman, member.  */
 	trustee?:ResolverInputTypes["Individual"],
 	/** Тип организации */
 	type?:boolean | `@${string}`,
@@ -12346,6 +12427,14 @@ export type ResolverInputTypes = {
 	issue_hash: string,
 	/** Имя пользователя-исполнителя */
 	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
@@ -12861,7 +12950,7 @@ export type ResolverInputTypes = {
 	present?:boolean | `@${string}`,
 	/** Приоритет задачи */
 	priority?:boolean | `@${string}`,
-	/** Хеш проекта */
+	/** Хеш проекта или компонента; пусто — свободная задача */
 	project_hash?:boolean | `@${string}`,
 	/** Порядок сортировки */
 	sort_order?:boolean | `@${string}`,
@@ -13045,10 +13134,14 @@ export type ResolverInputTypes = {
 	series_mode?:boolean | `@${string}`,
 	/** Статус меры */
 	status?:boolean | `@${string}`,
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag?:boolean | `@${string}`,
 	/** Название меры */
 	title?:boolean | `@${string}`,
 	/** Единица измерения */
 	unit?:boolean | `@${string}`,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["CapitalMetricComponentRollup"]: AliasType<{
@@ -13368,7 +13461,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -13378,10 +13471,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -13432,7 +13529,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -13442,10 +13539,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -13574,6 +13675,8 @@ export type ResolverInputTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -14751,17 +14854,17 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
-	/** Хеш меры из справочника; если не задан — создаётся/ищется по названию и единице */
-	measure_hash?: string | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда меры; учитывается при создании новой меры */
+	/** Не используется: режим ряда задан в справочнике мер */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Название меры (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	title?: string | undefined | null,
-	/** Единица измерения (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	unit?: string | undefined | null
 };
 	["CreateCycleInput"]: {
@@ -14915,8 +15018,8 @@ export type ResolverInputTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ResolverInputTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -14935,10 +15038,14 @@ export type ResolverInputTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -16601,7 +16708,7 @@ export type ResolverInputTypes = {
 	["GetMeasuresInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Фильтр по статусу; по умолчанию активные */
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
 	status?: ResolverInputTypes["MetricStatus"] | undefined | null
 };
 	["GetMeetInput"]: {
@@ -17032,6 +17139,8 @@ export type ResolverInputTypes = {
 	matrixUsername?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -17371,7 +17480,7 @@ export type ResolverInputTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: AliasType<{
@@ -17384,6 +17493,7 @@ cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${stri
 cancelRequest?: [{	data: ResolverInputTypes["CancelRequestInput"]},ResolverInputTypes["Transaction"]],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
+capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
@@ -17398,6 +17508,7 @@ capitalCreateCycle?: [{	data: ResolverInputTypes["CreateCycleInput"]},ResolverIn
 capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalCreateLocalProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCreateMeasure?: [{	data: ResolverInputTypes["CreateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ResolverInputTypes["CreateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
@@ -17474,7 +17585,9 @@ chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},Res
 chairmanDeclineApprove?: [{	data: ResolverInputTypes["DeclineApproveInput"]},ResolverInputTypes["Approval"]],
 chatcoopCreateAccount?: [{	data: ResolverInputTypes["CreateMatrixAccountInputDTO"]},boolean | `@${string}`],
 chatcoopCreateCalendarEvent?: [{	data: ResolverInputTypes["CreateChatCoopCalendarEventInput"]},ResolverInputTypes["ChatCoopCalendarEvent"]],
-	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
+	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription?:ResolverInputTypes["ChatCoopCalendarIcsUrlResponse"],
 chatcoopCreateSecretaryRoom?: [{	data: ResolverInputTypes["CreateSecretaryRoomInput"]},ResolverInputTypes["ChatcoopSecretaryRoom"]],
 chatcoopDeleteCalendarEvent?: [{	id: string},boolean | `@${string}`],
@@ -18931,20 +19044,30 @@ capitalVotes?: [{	filter?: ResolverInputTypes["VoteFilter"] | undefined | null,	
 chairmanApproval?: [{	id: string},ResolverInputTypes["Approval"]],
 chairmanApprovals?: [{	filter?: ResolverInputTypes["ApprovalFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedChairmanApprovalsPaginationResult"]],
 chatcoopCheckUsernameAvailability?: [{	data: ResolverInputTypes["CheckMatrixUsernameInput"]},boolean | `@${string}`],
-	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL */
+	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetAccountStatus?:ResolverInputTypes["MatrixAccountStatusResponseDTO"],
 chatcoopGetMaxOriginServerTsForRoom?: [{	data: ResolverInputTypes["GetMaxOriginServerTsForRoomInput"]},boolean | `@${string}`],
 chatcoopGetRoomMessagesForUtcDate?: [{	data: ResolverInputTypes["GetRoomMessagesForUtcDateInput"]},ResolverInputTypes["ChatcoopRoomMessageLine"]],
 chatcoopGetTranscription?: [{	data: ResolverInputTypes["GetTranscriptionInput"]},ResolverInputTypes["CallTranscriptionWithSegments"]],
 chatcoopGetTranscriptions?: [{	data?: ResolverInputTypes["GetTranscriptionsInput"] | undefined | null},ResolverInputTypes["CallTranscription"]],
-	/** Список событий календаря кооператива */
+	/** Список событий календаря кооператива
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListCalendarEvents?:ResolverInputTypes["ChatCoopCalendarEvent"],
-	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря */
+	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms?:ResolverInputTypes["ChatCoopCalendarRoomOption"],
-	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago */
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListNonProjectCommunicationRooms?:ResolverInputTypes["ChatcoopNonProjectCommunicationRoom"],
 chatcoopListProjectCommunicationRooms?: [{	data: ResolverInputTypes["GetProjectCommunicationRoomsInput"]},ResolverInputTypes["ChatcoopProjectCommunicationRoom"]],
-	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
 	chatcoopListSecretaryRooms?:ResolverInputTypes["ChatcoopSecretaryRoom"],
 chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDatesWithNewRoomMessagesInput"]},boolean | `@${string}`],
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
@@ -18960,18 +19083,28 @@ expenseRequisitesByProposal?: [{	coopname: string,	proposal_hash: string},Resolv
 getAccount?: [{	data: ResolverInputTypes["GetAccountInput"]},ResolverInputTypes["Account"]],
 getAccounts?: [{	data?: ResolverInputTypes["GetAccountsInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["AccountsPaginationResult"]],
 getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedActionsPaginationResult"]],
-	/** Получить список вопросов совета кооператива для голосования */
+	/** Получить список вопросов совета кооператива для голосования
+
+Требуемые роли: chairman, member.  */
 	getAgenda?:ResolverInputTypes["AgendaWithDocuments"],
-	/** Получить список доступных типов отчётов */
+	/** Получить список доступных типов отчётов
+
+Требуемые роли: chairman.  */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
 getCapitalIssueLogs?: [{	data: ResolverInputTypes["GetCapitalIssueLogsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить состояние онбординга capital */
+	/** Получить состояние онбординга capital
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState?:ResolverInputTypes["CapitalOnboardingState"],
 getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},ResolverInputTypes["PaginatedCapitalLogsPaginationResult"]],
-	/** Получить состояние онбординга председателя */
+	/** Получить состояние онбординга председателя
+
+Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
-	/** Получить текущий инстанс пользователя */
+	/** Получить текущий инстанс пользователя
+
+Требуемые роли: member, chairman, user.  */
 	getCurrentInstance?:ResolverInputTypes["CurrentInstanceDTO"],
 getCurrentTableStates?: [{	filters?: ResolverInputTypes["CurrentTableStatesFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCurrentTableStatesPaginationResult"]],
 getDeltas?: [{	filters?: ResolverInputTypes["DeltaFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedDeltasPaginationResult"]],
@@ -18998,7 +19131,9 @@ getPayments?: [{	data?: ResolverInputTypes["PaymentFiltersInput"] | undefined | 
 getProgramWallet?: [{	filter: ResolverInputTypes["ProgramWalletFilterInput"]},ResolverInputTypes["ProgramWallet"]],
 getProgramWallets?: [{	filter?: ResolverInputTypes["ProgramWalletFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["ProgramWalletsPaginationResult"]],
 getProviderSubscriptionById?: [{	id: number},ResolverInputTypes["ProviderSubscription"]],
-	/** Получить подписки пользователя у провайдера */
+	/** Получить подписки пользователя у провайдера
+
+Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions?:ResolverInputTypes["ProviderSubscription"],
 getRegistrationAgreements?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string,	program_key?: string | undefined | null},ResolverInputTypes["RegistrationAgreement"]],
 getRegistrationConfig?: [{	account_type: ResolverInputTypes["AccountType"],	coopname: string},ResolverInputTypes["RegistrationConfig"]],
@@ -19007,13 +19142,17 @@ getReportCalendar?: [{	year: number},ResolverInputTypes["ReportCalendarRow"]],
 getReportDraft?: [{	period?: number | undefined | null,	reportType: ResolverInputTypes["ReportType"],	year: number},ResolverInputTypes["ReportDraft"]],
 getReportHistory?: [{	filter?: ResolverInputTypes["ReportHistoryFilterInput"] | undefined | null},ResolverInputTypes["ReportHistoryPage"]],
 getReportPreview?: [{	input: ResolverInputTypes["ReportPreviewInput"]},ResolverInputTypes["ReportPreview"]],
-	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля */
+	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+
+Требуемые роли: chairman.  */
 	getReportRequisites?:ResolverInputTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo?:ResolverInputTypes["SystemInfo"],
 getUnreadNotificationsCount?: [{	coopname: string},ResolverInputTypes["UnreadNotificationsCount"]],
 getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsInput"]},ResolverInputTypes["WebPushSubscriptionDto"]],
-	/** Получить статистику веб-пуш подписок (только для председателя) */
+	/** Получить статистику веб-пуш подписок (только для председателя)
+
+Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats?:ResolverInputTypes["SubscriptionStatsDto"],
 listReportDrafts?: [{	filter?: ResolverInputTypes["ListReportDraftsFilterInput"] | undefined | null},ResolverInputTypes["ReportDraft"]],
 membershipExit?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExit"]],
@@ -20415,12 +20554,18 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Режим ряда */
+	/** Не используется: справочник меняется только через миграции */
 	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
+	/** Статус меры: активна или выключена (архив) */
+	status?: ResolverInputTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
 	title?: string | undefined | null,
-	/** Единица измерения */
-	unit?: string | undefined | null
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -20765,6 +20910,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	oktmo?:boolean | `@${string}`,
 	okved?:boolean | `@${string}`,
 	orgName?:boolean | `@${string}`,
+	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ZeroReportSignerEdits"]: AliasType<{
@@ -21696,8 +21842,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -21706,10 +21852,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -21897,9 +22047,13 @@ export type ModelTypes = {
 	represented_by: ModelTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты */
+	/** Доверенные аккаунты
+
+Требуемые роли: chairman, member.  */
 	trusted: Array<ModelTypes["Individual"]>,
-	/** Председатель кооперативного участка */
+	/** Председатель кооперативного участка
+
+Требуемые роли: chairman, member.  */
 	trustee: ModelTypes["Individual"],
 	/** Тип организации */
 	type: string
@@ -22012,6 +22166,14 @@ export type ModelTypes = {
 	issue_hash: string,
 	/** Имя пользователя-исполнителя */
 	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	["CapitalCandidate"]: {
 		about?: string | undefined | null,
@@ -22516,8 +22678,8 @@ export type ModelTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: ModelTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -22694,10 +22856,14 @@ export type ModelTypes = {
 	series_mode: ModelTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: ModelTypes["MetricStatus"],
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag: ModelTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string
+	unit: string,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period: ModelTypes["MetricSeriesPeriod"]
 };
 	["CapitalMetricComponentRollup"]: {
 		/** Сумма фактов метрик */
@@ -23003,8 +23169,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -23013,10 +23179,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -23066,8 +23236,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -23076,10 +23246,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -23204,6 +23378,8 @@ export type ModelTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -24347,17 +24523,17 @@ export type ModelTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: ModelTypes["DateTime"] | undefined | null,
-	/** Хеш меры из справочника; если не задан — создаётся/ищется по названию и единице */
-	measure_hash?: string | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда меры; учитывается при создании новой меры */
+	/** Не используется: режим ряда задан в справочнике мер */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Название меры (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	title?: string | undefined | null,
-	/** Единица измерения (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	unit?: string | undefined | null
 };
 	["CreateCycleInput"]: {
@@ -24511,8 +24687,8 @@ export type ModelTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ModelTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -24531,10 +24707,14 @@ export type ModelTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -26151,7 +26331,7 @@ export type ModelTypes = {
 	["GetMeasuresInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Фильтр по статусу; по умолчанию активные */
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
 	status?: ModelTypes["MetricStatus"] | undefined | null
 };
 	["GetMeetInput"]: {
@@ -26558,6 +26738,7 @@ export type ModelTypes = {
 	iframeUrl?: string | undefined | null,
 	matrixUsername?: string | undefined | null
 };
+	["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 		/** Документ с решением совета о проведении собрания */
@@ -26880,231 +27061,447 @@ export type ModelTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: {
 		/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: ModelTypes["Transaction"],
-	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета) */
+	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
+
+Требуемые роли: chairman, member.  */
 	addParticipant: ModelTypes["Account"],
 	/** Добавить метод оплаты (банковский счёт или СБП) */
 	addPaymentMethod: ModelTypes["PaymentMethod"],
-	/** Добавить доверенное лицо кооперативного участка */
+	/** Добавить доверенное лицо кооперативного участка
+
+Требуемые роли: chairman.  */
 	addTrustedAccount: ModelTypes["Branch"],
-	/** Утвердить и исполнить решение совета */
+	/** Утвердить и исполнить решение совета
+
+Требуемые роли: chairman.  */
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Отменить заявку */
 	cancelRequest: ModelTypes["Transaction"],
-	/** Добавление автора проекта в CAPITAL контракте */
+	/** Добавление автора проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
-	/** Ручная запись фактического времени по задаче (на себя как исполнителя) */
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
 	capitalAddWorklog: ModelTypes["CapitalTimeEntry"],
-	/** Одобрение коммита в CAPITAL контракте */
+	/** Направление средств программы в проект или компонент
+
+Требуемые роли: chairman.  */
+	capitalAllocateFunds: ModelTypes["Transaction"],
+	/** Одобрение коммита в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: ModelTypes["CapitalCommit"],
-	/** Архивация метрики компонента */
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
 	capitalArchiveComponentMetric: ModelTypes["CapitalComponentMetric"],
-	/** Расчет голосов в CAPITAL контракте */
+	/** Расчет голосов в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: ModelTypes["CapitalSegment"],
-	/** Закрытие проекта от инвестиций в CAPITAL контракте */
+	/** Закрытие проекта от инвестиций в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCloseProject: ModelTypes["CapitalProject"],
-	/** Завершение шага процесса */
+	/** Завершение шага процесса
+
+Требуемые роли: chairman, member, user.  */
 	capitalCompleteProcessStep: ModelTypes["ProcessInstance"],
-	/** Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib) */
+	/** Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib)
+
+Требуемые роли: chairman.  */
 	capitalCompleteRegistration: ModelTypes["Transaction"],
-	/** Завершение голосования в CAPITAL контракте */
+	/** Завершение голосования в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCompleteVoting: ModelTypes["Transaction"],
-	/** Конвертация сегмента в CAPITAL контракте */
+	/** Конвертация сегмента в CAPITAL контракте
+
+Требуемые роли: chairman, member.  */
 	capitalConvertSegment: ModelTypes["CapitalSegment"],
-	/** Создание коммита в CAPITAL контракте */
+	/** Создание коммита в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateCommit: ModelTypes["CapitalCommit"],
-	/** Создание цели по мере на компоненте */
+	/** Создание цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateComponentMetric: ModelTypes["CapitalComponentMetric"],
-	/** Создание цикла в CAPITAL контракте */
+	/** Создание цикла в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateCycle: ModelTypes["CapitalCycle"],
-	/** Получение ссуды в CAPITAL контракте */
+	/** Получение ссуды в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateDebt: ModelTypes["Transaction"],
-	/** Создание расхода в CAPITAL контракте */
+	/** Создание расхода в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateExpense: ModelTypes["Transaction"],
-	/** Создание задачи в CAPITAL контракте */
+	/** Создание задачи в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateIssue: ModelTypes["CapitalIssue"],
-	/** Создание меры в справочнике кооператива */
+	/** Создание персонального проекта или компонента без публикации в блокчейн
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateLocalProject: ModelTypes["CapitalProject"],
+	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
+
+Требуемые роли: chairman.  */
 	capitalCreateMeasure: ModelTypes["CapitalMeasure"],
-	/** Создание шаблона процесса */
+	/** Создание шаблона процесса
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProcessTemplate: ModelTypes["ProcessTemplate"],
-	/** Создание программного расхода капитала через шасси expense. */
+	/** Создание программного расхода капитала через шасси expense.
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProgramExpense: ModelTypes["Transaction"],
-	/** Инвестирование в программу благорост (денежная программная инвестиция) */
+	/** Инвестирование в программу благорост (денежная программная инвестиция)
+
+Требуемые роли: participant.  */
 	capitalCreateProgramInvest: ModelTypes["Transaction"],
-	/** Создание программного имущественного взноса в CAPITAL контракте */
+	/** Создание программного имущественного взноса в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateProgramProperty: ModelTypes["Transaction"],
-	/** Создание проекта в CAPITAL контракте */
+	/** Создание проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProject: ModelTypes["Transaction"],
-	/** Инвестирование в проект CAPITAL контракта */
+	/** Инвестирование в проект CAPITAL контракта
+
+Требуемые роли: participant.  */
 	capitalCreateProjectInvest: ModelTypes["Transaction"],
-	/** Создание проектного имущественного взноса в CAPITAL контракте */
+	/** Создание проектного имущественного взноса в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateProjectProperty: ModelTypes["Transaction"],
-	/** Создание истории в CAPITAL контракте */
+	/** Создание истории в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateStory: ModelTypes["CapitalStory"],
-	/** Отклонение коммита в CAPITAL контракте */
+	/** Отклонение коммита в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalDeclineCommit: ModelTypes["CapitalCommit"],
-	/** Удаление задачи по хэшу */
+	/** Удаление задачи по хэшу
+
+Требуемые роли: chairman.  */
 	capitalDeleteIssue: boolean,
-	/** Удаление шаблона процесса */
+	/** Удаление шаблона процесса
+
+Требуемые роли: chairman, member.  */
 	capitalDeleteProcessTemplate: boolean,
-	/** Удаление проекта в CAPITAL контракте */
+	/** Удаление проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalDeleteProject: ModelTypes["Transaction"],
-	/** Удаление истории по хэшу */
+	/** Удаление истории по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalDeleteStory: boolean,
-	/** Редактирование параметров участника в CAPITAL контракте */
+	/** Редактирование параметров участника в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalEditContributor: ModelTypes["CapitalContributor"],
-	/** Редактирование проекта в CAPITAL контракте */
+	/** Редактирование проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalEditProject: ModelTypes["Transaction"],
-	/** Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников */
+	/** Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников
+
+Требуемые роли: chairman.  */
 	capitalFinalizeProject: ModelTypes["CapitalProject"],
-	/** Финансирование программы CAPITAL контракта */
+	/** Финансирование программы CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalFundProgram: ModelTypes["Transaction"],
-	/** Сгенерировать соглашение о благороста */
+	/** Сгенерировать соглашение о благороста
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationAgreement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в благорост */
+	/** Сгенерировать заявление об инвестировании в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationMoneyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в благорост */
+	/** Сгенерировать акт об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в благорост */
+	/** Сгенерировать решение об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в благорост */
+	/** Сгенерировать заявление об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из благороста в основной кошелек */
+	/** Сгенерировать заявление о конвертации из благороста в основной кошелек
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ дополнения к приложению для компонента */
+	/** Сгенерировать документ дополнения к приложению для компонента
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateComponentGenerationContract: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение о расходе */
+	/** Сгенерировать решение о расходе
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateExpenseDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о расходе */
+	/** Сгенерировать заявление о расходе
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateExpenseStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать генерационное соглашение */
+	/** Сгенерировать генерационное соглашение
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationContract: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост») */
+	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationConvertStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в генерацию */
+	/** Сгенерировать заявление об инвестировании в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationMoneyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в генерацию */
+	/** Сгенерировать акт об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в генерацию */
+	/** Сгенерировать решение об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в генерацию */
+	/** Сгенерировать заявление об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение о получении займа */
+	/** Сгенерировать решение о получении займа
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о получении займа */
+	/** Сгенерировать заявление о получении займа
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту) */
+	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
+
+Требуемые роли: chairman, member, user.  */
 	capitalGenerateProgramMoneyInvestStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ приложения к договору участия для проекта */
+	/** Сгенерировать документ приложения к договору участия для проекта
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateProjectGenerationContract: ModelTypes["GeneratedDocument"],
-	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement) */
+	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateRegistrationDocuments: ModelTypes["GenerateCapitalRegistrationDocumentsOutputDTO"],
-	/** Сгенерировать акт о вкладе результатов */
+	/** Сгенерировать акт о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать решение о вкладе результатов */
+	/** Сгенерировать решение о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о вкладе результатов */
+	/** Сгенерировать заявление о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionStatement: ModelTypes["GeneratedDocument"],
-	/** Импорт участника в CAPITAL контракт */
+	/** Импорт участника в CAPITAL контракт
+
+Требуемые роли: chairman.  */
 	capitalImportContributor: ModelTypes["Transaction"],
-	/** Ручной вклад в метрику */
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
 	capitalLogMetricContribution: ModelTypes["CapitalMetricContribution"],
-	/** Подписание приложения в CAPITAL контракте */
+	/** Подписание приложения в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalMakeClearance: ModelTypes["Transaction"],
-	/** Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок) */
+	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
+
+Требуемые роли: chairman, member, user.  */
 	capitalMoveIssueToComponent: ModelTypes["CapitalIssue"],
-	/** Открытие проекта для инвестиций в CAPITAL контракте */
+	/** Открытие проекта для инвестиций в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalOpenProject: ModelTypes["CapitalProject"],
-	/** Пауза таймера — задача остаётся привязанной, время не тикает */
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
 	capitalPauseTimer: ModelTypes["CapitalTimerSession"],
-	/** Внесение результата в CAPITAL контракте */
+	/** Внесение результата в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalPushResult: ModelTypes["CapitalSegment"],
-	/** Обновление CRPS пайщика в программе CAPITAL контракта */
+	/** Обновление CRPS пайщика в программе CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalRefreshProgram: ModelTypes["Transaction"],
-	/** Обновление сегмента в CAPITAL контракте */
+	/** Обновление сегмента в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalRefreshSegment?: ModelTypes["CapitalSegment"] | undefined | null,
-	/** Регистрация участника в CAPITAL контракте */
+	/** Регистрация участника в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalRegisterContributor: ModelTypes["Transaction"],
-	/** Продолжить таймер после паузы на той же задаче */
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
 	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
-	/** Установка конфигурации CAPITAL контракта */
+	/** Установка конфигурации CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalSetConfig: ModelTypes["Transaction"],
-	/** Установка привязок задачи к метрикам компонента */
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
-	/** Установка мастера проекта в CAPITAL контракте */
+	/** Установка мастера проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalSetMaster: ModelTypes["Transaction"],
 	/** Установка плана проекта в CAPITAL контракте */
 	capitalSetPlan: ModelTypes["CapitalProject"],
 	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
 	capitalSetProjectDevelopmentRepositoryUrl: ModelTypes["CapitalProject"],
-	/** Подписание акта о вкладе результатов председателем */
+	/** Подписание акта о вкладе результатов председателем
+
+Требуемые роли: chairman.  */
 	capitalSignActAsChairman: ModelTypes["CapitalSegment"],
-	/** Подписание акта о вкладе результатов участником */
+	/** Подписание акта о вкладе результатов участником
+
+Требуемые роли: chairman, member, user.  */
 	capitalSignActAsContributor: ModelTypes["CapitalSegment"],
-	/** Запуск экземпляра процесса */
+	/** Запуск экземпляра процесса
+
+Требуемые роли: chairman, member, user.  */
 	capitalStartProcess: ModelTypes["ProcessInstance"],
-	/** Запуск проекта в CAPITAL контракте */
+	/** Запуск проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStartProject: ModelTypes["CapitalProject"],
-	/** Старт таймера на задаче (не больше одной открытой сессии на участника) */
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
 	capitalStartTimer: ModelTypes["CapitalTimerSession"],
-	/** Запуск голосования в CAPITAL контракте */
+	/** Запуск голосования в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStartVoting: ModelTypes["Transaction"],
-	/** Остановка проекта в CAPITAL контракте */
+	/** Остановка проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStopProject: ModelTypes["CapitalProject"],
-	/** Остановка открытого таймера — создаёт запись факта по задаче таймера */
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
 	capitalStopTimer?: ModelTypes["CapitalTimeEntry"] | undefined | null,
-	/** Голосование в CAPITAL контракте */
+	/** Голосование в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalSubmitVote: ModelTypes["Transaction"],
-	/** Пополнение пула программных расходов капитала из инвестиционного пула. */
+	/** Пополнение пула программных расходов капитала из инвестиционного пула.
+
+Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: ModelTypes["Transaction"],
-	/** Обновление цели по мере на компоненте */
+	/** Обновление цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateComponentMetric: ModelTypes["CapitalComponentMetric"],
-	/** Обновление задачи в CAPITAL контракте */
+	/** Обновление задачи в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateIssue: ModelTypes["CapitalIssue"],
-	/** Обновление меры в справочнике */
+	/** Включение или выключение меры в справочнике (без изменения состава)
+
+Требуемые роли: chairman.  */
 	capitalUpdateMeasure: ModelTypes["CapitalMeasure"],
-	/** Обновление шаблона процесса (шаги, рёбра, статус) */
+	/** Обновление шаблона процесса (шаги, рёбра, статус)
+
+Требуемые роли: chairman, member.  */
 	capitalUpdateProcessTemplate: ModelTypes["ProcessTemplate"],
-	/** Обновление истории в CAPITAL контракте */
+	/** Обновление истории в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateStory: ModelTypes["CapitalStory"],
-	/** Подтверждение одобрения документа председателем совета */
+	/** Подтверждение одобрения документа председателем совета
+
+Требуемые роли: chairman.  */
 	chairmanConfirmApprove: ModelTypes["Approval"],
-	/** Отклонение одобрения документа председателем совета */
+	/** Отклонение одобрения документа председателем совета
+
+Требуемые роли: chairman.  */
 	chairmanDeclineApprove: ModelTypes["Approval"],
-	/** Создать Matrix аккаунт с именем пользователя и паролем */
+	/** Создать Matrix аккаунт с именем пользователя и паролем
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateAccount: boolean,
-	/** Создать событие календаря */
+	/** Создать событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopCreateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
-	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
+	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription: ModelTypes["ChatCoopCalendarIcsUrlResponse"],
-	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу */
+	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу
+
+Требуемые роли: chairman, member.  */
 	chatcoopCreateSecretaryRoom: ModelTypes["ChatcoopSecretaryRoom"],
-	/** Удалить событие календаря */
+	/** Удалить событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
-	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре) */
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
+
+Требуемые роли: chairman, member.  */
 	chatcoopRemoveSecretaryRoom: string,
-	/** Обновить событие календаря */
+	/** Обновить событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateCalendarEvent: ModelTypes["ChatCoopCalendarEvent"],
-	/** Обновить заметку (memo) к транскрипции звонка */
+	/** Обновить заметку (memo) к транскрипции звонка
+
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateTranscriptionMemo: ModelTypes["CallTranscription"],
-	/** Выполнить шаг онбординга capital (создание предложения повестки) */
+	/** Выполнить шаг онбординга capital (создание предложения повестки)
+
+Требуемые роли: chairman.  */
 	completeCapitalOnboardingStep: ModelTypes["CapitalOnboardingState"],
-	/** Выполнить один из шагов онбординга (создание предложения повестки) */
+	/** Выполнить один из шагов онбординга (создание предложения повестки)
+
+Требуемые роли: chairman.  */
 	completeChairmanAgendaStep: ModelTypes["ChairmanOnboardingState"],
-	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки) */
+	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки)
+
+Требуемые роли: chairman.  */
 	completeChairmanGeneralMeetStep: ModelTypes["ChairmanOnboardingState"],
-	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание) */
+	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание)
+
+Требуемые роли: chairman.  */
 	completeExtensionOnboardingStep: ModelTypes["ExtensionOnboardingState"],
 	/** Завершить заявку по истечению гарантийного срока */
 	completeRequest: ModelTypes["Transaction"],
-	/** Подтвердить соглашение пайщика администратором */
+	/** Подтвердить соглашение пайщика администратором
+
+Требуемые роли: chairman, member.  */
 	confirmAgreement: ModelTypes["Transaction"],
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: ModelTypes["MembershipExitResult"],
@@ -27112,115 +27509,205 @@ export type ModelTypes = {
 	confirmReceiveOnRequest: ModelTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	confirmSupplyOnRequest: ModelTypes["Transaction"],
-	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков */
+	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	createAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Создать кооперативный участок */
+	/** Создать кооперативный участок
+
+Требуемые роли: chairman.  */
 	createBranch: ModelTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: ModelTypes["Transaction"],
-	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
+	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+
+Требуемые роли: chairman, member.  */
 	createDepositPayment: ModelTypes["GatewayPayment"],
-	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
+	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя).
+
+Требуемые роли: chairman, member.  */
 	createExpenseProposal: ModelTypes["Transaction"],
-	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
+	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+
+Требуемые роли: chairman, member.  */
 	createInitialPayment: ModelTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: ModelTypes["MembershipExitResult"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: ModelTypes["Transaction"],
-	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
+	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
+
+Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
-	/** Создать веб-пуш подписку для пользователя */
+	/** Создать веб-пуш подписку для пользователя
+
+Требуемые роли: chairman, member.  */
 	createWebPushSubscription: ModelTypes["CreateSubscriptionResponse"],
-	/** Создать заявку на вывод средств */
+	/** Создать заявку на вывод средств
+
+Требуемые роли: chairman, member.  */
 	createWithdraw: ModelTypes["CreateWithdrawResponse"],
-	/** Деактивировать веб-пуш подписку по ID */
+	/** Деактивировать веб-пуш подписку по ID
+
+Требуемые роли: chairman, member.  */
 	deactivateWebPushSubscriptionById: boolean,
-	/** Отклонить соглашение пайщика администратором */
+	/** Отклонить соглашение пайщика администратором
+
+Требуемые роли: chairman, member.  */
 	declineAgreement: ModelTypes["Transaction"],
-	/** Отклонить решение совета по отрицательному консенсусу (большинство голосов против) */
+	/** Отклонить решение совета по отрицательному консенсусу (большинство голосов против)
+
+Требуемые роли: chairman.  */
 	declineDecision: ModelTypes["Transaction"],
 	/** Отклонить заявку */
 	declineRequest: ModelTypes["Transaction"],
-	/** Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию. */
+	/** Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию.
+
+Требуемые роли: chairman.  */
 	deleteAccount: boolean,
-	/** Удалить кооперативный участок */
+	/** Удалить кооперативный участок
+
+Требуемые роли: chairman.  */
 	deleteBranch: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
-	/** Удалить черновик по id (только владелец) */
+	/** Удалить черновик по id (только владелец)
+
+Требуемые роли: chairman.  */
 	deleteReportDraft: boolean,
-	/** Удалить доверенное лицо кооперативного участка */
+	/** Удалить доверенное лицо кооперативного участка
+
+Требуемые роли: chairman.  */
 	deleteTrustedAccount: ModelTypes["Branch"],
 	/** Подтвердить доставку имущества Заказчику по заявке */
 	deliverOnRequest: ModelTypes["Transaction"],
 	/** Открыть спор по заявке */
 	disputeOnRequest: ModelTypes["Transaction"],
-	/** Изменить кооперативный участок */
+	/** Изменить кооперативный участок
+
+Требуемые роли: chairman.  */
 	editBranch: ModelTypes["Branch"],
-	/** Сгенерировать предложение повестки общего собрания пайщиков */
+	/** Сгенерировать предложение повестки общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetAgendaDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения общего собрания пайщиков */
+	/** Сгенерировать документ решения общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetDecisionDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ уведомления о проведении общего собрания пайщиков */
+	/** Сгенерировать документ уведомления о проведении общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetNotificationDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ акта приема-передачи. */
+	/** Сгенерировать документ акта приема-передачи.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о вступлении в кооператив. */
+	/** Сгенерировать документ решения о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив. */
+	/** Сгенерировать документ заявления о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков */
+	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков
+
+Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: ModelTypes["GeneratedDocument"],
-	/** Генерирует заявление на конвертацию паевого взноса в членский взнос */
+	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
+
+Требуемые роли: member, chairman.  */
 	generateConvertToAxonStatement: ModelTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
+	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.
+
+Требуемые роли: chairman.  */
 	generateExpenseProposalDecisionDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи. */
+	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.
+
+Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенной повестке */
+	/** Сгенерировать протокол решения по предложенной повестке
+
+Требуемые роли: chairman, member.  */
 	generateFreeDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ заявления о выходе из кооператива. */
 	generateMembershipExitApplication: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения собрания совета о выходе пайщика. */
+	/** Сгенерировать документ решения собрания совета о выходе пайщика.
+
+Требуемые роли: chairman, member.  */
 	generateMembershipExitDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив. */
+	/** Сгенерировать документ заявления о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateParticipantApplication: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ протокол решения собрания совета */
+	/** Сгенерировать документ протокол решения собрания совета
+
+Требуемые роли: chairman, member.  */
 	generateParticipantApplicationDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ согласия с политикой конфиденциальности. */
+	/** Сгенерировать документ согласия с политикой конфиденциальности.
+
+Требуемые роли: chairman, member.  */
 	generatePrivacyAgreement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ проекта свободного решения */
+	/** Сгенерировать документ проекта свободного решения
+
+Требуемые роли: chairman, member.  */
 	generateProjectOfFreeDecision: ModelTypes["GeneratedDocument"],
-	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
+	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде.
+
+Требуемые роли: chairman, member.  */
 	generateRegistrationDocuments: ModelTypes["GenerateRegistrationDocumentsOutput"],
-	/** Сгенерировать XML отчёта из edits-состояния формы (результат редактора). Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов. */
+	/** Сгенерировать XML отчёта из edits-состояния формы (результат редактора). Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов.
+
+Требуемые роли: chairman.  */
 	generateReportFromEdits: ModelTypes["GeneratedReport"],
-	/** Сгенерировать документ акта возврата имущества. */
+	/** Сгенерировать документ акта возврата имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetAct: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о возврате имущества. */
+	/** Сгенерировать документ решения о возврате имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetDecision: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о возврате имущества. */
+	/** Сгенерировать документ заявления о возврате имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetStatement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения совета о возврате паевого взноса */
+	/** Сгенерировать документ решения совета о возврате паевого взноса
+
+Требуемые роли: chairman, member.  */
 	generateReturnByMoneyDecisionDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления на возврат паевого взноса */
+	/** Сгенерировать документ заявления на возврат паевого взноса
+
+Требуемые роли: chairman, member.  */
 	generateReturnByMoneyStatementDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ, подтверждающий выбор кооперативного участка */
+	/** Сгенерировать документ, подтверждающий выбор кооперативного участка
+
+Требуемые роли: chairman, member, user.  */
 	generateSelectBranchDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи. */
+	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.
+
+Требуемые роли: chairman, member.  */
 	generateSignatureAgreement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения Совета по проведению общего собрания пайщиков */
+	/** Сгенерировать документ решения Совета по проведению общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateSovietDecisionOnAnnualMeetDocument: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ пользовательского соглашения. */
+	/** Сгенерировать документ пользовательского соглашения.
+
+Требуемые роли: chairman, member.  */
 	generateUserAgreement: ModelTypes["GeneratedDocument"],
-	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
+	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"
+
+Требуемые роли: chairman, member.  */
 	generateWalletAgreement: ModelTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: ModelTypes["SystemInfo"],
-	/** Установить расширение */
+	/** Установить расширение
+
+Требуемые роли: chairman.  */
 	installExtension: ModelTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: ModelTypes["SystemInfo"],
@@ -27228,25 +27715,41 @@ export type ModelTypes = {
 	login: ModelTypes["RegisteredAccount"],
 	/** Выйти из системы и заблокировать JWT-токены */
 	logout: boolean,
-	/** Отметить все уведомления инбокса прочитанными */
+	/** Отметить все уведомления инбокса прочитанными
+
+Требуемые роли: chairman, member, user.  */
 	markAllNotificationsRead: ModelTypes["UnreadNotificationsCount"],
-	/** Отметить уведомление инбокса прочитанным */
+	/** Отметить уведомление инбокса прочитанным
+
+Требуемые роли: chairman, member, user.  */
 	markNotificationRead: ModelTypes["InboxNotification"],
-	/** Поставить или снять отметку на ячейку календаря. mark=null — снять. Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»). */
+	/** Поставить или снять отметку на ячейку календаря. mark=null — снять. Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»).
+
+Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
 	/** Модерировать заявку */
 	moderateRequest: ModelTypes["Transaction"],
-	/** Уведомление о проведении общего собрания пайщиков */
+	/** Уведомление о проведении общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	notifyOnAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Доплатить сумму перерасхода по строке расхода (ADVANCE-механика). */
+	/** Доплатить сумму перерасхода по строке расхода (ADVANCE-механика).
+
+Требуемые роли: chairman.  */
 	overspendExpenseItem: ModelTypes["Transaction"],
-	/** Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT). */
+	/** Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT).
+
+Требуемые роли: chairman.  */
 	payExpenseItem: ModelTypes["Transaction"],
-	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию */
+	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
+
+Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: ModelTypes["Transaction"],
-	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
+	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.
+
+Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision?: ModelTypes["AgendaWithDocuments"] | undefined | null,
 	/** Опубликовать заявку */
 	publishRequest: ModelTypes["Transaction"],
@@ -27256,73 +27759,119 @@ export type ModelTypes = {
 	refresh: ModelTypes["RegisteredAccount"],
 	/** Зарегистрировать аккаунт пользователя в системе */
 	registerAccount: ModelTypes["RegisteredAccount"],
-	/** Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты. */
+	/** Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.
+
+Требуемые роли: chairman, member.  */
 	registerParticipant: ModelTypes["Account"],
-	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
+	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
+
+Требуемые роли: chairman, member, user.  */
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
-	/** Переотправить уведомление (force-постановка новой строки в очередь доставки) */
+	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
+
+Требуемые роли: chairman.  */
 	resendNotification: ModelTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: ModelTypes["Account"],
-	/** Перезапуск общего собрания пайщиков */
+	/** Перезапуск общего собрания пайщиков
+
+Требуемые роли: chairman.  */
 	restartAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток). */
+	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток).
+
+Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: ModelTypes["Transaction"],
-	/** Сохранить hash PrivateData параметров документов ЦПП */
+	/** Сохранить hash PrivateData параметров документов ЦПП
+
+Требуемые роли: chairman.  */
 	saveCapitalProgramDocDataHash: ModelTypes["CapitalOnboardingState"],
-	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
+	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period)
+
+Требуемые роли: chairman.  */
 	saveReportDraft: ModelTypes["ReportDraft"],
-	/** Выбрать кооперативный участок */
+	/** Выбрать кооперативный участок
+
+Требуемые роли: chairman, member, user.  */
 	selectBranch: boolean,
 	/** Отправить соглашение */
 	sendAgreement: ModelTypes["Transaction"],
-	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
+	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
+
+Требуемые роли: chairman, member.  */
 	setPaymentStatus: ModelTypes["GatewayPayment"],
 	/** Сохранить приватный ключ в зашифрованном серверном хранилище */
 	setWif: boolean,
-	/** Подписание решения председателем на общем собрании пайщиков */
+	/** Подписание решения председателем на общем собрании пайщиков
+
+Требуемые роли: chairman, member.  */
 	signByPresiderOnAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Подписание решения секретарём на общем собрании пайщиков */
+	/** Подписание решения секретарём на общем собрании пайщиков
+
+Требуемые роли: chairman, member.  */
 	signBySecretaryOnAnnualGeneralMeet: ModelTypes["MeetAggregate"],
 	/** Начать процесс установки кооператива, установить ключ и получить код установки */
 	startInstall: ModelTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
-	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
+	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат).
+
+Требуемые роли: chairman, member.  */
 	submitExpenseReport: ModelTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	supplyOnRequest: ModelTypes["Transaction"],
-	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
+	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
+
+Требуемые роли: chairman.  */
 	triggerNotificationWorkflow: boolean,
-	/** Удалить расширение */
+	/** Удалить расширение
+
+Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
 	/** Снять с публикации заявку */
 	unpublishRequest: ModelTypes["Transaction"],
-	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета. */
+	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
+
+Требуемые роли: chairman.  */
 	updateAccount: ModelTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: ModelTypes["PaymentMethod"],
-	/** Обновить расширение */
+	/** Обновить расширение
+
+Требуемые роли: chairman.  */
 	updateExtension: ModelTypes["Extension"],
-	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
+	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн
+
+Требуемые роли: chairman.  */
 	updateReportRequisites: ModelTypes["ReportRequisitesView"],
 	/** Обновить заявку */
 	updateRequest: ModelTypes["Transaction"],
-	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию) */
+	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию)
+
+Требуемые роли: chairman.  */
 	updateSettings: ModelTypes["Settings"],
-	/** Обновить параметры системы */
+	/** Обновить параметры системы
+
+Требуемые роли: chairman.  */
 	updateSystem: ModelTypes["SystemInfo"],
-	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files. */
+	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
+
+Требуемые роли: chairman, member, user.  */
 	uploadExpenseFile: ModelTypes["ExpenseFile"],
-	/** Приложить чек об оплате к платежу (бакет gateway:files). */
+	/** Приложить чек об оплате к платежу (бакет gateway:files).
+
+Требуемые роли: chairman, member.  */
 	uploadPaymentProof: ModelTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
-	/** Голосование на общем собрании пайщиков */
+	/** Голосование на общем собрании пайщиков
+
+Требуемые роли: member.  */
 	voteOnAnnualGeneralMeet: ModelTypes["MeetAggregate"],
-	/** Перевод между кошельками одного бух.счёта (operation o.adj.walmove). Только председатель. Backend проверяет связь wallet→account до подписания. */
+	/** Перевод между кошельками одного бух.счёта (operation o.adj.walmove). Только председатель. Backend проверяет связь wallet→account до подписания.
+
+Требуемые роли: chairman.  */
 	walmoveWallets: ModelTypes["Ledger2AdjustmentResult"]
 };
 	["NonProjectRoomKind"]:NonProjectRoomKind;
@@ -28525,23 +29074,33 @@ export type ModelTypes = {
 	agreementTemplates: Array<ModelTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: ModelTypes["PaginatedAgreementsPaginationResult"],
-	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
+	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
+
+Требуемые роли: chairman.  */
 	buildInitialReportEdits: ModelTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
 	candidates: ModelTypes["PaginatedCandidatesPaginationResult"],
 	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными */
 	capitalCandidates: ModelTypes["PaginatedCapitalCandidatesPaginationResult"],
-	/** Получение коммита по хэшу */
+	/** Получение коммита по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalCommit?: ModelTypes["CapitalCommit"] | undefined | null,
-	/** Получение списка коммитов кооператива с фильтрацией */
+	/** Получение списка коммитов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalCommits: ModelTypes["PaginatedCapitalCommitsPaginationResult"],
-	/** Цели по мерам на компоненте с фактом */
+	/** Цели по мерам на компоненте с фактом
+
+Требуемые роли: chairman, member, user.  */
 	capitalComponentMetrics: Array<ModelTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: ModelTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
 	capitalContributors: ModelTypes["PaginatedCapitalContributorsPaginationResult"],
-	/** Получение списка циклов кооператива с фильтрацией */
+	/** Получение списка циклов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalCycles: ModelTypes["PaginatedCapitalCyclesPaginationResult"],
 	/** Получение долга по внутреннему ID базы данных */
 	capitalDebt?: ModelTypes["CapitalDebt"] | undefined | null,
@@ -28551,7 +29110,9 @@ export type ModelTypes = {
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
-	/** Открытая сессия таймера участника (если есть) */
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetOpenTimer?: ModelTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: ModelTypes["ProcessInstance"] | undefined | null,
@@ -28565,27 +29126,49 @@ export type ModelTypes = {
 	capitalInvest?: ModelTypes["CapitalInvest"] | undefined | null,
 	/** Получение списка инвестиций кооператива с фильтрацией */
 	capitalInvests: ModelTypes["PaginatedCapitalInvestsPaginationResult"],
-	/** Получение задачи по хэшу */
+	/** Получение задачи по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssue?: ModelTypes["CapitalIssue"] | undefined | null,
-	/** Привязки задачи к метрикам */
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
-	/** Получение списка задач кооператива с фильтрацией */
+	/** Получение списка задач кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssues: ModelTypes["PaginatedCapitalIssuesPaginationResult"],
-	/** Справочник мер кооператива */
+	/** Справочник мер кооператива
+
+Требуемые роли: chairman, member, user.  */
 	capitalMeasures: Array<ModelTypes["CapitalMeasure"]>,
-	/** Журнал вкладов в метрику */
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricContributions: ModelTypes["PaginatedCapitalMetricContributionsPaginationResult"],
-	/** Временной ряд метрики: накопление и скорость по периодам */
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: ModelTypes["CapitalMetricSeries"],
-	/** Метрика резонанса и rollup планов/фактов по компонентам */
+	/** Метрика резонанса и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperposition: ModelTypes["CapitalMetricSuperposition"],
-	/** История резонанса метрик по бакетам выбранного периода */
+	/** История резонанса метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperpositionHistory: ModelTypes["CapitalMetricSuperpositionHistory"],
-	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор */
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricWave: ModelTypes["CapitalMetricWave"],
-	/** Программный расход по expense_hash. */
+	/** Программный расход по expense_hash.
+
+Требуемые роли: chairman, member.  */
 	capitalProgramExpense?: ModelTypes["CapitalProgramExpense"] | undefined | null,
-	/** Список программных расходов капитала (через шасси expense). */
+	/** Список программных расходов капитала (через шасси expense).
+
+Требуемые роли: chairman, member.  */
 	capitalProgramExpenses: ModelTypes["PaginatedCapitalProgramExpensesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: ModelTypes["CapitalProject"] | undefined | null,
@@ -28593,9 +29176,13 @@ export type ModelTypes = {
 	capitalProjectWithRelations?: ModelTypes["CapitalProject"] | undefined | null,
 	/** Получение списка проектов кооператива с фильтрацией и компонентами */
 	capitalProjects: ModelTypes["PaginatedCapitalProjectsPaginationResult"],
-	/** Получение результата по внутреннему ID базы данных */
+	/** Получение результата по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalResult?: ModelTypes["CapitalResult"] | undefined | null,
-	/** Получение списка результатов кооператива с фильтрацией */
+	/** Получение списка результатов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalResults: ModelTypes["PaginatedCapitalResultsPaginationResult"],
 	/** Получение одного сегмента кооператива по фильтрам */
 	capitalSegment?: ModelTypes["CapitalSegment"] | undefined | null,
@@ -28603,15 +29190,25 @@ export type ModelTypes = {
 	capitalSegments: ModelTypes["PaginatedCapitalSegmentsPaginationResult"],
 	/** Получение полного состояния CAPITAL контракта кооператива */
 	capitalState?: ModelTypes["CapitalState"] | undefined | null,
-	/** Получение списка историй кооператива с фильтрацией */
+	/** Получение списка историй кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalStories: ModelTypes["PaginatedCapitalStoriesPaginationResult"],
-	/** Получение истории по хэшу */
+	/** Получение истории по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalStory?: ModelTypes["CapitalStory"] | undefined | null,
-	/** Получение пагинированного списка записей времени */
+	/** Получение пагинированного списка записей времени
+
+Требуемые роли: chairman, member, user.  */
 	capitalTimeEntries: ModelTypes["PaginatedCapitalTimeEntriesPaginationResult"],
-	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках */
+	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках
+
+Требуемые роли: chairman, member, user.  */
 	capitalTimeEntriesByIssues: ModelTypes["PaginatedCapitalTimeEntriesByIssuesPaginationResult"],
-	/** Гибкий запрос статистики времени участников по проектам с пагинацией */
+	/** Гибкий запрос статистики времени участников по проектам с пагинацией
+
+Требуемые роли: chairman, member, user. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	capitalTimeStats: ModelTypes["CapitalTimeStats"],
 	/** Получение голоса по внутреннему ID базы данных */
 	capitalVote?: ModelTypes["CapitalVote"] | undefined | null,
@@ -28621,146 +29218,269 @@ export type ModelTypes = {
 	chairmanApproval?: ModelTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
 	chairmanApprovals: ModelTypes["PaginatedChairmanApprovalsPaginationResult"],
-	/** Проверяет доступность Matrix username */
+	/** Проверяет доступность Matrix username
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCheckUsernameAvailability: boolean,
-	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL */
+	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetAccountStatus: ModelTypes["MatrixAccountStatusResponseDTO"],
-	/** Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения */
+	/** Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetMaxOriginServerTsForRoom?: number | undefined | null,
-	/** Строки истории сообщений Matrix за календарные сутки UTC */
+	/** Строки истории сообщений Matrix за календарные сутки UTC
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetRoomMessagesForUtcDate: Array<ModelTypes["ChatcoopRoomMessageLine"]>,
-	/** Получить детальную транскрипцию с сегментами */
+	/** Получить детальную транскрипцию с сегментами
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetTranscription?: ModelTypes["CallTranscriptionWithSegments"] | undefined | null,
-	/** Получить список транскрипций звонков */
+	/** Получить список транскрипций звонков
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetTranscriptions: Array<ModelTypes["CallTranscription"]>,
-	/** Список событий календаря кооператива */
+	/** Список событий календаря кооператива
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListCalendarEvents: Array<ModelTypes["ChatCoopCalendarEvent"]>,
-	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря */
+	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms: Array<ModelTypes["ChatCoopCalendarRoomOption"]>,
-	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago */
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListNonProjectCommunicationRooms: Array<ModelTypes["ChatcoopNonProjectCommunicationRoom"]>,
-	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop) */
+	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListProjectCommunicationRooms: Array<ModelTypes["ChatcoopProjectCommunicationRoom"]>,
-	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
 	chatcoopListSecretaryRooms: Array<ModelTypes["ChatcoopSecretaryRoom"]>,
-	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
+	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
-	/** Проверить готовность реквизитов для генерации конкретной формы */
+	/** Проверить готовность реквизитов для генерации конкретной формы
+
+Требуемые роли: chairman.  */
 	checkReportReadiness: ModelTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
-	/** Получить запись о файле + свежий короткоживущий read-URL. */
+	/** Получить запись о файле + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
 	expenseFile: ModelTypes["ExpenseFile"],
-	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
+	/** Список файлов строки расхода (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	expenseFilesByItem: Array<ModelTypes["ExpenseFile"]>,
-	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
+	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. */
+	/** Получить смету расхода по хешу.
+
+Требуемые роли: chairman, member, user.  */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
-	/** Список смет расходов кооператива (paginated). */
+	/** Список смет расходов кооператива (paginated).
+
+Требуемые роли: chairman, member.  */
 	expenseProposalsByCooperative: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). */
+	/** Список смет расходов пайщика (свои/созданные им, paginated).
+
+Требуемые роли: chairman, member, user.  */
 	expenseProposalsByMember: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
+	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся).
+
+Требуемые роли: chairman, member.  */
 	expenseRequisitesByProposal: Array<ModelTypes["ExpenseRequisite"]>,
-	/** Получить сводную информацию о аккаунте */
+	/** Получить сводную информацию о аккаунте
+
+Требуемые роли: chairman, member.  */
 	getAccount: ModelTypes["Account"],
-	/** Получить сводную информацию о аккаунтах системы */
+	/** Получить сводную информацию о аккаунтах системы
+
+Требуемые роли: chairman, member.  */
 	getAccounts: ModelTypes["AccountsPaginationResult"],
-	/** Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам. */
+	/** Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам.
+
+Требуемые роли: chairman, member.  */
 	getActions: ModelTypes["PaginatedActionsPaginationResult"],
-	/** Получить список вопросов совета кооператива для голосования */
+	/** Получить список вопросов совета кооператива для голосования
+
+Требуемые роли: chairman, member.  */
 	getAgenda: Array<ModelTypes["AgendaWithDocuments"]>,
-	/** Получить список доступных типов отчётов */
+	/** Получить список доступных типов отчётов
+
+Требуемые роли: chairman.  */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<ModelTypes["Branch"]>,
 	/** Получить логи событий по задаче */
 	getCapitalIssueLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить состояние онбординга capital */
+	/** Получить состояние онбординга capital
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState: ModelTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: ModelTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить состояние онбординга председателя */
+	/** Получить состояние онбординга председателя
+
+Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
-	/** Получить текущий инстанс пользователя */
+	/** Получить текущий инстанс пользователя
+
+Требуемые роли: member, chairman, user.  */
 	getCurrentInstance?: ModelTypes["CurrentInstanceDTO"] | undefined | null,
-	/** Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице. */
+	/** Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице.
+
+Требуемые роли: chairman, member.  */
 	getCurrentTableStates: ModelTypes["PaginatedCurrentTableStatesPaginationResult"],
-	/** Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам. */
+	/** Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам.
+
+Требуемые роли: chairman, member.  */
 	getDeltas: ModelTypes["PaginatedDeltasPaginationResult"],
 	/** Получить состав приложений рабочего стола */
 	getDesktop: ModelTypes["Desktop"],
+	/** 
+
+Требуемые роли: chairman, member.  */
 	getDocuments: ModelTypes["DocumentsAggregatePaginationResult"],
-	/** Получить логи расширений с фильтрацией и пагинацией */
+	/** Получить логи расширений с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getExtensionLogs: ModelTypes["ExtensionLogsPaginationResult"],
-	/** Получить состояние онбординга кооператива на расширение */
+	/** Получить состояние онбординга кооператива на расширение
+
+Требуемые роли: chairman, member, user.  */
 	getExtensionOnboardingState: ModelTypes["ExtensionOnboardingState"],
-	/** Получить список расширений */
+	/** Получить список расширений
+
+Требуемые роли: chairman.  */
 	getExtensions: Array<ModelTypes["Extension"]>,
-	/** Лента личного инбокса текущего пользователя */
+	/** Лента личного инбокса текущего пользователя
+
+Требуемые роли: chairman, member, user.  */
 	getInboxNotifications: ModelTypes["InboxNotificationPaginationResult"],
 	/** Получить статус установки кооператива с приватными данными */
 	getInstallationStatus: ModelTypes["InstallationStatus"],
-	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения. */
+	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.
+
+Требуемые роли: chairman, member.  */
 	getLedger: ModelTypes["LedgerState"],
-	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000). */
+	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000).
+
+Требуемые роли: chairman, member.  */
 	getLedger2Accounts: Array<ModelTypes["Ledger2Account"]>,
-	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
+	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range).
+
+Требуемые роли: chairman, member.  */
 	getLedger2History: ModelTypes["Ledger2HistoryResponse"],
-	/** Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок». */
+	/** Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок».
+
+Требуемые роли: chairman, member.  */
 	getLedger2Postings: ModelTypes["Ledger2PostingsResponse"],
-	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
+
+Требуемые роли: chairman, member.  */
 	getLedger2Wallets: Array<ModelTypes["Ledger2Wallet"]>,
-	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
+	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).
+
+Требуемые роли: chairman, member.  */
 	getLedgerHistory: ModelTypes["LedgerHistoryResponse"],
-	/** Получить данные собрания по хешу */
+	/** Получить данные собрания по хешу
+
+Требуемые роли: chairman, member, user.  */
 	getMeet: ModelTypes["MeetAggregate"],
-	/** Получить список всех собраний кооператива */
+	/** Получить список всех собраний кооператива
+
+Требуемые роли: chairman, member, user.  */
 	getMeets: Array<ModelTypes["MeetAggregate"]>,
-	/** Детализация одного уведомления с историей попыток доставки */
+	/** Детализация одного уведомления с историей попыток доставки
+
+Требуемые роли: chairman, member.  */
 	getNotification: ModelTypes["NotificationDetail"],
-	/** Журнал уведомлений кооператива с фильтрами и пагинацией */
+	/** Журнал уведомлений кооператива с фильтрами и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getNotifications: ModelTypes["NotificationPaginationResult"],
-	/** Получить список методов оплаты */
+	/** Получить список методов оплаты
+
+Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPaymentMethods: ModelTypes["PaymentMethodPaginationResult"],
-	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
+	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению.
+
+Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: ModelTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить один программный кошелек по фильтру */
+	/** Получить один программный кошелек по фильтру
+
+Требуемые роли: chairman, member.  */
 	getProgramWallet?: ModelTypes["ProgramWallet"] | undefined | null,
-	/** Получить список программных кошельков с фильтрацией и пагинацией */
+	/** Получить список программных кошельков с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getProgramWallets: ModelTypes["ProgramWalletsPaginationResult"],
-	/** Получить подписку провайдера по ID */
+	/** Получить подписку провайдера по ID
+
+Требуемые роли: member, chairman.  */
 	getProviderSubscriptionById: ModelTypes["ProviderSubscription"],
-	/** Получить подписки пользователя у провайдера */
+	/** Получить подписки пользователя у провайдера
+
+Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<ModelTypes["ProviderSubscription"]>,
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<ModelTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
 	getRegistrationConfig: ModelTypes["RegistrationConfig"],
-	/** Получить сгенерированный отчёт по UUID — XML возвращается дословно */
+	/** Получить сгенерированный отчёт по UUID — XML возвращается дословно
+
+Требуемые роли: chairman.  */
 	getReport: ModelTypes["GeneratedReport"],
-	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) reportYear = year - 1 — именно он возвращается в периоде. */
+	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) reportYear = year - 1 — именно он возвращается в периоде.
+
+Требуемые роли: chairman.  */
 	getReportCalendar: Array<ModelTypes["ReportCalendarRow"]>,
-	/** Получить черновик формы отчёта по типу+году+периоду (null если не существует) */
+	/** Получить черновик формы отчёта по типу+году+периоду (null если не существует)
+
+Требуемые роли: chairman.  */
 	getReportDraft?: ModelTypes["ReportDraft"] | undefined | null,
-	/** История сгенерированных отчётов (постраничная, без XML) */
+	/** История сгенерированных отчётов (постраничная, без XML)
+
+Требуемые роли: chairman.  */
 	getReportHistory: ModelTypes["ReportHistoryPage"],
-	/** Предрасчёт полей отчёта без XML — для отображения формы перед генерацией */
+	/** Предрасчёт полей отчёта без XML — для отображения формы перед генерацией
+
+Требуемые роли: chairman.  */
 	getReportPreview: ModelTypes["ReportPreview"],
-	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля */
+	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+
+Требуемые роли: chairman.  */
 	getReportRequisites: ModelTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: ModelTypes["SystemInfo"],
-	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе) */
+	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)
+
+Требуемые роли: chairman, member, user.  */
 	getUnreadNotificationsCount: ModelTypes["UnreadNotificationsCount"],
-	/** Получить веб-пуш подписки пользователя */
+	/** Получить веб-пуш подписки пользователя
+
+Требуемые роли: chairman, member.  */
 	getUserWebPushSubscriptions: Array<ModelTypes["WebPushSubscriptionDto"]>,
-	/** Получить статистику веб-пуш подписок (только для председателя) */
+	/** Получить статистику веб-пуш подписок (только для председателя)
+
+Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: ModelTypes["SubscriptionStatsDto"],
-	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
+	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
+
+Требуемые роли: chairman.  */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
 	/** Текущий процесс выхода пайщика из кооператива (статус заявления и планируемая сумма возврата). null — активного выхода нет. */
 	membershipExit?: ModelTypes["MembershipExit"] | undefined | null,
@@ -28768,19 +29488,31 @@ export type ModelTypes = {
 	membershipExitReturnPreview: ModelTypes["MembershipExitReturnPreview"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: ModelTypes["OneCoopDocumentsResponse"],
-	/** Получить запись о файле платежа + свежий короткоживущий read-URL. */
+	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
 	paymentFile: ModelTypes["PaymentFile"],
-	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id). */
+	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	paymentProofs: Array<ModelTypes["PaymentFile"]>,
-	/** Получить полную картину процесса ledger2 по process_hash */
+	/** Получить полную картину процесса ledger2 по process_hash
+
+Требуемые роли: chairman, member.  */
 	process: ModelTypes["ProcessView"],
-	/** Листинг процессов ledger2 с пагинацией и фильтрами */
+	/** Листинг процессов ledger2 с пагинацией и фильтрами
+
+Требуемые роли: chairman, member.  */
 	processes: ModelTypes["ProcessSummaryPaginationResult"],
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<ModelTypes["SearchResult"]>,
-	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
+	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.
+
+Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<ModelTypes["PrivateAccountSearchResult"]>,
-	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте). */
+	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
+
+Требуемые роли: chairman.  */
 	validateReportEdits: Array<ModelTypes["FieldError"]>
 };
 	/** Вопрос повестки собрания с результатами голосования */
@@ -30125,12 +30857,18 @@ export type ModelTypes = {
 	["UpdateMeasureInput"]: {
 	/** Хеш меры */
 	measure_hash: string,
-	/** Режим ряда */
+	/** Не используется: справочник меняется только через миграции */
 	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
+	/** Статус меры: активна или выключена (архив) */
+	status?: ModelTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
 	title?: string | undefined | null,
-	/** Единица измерения */
-	unit?: string | undefined | null
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
@@ -30460,7 +31198,8 @@ export type ModelTypes = {
 	okpo?: string | undefined | null,
 	oktmo?: string | undefined | null,
 	okved?: string | undefined | null,
-	orgName: string
+	orgName: string,
+	phone?: string | undefined | null
 };
 	["ZeroReportSignerEdits"]: {
 		chairmanPosition?: string | undefined | null,
@@ -30482,10 +31221,7 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    // ------------------------------------------------------;
-	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
-	// ------------------------------------------------------;
-	["AcceptChildOrderInput"]: {
+    ["AcceptChildOrderInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Подписанное заявление на имущественный паевый взнос */
@@ -31435,8 +32171,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -31445,10 +32181,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -31648,9 +32388,13 @@ export type GraphQLTypes = {
 	represented_by: GraphQLTypes["RepresentedBy"],
 	/** Краткое название организации */
 	short_name: string,
-	/** Доверенные аккаунты */
+	/** Доверенные аккаунты
+
+Требуемые роли: chairman, member.  */
 	trusted: Array<GraphQLTypes["Individual"]>,
-	/** Председатель кооперативного участка */
+	/** Председатель кооперативного участка
+
+Требуемые роли: chairman, member.  */
 	trustee: GraphQLTypes["Individual"],
 	/** Тип организации */
 	type: string,
@@ -31784,6 +32528,14 @@ export type GraphQLTypes = {
 	issue_hash: string,
 	/** Имя пользователя-исполнителя */
 	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+		/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	["CapitalCandidate"]: {
 	__typename: "CapitalCandidate",
@@ -32311,8 +33063,8 @@ export type GraphQLTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: GraphQLTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -32501,10 +33253,14 @@ export type GraphQLTypes = {
 	series_mode: GraphQLTypes["MetricSeriesMode"],
 	/** Статус меры */
 	status: GraphQLTypes["MetricStatus"],
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag: GraphQLTypes["MeasureCatalogTag"],
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
 	unit: string,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period: GraphQLTypes["MetricSeriesPeriod"],
 	['...on CapitalMeasure']: Omit<GraphQLTypes["CapitalMeasure"], "...on CapitalMeasure">
 };
 	["CapitalMetricComponentRollup"]: {
@@ -32838,8 +33594,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -32848,10 +33604,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -32903,8 +33663,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -32913,10 +33673,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -33048,6 +33812,8 @@ export type GraphQLTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -34255,17 +35021,17 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Срок достижения цели */
 	deadline?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Хеш меры из справочника; если не задан — создаётся/ищется по названию и единице */
-	measure_hash?: string | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
 	/** Хеш компонента */
 	project_hash: string,
-	/** Режим ряда меры; учитывается при создании новой меры */
+	/** Не используется: режим ряда задан в справочнике мер */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
 	/** Целевое значение на компоненте */
 	target_value: number,
-	/** Название меры (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	title?: string | undefined | null,
-	/** Единица измерения (если measure_hash не задан) */
+	/** Не используется: меры только из справочника */
 	unit?: string | undefined | null
 };
 	["CreateCycleInput"]: {
@@ -34419,8 +35185,8 @@ export type GraphQLTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: GraphQLTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -34439,10 +35205,14 @@ export type GraphQLTypes = {
 	coopname: string,
 	/** Режим ряда; по умолчанию скорость */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
 	/** Название меры */
 	title: string,
 	/** Единица измерения */
-	unit: string
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
@@ -36140,7 +36910,7 @@ export type GraphQLTypes = {
 	["GetMeasuresInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
-	/** Фильтр по статусу; по умолчанию активные */
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
 	status?: GraphQLTypes["MetricStatus"] | undefined | null
 };
 	["GetMeetInput"]: {
@@ -36588,6 +37358,8 @@ export type GraphQLTypes = {
 	matrixUsername?: string | undefined | null,
 	['...on MatrixAccountStatusResponseDTO']: Omit<GraphQLTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 };
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]: MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 	__typename: "Meet",
@@ -36938,232 +37710,448 @@ export type GraphQLTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 		/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: {
 	__typename: "Mutation",
 	/** Подтвердить поставку имущества на заявку */
 	acceptChildOrder: GraphQLTypes["Transaction"],
-	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета) */
+	/** Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)
+
+Требуемые роли: chairman, member.  */
 	addParticipant: GraphQLTypes["Account"],
 	/** Добавить метод оплаты (банковский счёт или СБП) */
 	addPaymentMethod: GraphQLTypes["PaymentMethod"],
-	/** Добавить доверенное лицо кооперативного участка */
+	/** Добавить доверенное лицо кооперативного участка
+
+Требуемые роли: chairman.  */
 	addTrustedAccount: GraphQLTypes["Branch"],
-	/** Утвердить и исполнить решение совета */
+	/** Утвердить и исполнить решение совета
+
+Требуемые роли: chairman.  */
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Отменить заявку */
 	cancelRequest: GraphQLTypes["Transaction"],
-	/** Добавление автора проекта в CAPITAL контракте */
+	/** Добавление автора проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
-	/** Ручная запись фактического времени по задаче (на себя как исполнителя) */
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
 	capitalAddWorklog: GraphQLTypes["CapitalTimeEntry"],
-	/** Одобрение коммита в CAPITAL контракте */
+	/** Направление средств программы в проект или компонент
+
+Требуемые роли: chairman.  */
+	capitalAllocateFunds: GraphQLTypes["Transaction"],
+	/** Одобрение коммита в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: GraphQLTypes["CapitalCommit"],
-	/** Архивация метрики компонента */
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
 	capitalArchiveComponentMetric: GraphQLTypes["CapitalComponentMetric"],
-	/** Расчет голосов в CAPITAL контракте */
+	/** Расчет голосов в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCalculateVotes: GraphQLTypes["CapitalSegment"],
-	/** Закрытие проекта от инвестиций в CAPITAL контракте */
+	/** Закрытие проекта от инвестиций в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCloseProject: GraphQLTypes["CapitalProject"],
-	/** Завершение шага процесса */
+	/** Завершение шага процесса
+
+Требуемые роли: chairman, member, user.  */
 	capitalCompleteProcessStep: GraphQLTypes["ProcessInstance"],
-	/** Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib) */
+	/** Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib)
+
+Требуемые роли: chairman.  */
 	capitalCompleteRegistration: GraphQLTypes["Transaction"],
-	/** Завершение голосования в CAPITAL контракте */
+	/** Завершение голосования в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCompleteVoting: GraphQLTypes["Transaction"],
-	/** Конвертация сегмента в CAPITAL контракте */
+	/** Конвертация сегмента в CAPITAL контракте
+
+Требуемые роли: chairman, member.  */
 	capitalConvertSegment: GraphQLTypes["CapitalSegment"],
-	/** Создание коммита в CAPITAL контракте */
+	/** Создание коммита в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateCommit: GraphQLTypes["CapitalCommit"],
-	/** Создание цели по мере на компоненте */
+	/** Создание цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
-	/** Создание цикла в CAPITAL контракте */
+	/** Создание цикла в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateCycle: GraphQLTypes["CapitalCycle"],
-	/** Получение ссуды в CAPITAL контракте */
+	/** Получение ссуды в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateDebt: GraphQLTypes["Transaction"],
-	/** Создание расхода в CAPITAL контракте */
+	/** Создание расхода в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalCreateExpense: GraphQLTypes["Transaction"],
-	/** Создание задачи в CAPITAL контракте */
+	/** Создание задачи в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateIssue: GraphQLTypes["CapitalIssue"],
-	/** Создание меры в справочнике кооператива */
+	/** Создание персонального проекта или компонента без публикации в блокчейн
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateLocalProject: GraphQLTypes["CapitalProject"],
+	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
+
+Требуемые роли: chairman.  */
 	capitalCreateMeasure: GraphQLTypes["CapitalMeasure"],
-	/** Создание шаблона процесса */
+	/** Создание шаблона процесса
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProcessTemplate: GraphQLTypes["ProcessTemplate"],
-	/** Создание программного расхода капитала через шасси expense. */
+	/** Создание программного расхода капитала через шасси expense.
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProgramExpense: GraphQLTypes["Transaction"],
-	/** Инвестирование в программу благорост (денежная программная инвестиция) */
+	/** Инвестирование в программу благорост (денежная программная инвестиция)
+
+Требуемые роли: participant.  */
 	capitalCreateProgramInvest: GraphQLTypes["Transaction"],
-	/** Создание программного имущественного взноса в CAPITAL контракте */
+	/** Создание программного имущественного взноса в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateProgramProperty: GraphQLTypes["Transaction"],
-	/** Создание проекта в CAPITAL контракте */
+	/** Создание проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member.  */
 	capitalCreateProject: GraphQLTypes["Transaction"],
-	/** Инвестирование в проект CAPITAL контракта */
+	/** Инвестирование в проект CAPITAL контракта
+
+Требуемые роли: participant.  */
 	capitalCreateProjectInvest: GraphQLTypes["Transaction"],
-	/** Создание проектного имущественного взноса в CAPITAL контракте */
+	/** Создание проектного имущественного взноса в CAPITAL контракте
+
+Требуемые роли: participant.  */
 	capitalCreateProjectProperty: GraphQLTypes["Transaction"],
-	/** Создание истории в CAPITAL контракте */
+	/** Создание истории в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalCreateStory: GraphQLTypes["CapitalStory"],
-	/** Отклонение коммита в CAPITAL контракте */
+	/** Отклонение коммита в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalDeclineCommit: GraphQLTypes["CapitalCommit"],
-	/** Удаление задачи по хэшу */
+	/** Удаление задачи по хэшу
+
+Требуемые роли: chairman.  */
 	capitalDeleteIssue: boolean,
-	/** Удаление шаблона процесса */
+	/** Удаление шаблона процесса
+
+Требуемые роли: chairman, member.  */
 	capitalDeleteProcessTemplate: boolean,
-	/** Удаление проекта в CAPITAL контракте */
+	/** Удаление проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalDeleteProject: GraphQLTypes["Transaction"],
-	/** Удаление истории по хэшу */
+	/** Удаление истории по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalDeleteStory: boolean,
-	/** Редактирование параметров участника в CAPITAL контракте */
+	/** Редактирование параметров участника в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalEditContributor: GraphQLTypes["CapitalContributor"],
-	/** Редактирование проекта в CAPITAL контракте */
+	/** Редактирование проекта в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalEditProject: GraphQLTypes["Transaction"],
-	/** Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников */
+	/** Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников
+
+Требуемые роли: chairman.  */
 	capitalFinalizeProject: GraphQLTypes["CapitalProject"],
-	/** Финансирование программы CAPITAL контракта */
+	/** Финансирование программы CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalFundProgram: GraphQLTypes["Transaction"],
-	/** Сгенерировать соглашение о благороста */
+	/** Сгенерировать соглашение о благороста
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationAgreement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в благорост */
+	/** Сгенерировать заявление об инвестировании в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в благорост */
+	/** Сгенерировать акт об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в благорост */
+	/** Сгенерировать решение об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в благорост */
+	/** Сгенерировать заявление об инвестировании имуществом в благорост
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationPropertyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации из благороста в основной кошелек */
+	/** Сгенерировать заявление о конвертации из благороста в основной кошелек
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateCapitalizationToMainWalletConvertStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ дополнения к приложению для компонента */
+	/** Сгенерировать документ дополнения к приложению для компонента
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateComponentGenerationContract: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение о расходе */
+	/** Сгенерировать решение о расходе
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateExpenseDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о расходе */
+	/** Сгенерировать заявление о расходе
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateExpenseStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать генерационное соглашение */
+	/** Сгенерировать генерационное соглашение
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationContract: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост») */
+	/** Сгенерировать заявление о конвертации целевого паевого взноса (в Цифровой Кошелёк и/или в программу «Благорост»)
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationConvertStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в генерацию */
+	/** Сгенерировать заявление об инвестировании в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать акт об инвестировании имуществом в генерацию */
+	/** Сгенерировать акт об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение об инвестировании имуществом в генерацию */
+	/** Сгенерировать решение об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании имуществом в генерацию */
+	/** Сгенерировать заявление об инвестировании имуществом в генерацию
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGenerationPropertyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение о получении займа */
+	/** Сгенерировать решение о получении займа
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о получении займа */
+	/** Сгенерировать заявление о получении займа
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateGetLoanStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту) */
+	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту)
+
+Требуемые роли: chairman, member, user.  */
 	capitalGenerateProgramMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ приложения к договору участия для проекта */
+	/** Сгенерировать документ приложения к договору участия для проекта
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateProjectGenerationContract: GraphQLTypes["GeneratedDocument"],
-	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement) */
+	/** Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateRegistrationDocuments: GraphQLTypes["GenerateCapitalRegistrationDocumentsOutputDTO"],
-	/** Сгенерировать акт о вкладе результатов */
+	/** Сгенерировать акт о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать решение о вкладе результатов */
+	/** Сгенерировать решение о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать заявление о вкладе результатов */
+	/** Сгенерировать заявление о вкладе результатов
+
+Требуемые роли: chairman, member.  */
 	capitalGenerateResultContributionStatement: GraphQLTypes["GeneratedDocument"],
-	/** Импорт участника в CAPITAL контракт */
+	/** Импорт участника в CAPITAL контракт
+
+Требуемые роли: chairman.  */
 	capitalImportContributor: GraphQLTypes["Transaction"],
-	/** Ручной вклад в метрику */
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
 	capitalLogMetricContribution: GraphQLTypes["CapitalMetricContribution"],
-	/** Подписание приложения в CAPITAL контракте */
+	/** Подписание приложения в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalMakeClearance: GraphQLTypes["Transaction"],
-	/** Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок) */
+	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
+
+Требуемые роли: chairman, member, user.  */
 	capitalMoveIssueToComponent: GraphQLTypes["CapitalIssue"],
-	/** Открытие проекта для инвестиций в CAPITAL контракте */
+	/** Открытие проекта для инвестиций в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalOpenProject: GraphQLTypes["CapitalProject"],
-	/** Пауза таймера — задача остаётся привязанной, время не тикает */
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
 	capitalPauseTimer: GraphQLTypes["CapitalTimerSession"],
-	/** Внесение результата в CAPITAL контракте */
+	/** Внесение результата в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalPushResult: GraphQLTypes["CapitalSegment"],
-	/** Обновление CRPS пайщика в программе CAPITAL контракта */
+	/** Обновление CRPS пайщика в программе CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalRefreshProgram: GraphQLTypes["Transaction"],
-	/** Обновление сегмента в CAPITAL контракте */
+	/** Обновление сегмента в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalRefreshSegment?: GraphQLTypes["CapitalSegment"] | undefined | null,
-	/** Регистрация участника в CAPITAL контракте */
+	/** Регистрация участника в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalRegisterContributor: GraphQLTypes["Transaction"],
-	/** Продолжить таймер после паузы на той же задаче */
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
 	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
-	/** Установка конфигурации CAPITAL контракта */
+	/** Установка конфигурации CAPITAL контракта
+
+Требуемые роли: chairman.  */
 	capitalSetConfig: GraphQLTypes["Transaction"],
-	/** Установка привязок задачи к метрикам компонента */
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
 	capitalSetIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
-	/** Установка мастера проекта в CAPITAL контракте */
+	/** Установка мастера проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalSetMaster: GraphQLTypes["Transaction"],
 	/** Установка плана проекта в CAPITAL контракте */
 	capitalSetPlan: GraphQLTypes["CapitalProject"],
 	/** Сохранение URL репозитория разработки проекта/компонента (только БД) */
 	capitalSetProjectDevelopmentRepositoryUrl: GraphQLTypes["CapitalProject"],
-	/** Подписание акта о вкладе результатов председателем */
+	/** Подписание акта о вкладе результатов председателем
+
+Требуемые роли: chairman.  */
 	capitalSignActAsChairman: GraphQLTypes["CapitalSegment"],
-	/** Подписание акта о вкладе результатов участником */
+	/** Подписание акта о вкладе результатов участником
+
+Требуемые роли: chairman, member, user.  */
 	capitalSignActAsContributor: GraphQLTypes["CapitalSegment"],
-	/** Запуск экземпляра процесса */
+	/** Запуск экземпляра процесса
+
+Требуемые роли: chairman, member, user.  */
 	capitalStartProcess: GraphQLTypes["ProcessInstance"],
-	/** Запуск проекта в CAPITAL контракте */
+	/** Запуск проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStartProject: GraphQLTypes["CapitalProject"],
-	/** Старт таймера на задаче (не больше одной открытой сессии на участника) */
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
 	capitalStartTimer: GraphQLTypes["CapitalTimerSession"],
-	/** Запуск голосования в CAPITAL контракте */
+	/** Запуск голосования в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStartVoting: GraphQLTypes["Transaction"],
-	/** Остановка проекта в CAPITAL контракте */
+	/** Остановка проекта в CAPITAL контракте
+
+Требуемые роли: chairman.  */
 	capitalStopProject: GraphQLTypes["CapitalProject"],
-	/** Остановка открытого таймера — создаёт запись факта по задаче таймера */
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
 	capitalStopTimer?: GraphQLTypes["CapitalTimeEntry"] | undefined | null,
-	/** Голосование в CAPITAL контракте */
+	/** Голосование в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalSubmitVote: GraphQLTypes["Transaction"],
-	/** Пополнение пула программных расходов капитала из инвестиционного пула. */
+	/** Пополнение пула программных расходов капитала из инвестиционного пула.
+
+Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: GraphQLTypes["Transaction"],
-	/** Обновление цели по мере на компоненте */
+	/** Обновление цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
-	/** Обновление задачи в CAPITAL контракте */
+	/** Обновление задачи в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateIssue: GraphQLTypes["CapitalIssue"],
-	/** Обновление меры в справочнике */
+	/** Включение или выключение меры в справочнике (без изменения состава)
+
+Требуемые роли: chairman.  */
 	capitalUpdateMeasure: GraphQLTypes["CapitalMeasure"],
-	/** Обновление шаблона процесса (шаги, рёбра, статус) */
+	/** Обновление шаблона процесса (шаги, рёбра, статус)
+
+Требуемые роли: chairman, member.  */
 	capitalUpdateProcessTemplate: GraphQLTypes["ProcessTemplate"],
-	/** Обновление истории в CAPITAL контракте */
+	/** Обновление истории в CAPITAL контракте
+
+Требуемые роли: chairman, member, user.  */
 	capitalUpdateStory: GraphQLTypes["CapitalStory"],
-	/** Подтверждение одобрения документа председателем совета */
+	/** Подтверждение одобрения документа председателем совета
+
+Требуемые роли: chairman.  */
 	chairmanConfirmApprove: GraphQLTypes["Approval"],
-	/** Отклонение одобрения документа председателем совета */
+	/** Отклонение одобрения документа председателем совета
+
+Требуемые роли: chairman.  */
 	chairmanDeclineApprove: GraphQLTypes["Approval"],
-	/** Создать Matrix аккаунт с именем пользователя и паролем */
+	/** Создать Matrix аккаунт с именем пользователя и паролем
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateAccount: boolean,
-	/** Создать событие календаря */
+	/** Создать событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopCreateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
-	/** Выдать или обновить персональный URL подписки ICS (секрет в query) */
+	/** Выдать или обновить персональный URL подписки ICS (секрет в query)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCreateCalendarIcsSubscription: GraphQLTypes["ChatCoopCalendarIcsUrlResponse"],
-	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу */
+	/** Создать комнату с секретарём (публичную или приватную); секретарь подключается сразу
+
+Требуемые роли: chairman, member.  */
 	chatcoopCreateSecretaryRoom: GraphQLTypes["ChatcoopSecretaryRoom"],
-	/** Удалить событие календаря */
+	/** Удалить событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopDeleteCalendarEvent: boolean,
-	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре) */
+	/** Удалить комнату секретаря: вывести секретаря и снять комнату с синхронизации (возвращает идентификатор комнаты в реестре)
+
+Требуемые роли: chairman, member.  */
 	chatcoopRemoveSecretaryRoom: string,
-	/** Обновить событие календаря */
+	/** Обновить событие календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateCalendarEvent: GraphQLTypes["ChatCoopCalendarEvent"],
-	/** Обновить заметку (memo) к транскрипции звонка */
+	/** Обновить заметку (memo) к транскрипции звонка
+
+Требуемые роли: chairman, member.  */
 	chatcoopUpdateTranscriptionMemo: GraphQLTypes["CallTranscription"],
-	/** Выполнить шаг онбординга capital (создание предложения повестки) */
+	/** Выполнить шаг онбординга capital (создание предложения повестки)
+
+Требуемые роли: chairman.  */
 	completeCapitalOnboardingStep: GraphQLTypes["CapitalOnboardingState"],
-	/** Выполнить один из шагов онбординга (создание предложения повестки) */
+	/** Выполнить один из шагов онбординга (создание предложения повестки)
+
+Требуемые роли: chairman.  */
 	completeChairmanAgendaStep: GraphQLTypes["ChairmanOnboardingState"],
-	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки) */
+	/** Выполнить шаг онбординга по созданию общего собрания (сохранить hash повестки)
+
+Требуемые роли: chairman.  */
 	completeChairmanGeneralMeetStep: GraphQLTypes["ChairmanOnboardingState"],
-	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание) */
+	/** Выполнить шаг онбординга кооператива на расширение (решение совета или общее собрание)
+
+Требуемые роли: chairman.  */
 	completeExtensionOnboardingStep: GraphQLTypes["ExtensionOnboardingState"],
 	/** Завершить заявку по истечению гарантийного срока */
 	completeRequest: GraphQLTypes["Transaction"],
-	/** Подтвердить соглашение пайщика администратором */
+	/** Подтвердить соглашение пайщика администратором
+
+Требуемые роли: chairman, member.  */
 	confirmAgreement: GraphQLTypes["Transaction"],
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
 	confirmMembershipExit: GraphQLTypes["MembershipExitResult"],
@@ -37171,115 +38159,205 @@ export type GraphQLTypes = {
 	confirmReceiveOnRequest: GraphQLTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	confirmSupplyOnRequest: GraphQLTypes["Transaction"],
-	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков */
+	/** Сгенерировать документ предложения повестки очередного общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	createAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Создать кооперативный участок */
+	/** Создать кооперативный участок
+
+Требуемые роли: chairman.  */
 	createBranch: GraphQLTypes["Branch"],
 	/** Создать заявку на поставку имущества по предложению Поставщика */
 	createChildOrder: GraphQLTypes["Transaction"],
-	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
+	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+
+Требуемые роли: chairman, member.  */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
-	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя). */
+	/** Подать СЗ-расход (создать смету с подписью пайщика/председателя).
+
+Требуемые роли: chairman, member.  */
 	createExpenseProposal: GraphQLTypes["Transaction"],
-	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
+	/** Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.
+
+Требуемые роли: chairman, member.  */
 	createInitialPayment: GraphQLTypes["GatewayPayment"],
 	/** Подать подписанное заявление на выход из кооператива. Запускает рассмотрение советом и последующий возврат паевого взноса. */
 	createMembershipExit: GraphQLTypes["MembershipExitResult"],
 	/** Создать предложение на поставку имущества */
 	createParentOffer: GraphQLTypes["Transaction"],
-	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации */
+	/** Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации
+
+Требуемые роли: chairman, member.  */
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
-	/** Создать веб-пуш подписку для пользователя */
+	/** Создать веб-пуш подписку для пользователя
+
+Требуемые роли: chairman, member.  */
 	createWebPushSubscription: GraphQLTypes["CreateSubscriptionResponse"],
-	/** Создать заявку на вывод средств */
+	/** Создать заявку на вывод средств
+
+Требуемые роли: chairman, member.  */
 	createWithdraw: GraphQLTypes["CreateWithdrawResponse"],
-	/** Деактивировать веб-пуш подписку по ID */
+	/** Деактивировать веб-пуш подписку по ID
+
+Требуемые роли: chairman, member.  */
 	deactivateWebPushSubscriptionById: boolean,
-	/** Отклонить соглашение пайщика администратором */
+	/** Отклонить соглашение пайщика администратором
+
+Требуемые роли: chairman, member.  */
 	declineAgreement: GraphQLTypes["Transaction"],
-	/** Отклонить решение совета по отрицательному консенсусу (большинство голосов против) */
+	/** Отклонить решение совета по отрицательному консенсусу (большинство голосов против)
+
+Требуемые роли: chairman.  */
 	declineDecision: GraphQLTypes["Transaction"],
 	/** Отклонить заявку */
 	declineRequest: GraphQLTypes["Transaction"],
-	/** Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию. */
+	/** Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию.
+
+Требуемые роли: chairman.  */
 	deleteAccount: boolean,
-	/** Удалить кооперативный участок */
+	/** Удалить кооперативный участок
+
+Требуемые роли: chairman.  */
 	deleteBranch: boolean,
 	/** Удалить метод оплаты */
 	deletePaymentMethod: boolean,
-	/** Удалить черновик по id (только владелец) */
+	/** Удалить черновик по id (только владелец)
+
+Требуемые роли: chairman.  */
 	deleteReportDraft: boolean,
-	/** Удалить доверенное лицо кооперативного участка */
+	/** Удалить доверенное лицо кооперативного участка
+
+Требуемые роли: chairman.  */
 	deleteTrustedAccount: GraphQLTypes["Branch"],
 	/** Подтвердить доставку имущества Заказчику по заявке */
 	deliverOnRequest: GraphQLTypes["Transaction"],
 	/** Открыть спор по заявке */
 	disputeOnRequest: GraphQLTypes["Transaction"],
-	/** Изменить кооперативный участок */
+	/** Изменить кооперативный участок
+
+Требуемые роли: chairman.  */
 	editBranch: GraphQLTypes["Branch"],
-	/** Сгенерировать предложение повестки общего собрания пайщиков */
+	/** Сгенерировать предложение повестки общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetAgendaDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения общего собрания пайщиков */
+	/** Сгенерировать документ решения общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetDecisionDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ уведомления о проведении общего собрания пайщиков */
+	/** Сгенерировать документ уведомления о проведении общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateAnnualGeneralMeetNotificationDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ акта приема-передачи. */
+	/** Сгенерировать документ акта приема-передачи.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о вступлении в кооператив. */
+	/** Сгенерировать документ решения о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив. */
+	/** Сгенерировать документ заявления о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateAssetContributionStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков */
+	/** Сгенерировать бюллетень для голосования на общем собрании пайщиков
+
+Требуемые роли: member.  */
 	generateBallotForAnnualGeneralMeetDocument: GraphQLTypes["GeneratedDocument"],
-	/** Генерирует заявление на конвертацию паевого взноса в членский взнос */
+	/** Генерирует заявление на конвертацию паевого взноса в членский взнос
+
+Требуемые роли: member, chairman.  */
 	generateConvertToAxonStatement: GraphQLTypes["GeneratedDocument"],
 	/** Универсальная генерация документа с произвольными данными (только для председателя) */
 	generateDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
+	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.
+
+Требуемые роли: chairman.  */
 	generateExpenseProposalDecisionDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи. */
+	/** Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.
+
+Требуемые роли: chairman, member.  */
 	generateExpenseProposalStatementDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать протокол решения по предложенной повестке */
+	/** Сгенерировать протокол решения по предложенной повестке
+
+Требуемые роли: chairman, member.  */
 	generateFreeDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ заявления о выходе из кооператива. */
 	generateMembershipExitApplication: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения собрания совета о выходе пайщика. */
+	/** Сгенерировать документ решения собрания совета о выходе пайщика.
+
+Требуемые роли: chairman, member.  */
 	generateMembershipExitDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о вступлении в кооператив. */
+	/** Сгенерировать документ заявления о вступлении в кооператив.
+
+Требуемые роли: chairman, member.  */
 	generateParticipantApplication: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ протокол решения собрания совета */
+	/** Сгенерировать документ протокол решения собрания совета
+
+Требуемые роли: chairman, member.  */
 	generateParticipantApplicationDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ согласия с политикой конфиденциальности. */
+	/** Сгенерировать документ согласия с политикой конфиденциальности.
+
+Требуемые роли: chairman, member.  */
 	generatePrivacyAgreement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ проекта свободного решения */
+	/** Сгенерировать документ проекта свободного решения
+
+Требуемые роли: chairman, member.  */
 	generateProjectOfFreeDecision: GraphQLTypes["GeneratedDocument"],
-	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде. */
+	/** Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде.
+
+Требуемые роли: chairman, member.  */
 	generateRegistrationDocuments: GraphQLTypes["GenerateRegistrationDocumentsOutput"],
-	/** Сгенерировать XML отчёта из edits-состояния формы (результат редактора). Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов. */
+	/** Сгенерировать XML отчёта из edits-состояния формы (результат редактора). Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов.
+
+Требуемые роли: chairman.  */
 	generateReportFromEdits: GraphQLTypes["GeneratedReport"],
-	/** Сгенерировать документ акта возврата имущества. */
+	/** Сгенерировать документ акта возврата имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetAct: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения о возврате имущества. */
+	/** Сгенерировать документ решения о возврате имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetDecision: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления о возврате имущества. */
+	/** Сгенерировать документ заявления о возврате имущества.
+
+Требуемые роли: chairman, member.  */
 	generateReturnByAssetStatement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения совета о возврате паевого взноса */
+	/** Сгенерировать документ решения совета о возврате паевого взноса
+
+Требуемые роли: chairman, member.  */
 	generateReturnByMoneyDecisionDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ заявления на возврат паевого взноса */
+	/** Сгенерировать документ заявления на возврат паевого взноса
+
+Требуемые роли: chairman, member.  */
 	generateReturnByMoneyStatementDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ, подтверждающий выбор кооперативного участка */
+	/** Сгенерировать документ, подтверждающий выбор кооперативного участка
+
+Требуемые роли: chairman, member, user.  */
 	generateSelectBranchDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи. */
+	/** Сгенерировать документ соглашения о порядка и правилах использования простой электронной подписи.
+
+Требуемые роли: chairman, member.  */
 	generateSignatureAgreement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ решения Совета по проведению общего собрания пайщиков */
+	/** Сгенерировать документ решения Совета по проведению общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	generateSovietDecisionOnAnnualMeetDocument: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ пользовательского соглашения. */
+	/** Сгенерировать документ пользовательского соглашения.
+
+Требуемые роли: chairman, member.  */
 	generateUserAgreement: GraphQLTypes["GeneratedDocument"],
-	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк" */
+	/** Сгенерировать документ соглашения о целевой потребительской программе "Цифровой Кошелёк"
+
+Требуемые роли: chairman, member.  */
 	generateWalletAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: GraphQLTypes["SystemInfo"],
-	/** Установить расширение */
+	/** Установить расширение
+
+Требуемые роли: chairman.  */
 	installExtension: GraphQLTypes["Extension"],
 	/** Произвести установку членов совета перед началом работы */
 	installSystem: GraphQLTypes["SystemInfo"],
@@ -37287,25 +38365,41 @@ export type GraphQLTypes = {
 	login: GraphQLTypes["RegisteredAccount"],
 	/** Выйти из системы и заблокировать JWT-токены */
 	logout: boolean,
-	/** Отметить все уведомления инбокса прочитанными */
+	/** Отметить все уведомления инбокса прочитанными
+
+Требуемые роли: chairman, member, user.  */
 	markAllNotificationsRead: GraphQLTypes["UnreadNotificationsCount"],
-	/** Отметить уведомление инбокса прочитанным */
+	/** Отметить уведомление инбокса прочитанным
+
+Требуемые роли: chairman, member, user.  */
 	markNotificationRead: GraphQLTypes["InboxNotification"],
-	/** Поставить или снять отметку на ячейку календаря. mark=null — снять. Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»). */
+	/** Поставить или снять отметку на ячейку календаря. mark=null — снять. Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»).
+
+Требуемые роли: chairman.  */
 	markReportPeriod: boolean,
 	/** Модерировать заявку */
 	moderateRequest: GraphQLTypes["Transaction"],
-	/** Уведомление о проведении общего собрания пайщиков */
+	/** Уведомление о проведении общего собрания пайщиков
+
+Требуемые роли: chairman, member.  */
 	notifyOnAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Доплатить сумму перерасхода по строке расхода (ADVANCE-механика). */
+	/** Доплатить сумму перерасхода по строке расхода (ADVANCE-механика).
+
+Требуемые роли: chairman.  */
 	overspendExpenseItem: GraphQLTypes["Transaction"],
-	/** Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT). */
+	/** Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT).
+
+Требуемые роли: chairman.  */
 	payExpenseItem: GraphQLTypes["Transaction"],
-	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию */
+	/** Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию
+
+Требуемые роли: member, chairman.  */
 	processConvertToAxonStatement: boolean,
 	/** Отклонить модерацию по заявке */
 	prohibitRequest: GraphQLTypes["Transaction"],
-	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте. */
+	/** Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.
+
+Требуемые роли: chairman, member.  */
 	publishProjectOfFreeDecision?: GraphQLTypes["AgendaWithDocuments"] | undefined | null,
 	/** Опубликовать заявку */
 	publishRequest: GraphQLTypes["Transaction"],
@@ -37315,73 +38409,119 @@ export type GraphQLTypes = {
 	refresh: GraphQLTypes["RegisteredAccount"],
 	/** Зарегистрировать аккаунт пользователя в системе */
 	registerAccount: GraphQLTypes["RegisteredAccount"],
-	/** Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты. */
+	/** Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.
+
+Требуемые роли: chairman, member.  */
 	registerParticipant: GraphQLTypes["Account"],
-	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
+	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.
+
+Требуемые роли: chairman, member, user.  */
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
-	/** Переотправить уведомление (force-постановка новой строки в очередь доставки) */
+	/** Переотправить уведомление (force-постановка новой строки в очередь доставки)
+
+Требуемые роли: chairman.  */
 	resendNotification: GraphQLTypes["Notification"],
 	/** Заменить приватный ключ аккаунта */
 	resetKey: boolean,
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration: GraphQLTypes["Account"],
-	/** Перезапуск общего собрания пайщиков */
+	/** Перезапуск общего собрания пайщиков
+
+Требуемые роли: chairman.  */
 	restartAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток). */
+	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток).
+
+Требуемые роли: chairman, member, user.  */
 	returnExpenseItem: GraphQLTypes["Transaction"],
-	/** Сохранить hash PrivateData параметров документов ЦПП */
+	/** Сохранить hash PrivateData параметров документов ЦПП
+
+Требуемые роли: chairman.  */
 	saveCapitalProgramDocDataHash: GraphQLTypes["CapitalOnboardingState"],
-	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period) */
+	/** Сохранить/обновить черновик формы отчёта (upsert по owner+type+year+period)
+
+Требуемые роли: chairman.  */
 	saveReportDraft: GraphQLTypes["ReportDraft"],
-	/** Выбрать кооперативный участок */
+	/** Выбрать кооперативный участок
+
+Требуемые роли: chairman, member, user.  */
 	selectBranch: boolean,
 	/** Отправить соглашение */
 	sendAgreement: GraphQLTypes["Transaction"],
-	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне. */
+	/** Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.
+
+Требуемые роли: chairman, member.  */
 	setPaymentStatus: GraphQLTypes["GatewayPayment"],
 	/** Сохранить приватный ключ в зашифрованном серверном хранилище */
 	setWif: boolean,
-	/** Подписание решения председателем на общем собрании пайщиков */
+	/** Подписание решения председателем на общем собрании пайщиков
+
+Требуемые роли: chairman, member.  */
 	signByPresiderOnAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Подписание решения секретарём на общем собрании пайщиков */
+	/** Подписание решения секретарём на общем собрании пайщиков
+
+Требуемые роли: chairman, member.  */
 	signBySecretaryOnAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
 	/** Начать процесс установки кооператива, установить ключ и получить код установки */
 	startInstall: GraphQLTypes["StartInstallResult"],
 	/** Выслать токен для замены приватного ключа аккаунта на электронную почту */
 	startResetKey: boolean,
-	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат). */
+	/** Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат).
+
+Требуемые роли: chairman, member.  */
 	submitExpenseReport: GraphQLTypes["Transaction"],
 	/** Подтвердить поставку имущества Поставщиком по заявке Заказчика и акту приёма-передачи */
 	supplyOnRequest: GraphQLTypes["Transaction"],
-	/** Запустить воркфлоу уведомлений (только для председателя или server-secret) */
+	/** Запустить воркфлоу уведомлений (только для председателя или server-secret)
+
+Требуемые роли: chairman.  */
 	triggerNotificationWorkflow: boolean,
-	/** Удалить расширение */
+	/** Удалить расширение
+
+Требуемые роли: chairman.  */
 	uninstallExtension: boolean,
 	/** Снять с публикации заявку */
 	unpublishRequest: GraphQLTypes["Transaction"],
-	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета. */
+	/** Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.
+
+Требуемые роли: chairman.  */
 	updateAccount: GraphQLTypes["Account"],
 	/** Обновить банковский счёт */
 	updateBankAccount: GraphQLTypes["PaymentMethod"],
-	/** Обновить расширение */
+	/** Обновить расширение
+
+Требуемые роли: chairman.  */
 	updateExtension: GraphQLTypes["Extension"],
-	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн */
+	/** Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн
+
+Требуемые роли: chairman.  */
 	updateReportRequisites: GraphQLTypes["ReportRequisitesView"],
 	/** Обновить заявку */
 	updateRequest: GraphQLTypes["Transaction"],
-	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию) */
+	/** Обновить настройки системы (рабочие столы и маршруты по умолчанию)
+
+Требуемые роли: chairman.  */
 	updateSettings: GraphQLTypes["Settings"],
-	/** Обновить параметры системы */
+	/** Обновить параметры системы
+
+Требуемые роли: chairman.  */
 	updateSystem: GraphQLTypes["SystemInfo"],
-	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files. */
+	/** Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.
+
+Требуемые роли: chairman, member, user.  */
 	uploadExpenseFile: GraphQLTypes["ExpenseFile"],
-	/** Приложить чек об оплате к платежу (бакет gateway:files). */
+	/** Приложить чек об оплате к платежу (бакет gateway:files).
+
+Требуемые роли: chairman, member.  */
 	uploadPaymentProof: GraphQLTypes["PaymentFile"],
 	/** Подтвердить email адрес пользователя */
 	verifyEmail: boolean,
-	/** Голосование на общем собрании пайщиков */
+	/** Голосование на общем собрании пайщиков
+
+Требуемые роли: member.  */
 	voteOnAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
-	/** Перевод между кошельками одного бух.счёта (operation o.adj.walmove). Только председатель. Backend проверяет связь wallet→account до подписания. */
+	/** Перевод между кошельками одного бух.счёта (operation o.adj.walmove). Только председатель. Backend проверяет связь wallet→account до подписания.
+
+Требуемые роли: chairman.  */
 	walmoveWallets: GraphQLTypes["Ledger2AdjustmentResult"],
 	['...on Mutation']: Omit<GraphQLTypes["Mutation"], "...on Mutation">
 };
@@ -38735,23 +39875,33 @@ export type GraphQLTypes = {
 	agreementTemplates: Array<GraphQLTypes["AgreementTemplate"]>,
 	/** Получение списка соглашений с фильтрацией и пагинацией */
 	agreements: GraphQLTypes["PaginatedAgreementsPaginationResult"],
-	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть). */
+	/** Построить предзаполненные edits для формы: дефолты (ledger2 + реквизиты + корректировки), с наложением dirty-полей существующего черновика (если он есть).
+
+Требуемые роли: chairman.  */
 	buildInitialReportEdits: GraphQLTypes["BuildInitialReportEdits"],
 	/** Получение списка кандидатов с пагинацией, отсортированных по дате регистрации */
 	candidates: GraphQLTypes["PaginatedCandidatesPaginationResult"],
 	/** Получение списка кандидатов расширения CAPITAL с обогащенными данными */
 	capitalCandidates: GraphQLTypes["PaginatedCapitalCandidatesPaginationResult"],
-	/** Получение коммита по хэшу */
+	/** Получение коммита по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalCommit?: GraphQLTypes["CapitalCommit"] | undefined | null,
-	/** Получение списка коммитов кооператива с фильтрацией */
+	/** Получение списка коммитов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalCommits: GraphQLTypes["PaginatedCapitalCommitsPaginationResult"],
-	/** Цели по мерам на компоненте с фактом */
+	/** Цели по мерам на компоненте с фактом
+
+Требуемые роли: chairman, member, user.  */
 	capitalComponentMetrics: Array<GraphQLTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: GraphQLTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
 	capitalContributors: GraphQLTypes["PaginatedCapitalContributorsPaginationResult"],
-	/** Получение списка циклов кооператива с фильтрацией */
+	/** Получение списка циклов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalCycles: GraphQLTypes["PaginatedCapitalCyclesPaginationResult"],
 	/** Получение долга по внутреннему ID базы данных */
 	capitalDebt?: GraphQLTypes["CapitalDebt"] | undefined | null,
@@ -38761,7 +39911,9 @@ export type GraphQLTypes = {
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
-	/** Открытая сессия таймера участника (если есть) */
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
 	capitalGetOpenTimer?: GraphQLTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: GraphQLTypes["ProcessInstance"] | undefined | null,
@@ -38775,27 +39927,49 @@ export type GraphQLTypes = {
 	capitalInvest?: GraphQLTypes["CapitalInvest"] | undefined | null,
 	/** Получение списка инвестиций кооператива с фильтрацией */
 	capitalInvests: GraphQLTypes["PaginatedCapitalInvestsPaginationResult"],
-	/** Получение задачи по хэшу */
+	/** Получение задачи по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssue?: GraphQLTypes["CapitalIssue"] | undefined | null,
-	/** Привязки задачи к метрикам */
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
-	/** Получение списка задач кооператива с фильтрацией */
+	/** Получение списка задач кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalIssues: GraphQLTypes["PaginatedCapitalIssuesPaginationResult"],
-	/** Справочник мер кооператива */
+	/** Справочник мер кооператива
+
+Требуемые роли: chairman, member, user.  */
 	capitalMeasures: Array<GraphQLTypes["CapitalMeasure"]>,
-	/** Журнал вкладов в метрику */
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricContributions: GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"],
-	/** Временной ряд метрики: накопление и скорость по периодам */
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSeries: GraphQLTypes["CapitalMetricSeries"],
-	/** Метрика резонанса и rollup планов/фактов по компонентам */
+	/** Метрика резонанса и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperposition: GraphQLTypes["CapitalMetricSuperposition"],
-	/** История резонанса метрик по бакетам выбранного периода */
+	/** История резонанса метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricSuperpositionHistory: GraphQLTypes["CapitalMetricSuperpositionHistory"],
-	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор */
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
 	capitalMetricWave: GraphQLTypes["CapitalMetricWave"],
-	/** Программный расход по expense_hash. */
+	/** Программный расход по expense_hash.
+
+Требуемые роли: chairman, member.  */
 	capitalProgramExpense?: GraphQLTypes["CapitalProgramExpense"] | undefined | null,
-	/** Список программных расходов капитала (через шасси expense). */
+	/** Список программных расходов капитала (через шасси expense).
+
+Требуемые роли: chairman, member.  */
 	capitalProgramExpenses: GraphQLTypes["PaginatedCapitalProgramExpensesPaginationResult"],
 	/** Получение проекта по хешу с компонентами */
 	capitalProject?: GraphQLTypes["CapitalProject"] | undefined | null,
@@ -38803,9 +39977,13 @@ export type GraphQLTypes = {
 	capitalProjectWithRelations?: GraphQLTypes["CapitalProject"] | undefined | null,
 	/** Получение списка проектов кооператива с фильтрацией и компонентами */
 	capitalProjects: GraphQLTypes["PaginatedCapitalProjectsPaginationResult"],
-	/** Получение результата по внутреннему ID базы данных */
+	/** Получение результата по внутреннему ID базы данных
+
+Требуемые роли: chairman, member, user.  */
 	capitalResult?: GraphQLTypes["CapitalResult"] | undefined | null,
-	/** Получение списка результатов кооператива с фильтрацией */
+	/** Получение списка результатов кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalResults: GraphQLTypes["PaginatedCapitalResultsPaginationResult"],
 	/** Получение одного сегмента кооператива по фильтрам */
 	capitalSegment?: GraphQLTypes["CapitalSegment"] | undefined | null,
@@ -38813,15 +39991,25 @@ export type GraphQLTypes = {
 	capitalSegments: GraphQLTypes["PaginatedCapitalSegmentsPaginationResult"],
 	/** Получение полного состояния CAPITAL контракта кооператива */
 	capitalState?: GraphQLTypes["CapitalState"] | undefined | null,
-	/** Получение списка историй кооператива с фильтрацией */
+	/** Получение списка историй кооператива с фильтрацией
+
+Требуемые роли: chairman, member, user.  */
 	capitalStories: GraphQLTypes["PaginatedCapitalStoriesPaginationResult"],
-	/** Получение истории по хэшу */
+	/** Получение истории по хэшу
+
+Требуемые роли: chairman, member, user.  */
 	capitalStory?: GraphQLTypes["CapitalStory"] | undefined | null,
-	/** Получение пагинированного списка записей времени */
+	/** Получение пагинированного списка записей времени
+
+Требуемые роли: chairman, member, user.  */
 	capitalTimeEntries: GraphQLTypes["PaginatedCapitalTimeEntriesPaginationResult"],
-	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках */
+	/** Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках
+
+Требуемые роли: chairman, member, user.  */
 	capitalTimeEntriesByIssues: GraphQLTypes["PaginatedCapitalTimeEntriesByIssuesPaginationResult"],
-	/** Гибкий запрос статистики времени участников по проектам с пагинацией */
+	/** Гибкий запрос статистики времени участников по проектам с пагинацией
+
+Требуемые роли: chairman, member, user. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	capitalTimeStats: GraphQLTypes["CapitalTimeStats"],
 	/** Получение голоса по внутреннему ID базы данных */
 	capitalVote?: GraphQLTypes["CapitalVote"] | undefined | null,
@@ -38831,146 +40019,269 @@ export type GraphQLTypes = {
 	chairmanApproval?: GraphQLTypes["Approval"] | undefined | null,
 	/** Получение списка одобрений председателя совета с фильтрацией */
 	chairmanApprovals: GraphQLTypes["PaginatedChairmanApprovalsPaginationResult"],
-	/** Проверяет доступность Matrix username */
+	/** Проверяет доступность Matrix username
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopCheckUsernameAvailability: boolean,
-	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL */
+	/** Проверить статус Matrix аккаунта пользователя и получить iframe URL
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetAccountStatus: GraphQLTypes["MatrixAccountStatusResponseDTO"],
-	/** Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения */
+	/** Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetMaxOriginServerTsForRoom?: number | undefined | null,
-	/** Строки истории сообщений Matrix за календарные сутки UTC */
+	/** Строки истории сообщений Matrix за календарные сутки UTC
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetRoomMessagesForUtcDate: Array<GraphQLTypes["ChatcoopRoomMessageLine"]>,
-	/** Получить детальную транскрипцию с сегментами */
+	/** Получить детальную транскрипцию с сегментами
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetTranscription?: GraphQLTypes["CallTranscriptionWithSegments"] | undefined | null,
-	/** Получить список транскрипций звонков */
+	/** Получить список транскрипций звонков
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopGetTranscriptions: Array<GraphQLTypes["CallTranscription"]>,
-	/** Список событий календаря кооператива */
+	/** Список событий календаря кооператива
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListCalendarEvents: Array<GraphQLTypes["ChatCoopCalendarEvent"]>,
-	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря */
+	/** Незашифрованные комнаты из реестра ChatCoop для привязки события календаря
+
+Требуемые роли: chairman, member.  */
 	chatcoopListCalendarRooms: Array<GraphQLTypes["ChatCoopCalendarRoomOption"]>,
-	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago */
+	/** Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListNonProjectCommunicationRooms: Array<GraphQLTypes["ChatcoopNonProjectCommunicationRoom"]>,
-	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop) */
+	/** Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListProjectCommunicationRooms: Array<GraphQLTypes["ChatcoopProjectCommunicationRoom"]>,
-	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые) */
+	/** Все комнаты реестра ChatCoop (системные/проектные — read-only, комнаты секретаря — удаляемые)
+
+Требуемые роли: chairman, member.  */
 	chatcoopListSecretaryRooms: Array<GraphQLTypes["ChatcoopSecretaryRoom"]>,
-	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix */
+	/** UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix
+
+Требуемые роли: chairman, member, user.  */
 	chatcoopListUtcDatesWithNewRoomMessages: Array<string>,
-	/** Проверить готовность реквизитов для генерации конкретной формы */
+	/** Проверить готовность реквизитов для генерации конкретной формы
+
+Требуемые роли: chairman.  */
 	checkReportReadiness: GraphQLTypes["ReportReadinessView"],
 	/** Конфиг соглашений кооператива: какие типы соглашений требуются с пайщика */
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
-	/** Получить запись о файле + свежий короткоживущий read-URL. */
+	/** Получить запись о файле + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
 	expenseFile: GraphQLTypes["ExpenseFile"],
-	/** Список файлов строки расхода (без read-URL — запрос отдельно по id). */
+	/** Список файлов строки расхода (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	expenseFilesByItem: Array<GraphQLTypes["ExpenseFile"]>,
-	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
+	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. */
+	/** Получить смету расхода по хешу.
+
+Требуемые роли: chairman, member, user.  */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
-	/** Список смет расходов кооператива (paginated). */
+	/** Список смет расходов кооператива (paginated).
+
+Требуемые роли: chairman, member.  */
 	expenseProposalsByCooperative: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). */
+	/** Список смет расходов пайщика (свои/созданные им, paginated).
+
+Требуемые роли: chairman, member, user.  */
 	expenseProposalsByMember: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
+	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся).
+
+Требуемые роли: chairman, member.  */
 	expenseRequisitesByProposal: Array<GraphQLTypes["ExpenseRequisite"]>,
-	/** Получить сводную информацию о аккаунте */
+	/** Получить сводную информацию о аккаунте
+
+Требуемые роли: chairman, member.  */
 	getAccount: GraphQLTypes["Account"],
-	/** Получить сводную информацию о аккаунтах системы */
+	/** Получить сводную информацию о аккаунтах системы
+
+Требуемые роли: chairman, member.  */
 	getAccounts: GraphQLTypes["AccountsPaginationResult"],
-	/** Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам. */
+	/** Получить список действий блокчейна с возможностью фильтрации по аккаунту, имени действия, блоку и другим параметрам.
+
+Требуемые роли: chairman, member.  */
 	getActions: GraphQLTypes["PaginatedActionsPaginationResult"],
-	/** Получить список вопросов совета кооператива для голосования */
+	/** Получить список вопросов совета кооператива для голосования
+
+Требуемые роли: chairman, member.  */
 	getAgenda: Array<GraphQLTypes["AgendaWithDocuments"]>,
-	/** Получить список доступных типов отчётов */
+	/** Получить список доступных типов отчётов
+
+Требуемые роли: chairman.  */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
 	getBranches: Array<GraphQLTypes["Branch"]>,
 	/** Получить логи событий по задаче */
 	getCapitalIssueLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить состояние онбординга capital */
+	/** Получить состояние онбординга capital
+
+Требуемые роли: chairman, member, user.  */
 	getCapitalOnboardingState: GraphQLTypes["CapitalOnboardingState"],
 	/** Получить логи событий по проекту с фильтрацией и пагинацией */
 	getCapitalProjectLogs: GraphQLTypes["PaginatedCapitalLogsPaginationResult"],
-	/** Получить состояние онбординга председателя */
+	/** Получить состояние онбординга председателя
+
+Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
-	/** Получить текущий инстанс пользователя */
+	/** Получить текущий инстанс пользователя
+
+Требуемые роли: member, chairman, user.  */
 	getCurrentInstance?: GraphQLTypes["CurrentInstanceDTO"] | undefined | null,
-	/** Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице. */
+	/** Получить текущие состояния таблиц блокчейна с фильтрацией по контракту, области и таблице.
+
+Требуемые роли: chairman, member.  */
 	getCurrentTableStates: GraphQLTypes["PaginatedCurrentTableStatesPaginationResult"],
-	/** Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам. */
+	/** Получить список дельт блокчейна с возможностью фильтрации по контракту, таблице, блоку и другим параметрам.
+
+Требуемые роли: chairman, member.  */
 	getDeltas: GraphQLTypes["PaginatedDeltasPaginationResult"],
 	/** Получить состав приложений рабочего стола */
 	getDesktop: GraphQLTypes["Desktop"],
+	/** 
+
+Требуемые роли: chairman, member.  */
 	getDocuments: GraphQLTypes["DocumentsAggregatePaginationResult"],
-	/** Получить логи расширений с фильтрацией и пагинацией */
+	/** Получить логи расширений с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getExtensionLogs: GraphQLTypes["ExtensionLogsPaginationResult"],
-	/** Получить состояние онбординга кооператива на расширение */
+	/** Получить состояние онбординга кооператива на расширение
+
+Требуемые роли: chairman, member, user.  */
 	getExtensionOnboardingState: GraphQLTypes["ExtensionOnboardingState"],
-	/** Получить список расширений */
+	/** Получить список расширений
+
+Требуемые роли: chairman.  */
 	getExtensions: Array<GraphQLTypes["Extension"]>,
-	/** Лента личного инбокса текущего пользователя */
+	/** Лента личного инбокса текущего пользователя
+
+Требуемые роли: chairman, member, user.  */
 	getInboxNotifications: GraphQLTypes["InboxNotificationPaginationResult"],
 	/** Получить статус установки кооператива с приватными данными */
 	getInstallationStatus: GraphQLTypes["InstallationStatus"],
-	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения. */
+	/** Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.
+
+Требуемые роли: chairman, member.  */
 	getLedger: GraphQLTypes["LedgerState"],
-	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000). */
+	/** Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000).
+
+Требуемые роли: chairman, member.  */
 	getLedger2Accounts: Array<GraphQLTypes["Ledger2Account"]>,
-	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range). */
+	/** История операций ledger2 с серверными фильтрами (action/accountId/username/date-range).
+
+Требуемые роли: chairman, member.  */
 	getLedger2History: GraphQLTypes["Ledger2HistoryResponse"],
-	/** Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок». */
+	/** Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок».
+
+Требуемые роли: chairman, member.  */
 	getLedger2Postings: GraphQLTypes["Ledger2PostingsResponse"],
-	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают. */
+	/** Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). Кошельки пайщиков живут в контракте soviet — сюда не попадают.
+
+Требуемые роли: chairman, member.  */
 	getLedger2Wallets: Array<GraphQLTypes["Ledger2Wallet"]>,
-	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми). */
+	/** Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).
+
+Требуемые роли: chairman, member.  */
 	getLedgerHistory: GraphQLTypes["LedgerHistoryResponse"],
-	/** Получить данные собрания по хешу */
+	/** Получить данные собрания по хешу
+
+Требуемые роли: chairman, member, user.  */
 	getMeet: GraphQLTypes["MeetAggregate"],
-	/** Получить список всех собраний кооператива */
+	/** Получить список всех собраний кооператива
+
+Требуемые роли: chairman, member, user.  */
 	getMeets: Array<GraphQLTypes["MeetAggregate"]>,
-	/** Детализация одного уведомления с историей попыток доставки */
+	/** Детализация одного уведомления с историей попыток доставки
+
+Требуемые роли: chairman, member.  */
 	getNotification: GraphQLTypes["NotificationDetail"],
-	/** Журнал уведомлений кооператива с фильтрами и пагинацией */
+	/** Журнал уведомлений кооператива с фильтрами и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getNotifications: GraphQLTypes["NotificationPaginationResult"],
-	/** Получить список методов оплаты */
+	/** Получить список методов оплаты
+
+Требуемые роли: chairman. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPaymentMethods: GraphQLTypes["PaymentMethodPaginationResult"],
-	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению. */
+	/** Получить список платежей с возможностью фильтрации по типу, статусу и направлению.
+
+Требуемые роли: chairman, member. Исключение: доступ разрешен, если `data.username` совпадает с `username` текущего пользователя. */
 	getPayments: GraphQLTypes["PaginatedGatewayPaymentsPaginationResult"],
-	/** Получить один программный кошелек по фильтру */
+	/** Получить один программный кошелек по фильтру
+
+Требуемые роли: chairman, member.  */
 	getProgramWallet?: GraphQLTypes["ProgramWallet"] | undefined | null,
-	/** Получить список программных кошельков с фильтрацией и пагинацией */
+	/** Получить список программных кошельков с фильтрацией и пагинацией
+
+Требуемые роли: chairman, member.  */
 	getProgramWallets: GraphQLTypes["ProgramWalletsPaginationResult"],
-	/** Получить подписку провайдера по ID */
+	/** Получить подписку провайдера по ID
+
+Требуемые роли: member, chairman.  */
 	getProviderSubscriptionById: GraphQLTypes["ProviderSubscription"],
-	/** Получить подписки пользователя у провайдера */
+	/** Получить подписки пользователя у провайдера
+
+Требуемые роли: member, chairman, user.  */
 	getProviderSubscriptions: Array<GraphQLTypes["ProviderSubscription"]>,
 	/** Получить список оферт для регистрации пайщика заданного типа аккаунта и (опционально) программы. Сливает базовые платформенные оферты с теми, что зарегистрировали расширения. */
 	getRegistrationAgreements: Array<GraphQLTypes["RegistrationAgreement"]>,
 	/** Получить конфигурацию программ регистрации для кооператива */
 	getRegistrationConfig: GraphQLTypes["RegistrationConfig"],
-	/** Получить сгенерированный отчёт по UUID — XML возвращается дословно */
+	/** Получить сгенерированный отчёт по UUID — XML возвращается дословно
+
+Требуемые роли: chairman.  */
 	getReport: GraphQLTypes["GeneratedReport"],
-	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) reportYear = year - 1 — именно он возвращается в периоде. */
+	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) reportYear = year - 1 — именно он возвращается в периоде.
+
+Требуемые роли: chairman.  */
 	getReportCalendar: Array<GraphQLTypes["ReportCalendarRow"]>,
-	/** Получить черновик формы отчёта по типу+году+периоду (null если не существует) */
+	/** Получить черновик формы отчёта по типу+году+периоду (null если не существует)
+
+Требуемые роли: chairman.  */
 	getReportDraft?: GraphQLTypes["ReportDraft"] | undefined | null,
-	/** История сгенерированных отчётов (постраничная, без XML) */
+	/** История сгенерированных отчётов (постраничная, без XML)
+
+Требуемые роли: chairman.  */
 	getReportHistory: GraphQLTypes["ReportHistoryPage"],
-	/** Предрасчёт полей отчёта без XML — для отображения формы перед генерацией */
+	/** Предрасчёт полей отчёта без XML — для отображения формы перед генерацией
+
+Требуемые роли: chairman.  */
 	getReportPreview: GraphQLTypes["ReportPreview"],
-	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля */
+	/** Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля
+
+Требуемые роли: chairman.  */
 	getReportRequisites: GraphQLTypes["ReportRequisitesView"],
 	/** Получить сводную публичную информацию о системе */
 	getSystemInfo: GraphQLTypes["SystemInfo"],
-	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе) */
+	/** Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)
+
+Требуемые роли: chairman, member, user.  */
 	getUnreadNotificationsCount: GraphQLTypes["UnreadNotificationsCount"],
-	/** Получить веб-пуш подписки пользователя */
+	/** Получить веб-пуш подписки пользователя
+
+Требуемые роли: chairman, member.  */
 	getUserWebPushSubscriptions: Array<GraphQLTypes["WebPushSubscriptionDto"]>,
-	/** Получить статистику веб-пуш подписок (только для председателя) */
+	/** Получить статистику веб-пуш подписок (только для председателя)
+
+Требуемые роли: chairman.  */
 	getWebPushSubscriptionStats: GraphQLTypes["SubscriptionStatsDto"],
-	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
+	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)
+
+Требуемые роли: chairman.  */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
 	/** Текущий процесс выхода пайщика из кооператива (статус заявления и планируемая сумма возврата). null — активного выхода нет. */
 	membershipExit?: GraphQLTypes["MembershipExit"] | undefined | null,
@@ -38978,19 +40289,31 @@ export type GraphQLTypes = {
 	membershipExitReturnPreview: GraphQLTypes["MembershipExitReturnPreview"],
 	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
 	onecoopGetDocuments: GraphQLTypes["OneCoopDocumentsResponse"],
-	/** Получить запись о файле платежа + свежий короткоживущий read-URL. */
+	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
+
+Требуемые роли: chairman, member, user.  */
 	paymentFile: GraphQLTypes["PaymentFile"],
-	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id). */
+	/** Список чеков об оплате платежа (без read-URL — запрос отдельно по id).
+
+Требуемые роли: chairman, member, user.  */
 	paymentProofs: Array<GraphQLTypes["PaymentFile"]>,
-	/** Получить полную картину процесса ledger2 по process_hash */
+	/** Получить полную картину процесса ledger2 по process_hash
+
+Требуемые роли: chairman, member.  */
 	process: GraphQLTypes["ProcessView"],
-	/** Листинг процессов ledger2 с пагинацией и фильтрами */
+	/** Листинг процессов ledger2 с пагинацией и фильтрами
+
+Требуемые роли: chairman, member.  */
 	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<GraphQLTypes["SearchResult"]>,
-	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
+	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.
+
+Требуемые роли: chairman, member.  */
 	searchPrivateAccounts: Array<GraphQLTypes["PrivateAccountSearchResult"]>,
-	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте). */
+	/** Валидировать edits-состояние формы: возвращает список ошибок полей с JSONPath (совпадает с editedFields-путями на клиенте).
+
+Требуемые роли: chairman.  */
 	validateReportEdits: Array<GraphQLTypes["FieldError"]>,
 	['...on Query']: Omit<GraphQLTypes["Query"], "...on Query">
 };
@@ -40419,12 +41742,18 @@ export type GraphQLTypes = {
 	["UpdateMeasureInput"]: {
 		/** Хеш меры */
 	measure_hash: string,
-	/** Режим ряда */
+	/** Не используется: справочник меняется только через миграции */
 	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
-	/** Название меры */
+	/** Статус меры: активна или выключена (архив) */
+	status?: GraphQLTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
 	title?: string | undefined | null,
-	/** Единица измерения */
-	unit?: string | undefined | null
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["UpdateOrganizationDataInput"]: {
 		/** Город */
@@ -40776,6 +42105,7 @@ export type GraphQLTypes = {
 	oktmo?: string | undefined | null,
 	okved?: string | undefined | null,
 	orgName: string,
+	phone?: string | undefined | null,
 	['...on ZeroReportOrganizationEdits']: Omit<GraphQLTypes["ZeroReportOrganizationEdits"], "...on ZeroReportOrganizationEdits">
 };
 	["ZeroReportSignerEdits"]: {
@@ -41061,6 +42391,14 @@ export enum ManagedRoomKind {
 	COUNCIL = "COUNCIL",
 	MEMBERS = "MEMBERS",
 	SECRETARY = "SECRETARY"
+}
+/** Категория меры в справочнике */
+export enum MeasureCatalogTag {
+	CONTENT = "CONTENT",
+	COOPERATIVE = "COOPERATIVE",
+	PERSONAL = "PERSONAL",
+	PRODUCT = "PRODUCT",
+	QUALITY = "QUALITY"
 }
 /** Статус процесса выхода пайщика из кооператива */
 export enum MembershipExitStatus {
@@ -41358,6 +42696,7 @@ type ZEUS_VARIABLES = {
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];
 	["CapitalAddWorklogInput"]: ValueTypes["CapitalAddWorklogInput"];
+	["CapitalAllocateFundsInput"]: ValueTypes["CapitalAllocateFundsInput"];
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
@@ -41563,6 +42902,7 @@ type ZEUS_VARIABLES = {
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
 	["ManagedRoomKind"]: ValueTypes["ManagedRoomKind"];
 	["MarkReportPeriodInput"]: ValueTypes["MarkReportPeriodInput"];
+	["MeasureCatalogTag"]: ValueTypes["MeasureCatalogTag"];
 	["MembershipExitApplicationGenerateDocumentInput"]: ValueTypes["MembershipExitApplicationGenerateDocumentInput"];
 	["MembershipExitApplicationSignedDocumentInput"]: ValueTypes["MembershipExitApplicationSignedDocumentInput"];
 	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
