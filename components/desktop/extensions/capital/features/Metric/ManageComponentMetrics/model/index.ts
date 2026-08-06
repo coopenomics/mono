@@ -1,33 +1,26 @@
 import { ref } from 'vue';
-import { Zeus } from '@coopenomics/sdk';
-import { useSystemStore } from 'src/entities/System/model/store';
 import { useComponentMetricStore } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
-import type {
-  ICreateComponentMetricInput,
-  IArchiveComponentMetricInput,
-} from 'app/extensions/capital/entities/ComponentMetric/model';
+import type { IArchiveComponentMetricInput } from 'app/extensions/capital/entities/ComponentMetric/model';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 
+/**
+ * Чтение целей по мерам на компоненте.
+ *
+ * Создание метрик отсюда убрано. Меры перешли на централизованный справочник:
+ * бэкенд требует measure_hash, а title и unit помечены «не используется»
+ * (controller: create-component-metric-input.dto.ts). Форма же собирала
+ * свободный текст и measure_hash не отправляла — то есть создание падало бы
+ * на валидации. Вызывать её при этом было неоткуда: ComponentMetricsPanel
+ * берёт только чтение, а завести цель можно в диалоге «План»
+ * (SetPlanDialog), где выбор меры из справочника уже реализован.
+ *
+ * Убран именно мёртвый и сломанный путь; дублировать селектор меры здесь
+ * незачем, пока панель остаётся только для просмотра.
+ */
 export function useManageComponentMetrics(projectHash: string) {
   const store = useComponentMetricStore();
-  const isSubmitting = ref(false);
   const isLoading = ref(false);
-
-  const initialForm: ICreateComponentMetricInput = {
-    coopname: '',
-    project_hash: '',
-    title: '',
-    unit: '',
-    target_value: 0,
-    series_mode: Zeus.MetricSeriesMode.RATE,
-  };
-
-  const form = ref<ICreateComponentMetricInput>({ ...initialForm });
-
-  const resetForm = () => {
-    Object.assign(form.value, { ...initialForm });
-  };
 
   const loadMetrics = async () => {
     isLoading.value = true;
@@ -40,30 +33,8 @@ export function useManageComponentMetrics(projectHash: string) {
     }
   };
 
-  const createMetric = async () => {
-    const { info } = useSystemStore();
-    isSubmitting.value = true;
-    try {
-      const data: ICreateComponentMetricInput = {
-        coopname: info.coopname,
-        project_hash: projectHash,
-        title: form.value.title,
-        unit: form.value.unit,
-        target_value: Number(form.value.target_value),
-        series_mode: form.value.series_mode,
-        deadline: form.value.deadline,
-      };
-      const result = await api.createComponentMetric(data);
-      store.addMetric(result);
-      SuccessAlert('Метрика создана');
-      resetForm();
-    } catch (error) {
-      FailAlert(error);
-    } finally {
-      isSubmitting.value = false;
-    }
-  };
-
+  // Пока не вызывается из интерфейса, но, в отличие от создания, действие
+  // рабочее: архивация идёт по metric_hash и справочника мер не касается.
   const archiveMetric = async (metricHash: string) => {
     try {
       const data: IArchiveComponentMetricInput = {
@@ -80,13 +51,9 @@ export function useManageComponentMetrics(projectHash: string) {
   const metrics = () => store.getMetricsByProject(projectHash);
 
   return {
-    form,
-    isSubmitting,
     isLoading,
     metrics,
     loadMetrics,
-    createMetric,
     archiveMetric,
-    resetForm,
   };
 }
