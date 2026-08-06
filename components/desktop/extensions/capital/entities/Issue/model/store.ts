@@ -8,8 +8,9 @@ const namespace = 'issueStore';
 interface IIssueStore {
   issuesByProject: Ref<Record<string, IIssuesPagination>>;
   loadIssues: (data: IGetIssuesInput, projectHash: string, append?: boolean) => Promise<void>;
-  updateIssueByHash: (projectHash: string, issueHash: string) => Promise<void>;
-  addIssue: (projectHash: string, issueData: IIssue) => void;
+  // projectHash допускает null: у свободной задачи проекта нет (IIssue).
+  updateIssueByHash: (projectHash: string | null | undefined, issueHash: string) => Promise<void>;
+  addIssue: (projectHash: string | null | undefined, issueData: IIssue) => void;
   removeIssue: (projectHash: string, issueHash: string) => void;
   /** После переноса задачи в другой компонент: убрать из старого кэша и положить в новый */
   relocateIssue: (fromProjectHash: string, toProjectHash: string, issueData: IIssue) => void;

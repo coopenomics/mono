@@ -59,7 +59,14 @@ export function buildSparseTooltip(opts?: { signed?: boolean }) {
     const rows: string[] = [];
 
     for (let i = 0; i < series.length; i++) {
-      const raw = w.config.series?.[i]?.data?.[dataPointIndex];
+      // Apex типизирует config.series объединением «число | объект ряда»,
+      // поэтому обращение к data требует сужения.
+      const seriesConfig = w.config.series?.[i];
+      const seriesData
+        = seriesConfig && typeof seriesConfig === 'object'
+          ? (seriesConfig.data as Array<number | null> | undefined)
+          : undefined;
+      const raw = seriesData?.[dataPointIndex];
       if (raw === null || raw === undefined) continue;
       const v = series[i]?.[dataPointIndex];
       if (v === null || v === undefined || Number.isNaN(v)) continue;

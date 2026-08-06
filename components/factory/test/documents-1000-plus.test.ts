@@ -289,10 +289,10 @@ describe('тест генератора документов с registry_id >= 1
         { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
         { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
       ],
-      decision: {
+      // Резолюция совета: kind + опциональная причина. Номер и дата протокола
+      // сюда не входят — они приходят из решения по decision_id (getDecision).
+      resolution: {
         kind: 'approve',
-        protocol_number: '15',
-        protocol_date: '03.06.2026',
       },
     })
   })
@@ -317,11 +317,9 @@ describe('тест генератора документов с registry_id >= 1
         { number: '1', description: 'Аренда серверов Yandex Cloud', amount: '12000.00 RUB', recipient_type: 'ORG', mechanics: 'DIRECT' },
         { number: '2', description: 'Канцелярия для офиса', amount: '3000.00 RUB', recipient_type: 'SELF', mechanics: 'ADVANCE' },
       ],
-      decision: {
+      resolution: {
         kind: 'decline',
         reason: 'Просьба разделить позиции на отдельные СЗ — Yandex Cloud и канцелярия имеют разный контур контроля.',
-        protocol_number: '16',
-        protocol_date: '03.06.2026',
       },
     })
   })
@@ -497,23 +495,10 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
-  it('генерируем заявление о конвертации генерации в проект', async () => {
-    await testDocumentGeneration({
-      registry_id: 1081,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
-
-  it('генерируем заявление о конвертации генерации в благорост', async () => {
-    await testDocumentGeneration({
-      registry_id: 1082,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
+  // Документы 1081 и 1082 удалены намеренно: шаблон конвертации унифицирован
+  // в 1080 (коммит a0cb930b77f «унифицировать шаблон 1080, убрать 1081/1082»).
+  // Тесты на них остались висеть и падали с «Фабрика для документа не найдена».
+  // Покрытие не теряется — 1080 проверяется выше, с полным набором полей.
 
   it('генерируем заявление о конвертации благороста в основной кошелёк', async () => {
     await testDocumentGeneration({
