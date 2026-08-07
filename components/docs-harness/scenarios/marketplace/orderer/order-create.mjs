@@ -37,6 +37,10 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    // Оформление списывает средства с кошелька заказчика: при нулевом балансе
+    // сервер отбивает заказ («Недостаточно средств для оформления»), и падение
+    // выглядит как поломка интерфейса.
+    'marketplace-deposits:fund',
   ],
 };
 
@@ -98,11 +102,8 @@ export default async ({ page, shot, expect }) => {
   );
 
   // --- Оформление ----------------------------------------------------------
-  const checkout = page
-    .locator('button:has-text("Оформить"), button:has-text("Продолжить"), button:has-text("К оформлению")')
-    .first();
-  await checkout.click({ force: true });
-  await page.waitForTimeout(4000);
+  await page.locator('button:has-text("Оформить заказ")').first().click();
+  await page.waitForTimeout(8000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
 
