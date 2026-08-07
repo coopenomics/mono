@@ -469,6 +469,11 @@ async function growGrid(
       level_to: levelTo,
     })
     storage.applyCells(created)
+
+    // Новая координата всегда пуста, а поиск и «только непустые» пустое
+    // прячут — без сброса добавление выглядело бы как «ничего не произошло».
+    onlyNonEmpty.value = false
+    search.value = ''
   } catch (e) {
     FailAlert(e, 'Не удалось завести ячейки')
   } finally {
@@ -476,17 +481,37 @@ async function growGrid(
   }
 }
 
-/** Новый столбец: следующая свободная буква на всех существующих ярусах. */
-function addSection(): void {
+// ─── Новая секция ──
+// Имя спрашивается сразу, а не потом переименованием: секцию заводят зная,
+// что это за стеллаж. Буква подставляется следующей свободной, но остаётся
+// обычным полем — «Холодильник» вводится вместо неё, а не после неё.
+const sectionDialogOpen = ref(false)
+const newSectionName = ref('')
+
+const newSectionValid = computed(() => {
+  const name = newSectionName.value.trim()
+  return name.length > 0 && !storage.sections.some((s) => s.toUpperCase() === name.toUpperCase())
+})
+
+function openSectionDialog(): void {
+  newSectionName.value = nextSectionCode(storage.sections)
+  sectionDialogOpen.value = true
+}
+
+async function submitSection(): Promise<void> {
+  if (!newSectionValid.value) return
   const levels = storage.levels
   const from = levels.length ? minLevel.value : 1
   const to = levels.length ? maxLevel.value : 1
-  void growGrid([nextSectionCode(storage.sections)], from, to)
+  const name = newSectionName.value.trim()
+  sectionDialogOpen.value = false
+  await growGrid([name], from, to)
 }
 
 /** Новый ярус сверху — во всех секциях сразу, иначе сетка станет дырявой. */
 function addLevelUp(): void {
-  const sections = storage.sections.length ? storage.sections : [nextSectionCode([])]
+  const sections = storage.sections
+  if (!sections.length) return
   const level = maxLevel.value + 1
   void growGrid(sections, level, level)
 }
@@ -541,9 +566,9 @@ async function retireSection(section: string): Promise<void> {
   try {
     const retired = await retireStorageCells({ braname: braname.value.trim(), section })
     storage.applyCells(retired)
-    SuccessAlert(`Секция «${section}» убрана со склада`)
+    SuccessAlert(`Секция «${section}» удалена со склада`)
   } catch (e) {
-    FailAlert(e, 'Не удалось убрать секцию')
+    FailAlert(e, 'Не удалось удалить секцию')
   }
 }
 
@@ -551,9 +576,9 @@ async function retireLevel(level: number): Promise<void> {
   try {
     const retired = await retireStorageCells({ braname: braname.value.trim(), level })
     storage.applyCells(retired)
-    SuccessAlert(`Ярус ${level} убран со склада`)
+    SuccessAlert(`Ярус ${level} удалён со склада`)
   } catch (e) {
-    FailAlert(e, 'Не удалось убрать ярус')
+    FailAlert(e, 'Не удалось удалить ярус')
   }
 }
 
@@ -957,30 +982,28 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                             q-item(clickable, v-close-popup, @click='retireSection(section)')
                               q-item-section(avatar)
                                 q-icon(name='delete_outline', size='18px')
-                              q-item-section Убрать секцию
+                              q-item-section Удалить секцию
                 //- Плюс справа от последнего столбца — новая секция на всех
                 //- ярусах сразу.
                 th.place__grid-add
-                  BaseButton(
+                  BaseButton.place__grow-btn(
                     variant='ghost',
                     size='sm',
-                    icon-only,
                     :loading='growing',
                     aria-label='Добавить секцию',
-                    @click='addSection'
+                    @click='openSectionDialog'
                   )
                     template(#icon-left)
                       q-icon(name='add', size='18px')
-                      q-tooltip Добавить секцию «{{ nextSectionCode(storage.sections) }}»
+                      q-tooltip Добавить секцию
             tbody
               //- Плюс яруса стоит в столбце ярусов — симметрично плюсу секции в
               //- строке заголовков. Ярусы растут вверх, поэтому и кнопка сверху.
               tr.place__grid-grow
                 th.place__grid-level
-                  BaseButton(
+                  BaseButton.place__grow-btn(
                     variant='ghost',
                     size='sm',
-                    icon-only,
                     :loading='growing',
                     aria-label='Добавить ярус',
                     @click='addLevelUp'
@@ -1003,7 +1026,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                             q-item(clickable, v-close-popup, @click='retireLevel(row.level)')
                               q-item-section(avatar)
                                 q-icon(name='delete_outline', size='18px')
-                              q-item-section Убрать ярус
+                              q-item-section Удалить ярус
                 td(v-for='slot in row.slots', :key='slot.section')
                     .place__cell(
                       v-if='slot.cell',
@@ -1047,10 +1070,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               //- возвращают ярус, убранный по ошибке.
               tr.place__grid-grow(v-if='canGrowDown')
                 th.place__grid-level
-                  BaseButton(
+                  BaseButton.place__grow-btn(
                     variant='ghost',
                     size='sm',
-                    icon-only,
                     :loading='growing',
                     aria-label='Вернуть нижний ярус',
                     @click='addLevelDown'
@@ -1112,6 +1134,31 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         BaseButton(variant='ghost', size='sm', @click='movePlacement(item, {})') Вынуть
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') Закрыть
+
+  //- ─────────────────────── Новая секция склада ───────────────────────
+  BaseDialog(v-model='sectionDialogOpen', title='Новая секция', size='sm')
+    .place__form
+      .place__note
+        | Секция — это столбец склада: стеллаж, холодильник, зона. Ячейки
+        | заведутся на всех существующих ярусах сразу.
+      BaseInput(
+        v-model='newSectionName',
+        label='Название секции',
+        placeholder='A или «Холодильник»',
+        autofocus,
+        @keydown.enter='submitSection'
+      )
+      .place__note(v-if='newSectionName.trim() && !newSectionValid')
+        | Такая секция на складе уже есть.
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', :disabled='growing', @click='sectionDialogOpen = false') Отмена
+      BaseButton(
+        variant='primary',
+        size='sm',
+        :loading='growing',
+        :disabled='!newSectionValid',
+        @click='submitSection'
+      ) Завести
 
   //- ─────────────────────── Раскладка по количеству ───────────────────────
   BaseDialog(v-model='splitDialogOpen', title='Разложить по местам', size='md')
@@ -1389,11 +1436,24 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     width: 48px;
     text-align: center;
     vertical-align: middle;
+    padding: 0;
   }
 
   &__grid-grow td {
     text-align: center;
     padding: var(--p-1, 4px);
+  }
+
+  // Кнопка наращивания занимает ячейку целиком: попасть по иконке 18px в
+  // ячейке шириной с палец не получалось, и добавление выглядело как
+  // «нажал — ничего не произошло».
+  &__grow-btn {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  &__grid-grow th {
+    padding: 0;
   }
 
   &__grid-level {
