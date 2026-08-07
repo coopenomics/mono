@@ -97,6 +97,12 @@ import {
   MARKETPLACE_INVENTORY_LABEL_SERVICE,
 } from './services/marketplace-inventory-label.service';
 import { MarketplaceInventoryResolver } from './resolvers/marketplace-inventory.resolver';
+import { MarketplaceStorageCellResolver } from './resolvers/marketplace-storage-cell.resolver';
+import { MarketplaceContainerResolver } from './resolvers/marketplace-container.resolver';
+import { MarketplaceContainerService } from './services/marketplace-container.service';
+import { MarketplaceExtensionConfigService } from './services/marketplace-extension-config.service';
+import { MarketplaceWarehouseSettingsService } from './services/marketplace-warehouse-settings.service';
+import { MarketplaceStorageCellService } from './services/marketplace-storage-cell.service';
 import { MarketplaceStockResolver } from './resolvers/marketplace-stock.resolver';
 import { MarketplaceEconomyResolver } from './resolvers/marketplace-economy.resolver';
 import {
@@ -243,6 +249,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceStorageCellResolver,
+    MarketplaceStorageCellService,
+    MarketplaceContainerResolver,
+    MarketplaceContainerService,
+    MarketplaceExtensionConfigService,
+    MarketplaceWarehouseSettingsService,
     MarketplaceStockResolver,
     MarketplaceEconomyResolver,
     MarketplaceAplReceptionResolver,
@@ -498,6 +510,12 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceCycleResolver,
     MarketplaceShipmentResolver,
     MarketplaceInventoryResolver,
+    MarketplaceStorageCellResolver,
+    MarketplaceStorageCellService,
+    MarketplaceContainerResolver,
+    MarketplaceContainerService,
+    MarketplaceExtensionConfigService,
+    MarketplaceWarehouseSettingsService,
     MarketplaceAplReceptionResolver,
     MarketplaceOutgoingPaymentResolver,
     MarketplaceIssuanceResolver,

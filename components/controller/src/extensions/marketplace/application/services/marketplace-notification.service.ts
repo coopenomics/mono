@@ -88,7 +88,9 @@ export class MarketplaceNotificationService implements OnModuleInit {
         expeditorName: event.expeditor_name,
         coopname: event.coopname,
         apl_reception_id: event.apl_reception_id,
-        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/apl-receptions`,
+        // Подпись поставки живёт на карточке партии во «Входящих заказах» —
+        // отдельной страницы «Подпись передачи» у поставщика нет.
+        deepLinkUrl: `${config.frontend_url}/${event.coopname}/market-supplier/incoming-orders`,
       };
       await this.notificationSenderService.sendNotificationToUser(
         event.supplier_account,

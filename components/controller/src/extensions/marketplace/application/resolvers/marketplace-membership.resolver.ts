@@ -5,13 +5,17 @@ import config from '~/config/config';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { MarketplaceCurrentMemberDTO } from '../dto/marketplace-current-member.dto';
+import {
+  MarketplaceCurrentMemberDTO,
+  MarketplaceWarehouseSettingsDTO,
+} from '../dto/marketplace-current-member.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
+import { MarketplaceWarehouseSettingsService } from '../services/marketplace-warehouse-settings.service';
 
 /**
  * Story 1.3: тестовый whoami-эндпоинт расширения marketplace.
@@ -26,21 +30,27 @@ import {
 export class MarketplaceMembershipResolver {
   constructor(
     @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly warehouseSettings: MarketplaceWarehouseSettingsService
   ) {}
 
   @Query(() => MarketplaceCurrentMemberDTO, {
     name: 'marketplaceWhoAmI',
-    description: 'Контекст пайщика для Стола заказов: core_roles + marketplace_roles + участки оператора',
+    description:
+      'Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
   async marketplaceWhoAmI(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceCurrentMemberDTO> {
-    const branches = await this.kuChairmanService.listBranamesForMember(
-      config.coopname,
-      currentMember.username
-    );
-    return new MarketplaceCurrentMemberDTO({ ...currentMember, branches });
+    const [branches, warehouse] = await Promise.all([
+      this.kuChairmanService.listBranamesForMember(config.coopname, currentMember.username),
+      this.warehouseSettings.get(),
+    ]);
+    return new MarketplaceCurrentMemberDTO({
+      ...currentMember,
+      branches,
+      warehouse_settings: new MarketplaceWarehouseSettingsDTO(warehouse),
+    });
   }
 }

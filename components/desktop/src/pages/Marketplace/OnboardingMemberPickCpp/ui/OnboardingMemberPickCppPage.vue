@@ -25,7 +25,9 @@ import {
  * (КУ) со списком и картой, под ним во всю ширину — согласие с офертой и кнопка
  * подписи. КУ выбирается ДО подписи (held локально), подпись без выбранного КУ
  * и без согласия заблокирована. Persist КУ в корзину (`setCartDeliveryPoint`)
- * делаем СРАЗУ после синка подписи — до неё нет orderer-прав на Cart.
+ * делаем ПЕРВЫМ действием перехода на стол: выбранный КУ — половина
+ * backend-гейта заказчика, без него orderer-гранты не выдаются (см.
+ * `proceedToDesk`).
  *
  * Подпись: mutation `marketplaceSignOnboardingOffer` (оферта registry_id=1102,
  * подписывается локальным WIF, backend выполняет on-chain `wallet::signagree`).
@@ -128,8 +130,9 @@ async function waitForSignatureSynced(): Promise<boolean> {
 
 /**
  * Общий финал: пайщик подключён (подпись либо есть, либо только что прошла) —
- * перечитываем гранты/маршруты, фиксируем выбранный КУ как пункт выдачи и уходим
- * на стол заказчика. Скрываем форму (redirecting), чтобы не мелькнул промежуток.
+ * фиксируем выбранный КУ как пункт выдачи, перечитываем гранты/маршруты и уходим
+ * на стол заказчика. Порядок принципиален (см. ШАГ 1 внутри). Скрываем форму
+ * (redirecting), чтобы не мелькнул промежуток.
  */
 // Имя собственного маршрута — используется ниже, чтобы не выбрать его же
 // целью редиректа после успешного подключения (см. комментарий в proceedToDesk).
@@ -137,6 +140,21 @@ const ONBOARDING_ROUTE_NAME = 'marketplace-onboarding-member-cpp';
 
 async function proceedToDesk(): Promise<void> {
   redirecting.value = true;
+
+  // ШАГ 1 — зафиксировать выбранный КУ, и только потом ждать грантов.
+  // Backend-гейт заказчика (MarketplaceDesktopGrantsProvider) материализует
+  // orderer-права лишь когда выполнены ОБА факта: подпись оферты ЦПП И
+  // выбранный пункт выдачи в корзине (`delivery_braname !== null`). Если
+  // сохранять КУ после опроса грантов, гейт не снимется НИКОГДА: гранты ждут
+  // КУ, а КУ ждёт грантов — замкнутый круг, пайщик навсегда остаётся на
+  // онбординге (инцидент 2026-08-06).
+  // Сама мутация гейтом не закрыта: `marketplaceSetCartDeliveryPoint` защищён
+  // MarketplaceRoleGuard по `marketplace_roles` (orderer есть у любого
+  // активного пайщика), а не по грантам стола, — вызов здесь легален.
+  if (selectedBraname.value) {
+    await cartStore.changeDeliveryPoint(selectedBraname.value);
+  }
+
   await loadExtensionRoutes('market', router);
 
   // Гейт оферты (requires_gate) и гранты стола (getDesktop → firstAccessibleRoute)
@@ -170,18 +188,6 @@ async function proceedToDesk(): Promise<void> {
     redirecting.value = false;
     NotifyAlert('Подключение завершено, но права ещё синхронизируются. Обновите страницу через несколько секунд.');
     return;
-  }
-
-  // Фиксируем выбранный КУ как пункт выдачи корзины — только теперь, когда
-  // orderer-права на Cart подтверждены грантом выше (до этого cartStore падал
-  // бы: «до подписи нет orderer-прав на Cart»). Если упадёт по другой причине —
-  // не блокируем переход: КУ можно сменить в шапке стола.
-  if (selectedBraname.value) {
-    try {
-      await cartStore.changeDeliveryPoint(selectedBraname.value);
-    } catch (e) {
-      console.warn('[OnboardingMemberPickCpp] setCartDeliveryPoint упал:', e);
-    }
   }
 
   const destination = coopname.value

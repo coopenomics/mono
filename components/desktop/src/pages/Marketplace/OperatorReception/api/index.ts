@@ -3,9 +3,9 @@ import { client } from 'src/shared/api/client';
 import type {
   MarketplaceAplReceptionView,
   SignedDocumentInput,
-} from '../../OffererPendingAplReceptions/api';
+} from 'src/entities/MarketplaceAplReception';
 
-export type { MarketplaceAplReceptionView, SignedDocumentInput } from '../../OffererPendingAplReceptions/api';
+export type { MarketplaceAplReceptionView, SignedDocumentInput } from 'src/entities/MarketplaceAplReception';
 
 /**
  * Агрегат документа: исходный документ (rawDocument) + документ с уже
@@ -93,18 +93,47 @@ export interface SignReceptionsChairmanResult {
 }
 
 /**
+ * Эпик 19: оприходование одного заказа, уходящее вместе с закрывающей подписью,
+ * — наклеенная этикетка и место хранения. Место — ровно одно из двух: бокс либо
+ * ячейка напрямую (негабарит).
+ *
+ * И то, и другое планируется ДО подписи: председатель проходит шаги маркировки
+ * и раскладки, а подпись закрывает приёмку уже вместе с их результатом. Иначе
+ * оприходование распадалось бы на «подписал» и «дошёл до конца», и первое
+ * происходило бы без второго.
+ */
+export interface ChairmanPlacement {
+  order_id: string;
+  container_id?: string | null;
+  cell_id?: string | null;
+  barcode_value?: string | null;
+  /**
+   * Сколько принятого по заказу кладут в это место; null — всё количество.
+   * Заказ раскладывается по нескольким местам строкой на каждое: то, что не
+   * влезло в один бокс, уходит в следующий.
+   */
+  quantity?: number | null;
+}
+
+/**
  * Закрывающая подпись председателя по группе приёмок (зеркало
  * signReceptionGroupAsSupplier). По каждой приёмке — отдельная мутация
  * (блокчейн не проведёт всю поставку одной tx), идут параллельно; ошибка по
  * одной не теряет уже подписанные — копится по-актно, остальные продолжаются.
  * Внутри приёмки подпись поверх подписи поставщика тем же ключом активной
  * сессии, документ не перегенерируется.
+ *
+ * Оприходование (Эпик 19) едет тем же вызовом: backend валидирует места ДО
+ * отправки в цепь, поэтому подписанного акта с неразмещаемым имуществом не
+ * возникает. Каждому акту уходят только ЕГО размещения — на чужой `order_id`
+ * сервер отвечает отказом, а акты подписываются параллельно и независимо.
  */
 export async function signReceptionGroupAsChairman(
-  receptions: Pick<MarketplaceAplReceptionView, 'id'>[],
+  receptions: Pick<MarketplaceAplReceptionView, 'id' | 'fact_quantity_per_order'>[],
   wif: string,
   username: string,
   onProgress?: (done: number) => void,
+  placements: ChairmanPlacement[] = [],
 ): Promise<SignReceptionsChairmanResult> {
   const signer = new Classes.Document(wif);
   let done = 0;
@@ -123,7 +152,13 @@ export async function signReceptionGroupAsChairman(
           ]);
           signed_documents.push(signed);
         }
-        await signAsChairman({ apl_reception_id: r.id, signed_documents });
+        const ownOrderIds = new Set(r.fact_quantity_per_order.map((f) => f.order_id));
+        const ownPlacements = placements.filter((p) => ownOrderIds.has(p.order_id));
+        await signAsChairman({
+          apl_reception_id: r.id,
+          signed_documents,
+          ...(ownPlacements.length ? { placements: ownPlacements } : {}),
+        });
         done += 1;
         onProgress?.(done);
       } catch (error) {

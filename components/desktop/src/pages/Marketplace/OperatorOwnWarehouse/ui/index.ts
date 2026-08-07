@@ -1,1 +1,1 @@
-export { default as OperatorOwnWarehousePage } from './OperatorOwnWarehousePage.vue';
+export { default as OperatorOwnWarehouseSection } from './OperatorOwnWarehouseSection.vue';

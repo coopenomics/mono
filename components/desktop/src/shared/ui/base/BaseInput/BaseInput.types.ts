@@ -4,6 +4,15 @@ export interface BaseInputProps {
   hint?: string;
   error?: string;
   placeholder?: string;
+  /**
+   * Метка всегда поднята над полем (а не лежит внутри до фокуса).
+   *
+   * Нужна там, где в одном ряду стоят поля разных типов: у `type="date"` Quasar
+   * своим CSS поднимает метку принудительно, и рядом с обычным текстовым полем
+   * получаются две разные на вид рамки. С поднятой меткой ряд читается одним
+   * блоком, а `placeholder` показывает пример ввода — как в эталоне `_dev/ui`.
+   */
+  stackLabel?: boolean;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'textarea';
   autogrow?: boolean;
   /** Маска ввода Quasar: `#` — цифра (например `####` — серия паспорта, `###-###` — код подразделения) */
@@ -20,6 +29,8 @@ export interface BaseInputProps {
   suffix?: string;
   /** Префикс в левой части поля */
   prefix?: string;
+  /** Забрать фокус при появлении — для инлайн-правки, открывающейся по клику. */
+  autofocus?: boolean;
   readonly?: boolean;
   disabled?: boolean;
   required?: boolean;

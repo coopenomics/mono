@@ -48,7 +48,20 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
-import { MarketplaceInventoryStatuses } from '../../domain/entities/marketplace-inventory.types';
+import {
+  MarketplaceBarcodeFormats,
+  MarketplaceInventoryStatuses,
+  isValidEan13,
+  type MarketplaceInventoryPlacement,
+} from '../../domain/entities/marketplace-inventory.types';
+import {
+  MARKETPLACE_CONTAINER_REPOSITORY,
+  type MarketplaceContainerDomainRepository,
+} from '../../domain/repositories/marketplace-container.repository';
+import {
+  MARKETPLACE_STORAGE_CELL_REPOSITORY,
+  type MarketplaceStorageCellDomainRepository,
+} from '../../domain/repositories/marketplace-storage-cell.repository';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -82,12 +95,13 @@ import {
   MarketplaceShipmentStatuses,
 } from '../../domain/entities/marketplace-shipment.types';
 import { computeActNumber } from '../shared/act-number.util';
-import { toQuantityAsset } from '../shared/quantity.util';
+import { MARKETPLACE_QUANTITY_EPSILON, toQuantityAsset } from '../shared/quantity.util';
 import { calcCostAmount, sumMoney } from '../shared/cost.util';
 import {
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
   MarketplaceSupplierSettingsService,
 } from './marketplace-supplier-settings.service';
+import { MarketplaceWarehouseSettingsService } from './marketplace-warehouse-settings.service';
 import {
   MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
   MarketplaceSupplierRegistryService,
@@ -127,12 +141,51 @@ export interface MarketplaceAplReceptionSignSupplierInputDto {
   signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
 }
 
+/**
+ * Что председатель делает с принятым по конкретному заказу при оприходовании
+ * (Эпик 19): клеит этикетку и кладёт на место.
+ *
+ * Порядок именно такой и в жизни: сначала помечают конкретную единицу
+ * имущества конкретного заказчика, потом убирают её в тару. Обратный порядок
+ * теряет след — в боксе оказывается десять одинаковых литров молока десяти
+ * человек, и различить их уже нечем.
+ */
+export interface MarketplaceAplReceptionPlacementInput {
+  order_id: string;
+  /** Бокс, в который кладут принятое. */
+  container_id?: string | null;
+  /** Ячейка, если имущество кладут на склад напрямую (негабарит). */
+  cell_id?: string | null;
+  /** Номер этикетки, наклеенной на принятое по этому заказу. */
+  barcode_value?: string | null;
+  /** Сколько принятого по заказу кладут в это место; пусто — всё количество. */
+  quantity?: number | null;
+}
+
+/**
+ * Разобранная часть оприходования: проверенное место, проверенный номер
+ * этикетки и количество, которое туда кладут. Заказ раскладывается на
+ * несколько частей, когда принятое не помещается в один бокс, — на каждую
+ * часть родится своя позиция склада со своей этикеткой.
+ */
+interface ReceptionPostingPart extends MarketplaceInventoryPlacement {
+  barcode_value: string | null;
+  /** null — остаток заказа, не разложенный по местам поштучно. */
+  quantity: number | null;
+}
+
 export interface MarketplaceAplReceptionSignChairmanInputDto {
   coopname: string;
   chairman_account: string;
   apl_reception_id: string;
   /** То же что у поставщика — но для on-chain `signchair`. */
   signed_documents: MarketplaceAplReceptionSignedDocumentInputDTO[];
+  /**
+   * Место хранения по каждому принятому заказу. Обязательно, когда кооператив
+   * включил «Требовать указание места при приёмке»; иначе принятое попадает на
+   * склад без места и раскладывается позже.
+   */
+  placements?: MarketplaceAplReceptionPlacementInput[];
 }
 
 export interface MarketplaceAplReceptionResult {
@@ -223,6 +276,11 @@ export class MarketplaceAplReceptionService {
     private readonly offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
+    private readonly containerRepo: MarketplaceContainerDomainRepository,
+    @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
+    private readonly cellRepo: MarketplaceStorageCellDomainRepository,
+    private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
@@ -717,6 +775,16 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceAplReceptionSignChairmanInputDto
   ): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+
+    // Приёмка уже закрыта на цепи, но повтор пришёл — значит в прошлый раз
+    // что-то после подписи не доехало (склад, выплаты) и председатель нажал
+    // «Подписать» снова. Отказ оставил бы приёмку закрытой без оприходования и
+    // без выплаты поставщику, а починить это из интерфейса было бы нечем.
+    // Поэтому вместо отказа доводим начатое: и склад, и выплаты идемпотентны.
+    if (reception.status === MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP) {
+      return await this.completeAcceptedReception(reception, input);
+    }
+
     if (!reception.awaits_chairman) {
       throw new ConflictException(
         `АПП находится в статусе «${reception.status}», закрывающая подпись председателя недопустима.`
@@ -729,6 +797,15 @@ export class MarketplaceAplReceptionService {
     // на складе и в выплатах.
     const groupOrders = await this.loadGroupOrders(reception);
     const { accepted: acceptedOrders } = this.splitGroupByFact(reception, groupOrders);
+
+    // Размещение проверяем ДО отправки в цепь. Наоборот нельзя: подпись уже
+    // была бы на цепи, а разместить принятое не вышло бы — акт закрыт,
+    // имущество физически лежит, а системе положить его некуда.
+    const placementByOrderId = await this.resolveReceptionPlacements(
+      reception,
+      acceptedOrders,
+      input.placements ?? []
+    );
 
     let txHash: string;
     try {
@@ -771,10 +848,11 @@ export class MarketplaceAplReceptionService {
       MarketplaceShipmentStatuses.ACCEPTED_TO_COOP
     );
 
-    // Имущество, принятое по акту, появляется на складе КУ сразу — независимо
-    // от маркировки (штрих-код опционален). Полку и штрих-код оператор назначит
-    // позже на столе раскладки/маркировки.
-    await this.materializeInventory(updated, acceptedOrders);
+    // Имущество, принятое по акту, появляется на складе КУ сразу — вместе с
+    // наклеенными этикетками и местами хранения, если председатель наметил их
+    // на шагах оприходования. Что не наметил, оператор доделает позже на столе
+    // раскладки и маркировки: и то, и другое опционально.
+    await this.materializeInventory(updated, acceptedOrders, placementByOrderId);
 
     // Story 5.6 / 598-16 (L12): инициируем выплаты поставщику per-Order
     // через gateway. Кассир увидит каждую выплату в общем реестре
@@ -800,6 +878,39 @@ export class MarketplaceAplReceptionService {
     this.emitReceptionStatusChanged(updated);
 
     return { apl_reception: updated };
+  }
+
+  /**
+   * Доводит уже закрытую приёмку: оприходование склада и выплаты поставщику.
+   *
+   * Подпись на цепи повторно не отправляется — она там уже есть. Оба шага
+   * идемпотентны: позиция склада не создаётся по заказу, где она уже есть, а
+   * выплата заводится через `createIfNotExists`. Поэтому повторный вызов
+   * безопасен и просто добирает то, чего не хватает.
+   */
+  private async completeAcceptedReception(
+    reception: MarketplaceAplReceptionDomainEntity,
+    input: MarketplaceAplReceptionSignChairmanInputDto
+  ): Promise<MarketplaceAplReceptionResult> {
+    const groupOrders = await this.loadGroupOrders(reception);
+    const { accepted: acceptedOrders } = this.splitGroupByFact(reception, groupOrders);
+
+    const placementByOrderId = await this.resolveReceptionPlacements(
+      reception,
+      acceptedOrders,
+      input.placements ?? []
+    );
+
+    await this.materializeInventory(reception, acceptedOrders, placementByOrderId);
+
+    const orderHashByOrderId = new Map(acceptedOrders.map((o) => [o.id, o.order_hash] as const));
+    await this.initiatePayouts(reception, acceptedOrders, orderHashByOrderId);
+
+    this.logger.log(
+      `АПП ${reception.id}: приёмка уже была закрыта на цепи — довели оприходование и выплаты по ${acceptedOrders.length} заказам.`
+    );
+
+    return { apl_reception: reception };
   }
 
   /**
@@ -1128,9 +1239,248 @@ export class MarketplaceAplReceptionService {
    * Идемпотентно: если по Order'у позиция уже есть (повторная подпись/ретрай),
    * пропускаем, чтобы не задвоить склад.
    */
+  /**
+   * Проверяет и раскладывает по заказам места хранения, переданные вместе с
+   * закрывающей подписью.
+   *
+   * Вызывается ДО отправки подписи в цепь: если разместить нельзя, приёмка не
+   * должна закрыться вовсе. Обратный порядок оставил бы акт подписанным
+   * on-chain, а принятое — без места, куда его положить.
+   *
+   * Когда кооператив не включил «Требовать указание места при приёмке», список
+   * может быть пустым или частичным — принятое просто попадёт на склад без
+   * места, как было до Эпика 19.
+   */
+  private async resolveReceptionPlacements(
+    reception: MarketplaceAplReceptionDomainEntity,
+    acceptedOrders: MarketplaceOrderDomainEntity[],
+    placements: MarketplaceAplReceptionPlacementInput[]
+  ): Promise<Map<string, ReceptionPostingPart[]>> {
+    // Оприходуются только заказы, которые едут на КУ этой приёмки, — ровно тот
+    // же отбор, что делает materializeInventory.
+    const targetOrders = acceptedOrders.filter(
+      (o) => o.delivery_braname === reception.braname
+    );
+    const targetOrderIds = new Set(targetOrders.map((o) => o.id));
+    const factByOrderId = new Map(
+      reception.fact_quantity_per_order.map((f) => [f.order_id, f.fact_quantity] as const)
+    );
+    const resolved = new Map<string, ReceptionPostingPart[]>();
+    const barcodesInBatch = new Set<string>();
+
+    for (const placement of placements) {
+      if (!targetOrderIds.has(placement.order_id)) {
+        throw new BadRequestException(
+          'Указано место для заказа, которого нет в этой приёмке.'
+        );
+      }
+      const container_id = placement.container_id ?? null;
+      const cell_id = placement.cell_id ?? null;
+      const quantity = placement.quantity ?? null;
+      const barcode_value = await this.resolveReceptionBarcode(
+        reception.coopname,
+        placement.barcode_value,
+        barcodesInBatch
+      );
+
+      if (container_id && cell_id) {
+        throw new BadRequestException(
+          'Для одного заказа укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
+        );
+      }
+      if (quantity !== null && quantity <= 0) {
+        throw new BadRequestException('Количество в месте хранения должно быть больше нуля.');
+      }
+
+      const parts = resolved.get(placement.order_id) ?? [];
+
+      if (!container_id && !cell_id) {
+        // Место не указали, но этикетку наклеили — маркировка не зависит от
+        // раскладки и теряться не должна.
+        if (barcode_value) {
+          parts.push({ container_id: null, cell_id: null, barcode_value, quantity });
+          resolved.set(placement.order_id, parts);
+        }
+        continue;
+      }
+
+      if (container_id) {
+        const container = await this.containerRepo.findById(container_id);
+        if (!container || container.coopname !== reception.coopname) {
+          throw new NotFoundException('Бокс не найден.');
+        }
+        if (!container.is_active) {
+          throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+        }
+        if (container.braname !== reception.braname) {
+          throw new ConflictException(
+            `Бокс «${container.code}» числится за участком ${container.braname}, а приёмка идёт на ${reception.braname}.`
+          );
+        }
+        parts.push({ container_id, cell_id: null, barcode_value, quantity });
+        resolved.set(placement.order_id, parts);
+        continue;
+      }
+
+      const cell = await this.cellRepo.findById(cell_id as string);
+      if (!cell || cell.coopname !== reception.coopname) {
+        throw new NotFoundException('Ячейка не найдена.');
+      }
+      if (!cell.is_active) {
+        throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+      }
+      if (cell.braname !== reception.braname) {
+        throw new ConflictException(
+          `Ячейка «${cell.code}» относится к участку ${cell.braname}, а приёмка идёт на ${reception.braname}.`
+        );
+      }
+      parts.push({ container_id: null, cell_id, barcode_value, quantity });
+      resolved.set(placement.order_id, parts);
+    }
+
+    this.assertPostingPartsFitOrders(resolved, factByOrderId);
+
+    // Требовать место можно, только если его есть куда указать. Иначе включённый
+    // в одиночку флаг обязательности заблокировал бы приёмку намертво: председатель
+    // видел бы отказ, а положить имущество было бы физически некуда — ни боксов,
+    // ни ячеек в кооперативе не заведено.
+    const settings = await this.warehouseSettings.get();
+    const hasSomewhereToPlace = settings.containers_enabled || settings.cells_enabled;
+
+    if (settings.posting_on_reception_required && hasSomewhereToPlace) {
+      const missing = targetOrders.filter((o) => {
+        const fact = factByOrderId.get(o.id) ?? o.quantity;
+        if (fact <= 0) return false;
+        return this.placedQuantityOf(resolved.get(o.id) ?? [], fact) + MARKETPLACE_QUANTITY_EPSILON < fact;
+      });
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          `Укажите место хранения для всего принятого: не размещено позиций — ${missing.length}.`
+        );
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Сколько из принятого по заказу действительно легло по местам. Часть без
+   * количества занимает весь заказ: так выглядит обычная раскладка «всё в один
+   * бокс», где количество не указывают.
+   */
+  private placedQuantityOf(parts: ReceptionPostingPart[], factQuantity: number): number {
+    let placed = 0;
+    for (const part of parts) {
+      if (!part.container_id && !part.cell_id) continue;
+      placed += part.quantity ?? factQuantity;
+    }
+    return placed;
+  }
+
+  /**
+   * Разложить можно только то, что приняли: сумма частей по заказу не должна
+   * превышать фактическое количество. Иначе склад получил бы больше имущества,
+   * чем реально привезли.
+   */
+  private assertPostingPartsFitOrders(
+    resolved: Map<string, ReceptionPostingPart[]>,
+    factByOrderId: Map<string, number>
+  ): void {
+    for (const [orderId, parts] of resolved) {
+      const fact = factByOrderId.get(orderId) ?? 0;
+      const withoutQuantity = parts.filter((p) => p.quantity === null);
+      if (parts.length > 1 && withoutQuantity.length > 0) {
+        throw new BadRequestException(
+          'Когда принятое по заказу раскладывают по нескольким местам, у каждого места укажите количество.'
+        );
+      }
+      const total = parts.reduce((sum, p) => sum + (p.quantity ?? fact), 0);
+      if (total > fact + MARKETPLACE_QUANTITY_EPSILON) {
+        throw new BadRequestException(
+          `По местам хранения разложено больше, чем принято по заказу: ${total} при принятых ${fact}.`
+        );
+      }
+    }
+  }
+
+  /**
+   * Проверенный номер этикетки: непустой, не повторяется внутри одной приёмки и
+   * не занят другой позицией склада кооператива.
+   *
+   * Этикетки печатаются пачкой и клеятся руками — перепутать наклейку легко, а
+   * два одинаковых номера на складе делают поиск сканером бессмысленным.
+   */
+  private async resolveReceptionBarcode(
+    coopname: string,
+    raw: string | null | undefined,
+    seenInBatch: Set<string>
+  ): Promise<string | null> {
+    const barcode = raw?.trim();
+    if (!barcode) return null;
+
+    // Сканер читает не только этикетку с листа: под камеру попадают QR тары и
+    // служебные коды. Отсеиваем их здесь, до отправки подписи в цепь, — иначе
+    // акт закроется on-chain, а позиция склада не создастся, и закрыть приёмку
+    // повторно будет уже нечем.
+    if (!isValidEan13(barcode)) {
+      throw new BadRequestException(
+        `Этикетка «${barcode}» не похожа на штрихкод с листа этикеток: нужны 13 цифр. Отсканируйте штрихкод, а не QR-код тары.`
+      );
+    }
+
+    if (seenInBatch.has(barcode)) {
+      throw new ConflictException(
+        `Этикетка «${barcode}» указана дважды в одной приёмке — на каждой единице имущества свой номер.`
+      );
+    }
+    const conflict = await this.inventoryRepo.findByBarcode(coopname, barcode);
+    if (conflict) {
+      throw new ConflictException(
+        `Этикетка «${barcode}» уже привязана к другой позиции склада.`
+      );
+    }
+    seenInBatch.add(barcode);
+    return barcode;
+  }
+
+  /**
+   * Части, из которых родятся позиции склада по одному заказу: разложенное по
+   * местам плюс, если разложили не всё, остаток без места. Пустой план — одна
+   * позиция на всё принятое, как было до адресного хранения.
+   */
+  private splitOrderIntoParts(
+    parts: ReceptionPostingPart[],
+    factQuantity: number
+  ): Array<{
+    container_id: string | null;
+    cell_id: string | null;
+    barcode_value: string | null;
+    quantity: number;
+  }> {
+    if (parts.length === 0) {
+      return [
+        { container_id: null, cell_id: null, barcode_value: null, quantity: factQuantity },
+      ];
+    }
+
+    const out = parts.map((part) => ({
+      container_id: part.container_id ?? null,
+      cell_id: part.cell_id ?? null,
+      barcode_value: part.barcode_value,
+      quantity: part.quantity ?? factQuantity,
+    }));
+    const planned = out.reduce((sum, part) => sum + part.quantity, 0);
+    const rest = factQuantity - planned;
+    if (rest > MARKETPLACE_QUANTITY_EPSILON) {
+      out.push({ container_id: null, cell_id: null, barcode_value: null, quantity: rest });
+    }
+    return out;
+  }
+
   private async materializeInventory(
     reception: MarketplaceAplReceptionDomainEntity,
-    orders: MarketplaceOrderDomainEntity[]
+    orders: MarketplaceOrderDomainEntity[],
+    placementByOrderId: Map<string, ReceptionPostingPart[]> = new Map()
   ): Promise<void> {
     const groupOrders = orders.filter((o) => o.delivery_braname === reception.braname);
     if (groupOrders.length === 0) return;
@@ -1145,6 +1495,8 @@ export class MarketplaceAplReceptionService {
     const receivedAt = reception.chairman_signed_at ?? new Date();
 
     let created = 0;
+    let placedCount = 0;
+    let labeledCount = 0;
     for (const order of groupOrders) {
       const factQty = factByOrderId.get(order.id) ?? order.quantity;
       if (factQty <= 0) continue;
@@ -1160,32 +1512,48 @@ export class MarketplaceAplReceptionService {
         shelfLifeDays > 0
           ? new Date(receivedAt.getTime() + shelfLifeDays * 86_400 * 1000)
           : null;
-      await this.inventoryRepo.create({
-        coopname: reception.coopname,
-        order_id: order.id,
-        shipment_id: reception.shipment_id,
-        braname: reception.braname,
-        status: MarketplaceInventoryStatuses.RECEIVED,
-        product_name_snapshot: offer?.product_name ?? '',
-        quantity_per_label: factQty,
-        orderer_account_snapshot: order.orderer_account,
-        shelf: null,
-        received_at: receivedAt,
-        received_by_operator_account: reception.created_by_operator_account,
-        barcode_value: null,
-        barcode_format: null,
-        labeled_at: null,
-        labeled_by_operator_account: null,
-        expiry_date: expiry,
-        // Цена прибытия — закупочная цена заказа: база цены публикации,
-        // если дельта позже уйдёт в обезличенный остаток КУ (requirement 76).
-        arrival_price: order.price_per_unit,
-      });
-      created += 1;
+      // Принятое по заказу может лечь в несколько мест: три сотни литровых
+      // упаковок в один бокс не помещаются. Каждая часть — своя позиция склада
+      // со своим количеством, местом и этикеткой. Неразложенный остаток
+      // становится позицией без места — его разложат на столе раскладки.
+      for (const part of this.splitOrderIntoParts(placementByOrderId.get(order.id) ?? [], factQty)) {
+        const barcode = part.barcode_value;
+        await this.inventoryRepo.create({
+          coopname: reception.coopname,
+          order_id: order.id,
+          shipment_id: reception.shipment_id,
+          braname: reception.braname,
+          // Этикетку клеят на принятое тут же у стойки, поэтому позиция может
+          // родиться сразу промаркированной. Без этикетки статус прежний.
+          status: barcode
+            ? MarketplaceInventoryStatuses.LABELED
+            : MarketplaceInventoryStatuses.RECEIVED,
+          product_name_snapshot: offer?.product_name ?? '',
+          quantity_per_label: part.quantity,
+          orderer_account_snapshot: order.orderer_account,
+          // Место хранения проставляется сразу: приёмка и размещение — одно
+          // действие у стойки, а не два захода с разрывом между ними.
+          container_id: part.container_id,
+          cell_id: part.cell_id,
+          received_at: receivedAt,
+          received_by_operator_account: reception.created_by_operator_account,
+          barcode_value: barcode,
+          barcode_format: barcode ? MarketplaceBarcodeFormats.EAN13 : null,
+          labeled_at: barcode ? receivedAt : null,
+          labeled_by_operator_account: barcode ? reception.created_by_operator_account : null,
+          expiry_date: expiry,
+          // Цена прибытия — закупочная цена заказа: база цены публикации,
+          // если дельта позже уйдёт в обезличенный остаток КУ (requirement 76).
+          arrival_price: order.price_per_unit,
+        });
+        created += 1;
+        if (part.container_id || part.cell_id) placedCount += 1;
+        if (barcode) labeledCount += 1;
+      }
     }
 
     this.logger.log(
-      `АПП ${reception.id}: на склад КУ ${reception.braname} оприходовано ${created} позиций (RECEIVED).`
+      `АПП ${reception.id}: на склад КУ ${reception.braname} оприходовано ${created} позиций, из них промаркировано ${labeledCount}, с местом хранения ${placedCount}.`
     );
   }
 

@@ -21,8 +21,8 @@
         | План {{ r.expected }}×{{ r.unit }}
         template(v-if='r.available !== undefined')
           |  · Принято {{ r.available }}×{{ r.unit }}
-        template(v-if='r.shelf')
-          |  · Полка {{ r.shelf }}
+        template(v-if='r.location')
+          |  · Место {{ r.location }}
 
     BaseBadge.correction-table__status(:variant='statusVariant(r)') {{ statusLabel(r) }}
 
@@ -80,8 +80,8 @@ export interface CorrectionRow {
    * → «Больше принятого».
    */
   available?: number;
-  /** Полка/полки склада после раскладки. */
-  shelf?: string;
+  /** Место хранения после раскладки: бокс и/или ячейка склада. */
+  location?: string;
   expectedPrice?: number;
   factPrice?: number;
 }

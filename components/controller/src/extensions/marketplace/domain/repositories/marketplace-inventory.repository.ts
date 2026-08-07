@@ -1,7 +1,9 @@
 import type { MarketplaceInventoryDomainEntity } from '../entities/marketplace-inventory.entity';
 import type {
   MarketplaceBarcodeFormat,
+  MarketplaceInventoryLocation,
   MarketplaceInventoryOwnership,
+  MarketplaceInventoryPlacement,
   MarketplaceInventoryStatus,
 } from '../entities/marketplace-inventory.types';
 
@@ -19,6 +21,10 @@ export interface MarketplaceInventoryCreateInput {
   quantity_per_label: number;
   orderer_account_snapshot: string;
   shelf?: string | null;
+  /** Ячейка хранения, если позиция кладётся на склад напрямую (негабарит). */
+  cell_id?: string | null;
+  /** Бокс, в который кладётся позиция — основной путь размещения. */
+  container_id?: string | null;
   received_at: Date;
   received_by_operator_account: string;
   labeled_at?: Date | null;
@@ -104,14 +110,14 @@ export interface MarketplaceInventoryDomainRepository {
   sumOnWarehouseByOrders(coopname: string, order_ids: string[]): Promise<Map<string, number>>;
 
   /**
-   * Полки склада, на которых лежат не выданные позиции заказа (после
-   * раскладки/маркировки). Лента выдачи показывает оператору, куда идти
-   * за имуществом. Заказы без размеченных полок в карте отсутствуют.
+   * Места хранения, где лежат не выданные позиции заказа. Лента выдачи
+   * показывает оператору, куда идти за имуществом. Заказы без размещённых
+   * позиций в карте отсутствуют.
    */
-  shelvesOnWarehouseByOrders(
+  locationsOnWarehouseByOrders(
     coopname: string,
     order_ids: string[]
-  ): Promise<Map<string, string[]>>;
+  ): Promise<Map<string, MarketplaceInventoryLocation[]>>;
 
   list(filter: MarketplaceInventoryListFilter): Promise<MarketplaceInventoryDomainEntity[]>;
 
@@ -141,8 +147,23 @@ export interface MarketplaceInventoryDomainRepository {
    */
   markIssuedByOrder(coopname: string, order_id: string): Promise<number>;
 
-  /** Назначить/сменить/очистить полку склада для позиции. */
-  assignShelf(id: string, shelf: string | null): Promise<MarketplaceInventoryDomainEntity>;
+  /** Положить позицию в бокс либо в ячейку, или снять с места (обе ссылки пустые). */
+  assignPlacement(
+    id: string,
+    placement: MarketplaceInventoryPlacement
+  ): Promise<MarketplaceInventoryDomainEntity>;
+
+  /**
+   * Сколько позиций физически лежит в ячейке (статусы «на складе»). Опора
+   * гарда «непустую ячейку нельзя вывести из оборота».
+   */
+  countOnWarehouseByCell(coopname: string, cell_id: string): Promise<number>;
+
+  /**
+   * Сколько позиций физически лежит в боксе (статусы «на складе»). Опора
+   * гарда «непустой бокс нельзя вывести из оборота».
+   */
+  countOnWarehouseByContainer(coopname: string, container_id: string): Promise<number>;
 
   /** Наложить штрих-код и перевести позицию в LABELED. */
   applyLabel(
@@ -153,11 +174,11 @@ export interface MarketplaceInventoryDomainRepository {
   /** Снять штрих-код и вернуть позицию в RECEIVED (для переклейки). */
   clearLabel(id: string): Promise<MarketplaceInventoryDomainEntity>;
 
-  /** Изменить количество и полку позиции (используется при раскладке-split). */
+  /** Изменить количество и место позиции (используется при раскладке-split). */
   resize(
     id: string,
     quantity_per_label: number,
-    shelf: string | null
+    placement: MarketplaceInventoryPlacement
   ): Promise<MarketplaceInventoryDomainEntity>;
 
   /**

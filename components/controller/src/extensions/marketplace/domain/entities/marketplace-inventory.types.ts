@@ -13,6 +13,16 @@ export const MarketplaceBarcodeFormats = {
 } as const satisfies Record<string, MarketplaceBarcodeFormat>;
 
 /**
+ * Годится ли номер как EAN-13. Проверять его нужно в тот момент, когда номер
+ * пришёл от сканера, а не когда позиция склада уже создаётся: сканер читает и
+ * QR, и служебные коды, а отказ на полпути оставляет приёмку закрытой без
+ * оприходования.
+ */
+export function isValidEan13(value: string): boolean {
+  return /^\d{13}$/.test(value);
+}
+
+/**
  * Состояние единицы имущества в инвентаре КУ.
  *
  *  - `RECEIVED` — имущество принято кооперативом по акту приёмки и лежит на
@@ -103,11 +113,24 @@ export interface MarketplaceInventoryProps {
   quantity_per_label: number;
   orderer_account_snapshot: string;
   /**
-   * Полка/ячейка склада, куда оператор положил эту позицию (свободная строка,
-   * напр. «A-12»). NULL — место ещё не назначено. Одну принятую позицию можно
-   * разложить на несколько полок, разбив её на отдельные записи (split).
+   * @deprecated Эпик 19 — прежняя полка свободной строкой. Адрес переехал в
+   * `cell_id`; поле дочитывается только миграцией переноса и снимается
+   * следующим релизом.
    */
   shelf: string | null;
+  /**
+   * Ячейка хранения, если позиция лежит на складе напрямую — так кладут
+   * негабарит, не помещающийся в бокс. NULL, если позиция лежит в боксе либо
+   * место ещё не назначено. Одну принятую позицию можно разложить по нескольким
+   * местам, разбив её на отдельные записи (split).
+   */
+  cell_id: string | null;
+  /**
+   * Бокс, в котором лежит позиция — основной путь размещения. NULL, если
+   * позиция лежит в ячейке напрямую либо место ещё не назначено. Ячейка такой
+   * позиции определяется по самому боксу и не дублируется здесь.
+   */
+  container_id: string | null;
   /** Момент приёмки кооперативом по акту (закрывающая подпись председателя). */
   received_at: Date;
   /** Account оператора КУ, оформившего приёмку. */
@@ -141,4 +164,32 @@ export interface MarketplaceInventoryProps {
   reserved_order_id: string | null;
   created_at: Date;
   updated_at: Date;
+}
+
+/**
+ * Место хранения позиции склада: либо бокс, либо ячейка напрямую — ровно одно
+ * из двух. Ячейка позиции, лежащей в боксе, определяется по самому боксу и
+ * здесь не дублируется. Обе ссылки пустые — место ещё не назначено.
+ */
+export interface MarketplaceInventoryPlacement {
+  cell_id: string | null;
+  container_id: string | null;
+}
+
+/** Адрес, по которому оператор идёт за имуществом. */
+export interface MarketplaceInventoryLocation {
+  /** Код бокса, если позиция лежит в таре. */
+  container_code: string | null;
+  /** Адрес ячейки — своей либо той, в которой стоит бокс. */
+  cell_code: string | null;
+}
+
+/** Человекочитаемый адрес: «Бокс BX-0007 · A-02», «Ячейка A-02». */
+export function formatInventoryLocation(location: MarketplaceInventoryLocation): string {
+  if (location.container_code && location.cell_code) {
+    return `Бокс ${location.container_code} · ${location.cell_code}`;
+  }
+  if (location.container_code) return `Бокс ${location.container_code}`;
+  if (location.cell_code) return `Ячейка ${location.cell_code}`;
+  return 'Без места';
 }

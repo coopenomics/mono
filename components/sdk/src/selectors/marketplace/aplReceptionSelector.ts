@@ -21,6 +21,10 @@ const rawFactEntrySelector = {
   product_name: true,
   unit_of_measure: true,
   package_size: true,
+  // Заказчик по позиции: этикетку клеят на конкретную единицу конкретного
+  // человека, а строка сверки агрегирует их всех в одну.
+  orderer_account: true,
+  orderer_name: true,
 }
 
 const _validateFactEntry: MakeAllFieldsRequired<ValueTypes['MarketplaceAplReceptionFactEntry']> =

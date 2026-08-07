@@ -350,7 +350,13 @@
           tabular-nums для числовых колонок.
         </p>
       </div>
-      <BaseTable :columns="tableColumns" :rows="tableRows" row-key="id">
+      <BaseTable
+        :columns="tableColumns"
+        :rows="tableRows"
+        row-key="id"
+        hover
+        sort-by="date"
+      >
         <template #cell-status="{ value }">
           <BaseBadge :variant="(value as 'pos' | 'warn' | 'neg')">
             {{ statusLabel(value as string) }}
@@ -359,7 +365,72 @@
         <template #cell-amount="{ value }">
           <span class="t-num">{{ value }} RUB</span>
         </template>
+        <template #footer>
+          <span>Всего документов: {{ tableRows.length }}</span>
+        </template>
       </BaseTable>
+
+      <p class="dev-ui__sect-sub">
+        Загрузка — проп <code>loading</code>: каркас рисуется внутри той же
+        таблицы, поэтому ширины колонок совпадают и при подстановке данных
+        ничего не прыгает. Отдельный скелетон рядом не нужен.
+      </p>
+      <BaseTable :columns="tableColumns" :rows="[]" row-key="id" loading :skeleton-rows="3" />
+
+      <p class="dev-ui__sect-sub">
+        Выбор строк — проп <code>selection="multiple"</code> и
+        <code>v-model:selected</code>: галочки слева, в заголовке — «выбрать
+        все». Кнопка группового действия ставится в слот
+        <code>actions</code> у <code>PageTabs</code> или в шапку страницы и
+        показывается, только когда что-то отмечено.
+      </p>
+      <BaseTable
+        v-model:selected="tableSelected"
+        :columns="tableColumns"
+        :rows="tableRows"
+        row-key="id"
+        hover
+        selection="multiple"
+      >
+        <template #cell-status="{ value }">
+          <BaseBadge :variant="(value as 'pos' | 'warn' | 'neg')">
+            {{ statusLabel(value as string) }}
+          </BaseBadge>
+        </template>
+        <template #footer>
+          <span>Отмечено: {{ tableSelected.length }}</span>
+        </template>
+      </BaseTable>
+    </section>
+
+    <!-- ============ 11b MARKUP TABLE ============ -->
+    <section class="dev-ui__sect">
+      <div class="dev-ui__sect-head">
+        <span class="dev-ui__sect-num">11b</span>
+        <h2 class="dev-ui__sect-title">Таблица с собственной разметкой</h2>
+        <p class="dev-ui__sect-sub">
+          Для данных, которые не являются списком строк: координатная сетка
+          склада, печатные формы, сводные матрицы. Разметку пишет экран,
+          оформление и липкие заголовки даёт обёртка. Сортировать и листать в
+          такой таблице нечего — <code>BaseTable</code> эти случаи не закрывает.
+        </p>
+      </div>
+      <BaseMarkupTable separator="cell" dense bordered sticky-first-column>
+        <thead>
+          <tr>
+            <th>Ярус</th>
+            <th v-for="s in ['A', 'B', 'C']" :key="s">{{ s }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="level in [3, 2, 1]" :key="level">
+            <th>{{ level }}</th>
+            <td v-for="s in ['A', 'B', 'C']" :key="s">
+              <BaseBadge variant="neutral">{{ s }}-0{{ level }}</BaseBadge>
+            </td>
+          </tr>
+        </tbody>
+      </BaseMarkupTable>
     </section>
 
     <!-- ============ 12 LAYOUT — APP DRAWER (rail) ============ -->
@@ -1300,6 +1371,7 @@
 </template>
 
 <script setup lang="ts">
+import type { BaseTableColumn } from 'src/shared/ui/base';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { Dark } from 'quasar';
 import { AppDrawer } from 'src/shared/ui/layout/AppDrawer';
@@ -1520,12 +1592,12 @@ interface TableRow {
   amount: string;
   status: 'pos' | 'warn' | 'neg';
 }
-const tableColumns = [
-  { key: 'doc', label: 'Документ' },
-  { key: 'date', label: 'Дата' },
-  { key: 'amount', label: 'Сумма', numeric: true },
-  { key: 'status', label: 'Статус' },
-] as const;
+const tableColumns: BaseTableColumn<TableRow>[] = [
+  { key: 'doc', label: 'Документ', sortable: true },
+  { key: 'date', label: 'Дата', width: '140px', nowrap: true, sortable: true },
+  { key: 'amount', label: 'Сумма', width: '140px', numeric: true },
+  { key: 'status', label: 'Статус', width: '160px', sortable: true },
+];
 const tableRows: TableRow[] = [
   { id: '1', doc: 'Заявление на возврат паевого взноса', date: '12.04.2026', amount: '1 200,00', status: 'pos' },
   { id: '2', doc: 'Решение совета №14', date: '08.04.2026', amount: '— — —', status: 'warn' },
@@ -1534,6 +1606,7 @@ const tableRows: TableRow[] = [
 function statusLabel(s: string): string {
   return { pos: 'Завершён', warn: 'Ожидает подписи', neg: 'Отклонён' }[s] ?? s;
 }
+const tableSelected = ref<TableRow[]>([]);
 
 const railItems: Array<RailItem | RailSection> = [
   {

@@ -1,1 +1,1 @@
-export { default as PvzWriteoffsPage } from './PvzWriteoffsPage.vue';
+export { default as PvzWriteoffsSection } from './PvzWriteoffsSection.vue';

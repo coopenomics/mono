@@ -19,20 +19,18 @@ import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReturnClaimDetailPage } from 'src/pages/Marketplace/OperatorReturnClaimDetail'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
-import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
-import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
-import { PvzWriteoffsPage } from 'src/pages/Marketplace/PvzWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
 import { AdminOrderDetailPage } from 'src/pages/Marketplace/AdminOrderDetail'
 import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
-import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
+import { OperatorWarehouseDeskPage } from 'src/pages/Marketplace/OperatorWarehouseDesk'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
+import { AdminContainerRegistryPage } from 'src/pages/Marketplace/AdminContainerRegistry'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
 import { OnboardingCoopAcceptCppPage } from 'src/pages/Marketplace/OnboardingCoopAcceptCpp'
 import { OffererIncomingOrdersPage } from 'src/pages/Marketplace/OffererIncomingOrders'
@@ -128,18 +126,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             {
               // Эпик 1 / Story 1.4 + 1.11: L3 онбординг пайщика — gate ЦПП
               // «Стол заказов». Объявлен ПЕРВЫМ и требует выделенного права
-              // `Onboarding:orderer`, которое backend выдаёт только пока пайщик
-              // не подписал персональную оферту (requires_gate=true). Тогда это
-              // единственная видимая страница стола заказчика — рабочие страницы
-              // (Каталог и т.д.) требуют orderer-прав, которых до подписи нет.
-              // После подписи маркер исчезает, страница авто-скрывается, а
-              // дефолт стола (Каталог) и остальные пункты открываются.
+              // `Onboarding:orderer`, которое backend выдаёт, пока не выполнены
+              // ОБА условия допуска заказчика: подписана персональная оферта
+              // (requires_gate=false) И выбран пункт выдачи в корзине
+              // (`delivery_braname`). Тогда это единственная видимая страница
+              // стола заказчика — рабочие страницы (Каталог и т.д.) требуют
+              // orderer-прав, которых до выполнения обоих условий нет. После
+              // выполнения маркер исчезает, страница авто-скрывается, а дефолт
+              // стола (Каталог) и остальные пункты открываются.
               path: 'onboarding/member-cpp',
               name: 'marketplace-onboarding-member-cpp',
               component: markRaw(OnboardingMemberPickCppPage),
               meta: {
                 title: 'Подключение к Столу заказов',
-                icon: 'fa-solid fa-handshake-angle',
+                icon: 'handshake',
                 requires: 'Onboarding:orderer',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -234,16 +234,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // «Получить заказ» — отдельный пункт меню с одним account-bound
+              // «Показать QR» — отдельный пункт меню с одним account-bound
               // QR-кодом на всю страницу. Вынесен в меню (а не в действие шапки)
               // намеренно: код должен быть очевидно findable, пайщику не нужно
-              // объяснять, где его искать на пункте выдачи.
+              // объяснять, где его искать на пункте выдачи. Назван по действию
+              // пайщика: выдаёт оператор, пайщик только показывает код.
               path: 'receive-code',
               name: 'marketplace-receive-code',
               component: markRaw(OrdererReceiveCodePage),
               meta: {
-                title: 'Получить заказ',
-                icon: 'fa-solid fa-qrcode',
+                title: 'Показать QR',
+                icon: 'qr_code',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,
@@ -390,39 +391,29 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // «Отгрузить партию» — отдельный пункт меню с одним account-bound
+              // «Показать QR» — отдельный пункт меню с одним account-bound
               // Pickup-QR на всю страницу. Тот же код, что в действии шапки
               // «Подготовки отгрузки», но вынесен явным пунктом сразу после неё —
-              // чтобы поставщик не пропустил, где взять код на приёмке (зеркало
-              // пункта «Получить заказ» у заказчика).
+              // чтобы поставщик не пропустил, где взять код на приёмке. Пункт
+              // назван по тому, что за ним лежит: отгружает поставщик на
+              // «Подготовке отгрузки», а здесь только показывает код.
               path: 'ship-party',
               name: 'marketplace-ship-party',
               component: markRaw(OffererShipPartyPage),
               meta: {
-                title: 'Отгрузить партию',
-                icon: 'fa-solid fa-qrcode',
+                title: 'Показать QR',
+                icon: 'qr_code',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
               children: [],
             },
-            {
-              // Эпик 5 / Story 5.7: offerer-стол ожидающих подписи актов приёмки.
-              // Поставщик первой подписью signapl1 подтверждает факт приёмки
-              // партии ПВЗ — после этого ПВЗ закрывает акт второй подписью.
-              path: 'apl-receptions',
-              name: 'marketplace-apl-receptions',
-              component: markRaw(OffererPendingAplReceptionsPage),
-              meta: {
-                title: 'Подпись передачи',
-                icon: 'fa-solid fa-file-signature',
-                requires: 'Offer:create:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
+            // Отдельного пункта «Подпись передачи» у поставщика нет: первая
+            // подпись (signsupp) — действие на карточке партии во «Входящих
+            // заказах». Это одна и та же поставка на всём пути, и держать ради
+            // одной кнопки отдельный экран со своим списком значило заставлять
+            // поставщика сверять два списка одних и тех же заказов.
             {
               // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
               // «выплаты получаю на…» (реквизиты ядра) + история выплат
@@ -487,45 +478,22 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
-              // Стол раскладки/маркировки: принятое имущество (склад) — назначить
-              // полку, разложить позицию по нескольким полкам, наклеить штрих-код.
-              path: 'labeling',
-              name: 'marketplace-pvz-labeling',
-              component: markRaw(OperatorInventoryLabelingPage),
-              meta: {
-                title: 'Раскладка и маркировка',
-                icon: 'fa-solid fa-tag',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ». Идёт сразу
-              // после раскладки/маркировки — принятое имущество разложено и
-              // видно на складе перед выдачей.
-              path: 'warehouse',
+              // Эпик 19: единый стол складского хозяйства участка. Раскладка,
+              // склад, обезличенный остаток, списание и боксы — разделами одной
+              // страницы, а не пятью пунктами меню: это одна сущность с разных
+              // сторон, а боксы вообще заводят однажды и потом не открывают
+              // месяцами. Права на разделы разные, поэтому вкладки списания и
+              // боксов страница показывает по грантам, а не по маршруту.
+              //
+              // Раздел — в адресе, поэтому на нужную вкладку можно дать ссылку.
+              // Без раздела открывается раскладка: это ежедневная работа.
+              path: 'warehouse/:section?',
               name: 'marketplace-pvz-warehouse',
-              component: markRaw(OperatorOwnWarehousePage),
+              component: markRaw(OperatorWarehouseDeskPage),
               meta: {
-                title: 'Склад моего КУ',
+                title: 'Склад',
                 icon: 'fa-solid fa-boxes-stacked',
                 requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 8: operator-стол подтверждения списания со склада. Совет
-              // одобрил проект списания — председатель КУ подтверждает
-              // фактическое выбытие имущества, подписав Служебную записку 1111.
-              path: 'writeoffs',
-              name: 'marketplace-pvz-writeoffs',
-              component: markRaw(PvzWriteoffsPage),
-              meta: {
-                title: 'Списание со склада',
-                icon: 'fa-solid fa-trash-can-arrow-up',
-                requires: 'Writeoff:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
@@ -625,7 +593,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-orders',
               component: markRaw(OperatorBranchOrdersPage),
               meta: {
-                title: 'Заказы участка',
+                title: 'История заказов',
                 icon: 'receipt_long',
                 requires: 'Order:read:own-KU',
                 requiresAuth: true,
@@ -869,6 +837,24 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 title: 'Сводный склад',
                 icon: 'fa-solid fa-warehouse',
                 requires: 'Order:read:all',
+                requiresAuth: true,
+                agreements: agreementsBase,
+              },
+              children: [],
+            },
+            {
+              // Эпик 19: сводный реестр тары кооператива. Оператор видит боксы
+              // только своего участка — здесь виден весь парк с заполненностью и
+              // суммарным объёмом (задел под перевозку между участками).
+              // Скрывается сам при выключенных боксах: backend не выдаёт
+              // `Container:read:all`, пока контур не включён в настройках.
+              path: 'containers',
+              name: 'marketplace-admin-containers',
+              component: markRaw(AdminContainerRegistryPage),
+              meta: {
+                title: 'Боксы кооператива',
+                icon: 'inbox',
+                requires: 'Container:read:all',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },

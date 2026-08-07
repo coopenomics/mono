@@ -18,7 +18,16 @@ export * as CreateOffer from './createOffer'
 /** Эпик 5: сформировать партии поставки из акцептованной заявки */
 export * as CreateShipment from './createShipment'
 /** Склад КУ: назначить позиции полку (оператор КУ) */
-export * as AssignInventoryShelf from './assignInventoryShelf'
+export * as AssignInventoryPlacement from './assignInventoryPlacement'
+export * as CreateStorageCell from './createStorageCell'
+export * as CreateStorageGrid from './createStorageGrid'
+export * as RenameStorageSection from './renameStorageSection'
+export * as RetireStorageCells from './retireStorageCells'
+export * as UpdateStorageCell from './updateStorageCell'
+export * as CreateContainerType from './createContainerType'
+export * as CreateContainers from './createContainers'
+export * as MoveContainer from './moveContainer'
+export * as UpdateContainer from './updateContainer'
 /** Склад КУ: разложить принятую позицию по нескольким полкам (оператор КУ) */
 export * as SplitInventory from './splitInventory'
 /** Склад КУ: наклеить штрих-код на позицию для быстрого поиска (оператор КУ) */

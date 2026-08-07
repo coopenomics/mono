@@ -16,7 +16,11 @@ import {
 } from './marketplace-asset.config';
 import type { MarketplaceOfferDomainEntity } from '../../domain/entities/marketplace-offer.entity';
 import type { MarketplaceCartDomainEntity } from '../../domain/entities/marketplace-cart.entity';
-import { MarketplaceCartDTO, MarketplaceCartItemDTO } from '../dto/marketplace-cart.dto';
+import {
+  MarketplaceCartDTO,
+  MarketplaceCartItemBlockerEnum,
+  MarketplaceCartItemDTO,
+} from '../dto/marketplace-cart.dto';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
 
 export const MARKETPLACE_CART_SERVICE = Symbol('MARKETPLACE_CART_SERVICE');
@@ -187,12 +191,18 @@ export class MarketplaceCartService {
                 decimals,
               })
             : null;
-        const available =
-          offer && !packageMissing
-            ? cart.delivery_braname
-              ? this.offerDeliversTo(offer, cart.delivery_braname)
-              : true
-            : false;
+        // Причина недоступности проверяется от частного к общему: нет
+        // предложения → нет выбранной упаковки → не возят на пункт выдачи.
+        // Заказчику важно видеть настоящую причину: «упаковка изменилась» и
+        // «не возят на этот пункт» требуют от него разных действий.
+        const blocker = !offer
+          ? MarketplaceCartItemBlockerEnum.OFFER_GONE
+          : packageMissing
+            ? MarketplaceCartItemBlockerEnum.PACKAGE_GONE
+            : cart.delivery_braname && !this.offerDeliversTo(offer, cart.delivery_braname)
+              ? MarketplaceCartItemBlockerEnum.NOT_DELIVERED_TO_POINT
+              : null;
+        const available = blocker === null;
         if (available && lineTotal !== null) {
           lineTotals.push(lineTotal);
         }
@@ -218,6 +228,7 @@ export class MarketplaceCartService {
           line_total: lineTotal,
           image_url: imageUrl,
           available_on_current_ku: available,
+          blocker,
           // Безлимитное предложение → null (клиент не ограничивает ввод); иначе —
           // остаток на предложении как потолок количества в корзине.
           max_available: offer && !offer.unlimited_flag ? offer.quantity_available : null,

@@ -1,5 +1,20 @@
-import { Field, Float, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { MarketplaceSaleFormEnum, MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
+
+/** Почему позицию корзины нельзя оформить. */
+export enum MarketplaceCartItemBlockerEnum {
+  /** Предложение больше не доступно заказчику. */
+  OFFER_GONE = 'OFFER_GONE',
+  /** Поставщик изменил каталог упаковок, и выбранной упаковки в нём больше нет. */
+  PACKAGE_GONE = 'PACKAGE_GONE',
+  /** Предложение не возят на пункт выдачи, выбранный в корзине. */
+  NOT_DELIVERED_TO_POINT = 'NOT_DELIVERED_TO_POINT',
+}
+
+registerEnumType(MarketplaceCartItemBlockerEnum, {
+  name: 'MarketplaceCartItemBlocker',
+  description: 'Причина, по которой позицию корзины нельзя оформить.',
+});
 
 /**
  * Эпик 16: позиция корзины с обогащением для UI. Реквизиты товара
@@ -73,6 +88,12 @@ export class MarketplaceCartItemDTO {
       'товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ).',
   })
   public readonly available_on_current_ku!: boolean;
+
+  @Field(() => MarketplaceCartItemBlockerEnum, {
+    nullable: true,
+    description: 'Причина недоступности позиции; null — позицию можно оформить.',
+  })
+  public readonly blocker!: MarketplaceCartItemBlockerEnum | null;
 
   @Field(() => Float, {
     nullable: true,

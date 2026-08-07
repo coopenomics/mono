@@ -157,7 +157,7 @@ export class MarketplaceAplReceptionResolver {
   @Mutation(() => MarketplaceAplReceptionResultDTO, {
     name: 'marketplaceSignAplReceptionAsChairman',
     description:
-      'Председатель КУ ставит закрывающую подпись на акте приёмки — имущество переходит на баланс кооператива.',
+      'Председатель КУ ставит закрывающую подпись на акте приёмки: имущество переходит на баланс кооператива и одновременно приходуется на склад по указанному месту хранения.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Receiving', 'sign:closing')
@@ -170,6 +170,7 @@ export class MarketplaceAplReceptionResolver {
       chairman_account: member.username,
       apl_reception_id: data.apl_reception_id,
       signed_documents: data.signed_documents,
+      placements: data.placements,
     });
     const dto = new MarketplaceAplReceptionResultDTO();
     dto.apl_reception = toMarketplaceAplReceptionDTO(result.apl_reception);
@@ -441,7 +442,9 @@ export class MarketplaceAplReceptionResolver {
     const orderIds = list.flatMap((r) => r.fact_quantity_per_order.map((f) => f.order_id));
     const [nameByAccount, displayByOrderId] = await Promise.all([
       this.displayService.resolveAccountNames(offererAccounts),
-      this.displayService.enrichByOrderIds(orderIds),
+      // Имена заказчиков нужны для маркировки: этикетка клеится на единицу
+      // имущества конкретного заказчика, а не на «десять литров молока».
+      this.displayService.enrichByOrderIds(orderIds, { withParticipantNames: true }),
     ]);
     return list.map((r) =>
       toMarketplaceAplReceptionDTO(r, {
@@ -453,6 +456,8 @@ export class MarketplaceAplReceptionResolver {
               product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
               unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
               package_size: displayByOrderId.get(f.order_id)?.package_size ?? null,
+              orderer_account: displayByOrderId.get(f.order_id)?.orderer_account ?? null,
+              orderer_name: displayByOrderId.get(f.order_id)?.orderer_name ?? null,
             },
           ])
         ),

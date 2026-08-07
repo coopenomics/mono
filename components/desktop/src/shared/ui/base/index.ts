@@ -5,6 +5,7 @@ export * from './BaseRadioCard';
 export * from './BaseSelect';
 export * from './BaseCard';
 export * from './BaseTable';
+export * from './BaseMarkupTable';
 export * from './BaseChip';
 export * from './BaseBadge';
 export * from './BaseDialog';

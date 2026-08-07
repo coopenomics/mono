@@ -8,6 +8,7 @@
     no-error-icon
     :model-value="modelValue ?? ''"
     :label="label"
+    :stack-label="stackLabel"
     :hint="hint"
     :error="!!error"
     :error-message="error"
@@ -17,6 +18,7 @@
     :mask="mask"
     :prefix="prefix"
     :suffix="suffix"
+    :autofocus="autofocus"
     :readonly="readonly"
     :disable="disabled"
     :clearable="clearable"
@@ -59,6 +61,7 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   disabled: false,
   required: false,
   autogrow: false,
+  stackLabel: false,
 });
 
 // Quasar QInput форвардит нативные blur/focus как обычный Event, не строго

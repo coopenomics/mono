@@ -12,7 +12,7 @@ import {
   WarehouseSummaryGrid,
   type WarehouseRow,
 } from 'src/widgets/Marketplace/WarehouseSummaryGrid'
-import { listAllInventory, type MarketplaceInventoryItemView } from '../api'
+import { listInventory, type MarketplaceInventoryItemView } from 'src/entities/MarketplaceInventory'
 
 const tab = ref<'warehouse' | 'flow'>('warehouse')
 const items = ref<MarketplaceInventoryItemView[]>([])
@@ -21,7 +21,7 @@ const loading = ref(false)
 async function load(): Promise<void> {
   loading.value = true
   try {
-    items.value = await listAllInventory({})
+    items.value = await listInventory()
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить сводный склад')
   } finally {

@@ -6,7 +6,7 @@ import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import { type ReceptionGroup, getMembershipFeePercent, applyMembershipFee } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnit, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import type { MarketplaceAplReceptionView } from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
+import type { MarketplaceAplReceptionView } from 'src/entities/MarketplaceAplReception';
 import { useOnsiteSignatureGate } from '../model/useOnsiteSignatureGate';
 
 /**

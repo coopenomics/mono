@@ -1,1 +1,1 @@
-export { OperatorOwnWarehousePage } from './ui';
+export { OperatorOwnWarehouseSection } from './ui';

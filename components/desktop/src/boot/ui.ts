@@ -23,6 +23,7 @@ import BaseInput from 'src/shared/ui/base/BaseInput/BaseInput.vue';
 import BaseSelect from 'src/shared/ui/base/BaseSelect/BaseSelect.vue';
 import BaseCard from 'src/shared/ui/base/BaseCard/BaseCard.vue';
 import BaseTable from 'src/shared/ui/base/BaseTable/BaseTable.vue';
+import BaseMarkupTable from 'src/shared/ui/base/BaseMarkupTable/BaseMarkupTable.vue';
 import BaseChip from 'src/shared/ui/base/BaseChip/BaseChip.vue';
 import BaseBadge from 'src/shared/ui/base/BaseBadge/BaseBadge.vue';
 import BaseDialog from 'src/shared/ui/base/BaseDialog/BaseDialog.vue';
@@ -56,6 +57,7 @@ export default boot(({ app }) => {
   app.component('BaseSelect', BaseSelect);
   app.component('BaseCard', BaseCard);
   app.component('BaseTable', BaseTable);
+  app.component('BaseMarkupTable', BaseMarkupTable);
   app.component('BaseChip', BaseChip);
   app.component('BaseBadge', BaseBadge);
   app.component('BaseDialog', BaseDialog);

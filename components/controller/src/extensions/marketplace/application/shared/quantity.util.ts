@@ -26,6 +26,13 @@ export const MARKETPLACE_UNIT_PRECISION: Record<MarketplaceUnitOfMeasure, number
   [MarketplaceUnitsOfMeasure.LITER]: 3,
 };
 
+/**
+ * Допуск при сравнении количеств. Самая мелкая значимая доля — грамм и
+ * миллилитр (точность 3), поэтому расхождение меньше этого порога означает
+ * ошибку двоичной дроби, а не реальную разницу в имуществе.
+ */
+export const MARKETPLACE_QUANTITY_EPSILON = 1e-6;
+
 /** Витринное количество (0.5) + единица → on-chain asset-строка «0.500 KG». */
 export function toQuantityAsset(displayQty: number, unit: MarketplaceUnitOfMeasure): string {
   const precision = MARKETPLACE_UNIT_PRECISION[unit];

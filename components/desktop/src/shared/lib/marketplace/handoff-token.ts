@@ -15,11 +15,13 @@
  * Формат: `blago:<kind>:<coopname>:<ref>`
  *  - `blago`   — namespace кода передачи;
  *  - `kind`    — `pickup` (поставщик → приёмка) | `receive` (заказчик → выдача)
- *                | `shipment` (ТТН экспедитора → приёмка строго этой партии);
+ *                | `shipment` (ТТН экспедитора → приёмка строго этой партии)
+ *                | `container` (QR на боксе → размещение имущества в эту тару);
  *  - coopname  — кооператив, в котором код действителен;
  *  - ref       — для pickup/receive: аккаунт-биндинг (личность); для shipment:
  *                идентификатор партии (UUID) — экспедитор НЕ пайщик, аккаунта нет,
- *                принимаем строго по партии из накладной.
+ *                принимаем строго по партии из накладной; для container — код
+ *                бокса с этикетки (`BX-0001`).
  *
  * Имена аккаунтов/кооперативов в блокчейне состоят из `a–z`, `1–5`, `.`, а UUID —
  * из hex и `-`; символа `:` ни там, ни там нет, поэтому разделитель однозначен.
@@ -35,6 +37,12 @@ export enum HandoffTokenKind {
    * Привязка к партии (shipment_id), а не к личности — экспедитор не пайщик.
    */
   Shipment = 'shipment',
+  /**
+   * QR на боксе → «положить имущество в эту тару». Привязка к коду бокса:
+   * бокс — предмет, а не личность и не партия. Скан такого кода в окне
+   * закрывающей подписи задаёт место для всего акта разом.
+   */
+  Container = 'container',
 }
 
 export interface HandoffToken {
@@ -44,6 +52,8 @@ export interface HandoffToken {
   account: string;
   /** shipment — идентификатор партии из ТТН; для pickup/receive — undefined. */
   shipment_id?: string;
+  /** container — код бокса с этикетки; для остальных видов — undefined. */
+  container_code?: string;
 }
 
 const PREFIX = 'blago';
@@ -51,8 +61,14 @@ const SEP = ':';
 
 /** Собрать код передачи для показа в `HandoffQr` (account-bound или shipment-bound). */
 export function encodeHandoffToken(token: HandoffToken): string {
-  const ref = token.kind === HandoffTokenKind.Shipment ? token.shipment_id ?? '' : token.account;
+  const ref = refOf(token);
   return [PREFIX, token.kind, token.coopname, ref].join(SEP);
+}
+
+function refOf(token: HandoffToken): string {
+  if (token.kind === HandoffTokenKind.Shipment) return token.shipment_id ?? '';
+  if (token.kind === HandoffTokenKind.Container) return token.container_code ?? '';
+  return token.account;
 }
 
 /**
@@ -68,7 +84,8 @@ export function decodeHandoffToken(raw: string): HandoffToken | null {
   if (
     kind !== HandoffTokenKind.Pickup &&
     kind !== HandoffTokenKind.Receive &&
-    kind !== HandoffTokenKind.Shipment
+    kind !== HandoffTokenKind.Shipment &&
+    kind !== HandoffTokenKind.Container
   ) {
     return null;
   }
@@ -76,8 +93,14 @@ export function decodeHandoffToken(raw: string): HandoffToken | null {
   if (kind === HandoffTokenKind.Shipment) {
     return { kind, coopname, account: '', shipment_id: ref };
   }
+  if (kind === HandoffTokenKind.Container) {
+    return { kind, coopname, account: '', container_code: ref };
+  }
   return { kind: kind as HandoffTokenKind, coopname, account: ref };
 }
+
+/** Код бокса с этикетки: `BX-0001`. Пригоден и для ручного ввода под штрихом. */
+const CONTAINER_CODE_RE = /^BX-\d{4,}$/i;
 
 /** Формат аккаунта EOSIO: `a-z`, `1-5`, `.`, максимум 12 символов. */
 const ACCOUNT_NAME_RE = /(^[a-z1-5.]{1,11}[a-z1-5]$)|(^[a-z1-5.]{12}[a-j1-5]$)/;
@@ -95,6 +118,16 @@ export function decodeScannedCode(raw: string, coopname: string): HandoffToken |
   const structured = decodeHandoffToken(raw);
   if (structured) return structured;
   const value = raw.trim();
+  // Код бокса набирают руками, когда камера не берёт этикетку, — принимаем
+  // его наравне со структурированным QR.
+  if (CONTAINER_CODE_RE.test(value)) {
+    return {
+      kind: HandoffTokenKind.Container,
+      coopname,
+      account: '',
+      container_code: value.toUpperCase(),
+    };
+  }
   if (!ACCOUNT_NAME_RE.test(value)) return null;
   return { kind: HandoffTokenKind.Receive, coopname, account: value };
 }

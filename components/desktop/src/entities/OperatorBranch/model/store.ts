@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useBranchStore } from 'src/entities/Branch/model'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
+import type { MarketplaceWarehouseSettings } from 'src/entities/MarketplaceStorage'
 import { fetchWhoAmI, type IMarketplaceWhoAmI } from '../api'
 import type { IOperatorBranch } from './types'
 
@@ -35,6 +36,25 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
   const operatorBranames = computed<string[]>(() => who.value?.branches ?? [])
   const isOperator = computed(() => operatorBranames.value.length > 0)
   const hasMultiple = computed(() => operatorBranames.value.length > 1)
+
+  /**
+   * Эпик 19: три независимых флага складского контура — боксы, координатные
+   * ячейки и обязательность места при приёмке. Приходят тем же `whoAmI`, что и
+   * список КУ, поэтому отдельного запроса не нужно. Пока настройки не приехали
+   * (гость, упавший запрос) — контур выключен: это безопасный дефолт, экраны
+   * работают как до эпика.
+   */
+  const warehouseSettings = computed<MarketplaceWarehouseSettings>(() => ({
+    containers_enabled: who.value?.warehouse_settings?.containers_enabled ?? false,
+    cells_enabled: who.value?.warehouse_settings?.cells_enabled ?? false,
+    posting_on_reception_required:
+      who.value?.warehouse_settings?.posting_on_reception_required ?? false,
+  }))
+
+  /** Адресное хранение показывается, только если включён хотя бы один из двух контуров. */
+  const addressedStorageEnabled = computed(
+    () => warehouseSettings.value.containers_enabled || warehouseSettings.value.cells_enabled,
+  )
 
   const branches = computed<IOperatorBranch[]>(() => {
     const me = who.value?.username ?? ''
@@ -107,6 +127,8 @@ export const useOperatorBranchStore = defineStore(namespace, () => {
     operatorBranames,
     isOperator,
     hasMultiple,
+    warehouseSettings,
+    addressedStorageEnabled,
     branches,
     activeBranch,
     load,

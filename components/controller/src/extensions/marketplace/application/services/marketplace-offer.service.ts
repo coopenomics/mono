@@ -254,7 +254,12 @@ export class MarketplaceOfferService {
       const merged_sale_form = patch.sale_form ?? offer.sale_form;
       const merged_unit = patch.unit_of_measure ?? offer.unit_of_measure;
       const raw_packages = patch.packages ?? offer.packages;
-      const normalized = this.buildPackages(merged_sale_form, raw_packages, merged_unit);
+      const normalized = this.buildPackages(
+        merged_sale_form,
+        raw_packages,
+        merged_unit,
+        offer.packages ?? []
+      );
       patch.sale_form = merged_sale_form;
       patch.packages = normalized;
       if (merged_sale_form === MarketplaceSaleForms.PACKAGED) {
@@ -274,29 +279,24 @@ export class MarketplaceOfferService {
       }
     }
 
-    // Поле-зависимая модерация. Операционные поля (остаток, цена) поставщик
-    // меняет часто и без участия председателя — их правка НЕ снимает оффер с
-    // публикации и не шлёт на повторную модерацию. Любое же изменение
-    // «модерационно-значимого» контента (название, описание, категория,
-    // фото, единица измерения, условия цикла, срок годности, штрихкод) — то, что
-    // председатель видит и проверяет, — сбрасывает статус в PENDING_MODERATION
-    // (кроме WITHDRAWN — см. ниже). requireOwnedEditable пропускает сюда любой
-    // не-удалённый статус. Для REJECTED любая правка — это исправление причины
-    // отклонения, поэтому она всегда уходит на повторную модерацию (даже если
-    // тронули только цену/остаток): оффер сейчас невидим в каталоге и должен
-    // снова пройти проверку, чтобы опубликоваться.
-    const NON_MODERATED_FIELDS: ReadonlyArray<keyof OfferUpdateInput> = [
-      'price_per_unit',
-      'quantity_available',
-      'unlimited_flag',
-    ];
-    const touchedKeys = (Object.keys(patch) as Array<keyof OfferUpdateInput>).filter(
-      (k) => patch[k] !== undefined,
-    );
+    // Поле-зависимая модерация. Председатель проверяет карточку имущества:
+    // название, описание, категорию, единицу измерения и фотографии. Только их
+    // правка снимает предложение с публикации и отправляет на повторную
+    // проверку. Коммерческие и операционные условия — цена, остаток,
+    // безлимит, каталог упаковок, пункты выдачи с минимальными объёмами, срок
+    // годности, настройки штрихкода — поставщик меняет сам, не снимая
+    // предложение с витрины.
+    //
+    // Сравниваем ЗНАЧЕНИЯ, а не наличие поля в запросе: форма редактирования
+    // присылает карточку целиком, поэтому «поле пришло» ещё не значит «поле
+    // изменилось» — иначе на модерацию уходила бы любая правка остатка.
+    //
+    // Для REJECTED любая правка — это исправление причины отклонения, поэтому
+    // она всегда уходит на повторную модерацию: предложение сейчас невидимо в
+    // каталоге и должно снова пройти проверку, чтобы опубликоваться.
     const moderationSignificantChange =
       offer.status === MarketplaceOfferStatuses.REJECTED ||
-      images !== undefined ||
-      touchedKeys.some((k) => !NON_MODERATED_FIELDS.includes(k));
+      this.hasModeratedContentChange(offer, patch, images);
 
     const normalizedPatch: OfferUpdateInput & {
       status?: MarketplaceOfferStatus;
@@ -540,10 +540,17 @@ export class MarketplaceOfferService {
    *    умолчанию» (первая, если поставщик не отметил). Каждой присваивается
    *    стабильный id и порядковый sort_order.
    */
+  /**
+   * Идентификатор упаковки — долгоживущая ссылка: на него смотрят корзины
+   * заказчиков и заявки на пополнение. Поэтому при редактировании упаковка,
+   * пришедшая со своим идентификатором, его сохраняет; новый идентификатор
+   * выдаётся только упаковке, которой у предложения ещё не было.
+   */
   private buildPackages(
     sale_form: MarketplaceSaleForm,
     raw: MarketplaceOfferPackageInput[],
-    unit: MarketplaceUnitOfMeasure
+    unit: MarketplaceUnitOfMeasure,
+    existing: MarketplaceOfferPackage[] = []
   ): MarketplaceOfferPackage[] {
     if (sale_form !== MarketplaceSaleForms.PACKAGED) {
       return [];
@@ -555,6 +562,8 @@ export class MarketplaceOfferService {
       throw new BadRequestException(`Слишком много упаковок (максимум ${MARKETPLACE_OFFER_MAX_PACKAGES}).`);
     }
     const precision = MARKETPLACE_UNIT_PRECISION[unit];
+    const knownIds = new Set(existing.map((p) => p.id));
+    const takenIds = new Set<string>();
     let hasDefault = false;
     const packages: MarketplaceOfferPackage[] = raw.map((p, index) => {
       if (!Number.isFinite(p.size) || p.size <= 0) {
@@ -571,8 +580,12 @@ export class MarketplaceOfferService {
       }
       const is_default = p.is_default === true && !hasDefault;
       if (is_default) hasDefault = true;
+      // Чужой или повторно присланный идентификатор игнорируем — упаковка
+      // получит новый, иначе две строки набора склеились бы в одну ссылку.
+      const keptId = p.id && knownIds.has(p.id) && !takenIds.has(p.id) ? p.id : randomUUID();
+      takenIds.add(keptId);
       return {
-        id: randomUUID(),
+        id: keptId,
         size: p.size,
         price: p.price,
         label: p.label?.trim() ? p.label.trim() : null,
@@ -598,6 +611,42 @@ export class MarketplaceOfferService {
     const base = packages.find((p) => p.is_default) ?? packages[0];
     const perUnit = Number.parseFloat(base.price) / base.size;
     return perUnit.toFixed(4);
+  }
+
+  /**
+   * Изменилось ли в правке то, что проверяет председатель. Набор полей —
+   * закрытый список карточки имущества; всё, чего в нём нет (цена, остаток,
+   * упаковки, пункты выдачи, срок годности, штрихкод), считается условиями
+   * поставки и на модерацию не выносится.
+   */
+  private hasModeratedContentChange(
+    offer: MarketplaceOfferDomainEntity,
+    patch: OfferUpdateInput,
+    images?: MarketplaceOfferImageUpload[]
+  ): boolean {
+    if (patch.product_name !== undefined && patch.product_name.trim() !== offer.product_name.trim()) {
+      return true;
+    }
+    if (patch.description !== undefined) {
+      const next = patch.description?.trim() ? patch.description.trim() : null;
+      const prev = offer.description?.trim() ? offer.description.trim() : null;
+      if (next !== prev) return true;
+    }
+    if (patch.category_id !== undefined && patch.category_id !== offer.category_id) {
+      return true;
+    }
+    if (patch.unit_of_measure !== undefined && patch.unit_of_measure !== offer.unit_of_measure) {
+      return true;
+    }
+    // Набор фотографий приходит только когда поставщик его тронул; сверяем
+    // порядок и состав — первая фотография служит обложкой.
+    if (images !== undefined) {
+      const prevKeys = (offer.images ?? []).map((i) => i.bucket_key);
+      const nextKeys = images.map((i) => i.bucket_key ?? null);
+      if (nextKeys.length !== prevKeys.length) return true;
+      if (nextKeys.some((key, i) => key === null || key !== prevKeys[i])) return true;
+    }
+    return false;
   }
 
   private normalizeDeliveryPoints(

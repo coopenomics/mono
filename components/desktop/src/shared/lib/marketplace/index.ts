@@ -19,6 +19,7 @@ export {
 } from './handoff-routing';
 export { useMarketplaceHandoffSignal } from './handoff-signal';
 export { encodeReturnClaimCode, decodeReturnClaimCode } from './return-claim-code';
+export { randomEAN13, barcodeSvg, printBarcodeSheet } from './barcode-sheet'
 export { useActsPreview } from './useActsPreview';
 export {
   getMembershipFeePercent,
@@ -36,6 +37,11 @@ export {
   quantizeSaleQuantity,
   type SaleQuantityOffer,
 } from './sale-quantity-step';
+export {
+  printLabelSheet,
+  escapeHtml,
+  type PrintLabelSheetOptions,
+} from './print-sheet';
 export {
   useMarketplaceRealtime,
   registerMarketplaceConsumer,

@@ -1,11 +1,11 @@
-import { Inject, Injectable, Optional, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import config from '~/config/config';
-import { ExtensionDomainService } from '~/domain/extension/services/extension-domain.service';
+import { MarketplaceExtensionConfigService } from './marketplace-extension-config.service';
 import { MarketplaceInventoryEntity } from '../../infrastructure/entities/marketplace-inventory.entity';
 import { MarketplaceInventoryOnWarehouseStatuses } from '../../domain/entities/marketplace-inventory.types';
 import { MarketplaceWriteoffProposalTriggers } from '../../domain/entities/marketplace-writeoff-proposal.types';
@@ -14,7 +14,6 @@ import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
-import type { IConfig } from '../../types';
 import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-notification.events';
 
 /**
@@ -39,8 +38,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
     @InjectRepository(MarketplaceInventoryEntity, 'marketplace')
     private readonly inventoryRepo: Repository<MarketplaceInventoryEntity>,
     private readonly writeoffService: MarketplaceWriteoffService,
-    @Optional()
-    private readonly extensionDomainService: ExtensionDomainService | null,
+    private readonly extensionConfig: MarketplaceExtensionConfigService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     private readonly eventBus: EventEmitter2,
@@ -73,8 +71,7 @@ export class MarketplaceWriteoffCronService implements OnModuleInit {
       return;
     }
 
-    const extension = this.extensionDomainService ? await this.extensionDomainService.getAppByName('market') : null;
-    const cfg = extension?.config as IConfig | undefined;
+    const cfg = await this.extensionConfig.get();
     const auto = cfg?.writeoff?.auto_proposal_enabled ?? true;
     const graceDays = cfg?.writeoff?.post_expiry_grace_days ?? 7;
 

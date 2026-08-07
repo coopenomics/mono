@@ -1,5 +1,15 @@
 import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { ArrayMinSize, IsArray, IsNumber, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsNumber,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
@@ -53,6 +63,18 @@ export class MarketplaceAplReceptionFactEntryDTO {
     description: 'Базовая единица измерения товара по этой позиции (штука, килограмм, литр).',
   })
   unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Аккаунт заказчика, которому предназначено принятое по этой позиции.',
+  })
+  orderer_account!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам.',
+  })
+  orderer_name!: string | null;
 
   @Field(() => Float, {
     nullable: true,
@@ -179,6 +201,46 @@ export class MarketplaceCreateAplReceptionInputDTO {
   fact_quantity_per_order?: MarketplaceAplReceptionFactEntryInputDTO[];
 }
 
+@InputType('MarketplaceAplReceptionPlacementInput')
+export class MarketplaceAplReceptionPlacementInputDTO {
+  @Field(() => String, { description: 'Заказ, принятое по которому размещают.' })
+  @IsString()
+  @IsNotEmpty()
+  order_id!: string;
+
+  @Field(() => String, { nullable: true, description: 'Бокс, в который кладут принятое.' })
+  @IsOptional()
+  @IsString()
+  container_id?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Ячейка, если имущество кладут на склад напрямую (негабарит).',
+  })
+  @IsOptional()
+  @IsString()
+  cell_id?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару.',
+  })
+  @IsOptional()
+  @IsString()
+  barcode_value?: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  quantity?: number | null;
+}
+
 @InputType('MarketplaceSignAplReceptionInput')
 export class MarketplaceSignAplReceptionInputDTO {
   @Field(() => String, { description: 'Идентификатор акта приёмки.' })
@@ -195,6 +257,17 @@ export class MarketplaceSignAplReceptionInputDTO {
   @ValidateNested({ each: true })
   @Type(() => MarketplaceAplReceptionSignedDocumentInputDTO)
   signed_documents!: MarketplaceAplReceptionSignedDocumentInputDTO[];
+
+  @Field(() => [MarketplaceAplReceptionPlacementInputDTO], {
+    nullable: true,
+    description:
+      'Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MarketplaceAplReceptionPlacementInputDTO)
+  placements?: MarketplaceAplReceptionPlacementInputDTO[];
 }
 
 @InputType('MarketplaceAplReceptionByIdInput')
@@ -312,6 +385,8 @@ export interface MarketplaceAplReceptionDisplayFields {
       product_name: string | null;
       unit_of_measure: MarketplaceUnitOfMeasureEnum | null;
       package_size: number | null;
+      orderer_account: string | null;
+      orderer_name: string | null;
     }
   >;
 }
@@ -339,6 +414,8 @@ export function toMarketplaceAplReceptionDTO(
     entry.product_name = line?.product_name ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
     entry.package_size = line?.package_size ?? null;
+    entry.orderer_account = line?.orderer_account ?? null;
+    entry.orderer_name = line?.orderer_name ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

@@ -1,3 +1,4 @@
+import { isValidEan13 } from './marketplace-inventory.types';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceInventoryOwnership,
@@ -25,6 +26,8 @@ export class MarketplaceInventoryDomainEntity {
   public readonly quantity_per_label: number;
   public readonly orderer_account_snapshot: string;
   public readonly shelf: string | null;
+  public readonly cell_id: string | null;
+  public readonly container_id: string | null;
   public readonly received_at: Date;
   public readonly received_by_operator_account: string;
   public readonly labeled_at: Date | null;
@@ -38,7 +41,7 @@ export class MarketplaceInventoryDomainEntity {
   public updated_at: Date;
 
   constructor(props: MarketplaceInventoryProps) {
-    if (props.barcode_value && props.barcode_format === 'EAN13' && !/^\d{13}$/.test(props.barcode_value)) {
+    if (props.barcode_value && props.barcode_format === 'EAN13' && !isValidEan13(props.barcode_value)) {
       throw new Error(
         `MarketplaceInventoryDomainEntity: EAN-13 должен быть 13-значным числом (получено: "${props.barcode_value}")`
       );
@@ -58,6 +61,8 @@ export class MarketplaceInventoryDomainEntity {
     this.quantity_per_label = props.quantity_per_label;
     this.orderer_account_snapshot = props.orderer_account_snapshot;
     this.shelf = props.shelf ?? null;
+    this.cell_id = props.cell_id ?? null;
+    this.container_id = props.container_id ?? null;
     this.received_at = props.received_at;
     this.received_by_operator_account = props.received_by_operator_account;
     this.labeled_at = props.labeled_at ?? null;
