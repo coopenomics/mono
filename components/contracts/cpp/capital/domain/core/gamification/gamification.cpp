@@ -3,6 +3,14 @@
 
 namespace Capital::Gamification {
 
+  /**
+   * @brief Энергия, необходимая для перехода на следующий уровень
+   *
+   * Энергия измеряется в процентах пути до уровня: вклад размером
+   * level_requirement закрывает уровень целиком.
+   */
+  static constexpr double ENERGY_PER_LEVEL = 100.0;
+
   inline uint64_t calculate_level_requirement(uint32_t level, const Capital::config& config) {
     if (level == 1) {
       return config.level_depth_base;
@@ -24,7 +32,13 @@ namespace Capital::Gamification {
 
     uint64_t level_requirement = calculate_level_requirement(current_level, config);
 
-    double gain = (static_cast<double>(contribution_amount.amount) / static_cast<double>(level_requirement)) * config.energy_gain_coefficient;
+    // Доля вклада от требования уровня переводится в проценты: вклад размером
+    // level_depth_base (базовая сумма для первого уровня) даёт ровно один
+    // уровень. Без перевода начисление выходило в сто раз меньше — на уровень
+    // требовался миллион рублей вместо десяти тысяч, и подсказка «до
+    // следующего уровня» в интерфейсе расходилась с цепью на тот же порядок.
+    double gain = (static_cast<double>(contribution_amount.amount) / static_cast<double>(level_requirement))
+                  * ENERGY_PER_LEVEL * config.energy_gain_coefficient;
 
     return gain;
   }
