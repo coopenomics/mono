@@ -34,7 +34,7 @@ export default async ({ page, shot }) => {
   await signOnboardingAgreements(page);
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/incoming-shipments`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/reception`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
