@@ -52,12 +52,12 @@
       </div>
     </div>
 
-    <div class="order-row__fact">
+    <div class="order-row__fact order-row__fact--qty">
       <div class="order-row__fact-label">Кол-во</div>
       <div class="order-row__fact-value">{{ order.units }}×{{ order.unitLabel ?? 'ед.' }}</div>
     </div>
 
-    <div class="order-row__fact">
+    <div class="order-row__fact order-row__fact--money">
       <div class="order-row__fact-label">Сумма</div>
       <div class="order-row__fact-value order-row__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
       <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
@@ -603,12 +603,20 @@ function formatPrice(v: number) {
   // Статус и полоса сбора партии — один столбец: бейдж сверху, под ним узкая
   // полоса с подписью (жалоба 2026-08-02: раньше полоса жила отдельной
   // полноширинной строкой снизу карточки — теперь встроена под статус).
+  //
+  // Ширина фиксированная, содержимое прижато вправо: у одного заказа под
+  // бейджем есть полоса сбора партии, у другого нет, и на auto-ширине колонка
+  // «дышала» от строки к строке — следом ехали кол-во, сумма и адрес, список
+  // расплывался (жалоба 2026-08-07). Фиксированная колонка держит их в столбик:
+  // сумма над суммой, количество над количеством.
   &__status-col {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
+    text-align: right;
     gap: 6px;
-    flex-shrink: 0;
+    flex: 0 0 200px;
+    min-width: 0;
   }
 
   &__status {
@@ -640,11 +648,13 @@ function formatPrice(v: number) {
   &__progress {
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
+    width: 100%;
   }
 
   &__progress-bar {
-    width: 140px;
+    width: 100%;
     border-radius: var(--p-r-sm, 8px);
   }
 
@@ -662,10 +672,22 @@ function formatPrice(v: number) {
     cursor: help;
   }
 
-  // Кол-во/Сумма — компактные колонки фиксированной ширины, не тянутся.
+  // Кол-во/Сумма — колонки фиксированной ширины, не тянутся и не подстраиваются
+  // под длину числа: иначе «780 ₽» и «1 300 ₽» дают разный отступ, и соседние
+  // строки списка стоят вразнобой.
   &__fact {
     flex: 0 0 auto;
-    min-width: 88px;
+    min-width: 0;
+  }
+
+  &__fact--qty {
+    flex-basis: 120px;
+  }
+
+  // Шире, чем кол-во: под суммой у поставщика идёт пояснение про цену для
+  // заказчика — на узкой колонке оно рвётся на три строки.
+  &__fact--money {
+    flex-basis: 160px;
   }
 
   &__fact-label {
@@ -687,11 +709,12 @@ function formatPrice(v: number) {
     }
   }
 
+  // Без nowrap: колонка суммы фиксированной ширины, и длинное пояснение должно
+  // переноситься внутри неё, а не вылезать на соседнюю.
   &__fee-note {
     font-size: var(--p-fs-body-sm, 12px);
     color: var(--p-ink-3);
     margin-top: 2px;
-    white-space: nowrap;
   }
 
   // ПВЗ — своя колонка, тянется меньше, чем заголовок, но больше фактов.

@@ -30,6 +30,10 @@ const CLOSE_ACTION = {
   round: true,
   size: 'sm',
   flat: true,
+  // Класс нужен тосту с действиями: там крестик уезжает в правый верхний угол
+  // (см. .q-notification--cta в quasar-canon.css). В обычных тостах ни на что
+  // не влияет.
+  class: 'q-notification__close-btn',
   handler: (): void => {
     /* dismiss */
   },
@@ -42,22 +46,50 @@ export function SuccessAlert(
     icon?: string;
     handler: () => void;
   },
+  /**
+   * Тонкая настройка тоста с действием.
+   *
+   * `caption` — вторая строка с подробностями («что именно добавлено»): одна
+   * фраза-заголовок оставляет человека гадать, сработало ли ровно то, что он
+   * задумал. `dismissText` — мягкий отказ рядом с CTA («Продолжить покупки»):
+   * без него единственная кнопка выглядит безальтернативной, хотя остаться на
+   * месте — такой же нормальный сценарий.
+   */
+  options?: {
+    caption?: string;
+    dismissText?: string;
+  },
 ): void {
   const ctaAction = action
     ? {
         ...(action.text ? { label: action.text } : { icon: action.icon || 'launch' }),
         size: 'sm',
         flat: true,
-        // Заливка --p-primary — CTA не должен теряться рядом с заголовком
-        // (жалоба 2026-08-02: «Добавлено в корзину» и «В корзину» сливались
-        // в одну строку). Стиль — в quasar-canon.css.
+        // Контур + акцентная подпись — CTA не теряется рядом с заголовком
+        // (жалоба 2026-08-02: «Добавлено в корзину» и «В корзину» сливались в
+        // одну строку) и не перевешивает сам текст (жалоба 2026-08-07 на
+        // кнопку-таблетку). Стиль — в quasar-canon.css.
         class: 'q-notification__cta-btn',
         handler: action.handler,
       }
     : null;
 
+  const dismissAction =
+    ctaAction && options?.dismissText
+      ? {
+          label: options.dismissText,
+          size: 'sm',
+          flat: true,
+          class: 'q-notification__dismiss-btn',
+          handler: (): void => {
+            /* dismiss */
+          },
+        }
+      : null;
+
   Notify.create({
     message,
+    caption: options?.caption,
     type: 'positive',
     icon: 'check_circle',
     position: POSITION,
@@ -66,7 +98,10 @@ export function SuccessAlert(
     // текстом (Quasar multiLine складывает контент и actions в колонку) —
     // без action остаётся привычная компактная одна строка.
     multiLine: Boolean(ctaAction),
-    actions: ctaAction ? [ctaAction, CLOSE_ACTION] : [CLOSE_ACTION],
+    classes: ctaAction ? 'q-notification--cta' : undefined,
+    actions: ctaAction
+      ? [ctaAction, ...(dismissAction ? [dismissAction] : []), CLOSE_ACTION]
+      : [CLOSE_ACTION],
   });
 }
 

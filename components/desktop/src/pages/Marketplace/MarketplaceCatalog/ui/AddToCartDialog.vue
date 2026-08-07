@@ -5,7 +5,7 @@ import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { applyMembershipFee, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
-import { BaseDialog, BaseInput, BaseButton } from 'src/shared/ui/base';
+import { BaseDialog, BaseInput, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm } from 'src/shared/lib/consts';
 import type { MarketplaceOfferView } from '../types';
 
@@ -175,6 +175,13 @@ watch(
 async function onSubmit(): Promise<void> {
   if (!props.offer) return;
   submitting.value = true;
+  // Собираем подпись тоста до отправки: диалог закроется, и offer/quantity
+  // к моменту показа уже могут смениться.
+  const addedLabel = [
+    props.offer.product_name,
+    `${Number(quantity.value).toLocaleString('ru-RU')} × ${saleUnitLabel.value}`,
+    `${totalSum.value.toLocaleString('ru-RU')} ${system.governSymbol}`,
+  ].join(' · ');
   try {
     await cartStore.addItem(
       props.offer.id,
@@ -184,16 +191,22 @@ async function onSubmit(): Promise<void> {
     );
     // CTA прямо в тосте: быстрый переход к оформлению, чтобы не искать корзину
     // отдельно. Заказал одну позицию — сразу из всплывашки идёшь в корзину.
-    SuccessAlert('Добавлено в корзину', {
-      text: 'Перейти в корзину',
-      icon: 'shopping_cart',
-      handler: () => {
-        void router.push({
-          name: 'marketplace-cart',
-          params: { coopname: String(route.params.coopname ?? '') },
-        });
+    // Рядом равноправный по смыслу отказ: набирать корзину дальше — такой же
+    // нормальный сценарий, и человек не должен искать для этого крестик.
+    SuccessAlert(
+      'Добавлено в корзину',
+      {
+        text: 'Перейти в корзину',
+        icon: 'shopping_cart',
+        handler: () => {
+          void router.push({
+            name: 'marketplace-cart',
+            params: { coopname: String(route.params.coopname ?? '') },
+          });
+        },
       },
-    });
+      { caption: addedLabel, dismissText: 'Продолжить покупки' },
+    );
     emit('added');
     open.value = false;
   } catch (e) {
@@ -215,16 +228,12 @@ BaseDialog(
   template(#default)
     .add-to-cart
       .add-to-cart__offer(v-if="offer") {{ offer.product_name }}
-      q-select(
+      BaseSelect(
         v-if="isPackaged",
         :model-value="selectedPackageId",
         :options="packageOptions",
         label="Упаковка",
-        outlined,
-        dense,
-        emit-value,
-        map-options,
-        @update:model-value="(v) => selectedPackageId = v"
+        @update:model-value="(v) => selectedPackageId = v ? String(v) : null"
       )
       BaseInput(
         :model-value="quantity",
