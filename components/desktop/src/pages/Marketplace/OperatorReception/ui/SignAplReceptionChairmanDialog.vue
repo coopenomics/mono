@@ -145,66 +145,6 @@ function stepState(key: ReceptionStep): 'done' | 'active' | 'todo' {
   return it === at ? 'active' : 'todo';
 }
 
-/**
- * Черновик оприходования переживает закрытие окна: расфасовать поставку и
- * переклеить этикетки — работа на полчаса, и терять её из-за случайного
- * крестика нельзя. Ключ — по поставке, поэтому вернуться можно ровно туда, где
- * остановились. Чистим только после успешной подписи.
- */
-const draftKey = computed(() =>
-  props.group ? `marketplace-reception-posting:${coopname.value}:${props.group.key}` : null,
-);
-
-function restoreDraft(): void {
-  const key = draftKey.value;
-  if (!key) return;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    const draft = JSON.parse(raw) as Record<string, PlacementRow[]>;
-    // Заказы могли измениться между заходами — берём только знакомые.
-    const known = new Set(units.value.map((u) => u.orderId));
-    const restored: Record<string, PlacementRow[]> = {};
-    for (const [orderId, rows] of Object.entries(draft)) {
-      if (known.has(orderId) && Array.isArray(rows) && rows.length) restored[orderId] = rows;
-    }
-    placementsByOrder.value = restored;
-  } catch {
-    localStorage.removeItem(key);
-  }
-}
-
-function saveDraft(): void {
-  const key = draftKey.value;
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(placementsByOrder.value));
-  } catch {
-    // Приватный режим или переполнение — черновик просто не переживёт перезаход.
-  }
-}
-
-function clearDraft(): void {
-  const key = draftKey.value;
-  if (key) localStorage.removeItem(key);
-}
-
-watch(placementsByOrder, saveDraft, { deep: true });
-
-/** Открытие/смена поставки: начинаем со сверки и поднимаем прошлый черновик. */
-watch(
-  () => [props.modelValue, props.group?.key],
-  () => {
-    resetActs();
-    step.value = 'check';
-    placementsByOrder.value = {};
-    if (props.modelValue && props.group) {
-      restoreDraft();
-      if (placementEnabled.value) void loadStorage();
-    }
-  },
-);
-
 async function loadStorage(): Promise<void> {
   const braname = props.group?.braname;
   if (!braname) return;
@@ -289,6 +229,66 @@ function emptyRow(): PlacementRow {
 function rowsOf(orderId: string): PlacementRow[] {
   return placementsByOrder.value[orderId] ?? [emptyRow()];
 }
+
+/**
+ * Черновик оприходования переживает закрытие окна: расфасовать поставку и
+ * переклеить этикетки — работа на полчаса, и терять её из-за случайного
+ * крестика нельзя. Ключ — по поставке, поэтому вернуться можно ровно туда, где
+ * остановились. Чистим только после успешной подписи.
+ */
+const draftKey = computed(() =>
+  props.group ? `marketplace-reception-posting:${coopname.value}:${props.group.key}` : null,
+);
+
+function restoreDraft(): void {
+  const key = draftKey.value;
+  if (!key) return;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const draft = JSON.parse(raw) as Record<string, PlacementRow[]>;
+    // Заказы могли измениться между заходами — берём только знакомые.
+    const known = new Set(units.value.map((u) => u.orderId));
+    const restored: Record<string, PlacementRow[]> = {};
+    for (const [orderId, rows] of Object.entries(draft)) {
+      if (known.has(orderId) && Array.isArray(rows) && rows.length) restored[orderId] = rows;
+    }
+    placementsByOrder.value = restored;
+  } catch {
+    localStorage.removeItem(key);
+  }
+}
+
+function saveDraft(): void {
+  const key = draftKey.value;
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(placementsByOrder.value));
+  } catch {
+    // Приватный режим или переполнение — черновик просто не переживёт перезаход.
+  }
+}
+
+function clearDraft(): void {
+  const key = draftKey.value;
+  if (key) localStorage.removeItem(key);
+}
+
+watch(placementsByOrder, saveDraft, { deep: true });
+
+/** Открытие/смена поставки: начинаем со сверки и поднимаем прошлый черновик. */
+watch(
+  () => [props.modelValue, props.group?.key],
+  () => {
+    resetActs();
+    step.value = 'check';
+    placementsByOrder.value = {};
+    if (props.modelValue && props.group) {
+      restoreDraft();
+      if (placementEnabled.value) void loadStorage();
+    }
+  },
+);
 
 /**
  * Дискретность количества у этой единицы: упаковки и штуки неделимы, вес и
