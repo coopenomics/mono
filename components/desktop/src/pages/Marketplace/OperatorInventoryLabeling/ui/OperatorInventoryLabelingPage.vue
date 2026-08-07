@@ -307,16 +307,84 @@ const dragKind = ref<DragKind | null>(null)
 const dragId = ref<string | null>(null)
 const dragOverKey = ref<string | null>(null)
 
-function onDragStart(kind: DragKind, id: string, event: DragEvent): void {
+/**
+ * Что тащим — компактной «пилюлей» вместо снимка всей карточки.
+ *
+ * Браузер по умолчанию тащит копию элемента целиком, а карточка позиции шире
+ * бокса — она накрывает и цель, и её соседей, и бросок выходит вслепую. Ширину
+ * снимка после старта не поменять, поэтому подменяем его сразу.
+ */
+function setCompactDragImage(event: DragEvent, title: string, note: string): void {
+  if (!event.dataTransfer) return
+
+  const ghost = document.createElement('div')
+  ghost.className = 'place-drag-ghost'
+
+  const name = document.createElement('span')
+  name.className = 'place-drag-ghost__name'
+  name.textContent = title
+  ghost.appendChild(name)
+
+  if (note) {
+    const meta = document.createElement('span')
+    meta.className = 'place-drag-ghost__meta'
+    meta.textContent = note
+    ghost.appendChild(meta)
+  }
+
+  document.body.appendChild(ghost)
+  // Точка захвата — у левого края пилюли: так она уходит вправо-вниз от
+  // курсора и не закрывает то, на что наводятся.
+  event.dataTransfer.setDragImage(ghost, 12, 12)
+  // Снимок браузер делает синхронно; сам элемент дальше не нужен.
+  setTimeout(() => ghost.remove(), 0)
+}
+
+function onDragStart(
+  kind: DragKind,
+  id: string,
+  event: DragEvent,
+  title: string,
+  note = '',
+): void {
   dragKind.value = kind
   dragId.value = id
   // Системный курсор «переместить» вместо «копировать» — первый и самый
   // дешёвый признак того, что бросок вообще принимается.
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+  setCompactDragImage(event, title, note)
 }
+
+// ─── Подсказка цели, едущая за курсором ───
+// Подсветка самой цели помогает, только пока цель видно. Поэтому имя того, во
+// что попадёшь, показывается там, куда точно смотрят, — над курсором, поверх
+// всего остального.
+const dragPointer = ref<{ x: number; y: number } | null>(null)
+
+const dragTargetLabel = computed(() => {
+  const key = dragOverKey.value
+  if (!key || !dragKind.value) return ''
+
+  if (key.startsWith('box:')) {
+    const box = storage.index.containerById.get(key.slice(4))
+    return box ? `В бокс ${box.code}` : ''
+  }
+  if (key.startsWith('cell:')) {
+    const cell = storage.index.cellById.get(key.slice(5))
+    return cell ? `В ячейку ${cell.code}` : ''
+  }
+  if (key === '__inbox__') {
+    return dragKind.value === 'container' ? 'Снять бокс с адреса' : 'Снять с места'
+  }
+  if (key === '__unplaced__') {
+    return dragKind.value === 'container' ? 'Снять бокс с адреса' : ''
+  }
+  return ''
+})
 
 function onDragOver(key: string, event: DragEvent): void {
   dragOverKey.value = key
+  dragPointer.value = { x: event.clientX, y: event.clientY }
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
@@ -338,6 +406,7 @@ function onDragEnd(): void {
   dragKind.value = null
   dragId.value = null
   dragOverKey.value = null
+  dragPointer.value = null
 }
 
 function dropOnCell(cell: MarketplaceStorageCellView): void {
@@ -840,7 +909,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               :key='item.id',
               :draggable='placementEnabled',
               :class='{ "is-dragging": dragId === item.id }',
-              @dragstart='onDragStart("item", item.id, $event)',
+              @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || "Товар", `${item.quantity_per_label} ед. · ${ordererLabel(item)}`)',
               @dragend='onDragEnd'
             )
               .place__card-top
@@ -1030,7 +1099,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                           :key='box.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-                          @dragstart.stop='onDragStart("container", box.id, $event)',
+                          @dragstart.stop='onDragStart("container", box.id, $event, `Бокс ${box.code}`, `${itemsInContainer(box.id).length} поз.`)',
                           @dragend='onDragEnd',
                           @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
                           @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
@@ -1049,7 +1118,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                           :key='item.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === item.id }',
-                          @dragstart='onDragStart("item", item.id, $event)',
+                          @dragstart='onDragStart("item", item.id, $event, item.product_name_snapshot || "Товар", `${item.quantity_per_label} ед.`)',
                           @dragend='onDragEnd'
                         )
                           span.place__mini-name {{ item.product_name_snapshot || 'Товар' }}
@@ -1097,7 +1166,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               :key='box.id',
               draggable='true',
               :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-              @dragstart='onDragStart("container", box.id, $event)',
+              @dragstart='onDragStart("container", box.id, $event, `Бокс ${box.code}`, `${itemsInContainer(box.id).length} поз.`)',
               @dragend='onDragEnd',
               @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
               @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
@@ -1111,6 +1180,15 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               span.place__box-code {{ box.code }}
               span.place__box-note(v-if='box.label') {{ box.label }}
               BaseBadge(variant='neutral') {{ itemsInContainer(box.id).length }}
+
+  //- Куда попадёшь: имя цели едет за курсором, потому что саму цель закрывает
+  //- то, что тащат. Плашка не ловит события — иначе перебивала бы dragover.
+  .place__drop-hint(
+    v-if='dragTargetLabel && dragPointer',
+    :style='{ left: `${dragPointer.x}px`, top: `${dragPointer.y}px` }'
+  )
+    q-icon(name='south_east', size='14px')
+    span {{ dragTargetLabel }}
 
   //- ─────────────────────── Содержимое бокса ───────────────────────
   BaseDialog(v-model='boxDialogOpen', :title='boxTarget ? `Бокс ${boxTarget.code}` : "Бокс"', size='md')
@@ -1631,6 +1709,25 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     gap: var(--p-2, 8px);
   }
 
+  // Подсказка цели: над курсором, поверх всего, без перехвата событий.
+  &__drop-hint {
+    position: fixed;
+    z-index: 9000;
+    transform: translate(-50%, calc(-100% - 14px));
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: var(--p-1, 4px);
+    white-space: nowrap;
+    padding: var(--p-1, 4px) var(--p-2, 8px);
+    border-radius: var(--p-r-sm, 8px);
+    background: var(--p-primary);
+    color: var(--p-ink-on-primary);
+    font-size: var(--p-fs-body-sm, 13px);
+    font-weight: 600;
+    box-shadow: var(--p-shadow-pop);
+  }
+
   // ─── Диалоги ───
   &__form,
   &__box-dialog {
@@ -1707,5 +1804,40 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
       flex-basis: 100%;
     }
   }
+}
+</style>
+
+<style lang="scss">
+/* Снимок перетаскивания браузер делает с элемента, лежащего в body, — scoped
+   стили до него не достают, поэтому класс глобальный. Живёт этот элемент один
+   кадр: ровно столько, сколько нужно браузеру, чтобы снять с него картинку. */
+.place-drag-ghost {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-2, 8px);
+  max-width: 260px;
+  padding: var(--p-1, 4px) var(--p-3, 12px);
+  border: 1px solid var(--p-primary);
+  border-radius: var(--p-r-lg, 16px);
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-pop);
+  font-size: var(--p-fs-body-sm, 13px);
+  color: var(--p-ink);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.place-drag-ghost__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-drag-ghost__meta {
+  color: var(--p-ink-2);
+  font-variant-numeric: tabular-nums;
 }
 </style>
