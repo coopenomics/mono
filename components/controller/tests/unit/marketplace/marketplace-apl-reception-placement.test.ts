@@ -1,10 +1,14 @@
 /**
  * Unit-тесты оприходования при закрывающей подписи (Эпик 19, Story 19.5).
  *
- * Главный инвариант — ПОРЯДОК: место проверяется до отправки подписи в цепь.
- * Обратный порядок оставил бы акт подписанным on-chain, а принятое — без
- * места, куда его положить: акт закрыт, имущество физически лежит, а система
- * положить его никуда не может.
+ * Главный инвариант — ПОРЯДОК: указанное место проверяется до отправки подписи
+ * в цепь. Обратный порядок оставил бы акт подписанным on-chain, а место —
+ * непринятым: акт закрыт, имущество физически лежит, а система положить его
+ * никуда не может.
+ *
+ * Само по себе место при подписи не обязательно, даже когда кооператив включил
+ * требование: позиции склада рождаются этой самой подписью, поэтому раскладка
+ * идёт следующим шагом оприходования — уже по существующим позициям.
  *
  * Проверяем через приватный resolveReceptionPlacements — он и есть та самая
  * проверка, а публичный signAsChairman тянет за собой цепь, выплаты и события.
@@ -31,6 +35,8 @@ const cell = (over: Record<string, unknown> = {}) =>
  * размещения значимы только три, остальные подставляем заглушками.
  */
 const makeService = (over: {
+  /** Настройки склада на разбор мест больше не влияют — параметры оставлены
+   *  ради читаемости тестов: в них видно, при каких настройках дело. */
   required?: boolean;
   containersEnabled?: boolean;
   cellsEnabled?: boolean;
@@ -39,23 +45,14 @@ const makeService = (over: {
 } = {}) => {
   const containerRepo = { findById: jest.fn(async () => container()), ...over.containerRepo };
   const cellRepo = { findById: jest.fn(async () => cell()), ...over.cellRepo };
-  const warehouseSettings = {
-    get: jest.fn(async () => ({
-      containers_enabled: over.containersEnabled ?? true,
-      cells_enabled: over.cellsEnabled ?? true,
-      posting_on_reception_required: over.required ?? false,
-    })),
-  };
-
   const service = Object.create(MarketplaceAplReceptionService.prototype) as any;
   service.containerRepo = containerRepo;
   service.cellRepo = cellRepo;
-  service.warehouseSettings = warehouseSettings;
 
   const resolve = (orders: any[], placements: any[]) =>
     service.resolveReceptionPlacements(reception, orders, placements);
 
-  return { resolve, containerRepo, cellRepo, warehouseSettings };
+  return { resolve, containerRepo, cellRepo };
 };
 
 describe('resolveReceptionPlacements — раскладка мест по заказам', () => {
@@ -138,22 +135,25 @@ describe('resolveReceptionPlacements — раскладка мест по зак
 });
 
 describe('resolveReceptionPlacements — требование указывать место', () => {
-  it('при включённом требовании не пропускает неразмещённые заказы', async () => {
+  // Требование исполняется третьим шагом оприходования, уже после подписи:
+  // позиции склада рождаются самой подписью, и до неё размещать нечего.
+  // Проверка на подписи означала бы «подпишите то, что ещё нельзя разместить».
+  it('не блокирует подпись, даже когда место обязательно и класть есть куда', async () => {
     const { resolve } = makeService({ required: true });
 
-    await expect(
-      resolve([order('o1'), order('o2')], [{ order_id: 'o1', container_id: 'box-1' }])
-    ).rejects.toBeInstanceOf(BadRequestException);
+    const map = await resolve([order('o1'), order('o2')], []);
+
+    expect(map.size).toBe(0);
   });
 
-  it('при включённом требовании пропускает полностью размещённую приёмку', async () => {
+  it('применяет места, пришедшие вместе с подписью, — «всё в один бокс» остаётся одним действием', async () => {
     const { resolve } = makeService({ required: true });
 
     const map = await resolve(
       [order('o1'), order('o2')],
       [
         { order_id: 'o1', container_id: 'box-1' },
-        { order_id: 'o2', cell_id: 'cell-1' },
+        { order_id: 'o2', container_id: 'box-1' },
       ]
     );
 
@@ -168,25 +168,10 @@ describe('resolveReceptionPlacements — требование указывать
     expect(map.size).toBe(0);
   });
 
-  it('требование не действует, когда класть некуда — ни боксов, ни ячеек', async () => {
-    // Флаг обязательности, включённый в одиночку, иначе заблокировал бы приёмку
-    // намертво: председатель видит отказ, а положить имущество физически некуда.
-    const { resolve } = makeService({
-      required: true,
-      containersEnabled: false,
-      cellsEnabled: false,
-    });
-
-    const map = await resolve([order('o1')], []);
-
-    expect(map.size).toBe(0);
-  });
-
-  it('требование не распространяется на заказы чужого участка', async () => {
+  it('не требует места для заказов чужого участка', async () => {
     const { resolve } = makeService({ required: true });
 
-    // Заказ едет на другой КУ — на этой приёмке он не оприходуется,
-    // значит и места для него не требуется.
+    // Заказ едет на другой КУ — на этой приёмке он не оприходуется.
     const map = await resolve(
       [order('o1'), order('o2', 'other-ku')],
       [{ order_id: 'o1', container_id: 'box-1' }]

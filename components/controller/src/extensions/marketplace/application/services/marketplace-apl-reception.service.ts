@@ -60,7 +60,6 @@ import {
   MARKETPLACE_STORAGE_CELL_REPOSITORY,
   type MarketplaceStorageCellDomainRepository,
 } from '../../domain/repositories/marketplace-storage-cell.repository';
-import { MarketplaceWarehouseSettingsService } from './marketplace-warehouse-settings.service';
 import {
   MARKETPLACE_ASSET_CONFIG,
   type MarketplaceAssetConfig,
@@ -254,7 +253,6 @@ export class MarketplaceAplReceptionService {
     private readonly containerRepo: MarketplaceContainerDomainRepository,
     @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
     private readonly cellRepo: MarketplaceStorageCellDomainRepository,
-    private readonly warehouseSettings: MarketplaceWarehouseSettingsService,
     @Inject(MARKETPLACE_ASSET_CONFIG)
     private readonly assetConfig: MarketplaceAssetConfig,
     @Inject(GATEWAY_INTERACTOR_PORT)
@@ -1186,8 +1184,6 @@ export class MarketplaceAplReceptionService {
     acceptedOrders: MarketplaceOrderDomainEntity[],
     placements: MarketplaceAplReceptionPlacementInput[]
   ): Promise<Map<string, MarketplaceInventoryPlacement>> {
-    const settings = await this.warehouseSettings.get();
-
     // Оприходуются только заказы, которые едут на КУ этой приёмки, — ровно тот
     // же отбор, что делает materializeInventory.
     const targetOrders = acceptedOrders.filter(
@@ -1244,21 +1240,17 @@ export class MarketplaceAplReceptionService {
       resolved.set(placement.order_id, { container_id: null, cell_id });
     }
 
-    // Требовать место можно, только если его есть куда указать. Иначе включённый
-    // в одиночку флаг обязательности заблокировал бы приёмку намертво: председатель
-    // видел бы отказ, а положить имущество было бы физически некуда — ни боксов,
-    // ни ячеек в кооперативе не заведено.
-    const hasSomewhereToPlace = settings.containers_enabled || settings.cells_enabled;
-
-    if (settings.posting_on_reception_required && hasSomewhereToPlace) {
-      const missing = targetOrders.filter((o) => !resolved.has(o.id));
-      if (missing.length > 0) {
-        throw new BadRequestException(
-          `Укажите место хранения для всего принятого: не размещено позиций — ${missing.length}.`
-        );
-      }
-    }
-
+    // Обязательность места здесь НЕ проверяется, хотя настройка такая есть.
+    //
+    // Позиции склада рождаются этой самой подписью: до неё размещать нечего, а
+    // клеить этикетку тем более не на что. Поэтому оприходование разложено на
+    // три шага — сверка и подпись, затем маркировка принятых единиц, затем
+    // раскладка по местам, — и требование «указать место» исполняется третьим
+    // шагом, уже после того, как имущество появилось на складе. Проверка на
+    // этом месте означала бы «подпишите то, что ещё нельзя разместить».
+    //
+    // Места, пришедшие вместе с подписью, по-прежнему применяются: сценарий «всё
+    // в один бокс, отсканированный у стойки» остаётся одним действием.
     return resolved;
   }
 

@@ -24,8 +24,8 @@ import { PageHint } from 'src/shared/ui/domain'
 import {
   HandoffTokenKind,
   decodeScannedCode,
+  printBarcodeSheet,
   useMarketplaceRealtime,
-  printLabelSheet,
 } from 'src/shared/lib/marketplace'
 import {
   buildPlacementOptions,
@@ -582,17 +582,9 @@ async function retireLevel(level: number): Promise<void> {
   }
 }
 
-// ─── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
-function randomEAN13(): string {
-  let base = ''
-  for (let i = 0; i < 12; i++) base += Math.floor(Math.random() * 10).toString()
-  let sum = 0
-  for (let i = 0; i < 12; i++) sum += Number(base[i]) * (i % 2 === 0 ? 1 : 3)
-  const check = (10 - (sum % 10)) % 10
-  return `${base}${check}`
-}
-
-// ─── Печать листа произвольных штрих-кодов (для нарезки и наклейки) ──
+// ─── Печать листа этикеток (для нарезки и наклейки) ──
+// Сама печать живёт в shared/lib/marketplace: тот же лист печатается из окна
+// оприходования при закрывающей подписи.
 const printDialogOpen = ref(false)
 const printCount = ref<number | null>(24)
 
@@ -600,39 +592,11 @@ function openPrintDialog(): void {
   printDialogOpen.value = true
 }
 
-// SVG-полосы штрих-кода (тот же псевдо-рендер, что и в BarcodeDisplay) — строкой,
-// чтобы печатать изолированный лист, а не весь UI приложения.
-function barcodeSvg(code: string): string {
-  const rects: { x: number; w: number }[] = []
-  let x = 4
-  for (let i = 0; i < code.length; i++) {
-    const ch = code.charCodeAt(i)
-    const blackW = ((ch * 7) % 4) + 1
-    const gapW = ((ch * 11) % 3) + 1
-    rects.push({ x, w: blackW })
-    x += blackW + gapW
-    if (i % 2 === 0) {
-      rects.push({ x, w: 1 })
-      x += 2
-    }
-  }
-  const last = rects[rects.length - 1]
-  const total = (last ? last.x + last.w : 100) + 8
-  const bars = rects
-    .map((b) => `<rect x="${b.x}" y="0" width="${b.w}" height="64" fill="#111"/>`)
-    .join('')
-  return `<svg viewBox="0 0 ${total} 64" width="${total}" height="64" role="img" aria-label="Штрих-код ${code}">${bars}</svg>`
-}
-
 function doPrint(): void {
   const n = Math.trunc(Number(printCount.value) || 0)
   if (n < 1) return
   printDialogOpen.value = false
-  const labels = Array.from({ length: n }, () => {
-    const code = randomEAN13()
-    return `${barcodeSvg(code)}<div class="code">${code}</div>`
-  })
-  printLabelSheet({ title: 'Этикетки', labels })
+  printBarcodeSheet(n)
 }
 
 // ─── Привязка штрих-кода к позиции ──
