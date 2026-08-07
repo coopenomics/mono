@@ -34,24 +34,63 @@ export const meta = {
   ],
 };
 
-export default async ({ page, shot }) => {
+export default async ({ page, shot, expect }) => {
   // Стол поставщика: председателю он недоступен — прежняя версия логинилась
   // председателем и упиралась в отказ в правах.
   await loginAs(page, loadFixture('ivanpetrov'));
   await pickBranchIfAsked(page);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/supply-prep`, {
     waitUntil: 'domcontentloaded',
-    timeout: 45000,
+    timeout: 60000,
   });
+  await page.waitForSelector('button:has-text("Сформировать партию")', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
   await shot(
     page,
-    '01-supply-prep-empty',
-    `Стол «Подготовка отгрузки» поставщика. URL: \`${page.url()}\`. Empty state: сводных заказов CONFIRMED, ожидающих отгрузки, на стенде нет.`,
+    '01-no-parties',
+    'Подготовка отгрузки до формирования партии. Принятые заказы уже готовы к отгрузке; партия собирается кнопкой «Сформировать партию» в шапке — там выбирается способ доставки и кооперативный участок.',
+  );
+
+  await page.locator('button:has-text("Сформировать партию")').first().click();
+  await page.waitForSelector('text=Что грузим в партию', { timeout: 20000 });
+  await page.waitForTimeout(1200);
+
+  await shot(
+    page,
+    '02-party-dialog',
+    'Диалог сборки партии: способ доставки (самовывоз без ТТН или через экспедитора по товарно-транспортной накладной), кооперативный участок и перенос заказов в партию. Невыбранное останется акцептованным для следующей партии.',
+  );
+
+  // Переносим весь доступный объём: партия без заказов не формируется.
+  await page.locator('text=Переместить всё').first().click();
+  await page.waitForTimeout(1200);
+  await expect(page.locator('text=В партии (1)').first()).toBeVisible({ timeout: 10000 });
+
+  await shot(
+    page,
+    '03-party-filled',
+    'Заказ перенесён в партию: слева осталось пусто, справа — то, что реально едет на участок. Количество в заказе не дробится.',
+  );
+
+  // Кнопка в подвале диалога — не та, что открывала диалог в шапке.
+  await page.locator('button:has-text("Сформировать партию")').last().click();
+  await page.waitForTimeout(7000);
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    '04-party-created',
+    'Сформированная партия и её следующий шаг. С этого момента партию ждут на пункте выдачи: оператор примет её и оформит акт приёмки.',
+    {
+      expect: async (p) => {
+        // Пустое состояние обязано исчезнуть — иначе партия не создалась.
+        await expect(p.locator('text=Партии ещё не сформированы')).toHaveCount(0, { timeout: 20000 });
+      },
+    },
   );
 };
