@@ -2,11 +2,16 @@ import { ref, type Ref } from 'vue';
 import type { Mutations } from '@coopenomics/sdk';
 import { api } from '../api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
+import {
+  useSegmentStore,
+  CONTRIBUTORS_PAGE_OPTIONS,
+} from 'app/extensions/capital/entities/Segment/model';
 
 export type IAddAuthorInput = Mutations.Capital.AddAuthor.IInput['data'];
 
 export function useAddAuthor() {
   const store = useProjectStore();
+  const segmentStore = useSegmentStore();
 
   const initialAddAuthorInput: IAddAuthorInput = {
     author: '',
@@ -57,6 +62,17 @@ export function useAddAuthor() {
     if (lastResult) {
       store.addProjectToList(lastResult);
     }
+
+    // Перечитываем доли участников: новые соавторы появляются именно здесь,
+    // а обновление проекта их не приносит. Без этого список участников
+    // оставался прежним до перехода на другую страницу и обратно.
+    await segmentStore.loadSegments({
+      filter: {
+        coopname: baseInput.coopname,
+        project_hash: baseInput.project_hash,
+      },
+      options: { ...CONTRIBUTORS_PAGE_OPTIONS },
+    });
 
     // Сбрасываем addAuthorInput после выполнения
     resetInput(addAuthorInput, initialAddAuthorInput);

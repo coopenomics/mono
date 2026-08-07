@@ -22,6 +22,7 @@ import type { ProjectFilterInputDTO } from '../dto/property_management/project-f
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectSyncService } from '../syncers/project-sync.service';
+import { SegmentSyncService } from '../syncers/segment-sync.service';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
 import { buildLocalProjectRow } from '../../domain/utils/build-local-project-row';
@@ -44,6 +45,7 @@ export class ProjectManagementInteractor {
     private readonly projectRepository: ProjectRepository,
     private readonly logger: WinstonLoggerService,
     private readonly projectSyncService: ProjectSyncService,
+    private readonly segmentSyncService: SegmentSyncService,
     private readonly componentMatrixAnnouncement: ComponentMatrixAnnouncementService
   ) {
     this.logger.setContext(ProjectManagementInteractor.name);
@@ -210,6 +212,12 @@ export class ProjectManagementInteractor {
     if (!projectEntity) {
       throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после добавления автора`);
     }
+
+    // Добавление автора заводит его долю в проекте, а синхронизация проекта её не
+    // затрагивает. Без явной синхронизации доля попадала бы в базу только следующим
+    // сообщением от парсера, и список участников какое-то время оставался бы без
+    // нового соавтора.
+    await this.segmentSyncService.syncSegment(data.coopname, data.project_hash, data.author, transactResult);
 
     return projectEntity;
   }

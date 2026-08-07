@@ -53,9 +53,11 @@ import { FailAlert } from 'src/shared/api';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits, addAssets } from 'src/shared/lib/utils';
-import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';
+import {
+  useSegmentStore,
+  CONTRIBUTORS_PAGE_OPTIONS,
+} from 'app/extensions/capital/entities/Segment/model';
 import type {
-  ISegmentsPagination,
   IGetSegmentsInput,
   ISegment,
 } from 'app/extensions/capital/entities/Segment/model';
@@ -72,8 +74,14 @@ const props = defineProps<{
 const { info } = useSystemStore();
 const segmentStore = useSegmentStore();
 
-const segments = ref<ISegmentsPagination | null>(null);
 const loading = ref(false);
+
+// Читаем список прямо из хранилища, а не копией: любое обновление долей
+// (добавление соавтора, пересчёт, подписание акта) сразу видно в списке.
+// С локальной копией новый список из хранилища до нас не доходил.
+const segments = computed(() =>
+  segmentStore.getSegmentsByProject(props.project?.project_hash || ''),
+);
 
 const rows = computed(() => segments.value?.items || []);
 
@@ -91,17 +99,8 @@ const loadSegments = async () => {
 
     await segmentStore.loadSegments({
       filter,
-      options: {
-        page: 1,
-        limit: 1000,
-        sortBy: '_created_at',
-        sortOrder: 'DESC',
-      },
+      options: { ...CONTRIBUTORS_PAGE_OPTIONS },
     });
-
-    segments.value = segmentStore.getSegmentsByProject(
-      props.project?.project_hash || '',
-    );
   } catch (error) {
     console.error('Ошибка при загрузке сегментов:', error);
     FailAlert('Не удалось загрузить список участников');
