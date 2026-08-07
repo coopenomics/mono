@@ -57,8 +57,14 @@ const props = defineProps<{
   members: Array<{ id: string; who?: string; qty: string; cost: string }>;
   /** Подпись итога, напр. «Итого партии» / «Ваш вклад в партию». */
   totalLabel: string;
-  /** Значение итога, напр. «1 200 ₽ · 5 кг». */
+  /** Деньги партии, напр. «1 200 ₽» — главная величина карточки. */
   totalValue: string;
+  /**
+   * Объём партии, напр. «5 кг» / «10×упак. 0,1 л». Показывается отдельно от
+   * денег: слитая строка «1 200 ₽ · 10×упак. 0,1 л» читается как одна невнятная
+   * величина, хотя это разные вещи — сколько денег и сколько имущества.
+   */
+  totalUnits?: string;
   /**
    * Пояснение под итогом (requirement b6) — например «С учётом взноса
    * пайщиков: 1 300 ₽» на столе поставщика, где `totalValue` — его
@@ -91,28 +97,29 @@ function onCardClick(): void {
   @keyup.enter="onCardClick"
 )
   .supply-party__head
-    .row.items-center.q-gutter-sm.no-wrap
-      div.col
-        .t-h3 {{ productName }}
-        .t-muted.supply-party__sub
-          q-icon(name="place", size="14px")
-          | КУ «{{ pvzName }}»
+    .supply-party__title
+      .supply-party__name {{ productName }}
+      .supply-party__sub
+        q-icon(name="place", size="14px")
+        | КУ «{{ pvzName }}»
+    .supply-party__marks
       BaseBadge(:variant="statusDisplay.variant") {{ statusDisplay.label }}
       span.chip.chip--accent(v-if="!hideOrderCount")
         q-icon(name="layers", size="14px")
         | {{ orderCount }} заказ
 
   .supply-party__progress(v-if="showProgress !== false")
+    .supply-party__progress-top
+      span.supply-party__progress-label Собрано
+      span.supply-party__progress-percent {{ Math.round(progress * 100) }}%
     q-linear-progress.supply-party__progress-bar(
       :value="progress",
       rounded,
-      size="28px",
+      size="6px",
       :color="barColor",
       track-color="grey-3"
     )
-      .absolute-full.flex.flex-center
-        span.supply-party__progress-percent {{ Math.round(progress * 100) }}%
-    .t-muted.supply-party__progress-hint(v-if="$slots.hint")
+    .supply-party__progress-hint(v-if="$slots.hint")
       slot(name="hint")
 
   //- Разбивка по участникам — только когда есть смысловые строки. На столе
@@ -130,11 +137,14 @@ function onCardClick(): void {
 
   .supply-party__foot
     .supply-party__total
-      span.t-muted {{ totalLabel }}
-      span.supply-party__total-val {{ totalValue }}
+      span.supply-party__total-label {{ totalLabel }}
+      .supply-party__total-row
+        span.supply-party__total-val {{ totalValue }}
+        span.supply-party__total-units(v-if="totalUnits") {{ totalUnits }}
       span.supply-party__total-fee-note(v-if="totalFeeNote") {{ totalFeeNote }}
     q-space
-    slot(name="actions")
+    .supply-party__actions
+      slot(name="actions")
 </template>
 
 <style scoped lang="scss">
@@ -142,10 +152,10 @@ function onCardClick(): void {
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-lg, 16px);
   background: var(--p-surface);
-  padding: var(--p-6, 24px);
+  padding: var(--p-5, 20px) var(--p-6, 24px);
   display: flex;
   flex-direction: column;
-  gap: var(--p-5, 20px);
+  gap: var(--p-4, 16px);
 
   &--clickable {
     cursor: pointer;
@@ -157,34 +167,81 @@ function onCardClick(): void {
     }
   }
 
+  // Шапка: название с адресом слева, отметки состояния — справа, по верхнему
+  // краю, чтобы длинное имя товара не толкало бейдж вниз.
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__title {
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: var(--p-fs-h2, 18px);
+    line-height: var(--p-lh-h2, 1.3);
+    letter-spacing: var(--p-ls-h2, -0.012em);
+    font-weight: 600;
+    color: var(--p-ink);
+    overflow-wrap: anywhere;
+  }
+
+  &__marks {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    flex: 0 0 auto;
+  }
+
   &__sub {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-top: 2px;
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
   }
 
   &__progress {
     display: flex;
     flex-direction: column;
-    gap: var(--p-3, 12px);
+    gap: var(--p-2, 8px);
+  }
+
+  // Подпись сбора — над баром: цифра внутри толстой полосы читалась хуже и
+  // делала карточку тяжёлой.
+  &__progress-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--p-2, 8px);
+  }
+
+  &__progress-label {
+    font-size: var(--p-fs-meta, 12px);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
   }
 
   &__progress-bar {
-    border-radius: var(--p-r-sm, 8px);
+    border-radius: var(--p-r-pill, 999px);
   }
 
   &__progress-percent {
-    font-size: var(--p-fs-body-sm, 12px);
+    font-family: var(--p-mono);
+    font-size: var(--p-fs-body-sm, 13px);
     font-weight: 600;
-    color: var(--p-ink-on-primary);
+    color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
 
   &__progress-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-3);
   }
 
   &__members {
@@ -229,7 +286,7 @@ function onCardClick(): void {
 
   &__foot {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: var(--p-3, 12px);
     flex-wrap: wrap;
     padding-top: var(--p-4, 16px);
@@ -240,17 +297,55 @@ function onCardClick(): void {
     display: flex;
     flex-direction: column;
     gap: var(--p-1, 4px);
+    min-width: 0;
+  }
+
+  &__total-label {
+    font-size: var(--p-fs-eyebrow, 11px);
+    line-height: var(--p-lh-eyebrow, 1.2);
+    letter-spacing: var(--p-ls-eyebrow, 0.08em);
+    text-transform: uppercase;
+    color: var(--p-ink-3);
+  }
+
+  // Деньги — главная величина карточки, поэтому крупно и моноширинно; объём
+  // рядом, приглушённой пилюлей: это разные вещи, и слитая строка читалась как
+  // одна невнятная.
+  &__total-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--p-2, 8px);
+    flex-wrap: wrap;
   }
 
   &__total-val {
-    font-size: var(--p-fs-body);
-    color: var(--p-ink-1);
+    font-family: var(--p-mono);
+    font-size: var(--p-fs-h1, 24px);
+    line-height: var(--p-lh-h1, 1.2);
+    font-weight: 600;
+    color: var(--p-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__total-units {
+    padding: 2px var(--p-2, 8px);
+    border-radius: var(--p-r-pill, 999px);
+    background: var(--p-surface-2);
+    font-size: var(--p-fs-body-sm, 13px);
+    color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
   }
 
   &__total-fee-note {
-    font-size: var(--p-fs-body-sm, 12px);
+    font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-3);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    flex: 0 0 auto;
   }
 }
 </style>

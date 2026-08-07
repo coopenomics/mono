@@ -362,7 +362,8 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         :show-progress='p.kind === "collecting" && hasTarget(p)',
         :members='[]',
         total-label='Итого',
-        :total-value='`${formatCost(p.totalCost)} · ${totalUnitsLabel(p)}`'
+        :total-value='formatCost(p.totalCost)',
+        :total-units='totalUnitsLabel(p)'
       )
         template(#actions)
           template(v-if='p.kind === "collecting"')
