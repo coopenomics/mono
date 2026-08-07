@@ -1021,7 +1021,6 @@ export class GenerationService {
       ProjectStatus.VOTING,
       ProjectStatus.RESULT,
       ProjectStatus.FINALIZED,
-      ProjectStatus.CANCELLED,
       ProjectStatus.UNDEFINED,
     ]);
     if (blockedForTransfer.has(targetProject.status)) {

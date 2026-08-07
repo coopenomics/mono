@@ -134,7 +134,6 @@ const statusVariant = computed<BaseBadgeVariant>(() => {
   const status = String(project.value?.status || '');
   if (status === Zeus.ProjectStatus.RESULT) return 'pos';
   if (status === Zeus.ProjectStatus.FINALIZED) return 'neutral';
-  if (status === Zeus.ProjectStatus.CANCELLED) return 'neg';
   return 'info';
 });
 

@@ -85,7 +85,6 @@ const statusVariant = (status: string): BaseBadgeVariant => {
   if (s === Zeus.ProjectStatus.RESULT) return 'pos';
   if (s === Zeus.ProjectStatus.VOTING) return 'info';
   if (s === Zeus.ProjectStatus.FINALIZED) return 'neutral';
-  if (s === Zeus.ProjectStatus.CANCELLED) return 'neg';
   return 'neutral';
 };
 
@@ -107,7 +106,6 @@ const loadProjects = async () => {
         statuses: [
           Zeus.ProjectStatus.VOTING,
           Zeus.ProjectStatus.RESULT,
-          Zeus.ProjectStatus.CANCELLED,
         ],
       },
       options: {

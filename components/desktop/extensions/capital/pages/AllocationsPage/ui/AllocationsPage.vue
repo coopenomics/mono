@@ -151,7 +151,6 @@ const STATUS_LABELS: Record<string, string> = {
   voting: 'Голосование',
   result: 'Завершён',
   finalized: 'Финализирован',
-  cancelled: 'Отменён',
 };
 
 const STATUS_VARIANTS: Record<string, BaseChipVariant> = {
@@ -160,7 +159,6 @@ const STATUS_VARIANTS: Record<string, BaseChipVariant> = {
   voting: 'info',
   result: 'pos',
   finalized: 'pos',
-  cancelled: 'neg',
 };
 
 function toRow(entity: any, isComponentRow: boolean): AllocationRow {

@@ -42538,7 +42538,6 @@ export enum ProgramType {
 /** Статусы проекта в системе CAPITAL */
 export enum ProjectStatus {
 	ACTIVE = "ACTIVE",
-	CANCELLED = "CANCELLED",
 	FINALIZED = "FINALIZED",
 	PENDING = "PENDING",
 	RESULT = "RESULT",

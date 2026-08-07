@@ -11,8 +11,6 @@ export const getProjectStatusColor = (status: string) => {
       return 'warning';
     case Zeus.ProjectStatus.ACTIVE:
       return 'positive';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'negative';
     case Zeus.ProjectStatus.RESULT:
       return 'info';
     case Zeus.ProjectStatus.FINALIZED:
@@ -37,8 +35,6 @@ export const getProjectStatusLabel = (status: string) => {
       return 'Приёмка';
     case Zeus.ProjectStatus.FINALIZED:
       return 'Завершен';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'Отменён';
     case Zeus.ProjectStatus.UNDEFINED:
       return 'Неопределен';
     case Zeus.ProjectStatus.VOTING:
@@ -66,10 +62,7 @@ export const getProjectStatusIcon = (status: string) => {
       return 'check';
     case Zeus.ProjectStatus.FINALIZED:
       return 'check_circle';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'lock';
     case Zeus.ProjectStatus.UNDEFINED:
-    case 'cancelled':
     default:
       return 'radio_button_unchecked';
   }
@@ -90,8 +83,6 @@ export const getProjectStatusDotColor = (status: string) => {
       return 'positive';
     case Zeus.ProjectStatus.FINALIZED:
       return 'positive';
-    case Zeus.ProjectStatus.CANCELLED:
-      return 'grey-6';
     case Zeus.ProjectStatus.UNDEFINED:
     default:
       return 'grey-6';

@@ -24,7 +24,6 @@ namespace Capital::Projects {
     const eosio::name VOTING = "voting"_n;       ///< Проект на голосовании
     const eosio::name RESULT = "result"_n;        ///< Проект завершен
     const eosio::name FINALIZED = "finalized"_n;  ///< Проект финализирован (все конвертации завершены, неиспользованные средства возвращены)
-    const eosio::name CANCELLED = "cancelled"_n;  ///< Проект отменен
   }// namespace Capital::Projects::Status
 }// namespace Capital::Projects
 
