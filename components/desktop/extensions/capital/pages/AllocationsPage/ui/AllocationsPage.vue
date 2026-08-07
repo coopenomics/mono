@@ -176,7 +176,7 @@ async function loadData(): Promise<void> {
   await Promise.all([
     projectStore.loadProjects({
       filter: { coopname: coopname.value, is_component: false },
-      options: { page: 1, limit: 100 },
+      options: { page: 1, limit: 100, sortOrder: 'ASC' },
     }),
     configStore.loadState({ coopname: coopname.value }),
   ]);

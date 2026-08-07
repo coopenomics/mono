@@ -73,7 +73,7 @@ function onAllocated(): void {
     const coopname = system.info.coopname;
     void projectStore.loadProjects({
       filter: { coopname, is_component: false },
-      options: { page: 1, limit: 100 },
+      options: { page: 1, limit: 100, sortOrder: 'ASC' },
     });
     void configStore.loadState({ coopname });
   }, POST_CHAIN_REFETCH_MS);
