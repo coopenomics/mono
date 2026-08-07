@@ -390,9 +390,15 @@ jobs:
         with:
           version: 10.33.0
 
+      # Node 22 — как в остальных workflow'ах и в рантайм-образах (node:22-slim).
+      # Версия здесь не косметика: нативные модули привязаны к ABI ноды
+      # (Node 22 → 127, Node 24 → 137), а prebuild'ы лежат в vendor/prebuilds/
+      # по каталогам node-v<ABI>. Джоб стоял на 24 и падал на `require`
+      # libxmljs2 внутри generate-schema, пока вендорилась только ABI 127.
+      # Поднимать версию — только вместе с новым prebuild'ом в vendor/.
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
