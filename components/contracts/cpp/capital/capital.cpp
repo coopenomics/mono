@@ -7,6 +7,7 @@
 #include "domain/core/gamification/gamification.cpp"
 #include "domain/core/generation/generation.cpp"
 #include "domain/core/program_investment.cpp"
+#include "domain/core/project_debts.cpp"
 #include "domain/core/voting/voting.cpp"
 
 // Конфигурация контракта

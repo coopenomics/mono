@@ -484,6 +484,19 @@ cases:
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
     status: passing
 
+  - id: cap.rid.side.54
+    level: contract
+    kind: side
+    scenario: >
+      Участник конвертирует сегмент, по которому у него была непогашенная ссуда;
+      сегмент при конвертации удаляется вместе с суммой долга.
+    expect: >
+      сумма непогашенных ссуд проекта пересчитывается по оставшимся сегментам.
+      Иначе она осталась бы завышенной и без нужды сузила бы границу возврата
+      средств из проекта (см. capital.fund-allocation, cap.dealloc.side.03)
+    test: ~
+    status: missing
+
   - id: cap.rid.break.01
     level: backend
     kind: break
