@@ -31,14 +31,24 @@
  * macOS/Windows пакет не подгрузится в хостовом node — это ожидаемо, наши
  * сервисы там и не запускаются напрямую.
  *
- * КАК ДОБАВИТЬ ВЕРСИЮ. При бампе версии пакета положить рядом новый каталог:
- *   vendor/prebuilds/<пакет>/<версия>/linux-<arch>/<бинарь>
+ * ПОЧЕМУ РАСКЛАДКА ПО ABI. Нативный модуль привязан не только к платформе, но
+ * и к ABI ноды (`process.versions.modules`): Node 22 → 127, Node 24 → 137.
+ * Ноды в репозитории разъезжаются намеренно — джоб `publish-packages` в
+ * .github/workflows/release.yaml пинится на `node-version: 24`, остальные
+ * джобы и все контейнеры (`node:22-slim`) на Node 22. Поэтому вендорим обе
+ * ABI и выбираем нужную в рантайме, иначе получаем
+ *   Error: was compiled against a different Node.js version using
+ *   NODE_MODULE_VERSION 127. This version of Node.js requires 137.
+ * (инцидент 2026-08-07: релиз прошёл целиком, кроме publish-packages).
+ *
+ * КАК ДОБАВИТЬ ВЕРСИЮ ИЛИ ABI. Положить рядом новый каталог:
+ *   vendor/prebuilds/<пакет>/<версия>/node-v<ABI>/linux-<arch>/<бинарь>
  * Файлы берутся из релизов апстрима, например для libxmljs2:
  *   https://github.com/marudor/libxmljs2/releases/download/v<версия>/
  *     libxmljs2-v<версия>-node-v<ABI>-linux-<arch>.tar.gz
- * ABI ноды: `node -p "process.versions.modules"` (Node 22 → 127).
- * Если каталога под установленную версию нет — скрипт падает с явным
- * сообщением, а не откатывается к тихой сборке.
+ * ABI ноды: `node -p "process.versions.modules"`.
+ * Если каталога под установленную версию/ABI нет — скрипт падает с явным
+ * сообщением и списком того, что есть, а не откатывается к тихой сборке.
  */
 
 import { existsSync, mkdirSync, copyFileSync, chmodSync, readdirSync } from 'node:fs';
@@ -73,6 +83,18 @@ function findInstalled(name) {
     .filter((pkg) => existsSync(pkg.dir));
 }
 
+/** Что вообще завендорено под данный пакет+версию — для текста ошибки. */
+function listAvailable(name, version) {
+  const versionDir = join(VENDOR_DIR, name, version);
+  if (!existsSync(versionDir)) return '';
+
+  return readdirSync(versionDir)
+    .flatMap((abiDir) =>
+      readdirSync(join(versionDir, abiDir)).map((archDir) => `${abiDir}/${archDir}`)
+    )
+    .join(', ');
+}
+
 function main() {
   // Установка без workspace-пакетов (например `pnpm install --filter`) может
   // вообще не притащить нативных зависимостей — это не ошибка.
@@ -85,14 +107,18 @@ function main() {
     );
   }
 
+  // ABI ноды, под которой пакет будет загружаться. Node 22 → 127, Node 24 → 137.
+  const abi = process.versions.modules;
+
   for (const { name, binary } of VENDORED) {
     for (const { version, dir } of findInstalled(name)) {
-      const source = join(VENDOR_DIR, name, version, `linux-${arch}`, binary);
+      const source = join(VENDOR_DIR, name, version, `node-v${abi}`, `linux-${arch}`, binary);
 
       if (!existsSync(source)) {
         throw new Error(
-          `Нет вендоренного бинарника для ${name}@${version} (linux-${arch}).\n` +
+          `Нет вендоренного бинарника для ${name}@${version} под Node ABI ${abi} (linux-${arch}).\n` +
             `Ожидался файл: ${source}\n` +
+            `Сейчас в репозитории есть: ${listAvailable(name, version) || '(ничего)'}\n` +
             `Положите prebuild из релизов апстрима — см. комментарий в ${import.meta.url}.`
         );
       }
@@ -102,7 +128,7 @@ function main() {
       copyFileSync(source, join(destDir, binary));
       chmodSync(join(destDir, binary), 0o755);
 
-      console.log(`prebuild: ${name}@${version} → linux-${arch}/${binary}`);
+      console.log(`prebuild: ${name}@${version} → node-v${abi}/linux-${arch}/${binary}`);
     }
   }
 }
