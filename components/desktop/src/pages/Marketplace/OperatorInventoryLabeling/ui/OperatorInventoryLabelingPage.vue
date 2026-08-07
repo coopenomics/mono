@@ -307,9 +307,32 @@ const dragKind = ref<DragKind | null>(null)
 const dragId = ref<string | null>(null)
 const dragOverKey = ref<string | null>(null)
 
-function onDragStart(kind: DragKind, id: string): void {
+function onDragStart(kind: DragKind, id: string, event: DragEvent): void {
   dragKind.value = kind
   dragId.value = id
+  // Системный курсор «переместить» вместо «копировать» — первый и самый
+  // дешёвый признак того, что бросок вообще принимается.
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
+}
+
+function onDragOver(key: string, event: DragEvent): void {
+  dragOverKey.value = key
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+}
+
+/**
+ * Уход курсора с цели.
+ *
+ * `dragleave` срабатывает и когда курсор переходит на ВЛОЖЕННЫЙ элемент —
+ * например с ячейки на стоящий в ней бокс. Без этой проверки подсветка гасла
+ * ровно в тот момент, когда курсор наводился на бокс, и попадание становилось
+ * невидимым: два бокса рядом, а какой из них примет — угадай.
+ */
+function onDragLeave(key: string, event: DragEvent): void {
+  const from = event.currentTarget as HTMLElement | null
+  const to = event.relatedTarget as Node | null
+  if (from && to && from.contains(to)) return
+  if (dragOverKey.value === key) dragOverKey.value = null
 }
 function onDragEnd(): void {
   dragKind.value = null
@@ -799,8 +822,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         //- ─────────────── Поступило: не размещённое имущество ───────────────
         .place__inbox(
           :class='{ "is-over": dragOverKey === "__inbox__", "place__inbox--solo": !placementEnabled }',
-          @dragover.prevent='dragOverKey = "__inbox__"',
-          @dragleave='dragOverKey = (dragOverKey === "__inbox__" ? null : dragOverKey)',
+          @dragover.prevent='onDragOver("__inbox__", $event)',
+          @dragleave='onDragLeave("__inbox__", $event)',
           @drop='dropOnInbox'
         )
           .place__col-head
@@ -817,7 +840,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               :key='item.id',
               :draggable='placementEnabled',
               :class='{ "is-dragging": dragId === item.id }',
-              @dragstart='onDragStart("item", item.id)',
+              @dragstart='onDragStart("item", item.id, $event)',
               @dragend='onDragEnd'
             )
               .place__card-top
@@ -995,8 +1018,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                     .place__cell(
                       v-if='slot.cell',
                       :class='{ "is-over": dragOverKey === `cell:${slot.cell.id}` }',
-                      @dragover.prevent='dragOverKey = `cell:${slot.cell.id}`',
-                      @dragleave='dragOverKey = null',
+                      @dragover.prevent='onDragOver(`cell:${slot.cell.id}`, $event)',
+                      @dragleave='onDragLeave(`cell:${slot.cell.id}`, $event)',
                       @drop='dropOnCell(slot.cell)'
                     )
                       .place__cell-head
@@ -1007,13 +1030,17 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                           :key='box.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-                          @dragstart.stop='onDragStart("container", box.id)',
+                          @dragstart.stop='onDragStart("container", box.id, $event)',
                           @dragend='onDragEnd',
-                          @dragover.prevent.stop='dragOverKey = `box:${box.id}`',
+                          @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
+                          @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
                           @drop.stop='dropOnContainer(box)',
                           @click='openBox(box)'
                         )
-                          q-icon(name='inbox', size='16px')
+                          q-icon(
+                            :name='dragOverKey === `box:${box.id}` ? "move_to_inbox" : "inbox"',
+                            size='16px'
+                          )
                           span.place__box-code {{ box.code }}
                           BaseBadge(variant='neutral') {{ itemsInContainer(box.id).length }}
 
@@ -1022,7 +1049,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                           :key='item.id',
                           draggable='true',
                           :class='{ "is-dragging": dragId === item.id }',
-                          @dragstart='onDragStart("item", item.id)',
+                          @dragstart='onDragStart("item", item.id, $event)',
                           @dragend='onDragEnd'
                         )
                           span.place__mini-name {{ item.product_name_snapshot || 'Товар' }}
@@ -1052,8 +1079,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         .place__boxes(
           v-if='containersEnabled',
           :class='{ "is-over": dragOverKey === "__unplaced__" }',
-          @dragover.prevent='dragOverKey = "__unplaced__"',
-          @dragleave='dragOverKey = (dragOverKey === "__unplaced__" ? null : dragOverKey)',
+          @dragover.prevent='onDragOver("__unplaced__", $event)',
+          @dragleave='onDragLeave("__unplaced__", $event)',
           @drop='dropOnUnplaced'
         )
           .place__col-head
@@ -1070,14 +1097,17 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               :key='box.id',
               draggable='true',
               :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
-              @dragstart='onDragStart("container", box.id)',
+              @dragstart='onDragStart("container", box.id, $event)',
               @dragend='onDragEnd',
-              @dragover.prevent.stop='dragOverKey = `box:${box.id}`',
-              @dragleave='dragOverKey = null',
+              @dragover.prevent.stop='onDragOver(`box:${box.id}`, $event)',
+              @dragleave.stop='onDragLeave(`box:${box.id}`, $event)',
               @drop.stop='dropOnContainer(box)',
               @click='openBox(box)'
             )
-              q-icon(name='inbox', size='16px')
+              q-icon(
+                :name='dragOverKey === `box:${box.id}` ? "move_to_inbox" : "inbox"',
+                size='16px'
+              )
               span.place__box-code {{ box.code }}
               span.place__box-note(v-if='box.label') {{ box.label }}
               BaseBadge(variant='neutral') {{ itemsInContainer(box.id).length }}
@@ -1469,8 +1499,12 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     padding: var(--p-1, 4px);
     transition: background var(--p-dur-fast, 0.12s) var(--p-ease-standard);
 
+    // Ячейка подсвечивается иначе, чем бокс: пунктир вокруг всей площади
+    // читается как «положу прямо сюда», а не «положу в эту тару».
     &.is-over {
       background: var(--p-primary-soft);
+      outline: 2px dashed var(--p-primary-line);
+      outline-offset: -2px;
     }
   }
 
@@ -1502,14 +1536,28 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     padding: var(--p-1, 4px) var(--p-2, 8px);
     cursor: grab;
     color: var(--p-ink);
+    transition:
+      transform var(--p-dur-fast, 0.12s) var(--p-ease-standard),
+      box-shadow var(--p-dur-fast, 0.12s) var(--p-ease-standard),
+      background var(--p-dur-fast, 0.12s) var(--p-ease-standard);
 
     &.is-dragging {
       opacity: 0.5;
     }
 
+    // Бокс под курсором приподнимается и обводится: два бокса стоят рядом, и
+    // одной смены цвета фона мало — под перетаскиваемой карточкой её просто не
+    // видно, и бросок получается наугад. Обводка рисуется `outline`, а не
+    // рамкой: она не занимает места и не двигает соседей.
     &.is-over {
-      border-color: var(--p-primary);
       background: var(--p-primary-soft);
+      outline: 2px solid var(--p-primary);
+      outline-offset: 1px;
+      transform: scale(1.06);
+      box-shadow: var(--p-shadow-pop);
+      // Приподнятый бокс должен перекрывать соседний, а не подлезать под него.
+      position: relative;
+      z-index: 2;
     }
 
     &--wide {
