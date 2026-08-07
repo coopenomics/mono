@@ -546,6 +546,27 @@ describe('MarketplaceOfferService.update — поле-зависимая мод�
     expect(repo.applyUpdate.mock.calls[0][1]).toMatchObject({ status: 'PENDING_MODERATION' });
   });
 
+  it('форма прислала карточку целиком без правок → статус НЕ сбрасывается', async () => {
+    // Форма редактирования всегда отправляет все поля; «поле пришло» не значит
+    // «поле изменилось» — иначе правка остатка снимала бы оферту с витрины.
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      product_name: 'Картофель',
+      description: null,
+      category_id: 1,
+      unit_of_measure: 'kg',
+      price_per_unit: '50.0000',
+      quantity_available: 250,
+      delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 40 }],
+    });
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
+  });
+
   it('замена изображений на ACTIVE → статус сбрасывается (контентное изменение)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
@@ -764,7 +785,7 @@ describe('MarketplaceOfferService.create — КУ поставки (Эпик 15)
 });
 
 describe('MarketplaceOfferService.update — смена КУ поставки', () => {
-  it('смена delivery_points → ок и статус → PENDING_MODERATION', async () => {
+  it('смена delivery_points → ок, предложение остаётся ACTIVE (условия поставки не модерируются)', async () => {
     const repo = makeOfferRepo();
     const cats = makeCategoryRepo();
     const newPoints = [{ braname: 'odintsovo', min_supply_volume: 50 }];
@@ -772,16 +793,32 @@ describe('MarketplaceOfferService.update — смена КУ поставки', 
       makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
     );
     repo.applyUpdate.mockResolvedValue(
-      makeOffer({ status: 'PENDING_MODERATION', delivery_points: newPoints })
+      makeOffer({ status: 'ACTIVE', delivery_points: newPoints })
     );
     const service = makeService(repo, cats);
 
     const result = await service.update('offer-1', 'alice', { delivery_points: newPoints });
-    expect(result.status).toBe('PENDING_MODERATION');
+    expect(result.status).toBe('ACTIVE');
     expect(repo.applyUpdate).toHaveBeenCalledWith(
       'offer-1',
-      expect.objectContaining({ delivery_points: newPoints, status: 'PENDING_MODERATION' })
+      expect.objectContaining({ delivery_points: newPoints })
     );
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
+  });
+
+  it('правка минимального объёма на КУ → предложение остаётся ACTIVE', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE', delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 1 }] })
+    );
+    repo.applyUpdate.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      delivery_points: [{ braname: 'krasnogorsk', min_supply_volume: 12 }],
+    });
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
   });
 
   it('пустой список КУ при update → 400', async () => {
@@ -809,6 +846,84 @@ describe('MarketplaceOfferService.update — смена КУ поставки', 
     await expect(
       service.update('offer-1', 'alice', { product_name: 'Молоко' })
     ).resolves.toBeDefined();
+  });
+});
+
+describe('MarketplaceOfferService.update — упаковки при отпуске упаковкой', () => {
+  // На идентификатор упаковки ссылаются корзины заказчиков: если правка
+  // предложения выдаёт упаковке новый идентификатор, позиция корзины теряет
+  // связь и показывается недоступной с нулевой суммой.
+  const packagedOffer = () =>
+    makeOffer({
+      status: 'ACTIVE',
+      sale_form: 'packaged',
+      unit_of_measure: 'liter',
+      packages: [
+        { id: 'pkg-1', size: 1, price: '100.0000', label: null, sort_order: 0, is_default: true },
+      ],
+    });
+
+  it('правка цены упаковки сохраняет её идентификатор', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      packages: [{ id: 'pkg-1', size: 1, price: '120.00', is_default: true }],
+    });
+    const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string; price: string }> };
+    expect(patchArg.packages).toHaveLength(1);
+    expect(patchArg.packages[0].id).toBe('pkg-1');
+    expect(patchArg.packages[0].price).toBe('120.00');
+  });
+
+  it('добавленная упаковка получает новый идентификатор, прежняя — сохраняет свой', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      packages: [
+        { id: 'pkg-1', size: 1, price: '100.00', is_default: true },
+        { size: 5, price: '450.00' },
+      ],
+    });
+    const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string }> };
+    expect(patchArg.packages[0].id).toBe('pkg-1');
+    expect(patchArg.packages[1].id).not.toBe('pkg-1');
+    expect(patchArg.packages[1].id).toHaveLength(36);
+  });
+
+  it('неизвестный идентификатор упаковки не принимается — выдаётся новый', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      packages: [{ id: 'pkg-from-another-offer', size: 2, price: '200.00', is_default: true }],
+    });
+    const patchArg = repo.applyUpdate.mock.calls[0][1] as { packages: Array<{ id: string }> };
+    expect(patchArg.packages[0].id).not.toBe('pkg-from-another-offer');
+    expect(patchArg.packages[0].id).toHaveLength(36);
+  });
+
+  it('правка упаковок не отправляет предложение на повторную модерацию', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(packagedOffer());
+    repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+    const service = makeService(repo, cats);
+
+    await service.update('offer-1', 'alice', {
+      packages: [{ id: 'pkg-1', size: 1, price: '120.00', is_default: true }],
+    });
+    expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
   });
 });
 

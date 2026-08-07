@@ -933,6 +933,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceCancelStockOrderInput:{
 
 	},
+	MarketplaceCartItemBlocker: "enum" as const,
 	MarketplaceCheckoutCartInput:{
 		lines:"MarketplaceCheckoutSignedLineInput"
 	},
@@ -5105,6 +5106,7 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	MarketplaceCartItem:{
 		available_on_current_ku:"Boolean",
+		blocker:"MarketplaceCartItemBlocker",
 		id:"String",
 		image_url:"String",
 		line_total:"String",

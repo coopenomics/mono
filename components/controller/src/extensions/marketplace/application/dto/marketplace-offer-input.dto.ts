@@ -33,6 +33,15 @@ const MARKETPLACE_OFFER_MAX_DELIVERY_POINTS = 100;
 
 @InputType('MarketplaceOfferPackageInput')
 export class MarketplaceOfferPackageInputDTO {
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Идентификатор упаковки при редактировании — сохраняет ссылки корзин заказчиков. Пусто для новой упаковки.',
+  })
+  @IsOptional()
+  @IsString()
+  public readonly id?: string | null;
+
   @Field(() => Float, {
     description: 'Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт).',
   })

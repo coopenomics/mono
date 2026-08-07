@@ -114,6 +114,13 @@ export const MARKETPLACE_OFFER_MAX_PACKAGES = 12;
  * хранимую `MarketplaceOfferPackage`.
  */
 export interface MarketplaceOfferPackageInput {
+  /**
+   * Идентификатор уже существующей упаковки предложения. Передаётся при
+   * редактировании, чтобы упаковка сохранила прежний идентификатор: на него
+   * ссылаются корзины заказчиков и заявки на пополнение. Пустой — новая
+   * упаковка.
+   */
+  id?: string | null;
   size: number;
   price: string;
   label?: string | null;

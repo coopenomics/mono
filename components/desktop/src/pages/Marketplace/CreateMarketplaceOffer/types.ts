@@ -89,7 +89,14 @@ export interface MarketplaceCreateOfferPayload {
   /** Способ отпуска (Эпик 18). */
   sale_form: MarketplaceSaleForm;
   /** Каталог упаковок (Эпик 18); опущен/пуст при отпуске по мере. */
-  packages?: Array<{ size: number; price: string; label?: string | null; is_default?: boolean }>;
+  packages?: Array<{
+    /** id уже сохранённой упаковки — сохраняет ссылки корзин; пусто у новой. */
+    id?: string | null;
+    size: number;
+    price: string;
+    label?: string | null;
+    is_default?: boolean;
+  }>;
   quantity_available: number | null;
   unlimited_flag: boolean;
   delivery_points: MarketplaceOfferDeliveryPoint[];

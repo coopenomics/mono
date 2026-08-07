@@ -71,6 +71,16 @@ function saleUnitLabel(item: IMarketplaceCartItem): string {
 function quantize(item: IMarketplaceCartItem, v: number): number {
   return quantizeSaleQuantity(item, v);
 }
+// Причина недоступности: у заказчика на каждую — своё действие. Изменившаяся
+// упаковка требует выбрать её заново, недоставка на КУ — сменить пункт выдачи.
+const BLOCKER_LABELS: Record<string, string> = {
+  OFFER_GONE: 'Предложение больше не доступно',
+  PACKAGE_GONE: 'Поставщик изменил упаковки — выберите заново',
+  NOT_DELIVERED_TO_POINT: 'Недоступно на текущем пункте выдачи',
+};
+function blockerLabel(item: IMarketplaceCartItem): string {
+  return BLOCKER_LABELS[item.blocker ?? ''] ?? 'Недоступно на текущем пункте выдачи';
+}
 
 // Низкоуровневый коммит количества (> 0). Кламп делает changeQty.
 async function setQty(offerId: string, next: number, packageId: string | null): Promise<void> {
@@ -254,7 +264,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               v-if="it.available_on_current_ku === false",
               variant="warn",
               size="sm"
-            ) Недоступно на текущем пункте выдачи
+            ) {{ blockerLabel(it) }}
           .mp-cart__qty
             BaseButton(
               variant="ghost",

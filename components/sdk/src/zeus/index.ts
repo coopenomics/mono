@@ -8140,6 +8140,8 @@ export type ValueTypes = {
 ["MarketplaceCartItem"]: AliasType<{
 	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
 	available_on_current_ku?:boolean | `@${string}`,
+	/** Причина недоступности позиции; null — позицию можно оформить. */
+	blocker?:boolean | `@${string}`,
 	/** Идентификатор позиции корзины. */
 	id?:boolean | `@${string}`,
 	/** URL обложки товара (если у предложения есть изображение). */
@@ -8167,6 +8169,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceCartItem']?: Omit<ValueTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
 }>;
+	/** Причина, по которой позицию корзины нельзя оформить. */
+["MarketplaceCartItemBlocker"]:MarketplaceCartItemBlocker;
 	["MarketplaceCategory"]: AliasType<{
 	display_name?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -9216,6 +9220,8 @@ export type ValueTypes = {
 	['...on MarketplaceOfferPackage']?: Omit<ValueTypes["MarketplaceOfferPackage"], "...on MarketplaceOfferPackage">
 }>;
 	["MarketplaceOfferPackageInput"]: {
+	/** Идентификатор упаковки при редактировании — сохраняет ссылки корзин заказчиков. Пусто для новой упаковки. */
+	id?: string | undefined | null | Variable<any, string>,
 	/** Упаковка по умолчанию (для витрины). */
 	is_default?: boolean | undefined | null | Variable<any, string>,
 	/** Подпись упаковки («Пакет 0,5 л»). */
@@ -21578,6 +21584,8 @@ export type ResolverInputTypes = {
 ["MarketplaceCartItem"]: AliasType<{
 	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
 	available_on_current_ku?:boolean | `@${string}`,
+	/** Причина недоступности позиции; null — позицию можно оформить. */
+	blocker?:boolean | `@${string}`,
 	/** Идентификатор позиции корзины. */
 	id?:boolean | `@${string}`,
 	/** URL обложки товара (если у предложения есть изображение). */
@@ -21604,6 +21612,8 @@ export type ResolverInputTypes = {
 	unit_of_measure?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Причина, по которой позицию корзины нельзя оформить. */
+["MarketplaceCartItemBlocker"]:MarketplaceCartItemBlocker;
 	["MarketplaceCategory"]: AliasType<{
 	display_name?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -22624,6 +22634,8 @@ export type ResolverInputTypes = {
 		__typename?: boolean | `@${string}`
 }>;
 	["MarketplaceOfferPackageInput"]: {
+	/** Идентификатор упаковки при редактировании — сохраняет ссылки корзин заказчиков. Пусто для новой упаковки. */
+	id?: string | undefined | null,
 	/** Упаковка по умолчанию (для витрины). */
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
@@ -34614,6 +34626,8 @@ export type ModelTypes = {
 ["MarketplaceCartItem"]: {
 		/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
 	available_on_current_ku: boolean,
+	/** Причина недоступности позиции; null — позицию можно оформить. */
+	blocker?: ModelTypes["MarketplaceCartItemBlocker"] | undefined | null,
 	/** Идентификатор позиции корзины. */
 	id: string,
 	/** URL обложки товара (если у предложения есть изображение). */
@@ -34639,6 +34653,7 @@ export type ModelTypes = {
 	/** Базовая единица измерения товара (штука, килограмм, литр). */
 	unit_of_measure?: ModelTypes["MarketplaceUnitOfMeasure"] | undefined | null
 };
+	["MarketplaceCartItemBlocker"]:MarketplaceCartItemBlocker;
 	["MarketplaceCategory"]: {
 		display_name: string,
 	id: number,
@@ -35610,6 +35625,8 @@ export type ModelTypes = {
 	sort_order: number
 };
 	["MarketplaceOfferPackageInput"]: {
+	/** Идентификатор упаковки при редактировании — сохраняет ссылки корзин заказчиков. Пусто для новой упаковки. */
+	id?: string | undefined | null,
 	/** Упаковка по умолчанию (для витрины). */
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
@@ -48750,6 +48767,8 @@ export type GraphQLTypes = {
 	__typename: "MarketplaceCartItem",
 	/** Доступна ли позиция к доставке на текущий пункт выдачи корзины. false — товар не возят на выбранный КУ (нужно убрать перед оформлением или сменить КУ). */
 	available_on_current_ku: boolean,
+	/** Причина недоступности позиции; null — позицию можно оформить. */
+	blocker?: GraphQLTypes["MarketplaceCartItemBlocker"] | undefined | null,
 	/** Идентификатор позиции корзины. */
 	id: string,
 	/** URL обложки товара (если у предложения есть изображение). */
@@ -48776,6 +48795,8 @@ export type GraphQLTypes = {
 	unit_of_measure?: GraphQLTypes["MarketplaceUnitOfMeasure"] | undefined | null,
 	['...on MarketplaceCartItem']: Omit<GraphQLTypes["MarketplaceCartItem"], "...on MarketplaceCartItem">
 };
+	/** Причина, по которой позицию корзины нельзя оформить. */
+["MarketplaceCartItemBlocker"]: MarketplaceCartItemBlocker;
 	["MarketplaceCategory"]: {
 	__typename: "MarketplaceCategory",
 	display_name: string,
@@ -49826,7 +49847,9 @@ export type GraphQLTypes = {
 	['...on MarketplaceOfferPackage']: Omit<GraphQLTypes["MarketplaceOfferPackage"], "...on MarketplaceOfferPackage">
 };
 	["MarketplaceOfferPackageInput"]: {
-		/** Упаковка по умолчанию (для витрины). */
+		/** Идентификатор упаковки при редактировании — сохраняет ссылки корзин заказчиков. Пусто для новой упаковки. */
+	id?: string | undefined | null,
+	/** Упаковка по умолчанию (для витрины). */
 	is_default?: boolean | undefined | null,
 	/** Подпись упаковки («Пакет 0,5 л»). */
 	label?: string | undefined | null,
@@ -56688,6 +56711,12 @@ export enum MarketplaceBarcodeStrategy {
 	PER_PACKAGE = "PER_PACKAGE",
 	PER_UNIT = "PER_UNIT"
 }
+/** Причина, по которой позицию корзины нельзя оформить. */
+export enum MarketplaceCartItemBlocker {
+	NOT_DELIVERED_TO_POINT = "NOT_DELIVERED_TO_POINT",
+	OFFER_GONE = "OFFER_GONE",
+	PACKAGE_GONE = "PACKAGE_GONE"
+}
 /** Состояние сводной заявки поставщика на поставку партии заказов. */
 export enum MarketplaceConsolidatedRequestStatus {
 	ACCEPTED = "ACCEPTED",
@@ -57397,6 +57426,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceBindInventoryBarcodeInput"]: ValueTypes["MarketplaceBindInventoryBarcodeInput"];
 	["MarketplaceCancelOrderInput"]: ValueTypes["MarketplaceCancelOrderInput"];
 	["MarketplaceCancelStockOrderInput"]: ValueTypes["MarketplaceCancelStockOrderInput"];
+	["MarketplaceCartItemBlocker"]: ValueTypes["MarketplaceCartItemBlocker"];
 	["MarketplaceCheckoutCartInput"]: ValueTypes["MarketplaceCheckoutCartInput"];
 	["MarketplaceCheckoutSignedLineInput"]: ValueTypes["MarketplaceCheckoutSignedLineInput"];
 	["MarketplaceClearInventoryLabelInput"]: ValueTypes["MarketplaceClearInventoryLabelInput"];

@@ -17,6 +17,7 @@ const rawCartItemSelector = {
   line_total: true,
   image_url: true,
   available_on_current_ku: true,
+  blocker: true,
   max_available: true,
 }
 
