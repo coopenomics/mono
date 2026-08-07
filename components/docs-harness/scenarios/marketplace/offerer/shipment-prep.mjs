@@ -8,17 +8,37 @@
 // для целей документации; полная фикстура `sidorov` для multi-account
 // прогона потока II будет в магистрали II PLAN.md §9.4.
 
-import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const loadFixture = (username) =>
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
 export const meta = {
   title: 'Стол поставщика — подготовка отгрузки',
   docPath: 'new/marketplace/offerer/shipment-prep.md',
   assetsDir: 'assets/new/marketplace/offerer/shipment-prep',
-  role: 'chairman',
+  role: 'user',
+  mode: 'docs',
+  fixture: 'ivanpetrov',
+  fixtures: ['ivanpetrov'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
 };
 
 export default async ({ page, shot }) => {
-  await loginAsChairman(page);
+  // Стол поставщика: председателю он недоступен — прежняя версия логинилась
+  // председателем и упиралась в отказ в правах.
+  await loginAs(page, loadFixture('ivanpetrov'));
+  await pickBranchIfAsked(page);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/supply-prep`, {
