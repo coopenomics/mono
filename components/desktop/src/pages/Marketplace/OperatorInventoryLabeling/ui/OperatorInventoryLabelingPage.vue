@@ -1095,7 +1095,10 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         .place__card-info
           .place__card-name {{ item.product_name_snapshot || 'Товар' }}
           .place__card-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
-        BaseButton(variant='ghost', size='sm', @click='movePlacement(item, {})') Вынуть
+        BaseButton(variant='secondary', size='sm', @click='movePlacement(item, {})')
+          template(#icon-left)
+            q-icon(name='logout', size='16px')
+          | Вынуть
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') Закрыть
 
