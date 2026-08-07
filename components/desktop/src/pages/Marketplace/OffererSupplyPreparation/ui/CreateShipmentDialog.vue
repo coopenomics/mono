@@ -52,6 +52,9 @@ const selectedKu = ref<string | null>(null);
 // Заказы, перемещённые в партию (id строк). Невыбранное остаётся ACCEPTED.
 const included = ref<Set<string>>(new Set());
 const ttn = ref<TtnData>(emptyTtn());
+// Блок ТТН свёрнут, пока поставщик сам его не откроет: все поля необязательны,
+// и раскрытыми они перетягивали внимание с переноса заказов — главного шага.
+const ttnOpen = ref(false);
 // Экспедиторская упаковка по строкам: orderId → «сколько в коробке» (строкой из
 // number-инпута). Число коробок = ceil(quantity / units_per_box). Задаётся ИМЕННО
 // при формировании партии — упаковка для перевозки ≠ упаковка заказчика.
@@ -68,13 +71,34 @@ function emptyTtn(): TtnData {
   };
 }
 
-const TTN_FIELDS: Array<{ key: keyof TtnData; label: string; type?: 'text' | 'tel' | 'date' }> = [
-  { key: 'expeditor_full_name', label: 'ФИО экспедитора' },
-  { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel' },
-  { key: 'vehicle_number', label: 'Гос. номер ТС' },
-  { key: 'loading_address', label: 'Адрес погрузки' },
-  { key: 'loading_datetime', label: 'Дата погрузки', type: 'date' },
-  { key: 'delivery_datetime_estimate', label: 'Ожидаемая дата доставки', type: 'date' },
+interface TtnField {
+  key: keyof TtnData;
+  label: string;
+  type?: 'text' | 'tel' | 'date';
+}
+
+/**
+ * Поля ТТН двумя смысловыми блоками: кто везёт и откуда-докуда.
+ * Шесть одинаковых полей подряд читались как сплошная стена ввода — глазу не за
+ * что зацепиться, и внимание уходило с главного шага (перенос заказов в партию).
+ */
+const TTN_GROUPS: Array<{ title: string; fields: TtnField[] }> = [
+  {
+    title: 'Перевозчик',
+    fields: [
+      { key: 'expeditor_full_name', label: 'ФИО экспедитора' },
+      { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel' },
+      { key: 'vehicle_number', label: 'Гос. номер ТС' },
+    ],
+  },
+  {
+    title: 'Погрузка и доставка',
+    fields: [
+      { key: 'loading_address', label: 'Адрес погрузки' },
+      { key: 'loading_datetime', label: 'Дата погрузки', type: 'date' },
+      { key: 'delivery_datetime_estimate', label: 'Ожидаемая дата доставки', type: 'date' },
+    ],
+  },
 ];
 
 const buckets = computed<ShipmentKuBucket[]>(() => groupAcceptedByKu(props.orders));
@@ -102,6 +126,7 @@ watch(
       selectedKu.value = buckets.value.length === 1 ? buckets.value[0].braname : null;
       included.value = new Set();
       ttn.value = emptyTtn();
+      ttnOpen.value = false;
       packaging.value = {};
     }
   },
@@ -136,6 +161,17 @@ function excludeAll(): void {
 }
 
 const isExpeditor = computed(() => variant.value === EXPEDITOR);
+
+// Что показывает свёрнутая строка ТТН. Сначала то, по чему поставщик узнаёт
+// перевозку (кто и на чём), и лишь если этого нет — сухой счётчик заполненного.
+const ttnSummary = computed(() => {
+  const named = [ttn.value.expeditor_full_name, ttn.value.vehicle_number]
+    .map((v) => v.trim())
+    .filter(Boolean);
+  if (named.length) return named.join(' · ');
+  const filled = Object.values(ttn.value).filter((v) => String(v).trim() !== '').length;
+  return filled ? `заполнено полей: ${filled}` : 'Не заполнено — необязательно';
+});
 
 // Поля ТТН необязательны (правка 2026-06-07): партию можно сформировать с тем,
 // что известно о перевозчике, — даже пусто. Единственное условие сабмита — КУ
@@ -272,6 +308,9 @@ BaseDialog(
       .create-shipment__hint
         | Перенесите заказы в партию. Грузим всё, что справа; остальное останется
         | акцептованным для следующей партии. Количество в заказе не дробим.
+        span(v-if='isExpeditor')
+          |  У каждого заказа в партии укажите, сколько единиц кладёте в одну
+          | коробку — число коробок посчитается само и попадёт в накладную.
       .create-shipment__transfer
         .create-shipment__col
           .create-shipment__col-head
@@ -312,21 +351,37 @@ BaseDialog(
       .create-shipment__total(v-if='includedLines.length')
         | Итого партии: {{ formatPrice(includedSum) }}
 
-    //- Шаг 4: данные ТТН (только экспедитор).
+    //- Шаг 4: данные ТТН (только экспедитор). Свёрнут по умолчанию — все поля
+    //- необязательные, и раскрытыми они спорили за внимание с переносом заказов.
     .create-shipment__step(v-if='activeBucket && isExpeditor')
       .create-shipment__step-title Данные ТТН
-      .create-shipment__hint
-        | Все поля необязательны — заполните, что известно о перевозчике. ТТН
-        | можно сформировать и с минимумом данных, а незаполненное просто не
-        | попадёт в документ.
-      .create-shipment__ttn-grid
-        BaseInput(
-          v-for='f in TTN_FIELDS',
-          :key='f.key',
-          v-model='ttn[f.key]',
-          :label='f.label',
-          :type='f.type ?? "text"'
+      .create-shipment__ttn
+        .create-shipment__ttn-head(
+          role='button',
+          tabindex='0',
+          :aria-expanded='ttnOpen',
+          @click='ttnOpen = !ttnOpen',
+          @keydown.enter='ttnOpen = !ttnOpen',
+          @keydown.space.prevent='ttnOpen = !ttnOpen'
         )
+          span.create-shipment__ttn-summary {{ ttnSummary }}
+          span.create-shipment__ttn-toggle {{ ttnOpen ? 'Свернуть' : 'Заполнить' }}
+          q-icon.create-shipment__ttn-chev(:name='ttnOpen ? "expand_less" : "expand_more"', size='20px')
+
+        .create-shipment__ttn-body(v-if='ttnOpen')
+          .create-shipment__hint
+            | Заполните, что известно о перевозчике. ТТН можно сформировать и с
+            | минимумом данных, а незаполненное просто не попадёт в документ.
+          .create-shipment__ttn-group(v-for='g in TTN_GROUPS', :key='g.title')
+            .create-shipment__ttn-group-title {{ g.title }}
+            .create-shipment__ttn-grid
+              BaseInput(
+                v-for='f in g.fields',
+                :key='f.key',
+                v-model='ttn[f.key]',
+                :label='f.label',
+                :type='f.type ?? "text"'
+              )
 
   .create-shipment__nodata(v-else)
     | Нет акцептованных заказов для формирования партии. Примите заказы во
@@ -505,9 +560,66 @@ BaseDialog(
     font-variant-numeric: tabular-nums;
   }
 
+  // Блок ТТН — одна рамка, как у колонок переноса: свёрнутый он читается
+  // строкой, а не россыпью полей.
+  &__ttn {
+    border: 1px solid var(--p-line);
+    border-radius: var(--p-r-md, 12px);
+    overflow: hidden;
+  }
+
+  &__ttn-head {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+    padding: var(--p-2, 8px) var(--p-3, 12px);
+    cursor: pointer;
+    font-size: var(--p-fs-body-sm, 13px);
+
+    &:hover {
+      background: var(--p-surface-2);
+    }
+  }
+
+  &__ttn-summary {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--p-ink-3);
+    overflow-wrap: anywhere;
+  }
+
+  &__ttn-toggle {
+    flex: 0 0 auto;
+    color: var(--p-primary);
+    font-weight: 600;
+  }
+
+  &__ttn-chev {
+    flex: 0 0 auto;
+    color: var(--p-ink-3);
+  }
+
+  &__ttn-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+    padding: var(--p-3, 12px);
+    border-top: 1px solid var(--p-line);
+  }
+
+  &__ttn-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__ttn-group-title {
+    font-size: var(--p-fs-meta, 12px);
+    color: var(--p-ink-3);
+  }
+
   &__ttn-grid {
-    // 6 полей ТТН — фиксированные 3 колонки (2 ровных ряда), без «сироты» в конце,
-    // как давал auto-fit (5+1). 3/2/1 колонки делят 6 нацело на любой ширине.
+    // Три поля в группе — три колонки, ровным рядом без «сироты» в конце.
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--p-3, 12px);
