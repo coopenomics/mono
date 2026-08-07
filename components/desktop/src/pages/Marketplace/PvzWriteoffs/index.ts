@@ -1,2 +1,2 @@
-export { PvzWriteoffsPage } from './ui';
+export { PvzWriteoffsSection } from './ui';
 export * from './api';

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
@@ -23,7 +23,16 @@ import ConfirmWriteoffDialog from './ConfirmWriteoffDialog.vue';
  * Служебную записку о списании (registry 1111).
  */
 
+const emit = defineEmits<{
+  (e: 'count', value: number): void;
+}>();
+
 const groups = ref<MarketplaceWriteoffConfirmationGroupView[]>([]);
+
+// Сколько списаний ждёт подтверждения — показывает полоса разделов на
+// странице-обёртке: председателю видно, что от него ждут действия, даже когда
+// он стоит на другом разделе.
+watch(groups, (list) => emit('count', list.length), { immediate: true });
 const loading = ref(false);
 const confirmOpen = ref(false);
 const selectedGroup = ref<MarketplaceWriteoffConfirmationGroupView | null>(null);
@@ -101,7 +110,8 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.pvz-writeoffs(role="region", aria-label="Списание со склада")
+//- Секция стола «Склад»: шапка участка и полоса разделов — на странице-обёртке.
+.pvz-writeoffs(role="region", aria-label="Списание со склада")
   PageHint(storage-key="mp:pvz-writeoffs:banner-dismissed")
     | Совет одобрил списание имущества со складов. Подтвердите фактическое списание со склада своего участка — для этого подпишите Служебную записку о списании. Только после вашей подписи имущество выбывает со склада.
 
@@ -163,7 +173,7 @@ q-page.pvz-writeoffs(role="region", aria-label="Списание со склад
 
 <style lang="scss" scoped>
 .pvz-writeoffs {
-  padding: var(--p-6, 24px);
+  // Внешние отступы держит страница-обёртка «Склад».
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);

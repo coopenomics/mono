@@ -7,20 +7,22 @@ import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { OperatorInventoryLabelingSection } from 'src/pages/Marketplace/OperatorInventoryLabeling'
 import { OperatorOwnWarehouseSection } from 'src/pages/Marketplace/OperatorOwnWarehouse'
 import { OperatorContainersSection } from 'src/pages/Marketplace/OperatorContainers'
+import { PvzWriteoffsSection } from 'src/pages/Marketplace/PvzWriteoffs'
 
 /**
- * Стол «Склад моего КУ» — всё складское хозяйство участка одной страницей.
+ * Стол «Склад» — всё складское хозяйство участка одной страницей.
  *
- * Раскладка, склад, обезличенный остаток и боксы раньше жили отдельными
- * пунктами меню, хотя это одна и та же сущность с разных сторон: карта склада,
- * список того, что на ней лежит, и тара, в которой оно лежит. Меню от этого
- * пухло, а боксы заводят однажды и потом не открывают месяцами.
+ * Раскладка, склад, обезличенный остаток, списание и боксы раньше жили
+ * отдельными пунктами меню, хотя это одна и та же сущность с разных сторон:
+ * карта склада, что на ней лежит, что с неё выбывает и тара, в которой оно
+ * лежит. Меню от этого пухло, а боксы заводят однажды и потом не открывают
+ * месяцами.
  *
  * Открывается на раскладке — это ежедневная работа оператора; остальные
  * разделы рядом, за один клик.
  */
 
-const SECTIONS = ['labeling', 'warehouse', 'stock', 'containers', 'types'] as const
+const SECTIONS = ['labeling', 'warehouse', 'stock', 'writeoffs', 'containers', 'types'] as const
 type WarehouseSection = (typeof SECTIONS)[number]
 
 const DEFAULT_SECTION: WarehouseSection = 'labeling'
@@ -43,7 +45,13 @@ const containersAllowed = computed(() =>
   desktop.hasGrant('market-pvz', 'Container:manage:own-KU'),
 )
 
-const counts = ref({ warehouse: 0, stock: 0, containers: 0, types: 0 })
+// Списание подтверждает председатель участка — у оператора без этого права
+// раздела нет.
+const writeoffsAllowed = computed(() =>
+  desktop.hasGrant('market-pvz', 'Writeoff:read:own-KU'),
+)
+
+const counts = ref({ warehouse: 0, stock: 0, writeoffs: 0, containers: 0, types: 0 })
 
 const tabs = computed<PageTab[]>(() => {
   const list: PageTab[] = [
@@ -51,6 +59,9 @@ const tabs = computed<PageTab[]>(() => {
     { key: 'warehouse', label: 'Склад', count: counts.value.warehouse },
     { key: 'stock', label: 'Остатки', count: counts.value.stock },
   ]
+  if (writeoffsAllowed.value) {
+    list.push({ key: 'writeoffs', label: 'Списание', count: counts.value.writeoffs })
+  }
   if (containersAllowed.value) {
     list.push(
       { key: 'containers', label: 'Боксы', count: counts.value.containers },
@@ -67,15 +78,17 @@ function onSelectTab(tab: PageTab): void {
   })
 }
 
-// Право на боксы может отозваться, пока оператор стоит на их разделе — тогда
+// Право на раздел может отозваться, пока оператор в нём стоит, — тогда
 // возвращаем его на раскладку, чтобы он не смотрел в пустой экран.
-watch([containersAllowed, activeSection], ([allowed, section]) => {
-  if (!allowed && (section === 'containers' || section === 'types')) {
-    void router.replace({
-      name: 'marketplace-pvz-warehouse',
-      params: { coopname: route.params.coopname, section: DEFAULT_SECTION },
-    })
-  }
+watch([containersAllowed, writeoffsAllowed, activeSection], ([containers, writeoffs, section]) => {
+  const lost =
+    (!containers && (section === 'containers' || section === 'types')) ||
+    (!writeoffs && section === 'writeoffs')
+  if (!lost) return
+  void router.replace({
+    name: 'marketplace-pvz-warehouse',
+    params: { coopname: route.params.coopname, section: DEFAULT_SECTION },
+  })
 })
 
 function onWarehouseCounts(value: { warehouse: number; stock: number }): void {
@@ -85,10 +98,14 @@ function onWarehouseCounts(value: { warehouse: number; stock: number }): void {
 function onContainerCounts(value: { containers: number; types: number }): void {
   counts.value = { ...counts.value, ...value }
 }
+
+function onWriteoffCount(value: number): void {
+  counts.value = { ...counts.value, writeoffs: value }
+}
 </script>
 
 <template lang="pug">
-q-page.wh-desk(role='region', aria-label='Склад моего КУ')
+q-page.wh-desk(role='region', aria-label='Склад участка')
   OperatorBranchBar
 
   PageTabs(:tabs='tabs', :active-key='activeSection', @select='onSelectTab')
@@ -100,6 +117,8 @@ q-page.wh-desk(role='region', aria-label='Склад моего КУ')
     :section='activeSection',
     @counts='onWarehouseCounts'
   )
+
+  PvzWriteoffsSection(v-else-if='activeSection === "writeoffs"', @count='onWriteoffCount')
 
   OperatorContainersSection(
     v-else,

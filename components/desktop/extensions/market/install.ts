@@ -24,7 +24,6 @@ import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSuppl
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
 import { AdminWriteoffsPage } from 'src/pages/Marketplace/AdminWriteoffs'
-import { PvzWriteoffsPage } from 'src/pages/Marketplace/PvzWriteoffs'
 import { ChairmanModerationPage } from 'src/pages/Marketplace/ChairmanModeration'
 import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
 import { AdminOrderDetailPage } from 'src/pages/Marketplace/AdminOrderDetail'
@@ -490,9 +489,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
             {
               // Эпик 19: единый стол складского хозяйства участка. Раскладка,
-              // склад, обезличенный остаток и боксы — разделами одной страницы,
-              // а не четырьмя пунктами меню: это одна сущность с разных сторон,
-              // а боксы вообще заводят однажды и потом не открывают месяцами.
+              // склад, обезличенный остаток, списание и боксы — разделами одной
+              // страницы, а не пятью пунктами меню: это одна сущность с разных
+              // сторон, а боксы вообще заводят однажды и потом не открывают
+              // месяцами. Права на разделы разные, поэтому вкладки списания и
+              // боксов страница показывает по грантам, а не по маршруту.
               //
               // Раздел — в адресе, поэтому на нужную вкладку можно дать ссылку.
               // Без раздела открывается раскладка: это ежедневная работа.
@@ -500,24 +501,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-warehouse',
               component: markRaw(OperatorWarehouseDeskPage),
               meta: {
-                title: 'Склад моего КУ',
+                title: 'Склад',
                 icon: 'fa-solid fa-boxes-stacked',
                 requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 8: operator-стол подтверждения списания со склада. Совет
-              // одобрил проект списания — председатель КУ подтверждает
-              // фактическое выбытие имущества, подписав Служебную записку 1111.
-              path: 'writeoffs',
-              name: 'marketplace-pvz-writeoffs',
-              component: markRaw(PvzWriteoffsPage),
-              meta: {
-                title: 'Списание со склада',
-                icon: 'fa-solid fa-trash-can-arrow-up',
-                requires: 'Writeoff:read:own-KU',
                 requiresAuth: true,
                 agreements: agreementsBase,
               },
