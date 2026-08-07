@@ -21,7 +21,7 @@ export default async ({ page, context, shot, env }) => {
   await loginAsChairman(page, context);
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/board-writeoff`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/board-writeoff`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Повестка совета', { timeout: 60000 });

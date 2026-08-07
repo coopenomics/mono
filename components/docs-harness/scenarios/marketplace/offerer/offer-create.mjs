@@ -97,7 +97,7 @@ export default async ({ page, shot }) => {
   // одной из marketplace-страниц ломает useInitExtensionsProcess через
   // boot/init.ts; см. ловушку в PLAN.md §9.X). Без этого pre-check форма
   // create-offer тоже даст 404 без понятного сообщения.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -113,7 +113,7 @@ export default async ({ page, shot }) => {
   }
 
   // --- 01. Пустая форма создания предложения ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/create-offer`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/create-offer`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -284,7 +284,7 @@ export default async ({ page, shot }) => {
   );
 
   // --- 04. Каталог после создания ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

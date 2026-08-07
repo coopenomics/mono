@@ -60,7 +60,7 @@ export default async ({ page, shot }) => {
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await signAllAgreements(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/my-offers`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-offers`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Мои предложения', { timeout: 60000 });

@@ -48,7 +48,7 @@ export default async ({ page, context, shot, env }) => {
 
   // 1. Открыть страницу установки конкретного расширения. Маршрут зашит
   // в chairman/install.ts: `extension/:name/install`.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/chairman/extensions/extension/market/install`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/chairman/extensions/extension/market/install`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

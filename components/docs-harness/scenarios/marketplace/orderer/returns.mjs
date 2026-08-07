@@ -144,7 +144,7 @@ export default async ({ page, shot }) => {
   await signAllAgreements(page);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/returns`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/returns`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -292,7 +292,7 @@ export default async ({ page, shot }) => {
   // поэтому первый load() в onSubmitted может не застать строку. Перезагружаем
   // ленту и ждём появления карточки активного заявления.
   await page.waitForTimeout(4000);
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/returns`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/returns`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

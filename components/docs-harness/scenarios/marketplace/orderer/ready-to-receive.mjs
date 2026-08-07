@@ -63,7 +63,7 @@ export default async ({ page, shot }) => {
   // и на холодном/нагруженном стенде может отбросить на /user/wallet (онбординг)
   // до того, как marketplace-сессия загрузится. Повторяем переход, пока URL
   // не закрепится на market/ready-to-receive.
-  const target = `${env.BASE_URL}/#/${env.COOPNAME}/market/ready-to-receive`;
+  const target = `${env.APP_PREFIX}/${env.COOPNAME}/market/ready-to-receive`;
   for (let attempt = 0; attempt < 5; attempt++) {
     await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});

@@ -76,7 +76,7 @@ export default async ({ page, shot }) => {
   await cleanViteOverlays(page);
 
   for (const route of ROUTES) {
-    const url = `${env.BASE_URL}/#/${env.COOPNAME}${route.path}`;
+    const url = `${env.APP_PREFIX}/${env.COOPNAME}${route.path}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     // Ждём пока SPA-подгрузки прекратятся (GraphQL/REST + chain-rpc).
     await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});

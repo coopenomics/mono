@@ -58,7 +58,7 @@ export default async ({ page, shot }) => {
   // их DOM-hack'ом (канон harness: вызываем после login и каждой навигации).
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/reception`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/reception`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

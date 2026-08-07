@@ -55,7 +55,7 @@ export default async ({ page, context, shot, env }) => {
   }
 
   // --- Шаг 2. Переход в Мастерскую ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
 
   // ProjectsListWidget данные тянет через GraphQL → controller; cooparser
   // должен успеть проиндексировать transactions из prepare-фаз. На холодной

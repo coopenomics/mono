@@ -93,7 +93,7 @@ export default async ({ page, shot }) => {
   // Открываем /market/catalog в новой вкладке такого же контекста через page.goto.
   // Если расширение строит гейт — увидим его поверх онбординг-диалогов или
   // увидим редирект на /user/wallet с висящим стеком соглашений.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
@@ -120,7 +120,7 @@ export default async ({ page, shot }) => {
   // --- 04. Каталог Стола заказов после подписания всех соглашений ---
   // Если есть отдельный гейт ЦПП Стола заказов — он должен показаться сейчас
   // как новый диалог. Если нет — каталог должен открыться.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);

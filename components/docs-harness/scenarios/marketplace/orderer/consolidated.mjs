@@ -34,7 +34,7 @@ export default async ({ page, shot }) => {
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
   // 1. Открыть страницу сводного заказа
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/consolidated`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/consolidated`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Сводный заказ', { timeout: 60000 });

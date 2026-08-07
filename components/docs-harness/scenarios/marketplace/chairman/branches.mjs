@@ -20,7 +20,7 @@ export default async ({ page, context, shot, expect, env }) => {
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу «Кооперативные участки»
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/chairman/settings/branches`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/chairman/settings/branches`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('text=Кооперативные участки', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(800);

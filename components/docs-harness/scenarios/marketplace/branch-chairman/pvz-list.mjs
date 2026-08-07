@@ -20,7 +20,7 @@ export default async ({ page, shot }) => {
   // роли (operator/admin) и может отбросить до загрузки marketplace-сессии;
   // плюс свежий онбординг председателя на пересозданном стенде. Повторяем,
   // пока URL не закрепится на market-pvz/list.
-  const target = `${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/list`;
+  const target = `${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/list`;
   for (let attempt = 0; attempt < 6; attempt++) {
     // Полный перезагруз документа (через about:blank) — иначе market-стор
     // держит loaded=true с пустыми ролями после первой гонки fetchRoles, и

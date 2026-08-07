@@ -28,12 +28,12 @@ const ROUTES = [
 
 export default async ({ page, shot, context }) => {
   // Login
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await page.waitForSelector('button:has-text("Войти")', { timeout: 60000 });
   await cleanViteOverlays(page);
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(env.CHAIRMAN_WIF);
+  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
+  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
   await page.waitForURL(/chairman/, { timeout: 30000 });
@@ -41,7 +41,7 @@ export default async ({ page, shot, context }) => {
 
   // Tour по marketplace разделам
   for (const route of ROUTES) {
-    const url = `${env.BASE_URL}/#/${env.COOPNAME}${route.path}`;
+    const url = `${env.APP_PREFIX}/${env.COOPNAME}${route.path}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(4500);
     await cleanViteOverlays(page);

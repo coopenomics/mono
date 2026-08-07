@@ -57,7 +57,7 @@ export default async ({ page, shot }) => {
   await signAllAgreements(page);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(3000);
   await cleanViteOverlays(page);

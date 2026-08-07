@@ -26,8 +26,8 @@ try {
   // --- Логин пайщика (повтор логики auth/signin.mjs без скриншотов) ---
   await page.goto(`${env.BASE_URL}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 120000 });
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(FIXTURE.email);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(FIXTURE.wif);
+  await page.locator('input[type="email"]').first().fill(FIXTURE.email);
+  await page.locator('input[type="password"]').first().fill(FIXTURE.wif);
   await page.locator('button:has-text("Войти")').click();
   await page.waitForURL(/\/voskhod\/user\//, { timeout: 30000 });
 

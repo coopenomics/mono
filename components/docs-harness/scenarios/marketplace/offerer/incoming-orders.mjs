@@ -62,7 +62,7 @@ export default async ({ page, shot }) => {
   await loginAs(page, fixture);
   await signAllAgreements(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/incoming-orders`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/incoming-orders`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Входящие заказы', { timeout: 90000 });

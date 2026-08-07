@@ -86,7 +86,7 @@ export default async ({ page, shot }) => {
   await loginAs(page, fixture);
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/returns`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/returns`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

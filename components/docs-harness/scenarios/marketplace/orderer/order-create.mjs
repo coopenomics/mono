@@ -108,7 +108,7 @@ export default async ({ page, shot }) => {
   // banner «Вы уже подключены». Сценарий поддерживает оба исхода:
   // на свежей цепочке первый прогон снимет полный flow; повторные
   // прогоны пропустят подпись (уже зафиксирована on-chain).
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/onboarding/member-cpp`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/onboarding/member-cpp`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -201,7 +201,7 @@ export default async ({ page, shot }) => {
   }
 
   // === Шаг 2: переход на каталог ===
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/catalog`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

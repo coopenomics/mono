@@ -35,7 +35,7 @@ export default async ({ page, shot }) => {
   await loginAs(page, fixture);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/onboarding/member-cpp`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/onboarding/member-cpp`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Подключение к Столу заказов', { timeout: 60000 });

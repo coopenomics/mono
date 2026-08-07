@@ -48,7 +48,7 @@ export default async ({ page, context, shot, env }) => {
   }
 
   // --- Открываем профиль ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/capital/wallet`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/wallet`, { waitUntil: 'domcontentloaded' });
 
   // Ждём пока карточка контрибутора подгрузится (на ней есть display_name).
   await page.waitForSelector('text=Иван', { timeout: 60000 }).catch(() => {});

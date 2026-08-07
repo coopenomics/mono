@@ -22,7 +22,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу доступных категорий
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/category-whitelist`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/category-whitelist`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Доступные категории', { timeout: 60000 });

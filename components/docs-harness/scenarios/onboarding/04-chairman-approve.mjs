@@ -41,7 +41,7 @@ export default async ({ page, shot }) => {
   await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
 
   // Идём прямо на Реестр кооперативов. Это часть workspace=soviet.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/soviet/union/cooperatives`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/soviet/union/cooperatives`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
   });

@@ -110,7 +110,7 @@ export default async ({ page, shot }) => {
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/writeoffs`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/writeoffs`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

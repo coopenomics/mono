@@ -100,7 +100,7 @@ export default async ({ page, context, shot, env }) => {
   // --- Шаг 1. Логин председателя. ---
   await loginAsChairman(page, context);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/projects`, { waitUntil: 'domcontentloaded' });
   await dismissAllWalletDialogs(page);
 
   // --- Кадр 1. Список шагов адаптации (CapitalOnboardingCard) ---

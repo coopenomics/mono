@@ -53,10 +53,10 @@ export default async ({ page, shot }) => {
   //   1) отрабатывает Mutations.Auth.Login (sdk Client.login) успешно,
   //   2) sees !session.isRegistrationComplete → router.push({name:'signup'})
   // Это легитимный UX для шага «вы ещё не приняты — продолжите регистрацию».
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 30_000 });
-  await page.locator('label:has-text("электронную почту")').first().locator('input').fill(partner.email);
-  await page.locator('label:has-text("ключ доступа")').first().locator('input').fill(partner.wif);
+  await page.locator('input[type="email"]').first().fill(partner.email);
+  await page.locator('input[type="password"]').first().fill(partner.wif);
   await page.locator('button:has-text("Войти")').click();
   // Допускаем оба исхода: signup-redirect (пайщик ещё не принят) либо успешный
   // вход в participant/chairman/soviet/user.
@@ -93,7 +93,7 @@ export default async ({ page, shot }) => {
   // Маршрут зарегистрирован в extensions/participant/install.ts с условием
   // isCoop === true && coopname === 'voskhod' — открыт всем cooperative-
   // пайщикам Восхода.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/connect`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/connect`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
   await dismissOnboardingDialogs(page);
   await page.waitForTimeout(1500);

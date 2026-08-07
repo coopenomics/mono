@@ -7,14 +7,39 @@ import { chromium } from 'playwright';
 import { expect } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const HARNESS_ROOT = path.resolve(__dirname, '..');
 export const REPO_ROOT = path.resolve(HARNESS_ROOT, '..');
 
+// Режим роутера решается в рантайме (src/app/providers/router.ts:
+// env.VUE_ROUTER_MODE === 'history' ? createWebHistory : createWebHashHistory),
+// а не на сборке. Стенды разъезжаются: где-то hash, где-то history — и
+// зашитый в сценарий «/#/» уводит историю-роутер на несуществующий путь.
+// Поэтому сценарии строят URL через APP_PREFIX, а не руками.
+function routerPrefix(baseUrl) {
+  if (process.env.ROUTER_MODE) return process.env.ROUTER_MODE === 'hash' ? `${baseUrl}/#` : baseUrl;
+  try {
+    const envFile = path.resolve(__dirname, '../../desktop/.env');
+    const raw = fsSync.readFileSync(envFile, 'utf8');
+    const m = raw.match(/^\s*VUE_ROUTER_MODE\s*=\s*(\S+)\s*$/m);
+    // По умолчанию hash — так же, как в public/config.default.js.
+    if (m && m[1].replace(/["']/g, '') === 'history') return baseUrl;
+  } catch {
+    /* нет .env — остаёмся на hash */
+  }
+  return `${baseUrl}/#`;
+}
+
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:2999';
+
 export const env = {
-  BASE_URL: process.env.BASE_URL || 'http://127.0.0.1:2999',
+  BASE_URL,
+  // Префикс для маршрутов приложения: с ним `${env.APP_PREFIX}/${COOPNAME}/...`
+  // корректен и в hash-, и в history-режиме.
+  APP_PREFIX: routerPrefix(BASE_URL),
   COOPNAME: process.env.COOPNAME || 'voskhod',
   CHAIRMAN_EMAIL: process.env.CHAIRMAN_EMAIL || 'ivanov@example.com',
   CHAIRMAN_WIF: process.env.CHAIRMAN_WIF || '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3',
@@ -28,6 +53,16 @@ export const env = {
 export const SHOT_VIEWPORT = { width: 1120, height: 800 };
 export const SHOT_SCALE = 1.25;
 
+// Исключения, которые НЕ являются дефектом проверяемого продукта: их бросают
+// сторонние виджеты, которых на локальном стенде просто нет. Список держим
+// узким и с обоснованием — каждая запись здесь ослабляет смоук-вердикт.
+const IGNORED_PAGE_ERRORS = [
+  // Виджет поддержки Chatwoot грузится с внешнего хоста; на локальном стенде
+  // его нет, и SDK бросает «Chatwoot not loaded» на каждой странице.
+  // К Столу заказов отношения не имеет.
+  /Chatwoot not loaded/i,
+];
+
 export async function openBrowser({ storageState } = {}) {
   const browser = await chromium.launch();
   const context = await browser.newContext({
@@ -39,6 +74,12 @@ export async function openBrowser({ storageState } = {}) {
   const page = await context.newPage();
 
   const consoleLog = [];
+  // Структурированные признаки поломки — на них runner выносит вердикт, не
+  // дожидаясь ассерта. Сценарий без единого expect всё равно работает как
+  // смоук-тест: JS-исключение на странице или 5xx от сервера роняют прогон.
+  // 4xx сюда НЕ попадают: 401/403 — штатная часть логина и боковых сценариев,
+  // где отказ и есть ожидаемое поведение.
+  const failures = [];
   const debugConsole = process.env.DEBUG_CONSOLE === '1';
   page.on('console', m => {
     const line = `[${m.type()}] ${m.text()}`;
@@ -47,6 +88,9 @@ export async function openBrowser({ storageState } = {}) {
   });
   page.on('pageerror', e => {
     consoleLog.push(`[pageerror] ${e.message}`);
+    if (!IGNORED_PAGE_ERRORS.some((re) => re.test(e.message))) {
+      failures.push({ kind: 'pageerror', detail: e.message.split('\n')[0].slice(0, 300) });
+    }
     if (debugConsole) console.log('  [browser pageerror]', e.message.slice(0, 300));
   });
   page.on('requestfailed', r => {
@@ -59,10 +103,16 @@ export async function openBrowser({ storageState } = {}) {
     const u = r.url();
     if (u.includes('/v1/') || u.includes('/config') || u.includes('/get_info') || u.includes('get_account')) {
       consoleLog.push(`[resp ${r.status()}] ${r.request().method()} ${u}`);
+      // 400 — сформированный клиентом невалидный запрос, это всегда дефект;
+      // 5xx — сервер упал. И то и другое роняет сценарий.
+      const s = r.status();
+      if (s === 400 || s >= 500) {
+        failures.push({ kind: 'http', detail: `${s} ${r.request().method()} ${u.slice(0, 200)}` });
+      }
     }
   });
 
-  return { browser, context, page, consoleLog };
+  return { browser, context, page, consoleLog, failures };
 }
 
 // Логин председателя через форму. Кэширует storageState.
@@ -72,11 +122,11 @@ export async function loginAsChairman(page, context) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
   // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
   // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(env.CHAIRMAN_EMAIL);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(env.CHAIRMAN_WIF);
+  await page.locator('input[type="email"]').first().fill(env.CHAIRMAN_EMAIL);
+  await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
   // Ждём пока URL уйдёт от signin (либо в chairman/user/soviet/participant).
@@ -93,11 +143,11 @@ export async function loginAsChairman(page, context) {
 export async function loginAs(page, fixture) {
   // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
   // роута signin в Vite не укладывается в 60с на первом заходе.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
   await page.waitForSelector('button:has-text("Войти")', { timeout: 150000 });
   await cleanViteOverlays(page);
-  await page.locator('label:has-text("электронную почту")').locator('input').fill(fixture.email);
-  await page.locator('label:has-text("ключ доступа")').locator('input').fill(fixture.wif);
+  await page.locator('input[type="email"]').first().fill(fixture.email);
+  await page.locator('input[type="password"]').first().fill(fixture.wif);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
   await page.waitForFunction(
@@ -124,6 +174,32 @@ export async function loginAs(page, fixture) {
 // документ» в заголовке) — и если да, ставит display:none + чистит body-флаги
 // Quasar (q-body--prevent-scroll и пр.). Наблюдатель остаётся жить до конца
 // page-сессии и работает после каждого Vue-перерендера.
+// Клик по пункту левого меню (AppDrawer канона).
+//
+// Разметка меню менялась: раньше это были `a` / `.q-item` Quasar'а, сейчас —
+// `div.rail__item` со `span.rail__item-label` внутри. Сценарии, которые ходили
+// по старым селекторам, молча пропускали пункт и снимали одну и ту же
+// страницу под разными именами — тест, который ничего не проверяет.
+// Поэтому: перебираем известные варианты разметки, а если пункта нет —
+// падаем, а не «continue».
+export async function clickMenu(page, text, { timeout = 15000 } = {}) {
+  const candidates = [
+    `.rail__item:has(.rail__item-label:text-is("${text}"))`,
+    `.rail__item:has-text("${text}")`,
+    `a:has-text("${text}")`,
+    `.q-item:has-text("${text}")`,
+  ];
+  for (const sel of candidates) {
+    const link = page.locator(sel).first();
+    if (await link.isVisible().catch(() => false)) {
+      await link.click();
+      await page.waitForTimeout(1200);
+      return sel;
+    }
+  }
+  throw new Error(`пункт меню «${text}» не найден ни одним из селекторов: ${candidates.join(' | ')}`);
+}
+
 export async function dismissOnboardingDialogs(page) {
   await page.evaluate(() => {
     if (window.__onboardingDialogsBlocker) return;
@@ -288,14 +364,27 @@ export async function cleanViteOverlays(page, opts = {}) {
 }
 
 // Создаёт shot-функцию + manifest для сценария.
-export function makeShotContext({ scenarioName, outDir }) {
+// mode — что сценарий производит помимо вердикта (см. GOAL.md):
+//   'docs'  — кадры + проза + install в components/docs (страница инструкции);
+//   'shots' — кадры без прозы: визуальный след, смотрится глазами;
+//   'test'  — только вердикт; PNG не пишется, opts.expect по-прежнему работает.
+// Проверки идут одинаково во всех режимах — режим управляет лишь артефактами.
+export function makeShotContext({ scenarioName, outDir, mode = 'docs' }) {
   const shots = [];
+  const noPng = mode === 'test';
   async function shot(page, name, description, opts = {}) {
     const filePath = path.join(outDir, `${name}.png`);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
     // Опциональный expect перед снимком: падает шумно, а не тихо.
     if (opts.expect) await opts.expect(page);
+
+    if (noPng) {
+      const entry = { name, description, url: page.url(), skipped: 'mode=test', at: new Date().toISOString() };
+      shots.push(entry);
+      console.log(`  ✓ ${name} (проверка без кадра)`);
+      return entry;
+    }
 
     await page.waitForTimeout(opts.delay ?? 300);
     await cleanViteOverlays(page, { preserveNotifications: opts.preserveNotifications });
