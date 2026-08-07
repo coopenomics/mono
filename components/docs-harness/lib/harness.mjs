@@ -199,6 +199,40 @@ export async function passFirstLoginAgreements(page) {
 // документ» в заголовке) — и если да, ставит display:none + чистит body-флаги
 // Quasar (q-body--prevent-scroll и пр.). Наблюдатель остаётся жить до конца
 // page-сессии и работает после каждого Vue-перерендера.
+// Выбор кооперативного участка — платформенный оверлей, а не экран Стола заказов.
+//
+// После того как кооператив перешёл на двухэтапную систему управления, любой
+// пайщик при первом входе получает диалог «Выберите кооперативный участок».
+// Пока он висит, экран расширения под ним недоступен. Сценариям Стола заказов
+// этот шаг не принадлежит, но пройти его они обязаны — иначе падают на
+// «не вижу каталог», хотя дело в незакрытом диалоге платформы.
+//
+// Возвращает имя выбранного участка либо null, если диалога не было.
+export async function pickBranchIfAsked(page, { timeout = 8000 } = {}) {
+  // Без :visible — портал-обёртка Quasar может не иметь собственного бокса,
+  // и строгая проверка видимости отбрасывает диалог, который на экране есть.
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Выберите кооперативный участок' }).first();
+  const shown = await dialog.waitFor({ state: 'attached', timeout }).then(() => true).catch(() => false);
+  if (!shown) return null;
+
+  const select = dialog.locator('.q-field').first();
+  await select.click();
+  // Разметка выпадающего списка зависит от обёртки канона: где-то q-item,
+  // где-то role=option. Берём первый вариант, который реально появился.
+  const option = page
+    .locator('.q-menu [role="option"], .q-menu .q-item, [role="listbox"] [role="option"]')
+    .first();
+  await option.waitFor({ state: 'visible', timeout: 10000 });
+  const picked = (await option.innerText()).trim().split('\n')[0];
+  await option.click();
+  await page.waitForTimeout(500);
+
+  await dialog.locator('button:has-text("Продолжить")').first().click();
+  await page.waitForTimeout(2500);
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  return picked;
+}
+
 // Клик по пункту левого меню (AppDrawer канона).
 //
 // Разметка меню менялась: раньше это были `a` / `.q-item` Quasar'а, сейчас —
