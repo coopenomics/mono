@@ -470,14 +470,16 @@ async function onGetFundsPrimary(): Promise<void> {
 
   getFundsBuilding.value = true
   try {
-    if (convert > 0) {
-      await convertBranchFunds({ amount: convert })
-    }
+    // Когда в получение входит материальная помощь, на этом шаге НИЧЕГО не
+    // выполняется: только готовится заявление к подписи. Иначе отмена на
+    // втором шаге оставляла бы перевод уже совершённым — председатель закрыл
+    // окно, будучи уверенным, что не получил ничего, а деньги ушли.
     if (aid > 0 && braname.value) {
       aidDoc.value = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
       getFundsStep.value = 'preview'
       return
     }
+    await convertBranchFunds({ amount: convert })
     SuccessAlert('Средства переведены в кошелёк Стола заказов')
     getFundsOpen.value = false
     await loadAll()
@@ -488,11 +490,19 @@ async function onGetFundsPrimary(): Promise<void> {
   }
 }
 
+/**
+ * Подпись заявления — точка, где выполняется ВСЁ получение целиком: и заявка
+ * на материальную помощь, и перевод в Стол заказов, если председатель разделил
+ * сумму между ними. Разносить их по разным шагам нельзя: одна операция уже
+ * совершена, вторая ещё нет, а окно можно закрыть между ними.
+ */
 async function onSignAndSubmitAid(): Promise<void> {
   const doc = aidDoc.value
   const amount = Number(aidPart.value)
+  const convert = Number(convertPart.value) || 0
   if (!doc || !braname.value || !aidPaymentMethodId.value) return
   getFundsSubmitting.value = true
+  let aidDone = false
   try {
     const digital = new DigitalDocument(doc)
     const signed = await digital.sign(session.username)
@@ -505,11 +515,30 @@ async function onSignAndSubmitAid(): Promise<void> {
       statement: signed,
       payment_method_id: aidPaymentMethodId.value,
     })
-    SuccessAlert('Заявление подано на рассмотрение совета — выплата после его решения')
+    aidDone = true
+    if (convert > 0) {
+      await convertBranchFunds({ amount: convert })
+    }
+    SuccessAlert(
+      convert > 0
+        ? 'Заявление подано на рассмотрение совета, остальное переведено в кошелёк Стола заказов'
+        : 'Заявление подано на рассмотрение совета — выплата после его решения',
+    )
     getFundsOpen.value = false
     await loadAll()
   } catch (e) {
-    FailAlert(e, 'Не удалось подать заявку на материальную помощь')
+    // Заявление уже подано, а перевод не прошёл — говорим об этом прямо, иначе
+    // председатель повторит всё сразу и подаст второе заявление.
+    FailAlert(
+      e,
+      aidDone
+        ? 'Заявление подано, но перевод в Стол заказов не прошёл — повторите его отдельно'
+        : 'Не удалось подать заявку на материальную помощь',
+    )
+    if (aidDone) {
+      getFundsOpen.value = false
+      await loadAll()
+    }
   } finally {
     getFundsSubmitting.value = false
   }
@@ -882,11 +911,13 @@ q-page.economy
     .economy__dialog-body
       template(v-if='getFundsStep === "form"')
         p
-          | Разделите сумму между переводом в Стол заказов (мгновенно, без
-          | заявления) и материальной помощью — её вы получаете по заявлению,
-          | которое рассматривает совет; после одобрения кассир переводит
-          | деньги на выбранные реквизиты. Налог с дохода вы оплачиваете
-          | самостоятельно.
+          | Разделите сумму между переводом в Стол заказов и материальной
+          | помощью — её вы получаете по заявлению, которое рассматривает
+          | совет; после одобрения кассир переводит деньги на выбранные
+          | реквизиты. Налог с дохода вы оплачиваете самостоятельно.
+        p.economy__get-funds-note(v-if='Number(aidPart) > 0')
+          | Ничего не произойдёт, пока вы не подпишете заявление: и заявка, и
+          | перевод в Стол заказов уйдут разом на следующем шаге.
         AmountInput(
           v-model='convertPart',
           label='В Стол заказов',
@@ -936,7 +967,7 @@ q-page.economy
       )
         template(#icon-left)
           q-icon(name='draw', size='16px')
-        | Подписать и отправить
+        | {{ Number(convertPart) > 0 ? 'Подписать и получить' : 'Подписать и отправить' }}
 </template>
 
 <style scoped lang="scss">
@@ -972,6 +1003,11 @@ q-page.economy
   &__payout-amount {
     font-size: var(--p-fs-md, 1rem);
     font-weight: 600;
+  }
+
+  &__get-funds-note {
+    color: var(--p-ink-2);
+    font-size: var(--p-fs-body-sm, 13px);
   }
 
   &__get-funds-total {
