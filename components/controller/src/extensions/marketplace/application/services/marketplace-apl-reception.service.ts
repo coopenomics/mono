@@ -51,6 +51,7 @@ import {
 import {
   MarketplaceBarcodeFormats,
   MarketplaceInventoryStatuses,
+  isValidEan13,
   type MarketplaceInventoryPlacement,
 } from '../../domain/entities/marketplace-inventory.types';
 import {
@@ -774,6 +775,16 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceAplReceptionSignChairmanInputDto
   ): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
+
+    // Приёмка уже закрыта на цепи, но повтор пришёл — значит в прошлый раз
+    // что-то после подписи не доехало (склад, выплаты) и председатель нажал
+    // «Подписать» снова. Отказ оставил бы приёмку закрытой без оприходования и
+    // без выплаты поставщику, а починить это из интерфейса было бы нечем.
+    // Поэтому вместо отказа доводим начатое: и склад, и выплаты идемпотентны.
+    if (reception.status === MarketplaceAplReceptionStatuses.ACCEPTED_TO_COOP) {
+      return await this.completeAcceptedReception(reception, input);
+    }
+
     if (!reception.awaits_chairman) {
       throw new ConflictException(
         `АПП находится в статусе «${reception.status}», закрывающая подпись председателя недопустима.`
@@ -867,6 +878,39 @@ export class MarketplaceAplReceptionService {
     this.emitReceptionStatusChanged(updated);
 
     return { apl_reception: updated };
+  }
+
+  /**
+   * Доводит уже закрытую приёмку: оприходование склада и выплаты поставщику.
+   *
+   * Подпись на цепи повторно не отправляется — она там уже есть. Оба шага
+   * идемпотентны: позиция склада не создаётся по заказу, где она уже есть, а
+   * выплата заводится через `createIfNotExists`. Поэтому повторный вызов
+   * безопасен и просто добирает то, чего не хватает.
+   */
+  private async completeAcceptedReception(
+    reception: MarketplaceAplReceptionDomainEntity,
+    input: MarketplaceAplReceptionSignChairmanInputDto
+  ): Promise<MarketplaceAplReceptionResult> {
+    const groupOrders = await this.loadGroupOrders(reception);
+    const { accepted: acceptedOrders } = this.splitGroupByFact(reception, groupOrders);
+
+    const placementByOrderId = await this.resolveReceptionPlacements(
+      reception,
+      acceptedOrders,
+      input.placements ?? []
+    );
+
+    await this.materializeInventory(reception, acceptedOrders, placementByOrderId);
+
+    const orderHashByOrderId = new Map(acceptedOrders.map((o) => [o.id, o.order_hash] as const));
+    await this.initiatePayouts(reception, acceptedOrders, orderHashByOrderId);
+
+    this.logger.log(
+      `АПП ${reception.id}: приёмка уже была закрыта на цепи — довели оприходование и выплаты по ${acceptedOrders.length} заказам.`
+    );
+
+    return { apl_reception: reception };
   }
 
   /**
@@ -1373,6 +1417,16 @@ export class MarketplaceAplReceptionService {
   ): Promise<string | null> {
     const barcode = raw?.trim();
     if (!barcode) return null;
+
+    // Сканер читает не только этикетку с листа: под камеру попадают QR тары и
+    // служебные коды. Отсеиваем их здесь, до отправки подписи в цепь, — иначе
+    // акт закроется on-chain, а позиция склада не создастся, и закрыть приёмку
+    // повторно будет уже нечем.
+    if (!isValidEan13(barcode)) {
+      throw new BadRequestException(
+        `Этикетка «${barcode}» не похожа на штрихкод с листа этикеток: нужны 13 цифр. Отсканируйте штрихкод, а не QR-код тары.`
+      );
+    }
 
     if (seenInBatch.has(barcode)) {
       throw new ConflictException(

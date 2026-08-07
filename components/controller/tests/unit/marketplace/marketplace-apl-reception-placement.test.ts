@@ -281,6 +281,28 @@ describe('resolveReceptionPlacements — этикетки', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('отвергает код, не похожий на этикетку, до отправки подписи в цепь', async () => {
+    // Сканер ловит и QR тары, и служебные коды. Если пропустить такой номер
+    // дальше, подпись уйдёт на цепь, а позиция склада не создастся — приёмка
+    // останется закрытой без оприходования, и повторить её будет нечем.
+    const { resolve } = makeService();
+
+    await expect(
+      resolve(
+        [order('o1')],
+        [{ order_id: 'o1', container_id: 'box-1', barcode_value: '000000000000000000000000' }]
+      )
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('отвергает буквенный код', async () => {
+    const { resolve } = makeService();
+
+    await expect(
+      resolve([order('o1')], [{ order_id: 'o1', container_id: 'box-1', barcode_value: 'BX-0001' }])
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('пустую строку номером не считает', async () => {
     const { resolve, inventoryRepo } = makeService();
 

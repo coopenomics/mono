@@ -1,3 +1,4 @@
+import { isValidEan13 } from './marketplace-inventory.types';
 import type {
   MarketplaceBarcodeFormat,
   MarketplaceInventoryOwnership,
@@ -40,7 +41,7 @@ export class MarketplaceInventoryDomainEntity {
   public updated_at: Date;
 
   constructor(props: MarketplaceInventoryProps) {
-    if (props.barcode_value && props.barcode_format === 'EAN13' && !/^\d{13}$/.test(props.barcode_value)) {
+    if (props.barcode_value && props.barcode_format === 'EAN13' && !isValidEan13(props.barcode_value)) {
       throw new Error(
         `MarketplaceInventoryDomainEntity: EAN-13 должен быть 13-значным числом (получено: "${props.barcode_value}")`
       );

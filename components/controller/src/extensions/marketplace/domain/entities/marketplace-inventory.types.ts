@@ -13,6 +13,16 @@ export const MarketplaceBarcodeFormats = {
 } as const satisfies Record<string, MarketplaceBarcodeFormat>;
 
 /**
+ * Годится ли номер как EAN-13. Проверять его нужно в тот момент, когда номер
+ * пришёл от сканера, а не когда позиция склада уже создаётся: сканер читает и
+ * QR, и служебные коды, а отказ на полпути оставляет приёмку закрытой без
+ * оприходования.
+ */
+export function isValidEan13(value: string): boolean {
+  return /^\d{13}$/.test(value);
+}
+
+/**
  * Состояние единицы имущества в инвентаре КУ.
  *
  *  - `RECEIVED` — имущество принято кооперативом по акту приёмки и лежит на
