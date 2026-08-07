@@ -7,7 +7,7 @@
 // и goto. После клика «Войти» token успевает сохраниться в IndexedDB, что
 // позволяет последующим goto'ам захватить authenticated layout (хедер).
 
-import { cleanViteOverlays, clickMenu, env } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, clickMenu, env, passFirstLoginAgreements } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Стол председателя ПК: экскурсия по marketplace',
@@ -42,6 +42,10 @@ export default async ({ page, shot, context }) => {
   await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
+  // Соглашения первого входа: на свежей цепи каскад модалок перехватывает
+  // клики оверлеем, и сценарий падает на «не могу нажать пункт меню».
+  await page.waitForFunction(() => !/auth\/signin/.test(window.location.href), { timeout: 30000 }).catch(() => {});
+  await passFirstLoginAgreements(page);
 
   // Дожидаемся редиректа на онбординг председателя
   await page.waitForURL(/chairman/, { timeout: 30000 });

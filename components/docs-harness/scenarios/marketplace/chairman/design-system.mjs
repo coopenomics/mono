@@ -2,7 +2,7 @@
 // Витрина 13 custom-компонентов для утверждения председателем/советом
 // до их применения в эпиках 1-9. Не выходит в production-меню пайщикам.
 
-import { cleanViteOverlays, env } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, passFirstLoginAgreements } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Дизайн-система Стола заказов',
@@ -21,6 +21,10 @@ export default async ({ page, shot }) => {
   await page.locator('input[type="password"]').first().fill(env.CHAIRMAN_WIF);
   await cleanViteOverlays(page);
   await page.locator('button:has-text("Войти")').click();
+  // Соглашения первого входа: на свежей цепи каскад модалок перехватывает
+  // клики оверлеем, и сценарий падает на «не могу нажать пункт меню».
+  await page.waitForFunction(() => !/auth\/signin/.test(window.location.href), { timeout: 30000 }).catch(() => {});
+  await passFirstLoginAgreements(page);
   await page.waitForFunction(
     () => !/auth\/signin/.test(window.location.href),
     { timeout: 30000 },

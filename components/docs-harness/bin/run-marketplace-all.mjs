@@ -41,7 +41,6 @@ const GROUPS = [
     scenarios: [
       'marketplace/onboarding/install-market',
       'marketplace/onboarding/coop-accept-cpp',
-      'marketplace/chairman/activate-kus',
       'marketplace/chairman/branches',
       'marketplace/chairman/category-whitelist',
     ],

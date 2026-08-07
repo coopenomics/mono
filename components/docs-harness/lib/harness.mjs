@@ -118,7 +118,7 @@ export async function openBrowser({ storageState } = {}) {
 // Логин председателя через форму. Кэширует storageState.
 // Учитывает что vue-router в текущем десктопе работает в hash-режиме
 // (URL вида http://host/#/voskhod/...), а не history.
-export async function loginAsChairman(page, context) {
+export async function loginAsChairman(page, context, { signAgreements = true } = {}) {
   // timeout 150s: первый заход на роут signin компилирует его chunk в холодном
   // Vite (optimizeDeps + on-demand transform модульного графа), что не укладывается
   // в 60с; последующие сценарии переиспользуют скомпилированный chunk и быстры.
@@ -136,11 +136,12 @@ export async function loginAsChairman(page, context) {
     { timeout: 30000 },
   ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  if (signAgreements) await passFirstLoginAgreements(page);
 }
 
 // Логин обычного пайщика по фикстуре (state/participants/<username>.json).
 // fixture: { username, email, wif, ... }
-export async function loginAs(page, fixture) {
+export async function loginAs(page, fixture, { signAgreements = true } = {}) {
   // timeout 150s: см. комментарий в loginAsChairman — холодная компиляция chunk'а
   // роута signin в Vite не укладывается в 60с на первом заходе.
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/auth/signin`, { waitUntil: 'domcontentloaded', timeout: 150000 });
@@ -155,6 +156,30 @@ export async function loginAs(page, fixture) {
     { timeout: 30000 },
   ).catch(() => {});
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  if (signAgreements) await passFirstLoginAgreements(page);
+}
+
+
+// Соглашения первого входа — свойство стенда, а не сценария.
+//
+// На свежей цепи (после reboot:extra) любой первый вход открывает каскад
+// модалок подписания: пользовательское соглашение, ЭП, политика обработки
+// персональных данных, положение о ЦПП «Кошелёк». Пока они висят, оверлей
+// перехватывает клики — и сценарий падает на «не могу кликнуть по меню»,
+// хотя меню на месте. Раньше каждый сценарий разбирался с этим сам (или не
+// разбирался вовсе), поэтому чинить приходилось по одному.
+//
+// Подписываем, а не прячем: спрятанный диалог оставляет кооператив без
+// подписи, и следующее же действие упирается в неё уже на сервере.
+export async function passFirstLoginAgreements(page) {
+  // Документ может ещё генерироваться — кнопка появится позже текста.
+  await page.waitForFunction(
+    () => !document.body.innerText.includes('Формируем документ'),
+    { timeout: 30000 },
+  ).catch(() => {});
+  const { signed } = await signOnboardingAgreements(page, { probeMs: 4000 });
+  if (signed) await page.waitForTimeout(1500);
+  return signed;
 }
 
 // Скрывает каскад модалок-документов первого входа (Положение о ЦПП Кошелёк,
