@@ -7,7 +7,7 @@
 // DRAFT в ON_AGENDA. Дальше совет голосует через стандартную повестку.
 //
 // Роль: главный председатель кооператива (marketplace-роль admin). Лента
-// списаний живёт на /market/writeoffs (не /market-pvz/...).
+// списаний живёт на /market-admin/writeoffs (не /market-pvz/...).
 
 import { cleanViteOverlays, env, loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
 
@@ -110,7 +110,7 @@ export default async ({ page, shot }) => {
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/writeoffs`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/writeoffs`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

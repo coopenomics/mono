@@ -18,7 +18,7 @@ export default async ({ page, context, shot, env }) => {
   await loginAsChairman(page, context);
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/payouts`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/payouts`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Выплаты поставщикам', { timeout: 60000 });

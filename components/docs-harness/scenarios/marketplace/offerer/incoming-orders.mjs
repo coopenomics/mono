@@ -62,7 +62,7 @@ export default async ({ page, shot }) => {
   await loginAs(page, fixture);
   await signAllAgreements(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/incoming-orders`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/incoming-orders`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Входящие заказы', { timeout: 90000 });
@@ -84,7 +84,7 @@ export default async ({ page, shot }) => {
     await shot(
       page,
       '02-pending-filter',
-      'Фильтр «Ждут моего акцепта» — заказы в статусе ACCEPTED_PENDING_SUPPLIER, которые поставщику нужно принять или отказаться через TakeoverDialog Эпика 5 на /market/supply-prep.',
+      'Фильтр «Ждут моего акцепта» — заказы в статусе ACCEPTED_PENDING_SUPPLIER, которые поставщику нужно принять или отказаться через TakeoverDialog Эпика 5 на /market-supplier/supply-prep.',
     );
   }
 

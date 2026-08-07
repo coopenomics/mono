@@ -60,7 +60,7 @@ export default async ({ page, shot }) => {
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await signAllAgreements(page);
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-offers`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/my-offers`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Мои предложения', { timeout: 60000 });
@@ -82,7 +82,7 @@ export default async ({ page, shot }) => {
     await shot(
       page,
       '02-pending-filter',
-      'Фильтр «На модерации» — Offer\'ы в статусе PENDING_MODERATION ждут решения председателя на /market/moderation. После APPROVED попадают в публичный каталог Story 3.5.',
+      'Фильтр «На модерации» — Offer\'ы в статусе PENDING_MODERATION ждут решения председателя на /market-admin/moderation. После APPROVED попадают в публичный каталог Story 3.5.',
     );
   }
 };

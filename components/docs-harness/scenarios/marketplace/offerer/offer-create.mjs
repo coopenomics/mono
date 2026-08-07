@@ -1,5 +1,5 @@
 // Сценарий: Стол поставщика → создание предложения.
-// Пайщик ivanpetrov входит на /market/create-offer, заполняет форму нового
+// Пайщик ivanpetrov входит на /market-supplier/create-offer, заполняет форму нового
 // предложения и отправляет. Снимки: пустая форма → заполненная → каталог с
 // новой карточкой.
 //
@@ -113,7 +113,7 @@ export default async ({ page, shot }) => {
   }
 
   // --- 01. Пустая форма создания предложения ---
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/create-offer`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/create-offer`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

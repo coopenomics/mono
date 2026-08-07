@@ -382,13 +382,13 @@ Magistral II разблокирована тремя коммитами PR #24 (
 
 | План | Файл Vue | Роут | Коммит |
 |---|---|---|---|
-| `onboarding/coop-accept-cpp` | OnboardingCoopAcceptCpp.vue | `/market/onboarding/coop-cpp` | `510ccf545bb` |
+| `onboarding/coop-accept-cpp` | OnboardingCoopAcceptCpp.vue | `/market-admin/onboarding/coop-cpp` | `510ccf545bb` |
 | `onboarding/member-pick-cpp` | OnboardingMemberPickCpp.vue | `/market/onboarding/member-cpp` | `147951356ab` |
-| `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market/category-whitelist` | `50538b45d43` |
-| `offerer/offers` | OffererMyOffers.vue | `/market/my-offers` | `69d3e79f36c` |
-| `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market/incoming-orders` | `69d3e79f36c` |
+| `chairman/category-whitelist` | ChairmanCategoryWhitelist.vue | `/market-admin/category-whitelist` | `50538b45d43` |
+| `offerer/offers` | OffererMyOffers.vue | `/market-supplier/my-offers` | `69d3e79f36c` |
+| `offerer/incoming-orders` | OffererIncomingOrders.vue | `/market-supplier/incoming-orders` | `69d3e79f36c` |
 | `board/agenda-writeoff` | BoardAgendaWriteoff.vue | `/market/board-writeoff` | `2a41354c328` |
-| `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market/payouts` | `261be9a2702` (placeholder, требует Phase 2 backend) |
+| `board/payouts-readonly` | BoardPayoutsReadonly.vue | `/market-admin/payouts` | `261be9a2702` (placeholder, требует Phase 2 backend) |
 | `orderer/consolidated` | OrdererConsolidated.vue | `/market/consolidated` | `e40b74fcf91` |
 
 **`board/warehouse-readonly`** в плане был — но `AdminWarehouseSummaryPage` уже доступна `roles: ['chairman', 'member']`, и сценарий `chairman/warehouse-summary` снимает её. Сценарий «board/warehouse-readonly» как отдельный — дубль; объединяем с `chairman/warehouse-summary` в прозе («сводный склад читают и председатель, и совет — UI одинаковый»).

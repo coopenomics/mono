@@ -21,7 +21,7 @@ export default async ({ page, shot }) => {
   await loginAsChairman(page);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
-  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/supply-prep`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/supply-prep`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

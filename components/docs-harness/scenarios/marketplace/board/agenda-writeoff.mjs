@@ -32,7 +32,7 @@ export default async ({ page, context, shot, env }) => {
   await shot(
     page,
     '01-overview',
-    'Лента проектов списания в активных статусах. DRAFT-проекты скрыты — это рабочая зона администратора на /market/writeoffs. Совет видит «На повестке», «Одобрены», «Исполняются», «Исполнены», «Отклонены». Голосование выполняется на core soviet agenda (sov-flow).',
+    'Лента проектов списания в активных статусах. DRAFT-проекты скрыты — это рабочая зона администратора на /market-admin/writeoffs. Совет видит «На повестке», «Одобрены», «Исполняются», «Исполнены», «Отклонены». Голосование выполняется на core soviet agenda (sov-flow).',
   );
 
   // Переключиться на фильтр «На повестке» — самый важный для совета.
@@ -43,7 +43,7 @@ export default async ({ page, context, shot, env }) => {
     await shot(
       page,
       '02-on-agenda',
-      'Фильтр «На повестке» — проекты в статусе ON_AGENDA. После подписи Заявления 1106 председателем (через /market/writeoffs) проект отправляется в совет через soviet::createagenda(mktwroff). По решению совета callback marketplace::onmktwoauth переводит проект в AUTHORIZED.',
+      'Фильтр «На повестке» — проекты в статусе ON_AGENDA. После подписи Заявления 1106 председателем (через /market-admin/writeoffs) проект отправляется в совет через soviet::createagenda(mktwroff). По решению совета callback marketplace::onmktwoauth переводит проект в AUTHORIZED.',
     );
   }
 };

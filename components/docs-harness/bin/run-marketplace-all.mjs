@@ -25,6 +25,7 @@ import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ensureDesktopConfig } from '../lib/desktop-config.mjs';
+import { ensureFixture, fixturesOfScenario } from '../lib/fixtures.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
@@ -207,6 +208,14 @@ if (REBOOT) {
     console.error('reboot:extra провалился — прогон бессмыслен');
     process.exit(2);
   }
+  // WIF прежних пайщиков на новой цепи невалидны. Файлы сносим здесь, а не
+  // после прогона: иначе первый же логин уйдёт в «неверный ключ доступа»,
+  // и причина будет выглядеть как поломка интерфейса.
+  const stateDir = path.join(HARNESS_ROOT, 'state/participants');
+  for (const f of fs.existsSync(stateDir) ? fs.readdirSync(stateDir) : []) {
+    if (f.endsWith('.json')) fs.rmSync(path.join(stateDir, f));
+  }
+  console.log('  фикстуры пайщиков сброшены — будут созданы заново');
 }
 
 // public/config.js: в SPA-dev нет SSR-middleware, и без него фронт уходит на
@@ -225,6 +234,27 @@ for (const [name, url, method, body] of checks) {
     process.exit(2);
   }
   console.log(`  ✓ ${name}`);
+}
+
+// ── Фикстуры ───────────────────────────────────────────────────────────────
+// Пайщиков создаём заранее и все сразу, а не по ходу: создание идёт через
+// цепь и занимает секунды, и делать это в середине прогона — значит мешать
+// шум инфраструктуры с результатом сценария.
+const needed = new Set();
+for (const item of plan) {
+  for (const n of fixturesOfScenario(item.scenario)) needed.add(n);
+}
+if (needed.size) {
+  console.log(`\n▸ пайщики для прогона: ${[...needed].join(', ')}`);
+  for (const name of needed) {
+    try {
+      const how = ensureFixture(name, { log: (m) => console.log(`    ${m}`) });
+      if (how === 'created') console.log(`  ✓ ${name} создан`);
+    } catch (e) {
+      console.error(`✗ ${e.message}`);
+      process.exit(2);
+    }
+  }
 }
 
 // ── Прогон ─────────────────────────────────────────────────────────────────

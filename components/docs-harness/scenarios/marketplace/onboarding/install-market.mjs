@@ -76,7 +76,7 @@ export default async ({ page, context, shot, env }) => {
     await shot(
       page,
       '02-after-install',
-      'Состояние после установки: уведомление об успехе + desktop перестроен с новыми extension routes (включая /market/onboarding/coop-cpp).',
+      'Состояние после установки: уведомление об успехе + desktop перестроен с новыми extension routes (включая /market-admin/onboarding/coop-cpp).',
     );
   }
 };
