@@ -15,10 +15,12 @@
  */
 import { phase01 } from './phases/01-l1-accept'
 import { phase02 } from './phases/02-branches'
+import { phase03 } from './phases/03-assign-branches'
 
 const PHASES: Record<string, () => Promise<void>> = {
   '01-l1-accept': phase01,
   '02-branches': phase02,
+  '03-assign-branches': phase03,
 }
 
 const PHASE_ORDER = Object.keys(PHASES)

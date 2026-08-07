@@ -208,27 +208,40 @@ export async function passFirstLoginAgreements(page) {
 // «не вижу каталог», хотя дело в незакрытом диалоге платформы.
 //
 // Возвращает имя выбранного участка либо null, если диалога не было.
-export async function pickBranchIfAsked(page, { timeout = 8000 } = {}) {
+export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
   // Без :visible — портал-обёртка Quasar может не иметь собственного бокса,
   // и строгая проверка видимости отбрасывает диалог, который на экране есть.
   const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Выберите кооперативный участок' }).first();
   const shown = await dialog.waitFor({ state: 'attached', timeout }).then(() => true).catch(() => false);
   if (!shown) return null;
+  // Портал может остаться в DOM после закрытия: тогда он есть, но не кликается,
+  // и попытка «выбрать участок» вешает сценарий на таймаут поля.
+  const interactive = await dialog.locator('.q-field').first().isVisible().catch(() => false);
+  if (!interactive) return null;
 
-  const select = dialog.locator('.q-field').first();
-  await select.click();
-  // Разметка выпадающего списка зависит от обёртки канона: где-то q-item,
-  // где-то role=option. Берём первый вариант, который реально появился.
-  const option = page
-    .locator('.q-menu [role="option"], .q-menu .q-item, [role="listbox"] [role="option"]')
-    .first();
-  await option.waitFor({ state: 'visible', timeout: 10000 });
-  const picked = (await option.innerText()).trim().split('\n')[0];
-  await option.click();
-  await page.waitForTimeout(500);
+  // Список участков приходит запросом, поэтому меню сразу после клика может
+  // быть пустым. Ждём именно появления опции, а не «какого-то» меню: пустой
+  // выпадающий список — это симптом, который однажды уже стоил половины
+  // прогона (у участков не было реквизитов, и они выпадали из выдачи).
+  const option = page.locator('.q-menu [role="option"], .q-menu .q-item, [role="listbox"] [role="option"]').first();
+  let picked = null;
+  for (let attempt = 1; attempt <= 3 && !picked; attempt++) {
+    await dialog.locator('.q-field').first().click();
+    const appeared = await option.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+    if (!appeared) {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(2000);
+      continue;
+    }
+    picked = (await option.innerText()).trim().split('\n')[0];
+    await option.click();
+    await page.waitForTimeout(600);
+  }
+  if (!picked) throw new Error('диалог выбора участка открылся, но список участков пуст');
 
   await dialog.locator('button:has-text("Продолжить")').first().click();
-  await page.waitForTimeout(2500);
+  await dialog.waitFor({ state: 'detached', timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(1500);
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
   return picked;
 }

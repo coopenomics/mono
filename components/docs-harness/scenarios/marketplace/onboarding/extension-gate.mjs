@@ -69,6 +69,9 @@ export default async ({ page, shot, expect, env: e }) => {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   });
+  // Диалог выбора участка платформа показывает заново на каждом заходе, пока
+  // выбор не сохранён, — закрываем его и здесь, иначе он перехватит клики.
+  await pickBranchIfAsked(page);
   await page.waitForSelector('text=Выберите пункт выдачи заказов', { timeout: 90000 });
   await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
@@ -80,17 +83,24 @@ export default async ({ page, shot, expect, env: e }) => {
   );
 
   // --- 03. Подключение: выбор ПВЗ + согласие с офертой ----------------------
-  const pvz = page.locator('text=Красногорск').first();
-  if (await pvz.isVisible().catch(() => false)) await pvz.click();
-  else await page.locator('.q-item, [role="listitem"]').first().click();
+  // Кликаем в основном содержимом страницы, а не в портале диалога: имя
+  // участка встречается и там, и там.
+  await pickBranchIfAsked(page, { timeout: 4000 });
+  const content = page.locator('main, .q-page').first();
+  const pvz = content.locator('text=Красногорск').first();
+  // force: диалог платформы может успеть перерисоваться поверх страницы между
+  // проверкой и кликом; ждать его исчезновения бесполезно — он возвращается
+  // при каждом заходе, пока выбор участка не сохранён.
+  if (await pvz.isVisible().catch(() => false)) await pvz.click({ force: true });
+  else await content.locator('.q-item, [role="listitem"]').first().click({ force: true });
   await page.waitForTimeout(800);
 
   // Согласие — обязательное условие: без него «Продолжить» не отправляет форму.
-  await page.locator('.q-checkbox').first().click();
+  await content.locator('.q-checkbox').first().click({ force: true });
   await page.waitForTimeout(500);
   await cleanViteOverlays(page);
 
-  await page.locator('button:has-text("Продолжить")').first().click();
+  await content.locator('button:has-text("Продолжить")').first().click({ force: true });
   await page.waitForTimeout(6000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await cleanViteOverlays(page);
