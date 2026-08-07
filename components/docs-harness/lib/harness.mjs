@@ -61,6 +61,10 @@ const IGNORED_PAGE_ERRORS = [
   // его нет, и SDK бросает «Chatwoot not loaded» на каждой странице.
   // К Столу заказов отношения не имеет.
   /Chatwoot not loaded/i,
+  // Карта ПВЗ грузится во фрейме стороннего картографического сервиса, и он
+  // пытается читать localStorage хоста. Браузер это запрещает — исключение
+  // прилетает из чужого кода и к Столу заказов отношения не имеет.
+  /Failed to read the 'localStorage' property from 'Window'/i,
 ];
 
 export async function openBrowser({ storageState } = {}) {

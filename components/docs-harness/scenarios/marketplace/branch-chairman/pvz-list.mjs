@@ -1,6 +1,6 @@
 // Сценарий: Стол ПВЗ — «ПВЗ кооператива».
 // Список всех пунктов выдачи. Видно председателю КУ (operator/branch-chairman).
-// Маршрут /<coopname>/market-pvz/list (workspace market-pvz).
+// Маршрут /<coopname>/market-admin/issuance-points (workspace market-pvz).
 
 import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAsChairman } from '../../../lib/harness.mjs';
 
@@ -20,7 +20,7 @@ export default async ({ page, shot }) => {
   // роли (operator/admin) и может отбросить до загрузки marketplace-сессии;
   // плюс свежий онбординг председателя на пересозданном стенде. Повторяем,
   // пока URL не закрепится на market-pvz/list.
-  const target = `${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/list`;
+  const target = `${env.APP_PREFIX}/${env.COOPNAME}/market-admin/issuance-points`;
   for (let attempt = 0; attempt < 6; attempt++) {
     // Полный перезагруз документа (через about:blank) — иначе market-стор
     // держит loaded=true с пустыми ролями после первой гонки fetchRoles, и
