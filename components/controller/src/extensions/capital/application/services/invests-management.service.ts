@@ -3,6 +3,12 @@ import { InvestsManagementInteractor } from '../use-cases/invests-management.int
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import type { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
 import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
+import type { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
+import type {
+  DeallocationLimitInputDTO,
+  DeallocationLimitOutputDTO,
+} from '../dto/invests_management/deallocation-limit.dto';
+import { AssetUtils } from '~/shared/utils/asset.utils';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
@@ -90,6 +96,31 @@ export class InvestsManagementService {
     CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме направляемых средств');
 
     return await this.investsManagementInteractor.allocateFunds(data);
+  }
+
+  /**
+   * Возврат ранее направленных средств из компонента в программу
+   */
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме возвращаемых средств');
+
+    return await this.investsManagementInteractor.deallocateFunds(data);
+  }
+
+  /**
+   * Предел возврата средств из компонента в программу
+   */
+  async getDeallocationLimit(data: DeallocationLimitInputDTO): Promise<DeallocationLimitOutputDTO> {
+    const limit = await this.investsManagementInteractor.getDeallocationLimit(data);
+    const { symbol } = limit;
+
+    return {
+      max_amount: AssetUtils.formatAsset(limit.max_amount, symbol),
+      program_invest_pool: AssetUtils.formatAsset(limit.program_invest_pool, symbol),
+      unspent: AssetUtils.formatAsset(limit.unspent, symbol),
+      outstanding_debt: AssetUtils.formatAsset(limit.outstanding_debt, symbol),
+      is_allowed_by_status: limit.is_allowed_by_status,
+    };
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============

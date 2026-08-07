@@ -1,5 +1,7 @@
 export * as GetCapitalCandidates from './getCapitalCandidates'
 
+export * as GetDeallocationLimit from './getDeallocationLimit'
+
 export * as GetCommit from './getCommit'
 
 export * as GetComponentMetrics from './getComponentMetrics'

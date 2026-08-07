@@ -165,6 +165,12 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalCycleFilter:{
 		status:"CycleStatus"
 	},
+	CapitalDeallocateFundsInput:{
+
+	},
+	CapitalDeallocationLimitInput:{
+
+	},
 	CapitalGetOpenTimerInput:{
 
 	},
@@ -890,6 +896,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateStory:{
 			data:"CreateStoryInput"
+		},
+		capitalDeallocateFunds:{
+			data:"CapitalDeallocateFundsInput"
 		},
 		capitalDeclineCommit:{
 			data:"CommitDeclineInput"
@@ -1652,6 +1661,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCycles:{
 			filter:"CapitalCycleFilter",
 			options:"PaginationInput"
+		},
+		capitalDeallocationLimit:{
+			data:"CapitalDeallocationLimitInput"
 		},
 		capitalDebt:{
 			data:"GetDebtInput"
@@ -2840,6 +2852,13 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		start_date:"DateTime",
 		status:"CycleStatus"
+	},
+	CapitalDeallocationLimit:{
+		is_allowed_by_status:"Boolean",
+		max_amount:"String",
+		outstanding_debt:"String",
+		program_invest_pool:"String",
+		unspent:"String"
 	},
 	CapitalDebt:{
 		_created_at:"DateTime",
@@ -4268,6 +4287,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCreateProjectInvest:"Transaction",
 		capitalCreateProjectProperty:"Transaction",
 		capitalCreateStory:"CapitalStory",
+		capitalDeallocateFunds:"Transaction",
 		capitalDeclineCommit:"CapitalCommit",
 		capitalDeleteIssue:"Boolean",
 		capitalDeleteProcessTemplate:"Boolean",
@@ -4965,6 +4985,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalContributor:"CapitalContributor",
 		capitalContributors:"PaginatedCapitalContributorsPaginationResult",
 		capitalCycles:"PaginatedCapitalCyclesPaginationResult",
+		capitalDeallocationLimit:"CapitalDeallocationLimit",
 		capitalDebt:"CapitalDebt",
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",

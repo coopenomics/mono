@@ -1,5 +1,6 @@
 export * as AddAuthor from './addAuthor'
 export * as AllocateFunds from './allocateFunds'
+export * as DeallocateFunds from './deallocateFunds'
 export * as AddWorklog from './addWorklog'
 export * as ApproveCommit from './approveCommit'
 export * as CalculateVotes from './calculateVotes'

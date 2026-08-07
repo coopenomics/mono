@@ -35,11 +35,15 @@ sources:
     - components/contracts/cpp/capital/domain/entities/projects.hpp
   backend:
     - components/controller/src/extensions/capital/application/dto/invests_management/allocate-funds.input.ts
+    - components/controller/src/extensions/capital/application/dto/invests_management/deallocate-funds.input.ts
+    - components/controller/src/extensions/capital/application/dto/invests_management/deallocation-limit.dto.ts
+    - components/controller/src/extensions/capital/domain/utils/deallocation-limit.ts
     - components/controller/src/extensions/capital/application/services/invests-management.service.ts
     - components/controller/src/extensions/capital/application/use-cases/invests-management.interactor.ts
     - components/controller/src/extensions/capital/application/resolvers/invests-management.resolver.ts
   ui:
     - components/desktop/extensions/capital/features/Invest/AllocateFunds/**
+    - components/desktop/extensions/capital/features/Invest/DeallocateFunds/**
     - components/desktop/extensions/capital/features/Project/UpdateProjectStatus/**
     - components/desktop/extensions/capital/pages/AllocationsPage/**
 
@@ -449,5 +453,129 @@ cases:
       пункта «Отменён» в списке статусов нет, как и самого статуса в схеме.
       Прекращение проекта — удаление, при котором средства возвращаются
       в программу; закрытие приёма инвестиций остаётся отдельной операцией
+    test: ~
+    status: missing
+
+  # ── Возврат средств: backend ──────────────────────────────────────────────
+
+  - id: cap.dealloc.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель запрашивает предел возврата по компоненту
+    expect: >
+      возвращается максимальная сумма и её составляющие — направлено в компонент,
+      не израсходовано, удерживается под ссуды — в валюте кооператива
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.09
+    level: backend
+    kind: side
+    scenario: предел запрашивается по компоненту в статусе «голосование»
+    expect: >
+      максимум равен нулю, признак разрешённости по статусу отрицательный —
+      интерфейсу есть что показать вместо пустого поля
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.10
+    level: backend
+    kind: side
+    scenario: возврат средств из персонального проекта пайщика
+    expect: отказ до обращения к цепи — операция только для кооперативных проектов
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.11
+    level: backend
+    kind: side
+    scenario: сумма возврата указана в валюте, отличной от валюты кооператива
+    expect: отказ до доменного слоя
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.12
+    level: backend
+    kind: side
+    scenario: возврат средств запрашивает член совета, а не председатель
+    expect: отказ по роли — мутация объявлена только для председателя
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.13
+    level: backend
+    kind: break
+    scenario: >
+      В компоненте есть заёмщик, у которого доля долга к трудовой себестоимости
+      выше, чем у остальных.
+    expect: >
+      предел считается по нему, а не по сумме долгов: иначе интерфейс предложил бы
+      сумму, которую контракт отклонит
+    test: ~
+    status: missing
+
+  # ── Возврат средств: UI ───────────────────────────────────────────────────
+
+  - id: cap.dealloc.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель открывает «Инвестиции», нажимает «Вернуть» напротив компонента
+      в работе, вводит сумму в пределах доступной и подтверждает.
+    expect: >
+      средства уменьшаются у компонента и возвращаются в свободный остаток программы
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.14
+    level: ui
+    kind: side
+    scenario: компонент ушёл на голосование или завершён
+    expect: кнопка возврата напротив него не отображается
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.15
+    level: ui
+    kind: side
+    scenario: страницу открывает член совета
+    expect: колонка с кнопкой возврата не отображается вовсе
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.16
+    level: ui
+    kind: side
+    scenario: введена сумма больше доступной к возврату
+    expect: подтвердить нельзя — кнопка неактивна
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.17
+    level: ui
+    kind: side
+    scenario: в компоненте есть непогашенные ссуды участников
+    expect: >
+      под доступной суммой показано, что часть средств удерживается под ссуды,
+      с указанием суммы
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.18
+    level: ui
+    kind: side
+    scenario: диалог открыт повторно для другого компонента
+    expect: >
+      предел перезапрашивается, прошлая сумма и прошлый предел не подставляются
+    test: ~
+    status: missing
+
+  - id: cap.dealloc.side.19
+    level: ui
+    kind: side
+    scenario: нажатие на кнопку возврата в строке таблицы
+    expect: >
+      открывается диалог, переход на карточку компонента не происходит —
+      строка кликабельна, но клик по кнопке не всплывает
     test: ~
     status: missing

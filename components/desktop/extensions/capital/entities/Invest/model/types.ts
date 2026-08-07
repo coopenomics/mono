@@ -15,3 +15,12 @@ export type ICreateProjectInvestOutput =
 export type IAllocateFundsInput = Mutations.Capital.AllocateFunds.IInput['data'];
 export type IAllocateFundsOutput =
   Mutations.Capital.AllocateFunds.IOutput[typeof Mutations.Capital.AllocateFunds.name];
+
+export type IDeallocateFundsInput = Mutations.Capital.DeallocateFunds.IInput['data'];
+export type IDeallocateFundsOutput =
+  Mutations.Capital.DeallocateFunds.IOutput[typeof Mutations.Capital.DeallocateFunds.name];
+
+export type IDeallocationLimitInput = Queries.Capital.GetDeallocationLimit.IInput['data'];
+export type IDeallocationLimit =
+  Queries.Capital.GetDeallocationLimit.IOutput[typeof Queries.Capital.GetDeallocationLimit.name];
+

@@ -247,6 +247,13 @@ export interface CapitalBlockchainPort {
   allocateFunds(data: CapitalContract.Actions.Allocate.IAllocate): Promise<TransactResult>;
 
   /**
+   * Возврат ранее направленных средств из проекта или компонента обратно
+   * в свободный остаток программы (председатель). Доступен, пока проект
+   * не ушёл на голосование.
+   */
+  deallocateFunds(data: CapitalContract.Actions.Deallocate.IDiallocate): Promise<TransactResult>;
+
+  /**
    * Редактирование участника CAPITAL контракта
    */
   editContributor(data: CapitalContract.Actions.EditContributor.IEditContributor): Promise<TransactResult>;

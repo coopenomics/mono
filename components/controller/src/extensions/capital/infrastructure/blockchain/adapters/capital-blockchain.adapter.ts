@@ -792,6 +792,20 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
     });
   }
 
+  async deallocateFunds(data: CapitalContract.Actions.Deallocate.IDiallocate): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return await this.blockchainService.transact({
+      account: CapitalContract.contractName.production,
+      name: CapitalContract.Actions.Deallocate.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
   /**
    * Редактирование участника CAPITAL контракта
    */

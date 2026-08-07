@@ -40,6 +40,7 @@ q-page.allocations-page
             th Статус
             th.col-num Аллоцировано
             th.col-num Использовано
+            th.col-action(v-if='canDeallocate')
         tbody
           tr.data-row(v-for='row in rows', :key='row.project_hash', @click='openComponent(row)')
             td.cell-name {{ row.title }}
@@ -48,6 +49,12 @@ q-page.allocations-page
               BaseBadge(:variant='row.status_variant') {{ row.status_label }}
             td.col-num {{ row.allocated }}
             td.col-num {{ row.used }}
+            td.col-action(v-if='canDeallocate')
+              DeallocateFundsButton(
+                v-if='row.can_deallocate',
+                :project-hash='row.project_hash',
+                :component-title='row.title'
+              )
   EmptyState(
     v-else,
     title='Средства пока не аллоцированы',
@@ -73,6 +80,7 @@ import { getProjectStatusLabel } from 'app/extensions/capital/shared/lib/project
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { AllocateFundsButton } from 'app/extensions/capital/features/Invest/AllocateFunds/ui';
+import { DeallocateFundsButton } from 'app/extensions/capital/features/Invest/DeallocateFunds/ui';
 
 interface AllocationRow {
   project_hash: string;
@@ -82,7 +90,12 @@ interface AllocationRow {
   status_variant: BaseBadgeVariant;
   allocated: string;
   used: string;
+  /** Возврат разрешён контрактом только до начала голосования */
+  can_deallocate: boolean;
 }
+
+/** Статусы компонента, в которых контракт разрешает вернуть средства в программу. */
+const DEALLOCATABLE_STATUSES = ['pending', 'active'];
 
 const system = useSystemStore();
 const session = useSessionStore();
@@ -160,6 +173,7 @@ const rows = computed<AllocationRow[]>(() =>
         status_variant: STATUS_VARIANTS[status.toUpperCase()] ?? 'neutral',
         allocated: formatAsset2Digits(component.fact?.program_invest_pool ?? '0.0000'),
         used: formatAsset2Digits(component.fact?.total_used_investments ?? '0.0000'),
+        can_deallocate: DEALLOCATABLE_STATUSES.includes(status.toLowerCase()),
       };
     }),
 );
@@ -171,6 +185,9 @@ const skeletonColumns: TableSkeletonColumn[] = [
   { label: 'Аллоцировано', class: 'col-num' },
   { label: 'Использовано', class: 'col-num' },
 ];
+
+// Возвращать средства может только председатель — совет видит таблицу без колонки действий.
+const canDeallocate = computed(() => session.isChairman);
 
 async function loadData(): Promise<void> {
   await Promise.all([
@@ -235,5 +252,11 @@ onBeforeUnmount(() => {
 
 .data-row {
   cursor: pointer;
+}
+
+.col-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 </style>

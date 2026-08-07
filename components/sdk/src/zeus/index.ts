@@ -2753,6 +2753,35 @@ export type ValueTypes = {
 	/** Фильтр по статусу цикла */
 	status?: ValueTypes["CycleStatus"] | undefined | null | Variable<any, string>
 };
+	["CapitalDeallocateFundsInput"]: {
+	/** Сумма возвращаемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string | Variable<any, string>,
+	/** Имя кооператива. */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string | Variable<any, string>
+};
+	/** Предел возврата средств из компонента в программу */
+["CapitalDeallocationLimit"]: AliasType<{
+	/** Разрешён ли возврат в текущем статусе компонента */
+	is_allowed_by_status?:boolean | `@${string}`,
+	/** Максимальная сумма, доступная к возврату */
+	max_amount?:boolean | `@${string}`,
+	/** Сумма непогашенных ссуд участников компонента */
+	outstanding_debt?:boolean | `@${string}`,
+	/** Средства программы, направленные в компонент */
+	program_invest_pool?:boolean | `@${string}`,
+	/** Не израсходованная компонентом часть полученных средств */
+	unspent?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalDeallocationLimit']?: Omit<ValueTypes["CapitalDeallocationLimit"], "...on CapitalDeallocationLimit">
+}>;
+	["CapitalDeallocationLimitInput"]: {
+	/** Имя кооператива. */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string | Variable<any, string>
+};
 	/** Долг в системе CAPITAL */
 ["CapitalDebt"]: AliasType<{
 	/** Дата создания записи */
@@ -7634,6 +7663,7 @@ capitalCreateProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any,
 capitalCreateProjectInvest?: [{	data: ValueTypes["CreateProjectInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProjectProperty?: [{	data: ValueTypes["CreateProjectPropertyInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateStory?: [{	data: ValueTypes["CreateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
+capitalDeallocateFunds?: [{	data: ValueTypes["CapitalDeallocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalDeclineCommit?: [{	data: ValueTypes["CommitDeclineInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalDeleteIssue?: [{	data: ValueTypes["DeleteCapitalIssueByHashInput"] | Variable<any, string>},boolean | `@${string}`],
 capitalDeleteProcessTemplate?: [{	id: string | Variable<any, string>},boolean | `@${string}`],
@@ -9183,6 +9213,7 @@ capitalComponentMetrics?: [{	data: ValueTypes["GetComponentMetricsInput"] | Vari
 capitalContributor?: [{	data: ValueTypes["GetContributorInput"] | Variable<any, string>},ValueTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ValueTypes["CapitalContributorFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ValueTypes["CapitalCycleFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCyclesPaginationResult"]],
+capitalDeallocationLimit?: [{	data: ValueTypes["CapitalDeallocationLimitInput"] | Variable<any, string>},ValueTypes["CapitalDeallocationLimit"]],
 capitalDebt?: [{	data: ValueTypes["GetDebtInput"] | Variable<any, string>},ValueTypes["CapitalDebt"]],
 capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
@@ -12758,6 +12789,34 @@ export type ResolverInputTypes = {
 	start_date?: string | undefined | null,
 	/** Фильтр по статусу цикла */
 	status?: ResolverInputTypes["CycleStatus"] | undefined | null
+};
+	["CapitalDeallocateFundsInput"]: {
+	/** Сумма возвращаемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
+	/** Предел возврата средств из компонента в программу */
+["CapitalDeallocationLimit"]: AliasType<{
+	/** Разрешён ли возврат в текущем статусе компонента */
+	is_allowed_by_status?:boolean | `@${string}`,
+	/** Максимальная сумма, доступная к возврату */
+	max_amount?:boolean | `@${string}`,
+	/** Сумма непогашенных ссуд участников компонента */
+	outstanding_debt?:boolean | `@${string}`,
+	/** Средства программы, направленные в компонент */
+	program_invest_pool?:boolean | `@${string}`,
+	/** Не израсходованная компонентом часть полученных средств */
+	unspent?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalDeallocationLimitInput"]: {
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	/** Долг в системе CAPITAL */
 ["CapitalDebt"]: AliasType<{
@@ -17518,6 +17577,7 @@ capitalCreateProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},Resolv
 capitalCreateProjectInvest?: [{	data: ResolverInputTypes["CreateProjectInvestInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProjectProperty?: [{	data: ResolverInputTypes["CreateProjectPropertyInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateStory?: [{	data: ResolverInputTypes["CreateStoryInput"]},ResolverInputTypes["CapitalStory"]],
+capitalDeallocateFunds?: [{	data: ResolverInputTypes["CapitalDeallocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalDeclineCommit?: [{	data: ResolverInputTypes["CommitDeclineInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalDeleteIssue?: [{	data: ResolverInputTypes["DeleteCapitalIssueByHashInput"]},boolean | `@${string}`],
 capitalDeleteProcessTemplate?: [{	id: string},boolean | `@${string}`],
@@ -19004,6 +19064,7 @@ capitalComponentMetrics?: [{	data: ResolverInputTypes["GetComponentMetricsInput"
 capitalContributor?: [{	data: ResolverInputTypes["GetContributorInput"]},ResolverInputTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ResolverInputTypes["CapitalContributorFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ResolverInputTypes["CapitalCycleFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCyclesPaginationResult"]],
+capitalDeallocationLimit?: [{	data: ResolverInputTypes["CapitalDeallocationLimitInput"]},ResolverInputTypes["CapitalDeallocationLimit"]],
 capitalDebt?: [{	data: ResolverInputTypes["GetDebtInput"]},ResolverInputTypes["CapitalDebt"]],
 capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
@@ -22490,6 +22551,33 @@ export type ModelTypes = {
 	start_date?: string | undefined | null,
 	/** Фильтр по статусу цикла */
 	status?: ModelTypes["CycleStatus"] | undefined | null
+};
+	["CapitalDeallocateFundsInput"]: {
+	/** Сумма возвращаемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
+	/** Предел возврата средств из компонента в программу */
+["CapitalDeallocationLimit"]: {
+		/** Разрешён ли возврат в текущем статусе компонента */
+	is_allowed_by_status: boolean,
+	/** Максимальная сумма, доступная к возврату */
+	max_amount: string,
+	/** Сумма непогашенных ссуд участников компонента */
+	outstanding_debt: string,
+	/** Средства программы, направленные в компонент */
+	program_invest_pool: string,
+	/** Не израсходованная компонентом часть полученных средств */
+	unspent: string
+};
+	["CapitalDeallocationLimitInput"]: {
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	/** Долг в системе CAPITAL */
 ["CapitalDebt"]: {
@@ -27193,6 +27281,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateStory: ModelTypes["CapitalStory"],
+	/** Возврат ранее направленных средств из компонента в программу
+
+Требуемые роли: chairman.  */
+	capitalDeallocateFunds: ModelTypes["Transaction"],
 	/** Отклонение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -29102,6 +29194,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCycles: ModelTypes["PaginatedCapitalCyclesPaginationResult"],
+	/** Сколько средств можно вернуть из компонента в программу и чем сумма ограничена
+
+Требуемые роли: chairman.  */
+	capitalDeallocationLimit: ModelTypes["CapitalDeallocationLimit"],
 	/** Получение долга по внутреннему ID базы данных */
 	capitalDebt?: ModelTypes["CapitalDebt"] | undefined | null,
 	/** Получение списка долгов кооператива с фильтрацией */
@@ -31221,7 +31317,10 @@ export type ModelTypes = {
     }
 
 export type GraphQLTypes = {
-    ["AcceptChildOrderInput"]: {
+    // ------------------------------------------------------;
+	// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY);
+	// ------------------------------------------------------;
+	["AcceptChildOrderInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Подписанное заявление на имущественный паевый взнос */
@@ -32866,6 +32965,35 @@ export type GraphQLTypes = {
 	start_date?: string | undefined | null,
 	/** Фильтр по статусу цикла */
 	status?: GraphQLTypes["CycleStatus"] | undefined | null
+};
+	["CapitalDeallocateFundsInput"]: {
+		/** Сумма возвращаемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
+	/** Предел возврата средств из компонента в программу */
+["CapitalDeallocationLimit"]: {
+	__typename: "CapitalDeallocationLimit",
+	/** Разрешён ли возврат в текущем статусе компонента */
+	is_allowed_by_status: boolean,
+	/** Максимальная сумма, доступная к возврату */
+	max_amount: string,
+	/** Сумма непогашенных ссуд участников компонента */
+	outstanding_debt: string,
+	/** Средства программы, направленные в компонент */
+	program_invest_pool: string,
+	/** Не израсходованная компонентом часть полученных средств */
+	unspent: string,
+	['...on CapitalDeallocationLimit']: Omit<GraphQLTypes["CapitalDeallocationLimit"], "...on CapitalDeallocationLimit">
+};
+	["CapitalDeallocationLimitInput"]: {
+		/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
 };
 	/** Долг в системе CAPITAL */
 ["CapitalDebt"]: {
@@ -37843,6 +37971,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateStory: GraphQLTypes["CapitalStory"],
+	/** Возврат ранее направленных средств из компонента в программу
+
+Требуемые роли: chairman.  */
+	capitalDeallocateFunds: GraphQLTypes["Transaction"],
 	/** Отклонение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -39903,6 +40035,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCycles: GraphQLTypes["PaginatedCapitalCyclesPaginationResult"],
+	/** Сколько средств можно вернуть из компонента в программу и чем сумма ограничена
+
+Требуемые роли: chairman.  */
+	capitalDeallocationLimit: GraphQLTypes["CapitalDeallocationLimit"],
 	/** Получение долга по внутреннему ID базы данных */
 	capitalDebt?: GraphQLTypes["CapitalDebt"] | undefined | null,
 	/** Получение списка долгов кооператива с фильтрацией */
@@ -42700,6 +42836,8 @@ type ZEUS_VARIABLES = {
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
+	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
+	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
