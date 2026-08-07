@@ -29,11 +29,10 @@ cases:
     level: ui
     kind: happy
     scenario: >
-      Поставщик создаёт предложение: название, категория, цена, единица
-      измерения, срок годности, точки поставки.
+      Поставщик создаёт предложение: название, категория, цена, единица измерения, срок годности, точки поставки.
     expect: предложение создано в статусе «на модерации» и видно в «Моих предложениях»
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/offerer/offer-create.mjs
+    status: passing
 
   - id: mkt.offer.happy.02
     level: ui
