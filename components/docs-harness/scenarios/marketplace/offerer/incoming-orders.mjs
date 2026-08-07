@@ -10,7 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loginAs, env, cleanViteOverlays } from '../../../lib/harness.mjs';
+import { loginAs, env, cleanViteOverlays, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,88 +49,64 @@ export const meta = {
   docPath: 'new/marketplace/offerer/incoming-orders.md',
   assetsDir: 'assets/new/marketplace/offerer/incoming-orders',
   role: 'user',
+  mode: 'docs',
   fixture: 'ivanpetrov',
+  fixtures: ['ivanpetrov'],
+  feature: 'marketplace.order',
+  cases: ['mkt.order.happy.02'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
 };
 
-export default async ({ page, shot }) => {
+export default async ({ page, shot, expect }) => {
   const fixture = loadFixture('ivanpetrov');
-  // Флаг harness:noBranchOverlay читается в watch-branch-overlay при mount'е
-  // процесса (на первом auth-tick), а не реактивно на изменение localStorage.
-  // Поэтому ставим его через addInitScript ДО loginAs — иначе оверлей «Выберите
-  // КУ» рендерится первым и перекрывает страницу incoming-orders.
-  await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
   await loginAs(page, fixture);
-  await signAllAgreements(page);
+  await pickBranchIfAsked(page);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/incoming-orders`, {
     waitUntil: 'domcontentloaded',
+    timeout: 60000,
   });
-  await page.waitForSelector('text=Входящие заказы', { timeout: 90000 });
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
+  await page.waitForSelector('text=Входящие заказы', { timeout: 60000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
   await shot(
     page,
     '01-overview',
-    'Стол поставщика: лента входящих заказов от пайщиков. Фильтр по статусу через табы — «Все», «Ждут моего акцепта», «Индивидуальные ожидающие», «Приняты», «Поставка готова», «Приняты кооперативом», «Получены», «Отменены». Polling 15s.',
+    'Входящие заказы поставщика. Заказы пайщиков сгруппированы в партии по кооперативному участку: партия копится до минимального объёма поставки, но принять её можно в любой момент и меньшего объёма. Итог показан по себестоимости — членский взнос кооператива в него не входит.',
+    {
+      expect: async (p) => {
+        // Заказ, оформленный заказчицей, обязан быть виден поставщику:
+        // пустой список здесь означал бы разрыв в цепочке.
+        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('button:has-text("Принять заказ")').first()).toBeVisible({ timeout: 20000 });
+      },
+    },
   );
 
-  const pendingTab = page.locator('[role="tab"]:has-text("Ждут моего акцепта"), button:has-text("Ждут моего акцепта")').first();
-  if (await pendingTab.isVisible().catch(() => false)) {
-    await pendingTab.click().catch(() => {});
-    await page.waitForTimeout(900);
-    await cleanViteOverlays(page);
-    await shot(
-      page,
-      '02-pending-filter',
-      'Фильтр «Ждут моего акцепта» — заказы в статусе ACCEPTED_PENDING_SUPPLIER, которые поставщику нужно принять или отказаться через TakeoverDialog Эпика 5 на /market-supplier/supply-prep.',
-    );
-  }
+  await page.locator('button:has-text("Принять заказ")').first().click();
+  await page.waitForTimeout(7000);
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await cleanViteOverlays(page);
 
-  // Шаг 4 magistral II: поставщик акцептует индивидуальный заказ кликом
-  // «Принять» на карточке. Backend выполняет mutation
-  // marketplaceAcceptIndividualOrder → on-chain acceptorder → Order
-  // переходит в ACCEPTED.
-  const individualTab = page.locator('[role="tab"]:has-text("Индивидуальные ожидающие"), button:has-text("Индивидуальные ожидающие")').first();
-  if (await individualTab.isVisible().catch(() => false)) {
-    await individualTab.click().catch(() => {});
-    // Ждём конкретно карточку заказа или empty-state — спиннер q-inner-loading
-    // отображается пока fetchSupplierOrders в полёте.
-    await page.locator('.mp-order-card, .mp-incoming-orders__empty').first()
-      .waitFor({ state: 'visible', timeout: 30000 })
-      .catch(() => {});
-    await page.waitForTimeout(800);
-    await cleanViteOverlays(page);
-    await shot(
-      page,
-      '03-individual-pending',
-      'Фильтр «Индивидуальные ожидающие» — заказы со cycle_type=individual в статусе ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL. Поставщик решает по каждому отдельно: «Принять» (mutation marketplaceAcceptIndividualOrder) или «Отказать» с указанием причины.',
-    );
-
-    const acceptBtn = page.locator('button:has-text("Принять")').first();
-    if (await acceptBtn.isVisible().catch(() => false)) {
-      await acceptBtn.click();
-      // Ждём Notify «Заказ принят» (positive). Был false-positive на `Принят`,
-      // т.к. это часть названия вкладки «Приняты» — её текст уже в DOM до клика.
-      await page.waitForFunction(
-        () => {
-          const notifs = document.querySelectorAll('.q-notification__message');
-          for (const n of notifs) {
-            if ((n.textContent || '').includes('Заказ принят')) return true;
-          }
-          return false;
-        },
-        { timeout: 25000 },
-      ).catch(() => {});
-      await page.waitForTimeout(1500);
-      await cleanViteOverlays(page);
-      await shot(
-        page,
-        '04-after-accept',
-        'После клика «Принять»: Notify «Заказ принят» (positive), Order переходит в статус ACCEPTED, исчезает из таба «Индивидуальные ожидающие» и появляется в табе «Приняты». Заблокированные средства пайщика остаются под BLOCK до выдачи имущества.',
-        { preserveNotifications: true },
-      );
-    }
-  }
+  await shot(
+    page,
+    '02-after-accept',
+    'После приёма заказ уходит из очереди ожидания и переходит в работу: следующий шаг поставщика — «Подготовка отгрузки». Средства заказчика остаются заблокированными до выдачи имущества на пункте выдачи.',
+    {
+      preserveNotifications: true,
+      expect: async (p) => {
+        // Кнопка приёма обязана исчезнуть: её наличие означало бы, что
+        // действие не доехало до сервера, а мы сняли «успех» вслепую.
+        await expect(p.locator('button:has-text("Принять заказ")')).toHaveCount(0, { timeout: 20000 });
+      },
+    },
+  );
 };

@@ -36,8 +36,8 @@ cases:
     kind: happy
     scenario: Поставщик видит заказ во «Входящих» и принимает его
     expect: статус заказа переходит в принятый, заказчик видит изменение
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/offerer/incoming-orders.mjs
+    status: passing
 
   # ── Границы данных и статусы при оформлении ─────────────────────────────
   - id: mkt.order.side.01
