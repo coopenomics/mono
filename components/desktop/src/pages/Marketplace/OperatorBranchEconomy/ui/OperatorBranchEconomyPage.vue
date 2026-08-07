@@ -17,7 +17,6 @@ import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/shared/lib/payment'
 import {
-  type AidStatementDocumentView,
   type ExpensePlanView,
   type MarketplaceAidView,
   type MarketplaceBranchEconomyView,
@@ -430,16 +429,18 @@ async function onDeleteWeight(username: string): Promise<void> {
   }
 }
 
-// ─── «Получить»: сумма делится между Столом заказов (мгновенно) и ───
-// ─── материальной помощью (заявление → подпись → кассир) ───────────
+// ─── «Получить»: сумма делится между Столом заказов и материальной ───
+// ─── помощью (заявление → совет → кассир) ────────────────────────────
+//
+// Заявление к подписи готовится и подписывается под капотом, читать его перед
+// подписью незачем: текст типовой, суммы и реквизиты председатель только что
+// ввёл сам, а подписанный документ остаётся в реестре — там его и смотрят.
+// Остальные документы кооператива подписываются так же.
 
 const getFundsOpen = ref(false)
-const getFundsStep = ref<'form' | 'preview'>('form')
 const convertPart = ref<number | null>(null)
 const aidPart = ref<number | null>(null)
 const aidPaymentMethodId = ref<string | null>(null)
-const aidDoc = ref<AidStatementDocumentView | null>(null)
-const getFundsBuilding = ref(false)
 const getFundsSubmitting = ref(false)
 
 const getFundsTotal = computed(
@@ -453,12 +454,16 @@ function openGetFundsDialog(): void {
   convertPart.value = null
   aidPart.value = null
   aidPaymentMethodId.value = null
-  aidDoc.value = null
-  getFundsStep.value = 'form'
   getFundsOpen.value = true
 }
 
-async function onGetFundsPrimary(): Promise<void> {
+/**
+ * Получение целиком одним действием: если в сумме есть материальная помощь —
+ * заявление генерируется, подписывается и подаётся здесь же, вместе с
+ * переводом в Стол заказов. Разносить операции по шагам нельзя: одна уже
+ * совершена, вторая ещё нет, а окно можно закрыть между ними.
+ */
+async function onGetFunds(): Promise<void> {
   const convert = Number(convertPart.value) || 0
   const aid = Number(aidPart.value) || 0
   if (convert <= 0 && aid <= 0) return
@@ -468,61 +473,32 @@ async function onGetFundsPrimary(): Promise<void> {
     return
   }
 
-  getFundsBuilding.value = true
-  try {
-    // Когда в получение входит материальная помощь, на этом шаге НИЧЕГО не
-    // выполняется: только готовится заявление к подписи. Иначе отмена на
-    // втором шаге оставляла бы перевод уже совершённым — председатель закрыл
-    // окно, будучи уверенным, что не получил ничего, а деньги ушли.
-    if (aid > 0 && braname.value) {
-      aidDoc.value = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
-      getFundsStep.value = 'preview'
-      return
-    }
-    await convertBranchFunds({ amount: convert })
-    SuccessAlert('Средства переведены в кошелёк Стола заказов')
-    getFundsOpen.value = false
-    await loadAll()
-  } catch (e) {
-    FailAlert(e, 'Не удалось выполнить получение средств')
-  } finally {
-    getFundsBuilding.value = false
-  }
-}
-
-/**
- * Подпись заявления — точка, где выполняется ВСЁ получение целиком: и заявка
- * на материальную помощь, и перевод в Стол заказов, если председатель разделил
- * сумму между ними. Разносить их по разным шагам нельзя: одна операция уже
- * совершена, вторая ещё нет, а окно можно закрыть между ними.
- */
-async function onSignAndSubmitAid(): Promise<void> {
-  const doc = aidDoc.value
-  const amount = Number(aidPart.value)
-  const convert = Number(convertPart.value) || 0
-  if (!doc || !braname.value || !aidPaymentMethodId.value) return
   getFundsSubmitting.value = true
   let aidDone = false
   try {
-    const digital = new DigitalDocument(doc)
-    const signed = await digital.sign(session.username)
-    const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
-    if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
-    await createAid({
-      braname: braname.value,
-      amount,
-      aid_hash: aidHash,
-      statement: signed,
-      payment_method_id: aidPaymentMethodId.value,
-    })
-    aidDone = true
+    if (aid > 0 && braname.value && aidPaymentMethodId.value) {
+      const doc = await getAidStatementSignablePayload({ braname: braname.value, amount: aid })
+      const signed = await new DigitalDocument(doc).sign(session.username)
+      const aidHash = (doc.meta as { aid_hash?: string })?.aid_hash
+      if (!aidHash) throw new Error('В заявлении нет идентификатора заявки')
+      await createAid({
+        braname: braname.value,
+        amount: aid,
+        aid_hash: aidHash,
+        statement: signed,
+        payment_method_id: aidPaymentMethodId.value,
+      })
+      aidDone = true
+    }
     if (convert > 0) {
       await convertBranchFunds({ amount: convert })
     }
     SuccessAlert(
-      convert > 0
+      aid > 0 && convert > 0
         ? 'Заявление подано на рассмотрение совета, остальное переведено в кошелёк Стола заказов'
-        : 'Заявление подано на рассмотрение совета — выплата после его решения',
+        : aid > 0
+          ? 'Заявление подано на рассмотрение совета — выплата после его решения'
+          : 'Средства переведены в кошелёк Стола заказов',
     )
     getFundsOpen.value = false
     await loadAll()
@@ -533,7 +509,7 @@ async function onSignAndSubmitAid(): Promise<void> {
       e,
       aidDone
         ? 'Заявление подано, но перевод в Стол заказов не прошёл — повторите его отдельно'
-        : 'Не удалось подать заявку на материальную помощь',
+        : 'Не удалось выполнить получение средств',
     )
     if (aidDone) {
       getFundsOpen.value = false
@@ -905,69 +881,54 @@ q-page.economy
   BaseDialog(
     v-model='getFundsOpen',
     title='Получить средства',
-    size='lg',
-    :maximized='getFundsStep === "preview"'
+    size='md'
   )
     .economy__dialog-body
-      template(v-if='getFundsStep === "form"')
-        p
-          | Разделите сумму между переводом в Стол заказов и материальной
-          | помощью — её вы получаете по заявлению, которое рассматривает
-          | совет; после одобрения кассир переводит деньги на выбранные
-          | реквизиты. Налог с дохода вы оплачиваете самостоятельно.
-        p.economy__get-funds-note(v-if='Number(aidPart) > 0')
-          | Ничего не произойдёт, пока вы не подпишете заявление: и заявка, и
-          | перевод в Стол заказов уйдут разом на следующем шаге.
-        AmountInput(
-          v-model='convertPart',
-          label='В Стол заказов',
-          :symbol='assetSymbol(personalBalance)',
-          :precision='2',
-          :min='0'
-        )
-        AmountInput(
-          v-model='aidPart',
-          label='Материальной помощью',
-          :symbol='assetSymbol(personalBalance)',
-          :precision='2',
-          :min='0'
-        )
-        PaymentMethodSelect(
-          v-if='Number(aidPart) > 0',
-          v-model='aidPaymentMethodId',
-          :username='session.username',
-          required
-        )
-        p.economy__get-funds-total(:class='{ "economy__get-funds-total--over": getFundsOverBalance }')
-          | Итого: {{ getFundsTotal.toFixed(2) }} из {{ assetAmount(personalBalance).toFixed(2) }} {{ assetSymbol(personalBalance) }} доступно
-      template(v-else)
-        //- Заявление показываем так же, как остальные документы кооператива:
-        //- листом на светлой поверхности, со стилями самого шаблона и
-        //- канон-цветом текста (тело диалога приглушено — документ нет).
-        .economy__doc-sheet
-          .economy__doc(v-html='aidDoc?.html')
+      p
+        | Разделите сумму между переводом в Стол заказов и материальной
+        | помощью — её вы получаете по заявлению, которое рассматривает
+        | совет; после одобрения кассир переводит деньги на выбранные
+        | реквизиты. Налог с дохода вы оплачиваете самостоятельно.
+      AmountInput(
+        v-model='convertPart',
+        label='В Стол заказов',
+        :symbol='assetSymbol(personalBalance)',
+        :precision='2',
+        :min='0'
+      )
+      AmountInput(
+        v-model='aidPart',
+        label='Материальной помощью',
+        :symbol='assetSymbol(personalBalance)',
+        :precision='2',
+        :min='0'
+      )
+      PaymentMethodSelect(
+        v-if='Number(aidPart) > 0',
+        v-model='aidPaymentMethodId',
+        :username='session.username',
+        required
+      )
+      p.economy__get-funds-total(:class='{ "economy__get-funds-total--over": getFundsOverBalance }')
+        | Итого: {{ getFundsTotal.toFixed(2) }} из {{ assetAmount(personalBalance).toFixed(2) }} {{ assetSymbol(personalBalance) }} доступно
+      //- Заявление о материальной помощи подписывается под капотом: читать
+      //- типовой текст перед подписью незачем, подписанный документ виден в
+      //- заявке.
+      p.economy__get-funds-note(v-if='Number(aidPart) > 0')
+        | Заявление о материальной помощи будет подписано вашей электронной
+        | подписью автоматически.
     template(#footer)
       BaseButton(
         variant='ghost',
-        :disabled='getFundsBuilding || getFundsSubmitting',
+        :disabled='getFundsSubmitting',
         @click='getFundsOpen = false'
       ) Отмена
       BaseButton(
-        v-if='getFundsStep === "form"',
-        variant='primary',
-        :loading='getFundsBuilding',
-        :disabled='getFundsTotal <= 0 || getFundsOverBalance',
-        @click='onGetFundsPrimary'
-      ) {{ Number(aidPart) > 0 ? 'Продолжить' : 'Получить' }}
-      BaseButton(
-        v-else,
         variant='primary',
         :loading='getFundsSubmitting',
-        @click='onSignAndSubmitAid'
-      )
-        template(#icon-left)
-          q-icon(name='draw', size='16px')
-        | {{ Number(convertPart) > 0 ? 'Подписать и получить' : 'Подписать и отправить' }}
+        :disabled='getFundsTotal <= 0 || getFundsOverBalance',
+        @click='onGetFunds'
+      ) Получить
 </template>
 
 <style scoped lang="scss">
@@ -1099,23 +1060,6 @@ q-page.economy
     gap: 0;
   }
 
-  // Лист документа: ограничен по ширине и центрирован, как страница А4;
-  // высоту не режем — длинный документ прокручивается вместе с диалогом.
-  &__doc-sheet {
-    width: 100%;
-    max-width: 820px;
-    margin: 0 auto;
-    background: var(--p-surface);
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md, 12px);
-    padding: var(--p-7, 40px);
-  }
-
-  // Документ рендерится СО СВОИМИ стилями (внутри html есть <style>) — здесь
-  // только канон-цвет текста, остальное задаёт шаблон документа.
-  &__doc {
-    color: var(--p-ink);
-  }
 }
 
 .col-num {
@@ -1128,10 +1072,6 @@ q-page.economy
 
 @media (max-width: 768px) {
   .economy {
-    padding: var(--p-4, 16px);
-  }
-
-  .economy__doc-sheet {
     padding: var(--p-4, 16px);
   }
 }
