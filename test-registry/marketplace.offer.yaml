@@ -1,0 +1,248 @@
+feature: marketplace.offer
+title: Предложение поставщика — публикация, модерация председателем, снятие и возврат на публикацию
+
+# Слайс жизненного цикла предложения: поставщик описывает товар и точки
+# поставки, председатель одобряет или отклоняет, поставщик снимает и
+# возвращает на публикацию. Заказ по предложению — соседний слайс
+# (marketplace.order), у него своя точка входа и свои акторы.
+#
+# Статусы предложения: PENDING_MODERATION → ACTIVE | REJECTED,
+# ACTIVE → WITHDRAWN → PENDING_MODERATION (возврат на публикацию).
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-moderation.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer-images.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-offer-counters.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-vitrine.service.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/CreateMarketplaceOffer/**
+    - components/desktop/src/pages/Marketplace/OffererMyOffers/**
+    - components/desktop/src/pages/Marketplace/ChairmanModeration/**
+    - components/desktop/src/pages/Marketplace/MarketplaceCatalog/**
+    - components/desktop/src/pages/Marketplace/MarketplaceOfferDetail/**
+
+cases:
+  # ── Прямой путь ──────────────────────────────────────────────────────────
+  - id: mkt.offer.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Поставщик создаёт предложение: название, категория, цена, единица
+      измерения, срок годности, точки поставки.
+    expect: предложение создано в статусе «на модерации» и видно в «Моих предложениях»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.happy.02
+    level: ui
+    kind: happy
+    scenario: Председатель одобряет предложение на модерации
+    expect: статус «опубликовано», предложение появляется в каталоге витрины
+    test: ~
+    status: missing
+
+  - id: mkt.offer.happy.03
+    level: ui
+    kind: happy
+    scenario: Заказчик видит одобренное предложение в каталоге витрины
+    expect: карточка предложения с ценой и категорией, доступна к оформлению заказа
+    test: ~
+    status: missing
+
+  # ── Границы данных при создании и правке ────────────────────────────────
+  - id: mkt.offer.side.01
+    level: backend
+    kind: side
+    scenario: Пустое название товара
+    expect: отказ «Укажите название товара», предложение не создаётся
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.02
+    level: backend
+    kind: side
+    scenario: Отрицательный срок годности
+    expect: отказ «Срок годности не может быть отрицательным»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.03
+    level: backend
+    kind: side
+    scenario: Цена с более чем четырьмя знаками после запятой
+    expect: отказ с указанием допустимой точности
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Не указано ни количество товара, ни признак «без ограничения»
+    expect: отказ с требованием указать количество либо снять ограничение
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.05
+    level: backend
+    kind: side
+    scenario: Указан размер упаковки без стратегии маркировки «по упаковке»
+    expect: отказ, объясняющий несовместимость размера упаковки и стратегии
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.06
+    level: backend
+    kind: side
+    scenario: Стратегия «по упаковке» без размера упаковки
+    expect: отказ с требованием указать размер упаковки (целое от 1)
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.07
+    level: backend
+    kind: side
+    scenario: Размер упаковки равен нулю или отрицателен
+    expect: отказ «Размер упаковки должен быть больше нуля»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.08
+    level: backend
+    kind: side
+    scenario: Отпуск упаковкой выбран, но не добавлено ни одной упаковки
+    expect: отказ с требованием добавить упаковку
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.09
+    level: backend
+    kind: side
+    scenario: Число упаковок превышает предел
+    expect: отказ с указанием максимума
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.10
+    level: backend
+    kind: side
+    scenario: Недопустимая единица измерения
+    expect: отказ «Выбрана недопустимая единица измерения»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.11
+    level: backend
+    kind: side
+    scenario: Не указано ни одной точки поставки
+    expect: отказ с требованием указать хотя бы один кооперативный участок
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.12
+    level: backend
+    kind: side
+    scenario: Один и тот же кооперативный участок указан в поставке дважды
+    expect: отказ с именем повторённого участка
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.13
+    level: backend
+    kind: side
+    scenario: Загружено пустое изображение товара (нет содержимого файла)
+    expect: отказ, предложение не создаётся и не правится
+    test: ~
+    status: missing
+
+  # ── Права и статусы ─────────────────────────────────────────────────────
+  - id: mkt.offer.side.14
+    level: backend
+    kind: side
+    scenario: Попытка вернуть на публикацию чужое предложение
+    expect: отказ «Можно изменять только свои предложения»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.15
+    level: backend
+    kind: side
+    scenario: Возврат на публикацию предложения, которое не было снято
+    expect: отказ «Вернуть на публикацию можно только снятое предложение»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.16
+    level: backend
+    kind: side
+    scenario: Повторное снятие уже снятого либо отклонённого предложения
+    expect: отказ «Нельзя снять предложение, которое уже снято/отклонено»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.17
+    level: backend
+    kind: side
+    scenario: Модерация предложения, которое уже одобрено или отклонено
+    expect: конфликт «Это предложение уже одобрено/отклонено — модерация недоступна»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.18
+    level: backend
+    kind: side
+    scenario: Отклонение предложения без указания причины
+    expect: отказ «Укажите причину отклонения предложения»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.19
+    level: backend
+    kind: side
+    scenario: Причина отклонения длиннее допустимого предела
+    expect: отказ с указанием максимальной длины
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.20
+    level: backend
+    kind: side
+    scenario: Модерация несуществующего предложения
+    expect: «Предложение не найдено»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.21
+    level: backend
+    kind: side
+    scenario: Одобрение с отрицательным либо дробным гарантийным сроком возврата
+    expect: отказ «Гарантийный срок возврата должен быть целым неотрицательным числом дней»
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.22
+    level: backend
+    kind: side
+    scenario: Модерация выполняется пайщиком без прав председателя
+    expect: отказ доступа, статус предложения не меняется
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.23
+    level: ui
+    kind: side
+    scenario: >
+      Двойной клик по «Одобрить» на одном предложении (две отправки подряд)
+    expect: одобрение применяется один раз, второе обращение отбивается конфликтом
+    test: ~
+    status: missing
+
+  - id: mkt.offer.side.24
+    level: ui
+    kind: side
+    scenario: Каталог витрины при отсутствии одобренных предложений
+    expect: пустое состояние с пояснением, без ошибок в интерфейсе
+    test: ~
+    status: missing
