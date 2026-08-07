@@ -1,0 +1,163 @@
+feature: marketplace.onboarding
+title: Онбординг Стола заказов — приём ЦПП кооперативом (L1) и гейт первого входа пайщика (L3)
+
+# Слайс подключения расширения: кооператив принимает ЦПП «Стол заказов»
+# (L1) и пайщик подписывает программную оферту при первом входе на стол (L3).
+# L2 — выбор ЦПП в регистрационном потоке ядра — сюда не входит: это core
+# registration-flow, у него своя точка входа и свои акторы.
+#
+# Важная особенность источника правды (см. комментарий в
+# marketplace-onboarding.service.ts): подпись пайщика по ЦПП — это ПРОГРАММА
+# (`wallet::signagree` → `wallet::users.programs[]`), а не `soviet::agreements3`.
+# Чтение состояния идёт из UserAgreementRepository. Тест, читающий агримент из
+# AgreementRepository, зафиксировал бы ровно тот баг, из-за которого гейт
+# оставался поднятым навсегда после подписи.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/onboarding/**
+    - components/controller/src/extensions/marketplace/application/coop-acceptance/**
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-onboarding.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-coop-acceptance.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-onboarding-state.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-sign-onboarding-offer-input.dto.ts
+    - components/controller/src/extensions/marketplace/constants/marketplace-agreement-ids.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OnboardingCoopAcceptCpp/**
+    - components/desktop/src/pages/Marketplace/OnboardingMemberPickCpp/**
+
+cases:
+  # ── L1: кооператив принимает ЦПП ─────────────────────────────────────────
+  - id: mkt.onb.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель устанавливает расширение «Стол заказов» из каталога
+      приложений кооператива.
+    expect: расширение появляется установленным, столы Стола заказов доступны в меню
+    test: ~
+    status: missing
+
+  - id: mkt.onb.happy.02
+    level: ui
+    kind: happy
+    scenario: Председатель принимает ЦПП «Стол заказов» от имени кооператива (L1)
+    expect: >
+      статус ЦПП становится «принята», регистрируется оферта в реестре
+      регистрационных оферт кооператива
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.01
+    level: backend
+    kind: side
+    scenario: Запрос статуса ЦПП, когда расширение не установлено в кооперативе
+    expect: NotFound с указанием, что расширение не установлено
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.02
+    level: backend
+    kind: side
+    scenario: Приём ЦПП с датой принятия в будущем (более чем на минуту вперёд)
+    expect: BadRequest, приём не выполняется
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.03
+    level: backend
+    kind: side
+    scenario: Приём ЦПП с неразбираемой датой принятия
+    expect: BadRequest, приём не выполняется
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.04
+    level: backend
+    kind: side
+    scenario: Повторный приём уже принятой ЦПП тем же кооперативом
+    expect: >
+      статус остаётся «принята», повторной регистрации оферты не происходит
+    test: ~
+    status: missing
+    decision_needed: true
+    # Из кода не выводится: повторный accept не отбивается явной проверкой.
+    # Зафиксировать текущее поведение тестом — значит узаконить возможную
+    # двойную регистрацию оферты.
+
+  # ── L3: гейт первого входа пайщика ───────────────────────────────────────
+  - id: mkt.onb.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик, не подписавший ЦПП, впервые заходит на Стол заказов и видит
+      гейт с офертой; после подписания попадает на стол.
+    expect: >
+      до подписи стол закрыт гейтом, после подписи гейт не показывается
+      ни при переходе, ни после перезагрузки страницы
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.05
+    level: backend
+    kind: side
+    scenario: Пайщик уже подписал программную оферту ЦПП
+    expect: гейт не требуется, источник «подписано», проставлена дата подписи
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.06
+    level: backend
+    kind: side
+    scenario: В кооперативе не настроено соглашение типа «Стол заказов»
+    expect: >
+      чтение состояния — гейт не требуется, источник «не настроено»;
+      попытка подписать — BadRequest
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.07
+    level: backend
+    kind: side
+    scenario: Соглашение ЦПП настроено, но у него нет программного кошелька
+    expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.08
+    level: backend
+    kind: side
+    scenario: Шаблон оферты ЦПП не заведён в реестре документов
+    expect: >
+      чтение состояния — гейт не требуется, источник «не настроено»;
+      попытка подписать — BadRequest
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Запись пайщика в кошельке помечена как отсутствующая (удалена в цепи),
+      хотя программа в ней когда-то была.
+    expect: гейт снова требуется — подпись не засчитывается
+    test: ~
+    status: missing
+
+  - id: mkt.onb.side.10
+    level: backend
+    kind: side
+    scenario: Подпись оферты запрашивается не пайщиком этого кооператива
+    expect: отказ доступа, on-chain действие не отправляется
+    test: ~
+    status: missing
+
+  - id: mkt.onb.break.01
+    level: backend
+    kind: break
+    scenario: Цепь недоступна в момент подписания оферты
+    expect: >
+      пайщику показывается ошибка, состояние не считается подписанным,
+      повторная попытка возможна
+    test: ~
+    status: missing
