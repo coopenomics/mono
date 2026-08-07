@@ -21,6 +21,8 @@ import { orderStatusDisplay, type DomainOrderStatus } from 'src/widgets/Marketpl
 
 const props = defineProps<{
   productName: string;
+  /** Обложка товара — по ней партия узнаётся с одного взгляда, без чтения. */
+  imageUrl?: string | null;
   pvzName: string;
   /** Доменный статус-этап партии (минимальный по рангу среди заказов). */
   stageStatus: DomainOrderStatus | string;
@@ -97,6 +99,10 @@ function onCardClick(): void {
   @keyup.enter="onCardClick"
 )
   .supply-party__head
+    .supply-party__thumb
+      q-img.supply-party__thumb-img(v-if="imageUrl", :src="imageUrl", ratio="1")
+      .supply-party__thumb-empty(v-else)
+        q-icon(name="image", size="20px")
     .supply-party__title
       .supply-party__name {{ productName }}
       .supply-party__sub
@@ -137,10 +143,10 @@ function onCardClick(): void {
 
   .supply-party__foot
     .supply-party__total
-      span.supply-party__total-label {{ totalLabel }}
+      span.t-muted {{ totalLabel }}
       .supply-party__total-row
         span.supply-party__total-val {{ totalValue }}
-        span.supply-party__total-units(v-if="totalUnits") {{ totalUnits }}
+        span.supply-party__total-units(v-if="totalUnits") · {{ totalUnits }}
       span.supply-party__total-fee-note(v-if="totalFeeNote") {{ totalFeeNote }}
     q-space
     .supply-party__actions
@@ -157,9 +163,16 @@ function onCardClick(): void {
   flex-direction: column;
   gap: var(--p-4, 16px);
 
+  // Отклик на наведение есть у всех карточек списка — так же, как у карточки
+  // заказа: тонкая смена цвета рамки, без теней и подъёма.
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--p-ink-3);
+  }
+
   &--clickable {
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
 
     &:hover {
       border-color: var(--p-primary-line);
@@ -176,14 +189,40 @@ function onCardClick(): void {
     gap: var(--p-3, 12px);
   }
 
+  // Миниатюра товара — фиксированный квадрат слева, как в карточке заказа и
+  // корзине.
+  &__thumb {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--p-r-sm, 8px);
+    overflow: hidden;
+    background: var(--p-surface-2);
+  }
+
+  &__thumb-img {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__thumb-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--p-ink-3);
+  }
+
   &__title {
+    flex: 1 1 auto;
     min-width: 0;
   }
 
   &__name {
-    font-size: var(--p-fs-h2, 18px);
-    line-height: var(--p-lh-h2, 1.3);
-    letter-spacing: var(--p-ls-h2, -0.012em);
+    font-size: var(--p-fs-h3, 15px);
+    line-height: var(--p-lh-h3, 1.4);
+    letter-spacing: var(--p-ls-h3, -0.005em);
     font-weight: 600;
     color: var(--p-ink);
     overflow-wrap: anywhere;
@@ -300,39 +339,25 @@ function onCardClick(): void {
     min-width: 0;
   }
 
-  &__total-label {
-    font-size: var(--p-fs-eyebrow, 11px);
-    line-height: var(--p-lh-eyebrow, 1.2);
-    letter-spacing: var(--p-ls-eyebrow, 0.08em);
-    text-transform: uppercase;
-    color: var(--p-ink-3);
-  }
-
-  // Деньги — главная величина карточки, поэтому крупно и моноширинно; объём
-  // рядом, приглушённой пилюлей: это разные вещи, и слитая строка читалась как
-  // одна невнятная.
+  // Деньги и объём — в одной спокойной строке: сумма чуть плотнее, объём
+  // приглушён. Раздувать её незачем, это не главное на карточке.
   &__total-row {
     display: flex;
     align-items: baseline;
-    gap: var(--p-2, 8px);
+    gap: var(--p-1, 4px);
     flex-wrap: wrap;
   }
 
   &__total-val {
-    font-family: var(--p-mono);
-    font-size: var(--p-fs-h1, 24px);
-    line-height: var(--p-lh-h1, 1.2);
+    font-size: var(--p-fs-body, 14px);
     font-weight: 600;
     color: var(--p-ink);
     font-variant-numeric: tabular-nums;
   }
 
   &__total-units {
-    padding: 2px var(--p-2, 8px);
-    border-radius: var(--p-r-pill, 999px);
-    background: var(--p-surface-2);
-    font-size: var(--p-fs-body-sm, 13px);
-    color: var(--p-ink-2);
+    font-size: var(--p-fs-body, 14px);
+    color: var(--p-ink-3);
     font-variant-numeric: tabular-nums;
   }
 

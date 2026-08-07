@@ -121,6 +121,8 @@ interface SupplierParty {
   cycle_id: string | null;
   offer_id: string;
   productName: string;
+  /** Обложка предложения — одна на всю партию (партия и есть одно предложение). */
+  imageUrl: string | null;
   deliveryBraname: string;
   pvzName: string;
   /** Базовая единица (сырое значение) — для пересчёта «Итого» в упаковки (Эпик 18). */
@@ -152,6 +154,7 @@ const parties = computed<SupplierParty[]>(() => {
         cycle_id: collecting ? null : (o.cycle_id ?? null),
         offer_id: o.offer_id,
         productName: o.product_name || 'Товар по предложению',
+        imageUrl: o.image_url ?? null,
         deliveryBraname: o.delivery_braname,
         pvzName: o.delivery_point_name || o.delivery_braname,
         unitOfMeasure: o.unit_of_measure,
@@ -353,6 +356,7 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
         v-for='p in parties',
         :key='p.key',
         :product-name='p.productName',
+        :image-url='p.imageUrl',
         :pvz-name='p.pvzName',
         :stage-status='p.stageStatus',
         :order-count='p.orders.length',
