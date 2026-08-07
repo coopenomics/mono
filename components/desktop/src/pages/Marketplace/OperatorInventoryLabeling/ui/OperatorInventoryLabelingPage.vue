@@ -1283,7 +1283,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
           v-if='placementEnabled',
           v-model='row.placement',
           :options='placementOptions',
-          label='Место'
+          label='Место',
+          searchable
         )
         BaseButton(
           variant='ghost',

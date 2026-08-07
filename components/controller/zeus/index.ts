@@ -7804,7 +7804,9 @@ export type ValueTypes = {
 	/** Бокс, в который кладут принятое. */
 	container_id?: string | undefined | null | Variable<any, string>,
 	/** Заказ, принятое по которому размещают. */
-	order_id: string | Variable<any, string>
+	order_id: string | Variable<any, string>,
+	/** Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются. */
+	quantity?: number | undefined | null | Variable<any, string>
 };
 	["MarketplaceAplReceptionResult"]: AliasType<{
 	apl_reception?:ValueTypes["MarketplaceAplReception"],
@@ -21261,7 +21263,9 @@ export type ResolverInputTypes = {
 	/** Бокс, в который кладут принятое. */
 	container_id?: string | undefined | null,
 	/** Заказ, принятое по которому размещают. */
-	order_id: string
+	order_id: string,
+	/** Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются. */
+	quantity?: number | undefined | null
 };
 	["MarketplaceAplReceptionResult"]: AliasType<{
 	apl_reception?:ResolverInputTypes["MarketplaceAplReception"],
@@ -34321,7 +34325,9 @@ export type ModelTypes = {
 	/** Бокс, в который кладут принятое. */
 	container_id?: string | undefined | null,
 	/** Заказ, принятое по которому размещают. */
-	order_id: string
+	order_id: string,
+	/** Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются. */
+	quantity?: number | undefined | null
 };
 	["MarketplaceAplReceptionResult"]: {
 		apl_reception: ModelTypes["MarketplaceAplReception"]
@@ -48430,7 +48436,9 @@ export type GraphQLTypes = {
 	/** Бокс, в который кладут принятое. */
 	container_id?: string | undefined | null,
 	/** Заказ, принятое по которому размещают. */
-	order_id: string
+	order_id: string,
+	/** Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются. */
+	quantity?: number | undefined | null
 };
 	["MarketplaceAplReceptionResult"]: {
 	__typename: "MarketplaceAplReceptionResult",

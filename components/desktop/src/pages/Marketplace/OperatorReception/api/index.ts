@@ -107,6 +107,12 @@ export interface ChairmanPlacement {
   container_id?: string | null;
   cell_id?: string | null;
   barcode_value?: string | null;
+  /**
+   * Сколько принятого по заказу кладут в это место; null — всё количество.
+   * Заказ раскладывается по нескольким местам строкой на каждое: то, что не
+   * влезло в один бокс, уходит в следующий.
+   */
+  quantity?: number | null;
 }
 
 /**

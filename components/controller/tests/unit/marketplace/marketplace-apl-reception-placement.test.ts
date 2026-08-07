@@ -19,7 +19,26 @@ import { MarketplaceAplReceptionService } from '~/extensions/marketplace/applica
 const COOPNAME = 'voskhod';
 const BRANAME = 'krasnogorsk';
 
-const reception = { id: 'apl-1', coopname: COOPNAME, braname: BRANAME } as any;
+const reception = {
+  id: 'apl-1',
+  coopname: COOPNAME,
+  braname: BRANAME,
+  // Факт приёмки: сколько по каждому заказу реально привезли. От него считается,
+  // всё ли разложено и не разложили ли больше, чем приняли.
+  fact_quantity_per_order: [
+    { order_id: 'o1', fact_quantity: 5 },
+    { order_id: 'o2', fact_quantity: 5 },
+  ],
+} as any;
+
+/** Часть раскладки в том виде, в каком её возвращает разбор входа. */
+const part = (over: Record<string, unknown> = {}) => ({
+  container_id: null,
+  cell_id: null,
+  barcode_value: null,
+  quantity: null,
+  ...over,
+});
 
 const order = (id: string, braname = BRANAME) =>
   ({ id, delivery_braname: braname, orderer_account: 'ivanov', quantity: 5 }) as any;
@@ -74,7 +93,7 @@ describe('resolveReceptionPlacements — раскладка мест по зак
 
     const map = await resolve([order('o1')], [{ order_id: 'o1', container_id: 'box-1' }]);
 
-    expect(map.get('o1')).toEqual({ container_id: 'box-1', cell_id: null });
+    expect(map.get('o1')).toEqual([part({ container_id: 'box-1' })]);
   });
 
   it('кладёт негабарит в ячейку напрямую', async () => {
@@ -82,7 +101,7 @@ describe('resolveReceptionPlacements — раскладка мест по зак
 
     const map = await resolve([order('o1')], [{ order_id: 'o1', cell_id: 'cell-1' }]);
 
-    expect(map.get('o1')).toEqual({ container_id: null, cell_id: 'cell-1' });
+    expect(map.get('o1')).toEqual([part({ cell_id: 'cell-1' })]);
   });
 
   it('складывает разные заказы в один бокс — докладка штатна', async () => {
@@ -96,8 +115,8 @@ describe('resolveReceptionPlacements — раскладка мест по зак
       ]
     );
 
-    expect(map.get('o1')).toEqual({ container_id: 'box-1', cell_id: null });
-    expect(map.get('o2')).toEqual({ container_id: 'box-1', cell_id: null });
+    expect(map.get('o1')).toEqual([part({ container_id: 'box-1' })]);
+    expect(map.get('o2')).toEqual([part({ container_id: 'box-1' })]);
   });
 
   it('отвергает бокс и ячейку одновременно для одного заказа', async () => {
@@ -224,11 +243,9 @@ describe('resolveReceptionPlacements — этикетки', () => {
       [{ order_id: 'o1', container_id: 'box-1', barcode_value: '4600000000001' }]
     );
 
-    expect(map.get('o1')).toEqual({
-      container_id: 'box-1',
-      cell_id: null,
-      barcode_value: '4600000000001',
-    });
+    expect(map.get('o1')).toEqual([
+      part({ container_id: 'box-1', barcode_value: '4600000000001' }),
+    ]);
   });
 
   it('сохраняет этикетку и без места — маркировка от раскладки не зависит', async () => {
@@ -236,11 +253,7 @@ describe('resolveReceptionPlacements — этикетки', () => {
 
     const map = await resolve([order('o1')], [{ order_id: 'o1', barcode_value: '4600000000001' }]);
 
-    expect(map.get('o1')).toEqual({
-      container_id: null,
-      cell_id: null,
-      barcode_value: '4600000000001',
-    });
+    expect(map.get('o1')).toEqual([part({ barcode_value: '4600000000001' })]);
   });
 
   it('не даёт наклеить один номер на две единицы одной приёмки', async () => {
@@ -276,7 +289,130 @@ describe('resolveReceptionPlacements — этикетки', () => {
       [{ order_id: 'o1', container_id: 'box-1', barcode_value: '   ' }]
     );
 
-    expect(map.get('o1')?.barcode_value).toBeNull();
+    expect(map.get('o1')?.[0].barcode_value).toBeNull();
     expect(inventoryRepo.findByBarcode).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveReceptionPlacements — раскладка по нескольким местам', () => {
+  // Триста литровых упаковок в один бокс не помещаются: принятое по заказу
+  // разносят по нескольким местам, указывая количество в каждом.
+
+  it('делит принятое между двумя боксами', async () => {
+    const { resolve } = makeService();
+
+    const map = await resolve(
+      [order('o1')],
+      [
+        { order_id: 'o1', container_id: 'box-1', quantity: 3 },
+        { order_id: 'o1', cell_id: 'cell-1', quantity: 2 },
+      ]
+    );
+
+    expect(map.get('o1')).toEqual([
+      part({ container_id: 'box-1', quantity: 3 }),
+      part({ cell_id: 'cell-1', quantity: 2 }),
+    ]);
+  });
+
+  it('отвергает раскладку сверх принятого', async () => {
+    const { resolve } = makeService();
+
+    await expect(
+      resolve(
+        [order('o1')],
+        [
+          { order_id: 'o1', container_id: 'box-1', quantity: 4 },
+          { order_id: 'o1', cell_id: 'cell-1', quantity: 4 },
+        ]
+      )
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('требует количество у каждого места, когда мест несколько', async () => {
+    const { resolve } = makeService();
+
+    await expect(
+      resolve(
+        [order('o1')],
+        [
+          { order_id: 'o1', container_id: 'box-1', quantity: 3 },
+          { order_id: 'o1', cell_id: 'cell-1' },
+        ]
+      )
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('отвергает нулевое и отрицательное количество', async () => {
+    const { resolve } = makeService();
+
+    await expect(
+      resolve([order('o1')], [{ order_id: 'o1', container_id: 'box-1', quantity: 0 }])
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('при включённом требовании частичная раскладка не проходит', async () => {
+    // Разложили три из пяти — два литра остались бы без места.
+    const { resolve } = makeService({ required: true });
+
+    await expect(
+      resolve([order('o1')], [{ order_id: 'o1', container_id: 'box-1', quantity: 3 }])
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('при включённом требовании полное покрытие частями проходит', async () => {
+    const { resolve } = makeService({ required: true });
+
+    const map = await resolve(
+      [order('o1')],
+      [
+        { order_id: 'o1', container_id: 'box-1', quantity: 3 },
+        { order_id: 'o1', cell_id: 'cell-1', quantity: 2 },
+      ]
+    );
+
+    expect(map.get('o1')).toHaveLength(2);
+  });
+});
+
+describe('splitOrderIntoParts — из чего родятся позиции склада', () => {
+  const split = (parts: any[], fact: number) => {
+    const service = Object.create(MarketplaceAplReceptionService.prototype) as any;
+    return service.splitOrderIntoParts(parts, fact);
+  };
+
+  it('без плана — одна позиция на всё принятое', () => {
+    expect(split([], 5)).toEqual([
+      { container_id: null, cell_id: null, barcode_value: null, quantity: 5 },
+    ]);
+  });
+
+  it('часть без количества занимает весь заказ', () => {
+    expect(split([{ container_id: 'box-1', cell_id: null, barcode_value: null, quantity: null }], 5))
+      .toEqual([{ container_id: 'box-1', cell_id: null, barcode_value: null, quantity: 5 }]);
+  });
+
+  it('неразложенный остаток становится позицией без места', () => {
+    const out = split(
+      [{ container_id: 'box-1', cell_id: null, barcode_value: 'L1', quantity: 3 }],
+      5
+    );
+
+    expect(out).toEqual([
+      { container_id: 'box-1', cell_id: null, barcode_value: 'L1', quantity: 3 },
+      { container_id: null, cell_id: null, barcode_value: null, quantity: 2 },
+    ]);
+  });
+
+  it('полное покрытие остатка не порождает', () => {
+    const out = split(
+      [
+        { container_id: 'box-1', cell_id: null, barcode_value: null, quantity: 3 },
+        { container_id: null, cell_id: 'cell-1', barcode_value: null, quantity: 2 },
+      ],
+      5
+    );
+
+    expect(out).toHaveLength(2);
   });
 });

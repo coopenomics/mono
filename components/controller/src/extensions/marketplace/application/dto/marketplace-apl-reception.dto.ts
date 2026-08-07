@@ -1,5 +1,15 @@
 import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { ArrayMinSize, IsArray, IsNumber, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsNumber,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/marketplace-apl-reception.entity';
 import { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
@@ -219,6 +229,16 @@ export class MarketplaceAplReceptionPlacementInputDTO {
   @IsOptional()
   @IsString()
   barcode_value?: string | null;
+
+  @Field(() => Float, {
+    nullable: true,
+    description:
+      'Сколько принятого по заказу кладут в это место. Пусто — всё количество. Заказ можно разложить по нескольким местам, указав по строке на каждое: триста упаковок в один бокс не помещаются.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  quantity?: number | null;
 }
 
 @InputType('MarketplaceSignAplReceptionInput')

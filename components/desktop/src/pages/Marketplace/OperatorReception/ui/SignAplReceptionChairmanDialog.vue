@@ -3,7 +3,15 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGlobalStore } from 'src/shared/store';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Avatar, BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseSelect } from 'src/shared/ui/base';
+import {
+  Avatar,
+  BaseBadge,
+  BaseBanner,
+  BaseButton,
+  BaseDialog,
+  BaseInput,
+  BaseSelect,
+} from 'src/shared/ui/base';
 import type { BaseSelectOption } from 'src/shared/ui/base';
 import { AccountBadge } from 'src/shared/ui/domain';
 import { ActDialogLayout } from 'src/widgets/Marketplace/ActDialogLayout';
@@ -20,6 +28,8 @@ import {
 import { listInventory } from 'src/entities/MarketplaceInventory';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
+import { MarketplaceSaleForm } from 'src/shared/lib/consts';
+import { quantizeSaleQuantity } from 'src/shared/lib/marketplace/sale-quantity-step';
 import {
   HandoffTokenKind,
   decodeScannedCode,
@@ -144,7 +154,7 @@ watch(
     resetActs();
     step.value = 'check';
     barcodeByOrder.value = {};
-    placementByOrder.value = {};
+    placementsByOrder.value = {};
     if (props.modelValue && props.group && placementEnabled.value) void loadStorage();
   },
 );
@@ -206,16 +216,65 @@ function unitQuantityLabel(u: PostingUnit): string {
   return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
-/** Что наметили сделать с каждым заказом: этикетка и место. */
+/**
+ * Что наметили сделать с каждым заказом: этикетка и места хранения.
+ *
+ * Мест может быть несколько: триста литровых упаковок в один бокс не влезут,
+ * их разносят по нескольким с указанием количества в каждом. Одна строка без
+ * количества — обычный случай «всё сюда».
+ */
+interface PlacementRow {
+  /** Значение выпадающего списка мест; null — место ещё не выбрано. */
+  key: string | null;
+  /** Сколько кладут в это место; null — всё принятое по заказу. */
+  quantity: number | null;
+}
+
 const barcodeByOrder = ref<Record<string, string>>({});
-const placementByOrder = ref<Record<string, string | null>>({});
+const placementsByOrder = ref<Record<string, PlacementRow[]>>({});
+
+function rowsOf(orderId: string): PlacementRow[] {
+  return placementsByOrder.value[orderId] ?? [{ key: null, quantity: null }];
+}
+
+/**
+ * Дискретность количества у этой единицы: упаковки и штуки неделимы, вес и
+ * объём считаются до грамма и миллилитра. Шаг общий с корзиной и складом.
+ */
+function roundQuantity(u: PostingUnit, value: number): number {
+  return quantizeSaleQuantity(
+    {
+      sale_form: u.packageSize ? MarketplaceSaleForm.PACKAGED : null,
+      unit_of_measure: u.unit,
+    },
+    value,
+  );
+}
+
+/** Расхождение мельче грамма — след двоичной дроби, а не реальная разница. */
+const QUANTITY_EPSILON = 1e-6;
+
+/** Сколько из принятого по заказу уже разнесено по местам. */
+function placedQuantityOf(u: PostingUnit): number {
+  return rowsOf(u.orderId).reduce(
+    (sum, row) => (row.key ? sum + (row.quantity ?? u.quantity) : sum),
+    0,
+  );
+}
+
+/** Остаток, которому ещё не нашли места. */
+function restQuantityOf(u: PostingUnit): number {
+  return Math.max(0, roundQuantity(u, u.quantity - placedQuantityOf(u)));
+}
+
+function isFullyPlaced(u: PostingUnit): boolean {
+  return restQuantityOf(u) <= QUANTITY_EPSILON;
+}
 
 const labeledCount = computed(
   () => units.value.filter((u) => barcodeByOrder.value[u.orderId]).length,
 );
-const placedCount = computed(
-  () => units.value.filter((u) => placementByOrder.value[u.orderId]).length,
-);
+const placedCount = computed(() => units.value.filter(isFullyPlaced).length);
 const allPlaced = computed(
   () => units.value.length > 0 && placedCount.value === units.value.length,
 );
@@ -283,9 +342,11 @@ const placementOptions = computed<BaseSelectOption[]>(() =>
 
 function countIn(containerId: string): number {
   const already = inventoryCountByContainer.value[containerId] ?? 0;
-  const planned = units.value.filter(
-    (u) => placementByOrder.value[u.orderId] === placementValueOf({ container_id: containerId }),
-  ).length;
+  const key = placementValueOf({ container_id: containerId });
+  const planned = units.value.reduce(
+    (sum, u) => sum + rowsOf(u.orderId).filter((row) => row.key === key).length,
+    0,
+  );
   return already + planned;
 }
 
@@ -293,27 +354,83 @@ function countIn(containerId: string): number {
 const hasPlacementTargets = computed(() => placementOptions.value.length > 0);
 
 /**
- * Подпись блокируется, только если кооператив потребовал место обязательным
- * И положить действительно есть куда. Если тара ещё не заведена, блокировать
- * бессмысленно: председатель стоит с коробками, а выхода из окна нет — вместо
- * запрета показываем, что нужно завести боксы, и даём принять как есть.
+ * Раскладка задана криво: место выбрано, а количество в нём не указано или
+ * не положительное, либо по местам разнесли больше, чем приняли. Это ловится
+ * до подписи всегда, независимо от требований кооператива, — сервер такой
+ * пакет отвергнет, а подпись документов к тому моменту уже сделана.
+ */
+const placementInputInvalid = computed(() =>
+  units.value.some((u) => {
+    const rows = rowsOf(u.orderId);
+    if (rows.length < 2) return false;
+    const brokenRow = rows.some(
+      (row) => row.key && (row.quantity === null || row.quantity <= 0),
+    );
+    return brokenRow || placedQuantityOf(u) > u.quantity + QUANTITY_EPSILON;
+  }),
+);
+
+/**
+ * Подпись блокируется, если кооператив потребовал место обязательным И положить
+ * действительно есть куда. Если тара ещё не заведена, блокировать бессмысленно:
+ * председатель стоит с коробками, а выхода из окна нет — вместо запрета
+ * показываем, что нужно завести боксы, и даём принять как есть.
  */
 const signBlocked = computed(
   () =>
-    placementEnabled.value &&
-    placementRequired.value &&
-    hasPlacementTargets.value &&
-    !allPlaced.value,
+    placementInputInvalid.value ||
+    (placementEnabled.value &&
+      placementRequired.value &&
+      hasPlacementTargets.value &&
+      !allPlaced.value),
 );
 
-function setPlacement(orderId: string, value: string | null): void {
-  placementByOrder.value = { ...placementByOrder.value, [orderId]: value };
+function writeRows(orderId: string, rows: PlacementRow[]): void {
+  placementsByOrder.value = { ...placementsByOrder.value, [orderId]: rows };
+}
+
+function setPlacement(orderId: string, index: number, value: string | null): void {
+  const rows = rowsOf(orderId).map((row, i) => (i === index ? { ...row, key: value } : row));
+  writeRows(orderId, rows);
+}
+
+/**
+ * Количество в конкретном месте. Пустое поле — «сколько осталось»: пока строка
+ * одна, количество вообще не спрашиваем, оно и так всё.
+ */
+function setPlacementQuantity(orderId: string, index: number, value: number | null): void {
+  const rows = rowsOf(orderId).map((row, i) => (i === index ? { ...row, quantity: value } : row));
+  writeRows(orderId, rows);
+}
+
+/**
+ * Ещё одно место для того же заказа. Первой строке при этом проставляется
+ * явное количество: как только мест несколько, «всё сюда» перестаёт иметь
+ * смысл — сервер потребует количество у каждой части.
+ */
+function addPlacementRow(u: PostingUnit): void {
+  const rows = rowsOf(u.orderId).map((row) => ({
+    ...row,
+    quantity: row.quantity ?? roundQuantity(u, u.quantity),
+  }));
+  const rest = Math.max(
+    0,
+    roundQuantity(u, u.quantity - rows.reduce((sum, row) => sum + (row.quantity ?? 0), 0)),
+  );
+  rows.push({ key: null, quantity: rest > 0 ? rest : null });
+  writeRows(u.orderId, rows);
+}
+
+function removePlacementRow(u: PostingUnit, index: number): void {
+  const rows = rowsOf(u.orderId).filter((_, i) => i !== index);
+  // Последнее место убрали — возвращаемся к простому виду без количества.
+  writeRows(u.orderId, rows.length ? rows : [{ key: null, quantity: null }]);
 }
 
 function setPlacementForAll(value: string | null): void {
-  const next: Record<string, string | null> = {};
-  for (const u of units.value) next[u.orderId] = value;
-  placementByOrder.value = next;
+  const next: Record<string, PlacementRow[]> = {};
+  for (const u of units.value) next[u.orderId] = [{ key: value, quantity: null }];
+  placementsByOrder.value = next;
 }
 
 /** Скан QR бокса кладёт туда всё принятое разом — обычный случай у стойки. */
@@ -347,14 +464,34 @@ async function onBoxScanned(raw: string): Promise<void> {
 function buildPlacements(): ChairmanPlacement[] {
   const out: ChairmanPlacement[] = [];
   for (const u of units.value) {
-    const placement = parsePlacementValue(placementByOrder.value[u.orderId] ?? null);
+    const rows = rowsOf(u.orderId).filter((row) => row.key);
     const barcode = barcodeByOrder.value[u.orderId] ?? null;
-    if (!placement.container_id && !placement.cell_id && !barcode) continue;
-    out.push({
-      order_id: u.orderId,
-      container_id: placement.container_id,
-      cell_id: placement.cell_id,
-      barcode_value: barcode,
+
+    if (rows.length === 0) {
+      // Места нет, но этикетку наклеили — маркировку терять нельзя.
+      if (barcode) {
+        out.push({
+          order_id: u.orderId,
+          container_id: null,
+          cell_id: null,
+          barcode_value: barcode,
+          quantity: null,
+        });
+      }
+      continue;
+    }
+
+    // Этикетку сканировали на единицу целиком, поэтому она уходит с первой
+    // частью; остальные части промаркируют на столе раскладки.
+    rows.forEach((row, i) => {
+      const placement = parsePlacementValue(row.key);
+      out.push({
+        order_id: u.orderId,
+        container_id: placement.container_id,
+        cell_id: placement.cell_id,
+        barcode_value: i === 0 ? barcode : null,
+        quantity: rows.length > 1 ? roundQuantity(u, row.quantity ?? 0) : null,
+      });
     });
   }
   return out;
@@ -526,9 +663,9 @@ BaseDialog(
     //- ─────────────── Шаг 2: маркировка ───────────────
     template(v-else-if="step === 'labeling'")
       .sign-apl__lead
-        | Принятое расходится по заказчикам — на каждого свой заказ. Наклейте
-        | этикетку на конкретную единицу имущества и привяжите её сканером: тогда
-        | при выдаче позиция находится за секунду. Шаг необязательный.
+        | Наклейте этикетку на конкретную единицу имущества и привяжите её
+        | сканером: тогда при выдаче позиция находится за секунду. Шаг
+        | необязательный.
 
       .sign-apl__unit-head
         BaseButton(variant="secondary", size="sm", @click="printLabels")
@@ -563,8 +700,9 @@ BaseDialog(
     template(v-else)
       .sign-apl__lead
         | Разложите принятое по местам хранения и подпишите приёмку. Отсканируйте
-        | QR на таре — всё ляжет в этот бокс; место по отдельной единице меняется
-        | в списке, негабарит кладётся в ячейку напрямую.
+        | QR на таре — всё ляжет в этот бокс; место можно выбрать и в списке,
+        | набрав часть кода. Если в один бокс не помещается, добавьте «Ещё место»
+        | и укажите, сколько кладёте в каждое; негабарит кладётся в ячейку.
 
       BaseBanner(v-if="!hasPlacementTargets", variant="warn")
         | На участке ещё не заведена тара. Подпишите приёмку как есть — имущество
@@ -584,21 +722,63 @@ BaseDialog(
               q-icon(name="qr_code_scanner", size="18px")
             | Сканировать бокс
           span.sign-apl__counter(:class="{ 'is-bad': signBlocked }")
-            | Размещено: {{ placedCount }} / {{ units.length }}
-            template(v-if="placementRequired")  · место обязательно
+            template(v-if="placementInputInvalid")
+              | Укажите количество в каждом месте — не больше принятого
+            template(v-else)
+              | Размещено: {{ placedCount }} / {{ units.length }}
+              template(v-if="placementRequired")  · место обязательно
 
-        .sign-apl__unit(v-for="u in units", :key="u.orderId")
+        .sign-apl__unit.sign-apl__unit--split(v-for="u in units", :key="u.orderId")
           .sign-apl__unit-info
             .sign-apl__unit-name {{ u.productName }}
             .sign-apl__unit-meta
               | {{ unitQuantityLabel(u) }} · {{ u.orderer }}
               template(v-if="barcodeByOrder[u.orderId]")  · {{ barcodeByOrder[u.orderId] }}
-          BaseSelect.sign-apl__unit-place.field-flush(
-            :model-value="placementByOrder[u.orderId] ?? null",
-            :options="placementOptions",
-            placeholder="Выберите место",
-            @update:model-value="(v: string | number | null) => setPlacement(u.orderId, v === null ? null : String(v))"
-          )
+            .sign-apl__unit-rest(v-if="rowsOf(u.orderId).length > 1 && !isFullyPlaced(u)")
+              | Без места: {{ restQuantityOf(u) }}
+
+          //- Мест может быть несколько: что не влезло в один бокс, кладут в
+          //- следующий. Пока место одно, количество не спрашиваем — это всё
+          //- принятое по заказу.
+          .sign-apl__places
+            .sign-apl__place-row(v-for="(row, i) in rowsOf(u.orderId)", :key="i")
+              BaseSelect.sign-apl__place-select.field-flush(
+                :model-value="row.key",
+                :options="placementOptions",
+                placeholder="Выберите место",
+                searchable,
+                clearable,
+                @update:model-value="(v: string | number | null) => setPlacement(u.orderId, i, v === null ? null : String(v))"
+              )
+              BaseInput.sign-apl__place-qty.field-flush(
+                v-if="rowsOf(u.orderId).length > 1",
+                :model-value="row.quantity === null ? '' : String(row.quantity)",
+                type="number",
+                :placeholder="String(u.quantity)",
+                aria-label="Количество в этом месте",
+                @update:model-value="(v: string | number) => setPlacementQuantity(u.orderId, i, v === '' ? null : Number(v))"
+              )
+              BaseButton(
+                v-if="rowsOf(u.orderId).length > 1",
+                variant="ghost",
+                size="sm",
+                icon-only,
+                aria-label="Убрать это место",
+                @click="removePlacementRow(u, i)"
+              )
+                template(#icon-left)
+                  q-icon(name="close", size="16px")
+                  q-tooltip Убрать это место
+
+            BaseButton.sign-apl__place-add(
+              variant="ghost",
+              size="sm",
+              :disabled="isFullyPlaced(u) && rowsOf(u.orderId).length > 1",
+              @click="addPlacementRow(u)"
+            )
+              template(#icon-left)
+                q-icon(name="add", size="16px")
+              | Ещё место
 
   template(#footer)
     //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
@@ -888,6 +1068,46 @@ BaseDialog(
   &__unit-place {
     flex: 0 1 320px;
     min-width: 220px;
+  }
+
+  // Единица, разложенная по нескольким местам: список строк выравнивается по
+  // правому краю карточки, чтобы поля не расползались по ширине.
+  &__unit--split {
+    align-items: flex-start;
+  }
+
+  &__unit-rest {
+    margin-top: var(--p-1, 4px);
+    font-size: var(--p-fs-body-sm, 13px);
+    font-variant-numeric: tabular-nums;
+    color: var(--p-warn);
+  }
+
+  &__places {
+    flex: 0 1 420px;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1, 4px);
+  }
+
+  &__place-row {
+    display: flex;
+    align-items: center;
+    gap: var(--p-2, 8px);
+  }
+
+  &__place-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__place-qty {
+    flex: 0 0 96px;
+  }
+
+  &__place-add {
+    align-self: flex-start;
   }
 }
 </style>

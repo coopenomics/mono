@@ -368,6 +368,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
             :model-value='placementValue(row)',
             :options='placementOptions',
             placeholder='Указать место',
+            searchable,
             :disabled='savingPlaceId === row.id',
             @update:model-value='(v: string | number | null) => commitPlacement(row, v)'
           )
