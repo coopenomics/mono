@@ -376,6 +376,31 @@
         ничего не прыгает. Отдельный скелетон рядом не нужен.
       </p>
       <BaseTable :columns="tableColumns" :rows="[]" row-key="id" loading :skeleton-rows="3" />
+
+      <p class="dev-ui__sect-sub">
+        Выбор строк — проп <code>selection="multiple"</code> и
+        <code>v-model:selected</code>: галочки слева, в заголовке — «выбрать
+        все». Кнопка группового действия ставится в слот
+        <code>actions</code> у <code>PageTabs</code> или в шапку страницы и
+        показывается, только когда что-то отмечено.
+      </p>
+      <BaseTable
+        v-model:selected="tableSelected"
+        :columns="tableColumns"
+        :rows="tableRows"
+        row-key="id"
+        hover
+        selection="multiple"
+      >
+        <template #cell-status="{ value }">
+          <BaseBadge :variant="(value as 'pos' | 'warn' | 'neg')">
+            {{ statusLabel(value as string) }}
+          </BaseBadge>
+        </template>
+        <template #footer>
+          <span>Отмечено: {{ tableSelected.length }}</span>
+        </template>
+      </BaseTable>
     </section>
 
     <!-- ============ 11b MARKUP TABLE ============ -->
@@ -1581,6 +1606,7 @@ const tableRows: TableRow[] = [
 function statusLabel(s: string): string {
   return { pos: 'Завершён', warn: 'Ожидает подписи', neg: 'Отклонён' }[s] ?? s;
 }
+const tableSelected = ref<TableRow[]>([]);
 
 const railItems: Array<RailItem | RailSection> = [
   {

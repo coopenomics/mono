@@ -1,10 +1,12 @@
 <template>
   <q-table
     v-model:pagination="pagination"
+    v-model:selected="selectedRows"
     flat
     :rows="displayRows"
     :columns="quasarColumns"
     :row-key="rowKeyName"
+    :selection="selectionMode"
     :hide-bottom="!$slots.footer"
     :hide-pagination="true"
     binary-state-sort
@@ -13,6 +15,7 @@
       'base-table--hover': hover && !skeleton,
       'base-table--sticky': stickyHeader,
       'base-table--skeleton': skeleton,
+      'base-table--selectable': selectionMode !== 'none',
     }"
     :style="tableStyle"
   >
@@ -67,12 +70,25 @@ import type { BaseTableProps } from './BaseTable.types';
 
 const props = withDefaults(defineProps<BaseTableProps<T>>(), {
   skeletonRows: 6,
+  selection: 'none',
 });
+
+const emit = defineEmits<{
+  'update:selected': [rows: T[]];
+}>();
 
 const rowKeyName = computed(() => (props.rowKey as string | undefined) ?? 'id');
 
+const selectedRows = computed<T[]>({
+  get: () => props.selected ?? [],
+  set: (rows) => emit('update:selected', rows),
+});
+
 /** Каркас показываем, только пока показывать нечего: обновление идёт молча. */
 const skeleton = computed(() => Boolean(props.loading) && props.rows.length === 0);
+
+/** На каркасе выбирать нечего — галочки на пустышках только сбивают с толку. */
+const selectionMode = computed(() => (skeleton.value ? 'none' : props.selection));
 
 /**
  * Строки-пустышки под каркас. Реальному типу `T` они не соответствуют — это
@@ -185,6 +201,14 @@ const tableStyle = computed(() => ({
   // Каркас: строки не кликаются и не подсвечиваются.
   &--skeleton :deep(tbody tr) {
     pointer-events: none;
+  }
+
+  // Колонка галочек. При `table-layout: fixed` колонка без явной ширины
+  // забрала бы весь остаток и отжала данные вправо, поэтому ширину задаём
+  // здесь — ровно под галочку.
+  &--selectable :deep(.q-table--col-auto-width) {
+    width: 44px;
+    padding-right: 0;
   }
 
   &__skel {

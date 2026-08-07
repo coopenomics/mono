@@ -60,6 +60,14 @@ const cellsEnabled = computed(() => branchStore.warehouseSettings.cells_enabled)
 const inventory = ref<MarketplaceInventoryItemView[]>([])
 const loading = ref(true)
 
+/**
+ * Отмеченные боксы — для перепечатки этикеток пачкой. Печать всех годится
+ * ровно один раз, при заведении партии; дальше переклеивают отдельные боксы —
+ * ободрался QR, бокс уехал на другой участок, — и гнать ради этого весь лист
+ * не годится.
+ */
+const selectedContainers = ref<MarketplaceContainerView[]>([])
+
 const activeTab = ref<'containers' | 'types'>('containers')
 const tabs = computed<PageTab[]>(() => [
   { key: 'containers', label: 'Боксы', count: storage.activeContainers.length },
@@ -201,6 +209,20 @@ const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(()
   },
 ])
 
+/**
+ * Пересобрать выбор на свежих строках: после перезагрузки в `selectedContainers`
+ * остались бы прежние объекты, и печать пошла бы по устаревшим данным. Заодно
+ * из выбора выпадают боксы, которых больше нет (сменили участок, вывели из
+ * оборота).
+ */
+function syncSelection(): void {
+  if (!selectedContainers.value.length) return
+  const byId = new Map(storage.activeContainers.map((c) => [c.id, c] as const))
+  selectedContainers.value = selectedContainers.value
+    .map((c) => byId.get(c.id))
+    .filter((c): c is MarketplaceContainerView => Boolean(c))
+}
+
 async function load(): Promise<void> {
   if (!braname.value.trim()) {
     inventory.value = []
@@ -213,6 +235,7 @@ async function load(): Promise<void> {
       storage.load(braname.value.trim(), { containers: true, cells: cellsEnabled.value }),
     ])
     inventory.value = items
+    syncSelection()
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить боксы участка')
   } finally {
@@ -464,7 +487,20 @@ q-page.containers(role='region', aria-label='Боксы участка')
       | партией, наклейте на них напечатанные QR — и при закрывающей подписи
       | приёмки достаточно будет отсканировать бокс, чтобы принятое легло на место.
 
+    //- Печать отмеченного живёт в ряду вкладок, а не в шапке: действие
+    //- относится к текущему выбору в таблице, а не к странице целиком.
     PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
+      template(#actions)
+        BaseButton(
+          v-if='activeTab === "containers" && selectedContainers.length',
+          variant='primary',
+          size='sm',
+          :loading='printing',
+          @click='printLabels(selectedContainers)'
+        )
+          template(#icon-left)
+            q-icon(name='print', size='16px')
+          | Напечатать выбранное ({{ selectedContainers.length }})
 
     //- ─────────────────────────── Боксы ───────────────────────────
     template(v-if='activeTab === "containers"')
@@ -483,6 +519,8 @@ q-page.containers(role='region', aria-label='Боксы участка')
         row-key='id',
         hover,
         sticky-header,
+        selection='multiple',
+        v-model:selected='selectedContainers',
         :loading='loading',
         min-width='980px',
         sort-by='code'
