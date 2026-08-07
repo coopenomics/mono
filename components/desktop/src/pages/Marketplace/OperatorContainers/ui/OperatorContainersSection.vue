@@ -14,8 +14,7 @@ import {
 } from 'src/shared/ui/base'
 import type { BaseSelectOption, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { PageTabs, type PageTab } from 'src/shared/ui/layout'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import {
   containerLabel,
   createContainerType,
@@ -49,6 +48,15 @@ import {
  * машины займёт перевозка боксов между участками.
  */
 
+const props = defineProps<{
+  /** Какой справочник показывать: сами боксы или их типы. */
+  section: 'containers' | 'types'
+}>()
+
+const emit = defineEmits<{
+  (e: 'counts', value: { containers: number; types: number }): void
+}>()
+
 const route = useRoute()
 const branchStore = useOperatorBranchStore()
 const storage = useMarketplaceStorageStore()
@@ -68,14 +76,15 @@ const loading = ref(true)
  */
 const selectedContainers = ref<MarketplaceContainerView[]>([])
 
-const activeTab = ref<'containers' | 'types'>('containers')
-const tabs = computed<PageTab[]>(() => [
-  { key: 'containers', label: 'Боксы', count: storage.activeContainers.length },
-  { key: 'types', label: 'Типы боксов', count: storage.activeTypes.length },
-])
-function onSelectTab(tab: PageTab): void {
-  activeTab.value = tab.key as typeof activeTab.value
-}
+const activeTab = computed(() => props.section)
+
+// Счётчики боксов и типов считает эта секция, а показывает их полоса разделов
+// на странице-обёртке.
+watch(
+  [() => storage.activeContainers.length, () => storage.activeTypes.length],
+  ([containers, types]) => emit('counts', { containers, types }),
+  { immediate: true },
+)
 
 // ─── Содержимое боксов считаем на фронте ───
 // Бэкенд отдаёт боксы без счётчиков — и правильно делает: это производная от
@@ -441,9 +450,9 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
 </script>
 
 <template lang="pug">
-q-page.containers(role='region', aria-label='Боксы участка')
-  OperatorBranchBar
-
+//- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
+//- странице-обёртке. Какой из двух справочников показывать, говорит проп.
+.containers(role='region', aria-label='Боксы участка')
   EmptyState(
     v-if='branchStore.loaded && !branchStore.isOperator',
     title='Вы не оператор кооперативного участка',
@@ -481,26 +490,33 @@ q-page.containers(role='region', aria-label='Боксы участка')
             q-icon(name='add', size='16px')
           | Тип боксов
 
-    PageHint(storage-key='mp:operator-containers:banner-dismissed')
+    //- Своя подсказка на каждый раздел: боксы и их типы — разные сущности.
+    PageHint(
+      v-if='activeTab === "containers"',
+      storage-key='mp:operator-containers:banner-dismissed'
+    )
       | Бокс — тара со своим QR-кодом: имущество кладётся в бокс, а бокс стоит в
       | ячейке склада или просто в углу — адрес не обязателен. Заведите боксы
       | партией, наклейте на них напечатанные QR — и при закрывающей подписи
       | приёмки достаточно будет отсканировать бокс, чтобы принятое легло на место.
 
-    //- Печать отмеченного живёт в ряду вкладок, а не в шапке: действие
-    //- относится к текущему выбору в таблице, а не к странице целиком.
-    PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
-      template(#actions)
-        BaseButton(
-          v-if='activeTab === "containers" && selectedContainers.length',
-          variant='primary',
-          size='sm',
-          :loading='printing',
-          @click='printLabels(selectedContainers)'
-        )
-          template(#icon-left)
-            q-icon(name='print', size='16px')
-          | Напечатать выбранное ({{ selectedContainers.length }})
+    PageHint(v-else, storage-key='mp:operator-container-types:banner-dismissed')
+      | Тип задаёт габариты и объём тары, а не отдельный бокс: коробки закупают
+      | одинаковыми партиями. Объём нужен агрегатом — по нему считается, сколько
+      | места займёт перевозка боксов между участками.
+
+    //- Печать отмеченного стоит над таблицей, а не в шапке страницы: действие
+    //- относится к текущему выбору в таблице, а не к разделу целиком.
+    .containers__bulk(v-if='activeTab === "containers" && selectedContainers.length')
+      BaseButton(
+        variant='primary',
+        size='sm',
+        :loading='printing',
+        @click='printLabels(selectedContainers)'
+      )
+        template(#icon-left)
+          q-icon(name='print', size='16px')
+        | Напечатать выбранное ({{ selectedContainers.length }})
 
     //- ─────────────────────────── Боксы ───────────────────────────
     template(v-if='activeTab === "containers"')
@@ -642,7 +658,8 @@ q-page.containers(role='region', aria-label='Боксы участка')
 
 <style scoped lang="scss">
 .containers {
-  padding: var(--p-6, 24px);
+  // Внешние отступы держит страница-обёртка «Склад моего КУ» — секция живёт
+  // внутри её полосы разделов и своих полей не добавляет.
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);

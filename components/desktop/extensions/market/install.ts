@@ -19,8 +19,6 @@ import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReturnClaimDetailPage } from 'src/pages/Marketplace/OperatorReturnClaimDetail'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
-import { OperatorInventoryLabelingPage } from 'src/pages/Marketplace/OperatorInventoryLabeling'
-import { OperatorContainersPage } from 'src/pages/Marketplace/OperatorContainers'
 import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
@@ -32,7 +30,7 @@ import { AdminOrdersPage } from 'src/pages/Marketplace/AdminOrders'
 import { AdminOrderDetailPage } from 'src/pages/Marketplace/AdminOrderDetail'
 import { AdminOffersPage } from 'src/pages/Marketplace/AdminOffers'
 import { AdminIssuancePointsPage } from 'src/pages/Marketplace/AdminIssuancePoints'
-import { OperatorOwnWarehousePage } from 'src/pages/Marketplace/OperatorOwnWarehouse'
+import { OperatorWarehouseDeskPage } from 'src/pages/Marketplace/OperatorWarehouseDesk'
 import { AdminWarehouseSummaryPage } from 'src/pages/Marketplace/AdminWarehouseSummary'
 import { AdminContainerRegistryPage } from 'src/pages/Marketplace/AdminContainerRegistry'
 import { EcosystemRegistryPage } from 'src/pages/Marketplace/EcosystemRegistry'
@@ -491,47 +489,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
             },
             {
-              // Стол раскладки/маркировки: принятое имущество (склад) — назначить
-              // полку, разложить позицию по нескольким полкам, наклеить штрих-код.
-              path: 'labeling',
-              name: 'marketplace-pvz-labeling',
-              component: markRaw(OperatorInventoryLabelingPage),
-              meta: {
-                title: 'Раскладка и маркировка',
-                icon: 'fa-solid fa-tag',
-                requires: 'Warehouse:read:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 19: боксы участка — тара со своим QR-кодом, в которую
-              // кладётся имущество. Стоит рядом с раскладкой: сначала заводим
-              // и размечаем тару, потом раскладываем в неё принятое.
+              // Эпик 19: единый стол складского хозяйства участка. Раскладка,
+              // склад, обезличенный остаток и боксы — разделами одной страницы,
+              // а не четырьмя пунктами меню: это одна сущность с разных сторон,
+              // а боксы вообще заводят однажды и потом не открывают месяцами.
               //
-              // Видимость страницы гейтится грантом, а не ролью: когда в
-              // настройках расширения выключены боксы, backend
-              // (MarketplaceDesktopGrantsProvider) не выдаёт `Container:*`, и
-              // пункт исчезает из меню сам — кооперативному кафе складской
-              // контур не мешает.
-              path: 'containers',
-              name: 'marketplace-pvz-containers',
-              component: markRaw(OperatorContainersPage),
-              meta: {
-                title: 'Боксы',
-                icon: 'inbox',
-                requires: 'Container:manage:own-KU',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-            },
-            {
-              // Эпик 9 / Story 9.1: operator-стол «Склад моего КУ». Идёт сразу
-              // после раскладки/маркировки — принятое имущество разложено и
-              // видно на складе перед выдачей.
-              path: 'warehouse',
+              // Раздел — в адресе, поэтому на нужную вкладку можно дать ссылку.
+              // Без раздела открывается раскладка: это ежедневная работа.
+              path: 'warehouse/:section?',
               name: 'marketplace-pvz-warehouse',
-              component: markRaw(OperatorOwnWarehousePage),
+              component: markRaw(OperatorWarehouseDeskPage),
               meta: {
                 title: 'Склад моего КУ',
                 icon: 'fa-solid fa-boxes-stacked',

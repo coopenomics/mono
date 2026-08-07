@@ -1,1 +1,1 @@
-export { default as OperatorInventoryLabelingPage } from './OperatorInventoryLabelingPage.vue';
+export { default as OperatorInventoryLabelingSection } from './OperatorInventoryLabelingSection.vue';

@@ -4,7 +4,7 @@ import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog'
@@ -851,9 +851,9 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.place(role='region', aria-label='Раскладка и маркировка')
-  OperatorBranchBar
-
+//- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
+//- странице-обёртке, здесь только содержимое раздела.
+.place(role='region', aria-label='Раскладка и маркировка')
   EmptyState(
     v-if='branchStore.loaded && !branchStore.isOperator',
     title='Вы не оператор кооперативного участка',
@@ -1366,7 +1366,8 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
 
 <style scoped lang="scss">
 .place {
-  padding: var(--p-6, 24px);
+  // Внешние отступы держит страница-обёртка «Склад моего КУ» — секция живёт
+  // внутри её полосы разделов и своих полей не добавляет.
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);

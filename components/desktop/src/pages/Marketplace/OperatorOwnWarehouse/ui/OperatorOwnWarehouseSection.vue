@@ -4,7 +4,7 @@ import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { Zeus } from '@coopenomics/sdk'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import {
   BaseBadge,
   BaseButton,
@@ -19,7 +19,6 @@ import type {
   BaseTableColumn,
 } from 'src/shared/ui/base'
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
-import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
 import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
@@ -38,6 +37,15 @@ import {
   listInventory,
   type MarketplaceInventoryItemView,
 } from 'src/entities/MarketplaceInventory'
+
+const props = defineProps<{
+  /** Какой раздел показывать: имущество на складе или обезличенный остаток. */
+  section: 'warehouse' | 'stock'
+}>()
+
+const emit = defineEmits<{
+  (e: 'counts', value: { warehouse: number; stock: number }): void
+}>()
 
 // Активный КУ оператора — из общего контекста стола (без ввода кода вручную).
 const route = useRoute()
@@ -58,15 +66,9 @@ const loading = ref(true)
 // карточка, которая появляется/исчезает в зависимости от наличия остатков
 // (жалоба 2026-08-02: мигало на каждый заход). Активный раздел всегда
 // показывается — без фильтрации содержимого, только переключение видимости.
-const activeTab = ref<'warehouse' | 'stock'>('warehouse')
+const activeTab = computed(() => props.section)
 const coopStockCount = ref(0)
-const tabs = computed<PageTab[]>(() => [
-  { key: 'warehouse', label: 'Склад', count: filteredRows.value.length },
-  { key: 'stock', label: 'Остатки', count: coopStockCount.value },
-])
-function onSelectTab(tab: PageTab): void {
-  activeTab.value = tab.key as typeof activeTab.value
-}
+
 
 // Склад — это «что сейчас физически лежит на складе», не история движений.
 // Выданное пайщику и списанное уже не на складе — им место в будущей истории
@@ -116,6 +118,15 @@ const filteredRows = computed(() => {
 // Сортировку ведёт сама таблица: по умолчанию свежие приёмки сверху.
 // Дату сравниваем как время, а не как строку — иначе «09.08» встало бы
 // раньше «10.07».
+// Счётчики разделов считает эта секция (только у неё есть строки склада и
+// остатка), а показывает их полоса разделов на странице-обёртке. Watch стоит
+// ПОСЛЕ `filteredRows`: с `immediate` он читает их сразу при инициализации.
+watch(
+  [() => filteredRows.value.length, coopStockCount],
+  ([warehouse, stock]) => emit('counts', { warehouse, stock }),
+  { immediate: true },
+)
+
 const columns = computed<BaseTableColumn<MarketplaceInventoryItemView>[]>(() => [
   { key: 'place', label: 'Место', width: '240px', field: (row) => placeLabel(row) },
   { key: 'product', label: 'Товар', width: '240px', sortable: true, field: 'product_name_snapshot' },
@@ -319,9 +330,9 @@ function isExpired(value: unknown): boolean {
 </script>
 
 <template lang="pug">
-q-page.warehouse(role='region', aria-label='Склад участка')
-  OperatorBranchBar
-
+//- Секция стола «Склад моего КУ»: шапка участка и полоса разделов — на
+//- странице-обёртке. Какой из двух разделов показывать, говорит проп.
+.warehouse(role='region', aria-label='Склад участка')
   EmptyState(
     v-if='store.loaded && !store.isOperator',
     title='Вы не оператор кооперативного участка',
@@ -331,12 +342,20 @@ q-page.warehouse(role='region', aria-label='Склад участка')
       q-icon(name='storefront', size='48px')
 
   template(v-else)
-    PageHint(storage-key='mp:operator-warehouse:banner-dismissed')
+    //- Своя подсказка на каждый раздел: склад и обезличенный остаток — про
+    //- разное имущество, и общий текст врал бы половине экранов.
+    PageHint(
+      v-if='activeTab === "warehouse"',
+      storage-key='mp:operator-warehouse:banner-dismissed'
+    )
       | Имущество, принятое на ваш пункт выдачи: что лежит на складе, в каком
       | месте, заказчик и состояние. Место можно переназначить, а штрих-код
       | выпустить прямо в строке. Штрих-код есть не у всех позиций — он опционален.
 
-    PageTabs(:tabs='tabs', :active-key='activeTab', @select='onSelectTab')
+    PageHint(v-else, storage-key='mp:operator-coop-stock:banner-dismissed')
+      | Обезличенный остаток кооператива: имущество, которое заказчик не забрал
+      | или от которого отказался. Оно уже не закреплено ни за кем — его можно
+      | опубликовать в каталог предложением от кооператива.
 
     template(v-if='activeTab === "warehouse"')
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
@@ -423,7 +442,8 @@ q-page.warehouse(role='region', aria-label='Склад участка')
 
 <style scoped lang="scss">
 .warehouse {
-  padding: var(--p-6, 24px);
+  // Внешние отступы держит страница-обёртка «Склад моего КУ» — секция живёт
+  // внутри её полосы разделов и своих полей не добавляет.
   display: flex;
   flex-direction: column;
   gap: var(--p-4, 16px);
