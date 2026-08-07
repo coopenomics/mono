@@ -26,6 +26,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ensureDesktopConfig } from '../lib/desktop-config.mjs';
 import { ensureFixture, fixturesOfScenario } from '../lib/fixtures.mjs';
+import { collectPrepare, runPrepare } from '../lib/prepare.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = path.resolve(HARNESS_ROOT, '../..');
@@ -253,6 +254,21 @@ if (needed.size) {
       console.error(`✗ ${e.message}`);
       process.exit(2);
     }
+  }
+}
+
+// ── Подготовка стенда ──────────────────────────────────────────────────────
+// Фазы, заявленные сценариями в meta.prepare (принятие ЦПП советом и т.п.).
+// Идемпотентны, поэтому гоняем их до прогона все разом: доготавливать стенд
+// в середине сюиты — значит мешать шум подготовки с результатом сценария.
+const prepareSpecs = await collectPrepare(plan.map((p) => p.scenario));
+if (prepareSpecs.length) {
+  console.log(`\n▸ подготовка стенда: ${prepareSpecs.join(', ')}`);
+  try {
+    runPrepare(prepareSpecs, { log: (m) => console.log(`    ${m}`) });
+  } catch (e) {
+    console.error(`✗ ${e.message}`);
+    process.exit(2);
   }
 }
 
