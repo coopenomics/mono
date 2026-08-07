@@ -7,7 +7,7 @@ import {
   listAplReceptionsAsSupplier,
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
-} from 'src/pages/Marketplace/OffererPendingAplReceptions/api';
+} from 'src/entities/MarketplaceAplReception';
 import { cancelAplReception } from 'src/pages/Marketplace/OperatorReception/api';
 import { Classes, Zeus } from '@coopenomics/sdk';
 import {

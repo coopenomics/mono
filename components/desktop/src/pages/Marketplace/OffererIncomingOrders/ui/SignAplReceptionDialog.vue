@@ -12,7 +12,7 @@ import {
   fetchSupplierSignablePayloads,
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
-} from '../api';
+} from 'src/entities/MarketplaceAplReception';
 
 /**
  * Первая подпись поставщика на СВОДНОЙ поставке (on-chain `signsupp`).

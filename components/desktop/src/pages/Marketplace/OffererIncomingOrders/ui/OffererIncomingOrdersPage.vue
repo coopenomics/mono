@@ -8,7 +8,12 @@ import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { SupplyPartyCard } from 'src/widgets/Marketplace/SupplyPartyCard';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { groupAplReceptions, useMarketplaceRealtime, type ReceptionGroup } from 'src/shared/lib/marketplace';
+import {
+  listAplReceptionsAsSupplier,
+  type MarketplaceAplReceptionView,
+} from 'src/entities/MarketplaceAplReception';
+import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
 import {
   acceptOrdersBatch,
   declineOrdersBatch,
@@ -19,6 +24,7 @@ import type {
   MarketplaceOrderStatusView,
   MarketplaceOrderView,
 } from '../../MyOrders/types';
+import SignAplReceptionDialog from './SignAplReceptionDialog.vue';
 
 /**
  * Эпик 4 / Story 4.5 + Эпик 15: offerer-стол «Входящие заказы».
@@ -33,6 +39,12 @@ import type {
  *  - «сформированная» — уже принятые заказы, сгруппированные по cycle_id.
  *    Дальше — на странице «Подготовка отгрузки».
  *
+ * Здесь же поставщик ставит первую подпись на акте приёма-передачи (on-chain
+ * `signsupp`) — отдельного экрана «Подпись передачи» больше нет. Партия и есть
+ * поставка на всём её пути, и подпись — такое же действие над ней, как «Принять
+ * заказ»: держать ради одной кнопки второй список тех же партий значило
+ * заставлять поставщика сверять два экрана.
+ *
  * Live-обновления — realtime: заказ сменил статус (новый заказ накопителя
  * принят, отменён заказчиком и т.п.) → персональный ws-сигнал поставщику, и
  * партии тихо перечитываются. Поллинга нет; страховка — 60-сек resync канала и
@@ -44,6 +56,7 @@ const SKELETON_COUNT = 4;
 
 const router = useRouter();
 const route = useRoute();
+const coopname = computed(() => String(route.params.coopname ?? ''));
 
 const items = ref<MarketplaceOrderView[]>([]);
 const totalPages = ref(0);
@@ -56,6 +69,16 @@ const loading = ref(true);
 const activeKey = ref('all');
 // Карта min-объёма поставки на КУ: `${offer_id}::${braname}` → min_supply_volume.
 const minVolumeMap = ref<Map<string, number>>(new Map());
+
+// Акты приёмки поставщика. Грузятся отдельным запросом и НЕ зависят от вкладки
+// и страницы списка заказов — иначе поставка, ждущая подписи, пропадала бы из
+// виду вместе с фильтром.
+const receptions = ref<MarketplaceAplReceptionView[]>([]);
+const signDialog = ref(false);
+const signGroup = ref<ReceptionGroup<MarketplaceAplReceptionView> | null>(null);
+// Реквизиты КУ нужны диалогу подписи: там поставка называется по-человечески
+// («Поставка на Ромашка», адрес), а акт несёт только служебный braname.
+const kuStore = useMarketplaceKUDetailsStore();
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 const showSkeleton = computed(() => loading.value && items.value.length === 0);
@@ -137,6 +160,63 @@ interface SupplierParty {
   stageStatus: MarketplaceOrderStatusView;
 }
 
+/** Сводная поставка, ждущая подписи, с ключом, уникальным в пределах страницы. */
+interface PendingSignEntry {
+  key: string;
+  group: ReceptionGroup<MarketplaceAplReceptionView>;
+}
+
+/**
+ * Поставки, ждущие первой подписи поставщика, — по заказам, которые в них вошли.
+ *
+ * Группируем сначала по циклу поставки: карточка сформированной партии на этой
+ * странице и есть цикл, и подписывать надо ровно её акты, а не всё, что приехало
+ * на тот же участок. Если оператор принял части цикла по-разному (очно и через
+ * экспедитора), групп внутри цикла будет две — тогда и кнопок две, каждая со
+ * своим составом; сливать их нельзя, у них разные акты.
+ *
+ * Индексируем по `order_id`, а не по циклу: заказ у акта и партии общий всегда,
+ * а вот партия одиночного заказа собирается без цикла — по циклу она бы кнопку
+ * не получила и поставка встала бы намертво.
+ */
+const pendingSignByOrder = computed(() => {
+  const byCycle = new Map<string, MarketplaceAplReceptionView[]>();
+  for (const r of receptions.value) {
+    if (r.status !== 'PENDING_SUPPLIER_SIGN') continue;
+    // Акт без цикла (одиночная поставка) — сам себе группа.
+    const cycleKey = r.cycle_id || `reception:${r.id}`;
+    const list = byCycle.get(cycleKey);
+    if (list) list.push(r);
+    else byCycle.set(cycleKey, [r]);
+  }
+  const byOrder = new Map<string, PendingSignEntry>();
+  for (const [cycleKey, list] of byCycle) {
+    for (const group of groupAplReceptions(list, { byOfferer: false })) {
+      // Ключ группы (участок|способ|статус) повторяется у разных циклов —
+      // добавляем цикл, иначе v-for схлопнет две разные поставки в одну.
+      const entry: PendingSignEntry = { key: `${cycleKey}|${group.key}`, group };
+      for (const r of group.receptions) {
+        for (const f of r.fact_quantity_per_order) byOrder.set(f.order_id, entry);
+      }
+    }
+  }
+  return byOrder;
+});
+
+function pendingSignGroups(p: SupplierParty): PendingSignEntry[] {
+  const seen = new Set<PendingSignEntry>();
+  for (const o of p.orders) {
+    const entry = pendingSignByOrder.value.get(o.id);
+    if (entry) seen.add(entry);
+  }
+  return [...seen];
+}
+
+function openSign(group: ReceptionGroup<MarketplaceAplReceptionView>): void {
+  signGroup.value = group;
+  signDialog.value = true;
+}
+
 const parties = computed<SupplierParty[]>(() => {
   const buckets = new Map<string, SupplierParty>();
   for (const o of items.value) {
@@ -181,7 +261,14 @@ const parties = computed<SupplierParty[]>(() => {
       p.stageStatus = o.status;
     }
   }
+  const awaitsSign = (p: SupplierParty): boolean =>
+    p.orders.some((o) => pendingSignByOrder.value.has(o.id));
   return [...buckets.values()].sort((a, b) => {
+    // Ждущие подписи — в самый верх: поставка уже на ПВЗ и стоит до подписи,
+    // это самое срочное действие поставщика.
+    const signA = awaitsSign(a);
+    const signB = awaitsSign(b);
+    if (signA !== signB) return signA ? -1 : 1;
     // Накопители выше — по ним нужно действие.
     if (a.kind !== b.kind) return a.kind === 'collecting' ? -1 : 1;
     return a.orders[0].created_at < b.orders[0].created_at ? 1 : -1;
@@ -250,6 +337,23 @@ async function load(page: number, append: boolean): Promise<void> {
   }
 }
 
+/**
+ * Акты приёмки + реквизиты КУ. Отдельно от заказов и молча: подпись — не
+ * основной поток страницы, и её сбой не должен ронять список партий.
+ */
+async function loadReceptions(): Promise<void> {
+  const [list] = await Promise.all([
+    listAplReceptionsAsSupplier().catch(() => [] as MarketplaceAplReceptionView[]),
+    kuStore.load({ coopname: coopname.value, onlyActive: false }).catch(() => undefined),
+  ]);
+  receptions.value = list;
+}
+
+function onSigned(): void {
+  void loadReceptions();
+  void load(1, false);
+}
+
 function loadMore(): void {
   if (hasMore.value && !loading.value) {
     void load(currentPage.value + 1, true);
@@ -306,17 +410,24 @@ onMounted(async () => {
     FailAlert(e);
   }
 
+  void loadReceptions();
   await load(1, false);
 });
 
 // Заказ сменил статус → персональный ws-сигнал, партии тихо перечитываются.
 // Debounce схлопывает пачку переходов (приёмка партии целиком) в одну загрузку.
+// Приёмка на ПВЗ приходит отдельным сигналом «ждёт вашей подписи» — по нему
+// перечитываем акты, чтобы кнопка подписи появилась на карточке без F5.
 const reloadLive = debounce(() => {
+  void loadReceptions();
   if (loading.value) return;
   void load(1, false);
 }, 400);
 useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
+  {
+    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
+    MarketplaceReceptionPendingSignEvent: () => reloadLive(),
+  },
   { onResync: () => reloadLive() }
 );
 </script>
@@ -328,7 +439,10 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
       | Заказы пайщиков сгруппированы в партии по кооперативному участку. Партия
       | копится до минимального объёма поставки — это ориентир, а не порог:
       | принять партию можно в любой момент и меньшего объёма. После приёма —
-      | «Подготовка отгрузки».
+      | «Подготовка отгрузки». Когда партия принята на пункте выдачи, здесь же
+      | на её карточке появится «Подписать передачу»: этой подписью вы
+      | подтверждаете факт приёмки, дальше акт уходит на закрывающую подпись
+      | председателя участка.
 
     PageTabs.incoming-orders__tabs(:tabs='tabs', :active-key='activeKey', @select='onSelectTab')
 
@@ -374,9 +488,26 @@ q-page.incoming-orders(role='region', aria-label='Входящие заказы 
             BaseButton(variant='ghost', @click='onDeclineParty(p)') Отклонить
             BaseButton(variant='primary', :loading='loading', @click='onAcceptParty(p)')
               | Принять заказ
+          //- Партия принята на ПВЗ и ждёт первой подписи поставщика: акт
+          //- приёмки найден по cycle_id этой же партии.
+          BaseButton(
+            v-for='e in pendingSignGroups(p)',
+            :key='e.key',
+            variant='primary',
+            @click='openSign(e.group)'
+          )
+            template(#icon-left)
+              q-icon(name='draw', size='18px')
+            | Подписать передачу
 
       .incoming-orders__more(v-if='hasMore')
         BaseButton(variant='ghost', :loading='loading', @click='loadMore') Показать ещё
+
+  SignAplReceptionDialog(
+    v-model='signDialog',
+    :group='signGroup',
+    @signed='onSigned'
+  )
 </template>
 
 <style scoped lang="scss">

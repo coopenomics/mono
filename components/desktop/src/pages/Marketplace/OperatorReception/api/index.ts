@@ -3,9 +3,9 @@ import { client } from 'src/shared/api/client';
 import type {
   MarketplaceAplReceptionView,
   SignedDocumentInput,
-} from '../../OffererPendingAplReceptions/api';
+} from 'src/entities/MarketplaceAplReception';
 
-export type { MarketplaceAplReceptionView, SignedDocumentInput } from '../../OffererPendingAplReceptions/api';
+export type { MarketplaceAplReceptionView, SignedDocumentInput } from 'src/entities/MarketplaceAplReception';
 
 /**
  * Агрегат документа: исходный документ (rawDocument) + документ с уже

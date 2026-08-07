@@ -19,7 +19,6 @@ import { OrdererReceiveCodePage } from 'src/pages/Marketplace/OrdererReceiveCode
 import { OperatorReturnClaimsPage } from 'src/pages/Marketplace/OperatorReturnClaims'
 import { OperatorReturnClaimDetailPage } from 'src/pages/Marketplace/OperatorReturnClaimDetail'
 import { OperatorReceptionPage } from 'src/pages/Marketplace/OperatorReception'
-import { OffererPendingAplReceptionsPage } from 'src/pages/Marketplace/OffererPendingAplReceptions'
 import { OffererSupplyPreparationPage } from 'src/pages/Marketplace/OffererSupplyPreparation'
 import { OffererShipPartyPage } from 'src/pages/Marketplace/OffererShipParty'
 import { OffererPaymentHistoryPage } from 'src/pages/Marketplace/OffererPaymentHistory'
@@ -408,22 +407,11 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               },
               children: [],
             },
-            {
-              // Эпик 5 / Story 5.7: offerer-стол ожидающих подписи актов приёмки.
-              // Поставщик первой подписью signapl1 подтверждает факт приёмки
-              // партии ПВЗ — после этого ПВЗ закрывает акт второй подписью.
-              path: 'apl-receptions',
-              name: 'marketplace-apl-receptions',
-              component: markRaw(OffererPendingAplReceptionsPage),
-              meta: {
-                title: 'Подпись передачи',
-                icon: 'fa-solid fa-file-signature',
-                requires: 'Offer:create:own',
-                requiresAuth: true,
-                agreements: agreementsBase,
-              },
-              children: [],
-            },
+            // Отдельного пункта «Подпись передачи» у поставщика нет: первая
+            // подпись (signsupp) — действие на карточке партии во «Входящих
+            // заказах». Это одна и та же поставка на всём пути, и держать ради
+            // одной кнопки отдельный экран со своим списком значило заставлять
+            // поставщика сверять два списка одних и тех же заказов.
             {
               // Эпик 5 / Story 5.9: offerer-стол «Выплаты». Настройка
               // «выплаты получаю на…» (реквизиты ядра) + история выплат

@@ -1,6 +1,16 @@
 import { Classes, Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 
+/**
+ * Акты приёма-передачи (АПП) поставки — сторона поставщика.
+ *
+ * Раньше жило в `pages/Marketplace/OffererPendingAplReceptions/api`, но у
+ * поставщика больше нет отдельной страницы «Подпись передачи»: подпись —
+ * действие на карточке партии во «Входящих заказах». Читают эти операции трое
+ * (входящие заказы, стол ПВЗ, глобальный гейт подписи на месте), поэтому по
+ * правилу DRY они и переехали в entity, а не остались в api одной из страниц.
+ */
+
 type _RawAplReception =
   Queries.Marketplace.ListAplReceptionsAsSupplier.IOutput['marketplaceListAplReceptionsAsSupplier'][number];
 
