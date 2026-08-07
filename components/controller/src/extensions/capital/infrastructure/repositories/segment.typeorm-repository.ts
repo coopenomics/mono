@@ -438,6 +438,21 @@ export class SegmentTypeormRepository
    * - Для родительского проекта: агрегирует сегменты всех дочерних компонентов + самого проекта по username
    *   и возвращает первый агрегированный сегмент
    */
+  /**
+   * Все сегменты одного компонента, без постраничного вывода и без агрегации
+   * по дочерним проектам: расчёт по неполному списку участников дал бы неверный
+   * ответ, а компонент — конечная единица, дочерних проектов у него нет.
+   */
+  async findAllByProjectHash(coopname: string, project_hash: string): Promise<SegmentDomainEntity[]> {
+    const entities = await this.repository
+      .createQueryBuilder('s')
+      .where('s.coopname = :coopname', { coopname })
+      .andWhere('s.project_hash = :project_hash', { project_hash })
+      .getMany();
+
+    return entities.map((entity) => SegmentMapper.toDomain(entity));
+  }
+
   async findOne(filter?: SegmentFilterInputDTO): Promise<SegmentDomainEntity | null> {
 
     // Если указан project_hash и username, определяем тип проекта

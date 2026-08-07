@@ -28,12 +28,6 @@ import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallo
 import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
 
 /**
- * Потолок выборки сегментов при расчёте возврата: участников в компоненте
- * десятки, но берём с запасом, чтобы не посчитать предел по неполному списку.
- */
-const MAX_SEGMENTS_PER_PROJECT = 1000;
-
-/**
  * Интерактор домена для управления инвестициями CAPITAL контракта
  * Обрабатывает действия связанные с инвестициями в проекты
  */
@@ -207,10 +201,9 @@ export class InvestsManagementInteractor {
     const project = await this.projectRepository.findByHash(project_hash);
     assertBlockchainProject(project, 'расчёт доступного возврата');
 
-    const segments = await this.segmentRepository.findAllPaginated(
-      { coopname: data.coopname, project_hash },
-      { page: 1, limit: MAX_SEGMENTS_PER_PROJECT, sortOrder: 'ASC' }
-    );
+    // Без постраничного вывода: предел считается по самому «дорогому» заёмщику,
+    // и пропущенный участник дал бы сумму, которую контракт отклонит
+    const segments = await this.segmentRepository.findAllByProjectHash(data.coopname, project_hash);
 
     return calculateDeallocationLimit(
       {
@@ -219,7 +212,7 @@ export class InvestsManagementInteractor {
         status: project.status,
         ...(project.fact ?? {}),
       },
-      segments.items
+      segments
     );
   }
 
