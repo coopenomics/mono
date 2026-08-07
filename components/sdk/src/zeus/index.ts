@@ -7777,6 +7777,10 @@ export type ValueTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
+	orderer_account?:boolean | `@${string}`,
+	/** ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам. */
+	orderer_name?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
 	package_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
@@ -7793,6 +7797,8 @@ export type ValueTypes = {
 	order_id: string | Variable<any, string>
 };
 	["MarketplaceAplReceptionPlacementInput"]: {
+	/** Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару. */
+	barcode_value?: string | undefined | null | Variable<any, string>,
 	/** Ячейка, если имущество кладут на склад напрямую (негабарит). */
 	cell_id?: string | undefined | null | Variable<any, string>,
 	/** Бокс, в который кладут принятое. */
@@ -10098,7 +10104,7 @@ export type ValueTypes = {
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
 	apl_reception_id: string | Variable<any, string>,
-	/** Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места. */
+	/** Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места. */
 	placements?: Array<ValueTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null | Variable<any, string>,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ValueTypes["MarketplaceAplReceptionSignedDocumentInput"]> | Variable<any, string>
@@ -21223,6 +21229,10 @@ export type ResolverInputTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?:boolean | `@${string}`,
 	order_id?:boolean | `@${string}`,
+	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
+	orderer_account?:boolean | `@${string}`,
+	/** ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам. */
+	orderer_name?:boolean | `@${string}`,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
 	package_size?:boolean | `@${string}`,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
@@ -21238,6 +21248,8 @@ export type ResolverInputTypes = {
 	order_id: string
 };
 	["MarketplaceAplReceptionPlacementInput"]: {
+	/** Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару. */
+	barcode_value?: string | undefined | null,
 	/** Ячейка, если имущество кладут на склад напрямую (негабарит). */
 	cell_id?: string | undefined | null,
 	/** Бокс, в который кладут принятое. */
@@ -23470,7 +23482,7 @@ export type ResolverInputTypes = {
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
 	apl_reception_id: string,
-	/** Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места. */
+	/** Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места. */
 	placements?: Array<ResolverInputTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ResolverInputTypes["MarketplaceAplReceptionSignedDocumentInput"]>
@@ -34272,6 +34284,10 @@ export type ModelTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
+	orderer_account?: string | undefined | null,
+	/** ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам. */
+	orderer_name?: string | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
 	package_size?: number | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
@@ -34286,6 +34302,8 @@ export type ModelTypes = {
 	order_id: string
 };
 	["MarketplaceAplReceptionPlacementInput"]: {
+	/** Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару. */
+	barcode_value?: string | undefined | null,
 	/** Ячейка, если имущество кладут на склад напрямую (негабарит). */
 	cell_id?: string | undefined | null,
 	/** Бокс, в который кладут принятое. */
@@ -36410,7 +36428,7 @@ export type ModelTypes = {
 	["MarketplaceSignAplReceptionInput"]: {
 	/** Идентификатор акта приёмки. */
 	apl_reception_id: string,
-	/** Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места. */
+	/** Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места. */
 	placements?: Array<ModelTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<ModelTypes["MarketplaceAplReceptionSignedDocumentInput"]>
@@ -48369,6 +48387,10 @@ export type GraphQLTypes = {
 	/** Фактическая цена за единицу (если оператор скорректировал её при открытии приёмки). */
 	fact_unit_price?: string | undefined | null,
 	order_id: string,
+	/** Аккаунт заказчика, которому предназначено принятое по этой позиции. */
+	orderer_account?: string | undefined | null,
+	/** ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам. */
+	orderer_name?: string | undefined | null,
 	/** Содержимое одной упаковки в базовой единице (Эпик 18, отпуск упаковкой). Null/0 — отпуск по мере, quantity уже в базовой единице. */
 	package_size?: number | undefined | null,
 	/** Наименование товара по этой позиции — для таблицы сверки в диалоге подписи. */
@@ -48384,7 +48406,9 @@ export type GraphQLTypes = {
 	order_id: string
 };
 	["MarketplaceAplReceptionPlacementInput"]: {
-		/** Ячейка, если имущество кладут на склад напрямую (негабарит). */
+		/** Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару. */
+	barcode_value?: string | undefined | null,
+	/** Ячейка, если имущество кладут на склад напрямую (негабарит). */
 	cell_id?: string | undefined | null,
 	/** Бокс, в который кладут принятое. */
 	container_id?: string | undefined | null,
@@ -50690,7 +50714,7 @@ export type GraphQLTypes = {
 	["MarketplaceSignAplReceptionInput"]: {
 		/** Идентификатор акта приёмки. */
 	apl_reception_id: string,
-	/** Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места. */
+	/** Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места. */
 	placements?: Array<GraphQLTypes["MarketplaceAplReceptionPlacementInput"]> | undefined | null,
 	/** Подписанные клиентом акты приёмки — один документ на каждый Order группы. Backend верифицирует подпись и отправляет on-chain signsupp/signchair с этим документом. */
 	signed_documents: Array<GraphQLTypes["MarketplaceAplReceptionSignedDocumentInput"]>

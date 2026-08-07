@@ -54,6 +54,18 @@ export class MarketplaceAplReceptionFactEntryDTO {
   })
   unit_of_measure!: MarketplaceUnitOfMeasureEnum | null;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Аккаунт заказчика, которому предназначено принятое по этой позиции.',
+  })
+  orderer_account!: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'ФИО заказчика — принятое маркируется и выдаётся адресно, по заказчикам.',
+  })
+  orderer_name!: string | null;
+
   @Field(() => Float, {
     nullable: true,
     description:
@@ -198,6 +210,15 @@ export class MarketplaceAplReceptionPlacementInputDTO {
   @IsOptional()
   @IsString()
   cell_id?: string | null;
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Номер этикетки, наклеенной на принятое по этому заказу. Этикетку клеят на конкретную единицу имущества до того, как убрать её в тару.',
+  })
+  @IsOptional()
+  @IsString()
+  barcode_value?: string | null;
 }
 
 @InputType('MarketplaceSignAplReceptionInput')
@@ -220,7 +241,7 @@ export class MarketplaceSignAplReceptionInputDTO {
   @Field(() => [MarketplaceAplReceptionPlacementInputDTO], {
     nullable: true,
     description:
-      'Место хранения по каждому принятому заказу — бокс либо ячейка. Обязательно, когда кооператив требует указывать место при приёмке; иначе принятое попадает на склад без места.',
+      'Оприходование по каждому принятому заказу: номер наклеенной этикетки и место хранения — бокс либо ячейка. Место обязательно, когда кооператив требует указывать его при приёмке; иначе принятое попадает на склад без места.',
   })
   @IsOptional()
   @IsArray()
@@ -344,6 +365,8 @@ export interface MarketplaceAplReceptionDisplayFields {
       product_name: string | null;
       unit_of_measure: MarketplaceUnitOfMeasureEnum | null;
       package_size: number | null;
+      orderer_account: string | null;
+      orderer_name: string | null;
     }
   >;
 }
@@ -371,6 +394,8 @@ export function toMarketplaceAplReceptionDTO(
     entry.product_name = line?.product_name ?? null;
     entry.unit_of_measure = line?.unit_of_measure ?? null;
     entry.package_size = line?.package_size ?? null;
+    entry.orderer_account = line?.orderer_account ?? null;
+    entry.orderer_name = line?.orderer_name ?? null;
     return entry;
   });
   dto.ttn_number = e.ttn_number;

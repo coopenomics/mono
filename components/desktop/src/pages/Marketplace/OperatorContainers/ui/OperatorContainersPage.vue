@@ -182,7 +182,7 @@ const containerColumns = computed<BaseTableColumn<MarketplaceContainerView>[]>((
     field: (row) => itemsOf(row).length,
   },
   { key: 'contents', label: 'Содержимое', width: '260px', field: (row) => contentsOf(row) },
-  { key: 'actions', label: '', width: '96px', align: 'right' },
+  { key: 'actions', label: '', width: '56px', align: 'right' },
 ])
 
 const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(() => [
@@ -535,17 +535,6 @@ q-page.containers(role='region', aria-label='Боксы участка')
           span.containers__contents {{ contentsOf(row) }}
         template(#cell-actions='{ row }')
           .containers__row-actions
-            BaseButton(
-              variant='ghost',
-              size='sm',
-              icon-only,
-              aria-label='Печать QR-этикетки',
-              :loading='printing',
-              @click='printLabels([row])'
-            )
-              template(#icon-left)
-                q-icon(name='print', size='18px')
-                q-tooltip Печать QR-этикетки
             BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия с боксом')
               template(#icon-left)
                 q-icon(name='more_vert', size='18px')

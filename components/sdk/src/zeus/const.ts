@@ -4996,6 +4996,8 @@ export const ReturnTypes: Record<string,any> = {
 		fact_quantity:"Float",
 		fact_unit_price:"String",
 		order_id:"String",
+		orderer_account:"String",
+		orderer_name:"String",
 		package_size:"Float",
 		product_name:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"

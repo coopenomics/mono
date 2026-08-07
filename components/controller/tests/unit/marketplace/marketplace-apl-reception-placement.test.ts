@@ -1,14 +1,14 @@
 /**
  * Unit-тесты оприходования при закрывающей подписи (Эпик 19, Story 19.5).
  *
- * Главный инвариант — ПОРЯДОК: указанное место проверяется до отправки подписи
- * в цепь. Обратный порядок оставил бы акт подписанным on-chain, а место —
- * непринятым: акт закрыт, имущество физически лежит, а система положить его
- * никуда не может.
+ * Главный инвариант — ПОРЯДОК: этикетки и места проверяются до отправки подписи
+ * в цепь. Обратный порядок оставил бы акт подписанным on-chain, а принятое —
+ * без места, куда его положить: акт закрыт, имущество физически лежит, а
+ * система положить его никуда не может.
  *
- * Само по себе место при подписи не обязательно, даже когда кооператив включил
- * требование: позиции склада рождаются этой самой подписью, поэтому раскладка
- * идёт следующим шагом оприходования — уже по существующим позициям.
+ * Оприходование планируется целиком до подписи — председатель проходит шаги
+ * маркировки и раскладки, и всё намеченное уходит вместе с подписью одним
+ * пакетом. Поэтому требование «указать место» проверяется именно здесь.
  *
  * Проверяем через приватный resolveReceptionPlacements — он и есть та самая
  * проверка, а публичный signAsChairman тянет за собой цепь, выплаты и события.
@@ -35,24 +35,37 @@ const cell = (over: Record<string, unknown> = {}) =>
  * размещения значимы только три, остальные подставляем заглушками.
  */
 const makeService = (over: {
-  /** Настройки склада на разбор мест больше не влияют — параметры оставлены
-   *  ради читаемости тестов: в них видно, при каких настройках дело. */
   required?: boolean;
   containersEnabled?: boolean;
   cellsEnabled?: boolean;
   containerRepo?: any;
   cellRepo?: any;
+  inventoryRepo?: any;
 } = {}) => {
   const containerRepo = { findById: jest.fn(async () => container()), ...over.containerRepo };
   const cellRepo = { findById: jest.fn(async () => cell()), ...over.cellRepo };
+  const inventoryRepo = {
+    findByBarcode: jest.fn(async () => null),
+    ...over.inventoryRepo,
+  };
+  const warehouseSettings = {
+    get: jest.fn(async () => ({
+      containers_enabled: over.containersEnabled ?? true,
+      cells_enabled: over.cellsEnabled ?? true,
+      posting_on_reception_required: over.required ?? false,
+    })),
+  };
+
   const service = Object.create(MarketplaceAplReceptionService.prototype) as any;
   service.containerRepo = containerRepo;
   service.cellRepo = cellRepo;
+  service.inventoryRepo = inventoryRepo;
+  service.warehouseSettings = warehouseSettings;
 
   const resolve = (orders: any[], placements: any[]) =>
     service.resolveReceptionPlacements(reception, orders, placements);
 
-  return { resolve, containerRepo, cellRepo };
+  return { resolve, containerRepo, cellRepo, inventoryRepo, warehouseSettings };
 };
 
 describe('resolveReceptionPlacements — раскладка мест по заказам', () => {
@@ -135,29 +148,35 @@ describe('resolveReceptionPlacements — раскладка мест по зак
 });
 
 describe('resolveReceptionPlacements — требование указывать место', () => {
-  // Требование исполняется третьим шагом оприходования, уже после подписи:
-  // позиции склада рождаются самой подписью, и до неё размещать нечего.
-  // Проверка на подписи означала бы «подпишите то, что ещё нельзя разместить».
-  it('не блокирует подпись, даже когда место обязательно и класть есть куда', async () => {
+  it('при включённом требовании не пропускает неразмещённые заказы', async () => {
     const { resolve } = makeService({ required: true });
 
-    const map = await resolve([order('o1'), order('o2')], []);
-
-    expect(map.size).toBe(0);
+    await expect(
+      resolve([order('o1'), order('o2')], [{ order_id: 'o1', container_id: 'box-1' }])
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('применяет места, пришедшие вместе с подписью, — «всё в один бокс» остаётся одним действием', async () => {
+  it('при включённом требовании пропускает полностью размещённую приёмку', async () => {
     const { resolve } = makeService({ required: true });
 
     const map = await resolve(
       [order('o1'), order('o2')],
       [
         { order_id: 'o1', container_id: 'box-1' },
-        { order_id: 'o2', container_id: 'box-1' },
+        { order_id: 'o2', cell_id: 'cell-1' },
       ]
     );
 
     expect(map.size).toBe(2);
+  });
+
+  it('одна этикетка без места требование не удовлетворяет', async () => {
+    // Маркировка и раскладка независимы: наклеить этикетку — не значит положить.
+    const { resolve } = makeService({ required: true });
+
+    await expect(
+      resolve([order('o1')], [{ order_id: 'o1', barcode_value: '4600000000001' }])
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('при выключенном требовании пустой список — не ошибка', async () => {
@@ -168,15 +187,96 @@ describe('resolveReceptionPlacements — требование указывать
     expect(map.size).toBe(0);
   });
 
-  it('не требует места для заказов чужого участка', async () => {
+  it('требование не действует, когда класть некуда — ни боксов, ни ячеек', async () => {
+    // Флаг обязательности, включённый в одиночку, иначе заблокировал бы приёмку
+    // намертво: председатель видит отказ, а положить имущество физически некуда.
+    const { resolve } = makeService({
+      required: true,
+      containersEnabled: false,
+      cellsEnabled: false,
+    });
+
+    const map = await resolve([order('o1')], []);
+
+    expect(map.size).toBe(0);
+  });
+
+  it('требование не распространяется на заказы чужого участка', async () => {
     const { resolve } = makeService({ required: true });
 
-    // Заказ едет на другой КУ — на этой приёмке он не оприходуется.
+    // Заказ едет на другой КУ — на этой приёмке он не оприходуется,
+    // значит и места для него не требуется.
     const map = await resolve(
       [order('o1'), order('o2', 'other-ku')],
       [{ order_id: 'o1', container_id: 'box-1' }]
     );
 
     expect(map.size).toBe(1);
+  });
+});
+
+describe('resolveReceptionPlacements — этикетки', () => {
+  it('принимает этикетку вместе с местом', async () => {
+    const { resolve } = makeService();
+
+    const map = await resolve(
+      [order('o1')],
+      [{ order_id: 'o1', container_id: 'box-1', barcode_value: '4600000000001' }]
+    );
+
+    expect(map.get('o1')).toEqual({
+      container_id: 'box-1',
+      cell_id: null,
+      barcode_value: '4600000000001',
+    });
+  });
+
+  it('сохраняет этикетку и без места — маркировка от раскладки не зависит', async () => {
+    const { resolve } = makeService();
+
+    const map = await resolve([order('o1')], [{ order_id: 'o1', barcode_value: '4600000000001' }]);
+
+    expect(map.get('o1')).toEqual({
+      container_id: null,
+      cell_id: null,
+      barcode_value: '4600000000001',
+    });
+  });
+
+  it('не даёт наклеить один номер на две единицы одной приёмки', async () => {
+    // Два одинаковых номера на складе делают поиск сканером бессмысленным.
+    const { resolve } = makeService();
+
+    await expect(
+      resolve(
+        [order('o1'), order('o2')],
+        [
+          { order_id: 'o1', barcode_value: '4600000000001' },
+          { order_id: 'o2', barcode_value: '4600000000001' },
+        ]
+      )
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('не даёт занять номер, уже привязанный к позиции склада', async () => {
+    const { resolve } = makeService({
+      inventoryRepo: { findByBarcode: jest.fn(async () => ({ id: 'inv-9' })) },
+    });
+
+    await expect(
+      resolve([order('o1')], [{ order_id: 'o1', barcode_value: '4600000000001' }])
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('пустую строку номером не считает', async () => {
+    const { resolve, inventoryRepo } = makeService();
+
+    const map = await resolve(
+      [order('o1')],
+      [{ order_id: 'o1', container_id: 'box-1', barcode_value: '   ' }]
+    );
+
+    expect(map.get('o1')?.barcode_value).toBeNull();
+    expect(inventoryRepo.findByBarcode).not.toHaveBeenCalled();
   });
 });

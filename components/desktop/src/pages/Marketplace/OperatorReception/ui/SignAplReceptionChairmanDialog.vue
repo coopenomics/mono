@@ -17,12 +17,7 @@ import {
   resolveContainerByCode,
   useMarketplaceStorageStore,
 } from 'src/entities/MarketplaceStorage';
-import {
-  assignInventoryPlacement,
-  bindInventoryBarcode,
-  listInventory,
-  type MarketplaceInventoryItemView,
-} from 'src/entities/MarketplaceInventory';
+import { listInventory } from 'src/entities/MarketplaceInventory';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -35,6 +30,7 @@ import {
 import {
   fetchChairmanSignablePayloads,
   signReceptionGroupAsChairman,
+  type ChairmanPlacement,
   type MarketplaceAplReceptionView,
 } from '../api';
 
@@ -49,12 +45,17 @@ import {
  *
  * Оприходование идёт тремя шагами, и порядок здесь не косметика:
  *
- *   1. СВЕРКА — что и на какую сумму принято. Подпись создаёт позиции склада:
- *      до неё ни клеить этикетку, ни класть в бокс физически не на что.
- *   2. МАРКИРОВКА — принятое разбито по заказчикам (одна позиция на заказ), и
+ *   1. СВЕРКА — что и на какую сумму принято.
+ *   2. МАРКИРОВКА — принятое разложено по заказчикам (заказ на заказчика), и
  *      этикетка клеится на конкретную единицу имущества. Шаг необязательный:
  *      маркировка нужна не всем и не всегда.
- *   3. РАЗМЕЩЕНИЕ — промаркированное раскладывается по боксам и ячейкам.
+ *   3. РАЗМЕЩЕНИЕ — помеченное раскладывается по боксам и ячейкам, и здесь же
+ *      ставится подпись.
+ *
+ * Подпись — на последнем шаге, а не на первом. Она закрывает акт и снимает
+ * поставку с ленты ожидаемых, поэтому подписать и уйти, не разложив, значит
+ * потерять принятое из виду. Всё, что председатель наметил на шагах 2–3, уходит
+ * вместе с подписью одним пакетом и применяется при создании позиций склада.
  *
  * Шаги 2–3 показываются, только когда кооператив включил адресное хранение.
  * Без него оприходование — это по-прежнему одна подпись и всё.
@@ -142,7 +143,8 @@ watch(
   () => {
     resetActs();
     step.value = 'check';
-    receivedItems.value = [];
+    barcodeByOrder.value = {};
+    placementByOrder.value = {};
     if (props.modelValue && props.group && placementEnabled.value) void loadStorage();
   },
 );
@@ -151,92 +153,122 @@ async function loadStorage(): Promise<void> {
   const braname = props.group?.braname;
   if (!braname) return;
   try {
-    await storage.load(braname, {
-      containers: containersEnabled.value,
-      cells: cellsEnabled.value,
-    });
+    const [items] = await Promise.all([
+      listInventory({ braname }),
+      storage.load(braname, {
+        containers: containersEnabled.value,
+        cells: cellsEnabled.value,
+      }),
+    ]);
+    const counts: Record<string, number> = {};
+    for (const item of items) {
+      if (!item.container_id) continue;
+      counts[item.container_id] = (counts[item.container_id] ?? 0) + 1;
+    }
+    inventoryCountByContainer.value = counts;
   } catch (e) {
     FailAlert(e, 'Не удалось загрузить боксы и ячейки участка');
   }
 }
 
-// ─────────────────────── Принятые позиции ───────────────────────
-// Позиции склада создаются самой подписью — по одной на заказ, со своим
-// заказчиком. Именно они, а не строки сверки, и есть «единицы имущества»:
-// строка сверки агрегирует десять литров молока десяти заказчиков в одну.
+// ─────────────────────── Единицы имущества ───────────────────────
+// Строка сверки агрегирует товар по всей поставке: десять литров молока десяти
+// заказчиков — одна строка. Но метят и выдают не строку, а конкретную единицу
+// конкретного заказчика, поэтому шаги маркировки и раскладки работают по
+// заказам. Позиции склада появятся из них один-в-один при подписи.
 
-const receivedItems = ref<MarketplaceInventoryItemView[]>([]);
-const loadingItems = ref(false);
+interface PostingUnit {
+  orderId: string;
+  productName: string;
+  orderer: string;
+  quantity: number;
+  unit: string;
+  packageSize: number | null;
+}
 
-const receptionOrderIds = computed(
-  () => new Set((props.group?.lines ?? []).flatMap((l) => l.orderIds)),
+const units = computed<PostingUnit[]>(() =>
+  (props.group?.receptions ?? [])
+    .flatMap((r) => r.fact_quantity_per_order)
+    .map((f) => ({
+      orderId: f.order_id,
+      productName: f.product_name || 'Товар по предложению',
+      orderer: f.orderer_name?.trim() || f.orderer_account || 'Заказчик',
+      quantity: Number(f.fact_quantity),
+      unit: f.unit_of_measure ?? '',
+      packageSize: f.package_size ?? null,
+    }))
+    // Отклонённое в приёмке на склад не попадает — метить и класть нечего.
+    .filter((u) => u.quantity > 0),
 );
 
-async function loadReceivedItems(): Promise<void> {
-  const braname = props.group?.braname;
-  if (!braname) return;
-  loadingItems.value = true;
-  try {
-    const items = await listInventory({ braname });
-    receivedItems.value = items.filter((i) => receptionOrderIds.value.has(String(i.order_id)));
-  } catch (e) {
-    FailAlert(e, 'Не удалось загрузить принятое имущество');
-  } finally {
-    loadingItems.value = false;
-  }
+function unitQuantityLabel(u: PostingUnit): string {
+  const saleUnit = marketplaceOrderSaleUnit(u.quantity, u.unit, u.packageSize);
+  return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
-function patchItem(id: string, patch: Partial<MarketplaceInventoryItemView>): void {
-  const idx = receivedItems.value.findIndex((i) => i.id === id);
-  const current = receivedItems.value[idx];
-  if (idx < 0 || !current) return;
-  receivedItems.value[idx] = { ...current, ...patch };
-}
+/** Что наметили сделать с каждым заказом: этикетка и место. */
+const barcodeByOrder = ref<Record<string, string>>({});
+const placementByOrder = ref<Record<string, string | null>>({});
 
-function ordererLabel(item: MarketplaceInventoryItemView): string {
-  return item.orderer_name?.trim() || item.orderer_account_snapshot;
-}
-
-const labeledCount = computed(() => receivedItems.value.filter((i) => i.barcode_value).length);
+const labeledCount = computed(
+  () => units.value.filter((u) => barcodeByOrder.value[u.orderId]).length,
+);
+const placedCount = computed(
+  () => units.value.filter((u) => placementByOrder.value[u.orderId]).length,
+);
+const allPlaced = computed(
+  () => units.value.length > 0 && placedCount.value === units.value.length,
+);
 
 // ─────────────────────── Шаг 2: маркировка ───────────────────────
 // Этикетки печатаются впрок и наклеиваются вслепую, а привязку делает сканер:
 // какой номер оказался на какой коробке, знает только тот, кто клеил.
 
 const labelScannerOpen = ref(false);
-const labelTarget = ref<MarketplaceInventoryItemView | null>(null);
-const binding = ref(false);
+const labelTargetOrderId = ref<string | null>(null);
 
-function openLabelScanner(item: MarketplaceInventoryItemView): void {
-  labelTarget.value = item;
+function openLabelScanner(orderId: string): void {
+  labelTargetOrderId.value = orderId;
   labelScannerOpen.value = true;
 }
 
-async function onLabelScanned(raw: string): Promise<void> {
-  const item = labelTarget.value;
+function onLabelScanned(raw: string): void {
+  const orderId = labelTargetOrderId.value;
   const code = raw.trim();
-  if (!item || !code || binding.value) return;
-  binding.value = true;
-  try {
-    await bindInventoryBarcode({ inventory_id: item.id, barcode_value: code });
-    patchItem(item.id, { barcode_value: code });
-    labelScannerOpen.value = false;
-    labelTarget.value = null;
-  } catch (e) {
-    FailAlert(e, 'Не удалось привязать этикетку');
-  } finally {
-    binding.value = false;
+  if (!orderId || !code) return;
+
+  // Один номер на две единицы — потерянный след: сканер потом найдёт две
+  // позиции и не скажет, какая чья. Сервер это тоже отвергнет, но узнавать об
+  // этом на подписи, наклеив уже всё, поздно.
+  const takenBy = Object.entries(barcodeByOrder.value).find(
+    ([id, value]) => value === code && id !== orderId,
+  );
+  if (takenBy) {
+    FailAlert(new Error(`Этикетка ${code} уже наклеена на другую единицу этой поставки.`));
+    return;
   }
+
+  barcodeByOrder.value = { ...barcodeByOrder.value, [orderId]: code };
+  labelScannerOpen.value = false;
+  labelTargetOrderId.value = null;
+}
+
+function clearLabel(orderId: string): void {
+  const next = { ...barcodeByOrder.value };
+  delete next[orderId];
+  barcodeByOrder.value = next;
 }
 
 function printLabels(): void {
-  printBarcodeSheet(Math.max(receivedItems.value.length, 1));
+  printBarcodeSheet(Math.max(units.value.length, 1));
 }
 
 // ─────────────────────── Шаг 3: размещение ───────────────────────
 
 const boxScannerOpen = ref(false);
 const resolvingCode = ref(false);
+/** Сколько позиций уже лежит в боксах участка — для подписи «BX-0001 — 3 поз.». */
+const inventoryCountByContainer = ref<Record<string, number>>({});
 
 const placementOptions = computed<BaseSelectOption[]>(() =>
   buildPlacementOptions({
@@ -249,46 +281,39 @@ const placementOptions = computed<BaseSelectOption[]>(() =>
   }),
 );
 
-/** Сколько позиций уже лежит в боксе — вместе с только что принятыми. */
 function countIn(containerId: string): number {
-  return receivedItems.value.filter((i) => i.container_id === containerId).length;
+  const already = inventoryCountByContainer.value[containerId] ?? 0;
+  const planned = units.value.filter(
+    (u) => placementByOrder.value[u.orderId] === placementValueOf({ container_id: containerId }),
+  ).length;
+  return already + planned;
 }
-
-const placedCount = computed(
-  () => receivedItems.value.filter((i) => i.container_id || i.cell_id).length,
-);
-const allPlaced = computed(
-  () => receivedItems.value.length > 0 && placedCount.value === receivedItems.value.length,
-);
 
 /** Есть ли вообще куда класть: заведена ли на участке тара или ячейки. */
 const hasPlacementTargets = computed(() => placementOptions.value.length > 0);
 
 /**
- * Требование места держит третий шаг, а не подпись: имущество уже на складе,
- * и «не дать закрыть окно» — единственное честное принуждение. Если класть
- * некуда, требование молчит: тупика у стойки быть не должно.
+ * Подпись блокируется, только если кооператив потребовал место обязательным
+ * И положить действительно есть куда. Если тара ещё не заведена, блокировать
+ * бессмысленно: председатель стоит с коробками, а выхода из окна нет — вместо
+ * запрета показываем, что нужно завести боксы, и даём принять как есть.
  */
-const finishBlocked = computed(
-  () => placementRequired.value && hasPlacementTargets.value && !allPlaced.value,
+const signBlocked = computed(
+  () =>
+    placementEnabled.value &&
+    placementRequired.value &&
+    hasPlacementTargets.value &&
+    !allPlaced.value,
 );
 
-async function placeItem(item: MarketplaceInventoryItemView, value: string | null): Promise<void> {
-  const { container_id, cell_id } = parsePlacementValue(value);
-  const before = { container_id: item.container_id, cell_id: item.cell_id };
-  if (before.container_id === container_id && before.cell_id === cell_id) return;
+function setPlacement(orderId: string, value: string | null): void {
+  placementByOrder.value = { ...placementByOrder.value, [orderId]: value };
+}
 
-  patchItem(item.id, { container_id, cell_id });
-  try {
-    await assignInventoryPlacement({
-      inventory_id: item.id,
-      container_id,
-      cell_id,
-    });
-  } catch (e) {
-    patchItem(item.id, before);
-    FailAlert(e, 'Не удалось разместить позицию');
-  }
+function setPlacementForAll(value: string | null): void {
+  const next: Record<string, string | null> = {};
+  for (const u of units.value) next[u.orderId] = value;
+  placementByOrder.value = next;
 }
 
 /** Скан QR бокса кладёт туда всё принятое разом — обычный случай у стойки. */
@@ -308,15 +333,31 @@ async function onBoxScanned(raw: string): Promise<void> {
       );
       return;
     }
+    setPlacementForAll(placementValueOf({ container_id: container.id }));
+    SuccessAlert(`Всё принятое ляжет в бокс ${container.code}`);
     boxScannerOpen.value = false;
-    const value = placementValueOf({ container_id: container.id });
-    await Promise.all(receivedItems.value.map((item) => placeItem(item, value)));
-    SuccessAlert(`Всё принятое лежит в боксе ${container.code}`);
   } catch (e) {
     FailAlert(e, 'Бокс по этому коду не найден');
   } finally {
     resolvingCode.value = false;
   }
+}
+
+/** Намеченное по каждому заказу — в пакет, уходящий вместе с подписью. */
+function buildPlacements(): ChairmanPlacement[] {
+  const out: ChairmanPlacement[] = [];
+  for (const u of units.value) {
+    const placement = parsePlacementValue(placementByOrder.value[u.orderId] ?? null);
+    const barcode = barcodeByOrder.value[u.orderId] ?? null;
+    if (!placement.container_id && !placement.cell_id && !barcode) continue;
+    out.push({
+      order_id: u.orderId,
+      container_id: placement.container_id,
+      cell_id: placement.cell_id,
+      barcode_value: barcode,
+    });
+  }
+  return out;
 }
 
 // ─────────────────────── Переходы ───────────────────────
@@ -369,6 +410,7 @@ async function confirm(): Promise<void> {
       (d) => {
         done.value = d;
       },
+      buildPlacements(),
     );
 
     for (const { receptionId, error } of errors) {
@@ -391,50 +433,34 @@ async function confirm(): Promise<void> {
         : 'Акт приёмки закрыт подписью председателя. Партия принята в кооператив.',
     );
     emit('signed');
-
-    // Без адресного хранения оприходование на подписи и заканчивается.
-    if (!placementEnabled.value) {
-      emit('update:modelValue', false);
-      return;
-    }
-    showActs.value = false;
-    step.value = 'labeling';
-    await loadReceivedItems();
+    emit('update:modelValue', false);
   } finally {
     signing.value = false;
   }
 }
 
-function goPlacement(): void {
-  step.value = 'placement';
-}
+// ─── Переходы по шагам ───
+// Шаг маркировки пропускается, когда контур адресного хранения выключен: тогда
+// оприходование это одна подпись, и вести председателя по пустым экранам незачем.
 
-function finish(): void {
-  close();
-}
-
-/**
- * Закрытие окна после подписи. Запирать здесь нельзя — имущество уже на складе,
- * и председатель вправе уйти. Но уйти молча, оставив принятое без места, значит
- * потом искать его по всему участку, поэтому говорим, где оно найдётся.
- */
-function close(): void {
-  const unplaced = receivedItems.value.length - placedCount.value;
-  if (placementEnabled.value && step.value !== 'check' && unplaced > 0) {
-    SuccessAlert(
-      `Принято на склад. Без места осталось позиций — ${unplaced}: они ждут в «Поступило» на столе «Раскладка и маркировка».`,
-    );
+function goNext(): void {
+  if (step.value === 'check') {
+    step.value = placementEnabled.value ? 'labeling' : 'check';
+    return;
   }
-  emit('update:modelValue', false);
+  if (step.value === 'labeling') step.value = 'placement';
+}
+
+function goBack(): void {
+  if (step.value === 'placement') {
+    step.value = 'labeling';
+    return;
+  }
+  if (step.value === 'labeling') step.value = 'check';
 }
 
 function cancel(): void {
   emit('update:modelValue', false);
-}
-
-function onDialogModel(v: boolean): void {
-  if (v) return;
-  close();
 }
 </script>
 
@@ -443,7 +469,7 @@ BaseDialog(
   :model-value="modelValue"
   :title="dialogTitle"
   maximized
-  @update:model-value="onDialogModel"
+  @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
   ActDialogLayout(v-if="group")
     template(#head)
@@ -500,41 +526,50 @@ BaseDialog(
     //- ─────────────── Шаг 2: маркировка ───────────────
     template(v-else-if="step === 'labeling'")
       .sign-apl__lead
-        | Принятое разошлось по заказчикам — по позиции на каждый заказ. Наклейте
-        | этикетку на коробку и привяжите её сканером: тогда при выдаче позиция
-        | находится за секунду. Шаг необязательный, его можно пропустить.
+        | Принятое расходится по заказчикам — на каждого свой заказ. Наклейте
+        | этикетку на конкретную единицу имущества и привяжите её сканером: тогда
+        | при выдаче позиция находится за секунду. Шаг необязательный.
 
       .sign-apl__unit-head
         BaseButton(variant="secondary", size="sm", @click="printLabels")
           template(#icon-left)
             q-icon(name="print", size="18px")
-          | Напечатать этикетки ({{ receivedItems.length }})
-        span.sign-apl__counter Промаркировано: {{ labeledCount }} / {{ receivedItems.length }}
+          | Напечатать этикетки ({{ units.length }})
+        span.sign-apl__counter Промаркировано: {{ labeledCount }} / {{ units.length }}
 
-      .sign-apl__skel(v-if="loadingItems && !receivedItems.length")
-        .skel.skel--text(v-for="n in 3", :key="n")
-
-      .sign-apl__unit(v-for="item in receivedItems", :key="item.id")
+      .sign-apl__unit(v-for="u in units", :key="u.orderId")
         .sign-apl__unit-info
-          .sign-apl__unit-name {{ item.product_name_snapshot || 'Товар по предложению' }}
-          .sign-apl__unit-meta {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
+          .sign-apl__unit-name {{ u.productName }}
+          .sign-apl__unit-meta {{ unitQuantityLabel(u) }} · {{ u.orderer }}
         .sign-apl__unit-action
-          BaseBadge(v-if="item.barcode_value", variant="pos") {{ item.barcode_value }}
-          BaseButton(v-else, variant="ghost", size="sm", @click="openLabelScanner(item)")
+          template(v-if="barcodeByOrder[u.orderId]")
+            BaseBadge(variant="pos") {{ barcodeByOrder[u.orderId] }}
+            BaseButton(
+              variant="ghost",
+              size="sm",
+              icon-only,
+              aria-label="Снять этикетку",
+              @click="clearLabel(u.orderId)"
+            )
+              template(#icon-left)
+                q-icon(name="close", size="16px")
+                q-tooltip Снять этикетку
+          BaseButton(v-else, variant="ghost", size="sm", @click="openLabelScanner(u.orderId)")
             template(#icon-left)
               q-icon(name="qr_code_scanner", size="18px")
             | Привязать этикетку
 
-    //- ─────────────── Шаг 3: размещение ───────────────
+    //- ─────────────── Шаг 3: размещение и подпись ───────────────
     template(v-else)
       .sign-apl__lead
-        | Разложите принятое по местам хранения. Отсканируйте QR на таре — всё
-        | ляжет в этот бокс; место по отдельной позиции меняется в списке,
-        | негабарит кладётся в ячейку напрямую.
+        | Разложите принятое по местам хранения и подпишите приёмку. Отсканируйте
+        | QR на таре — всё ляжет в этот бокс; место по отдельной единице меняется
+        | в списке, негабарит кладётся в ячейку напрямую.
 
       BaseBanner(v-if="!hasPlacementTargets", variant="warn")
-        | На участке ещё не заведена тара. Имущество уже на складе — заведите боксы
-        | на столе «Боксы» и разложите принятое на столе «Раскладка и маркировка».
+        | На участке ещё не заведена тара. Подпишите приёмку как есть — имущество
+        | встанет на склад без места. Затем заведите боксы на столе «Боксы» и
+        | разложите принятое на столе «Раскладка и маркировка».
 
       template(v-else)
         .sign-apl__unit-head
@@ -548,32 +583,37 @@ BaseDialog(
             template(#icon-left)
               q-icon(name="qr_code_scanner", size="18px")
             | Сканировать бокс
-          span.sign-apl__counter(:class="{ 'is-bad': finishBlocked }")
-            | Размещено: {{ placedCount }} / {{ receivedItems.length }}
+          span.sign-apl__counter(:class="{ 'is-bad': signBlocked }")
+            | Размещено: {{ placedCount }} / {{ units.length }}
             template(v-if="placementRequired")  · место обязательно
 
-        .sign-apl__unit(v-for="item in receivedItems", :key="item.id")
+        .sign-apl__unit(v-for="u in units", :key="u.orderId")
           .sign-apl__unit-info
-            .sign-apl__unit-name {{ item.product_name_snapshot || 'Товар по предложению' }}
+            .sign-apl__unit-name {{ u.productName }}
             .sign-apl__unit-meta
-              | {{ item.quantity_per_label }} ед. · {{ ordererLabel(item) }}
-              template(v-if="item.barcode_value")  · {{ item.barcode_value }}
+              | {{ unitQuantityLabel(u) }} · {{ u.orderer }}
+              template(v-if="barcodeByOrder[u.orderId]")  · {{ barcodeByOrder[u.orderId] }}
           BaseSelect.sign-apl__unit-place.field-flush(
-            :model-value="placementValueOf(item)",
+            :model-value="placementByOrder[u.orderId] ?? null",
             :options="placementOptions",
             placeholder="Выберите место",
-            @update:model-value="(v: string | number | null) => placeItem(item, v === null ? null : String(v))"
+            @update:model-value="(v: string | number | null) => setPlacement(u.orderId, v === null ? null : String(v))"
           )
 
   template(#footer)
-    //- Шаг 1: сверка и подпись.
+    //- Шаг 1: сверка. Дальше идём, если есть куда: при выключенном адресном
+    //- хранении маркировать и раскладывать нечего, и подпись ставится сразу.
     template(v-if="step === 'check'")
       BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
       BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group", @click="toggleActs")
         template(#icon-left)
           q-icon(name="description", size="18px")
         | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
-      BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
+      BaseButton(v-if="placementEnabled", variant="primary", :disabled="!group", @click="goNext")
+        template(#icon-right)
+          q-icon(name="arrow_forward", size="18px")
+        | Продолжить
+      BaseButton(v-else, variant="primary", :loading="signing", :disabled="!group", @click="confirm")
         template(#icon-left)
           q-icon(name="draw", size="18px")
         span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
@@ -581,18 +621,28 @@ BaseDialog(
 
     //- Шаг 2: маркировка — необязательна, поэтому «Пропустить» равноправно.
     template(v-else-if="step === 'labeling'")
-      BaseButton(variant="ghost", @click="goPlacement") Пропустить
-      BaseButton(variant="primary", :disabled="loadingItems", @click="goPlacement")
+      BaseButton(variant="ghost", @click="goBack") Назад
+      BaseButton(variant="ghost", @click="goNext") Пропустить
+      BaseButton(variant="primary", @click="goNext")
+        template(#icon-right)
+          q-icon(name="arrow_forward", size="18px")
         | Дальше: размещение
 
-    //- Шаг 3: размещение — здесь и держится требование указать место.
+    //- Шаг 3: подпись. Здесь же держится требование указать место — до подписи,
+    //- потому что после неё поставка уходит из ленты ожидаемых.
     template(v-else)
-      BaseButton(variant="ghost", @click="close") Закрыть
-      BaseButton(variant="primary", :disabled="finishBlocked", @click="finish")
+      BaseButton(variant="ghost", :disabled="signing", @click="goBack") Назад
+      BaseButton(
+        variant="primary",
+        :loading="signing",
+        :disabled="!group || signBlocked",
+        @click="confirm"
+      )
         template(#icon-left)
-          q-icon(name="check", size="18px")
-        span(v-if="finishBlocked") Укажите место хранения
-        span(v-else) Готово
+          q-icon(name="draw", size="18px")
+        span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
+        span(v-else-if="signBlocked") Укажите место хранения
+        span(v-else) Подписать и оприходовать
 
   ScannerDialog(
     v-model="boxScannerOpen",

@@ -401,6 +401,7 @@ export interface MarketplaceOrderDisplayFields {
   delivery_point_address?: string | null;
   delivery_point_lat?: number | null;
   delivery_point_lng?: number | null;
+  orderer_account?: string | null;
   orderer_name?: string | null;
   supplier_name?: string | null;
   group_accumulated_quantity?: number | null;

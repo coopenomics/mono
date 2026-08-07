@@ -442,7 +442,9 @@ export class MarketplaceAplReceptionResolver {
     const orderIds = list.flatMap((r) => r.fact_quantity_per_order.map((f) => f.order_id));
     const [nameByAccount, displayByOrderId] = await Promise.all([
       this.displayService.resolveAccountNames(offererAccounts),
-      this.displayService.enrichByOrderIds(orderIds),
+      // Имена заказчиков нужны для маркировки: этикетка клеится на единицу
+      // имущества конкретного заказчика, а не на «десять литров молока».
+      this.displayService.enrichByOrderIds(orderIds, { withParticipantNames: true }),
     ]);
     return list.map((r) =>
       toMarketplaceAplReceptionDTO(r, {
@@ -454,6 +456,8 @@ export class MarketplaceAplReceptionResolver {
               product_name: displayByOrderId.get(f.order_id)?.product_name ?? null,
               unit_of_measure: displayByOrderId.get(f.order_id)?.unit_of_measure ?? null,
               package_size: displayByOrderId.get(f.order_id)?.package_size ?? null,
+              orderer_account: displayByOrderId.get(f.order_id)?.orderer_account ?? null,
+              orderer_name: displayByOrderId.get(f.order_id)?.orderer_name ?? null,
             },
           ])
         ),

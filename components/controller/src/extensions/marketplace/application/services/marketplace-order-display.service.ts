@@ -177,6 +177,7 @@ export class MarketplaceOrderDisplayService {
         delivery_point_address: branch?.address ?? null,
         delivery_point_lat: branch?.lat ?? null,
         delivery_point_lng: branch?.lng ?? null,
+        orderer_account: order.orderer_account,
         orderer_name: nameByAccount.get(order.orderer_account) ?? null,
         supplier_name: nameByAccount.get(order.supplier_account) ?? null,
         group_accumulated_quantity: accumulated,
