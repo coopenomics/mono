@@ -1,0 +1,85 @@
+feature: marketplace.categories
+title: Доступные категории кооператива — ограничение каталога и собственные категории
+
+# Слайс справочника категорий: какие категории кооператив разрешает для
+# публикации предложений. Пустой список ограничений = открыт весь каталог;
+# как только хоть одна категория выключена, действует ограниченный список.
+# Базовые категории платформы нельзя удалить — только выключить.
+#
+# Отдельная особенность прав: маршрут стола требует грант `Whitelist:manage`,
+# а резолверы защищены ролью председателя. Токен нужно держать в матрице
+# доступа — без него страница недостижима ни для кого (так и было до
+# 2026-08-07).
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts
+    - components/controller/src/extensions/marketplace/application/access/marketplace-access-matrix.ts
+    - components/controller/src/extensions/marketplace/application/access/marketplace-grants.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/ChairmanCategoryWhitelist/**
+
+cases:
+  - id: mkt.cat.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель открывает «Доступные категории»: показан справочник базовых категорий, каталог открыт целиком.
+    expect: список непустой, состояние «Открыт весь каталог»
+    test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
+    status: passing
+
+  - id: mkt.cat.happy.02
+    level: ui
+    kind: happy
+    scenario: Председатель выключает категорию и включает её обратно
+    expect: >
+      после выключения каталог перестаёт быть открытым, после включения возвращается в исходное состояние
+    test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
+    status: passing
+
+  - id: mkt.cat.side.01
+    level: backend
+    kind: side
+    scenario: Попытка удалить базовую категорию платформы
+    expect: отказ «Базовую категорию удалить нельзя»
+    test: ~
+    status: missing
+
+  - id: mkt.cat.side.02
+    level: backend
+    kind: side
+    scenario: Создание собственной категории с именем, которое уже есть
+    expect: отказ, дубликат не создаётся
+    test: ~
+    status: missing
+    decision_needed: true
+    # Резолвер отдаёт наружу текст ошибки доменного слоя; из кода не видно,
+    # различается ли дубликат по имени в пределах кооператива или глобально.
+
+  - id: mkt.cat.side.03
+    level: backend
+    kind: side
+    scenario: Управление категориями от пайщика без роли председателя
+    expect: отказ доступа, справочник не меняется
+    test: ~
+    status: missing
+
+  - id: mkt.cat.side.04
+    level: ui
+    kind: side
+    scenario: >
+      Публикация предложения в категории, выключенной кооперативом
+    expect: категория недоступна в форме предложения
+    test: ~
+    status: missing
+
+  - id: mkt.cat.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Маршрут стола требует грант, которого нет ни в одной роли матрицы
+    expect: >
+      расхождение обнаруживается тестом: каждый грант из meta.requires маршрутов Стола заказов выдаётся хотя бы одной ролью
+    test: ~
+    status: missing

@@ -122,6 +122,13 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
     // действие председателя, проверяется отдельно в резолвере по Chairman-роли.
     Supplier: ['manage'],
     Vitrine: ['manage', 'read'],
+    // Доступные категории кооператива (Эпик 16). Маршрут стола
+    // `market-admin/category-whitelist` требует `Whitelist:manage`, но этого
+    // токена не выдавала ни одна роль — страница была недостижима вообще ни
+    // для кого, хотя резолверы (available-category-admin.resolver.ts) живы и
+    // защищены ролью председателя. Выдаём администратору ровно то, что уже
+    // разрешает сервер.
+    Whitelist: ['manage'],
     Warehouse: ['read:all'],
     // Эпик 19: администратор видит топологию складов всех участков.
     StorageCell: ['read:all'],
