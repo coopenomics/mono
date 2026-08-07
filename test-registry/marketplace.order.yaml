@@ -1,0 +1,218 @@
+feature: marketplace.order
+title: Заказ пайщика — оформление, приём и отказ поставщиком, отмена заказчиком
+
+# Слайс от оформления заказа по опубликованному предложению до его приёма
+# или отказа поставщиком и отмены заказчиком. Подготовка отгрузки и партии
+# (cycle) — соседний слайс marketplace.supply: там другая точка входа
+# (поставщик собирает партию) и другие инварианты.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-order-display.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-order-close-cron.service.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/Cart/**
+    - components/desktop/src/pages/Marketplace/OrderConfirmation/**
+    - components/desktop/src/pages/Marketplace/MyOrders/**
+    - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
+    - components/desktop/src/pages/Marketplace/OffererIncomingOrders/**
+
+cases:
+  # ── Прямой путь ──────────────────────────────────────────────────────────
+  - id: mkt.order.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Заказчик выбирает опубликованное предложение, указывает количество и
+      ПВЗ получения, оформляет заказ.
+    expect: заказ создан, виден в «Моих заказах» со статусом ожидания поставщика
+    test: ~
+    status: missing
+
+  - id: mkt.order.happy.02
+    level: ui
+    kind: happy
+    scenario: Поставщик видит заказ во «Входящих» и принимает его
+    expect: статус заказа переходит в принятый, заказчик видит изменение
+    test: ~
+    status: missing
+
+  # ── Границы данных и статусы при оформлении ─────────────────────────────
+  - id: mkt.order.side.01
+    level: backend
+    kind: side
+    scenario: Заказ по несуществующему предложению
+    expect: «Предложение не найдено», заказ не создаётся
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.02
+    level: backend
+    kind: side
+    scenario: Заказ по предложению другого кооператива
+    expect: отказ доступа «Предложение принадлежит другому кооперативу»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Заказ по предложению, снятому с публикации либо отклонённому модерацией
+    expect: отказ с указанием статуса предложения, заказ не создаётся
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.04
+    level: backend
+    kind: side
+    scenario: Количество больше доступного остатка (предложение с ограничением)
+    expect: отказ с указанием доступного количества
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.05
+    level: backend
+    kind: side
+    scenario: Количество нулевое или отрицательное
+    expect: «Количество должно быть больше нуля»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.06
+    level: backend
+    kind: side
+    scenario: Не указан ПВЗ получения
+    expect: «Не указан ПВЗ получения», заказ не создаётся
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.07
+    level: backend
+    kind: side
+    scenario: Итоговая сумма заказа получается нулевой
+    expect: отказ с требованием проверить количество и цену
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Заказ упаковками: количество трактуется как число упаковок, базовое
+      количество считается через содержимое упаковки.
+    expect: >
+      остаток проверяется по базовому количеству, а не по числу упаковок;
+      цена берётся за упаковку
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Заказ по предложению без ограничения количества («без ограничения»)
+    expect: проверка остатка не применяется, заказ создаётся
+    test: ~
+    status: missing
+
+  # ── Приём и отказ поставщиком ───────────────────────────────────────────
+  - id: mkt.order.side.10
+    level: backend
+    kind: side
+    scenario: Приём заказа, уже присоединённого к партии либо не активного
+    expect: отказ, что заказ нельзя принять в текущем состоянии
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.11
+    level: backend
+    kind: side
+    scenario: Отказ по заказу без указания причины
+    expect: «Укажите причину отказа»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.12
+    level: backend
+    kind: side
+    scenario: Массовое действие поставщика с пустым списком заказов
+    expect: отказ «Не выбрано ни одного заказа»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.13
+    level: backend
+    kind: side
+    scenario: Действие по заказу, оформленному по чужому предложению
+    expect: отказ «Действие доступно только поставщику-владельцу предложения»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.14
+    level: backend
+    kind: side
+    scenario: >
+      Массовый приём, где ни один заказ не удалось принять
+    expect: отказ «Не удалось принять ни одного заказа», частичного эффекта нет
+    test: ~
+    status: missing
+    decision_needed: true
+    # Из кода не видно, что происходит при ЧАСТИЧНОМ успехе: часть заказов
+    # принята, часть нет. Нужен ответ человека — атомарность или частичный
+    # результат с отчётом.
+
+  # ── Отмена заказчиком ───────────────────────────────────────────────────
+  - id: mkt.order.side.15
+    level: backend
+    kind: side
+    scenario: Отмену заказа запрашивает не его заказчик
+    expect: «Отменить заказ может только его заказчик»
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.16
+    level: backend
+    kind: side
+    scenario: Отмена заказа после открытия акта выдачи
+    expect: отказ с указанием, что отмена закрыта после открытия акта выдачи
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.17
+    level: backend
+    kind: side
+    scenario: Отмена несуществующего заказа либо заказа чужого кооператива
+    expect: «Заказ не найден» либо отказ доступа
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.18
+    level: ui
+    kind: side
+    scenario: Двойная отправка формы оформления заказа (двойной клик)
+    expect: создаётся один заказ, второе обращение не создаёт дубль
+    test: ~
+    status: missing
+
+  - id: mkt.order.side.19
+    level: ui
+    kind: side
+    scenario: «Мои заказы» у пайщика без единого заказа
+    expect: пустое состояние с пояснением, без ошибок
+    test: ~
+    status: missing
+
+  # ── Отказ инфраструктуры ────────────────────────────────────────────────
+  - id: mkt.order.break.01
+    level: backend
+    kind: break
+    scenario: Цепь не вернула хэш транзакции при создании заказа
+    expect: >
+      явный отказ с предложением повторить; заказ не остаётся в
+      полусозданном состоянии
+    test: ~
+    status: missing
