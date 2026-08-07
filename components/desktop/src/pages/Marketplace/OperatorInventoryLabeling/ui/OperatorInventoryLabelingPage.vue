@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
@@ -359,7 +359,37 @@ function onDragStart(
 // Подсветка самой цели помогает, только пока цель видно. Поэтому имя того, во
 // что попадёшь, показывается там, куда точно смотрят, — над курсором, поверх
 // всего остального.
-const dragPointer = ref<{ x: number; y: number } | null>(null)
+//
+// Координаты курсора НЕ реактивны, и это принципиально: `dragover` стреляет на
+// каждое движение мыши, а перерисовка карты склада на каждый пиксель кладёт
+// машину намертво. Позицию двигаем прямым стилем и не чаще кадра; реактивно
+// меняется только сама цель — то есть в разы реже.
+const dropHintEl = ref<HTMLElement | null>(null)
+let pointerX = 0
+let pointerY = 0
+let pointerFrame = 0
+
+function movePointerHint(): void {
+  pointerFrame = 0
+  const el = dropHintEl.value
+  if (!el) return
+  el.style.transform =
+    `translate3d(${pointerX}px, ${pointerY}px, 0) translate(-50%, calc(-100% - 14px))`
+}
+
+function schedulePointerMove(): void {
+  if (pointerFrame) return
+  pointerFrame = requestAnimationFrame(movePointerHint)
+}
+
+// Плашка появляется по смене цели — до первого кадра она стояла бы в углу
+// экрана и мигала оттуда к курсору.
+watch(
+  () => dragTargetLabel.value,
+  (label) => {
+    if (label) void nextTick(movePointerHint)
+  },
+)
 
 const dragTargetLabel = computed(() => {
   const key = dragOverKey.value
@@ -383,8 +413,12 @@ const dragTargetLabel = computed(() => {
 })
 
 function onDragOver(key: string, event: DragEvent): void {
-  dragOverKey.value = key
-  dragPointer.value = { x: event.clientX, y: event.clientY }
+  // Присваивание тем же значением Vue не будит, но проверка дешевле сравнения
+  // строк внутри реактивной системы — а сюда заходят сотни раз за перетаскивание.
+  if (dragOverKey.value !== key) dragOverKey.value = key
+  pointerX = event.clientX
+  pointerY = event.clientY
+  schedulePointerMove()
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
 }
 
@@ -406,7 +440,10 @@ function onDragEnd(): void {
   dragKind.value = null
   dragId.value = null
   dragOverKey.value = null
-  dragPointer.value = null
+  if (pointerFrame) {
+    cancelAnimationFrame(pointerFrame)
+    pointerFrame = 0
+  }
 }
 
 function dropOnCell(cell: MarketplaceStorageCellView): void {
@@ -1183,10 +1220,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
 
   //- Куда попадёшь: имя цели едет за курсором, потому что саму цель закрывает
   //- то, что тащат. Плашка не ловит события — иначе перебивала бы dragover.
-  .place__drop-hint(
-    v-if='dragTargetLabel && dragPointer',
-    :style='{ left: `${dragPointer.x}px`, top: `${dragPointer.y}px` }'
-  )
+  .place__drop-hint(v-if='dragTargetLabel', ref='dropHintEl')
     q-icon(name='south_east', size='14px')
     span {{ dragTargetLabel }}
 
@@ -1575,7 +1609,6 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     min-width: 160px;
     border-radius: var(--p-r-sm, 8px);
     padding: var(--p-1, 4px);
-    transition: background var(--p-dur-fast, 0.12s) var(--p-ease-standard);
 
     // Ячейка подсвечивается иначе, чем бокс: пунктир вокруг всей площади
     // читается как «положу прямо сюда», а не «положу в эту тару».
@@ -1614,10 +1647,10 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     padding: var(--p-1, 4px) var(--p-2, 8px);
     cursor: grab;
     color: var(--p-ink);
-    transition:
-      transform var(--p-dur-fast, 0.12s) var(--p-ease-standard),
-      box-shadow var(--p-dur-fast, 0.12s) var(--p-ease-standard),
-      background var(--p-dur-fast, 0.12s) var(--p-ease-standard);
+    // Анимируем только transform: его браузер считает на композиторе. Тень и
+    // фон переключаются мгновенно — их анимация означала бы перерисовку всей
+    // карты склада на каждое движение курсора между боксами.
+    transition: transform var(--p-dur-fast, 0.12s) var(--p-ease-standard);
 
     &.is-dragging {
       opacity: 0.5;
@@ -1712,8 +1745,12 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   // Подсказка цели: над курсором, поверх всего, без перехвата событий.
   &__drop-hint {
     position: fixed;
+    top: 0;
+    left: 0;
     z-index: 9000;
-    transform: translate(-50%, calc(-100% - 14px));
+    // Двигается прямым трансформом из rAF — никаких переходов, иначе браузер
+    // будет догонять курсор анимацией и отставать от него.
+    will-change: transform;
     pointer-events: none;
     display: flex;
     align-items: center;
