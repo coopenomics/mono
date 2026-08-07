@@ -80,6 +80,38 @@ export const useMarketplaceStorageStore = defineStore(namespace, () => {
     return types.value.find((t) => t.id === id) ?? null
   }
 
+  /**
+   * Точечно поправить бокс в уже загруженном списке.
+   *
+   * Нужно перестановкам: карточка должна переехать в момент броска, а не через
+   * два сетевых обхода (мутация + перезагрузка всего склада). Вызывающий
+   * применяет изменение сразу, а при отказе сервера возвращает прежнее
+   * значение этим же способом.
+   */
+  function patchContainer(
+    id: string,
+    patch: Partial<MarketplaceContainerView>,
+  ): void {
+    const idx = containers.value.findIndex((c) => c.id === id)
+    const current = containers.value[idx]
+    if (idx < 0 || !current) return
+    containers.value[idx] = { ...current, ...patch }
+  }
+
+  /** Заменить бокс тем, что вернул сервер (после успешной мутации). */
+  function applyContainer(next: MarketplaceContainerView): void {
+    const idx = containers.value.findIndex((c) => c.id === next.id)
+    if (idx >= 0) containers.value[idx] = next
+    else containers.value.push(next)
+  }
+
+  /** Добавить только что заведённые ячейки, не перезагружая склад целиком. */
+  function applyCells(created: MarketplaceStorageCellView[]): void {
+    if (!created.length) return
+    const known = new Set(cells.value.map((c) => c.id))
+    cells.value = [...cells.value, ...created.filter((c) => !known.has(c.id))]
+  }
+
   async function load(braname: string | null, scope: StorageLoadScope = {}): Promise<void> {
     const wantContainers = scope.containers ?? true
     const wantCells = scope.cells ?? true
@@ -138,6 +170,9 @@ export const useMarketplaceStorageStore = defineStore(namespace, () => {
     levels,
     cellAt,
     typeById,
+    patchContainer,
+    applyContainer,
+    applyCells,
     load,
     ensureLoaded,
     reload,

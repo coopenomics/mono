@@ -210,13 +210,13 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
     | перевозка боксов между участками.
 
   .boxreg__filters
-    BaseInput.boxreg__search(
+    BaseInput.boxreg__search.field-flush(
       v-model='search',
       type='search',
       placeholder='Поиск: код бокса, адрес, тип, участок',
       clearable
     )
-    BaseSelect.boxreg__branch(
+    BaseSelect.boxreg__branch.field-flush(
       v-model='branchFilter',
       :options='branchOptions',
       placeholder='Все участки'
@@ -273,22 +273,10 @@ q-page.boxreg(role='region', aria-label='Боксы кооператива')
   &__search {
     flex: 1 1 320px;
     max-width: 420px;
-
-    // Ни поиск, ни фильтр не показывают hint/error — снимаем резерв строки под
-    // них, иначе между рядом фильтров и таблицей висит пустой промежуток.
-    :deep(.q-field__bottom) {
-      min-height: 0;
-      padding-top: 0;
-    }
   }
 
   &__branch {
     flex: 0 1 260px;
-
-    :deep(.q-field__bottom) {
-      min-height: 0;
-      padding-top: 0;
-    }
   }
 
   &__code {

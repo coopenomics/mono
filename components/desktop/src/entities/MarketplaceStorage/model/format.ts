@@ -104,3 +104,29 @@ export function formatVolumeM3(value: string | number | null | undefined): strin
   const digits = n >= 0.01 ? 2 : Math.min(6, Math.ceil(-Math.log10(Math.abs(n))) + 1)
   return `${n.toLocaleString('ru-RU', { maximumFractionDigits: digits })} м³`
 }
+
+/**
+ * Код следующей секции склада — первая свободная латинская буква (A, B, C…),
+ * дальше двухбуквенные (AA, AB…).
+ *
+ * Нужен наращиванию сетки прямо на складе: оператор жмёт «плюс» справа от
+ * последнего столбца, а не придумывает имя в отдельном окне. Секции с
+ * собственными именами («Холодильник») в счёт не идут — они просто заняты.
+ */
+export function nextSectionCode(existing: string[]): string {
+  const taken = new Set(existing.map((s) => s.trim().toUpperCase()))
+  const A = 'A'.charCodeAt(0)
+
+  for (let i = 0; i < 26; i++) {
+    const code = String.fromCharCode(A + i)
+    if (!taken.has(code)) return code
+  }
+  for (let i = 0; i < 26; i++) {
+    for (let j = 0; j < 26; j++) {
+      const code = String.fromCharCode(A + i) + String.fromCharCode(A + j)
+      if (!taken.has(code)) return code
+    }
+  }
+  // 702 секции на одном участке — дальше пусть будет хоть что-то уникальное.
+  return `S${existing.length + 1}`
+}

@@ -7,6 +7,7 @@ import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
 import { BarcodeDisplay } from 'src/widgets/Marketplace/BarcodeDisplay'
 import { CodeScanner, BARCODE_FORMATS } from 'src/widgets/Marketplace/CodeScanner'
+import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog'
 import {
   BaseBadge,
   BaseButton,
@@ -20,15 +21,21 @@ import {
 } from 'src/shared/ui/base'
 import type { BaseSelectOption } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
-import { useMarketplaceRealtime, printLabelSheet } from 'src/shared/lib/marketplace'
+import {
+  HandoffTokenKind,
+  decodeScannedCode,
+  useMarketplaceRealtime,
+  printLabelSheet,
+} from 'src/shared/lib/marketplace'
 import {
   buildPlacementOptions,
   containerLabel,
   createStorageGrid,
-  locationLabel,
   moveContainer,
+  nextSectionCode,
   parsePlacementValue,
   placementValueOf,
+  resolveContainerByCode,
   useMarketplaceStorageStore,
   type MarketplaceContainerView,
   type MarketplaceStorageCellView,
@@ -241,29 +248,40 @@ async function load(): Promise<void> {
   }
 }
 
+/** Точечно поправить позицию в уже загруженном списке — для оптимизма ниже. */
+function patchItem(id: string, patch: Partial<MarketplaceInventoryItemView>): void {
+  const idx = items.value.findIndex((i) => i.id === id)
+  const current = items.value[idx]
+  if (idx < 0 || !current) return
+  items.value[idx] = { ...current, ...patch }
+}
+
 // ─── Перекладка позиции: в бокс, в ячейку либо снятие с места ──
+// Раскладка — это работа руками у стеллажа: бросил и потянулся за следующим.
+// Поэтому карточка переезжает сразу, а сервер догоняет: иначе на каждое
+// движение уходило бы два сетевых обхода (мутация плюс перезагрузка склада), и
+// «Вынуть» ощущалось бы как зависание. Отказ сервера возвращает карточку на
+// место и говорит почему — потерять изменение молча нельзя.
 async function movePlacement(
   item: MarketplaceInventoryItemView,
   placement: { container_id?: string | null; cell_id?: string | null },
 ): Promise<void> {
   const nextContainer = placement.container_id ?? null
   const nextCell = placement.cell_id ?? null
-  if ((item.container_id ?? null) === nextContainer && (item.cell_id ?? null) === nextCell) {
+  const before = { container_id: item.container_id, cell_id: item.cell_id }
+  if ((before.container_id ?? null) === nextContainer && (before.cell_id ?? null) === nextCell) {
     return
   }
+
+  patchItem(item.id, { container_id: nextContainer, cell_id: nextCell })
   try {
     await assignInventoryPlacement({
       inventory_id: item.id,
       container_id: nextContainer,
       cell_id: nextCell,
     })
-    SuccessAlert(
-      nextContainer || nextCell
-        ? `Переложено: ${locationLabel({ container_id: nextContainer, cell_id: nextCell }, storage.index)}`
-        : 'Снято с места',
-    )
-    await load()
   } catch (e) {
+    patchItem(item.id, before)
     FailAlert(e, 'Не удалось переложить позицию')
   }
 }
@@ -332,14 +350,29 @@ function dropOnInbox(): void {
   if (item) void movePlacement(item, {})
 }
 
+/**
+ * Бросок в «Боксы без адреса» снимает бокс с ячейки. Раньше эта полоса была
+ * только витриной, и поставленный на адрес бокс оттуда было не достать —
+ * перетаскивать его оказывалось некуда.
+ */
+function dropOnUnplaced(): void {
+  const kind = dragKind.value
+  const id = dragId.value
+  onDragEnd()
+  if (kind !== 'container' || !id) return
+  void placeContainer(id, null)
+}
+
 async function placeContainer(containerId: string, cellId: string | null): Promise<void> {
+  const before = storage.activeContainers.find((c) => c.id === containerId)?.cell_id ?? null
+  if (before === cellId) return
+
+  storage.patchContainer(containerId, { cell_id: cellId })
   try {
     const moved = await moveContainer({ container_id: containerId, cell_id: cellId })
-    SuccessAlert(
-      cellId ? `Бокс ${moved.code} переставлен` : `Бокс ${moved.code} снят с адреса`,
-    )
-    await load()
+    storage.applyContainer(moved)
   } catch (e) {
+    storage.patchContainer(containerId, { cell_id: before })
     FailAlert(e, 'Не удалось переставить бокс')
   }
 }
@@ -372,56 +405,99 @@ const boxItems = computed(() =>
   boxTarget.value ? itemsInContainer(boxTarget.value.id) : [],
 )
 
-// ─── Управление сеткой ──
-const gridOpen = ref(false)
-const gridSections = ref('')
-const gridLevelFrom = ref<number | null>(1)
-const gridLevelTo = ref<number | null>(3)
-const gridSaving = ref(false)
+// ─── Сканирование бокса: «что внутри» ──
+// Кладовщик идёт вдоль стеллажей со сканером и пикает тару подряд, чтобы
+// узнать содержимое, не открывая её. Это не приёмка и не выдача — только
+// просмотр, поэтому скан просто открывает карточку бокса.
+const boxScanOpen = ref(false)
+const resolvingBox = ref(false)
 
-const gridSectionList = computed(() =>
-  gridSections.value
-    .split(/[,\s]+/)
-    .map((s) => s.trim())
-    .filter(Boolean),
-)
-
-const gridValid = computed(
-  () =>
-    gridSectionList.value.length > 0 &&
-    Number(gridLevelFrom.value) >= 1 &&
-    Number(gridLevelTo.value) >= Number(gridLevelFrom.value),
-)
-
-function openGrid(): void {
-  gridSections.value = ''
-  gridLevelFrom.value = 1
-  gridLevelTo.value = 3
-  gridOpen.value = true
+async function onBoxScanned(raw: string): Promise<void> {
+  if (resolvingBox.value) return
+  const token = decodeScannedCode(raw, coopname.value)
+  if (!token || token.kind !== HandoffTokenKind.Container || !token.container_code) {
+    FailAlert(new Error('Это не QR-код бокса. Отсканируйте этикетку на таре.'))
+    return
+  }
+  resolvingBox.value = true
+  try {
+    const container = await resolveContainerByCode({ code: token.container_code })
+    if (container.braname !== braname.value.trim()) {
+      FailAlert(
+        new Error(`Бокс ${container.code} числится за другим участком — его содержимое здесь не показать.`),
+      )
+      return
+    }
+    // Бокс мог быть заведён только что и в списке ещё не значиться.
+    storage.applyContainer(container)
+    boxScanOpen.value = false
+    openBox(container)
+  } catch (e) {
+    FailAlert(e, 'Бокс по этому коду не найден')
+  } finally {
+    resolvingBox.value = false
+  }
 }
 
-async function submitGrid(): Promise<void> {
-  if (!gridValid.value) return
-  gridSaving.value = true
+// ─── Наращивание сетки прямо на карте склада ──
+// Склад не проектируют в отдельном окне — его достраивают по мере того, как
+// ставят стеллажи. Поэтому сетка растёт «плюсами» по краям карты: столбец
+// вправо, ярус вверх или вниз. Отдельная форма с перечислением секций и
+// диапазоном ярусов требовала держать раскладку склада в голове целиком.
+const growing = ref(false)
+
+const maxLevel = computed(() => (storage.levels.length ? Math.max(...storage.levels) : 0))
+const minLevel = computed(() => (storage.levels.length ? Math.min(...storage.levels) : 0))
+
+/** Ярус ниже первого возможен, только если нумерация не начинается с единицы. */
+const canGrowDown = computed(() => minLevel.value > 1)
+
+async function growGrid(
+  sections: string[],
+  levelFrom: number,
+  levelTo: number,
+): Promise<void> {
+  if (growing.value || !sections.length || !braname.value.trim()) return
+  growing.value = true
   try {
     const created = await createStorageGrid({
       braname: braname.value.trim(),
-      sections: gridSectionList.value,
-      level_from: Math.trunc(Number(gridLevelFrom.value)),
-      level_to: Math.trunc(Number(gridLevelTo.value)),
+      sections,
+      level_from: levelFrom,
+      level_to: levelTo,
     })
-    SuccessAlert(
-      created.length
-        ? `Заведено ячеек: ${created.length}`
-        : 'Все такие ячейки уже существуют',
-    )
-    gridOpen.value = false
-    await load()
+    storage.applyCells(created)
   } catch (e) {
     FailAlert(e, 'Не удалось завести ячейки')
   } finally {
-    gridSaving.value = false
+    growing.value = false
   }
+}
+
+/** Новый столбец: следующая свободная буква на всех существующих ярусах. */
+function addSection(): void {
+  const levels = storage.levels
+  const from = levels.length ? minLevel.value : 1
+  const to = levels.length ? maxLevel.value : 1
+  void growGrid([nextSectionCode(storage.sections)], from, to)
+}
+
+/** Новый ярус сверху — во всех секциях сразу, иначе сетка станет дырявой. */
+function addLevelUp(): void {
+  const sections = storage.sections.length ? storage.sections : [nextSectionCode([])]
+  const level = maxLevel.value + 1
+  void growGrid(sections, level, level)
+}
+
+function addLevelDown(): void {
+  if (!canGrowDown.value) return
+  const level = minLevel.value - 1
+  void growGrid(storage.sections, level, level)
+}
+
+/** Первая ячейка пустого склада — A-01, дальше сетка растёт плюсами. */
+function startGrid(): void {
+  void growGrid(['A'], 1, 1)
 }
 
 // ─── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
@@ -614,10 +690,16 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   template(v-else)
     Teleport(to='#header-actions-host', defer)
       .place__head-actions
-        BaseButton(v-if='cellsEnabled', variant='secondary', size='sm', @click='openGrid')
+        BaseButton(
+          v-if='containersEnabled',
+          variant='secondary',
+          size='sm',
+          :loading='resolvingBox',
+          @click='boxScanOpen = true'
+        )
           template(#icon-left)
-            q-icon(name='grid_view', size='16px')
-          | Сетка склада
+            q-icon(name='qr_code_scanner', size='16px')
+          | Сканировать бокс
         BaseButton(variant='secondary', size='sm', @click='openPrintDialog')
           template(#icon-left)
             q-icon(name='print', size='16px')
@@ -627,7 +709,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
       template(v-if='cellsEnabled')
         | Склад адресный: столбцы — секции, строки — ярусы, на пересечении ячейка
         | со своим адресом. Перетащите позицию в бокс или прямо в ячейку, если она
-        | негабаритная. Бокс тоже перетаскивается — целиком, вместе с содержимым.
+        | негабаритная. Бокс тоже перетаскивается — целиком, вместе с содержимым;
+        | обратно в «Боксы без адреса» он возвращается тем же перетаскиванием.
+        | Сетка достраивается плюсами по краям карты: секция вправо, ярус вверх.
       template(v-else-if='containersEnabled')
         | Разложите принятое имущество по боксам — при выдаче заказчику сразу
         | видно, в какой таре что лежит. Адрес боксу не обязателен: наполнили и
@@ -649,10 +733,11 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         q-icon(name='inventory_2', size='48px')
 
     template(v-else)
-      //- Поиск и фильтр — отдельной строкой: у поля и переключателя разные
-      //- высоты, в одном ряду поле «скачет» относительно переключателя.
+      //- `field-flush` снимает у поля резерв строки под сообщение об ошибке:
+      //- здесь ошибок не бывает, а резерв поднимал поле относительно
+      //- переключателя рядом.
       .place__filters
-        BaseInput.place__search(
+        BaseInput.place__search.field-flush(
           v-model='search',
           type='search',
           placeholder='Поиск: адрес, бокс, товар, заказчик',
@@ -751,10 +836,15 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
           EmptyState(
             v-if='!storage.activeCells.length',
             title='Сетка склада не заведена',
-            body='Опишите склад координатами: секции по горизонтали, ярусы по вертикали. Тогда место находится адресом, а не перебором.'
+            body='Опишите склад координатами: секции по горизонтали, ярусы по вертикали. Тогда место находится адресом, а не перебором. Начните с первой ячейки — дальше сетка достраивается плюсами по краям карты.'
           )
             template(#icon)
               q-icon(name='grid_view', size='48px')
+            template(#action)
+              BaseButton(variant='primary', size='sm', :loading='growing', @click='startGrid')
+                template(#icon-left)
+                  q-icon(name='add', size='16px')
+                | Завести ячейку A-01
 
           EmptyState(
             v-else-if='!visibleSections.length',
@@ -783,7 +873,35 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               tr
                 th.place__grid-corner Ярус
                 th(v-for='section in visibleSections', :key='section') {{ section }}
+                //- Плюс справа от последнего столбца — новая секция на всех
+                //- ярусах сразу.
+                th.place__grid-add
+                  BaseButton(
+                    variant='ghost',
+                    size='sm',
+                    icon-only,
+                    :loading='growing',
+                    aria-label='Добавить секцию',
+                    @click='addSection'
+                  )
+                    template(#icon-left)
+                      q-icon(name='add', size='18px')
+                      q-tooltip Добавить секцию {{ nextSectionCode(storage.sections) }}
             tbody
+              //- Ярус выше — над верхней строкой карты, там же, где он появится.
+              tr.place__grid-grow
+                th.place__grid-level
+                td(:colspan='visibleSections.length + 1')
+                  BaseButton(
+                    variant='ghost',
+                    size='sm',
+                    :loading='growing',
+                    @click='addLevelUp'
+                  )
+                    template(#icon-left)
+                      q-icon(name='keyboard_arrow_up', size='16px')
+                    | Ярус {{ maxLevel + 1 }}
+
               tr(v-for='row in gridRows', :key='row.level')
                 th.place__grid-level {{ row.level }}
                 td(v-for='slot in row.slots', :key='slot.section')
@@ -822,9 +940,32 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                         )
                           span.place__mini-name {{ item.product_name_snapshot || 'Товар' }}
                           span.place__mini-qty {{ item.quantity_per_label }}
+                td.place__grid-add
+
+              //- Ярус ниже нижнего — только если нумерация начинается не с
+              //- единицы: под первым ярусом склада ставить нечего.
+              tr.place__grid-grow(v-if='canGrowDown')
+                th.place__grid-level
+                td(:colspan='visibleSections.length + 1')
+                  BaseButton(
+                    variant='ghost',
+                    size='sm',
+                    :loading='growing',
+                    @click='addLevelDown'
+                  )
+                    template(#icon-left)
+                      q-icon(name='keyboard_arrow_down', size='16px')
+                    | Ярус {{ minLevel - 1 }}
 
         //- ─────────────── Боксы без адреса (или весь список без сетки) ───────
-        .place__boxes(v-if='containersEnabled')
+        //- Полоса принимает бокс из ячейки: бросок сюда снимает адрес.
+        .place__boxes(
+          v-if='containersEnabled',
+          :class='{ "is-over": dragOverKey === "__unplaced__" }',
+          @dragover.prevent='dragOverKey = "__unplaced__"',
+          @dragleave='dragOverKey = (dragOverKey === "__unplaced__" ? null : dragOverKey)',
+          @drop='dropOnUnplaced'
+        )
           .place__col-head
             q-icon(name='inbox', size='18px')
             span.place__col-title {{ cellsEnabled ? 'Боксы без адреса' : 'Боксы участка' }}
@@ -841,9 +982,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
               :class='{ "is-dragging": dragId === box.id, "is-over": dragOverKey === `box:${box.id}` }',
               @dragstart='onDragStart("container", box.id)',
               @dragend='onDragEnd',
-              @dragover.prevent='dragOverKey = `box:${box.id}`',
+              @dragover.prevent.stop='dragOverKey = `box:${box.id}`',
               @dragleave='dragOverKey = null',
-              @drop='dropOnContainer(box)',
+              @drop.stop='dropOnContainer(box)',
               @click='openBox(box)'
             )
               q-icon(name='inbox', size='16px')
@@ -867,23 +1008,6 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
         BaseButton(variant='ghost', size='sm', @click='movePlacement(item, {})') Вынуть
     template(#footer)
       BaseButton(variant='ghost', size='sm', @click='boxDialogOpen = false') Закрыть
-
-  //- ─────────────────────── Сетка склада ───────────────────────
-  BaseDialog(v-model='gridOpen', title='Сетка склада', size='sm')
-    .place__form
-      .place__note
-        | Секции — это столбцы склада (A, B, «Холодильник»), ярусы — строки.
-        | Перечислите секции через запятую и задайте диапазон ярусов; уже
-        | существующие координаты пропускаются.
-      BaseInput(v-model='gridSections', label='Секции', placeholder='A, B, C')
-      .place__levels
-        BaseInput(v-model.number='gridLevelFrom', type='number', label='Ярус с')
-        BaseInput(v-model.number='gridLevelTo', type='number', label='по')
-      .place__note(v-if='gridValid')
-        | Будет заведено ячеек: {{ gridSectionList.length * (Number(gridLevelTo) - Number(gridLevelFrom) + 1) }}
-    template(#footer)
-      BaseButton(variant='ghost', size='sm', :disabled='gridSaving', @click='gridOpen = false') Отмена
-      BaseButton(variant='primary', size='sm', :loading='gridSaving', :disabled='!gridValid', @click='submitGrid') Завести
 
   //- ─────────────────────── Раскладка по количеству ───────────────────────
   BaseDialog(v-model='splitDialogOpen', title='Разложить по местам', size='md')
@@ -957,6 +1081,20 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
       )
     template(#footer)
       BaseButton(variant='ghost', size='sm', :disabled='binding', @click='scanDialogOpen = false') Закрыть
+
+  //- ─────────────────────── Сканирование бокса ───────────────────────
+  //- Не приёмка и не выдача: скан просто открывает карточку бокса, чтобы
+  //- посмотреть содержимое, не вскрывая тару.
+  ScannerDialog(
+    v-model='boxScanOpen',
+    title='Сканировать бокс',
+    idle-caption='Наведите камеру на QR-этикетку бокса',
+    frame-hint='Поместите QR-код в рамку',
+    manual-label='Или введите код бокса',
+    manual-placeholder='BX-0001',
+    manual-button='Показать',
+    @scanned='onBoxScanned'
+  )
 </template>
 
 <style scoped lang="scss">
@@ -982,13 +1120,6 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   &__search {
     max-width: 420px;
     width: 100%;
-
-    // Поиск не показывает hint/error — снимаем резерв строки под них, иначе
-    // между полем и сеткой висит пустой промежуток.
-    :deep(.q-field__bottom) {
-      min-height: 0;
-      padding-top: 0;
-    }
   }
 
   // Слева — «Поступило» фиксированной ширины, справа — сетка на всё остальное.
@@ -1147,6 +1278,19 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     width: 64px;
   }
 
+  // Столбец и строки наращивания: служебные, поэтому узкие и приглушённые —
+  // карта склада не должна выглядеть так, будто в ней есть лишняя секция.
+  &__grid-add {
+    width: 48px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  &__grid-grow td {
+    text-align: center;
+    padding: var(--p-1, 4px);
+  }
+
   &__grid-level {
     width: 64px;
     color: var(--p-ink-2);
@@ -1263,6 +1407,12 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     border: 1px solid var(--p-line);
     border-radius: var(--p-r-md, 12px);
     padding: var(--p-3, 12px);
+    transition: border-color var(--p-dur-fast, 0.12s) var(--p-ease-standard);
+
+    // Полоса — зона сброса: сюда возвращают бокс, снятый с адреса.
+    &.is-over {
+      border-color: var(--p-primary);
+    }
   }
 
   &__box-list {
@@ -1283,12 +1433,6 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   &__note {
     font-size: var(--p-fs-body-sm, 13px);
     color: var(--p-ink-2);
-  }
-
-  &__levels {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--p-2, 8px);
   }
 
   &__box-row {

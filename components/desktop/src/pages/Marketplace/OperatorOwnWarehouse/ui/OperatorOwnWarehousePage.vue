@@ -341,7 +341,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
     template(v-if='activeTab === "warehouse"')
       //- Поиск — отдельной строкой (не в одном ряду с чипами: их высоты разные и
       //- поле «скачет» относительно чипов).
-      BaseInput.warehouse__search(
+      BaseInput.warehouse__search.field-flush(
         v-model='search',
         type='search',
         placeholder='Поиск: заказчик, товар, бокс, адрес, штрих-код',
@@ -363,7 +363,7 @@ q-page.warehouse(role='region', aria-label='Склад участка')
         //- Место — выбор из заведённых боксов и ячеек прямо в строке. Когда
         //- адресное хранение выключено, показываем прочерк: места просто нет.
         template(#cell-place='{ row }')
-          BaseSelect.warehouse__place-input(
+          BaseSelect.warehouse__place-input.field-flush(
             v-if='placementEnabled',
             :model-value='placementValue(row)',
             :options='placementOptions',
@@ -430,24 +430,10 @@ q-page.warehouse(role='region', aria-label='Склад участка')
   &__search {
     max-width: 420px;
     width: 100%;
-
-    // Поиск не показывает hint/error — резерв места под них (Quasar
-    // reserve-hint-space) даёт пустой промежуток перед таблицей.
-    :deep(.q-field__bottom) {
-      min-height: 0;
-      padding-top: 0;
-    }
   }
 
   &__place-input {
     width: 100%;
-
-    // Селект в ячейке таблицы не показывает hint/error — резерв строки под них
-    // растянул бы строку и заставил её «прыгать» относительно соседних.
-    :deep(.q-field__bottom) {
-      min-height: 0;
-      padding-top: 0;
-    }
   }
 
   &__place-static {
