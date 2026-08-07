@@ -1046,7 +1046,13 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
           )
             thead
               tr
-                th.place__grid-corner Ярус
+                //- Угол таблицы читается по диагонали: над чертой — то, что идёт
+                //- по горизонтали (секции), под чертой — то, что по вертикали
+                //- (ярусы). Одна подпись «Ярус» заставляла гадать, чем же тогда
+                //- подписаны столбцы.
+                th.place__grid-corner
+                  span.place__grid-corner-cols Секции
+                  span.place__grid-corner-rows Ярусы
                 //- Заголовок секции правится на месте: имя стеллажа выясняется
                 //- по ходу дела, и гонять оператора в отдельное окно ради
                 //- слова «Холодильник» незачем.
@@ -1536,8 +1542,29 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     }
   }
 
+  // Диагональ рисуется фоновым градиентом: линия из левого нижнего угла в
+  // правый верхний, подписи разведены по её сторонам.
   &__grid-corner {
-    width: 64px;
+    width: 96px;
+    position: relative;
+    padding: var(--p-1, 4px) var(--p-2, 8px);
+    background-image: linear-gradient(
+      to top right,
+      transparent calc(50% - 0.5px),
+      var(--p-line) calc(50% - 0.5px),
+      var(--p-line) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  }
+
+  &__grid-corner-cols {
+    display: block;
+    text-align: right;
+  }
+
+  &__grid-corner-rows {
+    display: block;
+    text-align: left;
   }
 
   // Столбец и строки наращивания: служебные, поэтому узкие и приглушённые —
