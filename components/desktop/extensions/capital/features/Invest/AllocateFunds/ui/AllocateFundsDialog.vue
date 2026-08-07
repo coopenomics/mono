@@ -1,14 +1,14 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Аллоцировать средства в проект',
+  title='Аллоцировать средства в компонент',
   size='sm',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .allocate-form
     BaseSelect(
       v-model='projectHash',
-      label='Проект или компонент',
+      label='Компонент',
       placeholder='Выберите, куда направить средства',
       :options='options'
     )
@@ -17,12 +17,12 @@ BaseDialog(
         v-model='amount',
         label='Сумма',
         :symbol='symbol',
-        :precision='precision',
+        :precision='DISPLAY_PRECISION',
         :balance='available',
         show-balance,
         show-max
       )
-    .allocate-form__note.t-sm.t-muted Средства уходят со свободного остатка программы и становятся бюджетом проекта. Неизрасходованный остаток вернётся в программу, когда проект завершится или будет удалён.
+    .allocate-form__note.t-sm.t-muted Средства уходят со свободного остатка программы и становятся бюджетом компонента. Неизрасходованный остаток вернётся в программу, когда проект завершится или будет удалён.
 
   template(#footer)
     .allocate-form__actions
@@ -46,9 +46,15 @@ import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { useAllocateFunds } from '../model';
 
+/**
+ * Суммы показываем в рублях с копейками. Точность ассета цепи (4 знака) —
+ * деталь хранения: с ней поле выглядело как «1 000,0000».
+ */
+const DISPLAY_PRECISION = 2;
+
 const props = defineProps<{
   modelValue: boolean;
-  /** Проекты и компоненты, доступные для направления средств */
+  /** Компоненты, доступные для финансирования */
   options: BaseSelectOption[];
   /** Свободный остаток программы — потолок суммы */
   available: number;
@@ -67,7 +73,6 @@ const amount = ref<number | null>(null);
 const submitting = ref(false);
 
 const symbol = computed(() => system.info?.symbols?.root_govern_symbol ?? 'RUB');
-const precision = computed(() => system.info?.symbols?.root_govern_precision ?? 2);
 
 const canSubmit = computed(
   () =>
@@ -78,7 +83,7 @@ const canSubmit = computed(
 );
 
 // Диалог переиспользуется — при закрытии сбрасываем ввод, чтобы следующее
-// открытие не подставило прошлый проект и сумму.
+// открытие не подставило прошлый компонент и сумму.
 watch(
   () => props.modelValue,
   (open) => {
@@ -98,7 +103,7 @@ async function submit(): Promise<void> {
   try {
     submitting.value = true;
     await submitAllocation(projectHash.value, String(amount.value));
-    SuccessAlert('Средства направлены в проект');
+    SuccessAlert('Средства аллоцированы в компонент');
     emit('allocated');
     close();
   } catch (e) {
