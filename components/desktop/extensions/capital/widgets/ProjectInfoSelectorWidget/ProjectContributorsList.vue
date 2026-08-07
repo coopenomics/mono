@@ -12,47 +12,50 @@
     template(#icon)
       q-icon(name='group')
 
-  q-infinite-scroll.contributors-list__items(
-    v-else,
-    :disable='!hasMore',
-    :offset='200',
-    @load='onLoad'
-  )
-    .contributors-list__item(v-for='(row, index) in rows', :key='row._id || row.username')
-      .contributors-list__row
-        .contributors-list__index.t-sm.t-muted {{ index + 1 }}
+  //- scroll-y: по нему прокрутка находит эту область, если не успела
+  //- разрешить её по имени класса на момент появления списка
+  .contributors-scroll-area.scroll-y(v-else)
+    q-infinite-scroll.contributors-list__items(
+      :disable='!hasMore',
+      :offset='200',
+      scroll-target='.contributors-scroll-area',
+      @load='onLoad'
+    )
+      .contributors-list__item(v-for='(row, index) in rows', :key='row._id || row.username')
+        .contributors-list__row
+          .contributors-list__index.t-sm.t-muted {{ index + 1 }}
 
-        .contributors-list__main
-          .contributors-list__title-row
-            span.contributors-list__name {{ row.display_name || row.username }}
-            q-icon.contributors-list__note-icon(
-              v-if='parseValueData(row.value).text',
-              name='notes',
-              size='16px'
+          .contributors-list__main
+            .contributors-list__title-row
+              span.contributors-list__name {{ row.display_name || row.username }}
+              q-icon.contributors-list__note-icon(
+                v-if='parseValueData(row.value).text',
+                name='notes',
+                size='16px'
+              )
+                q-tooltip(anchor='bottom middle', self='top middle', max-width='320px')
+                  | {{ parseValueData(row.value).text }}
+
+            .contributors-list__roles
+              BaseBadge(
+                v-for='role in visibleRoles(row)',
+                :key='role.key',
+                :variant='role.variant'
+              ) {{ role.title }}
+
+          .contributors-list__side
+            .contributors-list__amount
+              .t-sm.t-muted Взнос
+              span.t-mono {{ formatAsset2Digits(calculateContributionAmount(row)) }}
+            RefreshSegmentButton(
+              v-if='segmentNeedsUpdate(row)',
+              :segment='row',
+              mini
             )
-              q-tooltip(anchor='bottom middle', self='top middle', max-width='320px')
-                | {{ parseValueData(row.value).text }}
 
-          .contributors-list__roles
-            BaseBadge(
-              v-for='role in visibleRoles(row)',
-              :key='role.key',
-              :variant='role.variant'
-            ) {{ role.title }}
-
-        .contributors-list__side
-          .contributors-list__amount
-            .t-sm.t-muted Взнос
-            span.t-mono {{ formatAsset2Digits(calculateContributionAmount(row)) }}
-          RefreshSegmentButton(
-            v-if='segmentNeedsUpdate(row)',
-            :segment='row',
-            mini
-          )
-
-    template(#loading)
-      .contributors-list__more
-        q-spinner(size='20px', color='primary')
+      template(#loading)
+        .contributors-list__more
+          q-spinner(size='20px', color='primary')
 </template>
 
 <script lang="ts" setup>
@@ -257,8 +260,18 @@ watch(
   background: var(--p-surface);
 }
 
+// Заполняет page-surface, чтобы область прокрутки взяла от неё высоту
 .contributors-list {
   min-width: 0;
+  height: 100%;
+  min-height: 100%;
+}
+
+// Высота от родителя, не от 100vh: иначе список выше видимой области и
+// вместе с ним уезжает вся страница — меню вкладок и шапка вкладки тоже
+.contributors-scroll-area {
+  height: 100%;
+  overflow-y: auto;
 }
 
 .contributors-list__skel {

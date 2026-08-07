@@ -1,5 +1,5 @@
 <template lang="pug">
-div
+.component-contributors-page
   // Список участников
   ProjectContributorsList(:project='project')
 </template>
@@ -61,4 +61,10 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Заполняет page-surface, чтобы список мог взять height: 100% и держать
+// прокрутку внутри себя
+.component-contributors-page {
+  height: 100%;
+  min-height: 100%;
+}
 </style>
