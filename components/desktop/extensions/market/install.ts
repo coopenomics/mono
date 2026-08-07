@@ -603,7 +603,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               name: 'marketplace-pvz-orders',
               component: markRaw(OperatorBranchOrdersPage),
               meta: {
-                title: 'Заказы участка',
+                title: 'История заказов',
                 icon: 'receipt_long',
                 requires: 'Order:read:own-KU',
                 requiresAuth: true,
