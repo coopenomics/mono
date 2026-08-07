@@ -7,13 +7,17 @@
 import { cleanViteOverlays, env, loginAsChairman } from '../../../lib/harness.mjs';
 
 export const meta = {
+  mode: 'docs',
+  feature: 'marketplace.offer',
+  cases: ['mkt.offer.happy.02'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
   title: 'Стол председателя — модерация предложений',
   docPath: 'new/marketplace/chairman/offer-moderation.md',
   assetsDir: 'assets/new/marketplace/chairman/offer-moderation',
   role: 'chairman',
 };
 
-export default async ({ page, shot }) => {
+export default async ({ page, shot, expect }) => {
   // Network probe регистрируем ДО любого navigate — иначе можем пропустить
   // mutation на startup. Считаем ВСЕ POST на /v1/graphql.
   let approveSent = false;
@@ -96,7 +100,14 @@ export default async ({ page, shot }) => {
     await shot(
       page,
       '03-moderation-after-approve',
-      'Лента модерации после одобрения. Одобренный offer пропадает из очереди и сразу доступен в публичном каталоге кооператива.',
+      'Лента модерации после одобрения: предложение пропадает из очереди и становится доступным в публичном каталоге кооператива.',
+      {
+        expect: async (p) => {
+          // Проверяем результат модерации, а не факт клика: очередь обязана
+          // опустеть, иначе одобрение не доехало до сервера.
+          await expect(p.locator('text=Очередь модерации пуста').first()).toBeVisible({ timeout: 20000 });
+        },
+      },
     );
   }
 };

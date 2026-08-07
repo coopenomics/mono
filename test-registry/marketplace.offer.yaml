@@ -39,16 +39,16 @@ cases:
     kind: happy
     scenario: Председатель одобряет предложение на модерации
     expect: статус «опубликовано», предложение появляется в каталоге витрины
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/chairman/offer-moderation.mjs
+    status: passing
 
   - id: mkt.offer.happy.03
     level: ui
     kind: happy
     scenario: Заказчик видит одобренное предложение в каталоге витрины
     expect: карточка предложения с ценой и категорией, доступна к оформлению заказа
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/orderer/catalog.mjs
+    status: passing
 
   # ── Границы данных при создании и правке ────────────────────────────────
   - id: mkt.offer.side.01

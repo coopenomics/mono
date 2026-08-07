@@ -16,6 +16,10 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
+  mode: 'docs',
+  feature: 'marketplace.offer',
+  cases: ['mkt.offer.happy.03'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
   title: 'Стол заказчика — каталог витрины',
   docPath: 'new/marketplace/orderer/catalog.md',
   assetsDir: 'assets/new/marketplace/orderer/catalog',
@@ -43,7 +47,7 @@ async function signAllAgreements(page) {
   }
 }
 
-export default async ({ page, shot }) => {
+export default async ({ page, shot, expect }) => {
   const fixture = loadFixture('ekaterina');
 
   await loginAs(page, fixture);
@@ -69,6 +73,14 @@ export default async ({ page, shot }) => {
   await shot(
     page,
     '01-catalog-with-offer',
-    `Каталог витрины пайщицы Екатерины. URL: \`${page.url()}\`. В каталоге одна карточка «Берёзовый сок ПК «Восход» (демо)» в статусе «Опубликовано» — offer прошёл модерацию председателем (Story 3.6) и доступен к оформлению. Фильтр-чипы показывают распределение по категориям ЦПП (Овощи и фрукты, Молочные продукты и т.д.).`,
+    'Каталог витрины глазами заказчицы. Сверху — выбранный пункт выдачи, его можно сменить. Карточка предложения показывает категорию, цену для заказчика, доступный остаток и поставщика; кнопка «В корзину» начинает оформление заказа.',
+    {
+      expect: async (p) => {
+        // Каталог обязан содержать одобренное предложение: пустая витрина
+        // здесь означала бы, что модерация не довела товар до заказчика.
+        await expect(p.locator('text=Опубликовано').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=В корзину').first()).toBeVisible({ timeout: 20000 });
+      },
+    },
   );
 };
