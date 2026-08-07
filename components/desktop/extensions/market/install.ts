@@ -390,17 +390,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // «Отгрузить партию» — отдельный пункт меню с одним account-bound
+              // «Показать QR» — отдельный пункт меню с одним account-bound
               // Pickup-QR на всю страницу. Тот же код, что в действии шапки
               // «Подготовки отгрузки», но вынесен явным пунктом сразу после неё —
-              // чтобы поставщик не пропустил, где взять код на приёмке (зеркало
-              // пункта «Получить заказ» у заказчика).
+              // чтобы поставщик не пропустил, где взять код на приёмке. Пункт
+              // назван по тому, что за ним лежит: отгружает поставщик на
+              // «Подготовке отгрузки», а здесь только показывает код.
               path: 'ship-party',
               name: 'marketplace-ship-party',
               component: markRaw(OffererShipPartyPage),
               meta: {
-                title: 'Отгрузить партию',
-                icon: 'fa-solid fa-qrcode',
+                title: 'Показать QR',
+                icon: 'qr_code',
                 requires: 'Offer:create:own',
                 requiresAuth: true,
                 agreements: agreementsBase,

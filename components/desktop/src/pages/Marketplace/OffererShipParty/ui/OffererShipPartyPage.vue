@@ -5,7 +5,7 @@ import { HandoffCodeContent } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 
 /**
- * Стол поставщика, страница «Отгрузить партию».
+ * Стол поставщика, страница «Показать QR».
  *
  * Один account-bound Pickup-QR на всю страницу и больше ничего. Поставщик
  * показывает его оператору приёмки — тот сканирует, резолвит аккаунт против
@@ -22,7 +22,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 </script>
 
 <template lang="pug">
-q-page.ship-party(role="region", aria-label="Отгрузить партию")
+q-page.ship-party(role="region", aria-label="Код для приёмки партии")
   HandoffCodeContent(:coopname="coopname", :kind="HandoffTokenKind.Pickup")
 </template>
 
