@@ -1542,19 +1542,28 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
     }
   }
 
-  // Диагональ рисуется фоновым градиентом: линия из левого нижнего угла в
-  // правый верхний, подписи разведены по её сторонам.
+  // Угол читается по диагонали: над чертой — подпись столбцов, под чертой —
+  // подпись строк. Черта — отдельным слоем, а не фоном ячейки: фон у липкого
+  // первого столбца свой и градиент затирает.
   &__grid-corner {
-    width: 96px;
+    width: 104px;
     position: relative;
+    overflow: hidden;
     padding: var(--p-1, 4px) var(--p-2, 8px);
-    background-image: linear-gradient(
-      to top right,
-      transparent calc(50% - 0.5px),
-      var(--p-line) calc(50% - 0.5px),
-      var(--p-line) calc(50% + 0.5px),
-      transparent calc(50% + 0.5px)
-    );
+    font-size: var(--p-fs-caption, 11px);
+    line-height: 1.35;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: -8%;
+      right: -8%;
+      top: 50%;
+      height: 1px;
+      background: var(--p-line);
+      transform: rotate(-16deg);
+      pointer-events: none;
+    }
   }
 
   &__grid-corner-cols {
