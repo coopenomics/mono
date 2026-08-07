@@ -212,13 +212,18 @@ export async function seedMarketplaceKuDetails(coopname = 'voskhod') {
     }
 
     for (const ku of KU) {
+      // Реквизиты участка (адрес, телефон, почта) живут в core-реестре КУ, а
+      // здесь остаётся только геокодированный адрес и режим работы: миграция
+      // marketplace-bootstrap-v8 удалила contact_phone/contact_email и
+      // переименовала address_full → geocoded_address. Сидер про это не знал и
+      // валился на каждом свежем стенде — кооператив поднимался без ПВЗ.
       await client.query(`
         INSERT INTO marketplace_ku_details
-          (coopname, core_braname, address_full, contact_phone, contact_email,
+          (coopname, core_braname, geocoded_address,
            working_hours_json, status, geocode_status, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, 'ACTIVE', 'PENDING', now(), now())
+        VALUES ($1, $2, $3, $4, 'ACTIVE', 'PENDING', now(), now())
         ON CONFLICT (coopname, core_braname) DO NOTHING
-      `, [coopname, ku.braname, ku.address, ku.phone, ku.email, JSON.stringify(workingHours)])
+      `, [coopname, ku.braname, ku.address, JSON.stringify(workingHours)])
     }
 
     console.log(`Засеяно ${KU.length} ПВЗ (krg/odn/myt, ACTIVE) в marketplace_ku_details для ${coopname}`)
