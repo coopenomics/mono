@@ -460,6 +460,24 @@ export function makeShotContext({ scenarioName, outDir, mode = 'docs' }) {
 
     await page.waitForTimeout(opts.delay ?? 300);
     await cleanViteOverlays(page, { preserveNotifications: opts.preserveNotifications });
+
+    // Экраны, которые никогда не бывают правильным содержимым кадра. Раньше
+    // сценарий спокойно снимал «404» под именем «список ПВЗ» и считался
+    // пройденным — документация получала картинку ошибки, а тест молчал.
+    // Сценарию, который проверяет сам отказ, достаточно передать
+    // { allowError: true } — тогда кадр разрешён осознанно.
+    if (!opts.allowError) {
+      const blocker = await page.evaluate(() => {
+        const t = document.body.innerText || '';
+        if (t.includes('404 страница не найдена')) return '404 — маршрута нет';
+        if (t.includes('Недостаточно прав доступа')) return 'отказ в правах доступа';
+        return null;
+      });
+      if (blocker) {
+        throw new Error(`кадр «${name}»: на экране ${blocker} (${page.url()})`);
+      }
+    }
+
     await page.screenshot({ path: filePath, fullPage: opts.fullPage ?? false });
     const entry = {
       name,

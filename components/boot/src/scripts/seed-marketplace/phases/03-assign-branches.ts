@@ -35,7 +35,7 @@ const BRANAME = 'krg'
 // Кого привязываем и под каким e-mail логинить. Профили совпадают с реестром
 // фикстур harness (components/docs-harness/lib/fixtures.mjs): расхождение имён
 // сразу оставит пайщика без участка, а сценарий — с диалогом поверх экрана.
-const MEMBERS = ['ekaterina', 'ivanpetrov', 'trustedkrg']
+const MEMBERS = ['ekaterina', 'ivanpetrov', 'trustedkrg', 'petrova']
 
 const STATE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

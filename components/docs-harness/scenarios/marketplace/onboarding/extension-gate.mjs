@@ -11,7 +11,7 @@
 // принять за норму (так и было: прежний сценарий снимал его трижды и
 // считался пройденным).
 //
-// Фикстура: ekaterina / Смирнова Екатерина Александровна — свежая пайщица.
+// Фикстура: petrova / Петрова Екатерина Александровна — свежая пайщица.
 // На стенде, где она уже подключилась, сценарий не воспроизводится: нужен
 // прогон после reboot:extra.
 
@@ -31,15 +31,15 @@ export const meta = {
   assetsDir: 'assets/new/marketplace/onboarding/extension-gate',
   role: 'user',
   mode: 'docs',
-  fixture: 'ekaterina',
-  fixtures: ['ekaterina'],
+  fixture: 'petrova',
+  fixtures: ['petrova'],
   feature: 'marketplace.onboarding',
   cases: ['mkt.onb.happy.03'],
   prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches'],
 };
 
 export default async ({ page, shot, expect, env: e }) => {
-  const fixture = loadFixture('ekaterina');
+  const fixture = loadFixture('petrova');
   await loginAs(page, fixture);
   await pickBranchIfAsked(page);
   await cleanViteOverlays(page);
@@ -58,6 +58,8 @@ export default async ({ page, shot, expect, env: e }) => {
     '01-catalog-closed',
     'Пайщица, ещё не подключившаяся к Столу заказов, открывает каталог витрины — и получает отказ. Права заказчика появляются только после подписания оферты ЦПП и выбора пункта выдачи, поэтому до подключения каталог закрыт.',
     {
+      // Отказ здесь — проверяемое поведение, а не поломка сценария.
+      allowError: true,
       expect: async (p) => {
         await expect(p.locator('text=Недостаточно прав доступа').first()).toBeVisible({ timeout: 15000 });
       },
