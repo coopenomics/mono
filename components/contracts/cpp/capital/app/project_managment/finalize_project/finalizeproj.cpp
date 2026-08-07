@@ -39,13 +39,6 @@ void capital::finalizeproj(eosio::name coopname, checksum256 project_hash) {
                "В таблице сегментов остались записи. Ошибка синхронизации.");
 
   // Рассчитываем неиспользованную дельту инвестиций
-  // 
-  // total_received_investments - вся сумма полученных инвестиций:
-  //   - прямые инвестиции инвесторов (через createinvest, средства в _capital_program)
-  //   - аллоцированные программные средства (через allocate)
-  //
-  // total_used_for_compensation - фактически выплачено участникам при конвертации в wallet + ссуды
-  // used_expense_pool - фактически потрачено на расходы проекта
   //
   // Неиспользованная дельта включает:
   // 1. Инвестиции инвесторов, не использованные проектом (investor_amount - investor_base для каждого)
@@ -54,25 +47,9 @@ void capital::finalizeproj(eosio::name coopname, checksum256 project_hash) {
   //
   // Средства инвесторов уже в _capital_program (благорост) - возврат инвесторам запрещён.
   // Все неиспользованные средства передаются в глобальный фонд для дальнейшего использования.
-  
-  int64_t total_actually_used = project.fact.total_used_for_compensation.amount +
-                                project.fact.used_expense_pool.amount;
-  
-  // Неиспользованная дельта = всего получено инвестиций - фактически использовано
-  int64_t unused_delta_amount = project.fact.total_received_investments.amount - total_actually_used;
-  
-  // Если есть неиспользованная дельта - передаём в глобальный фонд через трекинговое действие
-  if (unused_delta_amount > 0) {
-    eosio::asset unused_delta = eosio::asset(unused_delta_amount, _root_govern_symbol);
-    
-    // Вызываем трекинговое действие через inline action для фиксации передачи в глобальный фонд
-    action(
-      permission_level{_capital, "active"_n},
-      _capital,
-      "returntopool"_n,
-      std::make_tuple(coopname, project_hash, unused_delta)
-    ).send();
-  }
+  // Формула общая для finalizeproj / delproject / declprj — см. calculate_unused_investments.
+
+  Capital::Core::return_unused_investments(coopname, project.id);
 
   // Устанавливаем статус проекта на FINALIZED
   Capital::Projects::update_status(coopname, project.id, Capital::Projects::Status::FINALIZED);

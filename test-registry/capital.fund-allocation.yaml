@@ -1,0 +1,333 @@
+feature: capital.fund-allocation
+title: Направление средств программы в проект и их возврат в программу
+
+# Движение денег программы «Благорост» между свободным остатком и бюджетами
+# проектов: аллокация (allocate) и обратный возврат неизрасходованного при
+# выбытии проекта — завершение (finalizeproj) и удаление (delproject). Приём
+# взносов в саму программу (createpinv, fundprog) — соседний слайс, здесь не
+# заводится.
+#
+# Аллокация идёт только в компоненты: проекты финансируются через них.
+# Прямое финансирование проекта потребовало бы внутреннего распределения
+# средств мастером — этого пока нет.
+#
+# Отдельной отмены проекта нет намеренно: прекращение проекта — это его
+# удаление, при котором средства возвращаются. Статуса «отменён» больше нет
+# ни в цепи, ни в схеме — он дублировал удаление.
+#
+# В отклонении советом (declprj) возврата нет: совет отклоняет проект при
+# заведении, когда средств в нём ещё быть не может.
+#
+# Ручной деаллокации нет намеренно: возврат происходит сам. Действие diallocate
+# в контракте осталось от прежней схемы, наружу не выведено
+# (см. cap.alloc.decision.01).
+sources:
+  contract:
+    - components/contracts/cpp/capital/app/invests_managment/invest_in_program/allocate/**
+    - components/contracts/cpp/capital/app/project_managment/delete_project/**
+    - components/contracts/cpp/capital/app/project_managment/finalize_project/**
+    - components/contracts/cpp/capital/domain/core/program_investment.cpp
+    - components/contracts/cpp/capital/domain/entities/projects.hpp
+  backend:
+    - components/controller/src/extensions/capital/application/dto/invests_management/allocate-funds.input.ts
+    - components/controller/src/extensions/capital/application/services/invests-management.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/invests-management.interactor.ts
+    - components/controller/src/extensions/capital/application/resolvers/invests-management.resolver.ts
+  ui:
+    - components/desktop/extensions/capital/features/Invest/AllocateFunds/**
+    - components/desktop/extensions/capital/features/Project/UpdateProjectStatus/**
+    - components/desktop/extensions/capital/pages/AllocationsPage/**
+
+cases:
+  # ── Уровень контракта ─────────────────────────────────────────────────────
+
+  - id: cap.alloc.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель направляет средства в проект при достаточном свободном
+      остатке программы.
+    expect: >
+      Свободный остаток программы уменьшается на сумму; у проекта растут бюджет
+      расходов (в пределах разрыва до планового) и инвестиционный пул;
+      пересчитываются коэффициенты возврата и использования.
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.05
+    level: contract
+    kind: side
+    scenario: направление суммы больше свободного остатка программы
+    expect: отказ «Недостаточно средств в глобальном пуле инвестиций»
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.06
+    level: contract
+    kind: side
+    scenario: направление средств в несуществующий проект
+    expect: отказ «Проект с указанным хэшем не найден»
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.07
+    level: contract
+    kind: side
+    scenario: направление средств вызывает не кооператив
+    expect: отказ по авторизации — действие требует ключ кооператива
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.08
+    level: contract
+    kind: side
+    scenario: >
+      направление средств в проект, у которого бюджет расходов уже достиг
+      планового значения
+    expect: >
+      вся сумма уходит в инвестиционный пул, бюджет расходов не превышает план
+    test: ~
+    status: missing
+
+  - id: cap.alloc.happy.03
+    level: contract
+    kind: happy
+    scenario: >
+      Завершённый проект финализируют, часть полученных средств не была
+      израсходована.
+    expect: >
+      неизрасходованный остаток возвращается в свободные средства программы
+      трекинговым действием, проект переходит в статус «финализирован»
+    test: ~
+    status: missing
+
+  - id: cap.alloc.happy.04
+    level: contract
+    kind: happy
+    scenario: >
+      Председатель удаляет проект, в который были направлены средства
+      (статус «создан», работ по нему не было).
+    expect: >
+      весь неизрасходованный остаток возвращается в свободные средства
+      программы, и только затем запись проекта удаляется
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.09
+    level: contract
+    kind: side
+    scenario: >
+      удаление проекта, который израсходовал ровно всё полученное
+      (остаток к возврату равен нулю)
+    expect: >
+      возврат не отправляется вовсе; свободные средства программы не меняются,
+      проект удаляется. Отправка нулевой суммы была бы отклонена самим
+      действием возврата и уронила бы удаление
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.10
+    level: contract
+    kind: side
+    scenario: >
+      возврат средств исполняется после того, как запись проекта уже удалена
+      (действие возврата вызывается вложенно и отрабатывает последним)
+    expect: >
+      возврат проходит: проект в нём необязателен, хэш служит только меткой.
+      Прежде возврат требовал существующий проект — при удалении это уронило бы
+      всю операцию, и удалить проект с бюджетом было бы нельзя
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.11
+    level: contract
+    kind: side
+    scenario: >
+      удаление проекта, израсходовавшего больше, чем получено
+      (перерасход по бюджету расходов)
+    expect: >
+      остаток к возврату не уходит в минус — считается нулём, свободные
+      средства программы не уменьшаются
+    test: ~
+    status: missing
+
+  - id: cap.alloc.decision.01
+    level: contract
+    kind: side
+    scenario: >
+      Действие diallocate: возвращает не сумму, а вычисленный остаток, требует
+      статус «создан» и срабатывает только при коэффициенте использования выше
+      100% — иначе завершается успешно, ничего не изменив.
+    expect: >
+      наружу не выводится. Возврат средств покрыт выбытием проекта
+      (finalizeproj / delproject). Судьба самого действия — удалить или
+      переписать под сумму — решается отдельно
+    decision_needed: true
+    test: ~
+    status: missing
+
+  - id: cap.alloc.happy.02
+    level: backend
+    kind: happy
+    scenario: направление средств с суммой в валюте кооператива
+    expect: запрос доходит до доменного слоя без изменений по существу
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
+
+  - id: cap.alloc.side.01
+    level: backend
+    kind: side
+    scenario: идентификатор проекта передан в верхнем регистре
+    expect: >
+      проект ищется и уходит в цепь в нижнем регистре. Иначе проект не нашёлся
+      бы в базе и председатель получил бы «проект не найден» на существующем
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
+
+  - id: cap.alloc.side.02
+    level: backend
+    kind: side
+    scenario: направление средств в персональный проект пайщика
+    expect: отказ до обращения к цепи — деньги кооператива идут только в его проекты
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
+
+  - id: cap.alloc.side.03
+    level: backend
+    kind: side
+    scenario: направление средств в проект, которого нет в базе
+    expect: отказ «Проект не найден» до обращения к цепи
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
+
+  - id: cap.alloc.side.04
+    level: backend
+    kind: side
+    scenario: сумма указана в валюте, отличной от валюты кооператива
+    expect: отказ до доменного слоя
+    test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    status: passing
+
+  - id: cap.alloc.side.12
+    level: backend
+    kind: side
+    scenario: направление средств запрашивает член совета, а не председатель
+    expect: >
+      отказ по роли: мутация объявлена только для председателя. Проверяется
+      мимо интерфейса — кнопка у члена совета и так не отображается
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.13
+    level: backend
+    kind: side
+    scenario: направление средств запрашивает пайщик без роли
+    expect: отказ по роли
+    test: ~
+    status: missing
+
+  # ── Уровень UI ────────────────────────────────────────────────────────────
+
+  - id: cap.alloc.happy.06
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель открывает «Инвестиции», выбирает проект, вводит сумму
+      в пределах свободного остатка и подтверждает.
+    expect: >
+      средства появляются у проекта в таблице, свободный остаток программы
+      уменьшается на ту же сумму
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.14
+    level: ui
+    kind: side
+    scenario: страницу открывает член совета
+    expect: страница и суммы видны, кнопка «Направить средства» не отображается
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.15
+    level: ui
+    kind: side
+    scenario: введена сумма больше свободного остатка программы
+    expect: подтвердить нельзя — кнопка неактивна
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.16
+    level: ui
+    kind: side
+    scenario: проект не выбран либо сумма нулевая
+    expect: подтвердить нельзя — кнопка неактивна
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.17
+    level: ui
+    kind: side
+    scenario: >
+      в таблице показан проект, у которого бюджет есть только у компонентов
+    expect: >
+      строка проекта показывает суммарный бюджет, ниже с отступом — строки
+      компонентов; итог «Направлено в проекты» считается по проектам и не
+      удваивается за счёт компонентов
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.18
+    level: ui
+    kind: side
+    scenario: средства не аллоцированы ни в один проект
+    expect: вместо таблицы показывается пустое состояние
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.28
+    level: ui
+    kind: break
+    scenario: >
+      Аллокация в один компонент; список проектов запрашивается без фильтра
+      по уровню, поэтому компоненты приходят и вложенными в проект, и
+      самостоятельными строками.
+    expect: >
+      компонент показан в таблице один раз, итог равен аллоцированной сумме.
+      Прежде та же тысяча выводилась трижды (компонент, проект-агрегат, снова
+      компонент), а итог показывал двойную сумму — компонент считался и сам,
+      и в составе агрегата проекта
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.29
+    level: ui
+    kind: side
+    scenario: список целей для аллокации
+    expect: >
+      в списке только компоненты, с указанием проекта; сами проекты выбрать
+      нельзя — финансирование идёт через компоненты
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.30
+    level: ui
+    kind: side
+    scenario: отображение статуса компонента и сумм в таблице
+    expect: >
+      статус подписан по-русски тем же словарём, что и в проектах; суммы —
+      через форматтер, без сырого ассета цепи с четырьмя знаками
+    test: ~
+    status: missing
+
+  - id: cap.alloc.side.25
+    level: ui
+    kind: side
+    scenario: >
+      прежнее поведение: в списке статусов был пункт «Отменён», который вызывал
+      закрытие приёма инвестиций (closeProject) и статуса не менял вовсе
+    expect: >
+      пункта «Отменён» в списке статусов нет, как и самого статуса в схеме.
+      Прекращение проекта — удаление, при котором средства возвращаются
+      в программу; закрытие приёма инвестиций остаётся отдельной операцией
+    test: ~
+    status: missing

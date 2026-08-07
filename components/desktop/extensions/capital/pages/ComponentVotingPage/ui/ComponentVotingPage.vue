@@ -146,24 +146,14 @@ const isVotingCompleted = (proj: any) => {
 const statusLabel = computed(() => {
   const status = String(project.value?.status || '');
   if (status === Zeus.ProjectStatus.VOTING) return 'Активно';
-  if (
-    status === Zeus.ProjectStatus.RESULT ||
-    status === Zeus.ProjectStatus.CANCELLED
-  ) {
-    return 'Завершено';
-  }
+  if (status === Zeus.ProjectStatus.RESULT) return 'Завершено';
   return 'Неизвестно';
 });
 
 const statusVariant = computed<BaseBadgeVariant>(() => {
   const status = String(project.value?.status || '');
   if (status === Zeus.ProjectStatus.VOTING) return 'pos';
-  if (
-    status === Zeus.ProjectStatus.RESULT ||
-    status === Zeus.ProjectStatus.CANCELLED
-  ) {
-    return 'warn';
-  }
+  if (status === Zeus.ProjectStatus.RESULT) return 'warn';
   return 'neutral';
 });
 

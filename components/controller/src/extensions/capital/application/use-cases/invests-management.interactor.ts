@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateProjectInvestDomainInput } from '../../domain/actions/create-project-invest-domain-input.interface';
 import type { CreateProgramInvestDomainInput } from '../../domain/actions/create-program-invest-domain-input.interface';
+import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
 import type { TransactResult } from '@wharfkit/session';
 import { INVEST_REPOSITORY, InvestRepository } from '../../domain/repositories/invest.repository';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
@@ -150,6 +151,21 @@ export class InvestsManagementInteractor {
     };
 
     return await this.capitalBlockchainPort.createProgramInvest(blockchainData);
+  }
+
+  /**
+   * Направление средств программы в проект или компонент (allocate)
+   */
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+    const project_hash = data.project_hash.toLowerCase();
+    const project = await this.projectRepository.findByHash(project_hash);
+    assertBlockchainProject(project, 'направление средств');
+
+    return await this.capitalBlockchainPort.allocateFunds({
+      coopname: data.coopname,
+      project_hash,
+      amount: data.amount,
+    });
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============

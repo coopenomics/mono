@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InvestsManagementInteractor } from '../use-cases/invests-management.interactor';
 import type { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import type { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
+import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
@@ -80,6 +81,15 @@ export class InvestsManagementService {
       },
       currentUser
     );
+  }
+
+  /**
+   * Направление средств программы в проект или компонент (allocate)
+   */
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+    CurrencyValidationUtil.validateCurrencySymbol(data.amount, 'сумме направляемых средств');
+
+    return await this.investsManagementInteractor.allocateFunds(data);
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============

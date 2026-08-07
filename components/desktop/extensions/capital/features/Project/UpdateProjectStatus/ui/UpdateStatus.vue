@@ -14,6 +14,7 @@ q-select(
   @click="handleClick"
   @update:model-value="handleStatusChange"
 )
+
 </template>
 
 <script setup lang="ts">
@@ -54,14 +55,15 @@ const readonly = computed(() => {
 })
 
 
-// Опции для выбора статуса
+// Опции для выбора статуса.
+// «Отменён» не предлагаем: прекращение проекта — это его удаление, при котором
+// средства возвращаются в программу. Отдельный статус отмены дублировал бы его.
 const statusOptions = [
   { value: Zeus.ProjectStatus.PENDING, label: getProjectStatusLabel(Zeus.ProjectStatus.PENDING) },
   { value: Zeus.ProjectStatus.ACTIVE, label: getProjectStatusLabel(Zeus.ProjectStatus.ACTIVE) },
   { value: Zeus.ProjectStatus.VOTING, label: getProjectStatusLabel(Zeus.ProjectStatus.VOTING) },
   { value: Zeus.ProjectStatus.RESULT, label: getProjectStatusLabel(Zeus.ProjectStatus.RESULT) },
   { value: Zeus.ProjectStatus.FINALIZED, label: getProjectStatusLabel(Zeus.ProjectStatus.FINALIZED) },
-  { value: Zeus.ProjectStatus.CANCELLED, label: getProjectStatusLabel(Zeus.ProjectStatus.CANCELLED) },
 ]
 
 // Обработчик клика по селекту - переключает dropdown
@@ -71,30 +73,30 @@ const handleClick = () => {
   }
 }
 
-// Обработчик изменения статуса
-const handleStatusChange = async (newStatus: Zeus.ProjectStatus) => {
-  if (!newStatus || !props.project || newStatus === previousStatus.value || readonly.value) return
+const applyStatusChange = async (newStatus: Zeus.ProjectStatus) => {
+  if (!props.project) return
 
-  // Сохраняем старое значение для отката (из previousStatus, а не из selectedStatus!)
   const oldStatus = previousStatus.value
 
   try {
-    // Временно обновляем локальное значение для визуальной обратной связи
     selectedStatus.value = newStatus
 
-    // Получаем coopname из проекта (предполагаем что он есть в поле coopname или можем получить из контекста)
     const coopname = (props.project as any).coopname || ''
-    console.log('updateProjectStatus', props.project.project_hash, newStatus, coopname)
     await updateProjectStatus(props.project.project_hash, newStatus, coopname)
 
-    // Успешно обновлено - теперь можно обновить previousStatus
     previousStatus.value = newStatus
   } catch (error) {
-    // Откатываем к изначальному значению (к previousStatus, которое хранит правильное старое значение)
     selectedStatus.value = oldStatus
     FailAlert(error)
     console.error('Failed to update status:', error)
   }
+}
+
+// Обработчик изменения статуса
+const handleStatusChange = async (newStatus: Zeus.ProjectStatus) => {
+  if (!newStatus || !props.project || newStatus === previousStatus.value || readonly.value) return
+
+  await applyStatusChange(newStatus)
 }
 
 // Синхронизируем локальное состояние с project.status при изменении пропса
@@ -105,3 +107,4 @@ watch(() => props.project?.status, (newStatus) => {
   }
 })
 </script>
+
