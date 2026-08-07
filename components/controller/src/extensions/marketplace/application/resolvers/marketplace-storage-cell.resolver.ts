@@ -13,6 +13,8 @@ import {
   MarketplaceCreateStorageCellInputDTO,
   MarketplaceCreateStorageGridInputDTO,
   MarketplaceListStorageCellsInputDTO,
+  MarketplaceRenameStorageSectionInputDTO,
+  MarketplaceRetireStorageCellsInputDTO,
   MarketplaceStorageCellDTO,
   MarketplaceUpdateStorageCellInputDTO,
   toMarketplaceStorageCellDTO,
@@ -127,6 +129,52 @@ export class MarketplaceStorageCellResolver {
       is_active: data.is_active,
     });
     return toMarketplaceStorageCellDTO(updated);
+  }
+
+  @Mutation(() => [MarketplaceStorageCellDTO], {
+    name: 'marketplaceRenameStorageSection',
+    description:
+      'Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  async marketplaceRenameStorageSection(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceRenameStorageSectionInputDTO
+  ): Promise<MarketplaceStorageCellDTO[]> {
+    const coopname = config.coopname;
+    await this.assertManagesBranch(coopname, member.username, data.braname);
+
+    const cells = await this.storageCellService.renameSection({
+      coopname,
+      braname: data.braname,
+      section: data.section,
+      new_section: data.new_section,
+    });
+    return cells.map(toMarketplaceStorageCellDTO);
+  }
+
+  @Mutation(() => [MarketplaceStorageCellDTO], {
+    name: 'marketplaceRetireStorageCells',
+    description:
+      'Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата.',
+  })
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  async marketplaceRetireStorageCells(
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @Args('data') data: MarketplaceRetireStorageCellsInputDTO
+  ): Promise<MarketplaceStorageCellDTO[]> {
+    const coopname = config.coopname;
+    await this.assertManagesBranch(coopname, member.username, data.braname);
+
+    const cells = await this.storageCellService.retireCells({
+      coopname,
+      braname: data.braname,
+      section: data.section,
+      level: data.level,
+    });
+    return cells.map(toMarketplaceStorageCellDTO);
   }
 
   /**

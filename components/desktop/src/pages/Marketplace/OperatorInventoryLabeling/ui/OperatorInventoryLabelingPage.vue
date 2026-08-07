@@ -35,7 +35,9 @@ import {
   nextSectionCode,
   parsePlacementValue,
   placementValueOf,
+  renameStorageSection,
   resolveContainerByCode,
+  retireStorageCells,
   useMarketplaceStorageStore,
   type MarketplaceContainerView,
   type MarketplaceStorageCellView,
@@ -62,8 +64,8 @@ import {
  * При выключенных и боксах, и ячейках страница остаётся столом маркировки:
  * штрих-коды и разбиение по количеству работают как прежде.
  *
- * Маркировка = наклеить заранее напечатанный штрих-код и привязать его к позиции
- * сканером. Она независима от размещения и остаётся необязательной.
+ * Маркировка = наклеить заранее напечатанную этикетку со штрих-кодом и привязать
+ * её к позиции сканером. Она независима от размещения и остаётся необязательной.
  */
 
 const route = useRoute()
@@ -290,10 +292,10 @@ async function movePlacement(
 async function removeLabel(item: MarketplaceInventoryItemView): Promise<void> {
   try {
     await clearInventoryLabel({ inventory_id: item.id })
-    SuccessAlert('Штрих-код снят — позицию можно переклеить')
+    SuccessAlert('Этикетка снята — позицию можно переклеить')
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось снять штрих-код')
+    FailAlert(e, 'Не удалось снять этикетку')
   }
 }
 
@@ -500,6 +502,61 @@ function startGrid(): void {
   void growGrid(['A'], 1, 1)
 }
 
+// ─── Пересборка сетки: переименование секции и разбор координат ──
+// Склад описывают по месту и задним числом: сначала «A», потом выясняется, что
+// это холодильник; стеллаж убрали — ярус надо снять. Без этого сетку можно было
+// только наращивать, и первая же опечатка оставалась на складе навсегда.
+const editingSection = ref<string | null>(null)
+const sectionDraft = ref('')
+
+function startSectionRename(section: string): void {
+  editingSection.value = section
+  sectionDraft.value = section
+}
+
+function cancelSectionRename(): void {
+  editingSection.value = null
+  sectionDraft.value = ''
+}
+
+async function commitSectionRename(): Promise<void> {
+  const from = editingSection.value
+  const to = sectionDraft.value.trim()
+  cancelSectionRename()
+  if (!from || !to || from === to) return
+
+  try {
+    const renamed = await renameStorageSection({
+      braname: braname.value.trim(),
+      section: from,
+      new_section: to,
+    })
+    storage.applyCells(renamed)
+  } catch (e) {
+    FailAlert(e, 'Не удалось переименовать секцию')
+  }
+}
+
+async function retireSection(section: string): Promise<void> {
+  try {
+    const retired = await retireStorageCells({ braname: braname.value.trim(), section })
+    storage.applyCells(retired)
+    SuccessAlert(`Секция «${section}» убрана со склада`)
+  } catch (e) {
+    FailAlert(e, 'Не удалось убрать секцию')
+  }
+}
+
+async function retireLevel(level: number): Promise<void> {
+  try {
+    const retired = await retireStorageCells({ braname: braname.value.trim(), level })
+    storage.applyCells(retired)
+    SuccessAlert(`Ярус ${level} убран со склада`)
+  } catch (e) {
+    FailAlert(e, 'Не удалось убрать ярус')
+  }
+}
+
 // ─── Генерация произвольного EAN-13 (12 цифр + контрольная) ──
 function randomEAN13(): string {
   let base = ''
@@ -572,12 +629,12 @@ async function submitScan(raw: string): Promise<void> {
   binding.value = true
   try {
     await bindInventoryBarcode({ inventory_id: item.id, barcode_value: code })
-    SuccessAlert(`Штрих-код ${code} привязан к позиции`)
+    SuccessAlert(`Этикетка ${code} привязана к позиции`)
     scanDialogOpen.value = false
     scanTarget.value = null
     await load()
   } catch (e) {
-    FailAlert(e, 'Не удалось привязать штрих-код')
+    FailAlert(e, 'Не удалось привязать этикетку')
   } finally {
     binding.value = false
   }
@@ -715,9 +772,9 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
       template(v-else-if='containersEnabled')
         | Разложите принятое имущество по боксам — при выдаче заказчику сразу
         | видно, в какой таре что лежит. Адрес боксу не обязателен: наполнили и
-        | поставили. Штрих-код — по желанию, для поиска сканером.
+        | поставили. Этикетка — по желанию, для поиска сканером.
       template(v-else)
-        | Наклейте на принятое имущество штрих-коды и привяжите их сканером —
+        | Наклейте на принятое имущество этикетки и привяжите их сканером —
         | тогда при выдаче позиция находится за секунду. Адресное хранение
         | (боксы и ячейки) выключено в настройках расширения.
 
@@ -784,12 +841,12 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                     variant='ghost',
                     size='sm',
                     icon-only,
-                    aria-label='Привязать штрих-код сканером',
+                    aria-label='Привязать этикетку сканером',
                     @click='openScan(item)'
                   )
                     template(#icon-left)
                       q-icon(name='qr_code_scanner', size='18px')
-                      q-tooltip Привязать штрих-код сканером
+                      q-tooltip Привязать этикетку сканером
                   BaseButton(variant='ghost', size='sm', icon-only, aria-label='Действия')
                     template(#icon-left)
                       q-icon(name='more_vert', size='18px')
@@ -823,11 +880,11 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                           )
                             q-item-section(avatar)
                               q-icon(name='label_off', size='18px')
-                            q-item-section Снять штрих-код
+                            q-item-section Снять этикетку
 
               .place__card-badges
                 BaseBadge(v-if='item.barcode_value', variant='pos') Промаркировано
-                BaseBadge(v-else, variant='neutral') Без штрих-кода
+                BaseBadge(v-else, variant='neutral') Без этикетки
 
               BarcodeDisplay(v-if='item.barcode_value', :code='item.barcode_value', size='sm')
 
@@ -872,7 +929,35 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
             thead
               tr
                 th.place__grid-corner Ярус
-                th(v-for='section in visibleSections', :key='section') {{ section }}
+                //- Заголовок секции правится на месте: имя стеллажа выясняется
+                //- по ходу дела, и гонять оператора в отдельное окно ради
+                //- слова «Холодильник» незачем.
+                th(v-for='section in visibleSections', :key='section')
+                  BaseInput(
+                    v-if='editingSection === section',
+                    v-model='sectionDraft',
+                    flat,
+                    autofocus,
+                    placeholder='Название секции',
+                    @keydown.enter='commitSectionRename',
+                    @keydown.esc='cancelSectionRename',
+                    @blur='commitSectionRename'
+                  )
+                  .place__section(v-else)
+                    span.place__section-name {{ section }}
+                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='`Секция ${section}`')
+                      template(#icon-left)
+                        q-icon(name='more_vert', size='16px')
+                        q-menu(anchor='bottom right', self='top right')
+                          q-list(dense, style='min-width: 200px')
+                            q-item(clickable, v-close-popup, @click='startSectionRename(section)')
+                              q-item-section(avatar)
+                                q-icon(name='edit', size='18px')
+                              q-item-section Переименовать
+                            q-item(clickable, v-close-popup, @click='retireSection(section)')
+                              q-item-section(avatar)
+                                q-icon(name='delete_outline', size='18px')
+                              q-item-section Убрать секцию
                 //- Плюс справа от последнего столбца — новая секция на всех
                 //- ярусах сразу.
                 th.place__grid-add
@@ -886,24 +971,39 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                   )
                     template(#icon-left)
                       q-icon(name='add', size='18px')
-                      q-tooltip Добавить секцию {{ nextSectionCode(storage.sections) }}
+                      q-tooltip Добавить секцию «{{ nextSectionCode(storage.sections) }}»
             tbody
-              //- Ярус выше — над верхней строкой карты, там же, где он появится.
+              //- Плюс яруса стоит в столбце ярусов — симметрично плюсу секции в
+              //- строке заголовков. Ярусы растут вверх, поэтому и кнопка сверху.
               tr.place__grid-grow
                 th.place__grid-level
-                td(:colspan='visibleSections.length + 1')
                   BaseButton(
                     variant='ghost',
                     size='sm',
+                    icon-only,
                     :loading='growing',
+                    aria-label='Добавить ярус',
                     @click='addLevelUp'
                   )
                     template(#icon-left)
-                      q-icon(name='keyboard_arrow_up', size='16px')
-                    | Ярус {{ maxLevel + 1 }}
+                      q-icon(name='add', size='18px')
+                      q-tooltip Добавить ярус {{ maxLevel + 1 }}
+                td(v-for='section in visibleSections', :key='section')
+                td.place__grid-add
 
               tr(v-for='row in gridRows', :key='row.level')
-                th.place__grid-level {{ row.level }}
+                th.place__grid-level
+                  .place__level
+                    span {{ row.level }}
+                    BaseButton(variant='ghost', size='sm', icon-only, :aria-label='`Ярус ${row.level}`')
+                      template(#icon-left)
+                        q-icon(name='more_vert', size='16px')
+                        q-menu(anchor='bottom left', self='top left')
+                          q-list(dense, style='min-width: 180px')
+                            q-item(clickable, v-close-popup, @click='retireLevel(row.level)')
+                              q-item-section(avatar)
+                                q-icon(name='delete_outline', size='18px')
+                              q-item-section Убрать ярус
                 td(v-for='slot in row.slots', :key='slot.section')
                     .place__cell(
                       v-if='slot.cell',
@@ -943,19 +1043,23 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
                 td.place__grid-add
 
               //- Ярус ниже нижнего — только если нумерация начинается не с
-              //- единицы: под первым ярусом склада ставить нечего.
+              //- единицы: под первым ярусом склада ставить нечего. Так
+              //- возвращают ярус, убранный по ошибке.
               tr.place__grid-grow(v-if='canGrowDown')
                 th.place__grid-level
-                td(:colspan='visibleSections.length + 1')
                   BaseButton(
                     variant='ghost',
                     size='sm',
+                    icon-only,
                     :loading='growing',
+                    aria-label='Вернуть нижний ярус',
                     @click='addLevelDown'
                   )
                     template(#icon-left)
-                      q-icon(name='keyboard_arrow_down', size='16px')
-                    | Ярус {{ minLevel - 1 }}
+                      q-icon(name='add', size='18px')
+                      q-tooltip Добавить ярус {{ minLevel - 1 }}
+                td(v-for='section in visibleSections', :key='section')
+                td.place__grid-add
 
         //- ─────────────── Боксы без адреса (или весь список без сетки) ───────
         //- Полоса принимает бокс из ячейки: бросок сюда снимает адрес.
@@ -1050,7 +1154,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   BaseDialog(v-model='printDialogOpen', title='Печать этикеток', size='sm')
     .place__form
       .place__note
-        | Сколько штрих-кодов напечатать? Распечатайте лист, разрежьте и наклейте
+        | Сколько этикеток напечатать? Распечатайте лист, разрежьте и наклейте
         | этикетки на имущество — затем привяжите их к позициям сканером.
       BaseInput(
         v-model.number='printCount',
@@ -1064,17 +1168,17 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
 
   //- ─────────────────────── Привязка штрих-кода ───────────────────────
   //- Считанный код привязывается сразу, отдельной кнопки «Привязать» не нужно.
-  BaseDialog(v-model='scanDialogOpen', title='Привязать штрих-код', size='sm')
+  BaseDialog(v-model='scanDialogOpen', title='Привязать этикетку', size='sm')
     .place__form
       .place__note(v-if='scanTarget')
         | {{ scanTarget.product_name_snapshot || 'Товар' }} — наведите камеру на
-        | наклеенный штрих-код, либо введите его номер вручную. Код привяжется сразу.
+        | наклеенную этикетку, либо введите её номер вручную. Код привяжется сразу.
       CodeScanner(
         :formats='BARCODE_FORMATS',
-        idle-caption='Наведите камеру на штрих-код имущества',
-        frame-hint='Поместите штрих-код в рамку',
+        idle-caption='Наведите камеру на этикетку имущества',
+        frame-hint='Поместите этикетку в рамку',
         start-label='Включить камеру',
-        manual-label='Или введите штрих-код',
+        manual-label='Или введите номер этикетки',
         manual-placeholder='4600000000000',
         manual-button='Привязать',
         @scanned='submitScan'
@@ -1246,6 +1350,7 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   &__grid-wrap {
     flex: 1 1 480px;
     min-width: 0;
+    max-width: 100%;
   }
 
   // Рамки, прокрутку и липкие заголовки держит BaseMarkupTable; здесь остаётся
@@ -1292,11 +1397,39 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   }
 
   &__grid-level {
-    width: 64px;
+    width: 72px;
     color: var(--p-ink-2);
     font-variant-numeric: tabular-nums;
     text-align: center;
     vertical-align: middle;
+  }
+
+  // Заголовок секции и номер яруса: подпись и её меню в одной строке. Кнопка
+  // меню проявляется на наведении — в спокойном состоянии карта склада
+  // остаётся картой, а не панелью управления.
+  &__section,
+  &__level {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--p-1, 4px);
+  }
+
+  &__section-name {
+    overflow-wrap: anywhere;
+  }
+
+  &__section .q-btn,
+  &__level .q-btn {
+    opacity: 0;
+    transition: opacity var(--p-dur-fast, 0.12s) var(--p-ease-standard);
+  }
+
+  th:hover &__section .q-btn,
+  th:hover &__level .q-btn,
+  &__section .q-btn:focus-visible,
+  &__level .q-btn:focus-visible {
+    opacity: 1;
   }
 
   &__cell {
@@ -1398,8 +1531,10 @@ q-page.place(role='region', aria-label='Раскладка и маркировк
   }
 
   // ─── Боксы без адреса ───
+  // Полоса во всю ширину под картой: боксы расставляют по ячейкам, а
+  // безадресные — остаток, который не должен отъедать ширину у карты склада.
   &__boxes {
-    flex: 1 1 240px;
+    flex: 1 1 100%;
     min-width: 0;
     display: flex;
     flex-direction: column;

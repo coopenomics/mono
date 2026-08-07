@@ -46,6 +46,24 @@ export interface UpdateStorageCellInput {
   is_active?: boolean;
 }
 
+export interface RenameStorageSectionInput {
+  coopname: string;
+  braname: string;
+  /** Секция, которую переименовывают. */
+  section: string;
+  /** Новое название секции. */
+  new_section: string;
+}
+
+export interface RetireStorageCellsInput {
+  coopname: string;
+  braname: string;
+  /** Секция целиком — столбец карты склада. */
+  section?: string | null;
+  /** Ярус целиком — строка карты склада. */
+  level?: number | null;
+}
+
 /**
  * Топология склада КУ: заведение и правка ячеек хранения.
  *
@@ -150,6 +168,106 @@ export class MarketplaceStorageCellService {
       throw new NotFoundException('Ячейка не найдена.');
     }
     return updated;
+  }
+
+  /**
+   * Переименовывает секцию склада: «A» → «Холодильник». Адреса всех её ячеек
+   * пересобираются («A-02» → «Холодильник-02»).
+   *
+   * Склад описывают по месту, и имя секции часто становится известно позже
+   * координаты: сначала ставят стеллаж, потом понимают, что это холодильник.
+   */
+  async renameSection(input: RenameStorageSectionInput): Promise<MarketplaceStorageCellDomainEntity[]> {
+    const from = input.section.trim();
+    const to = input.new_section.trim();
+    if (!from) {
+      throw new BadRequestException('Укажите секцию, которую переименовываете.');
+    }
+    if (!to) {
+      throw new BadRequestException('Название секции не может быть пустым.');
+    }
+    if (from === to) {
+      return this.cellRepo.list({
+        coopname: input.coopname,
+        braname: input.braname,
+        section: from,
+      });
+    }
+
+    // Слияние секций запрещено: у ячеек совпали бы адреса, и склад потерял бы
+    // однозначность — по «Холодильник-02» нашлось бы два разных места.
+    const occupied = await this.cellRepo.list({
+      coopname: input.coopname,
+      braname: input.braname,
+      section: to,
+    });
+    if (occupied.length > 0) {
+      throw new ConflictException(
+        `На складе уже есть секция «${to}». Выберите другое название или выведите прежнюю секцию из оборота.`
+      );
+    }
+
+    const renamed = await this.cellRepo.renameSection({
+      coopname: input.coopname,
+      braname: input.braname,
+      section: from,
+      new_section: to,
+    });
+    if (renamed.length === 0) {
+      throw new NotFoundException(`Секция «${from}» на складе участка не найдена.`);
+    }
+    return renamed;
+  }
+
+  /**
+   * Выводит из оборота целую секцию (столбец) или целый ярус (строку).
+   *
+   * Сетку склада перебирают: стеллаж убрали, ярус разобрали. Поячеечный вывод
+   * заставлял бы щёлкать по каждому адресу, поэтому операция принимает
+   * координату целиком — но правило прежнее: выводится только пустое.
+   */
+  async retireCells(input: RetireStorageCellsInput): Promise<MarketplaceStorageCellDomainEntity[]> {
+    const section = input.section?.trim();
+    const hasSection = Boolean(section);
+    const hasLevel = input.level !== undefined && input.level !== null;
+    if (hasSection === hasLevel) {
+      throw new BadRequestException('Укажите либо секцию, либо ярус — что-то одно.');
+    }
+
+    const cells = await this.cellRepo.list({
+      coopname: input.coopname,
+      braname: input.braname,
+      is_active: true,
+      ...(hasSection ? { section } : {}),
+    });
+    const target = hasSection ? cells : cells.filter((c) => c.level === input.level);
+    if (target.length === 0) {
+      throw new NotFoundException(
+        hasSection
+          ? `Секция «${section}» на складе участка не найдена.`
+          : `Ярус ${input.level} на складе участка не найден.`
+      );
+    }
+
+    // Занятость проверяется до вывода, чтобы не оставить сетку наполовину
+    // разобранной: либо уходит вся координата, либо ничего.
+    const occupied: string[] = [];
+    await Promise.all(
+      target.map(async (cell) => {
+        const [items, containers] = await Promise.all([
+          this.inventoryRepo.countOnWarehouseByCell(cell.coopname, cell.id),
+          this.containerRepo.countByCell(cell.coopname, cell.id),
+        ]);
+        if (items > 0 || containers > 0) occupied.push(cell.code);
+      })
+    );
+    if (occupied.length > 0) {
+      throw new ConflictException(
+        `Сначала освободите занятые ячейки: ${occupied.sort().join(', ')}.`
+      );
+    }
+
+    return this.cellRepo.retireMany(target.map((c) => c.id));
   }
 
   /**

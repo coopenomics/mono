@@ -57,4 +57,19 @@ export interface MarketplaceStorageCellDomainRepository {
     id: string,
     patch: MarketplaceStorageCellPatch
   ): Promise<MarketplaceStorageCellDomainEntity | null>;
+
+  /**
+   * Переименовывает секцию целиком: и координату, и адреса всех её ячеек
+   * («A-01» → «Холодильник-01»). Одной операцией, потому что склад с
+   * наполовину переименованной секцией — это разъехавшиеся адреса.
+   */
+  renameSection(input: {
+    coopname: string;
+    braname: string;
+    section: string;
+    new_section: string;
+  }): Promise<MarketplaceStorageCellDomainEntity[]>;
+
+  /** Выводит из оборота пачку ячеек — целую секцию или целый ярус. */
+  retireMany(ids: readonly string[]): Promise<MarketplaceStorageCellDomainEntity[]>;
 }

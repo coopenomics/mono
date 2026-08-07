@@ -105,11 +105,20 @@ export const useMarketplaceStorageStore = defineStore(namespace, () => {
     else containers.value.push(next)
   }
 
-  /** Добавить только что заведённые ячейки, не перезагружая склад целиком. */
-  function applyCells(created: MarketplaceStorageCellView[]): void {
-    if (!created.length) return
-    const known = new Set(cells.value.map((c) => c.id))
-    cells.value = [...cells.value, ...created.filter((c) => !known.has(c.id))]
+  /**
+   * Применить ячейки, пришедшие с сервера, не перезагружая склад целиком:
+   * известные заменяются, новые добавляются.
+   *
+   * Одним способом покрываются все правки сетки — заведение, переименование
+   * секции и вывод координаты из оборота: во всех случаях сервер возвращает
+   * актуальное состояние затронутых ячеек.
+   */
+  function applyCells(next: MarketplaceStorageCellView[]): void {
+    if (!next.length) return
+    const byId = new Map(next.map((c) => [c.id, c] as const))
+    const merged = cells.value.map((c) => byId.get(c.id) ?? c)
+    const knownIds = new Set(cells.value.map((c) => c.id))
+    cells.value = [...merged, ...next.filter((c) => !knownIds.has(c.id))]
   }
 
   async function load(braname: string | null, scope: StorageLoadScope = {}): Promise<void> {

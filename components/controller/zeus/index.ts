@@ -9561,6 +9561,14 @@ export type ValueTypes = {
 	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
 	package_id?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceRenameStorageSectionInput"]: {
+	/** Кооперативный участок, на складе которого правят секцию. */
+	braname: string | Variable<any, string>,
+	/** Новое название секции, например «Холодильник». */
+	new_section: string | Variable<any, string>,
+	/** Секция, которую переименовывают. */
+	section: string | Variable<any, string>
+};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string | Variable<any, string>
 };
@@ -9741,6 +9749,14 @@ export type ValueTypes = {
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
 	proposal_id: string | Variable<any, string>
+};
+	["MarketplaceRetireStorageCellsInput"]: {
+	/** Кооперативный участок, на складе которого разбирают сетку. */
+	braname: string | Variable<any, string>,
+	/** Ярус целиком. Указывается вместо секции. */
+	level?: number | undefined | null | Variable<any, string>,
+	/** Секция целиком. Указывается вместо яруса. */
+	section?: string | undefined | null | Variable<any, string>
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
@@ -11164,9 +11180,11 @@ marketplaceRejectSupplier?: [{	input: ValueTypes["MarketplaceSupplierMemberInput
 marketplaceRemoveAvailableCategories?: [{	input: ValueTypes["RemoveAvailableCategoriesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ValueTypes["RemoveAvailableCategoryTypesInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceRemoveFromCart?: [{	input: ValueTypes["MarketplaceRemoveFromCartInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
+marketplaceRenameStorageSection?: [{	data: ValueTypes["MarketplaceRenameStorageSectionInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceReplaceAvailableItems?: [{	input: ValueTypes["ReplaceAvailableItemsInput"] | Variable<any, string>},ValueTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ValueTypes["MarketplaceRepublishOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceRequestSupplier?: [{	input: ValueTypes["MarketplaceRequestSupplierInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplier"]],
+marketplaceRetireStorageCells?: [{	data: ValueTypes["MarketplaceRetireStorageCellsInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string | Variable<any, string>,	coreBraname: string | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDeliveryPointInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
@@ -22929,6 +22947,14 @@ export type ResolverInputTypes = {
 	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
 	package_id?: string | undefined | null
 };
+	["MarketplaceRenameStorageSectionInput"]: {
+	/** Кооперативный участок, на складе которого правят секцию. */
+	braname: string,
+	/** Новое название секции, например «Холодильник». */
+	new_section: string,
+	/** Секция, которую переименовывают. */
+	section: string
+};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
 };
@@ -23105,6 +23131,14 @@ export type ResolverInputTypes = {
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
 	proposal_id: string
+};
+	["MarketplaceRetireStorageCellsInput"]: {
+	/** Кооперативный участок, на складе которого разбирают сетку. */
+	braname: string,
+	/** Ярус целиком. Указывается вместо секции. */
+	level?: number | undefined | null,
+	/** Секция целиком. Указывается вместо яруса. */
+	section?: string | undefined | null
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: AliasType<{
@@ -24483,9 +24517,11 @@ marketplaceRejectSupplier?: [{	input: ResolverInputTypes["MarketplaceSupplierMem
 marketplaceRemoveAvailableCategories?: [{	input: ResolverInputTypes["RemoveAvailableCategoriesInput"]},boolean | `@${string}`],
 marketplaceRemoveAvailableCategoryTypes?: [{	input: ResolverInputTypes["RemoveAvailableCategoryTypesInput"]},boolean | `@${string}`],
 marketplaceRemoveFromCart?: [{	input: ResolverInputTypes["MarketplaceRemoveFromCartInput"]},ResolverInputTypes["MarketplaceCart"]],
+marketplaceRenameStorageSection?: [{	data: ResolverInputTypes["MarketplaceRenameStorageSectionInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceReplaceAvailableItems?: [{	input: ResolverInputTypes["ReplaceAvailableItemsInput"]},ResolverInputTypes["MarketplaceAvailableCategory"]],
 marketplaceRepublishOffer?: [{	input: ResolverInputTypes["MarketplaceRepublishOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceRequestSupplier?: [{	input: ResolverInputTypes["MarketplaceRequestSupplierInput"]},ResolverInputTypes["MarketplaceSupplier"]],
+marketplaceRetireStorageCells?: [{	data: ResolverInputTypes["MarketplaceRetireStorageCellsInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceRetryKUGeocode?: [{	coopname: string,	coreBraname: string},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCartDeliveryPointInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
@@ -35871,6 +35907,14 @@ export type ModelTypes = {
 	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
 	package_id?: string | undefined | null
 };
+	["MarketplaceRenameStorageSectionInput"]: {
+	/** Кооперативный участок, на складе которого правят секцию. */
+	braname: string,
+	/** Новое название секции, например «Холодильник». */
+	new_section: string,
+	/** Секция, которую переименовывают. */
+	section: string
+};
 	["MarketplaceRepublishOfferInput"]: {
 	id: string
 };
@@ -36043,6 +36087,14 @@ export type ModelTypes = {
 	["MarketplaceResolveStockProposalInput"]: {
 	/** Предложение со склада кооператива. */
 	proposal_id: string
+};
+	["MarketplaceRetireStorageCellsInput"]: {
+	/** Кооперативный участок, на складе которого разбирают сетку. */
+	braname: string,
+	/** Ярус целиком. Указывается вместо секции. */
+	level?: number | undefined | null,
+	/** Секция целиком. Указывается вместо яруса. */
+	section?: string | undefined | null
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
@@ -37928,6 +37980,8 @@ export type ModelTypes = {
 	marketplaceRemoveAvailableCategoryTypes: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: ModelTypes["MarketplaceCart"],
+	/** Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек. */
+	marketplaceRenameStorageSection: Array<ModelTypes["MarketplaceStorageCell"]>,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
@@ -37936,6 +37990,8 @@ export type ModelTypes = {
 	marketplaceRepublishOffer: ModelTypes["MarketplaceOffer"],
 	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
 	marketplaceRequestSupplier: ModelTypes["MarketplaceSupplier"],
+	/** Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата. */
+	marketplaceRetireStorageCells: Array<ModelTypes["MarketplaceStorageCell"]>,
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -50097,6 +50153,14 @@ export type GraphQLTypes = {
 	/** Упаковка позиции (при отпуске упаковкой) — какую именно строку убрать. */
 	package_id?: string | undefined | null
 };
+	["MarketplaceRenameStorageSectionInput"]: {
+		/** Кооперативный участок, на складе которого правят секцию. */
+	braname: string,
+	/** Новое название секции, например «Холодильник». */
+	new_section: string,
+	/** Секция, которую переименовывают. */
+	section: string
+};
 	["MarketplaceRepublishOfferInput"]: {
 		id: string
 };
@@ -50277,6 +50341,14 @@ export type GraphQLTypes = {
 	["MarketplaceResolveStockProposalInput"]: {
 		/** Предложение со склада кооператива. */
 	proposal_id: string
+};
+	["MarketplaceRetireStorageCellsInput"]: {
+		/** Кооперативный участок, на складе которого разбирают сетку. */
+	braname: string,
+	/** Ярус целиком. Указывается вместо секции. */
+	level?: number | undefined | null,
+	/** Секция целиком. Указывается вместо яруса. */
+	section?: string | undefined | null
 };
 	/** Заявление пайщика на гарантийный возврат имущества (Эпик 7). */
 ["MarketplaceReturnClaim"]: {
@@ -52266,6 +52338,8 @@ export type GraphQLTypes = {
 	marketplaceRemoveAvailableCategoryTypes: boolean,
 	/** Убрать позицию из корзины. */
 	marketplaceRemoveFromCart: GraphQLTypes["MarketplaceCart"],
+	/** Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек. */
+	marketplaceRenameStorageSection: Array<GraphQLTypes["MarketplaceStorageCell"]>,
 	/** Заменить все доступные категории и типы новым списком
 
 Требуемые роли: chairman.  */
@@ -52274,6 +52348,8 @@ export type GraphQLTypes = {
 	marketplaceRepublishOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Подать заявку на допуск поставщика по членской модели (путь 1) */
 	marketplaceRequestSupplier: GraphQLTypes["MarketplaceSupplier"],
+	/** Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата. */
+	marketplaceRetireStorageCells: Array<GraphQLTypes["MarketplaceStorageCell"]>,
 	/** Повторно запускает геокодинг адреса ПВЗ.
 
 Требуемые роли: chairman.  */
@@ -57369,10 +57445,12 @@ type ZEUS_VARIABLES = {
 	["MarketplaceRejectReturnAtVisitInput"]: ValueTypes["MarketplaceRejectReturnAtVisitInput"];
 	["MarketplaceRejectReturnRemoteInput"]: ValueTypes["MarketplaceRejectReturnRemoteInput"];
 	["MarketplaceRemoveFromCartInput"]: ValueTypes["MarketplaceRemoveFromCartInput"];
+	["MarketplaceRenameStorageSectionInput"]: ValueTypes["MarketplaceRenameStorageSectionInput"];
 	["MarketplaceRepublishOfferInput"]: ValueTypes["MarketplaceRepublishOfferInput"];
 	["MarketplaceRequestSupplierInput"]: ValueTypes["MarketplaceRequestSupplierInput"];
 	["MarketplaceResolveContainerByCodeInput"]: ValueTypes["MarketplaceResolveContainerByCodeInput"];
 	["MarketplaceResolveStockProposalInput"]: ValueTypes["MarketplaceResolveStockProposalInput"];
+	["MarketplaceRetireStorageCellsInput"]: ValueTypes["MarketplaceRetireStorageCellsInput"];
 	["MarketplaceReturnClaimDefectCategory"]: ValueTypes["MarketplaceReturnClaimDefectCategory"];
 	["MarketplaceReturnClaimExpectedResolution"]: ValueTypes["MarketplaceReturnClaimExpectedResolution"];
 	["MarketplaceReturnClaimPhotoUploadInput"]: ValueTypes["MarketplaceReturnClaimPhotoUploadInput"];

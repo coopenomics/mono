@@ -17,6 +17,7 @@
     :mask="mask"
     :prefix="prefix"
     :suffix="suffix"
+    :autofocus="autofocus"
     :readonly="readonly"
     :disable="disabled"
     :clearable="clearable"

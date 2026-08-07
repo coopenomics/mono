@@ -1142,6 +1142,9 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceRemoveFromCartInput:{
 
 	},
+	MarketplaceRenameStorageSectionInput:{
+
+	},
 	MarketplaceRepublishOfferInput:{
 
 	},
@@ -1152,6 +1155,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MarketplaceResolveStockProposalInput:{
+
+	},
+	MarketplaceRetireStorageCellsInput:{
 
 	},
 	MarketplaceReturnClaimDefectCategory: "enum" as const,
@@ -2031,6 +2037,9 @@ export const AllTypesProps: Record<string,any> = {
 		marketplaceRemoveFromCart:{
 			input:"MarketplaceRemoveFromCartInput"
 		},
+		marketplaceRenameStorageSection:{
+			data:"MarketplaceRenameStorageSectionInput"
+		},
 		marketplaceReplaceAvailableItems:{
 			input:"ReplaceAvailableItemsInput"
 		},
@@ -2039,6 +2048,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		marketplaceRequestSupplier:{
 			input:"MarketplaceRequestSupplierInput"
+		},
+		marketplaceRetireStorageCells:{
+			data:"MarketplaceRetireStorageCellsInput"
 		},
 		marketplaceRetryKUGeocode:{
 
@@ -6259,9 +6271,11 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceRemoveAvailableCategories:"Boolean",
 		marketplaceRemoveAvailableCategoryTypes:"Boolean",
 		marketplaceRemoveFromCart:"MarketplaceCart",
+		marketplaceRenameStorageSection:"MarketplaceStorageCell",
 		marketplaceReplaceAvailableItems:"MarketplaceAvailableCategory",
 		marketplaceRepublishOffer:"MarketplaceOffer",
 		marketplaceRequestSupplier:"MarketplaceSupplier",
+		marketplaceRetireStorageCells:"MarketplaceStorageCell",
 		marketplaceRetryKUGeocode:"MarketplaceKUDetails",
 		marketplaceSetCartDeliveryPoint:"MarketplaceCart",
 		marketplaceSetKUStatus:"MarketplaceKUDetails",

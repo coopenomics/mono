@@ -20,6 +20,8 @@ export interface BaseInputProps {
   suffix?: string;
   /** Префикс в левой части поля */
   prefix?: string;
+  /** Забрать фокус при появлении — для инлайн-правки, открывающейся по клику. */
+  autofocus?: boolean;
   readonly?: boolean;
   disabled?: boolean;
   required?: boolean;

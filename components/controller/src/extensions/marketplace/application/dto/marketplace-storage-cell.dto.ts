@@ -117,6 +117,49 @@ export class MarketplaceUpdateStorageCellInputDTO {
   is_active?: boolean;
 }
 
+@InputType('MarketplaceRenameStorageSectionInput')
+export class MarketplaceRenameStorageSectionInputDTO {
+  @Field(() => String, { description: 'Кооперативный участок, на складе которого правят секцию.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, { description: 'Секция, которую переименовывают.' })
+  @IsString()
+  @IsNotEmpty()
+  section!: string;
+
+  @Field(() => String, { description: 'Новое название секции, например «Холодильник».' })
+  @IsString()
+  @IsNotEmpty()
+  new_section!: string;
+}
+
+@InputType('MarketplaceRetireStorageCellsInput')
+export class MarketplaceRetireStorageCellsInputDTO {
+  @Field(() => String, { description: 'Кооперативный участок, на складе которого разбирают сетку.' })
+  @IsString()
+  @IsNotEmpty()
+  braname!: string;
+
+  @Field(() => String, {
+    nullable: true,
+    description: 'Секция целиком. Указывается вместо яруса.',
+  })
+  @IsOptional()
+  @IsString()
+  section?: string | null;
+
+  @Field(() => Int, {
+    nullable: true,
+    description: 'Ярус целиком. Указывается вместо секции.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  level?: number | null;
+}
+
 @InputType('MarketplaceListStorageCellsInput')
 export class MarketplaceListStorageCellsInputDTO {
   @Field(() => String, {

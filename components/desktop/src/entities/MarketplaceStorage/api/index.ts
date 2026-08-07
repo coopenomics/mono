@@ -67,6 +67,33 @@ export async function updateStorageCell(
   return result as MarketplaceStorageCellView
 }
 
+export type IRenameStorageSectionInput =
+  Mutations.Marketplace.RenameStorageSection.IInput['data']
+
+/** Переименовать секцию склада целиком — вместе с адресами всех её ячеек. */
+export async function renameStorageSection(
+  data: IRenameStorageSectionInput,
+): Promise<MarketplaceStorageCellView[]> {
+  const { [Mutations.Marketplace.RenameStorageSection.name]: result } = await client.Mutation(
+    Mutations.Marketplace.RenameStorageSection.mutation,
+    { variables: { data } },
+  )
+  return result as MarketplaceStorageCellView[]
+}
+
+export type IRetireStorageCellsInput = Mutations.Marketplace.RetireStorageCells.IInput['data']
+
+/** Вывести из оборота координату целиком: секцию (столбец) или ярус (строку). */
+export async function retireStorageCells(
+  data: IRetireStorageCellsInput,
+): Promise<MarketplaceStorageCellView[]> {
+  const { [Mutations.Marketplace.RetireStorageCells.name]: result } = await client.Mutation(
+    Mutations.Marketplace.RetireStorageCells.mutation,
+    { variables: { data } },
+  )
+  return result as MarketplaceStorageCellView[]
+}
+
 // ─── Боксы и их типы ───
 
 export type IListContainersInput = Queries.Marketplace.ListContainers.IInput['data']

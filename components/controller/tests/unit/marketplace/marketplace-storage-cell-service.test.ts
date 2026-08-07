@@ -37,6 +37,8 @@ const makeService = (over: { cellRepo?: any; inventoryRepo?: any; containerRepo?
     findByCode: jest.fn(async () => null),
     list: jest.fn(async () => []),
     update: jest.fn(async (_id: string, patch: any) => makeCell(patch)),
+    renameSection: jest.fn(async (input: any) => [makeCell({ section: input.new_section })]),
+    retireMany: jest.fn(async (ids: string[]) => ids.map((id) => makeCell({ id, is_active: false }))),
     ...over.cellRepo,
   };
   const inventoryRepo = {
@@ -173,5 +175,112 @@ describe('MarketplaceStorageCellService.update', () => {
     });
 
     await expect(service.getById(COOPNAME, 'cell-1')).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('MarketplaceStorageCellService.renameSection', () => {
+  it('переименовывает секцию целиком', async () => {
+    const { service, cellRepo } = makeService();
+
+    await service.renameSection({
+      coopname: COOPNAME,
+      braname: BRANAME,
+      section: 'A',
+      new_section: 'Холодильник',
+    });
+
+    expect(cellRepo.renameSection).toHaveBeenCalledWith({
+      coopname: COOPNAME,
+      braname: BRANAME,
+      section: 'A',
+      new_section: 'Холодильник',
+    });
+  });
+
+  it('не сливает две секции в одну — адреса перестали бы быть однозначными', async () => {
+    const { service, cellRepo } = makeService({
+      cellRepo: { list: jest.fn(async () => [makeCell({ section: 'B', code: 'B-01' })]) },
+    });
+
+    await expect(
+      service.renameSection({
+        coopname: COOPNAME,
+        braname: BRANAME,
+        section: 'A',
+        new_section: 'B',
+      })
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(cellRepo.renameSection).not.toHaveBeenCalled();
+  });
+
+  it('сообщает, что переименовывать нечего, если такой секции нет', async () => {
+    const { service } = makeService({
+      cellRepo: { renameSection: jest.fn(async () => []) },
+    });
+
+    await expect(
+      service.renameSection({
+        coopname: COOPNAME,
+        braname: BRANAME,
+        section: 'Z',
+        new_section: 'Холодильник',
+      })
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('MarketplaceStorageCellService.retireCells', () => {
+  const gridCells = [
+    makeCell({ id: 'c1', section: 'A', level: 1, code: 'A-01' }),
+    makeCell({ id: 'c2', section: 'A', level: 2, code: 'A-02' }),
+  ];
+
+  it('выводит из оборота пустую секцию целиком', async () => {
+    const { service, cellRepo } = makeService({
+      cellRepo: { list: jest.fn(async () => gridCells) },
+    });
+
+    await service.retireCells({ coopname: COOPNAME, braname: BRANAME, section: 'A' });
+
+    expect(cellRepo.retireMany).toHaveBeenCalledWith(['c1', 'c2']);
+  });
+
+  it('оставляет сетку нетронутой, если хоть одна ячейка координаты занята', async () => {
+    const { service, cellRepo } = makeService({
+      cellRepo: { list: jest.fn(async () => gridCells) },
+      containerRepo: { countByCell: jest.fn(async (_coop: string, id: string) => (id === 'c2' ? 1 : 0)) },
+    });
+
+    await expect(
+      service.retireCells({ coopname: COOPNAME, braname: BRANAME, section: 'A' })
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(cellRepo.retireMany).not.toHaveBeenCalled();
+  });
+
+  it('требует ровно одну координату — либо секцию, либо ярус', async () => {
+    const { service } = makeService();
+
+    await expect(
+      service.retireCells({ coopname: COOPNAME, braname: BRANAME })
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.retireCells({ coopname: COOPNAME, braname: BRANAME, section: 'A', level: 1 })
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('выводит ярус во всех секциях, где он есть', async () => {
+    const { service, cellRepo } = makeService({
+      cellRepo: {
+        list: jest.fn(async () => [
+          makeCell({ id: 'a1', section: 'A', level: 1, code: 'A-01' }),
+          makeCell({ id: 'b1', section: 'B', level: 1, code: 'B-01' }),
+          makeCell({ id: 'a2', section: 'A', level: 2, code: 'A-02' }),
+        ]),
+      },
+    });
+
+    await service.retireCells({ coopname: COOPNAME, braname: BRANAME, level: 1 });
+
+    expect(cellRepo.retireMany).toHaveBeenCalledWith(['a1', 'b1']);
   });
 });
