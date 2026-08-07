@@ -382,15 +382,6 @@ function schedulePointerMove(): void {
   pointerFrame = requestAnimationFrame(movePointerHint)
 }
 
-// Плашка появляется по смене цели — до первого кадра она стояла бы в углу
-// экрана и мигала оттуда к курсору.
-watch(
-  () => dragTargetLabel.value,
-  (label) => {
-    if (label) void nextTick(movePointerHint)
-  },
-)
-
 const dragTargetLabel = computed(() => {
   const key = dragOverKey.value
   if (!key || !dragKind.value) return ''
@@ -411,6 +402,15 @@ const dragTargetLabel = computed(() => {
   }
   return ''
 })
+
+// Плашка появляется по смене цели — до первого кадра она стояла бы в углу
+// экрана и мигала оттуда к курсору.
+watch(
+  () => dragTargetLabel.value,
+  (label) => {
+    if (label) void nextTick(movePointerHint)
+  },
+)
 
 function onDragOver(key: string, event: DragEvent): void {
   // Присваивание тем же значением Vue не будит, но проверка дешевле сравнения
