@@ -12,7 +12,12 @@
     template(#icon)
       q-icon(name='group')
 
-  .contributors-list__items(v-else)
+  q-infinite-scroll.contributors-list__items(
+    v-else,
+    :disable='!hasMore',
+    :offset='200',
+    @load='onLoad'
+  )
     .contributors-list__item(v-for='(row, index) in rows', :key='row._id || row.username')
       .contributors-list__row
         .contributors-list__index.t-sm.t-muted {{ index + 1 }}
@@ -44,6 +49,10 @@
             :segment='row',
             mini
           )
+
+    template(#loading)
+      .contributors-list__more
+        q-spinner(size='20px', color='primary')
 </template>
 
 <script lang="ts" setup>
@@ -55,12 +64,9 @@ import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { formatAsset2Digits, addAssets } from 'src/shared/lib/utils';
 import {
   useSegmentStore,
-  CONTRIBUTORS_PAGE_OPTIONS,
+  CONTRIBUTORS_PAGE_SIZE,
 } from 'app/extensions/capital/entities/Segment/model';
-import type {
-  IGetSegmentsInput,
-  ISegment,
-} from 'app/extensions/capital/entities/Segment/model';
+import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 import type { IProject } from '../../entities/Project/model';
 import {
   RefreshSegmentButton,
@@ -76,36 +82,86 @@ const segmentStore = useSegmentStore();
 
 const loading = ref(false);
 
+const projectHash = computed(() => props.project?.project_hash || '');
+
 // Читаем список прямо из хранилища, а не копией: любое обновление долей
 // (добавление соавтора, пересчёт, подписание акта) сразу видно в списке.
 // С локальной копией новый список из хранилища до нас не доходил.
 const segments = computed(() =>
-  segmentStore.getSegmentsByProject(props.project?.project_hash || ''),
+  segmentStore.getSegmentsByProject(projectHash.value),
 );
 
 const rows = computed(() => segments.value?.items || []);
 
-const loadSegments = async () => {
-  loading.value = true;
+// Счёт загруженных страниц: список догружается по мере прокрутки.
+const nextPage = ref(1);
+const totalPages = ref(0);
+
+const hasMore = computed(() => nextPage.value <= totalPages.value);
+
+/**
+ * Загружает одну страницу участников. Первая страница заменяет список,
+ * последующие дописываются в конец.
+ */
+const loadPage = async (page: number, append: boolean): Promise<void> => {
+  if (!projectHash.value) return;
+
+  if (!append) {
+    loading.value = true;
+  }
 
   try {
-    const filter: NonNullable<IGetSegmentsInput['filter']> = {
-      coopname: info.coopname,
-    };
+    const result = await segmentStore.loadSegments(
+      {
+        filter: {
+          coopname: info.coopname,
+          project_hash: projectHash.value,
+        },
+        options: {
+          page,
+          limit: CONTRIBUTORS_PAGE_SIZE,
+          sortBy: '_created_at',
+          sortOrder: 'DESC',
+        },
+      },
+      append,
+    );
 
-    if (props.project?.project_hash) {
-      filter.project_hash = props.project.project_hash;
-    }
-
-    await segmentStore.loadSegments({
-      filter,
-      options: { ...CONTRIBUTORS_PAGE_OPTIONS },
-    });
+    totalPages.value = result.totalPages || 1;
+    nextPage.value = page + 1;
   } catch (error) {
     console.error('Ошибка при загрузке сегментов:', error);
     FailAlert('Не удалось загрузить список участников');
+    throw error;
   } finally {
-    loading.value = false;
+    if (!append) {
+      loading.value = false;
+    }
+  }
+};
+
+/** Перечитывает список с первой страницы, сбрасывая счёт страниц. */
+const reload = async (): Promise<void> => {
+  nextPage.value = 1;
+  totalPages.value = 0;
+  await loadPage(1, false).catch(() => undefined);
+};
+
+/**
+ * Догрузка очередной страницы при прокрутке. Ответ обязателен в любом
+ * исходе — иначе прокрутка навсегда останется в состоянии загрузки.
+ */
+const onLoad = async (_index: number, done: (stop?: boolean) => void): Promise<void> => {
+  if (!hasMore.value) {
+    done(true);
+    return;
+  }
+
+  try {
+    await loadPage(nextPage.value, true);
+    done(!hasMore.value);
+  } catch {
+    done(true);
   }
 };
 
@@ -163,25 +219,34 @@ const visibleRoles = (
 };
 
 onMounted(async () => {
-  if (props.project) {
-    await loadSegments();
+  if (projectHash.value) {
+    await reload();
+  }
+});
+
+watch(projectHash, async (newHash, oldHash) => {
+  if (newHash && newHash !== oldHash) {
+    await reload();
   }
 });
 
 watch(
-  () => props.project?.project_hash,
-  async (newHash, oldHash) => {
-    if (newHash && newHash !== oldHash) {
-      await loadSegments();
+  () => props.project?.fact?.total,
+  async (newTotal, oldTotal) => {
+    if (newTotal !== oldTotal && projectHash.value) {
+      await reload();
     }
   },
 );
 
+// Просьба перечитать список от действий, меняющих состав участников
+// (добавление соавтора). Счёт страниц ведём здесь, поэтому и перечитываем
+// здесь же — подмена списка снаружи рассинхронизировала бы прокрутку.
 watch(
-  () => props.project?.fact?.total,
-  async (newTotal, oldTotal) => {
-    if (newTotal !== oldTotal && props.project?.project_hash) {
-      await loadSegments();
+  () => segmentStore.reloadRequests[projectHash.value],
+  async (next, prev) => {
+    if (next && next !== prev && projectHash.value) {
+      await reload();
     }
   },
 );
@@ -211,6 +276,12 @@ watch(
 
 .contributors-list__item {
   border-bottom: 1px solid var(--p-line);
+}
+
+.contributors-list__more {
+  display: flex;
+  justify-content: center;
+  padding: var(--p-3) 0;
 }
 
 .contributors-list__row {
