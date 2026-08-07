@@ -279,14 +279,14 @@ useMarketplaceRealtime(
 
 <template lang="pug">
 q-page.orders(role="region", aria-label="Мои заказы")
-  //- Действия — в шапку (канон Teleport). «Получить заказ» дублируем здесь и
+  //- Действия — в шапку (канон Teleport). «Показать QR» дублируем здесь и
   //- на детали заказа, чтобы код выдачи был под рукой везде, не только на
   //- отдельной странице.
   Teleport(to="#header-actions-host", defer)
     BaseButton(variant="secondary", size="sm", @click="goReceive")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
-      | Получить заказ
+      | Показать QR
 
   PageHint(storage-key="mp:my-orders:banner-dismissed")
     | Здесь все ваши заказы — от оформления до получения на пункте выдачи.

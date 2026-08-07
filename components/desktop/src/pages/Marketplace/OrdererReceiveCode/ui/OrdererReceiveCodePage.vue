@@ -5,7 +5,7 @@ import { HandoffCodeContent } from 'src/widgets/Marketplace/HandoffCode';
 import { HandoffTokenKind } from 'src/shared/lib/marketplace';
 
 /**
- * Стол заказчика, страница «Получить заказ».
+ * Стол заказчика, страница «Показать QR».
  *
  * Один account-bound QR-код на всю страницу и больше ничего. Заказчик
  * показывает его оператору на пункте выдачи — тот сканирует, резолвит аккаунт
@@ -13,7 +13,7 @@ import { HandoffTokenKind } from 'src/shared/lib/marketplace';
  *
  * Сделано отдельным пунктом меню (а не действием в шапке), чтобы код был
  * очевидно findable: пайщику не нужно объяснять, где его искать — пункт
- * «Получить заказ» всегда виден в меню стола. Тот же QR доступен диалогом из
+ * Пункт «Показать QR» всегда виден в меню стола. Тот же QR доступен диалогом из
  * шапки «Моих заказов» и детали заказа (общий `HandoffCodeContent`).
  */
 
@@ -22,7 +22,7 @@ const coopname = computed(() => String(route.params.coopname ?? ''));
 </script>
 
 <template lang="pug">
-q-page.receive(role="region", aria-label="Получить заказ")
+q-page.receive(role="region", aria-label="Код для получения заказа")
   HandoffCodeContent(:coopname="coopname", :kind="HandoffTokenKind.Receive")
 </template>
 

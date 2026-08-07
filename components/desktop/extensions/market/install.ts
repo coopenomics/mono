@@ -234,16 +234,17 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
             {
-              // «Получить заказ» — отдельный пункт меню с одним account-bound
+              // «Показать QR» — отдельный пункт меню с одним account-bound
               // QR-кодом на всю страницу. Вынесен в меню (а не в действие шапки)
               // намеренно: код должен быть очевидно findable, пайщику не нужно
-              // объяснять, где его искать на пункте выдачи.
+              // объяснять, где его искать на пункте выдачи. Назван по действию
+              // пайщика: выдаёт оператор, пайщик только показывает код.
               path: 'receive-code',
               name: 'marketplace-receive-code',
               component: markRaw(OrdererReceiveCodePage),
               meta: {
-                title: 'Получить заказ',
-                icon: 'fa-solid fa-qrcode',
+                title: 'Показать QR',
+                icon: 'qr_code',
                 requires: 'Order:create',
                 requiresAuth: true,
                 agreements: agreementsBase,

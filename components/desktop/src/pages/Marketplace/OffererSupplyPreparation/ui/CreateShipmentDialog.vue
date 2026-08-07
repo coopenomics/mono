@@ -75,6 +75,7 @@ interface TtnField {
   key: keyof TtnData;
   label: string;
   type?: 'text' | 'tel' | 'date';
+  placeholder?: string;
 }
 
 /**
@@ -86,15 +87,15 @@ const TTN_GROUPS: Array<{ title: string; fields: TtnField[] }> = [
   {
     title: 'Перевозчик',
     fields: [
-      { key: 'expeditor_full_name', label: 'ФИО экспедитора' },
-      { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel' },
-      { key: 'vehicle_number', label: 'Гос. номер ТС' },
+      { key: 'expeditor_full_name', label: 'ФИО экспедитора', placeholder: 'Иванов Иван Иванович' },
+      { key: 'expeditor_phone', label: 'Телефон экспедитора', type: 'tel', placeholder: '+7 900 000-00-00' },
+      { key: 'vehicle_number', label: 'Гос. номер ТС', placeholder: 'А123ВС 777' },
     ],
   },
   {
     title: 'Погрузка и доставка',
     fields: [
-      { key: 'loading_address', label: 'Адрес погрузки' },
+      { key: 'loading_address', label: 'Адрес погрузки', placeholder: 'Москва, ул. Складская, 5' },
       { key: 'loading_datetime', label: 'Дата погрузки', type: 'date' },
       { key: 'delivery_datetime_estimate', label: 'Ожидаемая дата доставки', type: 'date' },
     ],
@@ -375,12 +376,16 @@ BaseDialog(
           .create-shipment__ttn-group(v-for='g in TTN_GROUPS', :key='g.title')
             .create-shipment__ttn-group-title {{ g.title }}
             .create-shipment__ttn-grid
+              //- stack-label на всю группу: у полей даты Quasar поднимает метку
+              //- сам, и без этого ряд выглядел бы из разных по виду рамок.
               BaseInput(
                 v-for='f in g.fields',
                 :key='f.key',
                 v-model='ttn[f.key]',
                 :label='f.label',
-                :type='f.type ?? "text"'
+                :placeholder='f.placeholder',
+                :type='f.type ?? "text"',
+                stack-label
               )
 
   .create-shipment__nodata(v-else)

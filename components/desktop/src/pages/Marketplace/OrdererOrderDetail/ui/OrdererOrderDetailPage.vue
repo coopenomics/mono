@@ -354,7 +354,7 @@ q-page.order-detail(role="region", aria-label="Заказ")
     BaseButton(variant="secondary", size="sm", @click="goReceive")
       template(#icon-left)
         q-icon(name="qr_code_2", size="16px")
-      | Получить заказ
+      | Показать QR
 
   .order-detail__col
     BaseButton.order-detail__back(variant="ghost", size="sm", @click="goBack")
