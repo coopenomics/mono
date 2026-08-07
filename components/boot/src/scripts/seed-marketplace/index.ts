@@ -14,9 +14,11 @@
  * Логи — в stderr, stdout остаётся чистым.
  */
 import { phase01 } from './phases/01-l1-accept'
+import { phase02 } from './phases/02-branches'
 
 const PHASES: Record<string, () => Promise<void>> = {
   '01-l1-accept': phase01,
+  '02-branches': phase02,
 }
 
 const PHASE_ORDER = Object.keys(PHASES)
