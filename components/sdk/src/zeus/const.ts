@@ -110,6 +110,9 @@ export const AllTypesProps: Record<string,any> = {
 		countersigned:"BranchTrustedLiabilityAgreementSignedDocumentInput",
 		countersigned_authority:"BranchTrustedPowerOfAttorneySignedDocumentInput"
 	},
+	ArchiveComponentMetricInput:{
+
+	},
 	AuthorizeDecisionInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -223,6 +226,12 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	CandidateStatus: "enum" as const,
+	CapitalAddWorklogInput:{
+
+	},
+	CapitalAllocateFundsInput:{
+
+	},
 	CapitalCommitFilter:{
 		status:"CommitStatus"
 	},
@@ -235,6 +244,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CapitalCycleFilter:{
 		status:"CycleStatus"
+	},
+	CapitalGetOpenTimerInput:{
+
 	},
 	CapitalInvestFilter:{
 		status:"InvestStatus"
@@ -252,13 +264,25 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalOnboardingStepInput:{
 		step:"CapitalOnboardingStep"
 	},
+	CapitalPauseTimerInput:{
+
+	},
 	CapitalProjectFilter:{
 		has_issues_with_priorities:"IssuePriority",
 		has_issues_with_statuses:"IssueStatus",
 		statuses:"ProjectStatus"
 	},
+	CapitalResumeTimerInput:{
+
+	},
 	CapitalSegmentFilter:{
 		status:"SegmentStatus"
+	},
+	CapitalStartTimerInput:{
+
+	},
+	CapitalStopTimerInput:{
+
 	},
 	CapitalStoryContentFormat: "enum" as const,
 	CapitalStoryFilter:{
@@ -365,6 +389,10 @@ export const AllTypesProps: Record<string,any> = {
 	CreateCommitInput:{
 		data:"JSON"
 	},
+	CreateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
 	CreateCustomCategoryInput:{
 
 	},
@@ -417,6 +445,11 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	CreateMatrixAccountInputDTO:{
 
+	},
+	CreateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		tag:"MeasureCatalogTag",
+		wave_period:"MetricSeriesPeriod"
 	},
 	CreateMembershipExitInput:{
 		statement:"MembershipExitApplicationSignedDocumentInput"
@@ -694,6 +727,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetCategoryTreeInput:{
 
 	},
+	GetComponentMetricsInput:{
+		status:"MetricStatus"
+	},
 	GetContributorInput:{
 
 	},
@@ -723,6 +759,9 @@ export const AllTypesProps: Record<string,any> = {
 	GetInvestInput:{
 
 	},
+	GetIssueMetricBindingsInput:{
+
+	},
 	GetLedger2HistoryInput:{
 		dateFrom:"DateTime",
 		dateTo:"DateTime"
@@ -740,11 +779,31 @@ export const AllTypesProps: Record<string,any> = {
 	GetMaxOriginServerTsForRoomInput:{
 
 	},
+	GetMeasuresInput:{
+		status:"MetricStatus"
+	},
 	GetMeetInput:{
 
 	},
 	GetMeetsInput:{
 
+	},
+	GetMetricContributionsInput:{
+
+	},
+	GetMetricSeriesInput:{
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		to:"DateTime"
+	},
+	GetMetricSuperpositionHistoryInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricSuperpositionInput:{
+		period:"MetricSeriesPeriod"
+	},
+	GetMetricWaveInput:{
+		period:"MetricSeriesPeriod"
 	},
 	GetOneCoopDocumentsInput:{
 
@@ -809,6 +868,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	InstanceStatus: "enum" as const,
 	InvestStatus: "enum" as const,
+	IssueMetricBindingItemInput:{
+
+	},
 	IssuePriority: "enum" as const,
 	IssueStatus: "enum" as const,
 	JSON: `scalar.JSON` as const,
@@ -857,6 +919,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	LogEntityType: "enum" as const,
 	LogEventType: "enum" as const,
+	LogMetricContributionInput:{
+
+	},
 	LoginInput:{
 
 	},
@@ -1280,6 +1345,7 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceWriteoffStatementSignablePayloadInput:{
 
 	},
+	MeasureCatalogTag: "enum" as const,
 	MembershipExitApplicationGenerateDocumentInput:{
 
 	},
@@ -1294,6 +1360,11 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	MembershipExitStatus: "enum" as const,
+	MetricContributionSource: "enum" as const,
+	MetricDriveDirection: "enum" as const,
+	MetricSeriesMode: "enum" as const,
+	MetricSeriesPeriod: "enum" as const,
+	MetricStatus: "enum" as const,
 	MoveCapitalIssueToComponentInput:{
 
 	},
@@ -1322,8 +1393,17 @@ export const AllTypesProps: Record<string,any> = {
 		capitalAddAuthor:{
 			data:"AddAuthorInput"
 		},
+		capitalAddWorklog:{
+			data:"CapitalAddWorklogInput"
+		},
+		capitalAllocateFunds:{
+			data:"CapitalAllocateFundsInput"
+		},
 		capitalApproveCommit:{
 			data:"CommitApproveInput"
+		},
+		capitalArchiveComponentMetric:{
+			data:"ArchiveComponentMetricInput"
 		},
 		capitalCalculateVotes:{
 			data:"CalculateVotesInput"
@@ -1346,6 +1426,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalCreateCommit:{
 			data:"CreateCommitInput"
 		},
+		capitalCreateComponentMetric:{
+			data:"CreateComponentMetricInput"
+		},
 		capitalCreateCycle:{
 			data:"CreateCycleInput"
 		},
@@ -1357,6 +1440,12 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalCreateIssue:{
 			data:"CreateIssueInput"
+		},
+		capitalCreateLocalProject:{
+			data:"CreateProjectInput"
+		},
+		capitalCreateMeasure:{
+			data:"CreateMeasureInput"
 		},
 		capitalCreateProcessTemplate:{
 			data:"CreateProcessTemplateInput"
@@ -1503,6 +1592,9 @@ export const AllTypesProps: Record<string,any> = {
 		capitalImportContributor:{
 			data:"ImportContributorInput"
 		},
+		capitalLogMetricContribution:{
+			data:"LogMetricContributionInput"
+		},
 		capitalMakeClearance:{
 			data:"MakeClearanceInput"
 		},
@@ -1511,6 +1603,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalOpenProject:{
 			data:"OpenProjectInput"
+		},
+		capitalPauseTimer:{
+			data:"CapitalPauseTimerInput"
 		},
 		capitalPushResult:{
 			data:"PushResultInput"
@@ -1524,8 +1619,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalRegisterContributor:{
 			data:"RegisterContributorInput"
 		},
+		capitalResumeTimer:{
+			data:"CapitalResumeTimerInput"
+		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
+		},
+		capitalSetIssueMetricBindings:{
+			data:"SetIssueMetricBindingsInput"
 		},
 		capitalSetMaster:{
 			data:"SetMasterInput"
@@ -1548,11 +1649,17 @@ export const AllTypesProps: Record<string,any> = {
 		capitalStartProject:{
 			data:"StartProjectInput"
 		},
+		capitalStartTimer:{
+			data:"CapitalStartTimerInput"
+		},
 		capitalStartVoting:{
 			data:"StartVotingInput"
 		},
 		capitalStopProject:{
 			data:"StopProjectInput"
+		},
+		capitalStopTimer:{
+			data:"CapitalStopTimerInput"
 		},
 		capitalSubmitVote:{
 			data:"SubmitVoteInput"
@@ -1560,8 +1667,14 @@ export const AllTypesProps: Record<string,any> = {
 		capitalTopupProgramExpensePool:{
 			data:"CapitalTopupProgramExpenseInput"
 		},
+		capitalUpdateComponentMetric:{
+			data:"UpdateComponentMetricInput"
+		},
 		capitalUpdateIssue:{
 			data:"UpdateIssueInput"
+		},
+		capitalUpdateMeasure:{
+			data:"UpdateMeasureInput"
 		},
 		capitalUpdateProcessTemplate:{
 			data:"UpdateProcessTemplateInput"
@@ -2370,6 +2483,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"CapitalCommitFilter",
 			options:"PaginationInput"
 		},
+		capitalComponentMetrics:{
+			data:"GetComponentMetricsInput"
+		},
 		capitalContributor:{
 			data:"GetContributorInput"
 		},
@@ -2395,6 +2511,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ExpenseFilter",
 			options:"PaginationInput"
 		},
+		capitalGetOpenTimer:{
+			data:"CapitalGetOpenTimerInput"
+		},
 		capitalGetProcessInstance:{
 
 		},
@@ -2417,9 +2536,31 @@ export const AllTypesProps: Record<string,any> = {
 		capitalIssue:{
 			data:"GetCapitalIssueByHashInput"
 		},
+		capitalIssueMetricBindings:{
+			data:"GetIssueMetricBindingsInput"
+		},
 		capitalIssues:{
 			filter:"CapitalIssueFilter",
 			options:"PaginationInput"
+		},
+		capitalMeasures:{
+			data:"GetMeasuresInput"
+		},
+		capitalMetricContributions:{
+			data:"GetMetricContributionsInput",
+			options:"PaginationInput"
+		},
+		capitalMetricSeries:{
+			data:"GetMetricSeriesInput"
+		},
+		capitalMetricSuperposition:{
+			data:"GetMetricSuperpositionInput"
+		},
+		capitalMetricSuperpositionHistory:{
+			data:"GetMetricSuperpositionHistoryInput"
+		},
+		capitalMetricWave:{
+			data:"GetMetricWaveInput"
 		},
 		capitalProgramExpense:{
 
@@ -3092,6 +3233,9 @@ export const AllTypesProps: Record<string,any> = {
 	SetConfigInput:{
 		config:"ConfigInput"
 	},
+	SetIssueMetricBindingsInput:{
+		bindings:"IssueMetricBindingItemInput"
+	},
 	SetMasterInput:{
 
 	},
@@ -3195,6 +3339,10 @@ export const AllTypesProps: Record<string,any> = {
 		endsAt:"DateTime",
 		startsAt:"DateTime"
 	},
+	UpdateComponentMetricInput:{
+		deadline:"DateTime",
+		series_mode:"MetricSeriesMode"
+	},
 	UpdateEntrepreneurDataInput:{
 		country:"Country",
 		details:"EntrepreneurDetailsInput"
@@ -3205,6 +3353,12 @@ export const AllTypesProps: Record<string,any> = {
 	UpdateIssueInput:{
 		priority:"IssuePriority",
 		status:"IssueStatus"
+	},
+	UpdateMeasureInput:{
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		tag:"MeasureCatalogTag",
+		wave_period:"MetricSeriesPeriod"
 	},
 	UpdateOrganizationDataInput:{
 		details:"OrganizationDetailsInput",
@@ -3266,6 +3420,8 @@ export const AllTypesProps: Record<string,any> = {
 	WalmoveInput:{
 
 	},
+	WaveLabel: "enum" as const,
+	WavePhase: "enum" as const,
 	WebPushSubscriptionDataInput:{
 		keys:"WebPushSubscriptionKeysInput"
 	},
@@ -3460,8 +3616,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -3718,6 +3876,25 @@ export const ReturnTypes: Record<string,any> = {
 		total_contribution:"String",
 		total_generation_pool:"String"
 	},
+	CapitalComponentMetric:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		deadline:"DateTime",
+		fact:"Float",
+		measure_hash:"String",
+		metric_hash:"String",
+		present:"Boolean",
+		project_hash:"String",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
 	CapitalConfigObject:{
 		authors_voting_percent:"Float",
 		coordinator_bonus_percent:"Float",
@@ -3825,6 +4002,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"ExpenseStatus",
 		username:"String"
 	},
+	CapitalFibLevel:{
+		ratio:"Float",
+		value:"Float"
+	},
 	CapitalInvest:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -3883,6 +4064,16 @@ export const ReturnTypes: Record<string,any> = {
 		html_url:"String",
 		username:"String"
 	},
+	CapitalIssueMetricBinding:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		present:"Boolean"
+	},
 	CapitalIssuePermissions:{
 		allowed_status_transitions:"IssueStatus",
 		can_assign_creator:"Boolean",
@@ -3903,8 +4094,10 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	CapitalLog:{
 		_id:"String",
+		actor_name:"String",
 		coopname:"String",
 		created_at:"DateTime",
+		description:"String",
 		entity_id:"String",
 		entity_type:"LogEntityType",
 		event_type:"LogEventType",
@@ -3912,7 +4105,139 @@ export const ReturnTypes: Record<string,any> = {
 		message:"String",
 		metadata:"JSON",
 		project_hash:"String",
-		reference_id:"String"
+		reference_id:"String",
+		title:"String"
+	},
+	CapitalMeasure:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		coopname:"String",
+		created_by:"String",
+		measure_hash:"String",
+		present:"Boolean",
+		series_mode:"MetricSeriesMode",
+		status:"MetricStatus",
+		tag:"MeasureCatalogTag",
+		title:"String",
+		unit:"String",
+		wave_period:"MetricSeriesPeriod"
+	},
+	CapitalMetricComponentRollup:{
+		fact_sum:"Float",
+		metrics_count:"Int",
+		project_hash:"String",
+		project_title:"String",
+		target_sum:"Float"
+	},
+	CapitalMetricContribution:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		block_num:"Float",
+		contribution_hash:"String",
+		delta:"Float",
+		issue_hash:"String",
+		metric_hash:"String",
+		occurred_at:"DateTime",
+		present:"Boolean",
+		source:"MetricContributionSource",
+		username:"String"
+	},
+	CapitalMetricSeries:{
+		fact:"Float",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		points:"CapitalMetricSeriesPoint",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricSeriesPoint:{
+		cumulative:"Float",
+		delta:"Float",
+		ideal_cumulative:"Float",
+		period_end:"DateTime",
+		period_start:"DateTime"
+	},
+	CapitalMetricSuperposition:{
+		activity:"Float",
+		balance:"Float",
+		coherence:"Float",
+		components:"CapitalMetricComponentRollup",
+		disclaimer:"String",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionFrame:{
+		activity:"Float",
+		at:"DateTime",
+		balance:"Float",
+		coherence:"Float",
+		down_count:"Int",
+		fact_sum:"Float",
+		flat_count:"Int",
+		growth:"Float",
+		items:"CapitalMetricSuperpositionItem",
+		resultant_angle:"Float",
+		resultant_im:"Float",
+		resultant_magnitude:"Float",
+		resultant_re:"Float",
+		target_sum:"Float",
+		up_count:"Int"
+	},
+	CapitalMetricSuperpositionHistory:{
+		frames:"CapitalMetricSuperpositionFrame",
+		from:"DateTime",
+		period:"MetricSeriesPeriod",
+		project_hash:"String",
+		to:"DateTime"
+	},
+	CapitalMetricSuperpositionItem:{
+		amplitude:"Float",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		drive:"MetricDriveDirection",
+		fact:"Float",
+		metric_hash:"String",
+		phase_rad:"Float",
+		project_hash:"String",
+		project_title:"String",
+		recent_velocity:"Float",
+		series_mode:"MetricSeriesMode",
+		target_value:"Float",
+		title:"String",
+		unit:"String"
+	},
+	CapitalMetricWave:{
+		corridor:"CapitalWaveCorridor",
+		current_label:"WaveLabel",
+		current_phase:"WavePhase",
+		disclaimer:"String",
+		fact:"Float",
+		fib_levels:"CapitalFibLevel",
+		metric_hash:"String",
+		period:"MetricSeriesPeriod",
+		point_labels:"WaveLabel",
+		series_mode:"MetricSeriesMode",
+		swings:"CapitalWaveSwing",
+		target_value:"Float",
+		title:"String",
+		unit:"String",
+		values:"Float"
 	},
 	CapitalOnboardingState:{
 		blagorost_offer_template_done:"Boolean",
@@ -3979,8 +4304,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -4011,8 +4338,10 @@ export const ReturnTypes: Record<string,any> = {
 		is_opened:"Boolean",
 		is_planed:"Boolean",
 		issue_counter:"Int",
+		local_owner:"String",
 		master:"String",
 		meta:"String",
+		origin:"String",
 		parent_hash:"String",
 		parent_title:"String",
 		permissions:"CapitalProjectPermissions",
@@ -4273,6 +4602,20 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Float",
 		totalPages:"Float"
 	},
+	CapitalTimerSession:{
+		_id:"String",
+		contributor_hash:"String",
+		coopname:"String",
+		elapsed_seconds:"Int",
+		is_paused:"Boolean",
+		issue_hash:"String",
+		issue_title:"String",
+		paused_at:"DateTime",
+		project_hash:"String",
+		started_at:"DateTime",
+		stopped_at:"DateTime",
+		total_paused_ms:"Float"
+	},
 	CapitalVote:{
 		_created_at:"DateTime",
 		_id:"String",
@@ -4288,6 +4631,20 @@ export const ReturnTypes: Record<string,any> = {
 		voted_at:"String",
 		voter:"String",
 		voter_display_name:"String"
+	},
+	CapitalWaveCorridor:{
+		base:"Float",
+		eta_base_periods:"Int",
+		eta_optimistic_periods:"Int",
+		eta_pessimistic_periods:"Int",
+		optimistic:"Float",
+		periods_ahead:"Int",
+		pessimistic:"Float"
+	},
+	CapitalWaveSwing:{
+		index:"Int",
+		label:"WaveLabel",
+		value:"Float"
 	},
 	Category:{
 		coopname:"String",
@@ -6051,7 +6408,10 @@ export const ReturnTypes: Record<string,any> = {
 		authorizeDecision:"Transaction",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
+		capitalAddWorklog:"CapitalTimeEntry",
+		capitalAllocateFunds:"Transaction",
 		capitalApproveCommit:"CapitalCommit",
+		capitalArchiveComponentMetric:"CapitalComponentMetric",
 		capitalCalculateVotes:"CapitalSegment",
 		capitalCloseProject:"CapitalProject",
 		capitalCompleteProcessStep:"ProcessInstance",
@@ -6059,10 +6419,13 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCompleteVoting:"Transaction",
 		capitalConvertSegment:"CapitalSegment",
 		capitalCreateCommit:"CapitalCommit",
+		capitalCreateComponentMetric:"CapitalComponentMetric",
 		capitalCreateCycle:"CapitalCycle",
 		capitalCreateDebt:"Transaction",
 		capitalCreateExpense:"Transaction",
 		capitalCreateIssue:"CapitalIssue",
+		capitalCreateLocalProject:"CapitalProject",
+		capitalCreateMeasure:"CapitalMeasure",
 		capitalCreateProcessTemplate:"ProcessTemplate",
 		capitalCreateProgramExpense:"Transaction",
 		capitalCreateProgramInvest:"Transaction",
@@ -6104,14 +6467,18 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateResultContributionDecision:"GeneratedDocument",
 		capitalGenerateResultContributionStatement:"GeneratedDocument",
 		capitalImportContributor:"Transaction",
+		capitalLogMetricContribution:"CapitalMetricContribution",
 		capitalMakeClearance:"Transaction",
 		capitalMoveIssueToComponent:"CapitalIssue",
 		capitalOpenProject:"CapitalProject",
+		capitalPauseTimer:"CapitalTimerSession",
 		capitalPushResult:"CapitalSegment",
 		capitalRefreshProgram:"Transaction",
 		capitalRefreshSegment:"CapitalSegment",
 		capitalRegisterContributor:"Transaction",
+		capitalResumeTimer:"CapitalTimerSession",
 		capitalSetConfig:"Transaction",
+		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",
 		capitalSetPlan:"CapitalProject",
 		capitalSetProjectDevelopmentRepositoryUrl:"CapitalProject",
@@ -6119,11 +6486,15 @@ export const ReturnTypes: Record<string,any> = {
 		capitalSignActAsContributor:"CapitalSegment",
 		capitalStartProcess:"ProcessInstance",
 		capitalStartProject:"CapitalProject",
+		capitalStartTimer:"CapitalTimerSession",
 		capitalStartVoting:"Transaction",
 		capitalStopProject:"CapitalProject",
+		capitalStopTimer:"CapitalTimeEntry",
 		capitalSubmitVote:"Transaction",
 		capitalTopupProgramExpensePool:"Transaction",
+		capitalUpdateComponentMetric:"CapitalComponentMetric",
 		capitalUpdateIssue:"CapitalIssue",
+		capitalUpdateMeasure:"CapitalMeasure",
 		capitalUpdateProcessTemplate:"ProcessTemplate",
 		capitalUpdateStory:"CapitalStory",
 		chairmanConfirmApprove:"Approval",
@@ -6511,6 +6882,12 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
+	PaginatedCapitalMetricContributionsPaginationResult:{
+		currentPage:"Int",
+		items:"CapitalMetricContribution",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
 	PaginatedCapitalProgramExpensesPaginationResult:{
 		currentPage:"Int",
 		items:"CapitalProgramExpense",
@@ -6880,6 +7257,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalCandidates:"PaginatedCapitalCandidatesPaginationResult",
 		capitalCommit:"CapitalCommit",
 		capitalCommits:"PaginatedCapitalCommitsPaginationResult",
+		capitalComponentMetrics:"CapitalComponentMetric",
 		capitalContributor:"CapitalContributor",
 		capitalContributors:"PaginatedCapitalContributorsPaginationResult",
 		capitalCycles:"PaginatedCapitalCyclesPaginationResult",
@@ -6887,6 +7265,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalDebts:"PaginatedCapitalDebtsPaginationResult",
 		capitalExpense:"CapitalExpense",
 		capitalExpenses:"PaginatedCapitalExpensesPaginationResult",
+		capitalGetOpenTimer:"CapitalTimerSession",
 		capitalGetProcessInstance:"ProcessInstance",
 		capitalGetProcessInstances:"ProcessInstance",
 		capitalGetProcessTemplate:"ProcessTemplate",
@@ -6894,7 +7273,14 @@ export const ReturnTypes: Record<string,any> = {
 		capitalInvest:"CapitalInvest",
 		capitalInvests:"PaginatedCapitalInvestsPaginationResult",
 		capitalIssue:"CapitalIssue",
+		capitalIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalIssues:"PaginatedCapitalIssuesPaginationResult",
+		capitalMeasures:"CapitalMeasure",
+		capitalMetricContributions:"PaginatedCapitalMetricContributionsPaginationResult",
+		capitalMetricSeries:"CapitalMetricSeries",
+		capitalMetricSuperposition:"CapitalMetricSuperposition",
+		capitalMetricSuperpositionHistory:"CapitalMetricSuperpositionHistory",
+		capitalMetricWave:"CapitalMetricWave",
 		capitalProgramExpense:"CapitalProgramExpense",
 		capitalProgramExpenses:"PaginatedCapitalProgramExpensesPaginationResult",
 		capitalProject:"CapitalProject",
@@ -7221,6 +7607,7 @@ export const ReturnTypes: Record<string,any> = {
 		oktmo:"RequisiteFieldView",
 		okved:"RequisiteFieldView",
 		orgName:"RequisiteFieldView",
+		pfrRegNumber:"RequisiteFieldView",
 		phone:"RequisiteFieldView",
 		sfrRegNumber:"RequisiteFieldView",
 		signerFirstName:"RequisiteFieldView",
@@ -7488,13 +7875,15 @@ export const ReturnTypes: Record<string,any> = {
 		okpo:"String",
 		oktmo:"String",
 		okved:"String",
-		orgName:"String"
+		orgName:"String",
+		phone:"String"
 	},
 	ZeroReportSignerEdits:{
 		chairmanPosition:"String",
 		firstName:"String",
 		lastName:"String",
 		middleName:"String",
+		pfrRegNumber:"String",
 		repDoc:"String",
 		sfrRegNumber:"String",
 		snils:"String",

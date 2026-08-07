@@ -29,6 +29,19 @@ export interface ProjectRepository extends IBlockchainSyncRepository<ProjectDoma
   findComponentsByParentHash(parentHash: string): Promise<ProjectDomainEntity[]>;
   update(entity: ProjectDomainEntity): Promise<ProjectDomainEntity>;
   delete(_id: string): Promise<void>;
+  /** Обновить текстовые поля персонального (LOCAL) проекта без блокчейна. */
+  updateLocalContent(
+    projectHash: string,
+    fields: {
+      title?: string;
+      description?: string;
+      invite?: string;
+      meta?: string;
+      data?: string;
+    }
+  ): Promise<ProjectDomainEntity>;
+  /** Мягкое удаление локального проекта (present=false). */
+  softDeleteLocal(projectHash: string): Promise<void>;
   /** Локальное поле Matrix (не блокчейн) */
   setMatrixRoomId(projectHash: string, matrixRoomId: string): Promise<void>;
   /** URL репозитория разработки (только БД, PRD §6.2.1). */

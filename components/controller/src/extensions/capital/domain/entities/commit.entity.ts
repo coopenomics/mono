@@ -31,8 +31,16 @@ export interface ICommitGitData {
  */
 export interface ICommitContributionFeedbackData {
   review_text: string;
-  /** 1–5 */
+  /** 1–5; 0 — оценка не указана (текст отзыва при этом допустим) */
   satisfaction_stars: number;
+}
+
+/** Задачи, чьи часы вошли в коммит — снимок для приёмки и сборки результата */
+export interface ICommitCommittedIssuesData {
+  issues: Array<{
+    issue_hash: string;
+    title: string;
+  }>;
 }
 
 /**
@@ -40,7 +48,8 @@ export interface ICommitContributionFeedbackData {
  */
 export type CommitContentData =
   | { type: 'git'; data: ICommitGitData }
-  | { type: 'contribution_feedback'; data: ICommitContributionFeedbackData };
+  | { type: 'contribution_feedback'; data: ICommitContributionFeedbackData }
+  | { type: 'committed_issues'; data: ICommitCommittedIssuesData };
 
 /**
  * Тип данных коммита - массив структурированных объектов с типом контента

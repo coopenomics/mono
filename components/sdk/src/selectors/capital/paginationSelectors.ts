@@ -15,6 +15,7 @@ import { rawProjectSelector } from './projectSelector'
 import { rawResultSelector } from './resultSelector'
 import { rawSegmentSelector } from './segmentSelector'
 import { rawStorySelector } from './storySelector'
+import { rawMetricContributionSelector } from './metricContributionSelector'
 import { rawTimeEntriesByIssuesSelector } from './timeEntriesByIssuesSelector'
 import { rawTimeEntrySelector } from './timeEntrySelector'
 import { rawVoteSelector } from './voteSelector'
@@ -125,3 +126,9 @@ const rawLogsPaginationSelector = { ...paginationSelector, items: rawLogSelector
 const _validateLogs: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalLogsPaginationResult']> = rawLogsPaginationSelector
 export type logsPaginationModel = ModelTypes['PaginatedCapitalLogsPaginationResult']
 export const logsPaginationSelector = Selector('PaginatedCapitalLogsPaginationResult')(rawLogsPaginationSelector)
+
+// Пагинированный селектор для журнала вкладов в метрики
+const rawMetricContributionsPaginationSelector = { ...paginationSelector, items: rawMetricContributionSelector }
+const _validateMetricContributions: MakeAllFieldsRequired<ValueTypes['PaginatedCapitalMetricContributionsPaginationResult']> = rawMetricContributionsPaginationSelector
+export type metricContributionsPaginationModel = ModelTypes['PaginatedCapitalMetricContributionsPaginationResult']
+export const metricContributionsPaginationSelector = Selector('PaginatedCapitalMetricContributionsPaginationResult')(rawMetricContributionsPaginationSelector)

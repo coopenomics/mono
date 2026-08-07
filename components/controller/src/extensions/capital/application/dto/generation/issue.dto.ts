@@ -94,9 +94,10 @@ export class IssueOutputDTO extends BaseOutputDTO {
   creators!: string[];
 
   @Field(() => String, {
-    description: 'Хеш проекта',
+    nullable: true,
+    description: 'Хеш проекта или компонента; пусто — свободная задача',
   })
-  project_hash!: string;
+  project_hash?: string | null;
 
   @Field(() => String, {
     nullable: true,

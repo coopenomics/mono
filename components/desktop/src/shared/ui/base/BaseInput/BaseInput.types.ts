@@ -14,6 +14,7 @@ export interface BaseInputProps {
    */
   stackLabel?: boolean;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'datetime-local' | 'textarea';
+  /** Авторост высоты для type="textarea" */
   autogrow?: boolean;
   /** Маска ввода Quasar: `#` — цифра (например `####` — серия паспорта, `###-###` — код подразделения) */
   mask?: string;

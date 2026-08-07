@@ -7,7 +7,6 @@ export enum ProjectStatus {
   VOTING = 'voting', // Проект на голосовании
   RESULT = 'result', // Проект завершен
   FINALIZED = 'finalized', // Проект финализирован (все конвертации завершены, неиспользованные средства возвращены)
-  CANCELLED = 'cancelled', // Проект отменен
   UNDEFINED = 'undefined', // Статус не определен
 }
 

@@ -8,17 +8,21 @@ import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { useWalletStore } from 'src/entities/Wallet';
+import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 
 export type ICreateProgramInvestInput =
   Mutations.Capital.CreateProgramInvest.IInput['data'];
 export type ICreateProgramInvestOutput =
   Mutations.Capital.CreateProgramInvest.IOutput[typeof Mutations.Capital.CreateProgramInvest.name];
 
+/** Задержка refetch после on-chain операции: parser → PG обычно 1–3с. */
+const POST_CHAIN_REFETCH_MS = 3500;
 
 export function useCreateProgramInvest() {
   const system = useSystemStore();
   const session = useSessionStore();
   const walletStore = useWalletStore();
+  const contributorStore = useContributorStore();
 
   const isGenerating = ref(false);
   const generationError = ref(false);
@@ -108,19 +112,32 @@ export function useCreateProgramInvest() {
 
       const result = await createProgramInvest(investData);
 
-      // НЕ ждём loadUserWallet синхронно: parser2 → consumer → PG обычно
-      // отстают от блока на 1-3с, и refetch сразу после мутации вернёт
-      // ещё стейт ДО инвеста → loadUserWallet сотрёт оптимистичный патч
-      // через clearOptimisticPatches() и UI откатится. Откладываем refetch
-      // на ~4с — за это время дельта успевает прилететь, и обновление
-      // переходит со «снимок-до-инвеста» сразу на «снимок-после» без
-      // промежуточного отката.
+      // Оптимистично обновим «Взносы по ролям → Инвестор» на профиле,
+      // чтобы не ждать parser. Через POST_CHAIN_REFETCH_MS придёт правда.
+      const self = contributorStore.self;
+      if (self) {
+        const prevRaw = String(self.contributed_as_investor || '0').trim();
+        const prevAmount = parseFloat(prevRaw.split(' ')[0] || '0') || 0;
+        const addAmount = parseFloat(amount) || 0;
+        const precision = system.info.symbols.root_govern_precision;
+        const symbol =
+          prevRaw.split(' ')[1] || system.info.symbols.root_govern_symbol;
+        contributorStore.updateSelf({
+          ...self,
+          contributed_as_investor: `${(prevAmount + addAmount).toFixed(precision)} ${symbol}`,
+        });
+      }
+
+      // НЕ ждём loadUserWallet / loadSelf синхронно: parser → PG обычно
+      // отстают от блока на 1–3с. Ранний refetch вернёт стейт ДО инвеста и
+      // сотрёт оптимистичный патч / покажет старые взносы. Откладываем.
       setTimeout(() => {
         void walletStore.loadUserWallet({
           coopname: system.info.coopname,
           username: session.username,
         });
-      }, 4000);
+        void contributorStore.loadSelf({ username: session.username });
+      }, POST_CHAIN_REFETCH_MS);
 
       return result;
     } catch (e) {

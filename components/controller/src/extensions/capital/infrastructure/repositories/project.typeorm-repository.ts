@@ -19,6 +19,7 @@ import { PaginationUtils } from '~/shared/utils/pagination.utils';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { AssetUtils } from '~/shared/utils/asset.utils';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
+import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 
 @Injectable()
 export class ProjectTypeormRepository
@@ -87,6 +88,8 @@ export class ProjectTypeormRepository
         voting_deadline: null,
         matrix_room_id: null,
         development_repository_url: inheritedDevUrl,
+        origin: ProjectOrigin.BLOCKCHAIN,
+        local_owner: null,
       };
 
       const newEntity = this.createDomainEntity(databaseData, blockchainData);
@@ -133,6 +136,50 @@ export class ProjectTypeormRepository
   async setDevelopmentRepositoryUrl(projectHash: string, url: string | null): Promise<void> {
     const h = projectHash.toLowerCase();
     await this.repository.update({ project_hash: h }, { development_repository_url: url });
+  }
+
+  async updateLocalContent(
+    projectHash: string,
+    fields: {
+      title?: string;
+      description?: string;
+      invite?: string;
+      meta?: string;
+      data?: string;
+    }
+  ): Promise<ProjectDomainEntity> {
+    const h = projectHash.toLowerCase();
+    const existing = await this.repository.findOneBy({ project_hash: h });
+    if (!existing) {
+      throw new Error(`Проект с хэшем ${h} не найден`);
+    }
+    if (existing.origin !== ProjectOrigin.LOCAL) {
+      throw new Error('Обновление локальных полей доступно только для персональных проектов');
+    }
+    const patch: Partial<ProjectTypeormEntity> = {};
+    if (fields.title !== undefined) patch.title = fields.title;
+    if (fields.description !== undefined) patch.description = fields.description;
+    if (fields.invite !== undefined) patch.invite = fields.invite;
+    if (fields.meta !== undefined) patch.meta = fields.meta;
+    if (fields.data !== undefined) patch.data = fields.data;
+    await this.repository.update({ project_hash: h }, patch);
+    const updated = await this.findByHash(h);
+    if (!updated) {
+      throw new Error(`Не удалось перечитать проект ${h} после локального обновления`);
+    }
+    return updated;
+  }
+
+  async softDeleteLocal(projectHash: string): Promise<void> {
+    const h = projectHash.toLowerCase();
+    const existing = await this.repository.findOneBy({ project_hash: h });
+    if (!existing) {
+      throw new Error(`Проект с хэшем ${h} не найден`);
+    }
+    if (existing.origin !== ProjectOrigin.LOCAL) {
+      throw new Error('Мягкое удаление без блокчейна доступно только для персональных проектов');
+    }
+    await this.repository.update({ project_hash: h }, { present: false });
   }
 
   async findDistinctDevelopmentRepositoryUrls(coopname: string): Promise<string[]> {
@@ -371,6 +418,12 @@ export class ProjectTypeormRepository
     if (filter?.has_invite) {
       where.invite = Not('');
     }
+    if (filter?.origin && filter.origin !== 'any' && filter.origin !== 'all') {
+      where.origin = filter.origin;
+    } else if (!filter?.origin) {
+      where.origin = ProjectOrigin.BLOCKCHAIN;
+    }
+    // origin=any|all — без ограничения (список «мои проекты» по master)
 
     where.present = true;
 
@@ -469,6 +522,12 @@ export class ProjectTypeormRepository
     if (filter?.has_invite) {
       queryBuilder = queryBuilder.andWhere('p.invite != :empty', { empty: '' });
     }
+    if (filter?.origin && filter.origin !== 'any' && filter.origin !== 'all') {
+      queryBuilder = queryBuilder.andWhere('p.origin = :origin', { origin: filter.origin });
+    } else if (!filter?.origin) {
+      queryBuilder = queryBuilder.andWhere('p.origin = :origin', { origin: ProjectOrigin.BLOCKCHAIN });
+    }
+    // origin=any|all — без ограничения (список «мои проекты» по master)
 
     // Логика для parent_hash и is_component:
     if (filter?.parent_hash !== undefined) {

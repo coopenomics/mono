@@ -1,5 +1,7 @@
 <template lang="pug">
-q-page.documents-page
+//- Родитель списка документов пайщика: деталь — child (подсветка «Документы» в matched).
+router-view(v-if='!isDocumentsRoot')
+q-page.documents-page(v-else)
   ListOfDocumentsWidget(
     :username="username"
     :filter="{}"
@@ -15,14 +17,17 @@ q-page.documents-page
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useSessionStore } from 'src/entities/Session'
 import { ListOfDocumentsWidget } from 'src/widgets/Cooperative/Documents/ListOfDocuments/ui'
 import { SearchHeaderAction } from 'src/features/DocumentSearch'
 import type { DocumentType } from 'src/entities/Document/model/types'
 
+const route = useRoute()
 const session = useSessionStore()
 const username = computed(() => session.username)
 const typeForToggle = ref<DocumentType>('newsubmitted')
+const isDocumentsRoot = computed(() => route.name === 'user-documents')
 </script>
 
 <style lang="scss" scoped>

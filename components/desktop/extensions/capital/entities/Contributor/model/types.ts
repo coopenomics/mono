@@ -1,10 +1,16 @@
 import type { Queries, Mutations } from '@coopenomics/sdk';
 
 /**
- * Базовый тип участника из SDK, расширенный параметрами документов
+ * Базовый тип участника из SDK, расширенный параметрами документов.
+ *
+ * NonNullable обязателен: Zeus помечает КАЖДОЕ корневое поле запроса как
+ * опциональное, поэтому без него тип означал бы «участник или его отсутствие».
+ * Как элемент списка это бессмысленно — в выдаче не бывает пустых участников,
+ * — и порождало «'row' is possibly undefined» на каждом обращении в шаблонах.
  */
-export type IContributor =
-  Queries.Capital.GetContributor.IOutput[typeof Queries.Capital.GetContributor.name];
+export type IContributor = NonNullable<
+  Queries.Capital.GetContributor.IOutput[typeof Queries.Capital.GetContributor.name]
+>;
 
 export type IContributorsPagination =
   Queries.Capital.GetContributors.IOutput[typeof Queries.Capital.GetContributors.name];

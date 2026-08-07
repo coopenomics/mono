@@ -45,6 +45,8 @@ import {
 import { loadProjectMapsFromIndex } from './project-index-map.js'
 import { resolveProjectMarkerFromRelativePath } from './resolve-project-hash-from-path.js'
 import { writeWorkspaceIndexMarkdown } from './workspace-index.js'
+import { factHoursForIssueFile, loadContributorUsernameByHash } from './fact-hours.js'
+import { resolveCoopname } from '../config/index.js'
 
 interface CapitalProjectRow {
   id?: number | null
@@ -71,6 +73,8 @@ interface CapitalIssueRow {
   estimate?: number | null
   submaster?: string | null
   creators?: string[] | null
+  fact?: number | null
+  fact_by_contributor?: Array<{ contributor_hash: string, hours: number }> | null
   metadata?: unknown
   _created_at?: Date | string | null
   _updated_at?: Date | string | null
@@ -281,7 +285,17 @@ export async function runRestore(ctx: AuthenticatedContext, userPath: string): P
       )
     }
     const workspace = issueWorkspaceTitlesFromProjects(issueRow.project_hash, projectRowByHash)
-    const { data, body } = issueToFrontmatterAndBody(issueRow, workspace)
+    const coopname = resolveCoopname(ctx.config)
+    let fact_hours: ReturnType<typeof factHoursForIssueFile> = []
+    if (coopname) {
+      const usernameByHash = await loadContributorUsernameByHash(ctx, coopname)
+      fact_hours = factHoursForIssueFile(
+        issueRow.fact_by_contributor,
+        usernameByHash,
+        `задача ${issueRow.issue_hash}`,
+      )
+    }
+    const { data, body } = issueToFrontmatterAndBody({ ...issueRow, fact_hours }, workspace)
     const content = serializeBlagoMarkdown(data, body)
     await writeRestoredFile({
       root: ctx.root,

@@ -16,11 +16,12 @@ q-select(
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 import { getIssuePriorityLabel } from 'app/extensions/capital/shared/lib'
 import { useUpdateIssue } from '../../model'
+import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
 
 interface Props {
   modelValue: Zeus.IssuePriority
@@ -41,7 +42,10 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const route = useRoute()
-const projectHash = computed(() => route.params.project_hash as string)
+const issuePage = inject(ISSUE_PAGE_KEY, null)
+const projectHash = computed(
+  () => issuePage?.projectHash.value || (route.params.project_hash as string) || '',
+)
 
 // Используем composable для обновления задач
 const { debounceSave } = useUpdateIssue()

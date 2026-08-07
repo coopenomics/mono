@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, Ref, computed } from 'vue';
 import { api } from '../api';
+import { isComponent, isProject } from 'app/extensions/capital/shared/lib/project-utils';
 import type {
   IGetProjectOutput,
   IProjectsPagination,
   IProjectWithRelations,
   IProject,
+  IProjectComponent,
   IGetProjectInput,
   IGetProjectsInput,
   IGetProjectWithRelationsInput,
@@ -24,6 +26,9 @@ interface IProjectFilters {
 
 interface IProjectStore {
   projects: Ref<IProjectsPagination>;
+  /** Кэш загруженных проектов/компонентов по hash (компоненты не попадают в items мастерской) */
+  entities: Ref<Record<string, IProject>>;
+  getProject: (projectHash: string) => IProject | undefined;
   loadProjects: (data: IGetProjectsInput, append?: boolean) => Promise<IProjectsPagination>;
   addProjectToList: (projectData: IProject) => void;
   removeProjectFromList: (projectHash: string) => void;
@@ -48,6 +53,7 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     totalPages: 1,
     currentPage: 1,
   });
+  const entities = ref<Record<string, IProject>>({});
   const projectWithRelations = ref<IProjectWithRelations | null>(null);
 
   // Фильтры проектов
@@ -57,6 +63,45 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     creators: [],
     master: undefined,
   });
+
+  const upsertEntity = (project: IProject) => {
+    entities.value = {
+      ...entities.value,
+      [project.project_hash]: project,
+    };
+  };
+
+  /** Обновить вложенный компонент в components[] родителя в списке мастерской */
+  const syncComponentIntoParent = (component: IProject) => {
+    if (!isComponent(component) || !component.parent_hash) return;
+
+    const parentIdx = projects.value.items.findIndex(
+      (p) => p.project_hash === component.parent_hash,
+    );
+    if (parentIdx === -1) return;
+
+    const parent = projects.value.items[parentIdx];
+    const comps = [...(parent.components || [])];
+    const cIdx = comps.findIndex((c) => c.project_hash === component.project_hash);
+    if (cIdx === -1) return;
+
+    comps.splice(cIdx, 1, { ...comps[cIdx], ...component } as IProjectComponent);
+    projects.value.items.splice(parentIdx, 1, { ...parent, components: comps });
+  };
+
+  const getProject = (projectHash: string): IProject | undefined => {
+    if (!projectHash) return undefined;
+    if (entities.value[projectHash]) return entities.value[projectHash];
+
+    const top = projects.value.items.find((p) => p.project_hash === projectHash);
+    if (top) return top;
+
+    for (const p of projects.value.items) {
+      const nested = p.components?.find((c) => c.project_hash === projectHash);
+      if (nested) return nested as unknown as IProject;
+    }
+    return undefined;
+  };
 
   const loadProjects = async (data: IGetProjectsInput, append = false): Promise<IProjectsPagination> => {
     const loadedData = await api.loadProjects(data);
@@ -72,10 +117,23 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
       projects.value = loadedData;
     }
 
+    // Кэшируем корневые проекты из списка (компоненты — через loadProject / sync)
+    for (const item of projects.value.items) {
+      upsertEntity(item);
+    }
+
     return projects.value;
   };
 
   const addProjectToList = (projectData: IProject) => {
+    upsertEntity(projectData);
+
+    // Компонент — только в кэш и в components[] родителя, не на верхний уровень мастерской
+    if (isComponent(projectData)) {
+      syncComponentIntoParent(projectData);
+      return;
+    }
+
     // Ищем существующий проект по _id
     const existingIndex = projects.value.items.findIndex(
       (project) => project._id === projectData._id,
@@ -100,6 +158,11 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
       projects.value.items.splice(idx, 1);
       projects.value.totalCount = Math.max(0, projects.value.totalCount - 1);
     }
+    if (entities.value[projectHash]) {
+      const next = { ...entities.value };
+      delete next[projectHash];
+      entities.value = next;
+    }
     if (projectWithRelations.value?.project_hash === projectHash) {
       projectWithRelations.value = null;
     }
@@ -109,19 +172,30 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
     const loadedData = await api.loadProject(data);
     if (!loadedData) return;
 
-    // Обновляем проект в списке projects
+    const project = loadedData as IProject;
+    upsertEntity(project);
+
+    // Уже есть на верхнем уровне мастерской — обновить на месте
     const existingIndex = projects.value.items.findIndex(
-      (project) => project.project_hash === loadedData.project_hash,
+      (p) => p.project_hash === project.project_hash,
     );
 
     if (existingIndex !== -1) {
-      // Заменяем существующий проект с помощью splice для реактивности
-      projects.value.items.splice(existingIndex, 1, loadedData as IProject);
-    } else {
-      // Добавляем новый проект в начало списка
-      projects.value.items.splice(0, 0, loadedData as IProject);
-      // Увеличиваем общее количество
+      if (isComponent(project)) {
+        // Самолечение: компонент ошибочно лежал на верхнем уровне — убрать
+        projects.value.items.splice(existingIndex, 1);
+        projects.value.totalCount = Math.max(0, projects.value.totalCount - 1);
+        syncComponentIntoParent(project);
+      } else {
+        projects.value.items.splice(existingIndex, 1, project);
+      }
+    } else if (isProject(project)) {
+      // Корневой проект (создание / первый заход) — в список мастерской
+      projects.value.items.splice(0, 0, project);
       projects.value.totalCount += 1;
+    } else {
+      // Компонент: не засорять верхний уровень — только вложенность родителя
+      syncComponentIntoParent(project);
     }
 
     return loadedData;
@@ -140,10 +214,7 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
   };
 
   const isMaster = async (project_hash: string, username: string): Promise<boolean> => {
-    // Ищем проект в локальном списке
-    let project = projects.value.items.find(
-      (project) => project.project_hash === project_hash,
-    );
+    let project = getProject(project_hash);
 
     // Если проект не найден, загружаем его
     if (!project) {
@@ -151,7 +222,7 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
       if (!loadedProject) {
         return false;
       }
-      project = loadedProject;
+      project = loadedProject as IProject;
     }
 
     // Проверяем, является ли пользователь мастером
@@ -183,6 +254,8 @@ export const useProjectStore = defineStore(namespace, (): IProjectStore => {
 
   return {
     projects,
+    entities,
+    getProject,
     projectWithRelations,
     loadProjects,
     addProjectToList,

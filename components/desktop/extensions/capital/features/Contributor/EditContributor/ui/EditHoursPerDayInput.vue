@@ -1,45 +1,40 @@
 <template lang="pug">
-ColorCard(color='blue' :transparent="true")
-  .card-label Часов в день
-  template(v-if="!isEditing")
-    .card-value(:class="{ 'cursor-pointer': isOwnProfile }" @click="isOwnProfile ? startEditing() : null")
-      template(v-if="isOwnProfile")
-        q-icon(
-          name="edit"
-          size="16px"
-          color="grey-6"
-          style="margin-right: 8px;"
-        )
-      | {{ hasHours ? contributorStore.self?.hours_per_day : 'Не указано' }}
-  template(v-else)
-    .q-pa-sm
-      q-input(
-        v-model.number="localHours"
-        type="number"
-        label="Часов в день"
-        outlined
-        min="1"
-        max="8"
-        step="1"
-        :rules="[val => !val || (val >= 1 && val <= 8) || 'От 1 до 24 часов']"
-        dense
-      )
-      .row.q-gutter-sm.q-mt-sm.justify-end
-        q-btn(
-          flat
-          dense
-          label="Отмена"
-          color="grey-7"
-          @click="cancelEditing"
-        )
-        q-btn(
-          color="primary"
-          dense
-          label="Сохранить"
-          :loading="isSaving"
-          :disable="!hasChanges"
-          @click="saveHours"
-        )
+.edit-field
+  .edit-field__view
+    span.edit-field__icon
+      q-icon(name='schedule', size='20px')
+    .edit-field__main
+      template(v-if='!isEditing')
+        .edit-field__head
+          span.t-sm.t-muted Часов в день
+          BaseButton(
+            v-if='isOwnProfile',
+            variant='ghost',
+            size='sm',
+            icon-only,
+            aria-label='Редактировать количество часов в день',
+            @click='startEditing'
+          )
+            template(#icon-left)
+              q-icon(name='edit', size='16px')
+        .edit-field__value(:class='{ "t-muted": !hasHours }') {{ hasHours ? contributorStore.self?.hours_per_day : 'Не указано' }}
+      template(v-else)
+        BaseForm(:loading='isSaving', @submit='saveHours')
+          BaseInput(
+            v-model.number='localHours',
+            type='number',
+            label='Часов в день',
+            :error='hoursError'
+          )
+          template(#footer)
+            BaseButton(variant='ghost', size='sm', @click='cancelEditing') Отмена
+            BaseButton(
+              variant='primary',
+              size='sm',
+              type='submit',
+              :loading='isSaving',
+              :disabled='!hasChanges || !!hoursError'
+            ) Сохранить
 </template>
 
 <script setup lang="ts">
@@ -48,7 +43,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useEditContributor } from '../model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { useSessionStore } from 'src/entities/Session/model';
-import { ColorCard } from 'src/shared/ui';
+import { BaseButton, BaseForm, BaseInput } from 'src/shared/ui/base';
 
 const emit = defineEmits<{
   'hours-updated': [];
@@ -72,6 +67,14 @@ const hasHours = computed(() => {
   return contributorStore.self?.hours_per_day && contributorStore.self.hours_per_day > 0;
 });
 
+// Валидация диапазона
+const hoursError = computed(() => {
+  if (localHours.value === undefined || localHours.value === null) return undefined;
+  return localHours.value >= 1 && localHours.value <= 8
+    ? undefined
+    : 'От 1 до 8 часов';
+});
+
 // Проверяем, есть ли изменения
 const hasChanges = computed(() => {
   const currentHours = contributorStore.self?.hours_per_day;
@@ -92,6 +95,7 @@ const cancelEditing = () => {
 
 // Сохраняем изменения
 const saveHours = async () => {
+  if (hoursError.value) return;
   try {
     // Отправляем все текущие значения из store + новое значение hours_per_day
     await editContributor({
@@ -120,16 +124,37 @@ watch(() => contributorStore.self?.hours_per_day, (newHours) => {
 </script>
 
 <style lang="scss" scoped>
-.card-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--p-ink);
-  margin-bottom: var(--p-2);
+.edit-field__view {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
 }
 
-.card-label {
-  font-size: var(--p-fs-body);
+.edit-field__icon {
+  width: var(--p-8);
+  height: var(--p-8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--p-r-sm);
+  background: var(--p-canvas-2);
   color: var(--p-ink-2);
-  margin-bottom: var(--p-1);
+}
+
+.edit-field__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.edit-field__head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+}
+
+.edit-field__value {
+  font-size: var(--p-fs-h3);
+  font-weight: 600;
 }
 </style>

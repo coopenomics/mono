@@ -1,15 +1,20 @@
 <template lang="pug">
-BaseSelect(
-  :model-value='modelValue',
-  :options='options',
-  :label='label',
-  :placeholder='placeholder',
-  :hint='hint',
-  :error='error || loadError',
-  :disabled='disabled || loading',
-  :required='required',
-  @update:model-value='$emit("update:modelValue", $event === null ? null : String($event))'
-)
+.payment-method-select
+  .banner.banner--warn(v-if='isEmpty')
+    q-icon.banner__icon(name='warning', size='20px')
+    .banner__body {{ emptyMessage }}
+
+  BaseSelect(
+    :model-value='modelValue',
+    :options='options',
+    :label='label',
+    :placeholder='isEmpty ? "Нет доступных реквизитов" : placeholder',
+    :hint='isEmpty ? undefined : hint',
+    :error='error || loadError',
+    :disabled='disabled || loading || isEmpty',
+    :required='required && !isEmpty',
+    @update:model-value='$emit("update:modelValue", $event === null ? null : String($event))'
+  )
 </template>
 
 <script setup lang="ts">
@@ -34,11 +39,15 @@ const props = withDefaults(
     error?: string;
     disabled?: boolean;
     required?: boolean;
+    /** Текст баннера, если у получателя нет сохранённых реквизитов. */
+    emptyMessage?: string;
   }>(),
   {
     modelValue: null,
     label: 'Реквизиты получателя',
     placeholder: 'Выберите способ получения средств',
+    emptyMessage:
+      'У получателя нет сохранённых реквизитов. Добавьте способ получения средств в профиле.',
   },
 );
 
@@ -55,6 +64,10 @@ const options = computed<BaseSelectOption[]>(() =>
   })),
 );
 
+const isEmpty = computed(
+  () => Boolean(props.username) && !loading.value && !loadError.value && methods.value.length === 0,
+);
+
 watch(
   () => props.username,
   async (username) => {
@@ -67,9 +80,6 @@ watch(
         variables: { data: { username, limit: 100, page: 1 } },
       });
       methods.value = (result.getPaymentMethods.items as unknown as IPaymentMethodLike[]) ?? [];
-      if (!methods.value.length) {
-        loadError.value = 'У получателя нет сохранённых реквизитов';
-      }
     } catch (e) {
       console.error('Ошибка загрузки платёжных методов:', e);
       loadError.value = 'Не удалось загрузить реквизиты получателя';
@@ -80,3 +90,12 @@ watch(
   { immediate: true },
 );
 </script>
+
+<style lang="scss" scoped>
+.payment-method-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  min-width: 0;
+}
+</style>

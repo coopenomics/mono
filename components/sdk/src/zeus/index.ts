@@ -1764,6 +1764,10 @@ export type ValueTypes = {
 	/** Хэш заявки */
 	hash: string | Variable<any, string>
 };
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -1903,7 +1907,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -1913,10 +1917,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -2941,6 +2949,27 @@ export type ValueTypes = {
 	referer?: string | undefined | null | Variable<any, string>
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null | Variable<any, string>,
+	/** Количество часов (> 0) */
+	hours: number | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>,
+	/** Имя пользователя-исполнителя */
+	username: string | Variable<any, string>
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string | Variable<any, string>,
+	/** Имя кооператива. */
+	coopname: string | Variable<any, string>,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string | Variable<any, string>
+};
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
 	braname?:boolean | `@${string}`,
@@ -3053,6 +3082,45 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Цель по мере на компоненте (инстанс меры с целевым значением) */
+["CapitalComponentMetric"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал цель */
+	created_by?:boolean | `@${string}`,
+	/** Срок достижения цели */
+	deadline?:boolean | `@${string}`,
+	/** Фактическое значение (сумма вкладов) */
+	fact?:boolean | `@${string}`,
+	/** Хеш меры из справочника */
+	measure_hash?:boolean | `@${string}`,
+	/** Хеш цели на компоненте */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Режим ряда меры */
+	series_mode?:boolean | `@${string}`,
+	/** Статус цели */
+	status?:boolean | `@${string}`,
+	/** Целевое значение на компоненте */
+	target_value?:boolean | `@${string}`,
+	/** Название меры */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalComponentMetric']?: Omit<ValueTypes["CapitalComponentMetric"], "...on CapitalComponentMetric">
+}>;
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: AliasType<{
 	/** Процент голосования авторов */
@@ -3316,6 +3384,21 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalExpense']?: Omit<ValueTypes["CapitalExpense"], "...on CapitalExpense">
 }>;
+	["CapitalFibLevel"]: AliasType<{
+	/** Фибо-коэффициент */
+	ratio?:boolean | `@${string}`,
+	/** Значение уровня на ряде */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalFibLevel']?: Omit<ValueTypes["CapitalFibLevel"], "...on CapitalFibLevel">
+}>;
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: AliasType<{
 	/** Дата создания записи */
@@ -3412,7 +3495,7 @@ export type ValueTypes = {
 	present?:boolean | `@${string}`,
 	/** Приоритет задачи */
 	priority?:boolean | `@${string}`,
-	/** Хеш проекта */
+	/** Хеш проекта или компонента; пусто — свободная задача */
 	project_hash?:boolean | `@${string}`,
 	/** Порядок сортировки */
 	sort_order?:boolean | `@${string}`,
@@ -3468,6 +3551,27 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalIssueLinkedGitCommit']?: Omit<ValueTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 }>;
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Плановый вклад задачи в метрику */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalIssueMetricBinding']?: Omit<ValueTypes["CapitalIssueMetricBinding"], "...on CapitalIssueMetricBinding">
+}>;
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: AliasType<{
 	/** Список допустимых статусов для перехода */
@@ -3509,10 +3613,14 @@ export type ValueTypes = {
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
 	_id?:boolean | `@${string}`,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Дата создания записи */
 	created_at?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
 	/** ID сущности */
 	entity_id?:boolean | `@${string}`,
 	/** Тип сущности к которой относится событие */
@@ -3521,7 +3629,7 @@ export type ValueTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -3529,6 +3637,8 @@ export type ValueTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalLog']?: Omit<ValueTypes["CapitalLog"], "...on CapitalLog">
 }>;
@@ -3553,6 +3663,270 @@ export type ValueTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null | Variable<any, string>
 };
+	/** Мера: что измеряем (справочник без целевого значения) */
+["CapitalMeasure"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал меру */
+	created_by?:boolean | `@${string}`,
+	/** Хеш меры */
+	measure_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Режим ряда: скорость или уровень */
+	series_mode?:boolean | `@${string}`,
+	/** Статус меры */
+	status?:boolean | `@${string}`,
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag?:boolean | `@${string}`,
+	/** Название меры */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMeasure']?: Omit<ValueTypes["CapitalMeasure"], "...on CapitalMeasure">
+}>;
+	["CapitalMetricComponentRollup"]: AliasType<{
+	/** Сумма фактов метрик */
+	fact_sum?:boolean | `@${string}`,
+	/** Число активных метрик */
+	metrics_count?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Сумма целей метрик */
+	target_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricComponentRollup']?: Omit<ValueTypes["CapitalMetricComponentRollup"], "...on CapitalMetricComponentRollup">
+}>;
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Хеш записи вклада */
+	contribution_hash?:boolean | `@${string}`,
+	/** Величина вклада */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Момент вклада */
+	occurred_at?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Источник вклада */
+	source?:boolean | `@${string}`,
+	/** Кто зафиксировал вклад */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricContribution']?: Omit<ValueTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
+}>;
+	["CapitalMetricSeries"]: AliasType<{
+	/** Текущий накопленный факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Точки ряда */
+	points?:ValueTypes["CapitalMetricSeriesPoint"],
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSeries']?: Omit<ValueTypes["CapitalMetricSeries"], "...on CapitalMetricSeries">
+}>;
+	["CapitalMetricSeriesPoint"]: AliasType<{
+	/** Накопленный факт на конец периода */
+	cumulative?:boolean | `@${string}`,
+	/** Сумма вкладов за период (скорость) */
+	delta?:boolean | `@${string}`,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?:boolean | `@${string}`,
+	/** Конец периода, не включая (UTC) */
+	period_end?:boolean | `@${string}`,
+	/** Начало периода (UTC) */
+	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSeriesPoint']?: Omit<ValueTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+}>;
+	["CapitalMetricSuperposition"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
+	/** Rollup планов/фактов по дочерним компонентам */
+	components?:ValueTypes["CapitalMetricComponentRollup"],
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
+	/** Метрики в резонансе */
+	items?:ValueTypes["CapitalMetricSuperpositionItem"],
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperposition']?: Omit<ValueTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
+}>;
+	["CapitalMetricSuperpositionFrame"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Момент кадра (конец бакета периода) */
+	at?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату на момент кадра */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
+	/** Метрики в резонансе на момент кадра */
+	items?:ValueTypes["CapitalMetricSuperpositionItem"],
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionFrame']?: Omit<ValueTypes["CapitalMetricSuperpositionFrame"], "...on CapitalMetricSuperpositionFrame">
+}>;
+	["CapitalMetricSuperpositionHistory"]: AliasType<{
+	/** Кадры резонанса по бакетам периода */
+	frames?:ValueTypes["CapitalMetricSuperpositionFrame"],
+	/** Начало окна истории */
+	from?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Конец окна истории */
+	to?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionHistory']?: Omit<ValueTypes["CapitalMetricSuperpositionHistory"], "...on CapitalMetricSuperpositionHistory">
+}>;
+	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude?:boolean | `@${string}`,
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive?:boolean | `@${string}`,
+	/** Факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity?:boolean | `@${string}`,
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Цель */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricSuperpositionItem']?: Omit<ValueTypes["CapitalMetricSuperpositionItem"], "...on CapitalMetricSuperpositionItem">
+}>;
+	["CapitalMetricWave"]: AliasType<{
+	/** Прогнозный коридор */
+	corridor?:ValueTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Текущий факт */
+	fact?:boolean | `@${string}`,
+	/** Фибо-сетка */
+	fib_levels?:ValueTypes["CapitalFibLevel"],
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Метка волны на каждой точке ряда */
+	point_labels?:boolean | `@${string}`,
+	/** Режим ряда, на котором построена волна */
+	series_mode?:boolean | `@${string}`,
+	/** Свинги с метками */
+	swings?:ValueTypes["CapitalWaveSwing"],
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalMetricWave']?: Omit<ValueTypes["CapitalMetricWave"], "...on CapitalMetricWave">
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -3576,6 +3950,13 @@ export type ValueTypes = {
 	question: string | Variable<any, string>,
 	step: ValueTypes["CapitalOnboardingStep"] | Variable<any, string>,
 	title?: string | undefined | null | Variable<any, string>
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
 };
 	["CapitalProgramExpense"]: AliasType<{
 	callback?:ValueTypes["CapitalProgramExpenseCallback"],
@@ -3645,7 +4026,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -3655,10 +4036,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -3710,7 +4095,7 @@ export type ValueTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ValueTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -3720,10 +4105,14 @@ export type ValueTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -3856,6 +4245,8 @@ export type ValueTypes = {
 	is_planed?: boolean | undefined | null | Variable<any, string>,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null | Variable<any, string>,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по хешу проекта */
@@ -4041,6 +4432,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalResult']?: Omit<ValueTypes["CapitalResult"], "...on CapitalResult">
 }>;
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: AliasType<{
 	/** Дата создания записи */
@@ -4175,6 +4573,15 @@ export type ValueTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: AliasType<{
 	/** Дата создания записи */
@@ -4208,6 +4615,13 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalState']?: Omit<ValueTypes["CapitalState"], "...on CapitalState">
 }>;
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string | Variable<any, string>,
+	/** Имя пользователя */
+	username: string | Variable<any, string>
+};
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: AliasType<{
 	/** Дата создания записи */
@@ -4363,6 +4777,35 @@ export type ValueTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null | Variable<any, string>
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: AliasType<{
+	/** Идентификатор сессии */
+	_id?:boolean | `@${string}`,
+	/** Хеш участника */
+	contributor_hash?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds?:boolean | `@${string}`,
+	/** Сессия на паузе */
+	is_paused?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Название задачи */
+	issue_title?:boolean | `@${string}`,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?:boolean | `@${string}`,
+	/** Хеш проекта */
+	project_hash?:boolean | `@${string}`,
+	/** Время старта */
+	started_at?:boolean | `@${string}`,
+	/** Время остановки (null если открыта) */
+	stopped_at?:boolean | `@${string}`,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalTimerSession']?: Omit<ValueTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+}>;
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string | Variable<any, string>,
@@ -4401,6 +4844,34 @@ export type ValueTypes = {
 	voter_display_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on CapitalVote']?: Omit<ValueTypes["CapitalVote"], "...on CapitalVote">
+}>;
+	["CapitalWaveCorridor"]: AliasType<{
+	/** Базовый прогноз ряда */
+	base?:boolean | `@${string}`,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?:boolean | `@${string}`,
+	/** Оптимистичный прогноз ряда */
+	optimistic?:boolean | `@${string}`,
+	/** Горизонт прогноза в периодах */
+	periods_ahead?:boolean | `@${string}`,
+	/** Пессимистичный прогноз ряда */
+	pessimistic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalWaveCorridor']?: Omit<ValueTypes["CapitalWaveCorridor"], "...on CapitalWaveCorridor">
+}>;
+	["CapitalWaveSwing"]: AliasType<{
+	/** Индекс точки в ряде */
+	index?:boolean | `@${string}`,
+	/** Метка волны */
+	label?:boolean | `@${string}`,
+	/** Значение на экстремуме */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on CapitalWaveSwing']?: Omit<ValueTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 }>;
 	["Category"]: AliasType<{
 	coopname?:boolean | `@${string}`,
@@ -4963,6 +5434,24 @@ export type ValueTypes = {
 	/** Имя пользователя */
 	username: string | Variable<any, string>
 };
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Срок достижения цели */
+	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string | Variable<any, string>,
+	/** Хеш компонента */
+	project_hash: string | Variable<any, string>,
+	/** Не используется: режим ряда задан в справочнике мер */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Целевое значение на компоненте */
+	target_value: number | Variable<any, string>,
+	/** Не используется: меры только из справочника */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Не используется: меры только из справочника */
+	unit?: string | undefined | null | Variable<any, string>
+};
 	["CreateCustomCategoryInput"]: {
 	/** Название новой категории */
 	displayName: string | Variable<any, string>
@@ -5132,8 +5621,8 @@ export type ValueTypes = {
 	labels?: Array<string> | undefined | null | Variable<any, string>,
 	/** Приоритет задачи */
 	priority?: ValueTypes["IssuePriority"] | undefined | null | Variable<any, string>,
-	/** Хеш проекта */
-	project_hash: string | Variable<any, string>,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null | Variable<any, string>,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null | Variable<any, string>,
 	/** Статус задачи */
@@ -5167,6 +5656,20 @@ export type ValueTypes = {
 	["CreateMatrixAccountInputDTO"]: {
 	password: string | Variable<any, string>,
 	username: string | Variable<any, string>
+};
+	["CreateMeasureInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
+	/** Название меры */
+	title: string | Variable<any, string>,
+	/** Единица измерения */
+	unit: string | Variable<any, string>,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -6855,6 +7358,12 @@ export type ValueTypes = {
 	/** ID корневой категории */
 	rootCategoryId?: number | undefined | null | Variable<any, string>
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string | Variable<any, string>,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null | Variable<any, string>,
@@ -6919,6 +7428,10 @@ export type ValueTypes = {
 	/** ID инвестиции */
 	_id: string | Variable<any, string>
 };
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>
+};
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null | Variable<any, string>,
@@ -6982,6 +7495,12 @@ export type ValueTypes = {
 	["GetMaxOriginServerTsForRoomInput"]: {
 	matrixRoomId: string | Variable<any, string>
 };
+	["GetMeasuresInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string | Variable<any, string>,
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
+	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>
+};
 	["GetMeetInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -6991,6 +7510,40 @@ export type ValueTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>,
+	/** Период агрегации ряда */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>
+};
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Хеш проекта или компонента для истории резонанса */
+	project_hash: string | Variable<any, string>
+};
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string | Variable<any, string>
+};
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>,
+	/** Период агрегации ряда для разметки */
+	period: ValueTypes["MetricSeriesPeriod"] | Variable<any, string>,
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null | Variable<any, string>
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -7191,6 +7744,12 @@ export type ValueTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -7619,6 +8178,14 @@ export type ValueTypes = {
 ["LogEntityType"]:LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number | Variable<any, string>,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null | Variable<any, string>,
+	/** Хеш метрики */
+	metric_hash: string | Variable<any, string>
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string | Variable<any, string>,
@@ -10621,6 +11188,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MatrixAccountStatusResponseDTO']?: Omit<ValueTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 }>;
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -10908,6 +11477,16 @@ export type ValueTypes = {
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]:MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]:MetricDriveDirection;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]:MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]:MetricSeriesPeriod;
+	/** Статус метрики компонента */
+["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -10951,7 +11530,7 @@ export type ValueTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string | Variable<any, string>,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string | Variable<any, string>
 };
 	["Mutation"]: AliasType<{
@@ -10963,7 +11542,10 @@ archiveProductCard?: [{	id: string | Variable<any, string>},boolean | `@${string
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalAddWorklog?: [{	data: ValueTypes["CapitalAddWorklogInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
+capitalAllocateFunds?: [{	data: ValueTypes["CapitalAllocateFundsInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ValueTypes["CommitApproveInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalArchiveComponentMetric?: [{	data: ValueTypes["ArchiveComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ValueTypes["CalculateVotesInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ValueTypes["CloseProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ValueTypes["CompleteProcessStepInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
@@ -10971,10 +11553,13 @@ capitalCompleteRegistration?: [{	data: ValueTypes["CompleteCapitalRegistrationIn
 capitalCompleteVoting?: [{	data: ValueTypes["CompleteVotingInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalConvertSegment?: [{	data: ValueTypes["ConvertSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalCreateCommit?: [{	data: ValueTypes["CreateCommitInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
+capitalCreateComponentMetric?: [{	data: ValueTypes["CreateComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalCreateCycle?: [{	data: ValueTypes["CreateCycleInput"] | Variable<any, string>},ValueTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ValueTypes["CreateDebtInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ValueTypes["CreateExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ValueTypes["CreateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalCreateLocalProject?: [{	data: ValueTypes["CreateProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalCreateMeasure?: [{	data: ValueTypes["CreateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ValueTypes["CreateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ValueTypes["CapitalCreateProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ValueTypes["CreateProgramInvestInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -11016,14 +11601,18 @@ capitalGenerateResultContributionAct?: [{	data: ValueTypes["ResultContributionAc
 capitalGenerateResultContributionDecision?: [{	data: ValueTypes["ResultContributionDecisionGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ValueTypes["ResultContributionStatementGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ValueTypes["ImportContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalLogMetricContribution?: [{	data: ValueTypes["LogMetricContributionInput"] | Variable<any, string>},ValueTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ValueTypes["MakeClearanceInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ValueTypes["MoveCapitalIssueToComponentInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ValueTypes["OpenProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalPauseTimer?: [{	data: ValueTypes["CapitalPauseTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalPushResult?: [{	data: ValueTypes["PushResultInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRefreshProgram?: [{	data: ValueTypes["RefreshProgramInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ValueTypes["RefreshSegmentInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ValueTypes["SetMasterInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetPlan?: [{	data: ValueTypes["SetPlanInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -11031,11 +11620,15 @@ capitalSignActAsChairman?: [{	data: ValueTypes["SignActAsChairmanInput"] | Varia
 capitalSignActAsContributor?: [{	data: ValueTypes["SignActAsContributorInput"] | Variable<any, string>},ValueTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ValueTypes["StartProcessInput"] | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ValueTypes["StartProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalStartTimer?: [{	data: ValueTypes["CapitalStartTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalStartVoting?: [{	data: ValueTypes["StartVotingInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalStopProject?: [{	data: ValueTypes["StopProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
+capitalStopTimer?: [{	data: ValueTypes["CapitalStopTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ValueTypes["SubmitVoteInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ValueTypes["CapitalTopupProgramExpenseInput"] | Variable<any, string>},ValueTypes["Transaction"]],
+capitalUpdateComponentMetric?: [{	data: ValueTypes["UpdateComponentMetricInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ValueTypes["UpdateIssueInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalUpdateMeasure?: [{	data: ValueTypes["UpdateMeasureInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
 capitalUpdateProcessTemplate?: [{	data: ValueTypes["UpdateProcessTemplateInput"] | Variable<any, string>},ValueTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ValueTypes["UpdateStoryInput"] | Variable<any, string>},ValueTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ValueTypes["ConfirmApproveInput"] | Variable<any, string>},ValueTypes["Approval"]],
@@ -11654,6 +12247,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCapitalLogsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
+}>;
+	["PaginatedCapitalMetricContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["CapitalMetricContribution"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedCapitalMetricContributionsPaginationResult']?: Omit<ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"], "...on PaginatedCapitalMetricContributionsPaginationResult">
 }>;
 	["PaginatedCapitalProgramExpensesPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -12648,6 +13253,7 @@ candidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null |
 capitalCandidates?: [{	filter?: ValueTypes["CandidateFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCandidatesPaginationResult"]],
 capitalCommit?: [{	data: ValueTypes["GetCapitalCommitByHashInput"] | Variable<any, string>},ValueTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ValueTypes["CapitalCommitFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCommitsPaginationResult"]],
+capitalComponentMetrics?: [{	data: ValueTypes["GetComponentMetricsInput"] | Variable<any, string>},ValueTypes["CapitalComponentMetric"]],
 capitalContributor?: [{	data: ValueTypes["GetContributorInput"] | Variable<any, string>},ValueTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ValueTypes["CapitalContributorFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ValueTypes["CapitalCycleFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -12655,6 +13261,7 @@ capitalDebt?: [{	data: ValueTypes["GetDebtInput"] | Variable<any, string>},Value
 capitalDebts?: [{	filter?: ValueTypes["DebtFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ValueTypes["GetExpenseInput"] | Variable<any, string>},ValueTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ValueTypes["ExpenseFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ValueTypes["CapitalGetOpenTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string | Variable<any, string>},ValueTypes["ProcessInstance"]],
 capitalGetProcessTemplate?: [{	id: string | Variable<any, string>},ValueTypes["ProcessTemplate"]],
@@ -12662,7 +13269,14 @@ capitalGetProcessTemplates?: [{	project_hash?: string | undefined | null | Varia
 capitalInvest?: [{	data: ValueTypes["GetInvestInput"] | Variable<any, string>},ValueTypes["CapitalInvest"]],
 capitalInvests?: [{	filter?: ValueTypes["CapitalInvestFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ValueTypes["GetCapitalIssueByHashInput"] | Variable<any, string>},ValueTypes["CapitalIssue"]],
+capitalIssueMetricBindings?: [{	data: ValueTypes["GetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ValueTypes["CapitalIssueFilter"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalMeasures?: [{	data: ValueTypes["GetMeasuresInput"] | Variable<any, string>},ValueTypes["CapitalMeasure"]],
+capitalMetricContributions?: [{	data: ValueTypes["GetMetricContributionsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
+capitalMetricSeries?: [{	data: ValueTypes["GetMetricSeriesInput"] | Variable<any, string>},ValueTypes["CapitalMetricSeries"]],
+capitalMetricSuperposition?: [{	data: ValueTypes["GetMetricSuperpositionInput"] | Variable<any, string>},ValueTypes["CapitalMetricSuperposition"]],
+capitalMetricSuperpositionHistory?: [{	data: ValueTypes["GetMetricSuperpositionHistoryInput"] | Variable<any, string>},ValueTypes["CapitalMetricSuperpositionHistory"]],
+capitalMetricWave?: [{	data: ValueTypes["GetMetricWaveInput"] | Variable<any, string>},ValueTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string | Variable<any, string>,	expense_hash: string | Variable<any, string>},ValueTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ValueTypes["GetProjectInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
@@ -13265,6 +13879,7 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	oktmo?:ValueTypes["RequisiteFieldView"],
 	okved?:ValueTypes["RequisiteFieldView"],
 	orgName?:ValueTypes["RequisiteFieldView"],
+	pfrRegNumber?:ValueTypes["RequisiteFieldView"],
 	phone?:ValueTypes["RequisiteFieldView"],
 	sfrRegNumber?:ValueTypes["RequisiteFieldView"],
 	signerFirstName?:ValueTypes["RequisiteFieldView"],
@@ -13750,6 +14365,12 @@ validateReportEdits?: [{	editsJson: string | Variable<any, string>,	reportType: 
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ValueTypes["IssueMetricBindingItemInput"]> | Variable<any, string>,
+	/** Хеш задачи */
+	issue_hash: string | Variable<any, string>
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -14209,6 +14830,22 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	startsAt: ValueTypes["DateTime"] | Variable<any, string>,
 	title: string | Variable<any, string>
 };
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ValueTypes["DateTime"] | undefined | null | Variable<any, string>,
+	/** Перепривязка к мере из справочника */
+	measure_hash?: string | undefined | null | Variable<any, string>,
+	/** Хеш цели на компоненте */
+	metric_hash: string | Variable<any, string>,
+	/** Режим ряда при поиске/создании меры по названию */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Целевое значение */
+	target_value?: number | undefined | null | Variable<any, string>,
+	/** Название меры — перепривязка через поиск/создание меры */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Единица измерения — вместе с названием для поиска/создания меры */
+	unit?: string | undefined | null | Variable<any, string>
+};
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
 	birthdate: string | Variable<any, string>,
@@ -14279,6 +14916,22 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** Название задачи */
 	title?: string | undefined | null | Variable<any, string>
 };
+	["UpdateMeasureInput"]: {
+	/** Хеш меры */
+	measure_hash: string | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	series_mode?: ValueTypes["MetricSeriesMode"] | undefined | null | Variable<any, string>,
+	/** Статус меры: активна или выключена (архив) */
+	status?: ValueTypes["MetricStatus"] | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ValueTypes["MeasureCatalogTag"] | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	title?: string | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null | Variable<any, string>,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ValueTypes["MetricSeriesPeriod"] | undefined | null | Variable<any, string>
+};
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
 	city: string | Variable<any, string>,
@@ -14326,8 +14979,10 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	oktmo?: string | undefined | null | Variable<any, string>,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null | Variable<any, string>,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null | Variable<any, string>,
 	phoneOverride?: string | undefined | null | Variable<any, string>,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null | Variable<any, string>,
 	signerRepDoc?: string | undefined | null | Variable<any, string>,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -14589,6 +15244,10 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string | Variable<any, string>
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]:WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string | Variable<any, string>,
@@ -14691,6 +15350,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	oktmo?:boolean | `@${string}`,
 	okved?:boolean | `@${string}`,
 	orgName?:boolean | `@${string}`,
+	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on ZeroReportOrganizationEdits']?: Omit<ValueTypes["ZeroReportOrganizationEdits"], "...on ZeroReportOrganizationEdits">
 }>;
@@ -14699,6 +15359,7 @@ marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<an
 	firstName?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
+	pfrRegNumber?:boolean | `@${string}`,
 	repDoc?:boolean | `@${string}`,
 	sfrRegNumber?:boolean | `@${string}`,
 	snils?:boolean | `@${string}`,
@@ -15356,6 +16017,10 @@ export type ResolverInputTypes = {
 	/** Хэш заявки */
 	hash: string
 };
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -15488,7 +16153,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -15498,10 +16163,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -16510,6 +17179,27 @@ export type ResolverInputTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
 	["CapitalCandidate"]: AliasType<{
 	about?:boolean | `@${string}`,
 	braname?:boolean | `@${string}`,
@@ -16619,6 +17309,44 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Цель по мере на компоненте (инстанс меры с целевым значением) */
+["CapitalComponentMetric"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал цель */
+	created_by?:boolean | `@${string}`,
+	/** Срок достижения цели */
+	deadline?:boolean | `@${string}`,
+	/** Фактическое значение (сумма вкладов) */
+	fact?:boolean | `@${string}`,
+	/** Хеш меры из справочника */
+	measure_hash?:boolean | `@${string}`,
+	/** Хеш цели на компоненте */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Режим ряда меры */
+	series_mode?:boolean | `@${string}`,
+	/** Статус цели */
+	status?:boolean | `@${string}`,
+	/** Целевое значение на компоненте */
+	target_value?:boolean | `@${string}`,
+	/** Название меры */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: AliasType<{
 	/** Процент голосования авторов */
@@ -16877,6 +17605,20 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalFibLevel"]: AliasType<{
+	/** Фибо-коэффициент */
+	ratio?:boolean | `@${string}`,
+	/** Значение уровня на ряде */
+	value?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: AliasType<{
 	/** Дата создания записи */
@@ -16972,7 +17714,7 @@ export type ResolverInputTypes = {
 	present?:boolean | `@${string}`,
 	/** Приоритет задачи */
 	priority?:boolean | `@${string}`,
-	/** Хеш проекта */
+	/** Хеш проекта или компонента; пусто — свободная задача */
 	project_hash?:boolean | `@${string}`,
 	/** Порядок сортировки */
 	sort_order?:boolean | `@${string}`,
@@ -17025,6 +17767,26 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Плановый вклад задачи в метрику */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: AliasType<{
 	/** Список допустимых статусов для перехода */
@@ -17065,10 +17827,14 @@ export type ResolverInputTypes = {
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
 	_id?:boolean | `@${string}`,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name?:boolean | `@${string}`,
 	/** Название кооператива */
 	coopname?:boolean | `@${string}`,
 	/** Дата создания записи */
 	created_at?:boolean | `@${string}`,
+	/** Детали события: суммы, изменения, контекст */
+	description?:boolean | `@${string}`,
 	/** ID сущности */
 	entity_id?:boolean | `@${string}`,
 	/** Тип сущности к которой относится событие */
@@ -17077,7 +17843,7 @@ export type ResolverInputTypes = {
 	event_type?:boolean | `@${string}`,
 	/** Инициатор действия (username) */
 	initiator?:boolean | `@${string}`,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message?:boolean | `@${string}`,
 	/** Вспомогательные данные */
 	metadata?:boolean | `@${string}`,
@@ -17085,6 +17851,8 @@ export type ResolverInputTypes = {
 	project_hash?:boolean | `@${string}`,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?:boolean | `@${string}`,
+	/** Краткий заголовок действия без имени пайщика */
+	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	/** Фильтр для поиска логов событий */
@@ -17108,6 +17876,260 @@ export type ResolverInputTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	/** Мера: что измеряем (справочник без целевого значения) */
+["CapitalMeasure"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Имя аккаунта кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Кто создал меру */
+	created_by?:boolean | `@${string}`,
+	/** Хеш меры */
+	measure_hash?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Режим ряда: скорость или уровень */
+	series_mode?:boolean | `@${string}`,
+	/** Статус меры */
+	status?:boolean | `@${string}`,
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag?:boolean | `@${string}`,
+	/** Название меры */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricComponentRollup"]: AliasType<{
+	/** Сумма фактов метрик */
+	fact_sum?:boolean | `@${string}`,
+	/** Число активных метрик */
+	metrics_count?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Сумма целей метрик */
+	target_sum?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Хеш записи вклада */
+	contribution_hash?:boolean | `@${string}`,
+	/** Величина вклада */
+	delta?:boolean | `@${string}`,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Момент вклада */
+	occurred_at?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Источник вклада */
+	source?:boolean | `@${string}`,
+	/** Кто зафиксировал вклад */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSeries"]: AliasType<{
+	/** Текущий накопленный факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Точки ряда */
+	points?:ResolverInputTypes["CapitalMetricSeriesPoint"],
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSeriesPoint"]: AliasType<{
+	/** Накопленный факт на конец периода */
+	cumulative?:boolean | `@${string}`,
+	/** Сумма вкладов за период (скорость) */
+	delta?:boolean | `@${string}`,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?:boolean | `@${string}`,
+	/** Конец периода, не включая (UTC) */
+	period_end?:boolean | `@${string}`,
+	/** Начало периода (UTC) */
+	period_start?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperposition"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
+	/** Rollup планов/фактов по дочерним компонентам */
+	components?:ResolverInputTypes["CapitalMetricComponentRollup"],
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
+	/** Метрики в резонансе */
+	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperpositionFrame"]: AliasType<{
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity?:boolean | `@${string}`,
+	/** Момент кадра (конец бакета периода) */
+	at?:boolean | `@${string}`,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance?:boolean | `@${string}`,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence?:boolean | `@${string}`,
+	/** Сколько метрик тянут вниз */
+	down_count?:boolean | `@${string}`,
+	/** Суммарный факт по охвату на момент кадра */
+	fact_sum?:boolean | `@${string}`,
+	/** Сколько метрик нейтральны */
+	flat_count?:boolean | `@${string}`,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth?:boolean | `@${string}`,
+	/** Метрики в резонансе на момент кадра */
+	items?:ResolverInputTypes["CapitalMetricSuperpositionItem"],
+	/** Угол суммы фазоров в радианах */
+	resultant_angle?:boolean | `@${string}`,
+	/** Мнимая часть суммы фазоров */
+	resultant_im?:boolean | `@${string}`,
+	/** Модуль суммы фазоров */
+	resultant_magnitude?:boolean | `@${string}`,
+	/** Действительная часть суммы фазоров */
+	resultant_re?:boolean | `@${string}`,
+	/** Суммарная цель по охвату */
+	target_sum?:boolean | `@${string}`,
+	/** Сколько метрик тянут вверх */
+	up_count?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperpositionHistory"]: AliasType<{
+	/** Кадры резонанса по бакетам периода */
+	frames?:ResolverInputTypes["CapitalMetricSuperpositionFrame"],
+	/** Начало окна истории */
+	from?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Хеш запрошенного проекта/компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Конец окна истории */
+	to?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricSuperpositionItem"]: AliasType<{
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude?:boolean | `@${string}`,
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive?:boolean | `@${string}`,
+	/** Факт */
+	fact?:boolean | `@${string}`,
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad?:boolean | `@${string}`,
+	/** Хеш компонента */
+	project_hash?:boolean | `@${string}`,
+	/** Название компонента */
+	project_title?:boolean | `@${string}`,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity?:boolean | `@${string}`,
+	/** Режим ряда */
+	series_mode?:boolean | `@${string}`,
+	/** Цель */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalMetricWave"]: AliasType<{
+	/** Прогнозный коридор */
+	corridor?:ResolverInputTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label?:boolean | `@${string}`,
+	/** Текущая фаза */
+	current_phase?:boolean | `@${string}`,
+	/** Предупреждение о характере разметки */
+	disclaimer?:boolean | `@${string}`,
+	/** Текущий факт */
+	fact?:boolean | `@${string}`,
+	/** Фибо-сетка */
+	fib_levels?:ResolverInputTypes["CapitalFibLevel"],
+	/** Хеш метрики */
+	metric_hash?:boolean | `@${string}`,
+	/** Период агрегации */
+	period?:boolean | `@${string}`,
+	/** Метка волны на каждой точке ряда */
+	point_labels?:boolean | `@${string}`,
+	/** Режим ряда, на котором построена волна */
+	series_mode?:boolean | `@${string}`,
+	/** Свинги с метками */
+	swings?:ResolverInputTypes["CapitalWaveSwing"],
+	/** Целевое значение */
+	target_value?:boolean | `@${string}`,
+	/** Название метрики */
+	title?:boolean | `@${string}`,
+	/** Единица измерения */
+	unit?:boolean | `@${string}`,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CapitalOnboardingState"]: AliasType<{
 	blagorost_offer_template_done?:boolean | `@${string}`,
 	blagorost_provision_done?:boolean | `@${string}`,
@@ -17130,6 +18152,13 @@ export type ResolverInputTypes = {
 	question: string,
 	step: ResolverInputTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: AliasType<{
 	callback?:ResolverInputTypes["CapitalProgramExpenseCallback"],
@@ -17196,7 +18225,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -17206,10 +18235,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -17260,7 +18293,7 @@ export type ResolverInputTypes = {
 	development_repository_url?:boolean | `@${string}`,
 	/** Фактические показатели проекта */
 	fact?:ResolverInputTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
+	/** ID в блокчейне; у персональных проектов отсутствует */
 	id?:boolean | `@${string}`,
 	/** Приглашение к проекту */
 	invite?:boolean | `@${string}`,
@@ -17270,10 +18303,14 @@ export type ResolverInputTypes = {
 	is_planed?:boolean | `@${string}`,
 	/** Счетчик задач проекта */
 	issue_counter?:boolean | `@${string}`,
+	/** Владелец персонального проекта */
+	local_owner?:boolean | `@${string}`,
 	/** Мастер проекта */
 	master?:boolean | `@${string}`,
 	/** Мета-информация проекта */
 	meta?:boolean | `@${string}`,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin?:boolean | `@${string}`,
 	/** Хеш родительского проекта */
 	parent_hash?:boolean | `@${string}`,
 	/** Название родительского проекта */
@@ -17402,6 +18439,8 @@ export type ResolverInputTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -17581,6 +18620,13 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: AliasType<{
 	/** Дата создания записи */
@@ -17714,6 +18760,15 @@ export type ResolverInputTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: AliasType<{
 	/** Дата создания записи */
@@ -17746,6 +18801,13 @@ export type ResolverInputTypes = {
 	program_membership_funded?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: AliasType<{
 	/** Дата создания записи */
@@ -17897,6 +18959,34 @@ export type ResolverInputTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: AliasType<{
+	/** Идентификатор сессии */
+	_id?:boolean | `@${string}`,
+	/** Хеш участника */
+	contributor_hash?:boolean | `@${string}`,
+	/** Имя кооператива */
+	coopname?:boolean | `@${string}`,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds?:boolean | `@${string}`,
+	/** Сессия на паузе */
+	is_paused?:boolean | `@${string}`,
+	/** Хеш задачи */
+	issue_hash?:boolean | `@${string}`,
+	/** Название задачи */
+	issue_title?:boolean | `@${string}`,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?:boolean | `@${string}`,
+	/** Хеш проекта */
+	project_hash?:boolean | `@${string}`,
+	/** Время старта */
+	started_at?:boolean | `@${string}`,
+	/** Время остановки (null если открыта) */
+	stopped_at?:boolean | `@${string}`,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string,
@@ -17933,6 +19023,32 @@ export type ResolverInputTypes = {
 	voter?:boolean | `@${string}`,
 	/** Отображаемое имя голосующего */
 	voter_display_name?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalWaveCorridor"]: AliasType<{
+	/** Базовый прогноз ряда */
+	base?:boolean | `@${string}`,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?:boolean | `@${string}`,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?:boolean | `@${string}`,
+	/** Оптимистичный прогноз ряда */
+	optimistic?:boolean | `@${string}`,
+	/** Горизонт прогноза в периодах */
+	periods_ahead?:boolean | `@${string}`,
+	/** Пессимистичный прогноз ряда */
+	pessimistic?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["CapitalWaveSwing"]: AliasType<{
+	/** Индекс точки в ряде */
+	index?:boolean | `@${string}`,
+	/** Метка волны */
+	label?:boolean | `@${string}`,
+	/** Значение на экстремуме */
+	value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["Category"]: AliasType<{
@@ -18481,6 +19597,24 @@ export type ResolverInputTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Не используется: режим ряда задан в справочнике мер */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение на компоненте */
+	target_value: number,
+	/** Не используется: меры только из справочника */
+	title?: string | undefined | null,
+	/** Не используется: меры только из справочника */
+	unit?: string | undefined | null
+};
 	["CreateCustomCategoryInput"]: {
 	/** Название новой категории */
 	displayName: string
@@ -18650,8 +19784,8 @@ export type ResolverInputTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ResolverInputTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -18685,6 +19819,20 @@ export type ResolverInputTypes = {
 	["CreateMatrixAccountInputDTO"]: {
 	password: string,
 	username: string
+};
+	["CreateMeasureInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -20337,6 +21485,12 @@ export type ResolverInputTypes = {
 	/** ID корневой категории */
 	rootCategoryId?: number | undefined | null
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ResolverInputTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -20401,6 +21555,10 @@ export type ResolverInputTypes = {
 	/** ID инвестиции */
 	_id: string
 };
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
@@ -20464,6 +21622,12 @@ export type ResolverInputTypes = {
 	["GetMaxOriginServerTsForRoomInput"]: {
 	matrixRoomId: string
 };
+	["GetMeasuresInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
+	status?: ResolverInputTypes["MetricStatus"] | undefined | null
+};
 	["GetMeetInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -20473,6 +21637,40 @@ export type ResolverInputTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ResolverInputTypes["DateTime"] | undefined | null
+};
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории резонанса */
+	project_hash: string
+};
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: ResolverInputTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -20668,6 +21866,12 @@ export type ResolverInputTypes = {
 ["InstanceStatus"]:InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]:IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -21081,6 +22285,14 @@ export type ResolverInputTypes = {
 ["LogEntityType"]:LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -23983,6 +25195,8 @@ export type ResolverInputTypes = {
 	matrixUsername?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: AliasType<{
 	/** Документ с решением совета о проведении собрания */
@@ -24261,6 +25475,16 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]:MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]:MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]:MetricDriveDirection;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]:MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]:MetricSeriesPeriod;
+	/** Статус метрики компонента */
+["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: AliasType<{
 	key?:boolean | `@${string}`,
 	label?:boolean | `@${string}`,
@@ -24302,7 +25526,7 @@ export type ResolverInputTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: AliasType<{
@@ -24314,7 +25538,10 @@ archiveProductCard?: [{	id: string},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
+capitalAddWorklog?: [{	data: ResolverInputTypes["CapitalAddWorklogInput"]},ResolverInputTypes["CapitalTimeEntry"]],
+capitalAllocateFunds?: [{	data: ResolverInputTypes["CapitalAllocateFundsInput"]},ResolverInputTypes["Transaction"]],
 capitalApproveCommit?: [{	data: ResolverInputTypes["CommitApproveInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalArchiveComponentMetric?: [{	data: ResolverInputTypes["ArchiveComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCalculateVotes?: [{	data: ResolverInputTypes["CalculateVotesInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalCloseProject?: [{	data: ResolverInputTypes["CloseProjectInput"]},ResolverInputTypes["CapitalProject"]],
 capitalCompleteProcessStep?: [{	data: ResolverInputTypes["CompleteProcessStepInput"]},ResolverInputTypes["ProcessInstance"]],
@@ -24322,10 +25549,13 @@ capitalCompleteRegistration?: [{	data: ResolverInputTypes["CompleteCapitalRegist
 capitalCompleteVoting?: [{	data: ResolverInputTypes["CompleteVotingInput"]},ResolverInputTypes["Transaction"]],
 capitalConvertSegment?: [{	data: ResolverInputTypes["ConvertSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalCreateCommit?: [{	data: ResolverInputTypes["CreateCommitInput"]},ResolverInputTypes["CapitalCommit"]],
+capitalCreateComponentMetric?: [{	data: ResolverInputTypes["CreateComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalCreateCycle?: [{	data: ResolverInputTypes["CreateCycleInput"]},ResolverInputTypes["CapitalCycle"]],
 capitalCreateDebt?: [{	data: ResolverInputTypes["CreateDebtInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateExpense?: [{	data: ResolverInputTypes["CreateExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateIssue?: [{	data: ResolverInputTypes["CreateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalCreateLocalProject?: [{	data: ResolverInputTypes["CreateProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalCreateMeasure?: [{	data: ResolverInputTypes["CreateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalCreateProcessTemplate?: [{	data: ResolverInputTypes["CreateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalCreateProgramExpense?: [{	data: ResolverInputTypes["CapitalCreateProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
 capitalCreateProgramInvest?: [{	data: ResolverInputTypes["CreateProgramInvestInput"]},ResolverInputTypes["Transaction"]],
@@ -24367,14 +25597,18 @@ capitalGenerateResultContributionAct?: [{	data: ResolverInputTypes["ResultContri
 capitalGenerateResultContributionDecision?: [{	data: ResolverInputTypes["ResultContributionDecisionGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateResultContributionStatement?: [{	data: ResolverInputTypes["ResultContributionStatementGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalImportContributor?: [{	data: ResolverInputTypes["ImportContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalLogMetricContribution?: [{	data: ResolverInputTypes["LogMetricContributionInput"]},ResolverInputTypes["CapitalMetricContribution"]],
 capitalMakeClearance?: [{	data: ResolverInputTypes["MakeClearanceInput"]},ResolverInputTypes["Transaction"]],
 capitalMoveIssueToComponent?: [{	data: ResolverInputTypes["MoveCapitalIssueToComponentInput"]},ResolverInputTypes["CapitalIssue"]],
 capitalOpenProject?: [{	data: ResolverInputTypes["OpenProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalPauseTimer?: [{	data: ResolverInputTypes["CapitalPauseTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalPushResult?: [{	data: ResolverInputTypes["PushResultInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRefreshProgram?: [{	data: ResolverInputTypes["RefreshProgramInput"]},ResolverInputTypes["Transaction"]],
 capitalRefreshSegment?: [{	data: ResolverInputTypes["RefreshSegmentInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInput"]},ResolverInputTypes["Transaction"]],
+capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
+capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ResolverInputTypes["SetMasterInput"]},ResolverInputTypes["Transaction"]],
 capitalSetPlan?: [{	data: ResolverInputTypes["SetPlanInput"]},ResolverInputTypes["CapitalProject"]],
 capitalSetProjectDevelopmentRepositoryUrl?: [{	data: ResolverInputTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"]},ResolverInputTypes["CapitalProject"]],
@@ -24382,11 +25616,15 @@ capitalSignActAsChairman?: [{	data: ResolverInputTypes["SignActAsChairmanInput"]
 capitalSignActAsContributor?: [{	data: ResolverInputTypes["SignActAsContributorInput"]},ResolverInputTypes["CapitalSegment"]],
 capitalStartProcess?: [{	data: ResolverInputTypes["StartProcessInput"]},ResolverInputTypes["ProcessInstance"]],
 capitalStartProject?: [{	data: ResolverInputTypes["StartProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalStartTimer?: [{	data: ResolverInputTypes["CapitalStartTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalStartVoting?: [{	data: ResolverInputTypes["StartVotingInput"]},ResolverInputTypes["Transaction"]],
 capitalStopProject?: [{	data: ResolverInputTypes["StopProjectInput"]},ResolverInputTypes["CapitalProject"]],
+capitalStopTimer?: [{	data: ResolverInputTypes["CapitalStopTimerInput"]},ResolverInputTypes["CapitalTimeEntry"]],
 capitalSubmitVote?: [{	data: ResolverInputTypes["SubmitVoteInput"]},ResolverInputTypes["Transaction"]],
 capitalTopupProgramExpensePool?: [{	data: ResolverInputTypes["CapitalTopupProgramExpenseInput"]},ResolverInputTypes["Transaction"]],
+capitalUpdateComponentMetric?: [{	data: ResolverInputTypes["UpdateComponentMetricInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalUpdateIssue?: [{	data: ResolverInputTypes["UpdateIssueInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalUpdateMeasure?: [{	data: ResolverInputTypes["UpdateMeasureInput"]},ResolverInputTypes["CapitalMeasure"]],
 capitalUpdateProcessTemplate?: [{	data: ResolverInputTypes["UpdateProcessTemplateInput"]},ResolverInputTypes["ProcessTemplate"]],
 capitalUpdateStory?: [{	data: ResolverInputTypes["UpdateStoryInput"]},ResolverInputTypes["CapitalStory"]],
 chairmanConfirmApprove?: [{	data: ResolverInputTypes["ConfirmApproveInput"]},ResolverInputTypes["Approval"]],
@@ -24977,6 +26215,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["CapitalLog"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedCapitalMetricContributionsPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["CapitalMetricContribution"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -25933,6 +27182,7 @@ candidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined 
 capitalCandidates?: [{	filter?: ResolverInputTypes["CandidateFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCandidatesPaginationResult"]],
 capitalCommit?: [{	data: ResolverInputTypes["GetCapitalCommitByHashInput"]},ResolverInputTypes["CapitalCommit"]],
 capitalCommits?: [{	filter?: ResolverInputTypes["CapitalCommitFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCommitsPaginationResult"]],
+capitalComponentMetrics?: [{	data: ResolverInputTypes["GetComponentMetricsInput"]},ResolverInputTypes["CapitalComponentMetric"]],
 capitalContributor?: [{	data: ResolverInputTypes["GetContributorInput"]},ResolverInputTypes["CapitalContributor"]],
 capitalContributors?: [{	filter?: ResolverInputTypes["CapitalContributorFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalContributorsPaginationResult"]],
 capitalCycles?: [{	filter?: ResolverInputTypes["CapitalCycleFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalCyclesPaginationResult"]],
@@ -25940,6 +27190,7 @@ capitalDebt?: [{	data: ResolverInputTypes["GetDebtInput"]},ResolverInputTypes["C
 capitalDebts?: [{	filter?: ResolverInputTypes["DebtFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalDebtsPaginationResult"]],
 capitalExpense?: [{	data: ResolverInputTypes["GetExpenseInput"]},ResolverInputTypes["CapitalExpense"]],
 capitalExpenses?: [{	filter?: ResolverInputTypes["ExpenseFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalExpensesPaginationResult"]],
+capitalGetOpenTimer?: [{	data: ResolverInputTypes["CapitalGetOpenTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
 capitalGetProcessInstance?: [{	id: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessInstances?: [{	project_hash: string},ResolverInputTypes["ProcessInstance"]],
 capitalGetProcessTemplate?: [{	id: string},ResolverInputTypes["ProcessTemplate"]],
@@ -25947,7 +27198,14 @@ capitalGetProcessTemplates?: [{	project_hash?: string | undefined | null},Resolv
 capitalInvest?: [{	data: ResolverInputTypes["GetInvestInput"]},ResolverInputTypes["CapitalInvest"]],
 capitalInvests?: [{	filter?: ResolverInputTypes["CapitalInvestFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalInvestsPaginationResult"]],
 capitalIssue?: [{	data: ResolverInputTypes["GetCapitalIssueByHashInput"]},ResolverInputTypes["CapitalIssue"]],
+capitalIssueMetricBindings?: [{	data: ResolverInputTypes["GetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalIssues?: [{	filter?: ResolverInputTypes["CapitalIssueFilter"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalIssuesPaginationResult"]],
+capitalMeasures?: [{	data: ResolverInputTypes["GetMeasuresInput"]},ResolverInputTypes["CapitalMeasure"]],
+capitalMetricContributions?: [{	data: ResolverInputTypes["GetMetricContributionsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalMetricContributionsPaginationResult"]],
+capitalMetricSeries?: [{	data: ResolverInputTypes["GetMetricSeriesInput"]},ResolverInputTypes["CapitalMetricSeries"]],
+capitalMetricSuperposition?: [{	data: ResolverInputTypes["GetMetricSuperpositionInput"]},ResolverInputTypes["CapitalMetricSuperposition"]],
+capitalMetricSuperpositionHistory?: [{	data: ResolverInputTypes["GetMetricSuperpositionHistoryInput"]},ResolverInputTypes["CapitalMetricSuperpositionHistory"]],
+capitalMetricWave?: [{	data: ResolverInputTypes["GetMetricWaveInput"]},ResolverInputTypes["CapitalMetricWave"]],
 capitalProgramExpense?: [{	coopname: string,	expense_hash: string},ResolverInputTypes["CapitalProgramExpense"]],
 capitalProgramExpenses?: [{	coopname: string,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedCapitalProgramExpensesPaginationResult"]],
 capitalProject?: [{	data: ResolverInputTypes["GetProjectInput"]},ResolverInputTypes["CapitalProject"]],
@@ -26534,6 +27792,7 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	oktmo?:ResolverInputTypes["RequisiteFieldView"],
 	okved?:ResolverInputTypes["RequisiteFieldView"],
 	orgName?:ResolverInputTypes["RequisiteFieldView"],
+	pfrRegNumber?:ResolverInputTypes["RequisiteFieldView"],
 	phone?:ResolverInputTypes["RequisiteFieldView"],
 	sfrRegNumber?:ResolverInputTypes["RequisiteFieldView"],
 	signerFirstName?:ResolverInputTypes["RequisiteFieldView"],
@@ -27011,6 +28270,12 @@ validateReportEdits?: [{	editsJson: string,	reportType: ResolverInputTypes["Repo
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ResolverInputTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -27454,6 +28719,22 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	startsAt: ResolverInputTypes["DateTime"],
 	title: string
 };
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ResolverInputTypes["DateTime"] | undefined | null,
+	/** Перепривязка к мере из справочника */
+	measure_hash?: string | undefined | null,
+	/** Хеш цели на компоненте */
+	metric_hash: string,
+	/** Режим ряда при поиске/создании меры по названию */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название меры — перепривязка через поиск/создание меры */
+	title?: string | undefined | null,
+	/** Единица измерения — вместе с названием для поиска/создания меры */
+	unit?: string | undefined | null
+};
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
 	birthdate: string,
@@ -27524,6 +28805,22 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** Название задачи */
 	title?: string | undefined | null
 };
+	["UpdateMeasureInput"]: {
+	/** Хеш меры */
+	measure_hash: string,
+	/** Не используется: справочник меняется только через миграции */
+	series_mode?: ResolverInputTypes["MetricSeriesMode"] | undefined | null,
+	/** Статус меры: активна или выключена (архив) */
+	status?: ResolverInputTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ResolverInputTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	title?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ResolverInputTypes["MetricSeriesPeriod"] | undefined | null
+};
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
 	city: string,
@@ -27571,8 +28868,10 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -27830,6 +29129,10 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]:WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -27927,6 +29230,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	oktmo?:boolean | `@${string}`,
 	okved?:boolean | `@${string}`,
 	orgName?:boolean | `@${string}`,
+	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["ZeroReportSignerEdits"]: AliasType<{
@@ -27934,6 +29238,7 @@ marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},Reso
 	firstName?:boolean | `@${string}`,
 	lastName?:boolean | `@${string}`,
 	middleName?:boolean | `@${string}`,
+	pfrRegNumber?:boolean | `@${string}`,
 	repDoc?:boolean | `@${string}`,
 	sfrRegNumber?:boolean | `@${string}`,
 	snils?:boolean | `@${string}`,
@@ -28579,6 +29884,10 @@ export type ModelTypes = {
 	/** Хэш заявки */
 	hash: string
 };
+	["ArchiveComponentMetricInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["AuthSequence"]: {
 		account: string,
 	sequence: string
@@ -28704,8 +30013,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -28714,10 +30023,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -29708,6 +31021,27 @@ export type ModelTypes = {
 	referer?: string | undefined | null
 };
 	["CandidateStatus"]:CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+	/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
 	["CapitalCandidate"]: {
 		about?: string | undefined | null,
 	braname?: string | undefined | null,
@@ -29813,6 +31147,43 @@ export type ModelTypes = {
 	status?: ModelTypes["CommitStatus"] | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	/** Цель по мере на компоненте (инстанс меры с целевым значением) */
+["CapitalComponentMetric"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал цель */
+	created_by: string,
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Фактическое значение (сумма вкладов) */
+	fact: number,
+	/** Хеш меры из справочника */
+	measure_hash: string,
+	/** Хеш цели на компоненте */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда меры */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Статус цели */
+	status: ModelTypes["MetricStatus"],
+	/** Целевое значение на компоненте */
+	target_value: number,
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string
 };
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: {
@@ -30067,6 +31438,19 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	["CapitalFibLevel"]: {
+		/** Фибо-коэффициент */
+	ratio: number,
+	/** Значение уровня на ряде */
+	value: number
+};
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: {
 		/** Дата создания записи */
@@ -30161,8 +31545,8 @@ export type ModelTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: ModelTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -30211,6 +31595,25 @@ export type ModelTypes = {
 	html_url: string,
 	username: string
 };
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Плановый вклад задачи в метрику */
+	delta: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean
+};
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: {
 		/** Список допустимых статусов для перехода */
@@ -30250,10 +31653,14 @@ export type ModelTypes = {
 ["CapitalLog"]: {
 		/** Внутренний идентификатор */
 	_id: string,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
 	/** Название кооператива */
 	coopname: string,
 	/** Дата создания записи */
 	created_at: ModelTypes["DateTime"],
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
 	/** ID сущности */
 	entity_id?: string | undefined | null,
 	/** Тип сущности к которой относится событие */
@@ -30262,14 +31669,16 @@ export type ModelTypes = {
 	event_type: ModelTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: ModelTypes["JSON"] | undefined | null,
 	/** Хеш проекта или компонента */
 	project_hash?: string | undefined | null,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
-	reference_id?: string | undefined | null
+	reference_id?: string | undefined | null,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string
 };
 	/** Фильтр для поиска логов событий */
 ["CapitalLogFilterInput"]: {
@@ -30292,6 +31701,250 @@ export type ModelTypes = {
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
 };
+	/** Мера: что измеряем (справочник без целевого значения) */
+["CapitalMeasure"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал меру */
+	created_by: string,
+	/** Хеш меры */
+	measure_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Режим ряда: скорость или уровень */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Статус меры */
+	status: ModelTypes["MetricStatus"],
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag: ModelTypes["MeasureCatalogTag"],
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period: ModelTypes["MetricSeriesPeriod"]
+};
+	["CapitalMetricComponentRollup"]: {
+		/** Сумма фактов метрик */
+	fact_sum: number,
+	/** Число активных метрик */
+	metrics_count: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Сумма целей метрик */
+	target_sum: number
+};
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Хеш записи вклада */
+	contribution_hash: string,
+	/** Величина вклада */
+	delta: number,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Момент вклада */
+	occurred_at: ModelTypes["DateTime"],
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Источник вклада */
+	source: ModelTypes["MetricContributionSource"],
+	/** Кто зафиксировал вклад */
+	username: string
+};
+	["CapitalMetricSeries"]: {
+		/** Текущий накопленный факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Точки ряда */
+	points: Array<ModelTypes["CapitalMetricSeriesPoint"]>,
+	/** Режим ряда */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
+};
+	["CapitalMetricSeriesPoint"]: {
+		/** Накопленный факт на конец периода */
+	cumulative: number,
+	/** Сумма вкладов за период (скорость) */
+	delta: number,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?: number | undefined | null,
+	/** Конец периода, не включая (UTC) */
+	period_end: ModelTypes["DateTime"],
+	/** Начало периода (UTC) */
+	period_start: ModelTypes["DateTime"]
+};
+	["CapitalMetricSuperposition"]: {
+		/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
+	/** Rollup планов/фактов по дочерним компонентам */
+	components: Array<ModelTypes["CapitalMetricComponentRollup"]>,
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
+	/** Метрики в резонансе */
+	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number
+};
+	["CapitalMetricSuperpositionFrame"]: {
+		/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Момент кадра (конец бакета периода) */
+	at: ModelTypes["DateTime"],
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату на момент кадра */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
+	/** Метрики в резонансе на момент кадра */
+	items: Array<ModelTypes["CapitalMetricSuperpositionItem"]>,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number
+};
+	["CapitalMetricSuperpositionHistory"]: {
+		/** Кадры резонанса по бакетам периода */
+	frames: Array<ModelTypes["CapitalMetricSuperpositionFrame"]>,
+	/** Начало окна истории */
+	from: ModelTypes["DateTime"],
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Конец окна истории */
+	to: ModelTypes["DateTime"]
+};
+	["CapitalMetricSuperpositionItem"]: {
+		/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude: number,
+	/** Текущая метка волны */
+	current_label: ModelTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: ModelTypes["WavePhase"],
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive: ModelTypes["MetricDriveDirection"],
+	/** Факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity: number,
+	/** Режим ряда */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Цель */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string
+};
+	["CapitalMetricWave"]: {
+		/** Прогнозный коридор */
+	corridor: ModelTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label: ModelTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: ModelTypes["WavePhase"],
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Текущий факт */
+	fact: number,
+	/** Фибо-сетка */
+	fib_levels: Array<ModelTypes["CapitalFibLevel"]>,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Метка волны на каждой точке ряда */
+	point_labels: Array<ModelTypes["WaveLabel"]>,
+	/** Режим ряда, на котором построена волна */
+	series_mode: ModelTypes["MetricSeriesMode"],
+	/** Свинги с метками */
+	swings: Array<ModelTypes["CapitalWaveSwing"]>,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values: Array<number>
+};
 	["CapitalOnboardingState"]: {
 		blagorost_offer_template_done: boolean,
 	blagorost_provision_done: boolean,
@@ -30313,6 +31966,13 @@ export type ModelTypes = {
 	question: string,
 	step: ModelTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: {
 		callback?: ModelTypes["CapitalProgramExpenseCallback"] | undefined | null,
@@ -30376,8 +32036,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -30386,10 +32046,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -30439,8 +32103,8 @@ export type ModelTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: ModelTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -30449,10 +32113,14 @@ export type ModelTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -30577,6 +32245,8 @@ export type ModelTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -30750,6 +32420,13 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: {
 		/** Дата создания записи */
@@ -30882,6 +32559,15 @@ export type ModelTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: {
 		/** Дата создания записи */
@@ -30912,6 +32598,13 @@ export type ModelTypes = {
 	program_membership_distributed: string,
 	/** Общая сумма членских взносов по программе */
 	program_membership_funded: string
+};
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+	/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: {
@@ -31059,6 +32752,33 @@ export type ModelTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: {
+		/** Идентификатор сессии */
+	_id: string,
+	/** Хеш участника */
+	contributor_hash: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds: number,
+	/** Сессия на паузе */
+	is_paused: boolean,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Название задачи */
+	issue_title?: string | undefined | null,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш проекта */
+	project_hash: string,
+	/** Время старта */
+	started_at: ModelTypes["DateTime"],
+	/** Время остановки (null если открыта) */
+	stopped_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms: number
+};
 	["CapitalTopupProgramExpenseInput"]: {
 	/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string,
@@ -31095,6 +32815,30 @@ export type ModelTypes = {
 	voter?: string | undefined | null,
 	/** Отображаемое имя голосующего */
 	voter_display_name?: string | undefined | null
+};
+	["CapitalWaveCorridor"]: {
+		/** Базовый прогноз ряда */
+	base: Array<number>,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?: number | undefined | null,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?: number | undefined | null,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?: number | undefined | null,
+	/** Оптимистичный прогноз ряда */
+	optimistic: Array<number>,
+	/** Горизонт прогноза в периодах */
+	periods_ahead: number,
+	/** Пессимистичный прогноз ряда */
+	pessimistic: Array<number>
+};
+	["CapitalWaveSwing"]: {
+		/** Индекс точки в ряде */
+	index: number,
+	/** Метка волны */
+	label: ModelTypes["WaveLabel"],
+	/** Значение на экстремуме */
+	value: number
 };
 	["Category"]: {
 		coopname: string,
@@ -31624,6 +33368,24 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreateComponentMetricInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Не используется: режим ряда задан в справочнике мер */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение на компоненте */
+	target_value: number,
+	/** Не используется: меры только из справочника */
+	title?: string | undefined | null,
+	/** Не используется: меры только из справочника */
+	unit?: string | undefined | null
+};
 	["CreateCustomCategoryInput"]: {
 	/** Название новой категории */
 	displayName: string
@@ -31793,8 +33555,8 @@ export type ModelTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: ModelTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -31828,6 +33590,20 @@ export type ModelTypes = {
 	["CreateMatrixAccountInputDTO"]: {
 	password: string,
 	username: string
+};
+	["CreateMeasureInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 	/** Имя аккаунта кооператива */
@@ -33432,6 +35208,12 @@ export type ModelTypes = {
 	/** ID корневой категории */
 	rootCategoryId?: number | undefined | null
 };
+	["GetComponentMetricsInput"]: {
+	/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: ModelTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 	/** ID участника */
 	_id?: string | undefined | null,
@@ -33496,6 +35278,10 @@ export type ModelTypes = {
 	/** ID инвестиции */
 	_id: string
 };
+	["GetIssueMetricBindingsInput"]: {
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["GetLedger2HistoryInput"]: {
 	/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
@@ -33559,6 +35345,12 @@ export type ModelTypes = {
 	["GetMaxOriginServerTsForRoomInput"]: {
 	matrixRoomId: string
 };
+	["GetMeasuresInput"]: {
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
+	status?: ModelTypes["MetricStatus"] | undefined | null
+};
 	["GetMeetInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -33568,6 +35360,40 @@ export type ModelTypes = {
 	["GetMeetsInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+	/** Хеш метрики */
+	metric_hash: string
+};
+	["GetMetricSeriesInput"]: {
+	/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: ModelTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: ModelTypes["DateTime"] | undefined | null
+};
+	["GetMetricSuperpositionHistoryInput"]: {
+	/** Период агрегации кадров истории */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории резонанса */
+	project_hash: string
+};
+	["GetMetricSuperpositionInput"]: {
+	/** Период агрегации для волновой фазы */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
+	["GetMetricWaveInput"]: {
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: ModelTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
 };
 	["GetOneCoopDocumentsInput"]: {
 	/** Номер блока, начиная с которого извлекать документы */
@@ -33756,6 +35582,12 @@ export type ModelTypes = {
 };
 	["InstanceStatus"]:InstanceStatus;
 	["InvestStatus"]:InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+	/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["IssuePriority"]:IssuePriority;
 	["IssueStatus"]:IssueStatus;
 	/** The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
@@ -34148,6 +35980,14 @@ export type ModelTypes = {
 };
 	["LogEntityType"]:LogEntityType;
 	["LogEventType"]:LogEventType;
+	["LogMetricContributionInput"]: {
+	/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 	/** Электронная почта */
 	email: string,
@@ -36906,6 +38746,7 @@ export type ModelTypes = {
 	iframeUrl?: string | undefined | null,
 	matrixUsername?: string | undefined | null
 };
+	["MeasureCatalogTag"]:MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 		/** Документ с решением совета о проведении собрания */
@@ -37174,6 +39015,11 @@ export type ModelTypes = {
 	total: string
 };
 	["MembershipExitStatus"]:MembershipExitStatus;
+	["MetricContributionSource"]:MetricContributionSource;
+	["MetricDriveDirection"]:MetricDriveDirection;
+	["MetricSeriesMode"]:MetricSeriesMode;
+	["MetricSeriesPeriod"]:MetricSeriesPeriod;
+	["MetricStatus"]:MetricStatus;
 	["MissingRequisiteField"]: {
 		key: string,
 	label: string,
@@ -37213,7 +39059,7 @@ export type ModelTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 	/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: {
@@ -37245,10 +39091,22 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: ModelTypes["CapitalProject"],
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: ModelTypes["CapitalTimeEntry"],
+	/** Направление средств программы в проект или компонент
+
+Требуемые роли: chairman.  */
+	capitalAllocateFunds: ModelTypes["Transaction"],
 	/** Одобрение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: ModelTypes["CapitalCommit"],
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalArchiveComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Расчет голосов в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -37277,6 +39135,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalCreateCommit: ModelTypes["CapitalCommit"],
+	/** Создание цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Создание цикла в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -37293,6 +39155,14 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateIssue: ModelTypes["CapitalIssue"],
+	/** Создание персонального проекта или компонента без публикации в блокчейн
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateLocalProject: ModelTypes["CapitalProject"],
+	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
+
+Требуемые роли: chairman.  */
+	capitalCreateMeasure: ModelTypes["CapitalMeasure"],
 	/** Создание шаблона процесса
 
 Требуемые роли: chairman, member.  */
@@ -37457,11 +39327,15 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: ModelTypes["Transaction"],
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalLogMetricContribution: ModelTypes["CapitalMetricContribution"],
 	/** Подписание приложения в CAPITAL контракте
 
 Требуемые роли: chairman.  */
 	capitalMakeClearance: ModelTypes["Transaction"],
-	/** Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)
+	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
 
 Требуемые роли: chairman, member, user.  */
 	capitalMoveIssueToComponent: ModelTypes["CapitalIssue"],
@@ -37469,6 +39343,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalOpenProject: ModelTypes["CapitalProject"],
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
+	capitalPauseTimer: ModelTypes["CapitalTimerSession"],
 	/** Внесение результата в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -37485,10 +39363,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: ModelTypes["Transaction"],
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
+	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
 	capitalSetConfig: ModelTypes["Transaction"],
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalSetIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
 	/** Установка мастера проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -37513,6 +39399,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStartProject: ModelTypes["CapitalProject"],
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
+	capitalStartTimer: ModelTypes["CapitalTimerSession"],
 	/** Запуск голосования в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -37521,6 +39411,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStopProject: ModelTypes["CapitalProject"],
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
+	capitalStopTimer?: ModelTypes["CapitalTimeEntry"] | undefined | null,
 	/** Голосование в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -37529,10 +39423,18 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: ModelTypes["Transaction"],
+	/** Обновление цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalUpdateComponentMetric: ModelTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalUpdateIssue: ModelTypes["CapitalIssue"],
+	/** Включение или выключение меры в справочнике (без изменения состава)
+
+Требуемые роли: chairman.  */
+	capitalUpdateMeasure: ModelTypes["CapitalMeasure"],
 	/** Обновление шаблона процесса (шаги, рёбра, статус)
 
 Требуемые роли: chairman, member.  */
@@ -38562,6 +40464,16 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
+	["PaginatedCapitalMetricContributionsPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["CapitalMetricContribution"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
 	["PaginatedCapitalProgramExpensesPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -39464,6 +41376,10 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCommits: ModelTypes["PaginatedCapitalCommitsPaginationResult"],
+	/** Цели по мерам на компоненте с фактом
+
+Требуемые роли: chairman, member, user.  */
+	capitalComponentMetrics: Array<ModelTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: ModelTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -39480,6 +41396,10 @@ export type ModelTypes = {
 	capitalExpense?: ModelTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: ModelTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: ModelTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: ModelTypes["ProcessInstance"] | undefined | null,
 	/** Получение экземпляров процессов для проекта */
@@ -39496,10 +41416,38 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssue?: ModelTypes["CapitalIssue"] | undefined | null,
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
+	capitalIssueMetricBindings: Array<ModelTypes["CapitalIssueMetricBinding"]>,
 	/** Получение списка задач кооператива с фильтрацией
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: ModelTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Справочник мер кооператива
+
+Требуемые роли: chairman, member, user.  */
+	capitalMeasures: Array<ModelTypes["CapitalMeasure"]>,
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricContributions: ModelTypes["PaginatedCapitalMetricContributionsPaginationResult"],
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSeries: ModelTypes["CapitalMetricSeries"],
+	/** Метрика резонанса и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperposition: ModelTypes["CapitalMetricSuperposition"],
+	/** История резонанса метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperpositionHistory: ModelTypes["CapitalMetricSuperpositionHistory"],
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricWave: ModelTypes["CapitalMetricWave"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -39790,7 +41738,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getReport: ModelTypes["GeneratedReport"],
-	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) reportYear = year - 1 — именно он возвращается в периоде.
+	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) reportYear = year - 1 — именно он возвращается в периоде.
 
 Требуемые роли: chairman.  */
 	getReportCalendar: Array<ModelTypes["ReportCalendarRow"]>,
@@ -40373,6 +42321,7 @@ export type ModelTypes = {
 	oktmo: ModelTypes["RequisiteFieldView"],
 	okved: ModelTypes["RequisiteFieldView"],
 	orgName: ModelTypes["RequisiteFieldView"],
+	pfrRegNumber: ModelTypes["RequisiteFieldView"],
 	phone: ModelTypes["RequisiteFieldView"],
 	sfrRegNumber: ModelTypes["RequisiteFieldView"],
 	signerFirstName: ModelTypes["RequisiteFieldView"],
@@ -40833,6 +42782,12 @@ export type ModelTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+	/** Полный список привязок задачи к метрикам */
+	bindings: Array<ModelTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -41258,6 +43213,22 @@ export type ModelTypes = {
 	startsAt: ModelTypes["DateTime"],
 	title: string
 };
+	["UpdateComponentMetricInput"]: {
+	/** Срок достижения цели */
+	deadline?: ModelTypes["DateTime"] | undefined | null,
+	/** Перепривязка к мере из справочника */
+	measure_hash?: string | undefined | null,
+	/** Хеш цели на компоненте */
+	metric_hash: string,
+	/** Режим ряда при поиске/создании меры по названию */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название меры — перепривязка через поиск/создание меры */
+	title?: string | undefined | null,
+	/** Единица измерения — вместе с названием для поиска/создания меры */
+	unit?: string | undefined | null
+};
 	["UpdateEntrepreneurDataInput"]: {
 	/** Дата рождения */
 	birthdate: string,
@@ -41328,6 +43299,22 @@ export type ModelTypes = {
 	/** Название задачи */
 	title?: string | undefined | null
 };
+	["UpdateMeasureInput"]: {
+	/** Хеш меры */
+	measure_hash: string,
+	/** Не используется: справочник меняется только через миграции */
+	series_mode?: ModelTypes["MetricSeriesMode"] | undefined | null,
+	/** Статус меры: активна или выключена (архив) */
+	status?: ModelTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: ModelTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	title?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: ModelTypes["MetricSeriesPeriod"] | undefined | null
+};
 	["UpdateOrganizationDataInput"]: {
 	/** Город */
 	city: string,
@@ -41375,8 +43362,10 @@ export type ModelTypes = {
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -41623,6 +43612,8 @@ export type ModelTypes = {
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	["WaveLabel"]:WaveLabel;
+	["WavePhase"]:WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 	/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -41714,13 +43705,15 @@ export type ModelTypes = {
 	okpo?: string | undefined | null,
 	oktmo?: string | undefined | null,
 	okved?: string | undefined | null,
-	orgName: string
+	orgName: string,
+	phone?: string | undefined | null
 };
 	["ZeroReportSignerEdits"]: {
 		chairmanPosition?: string | undefined | null,
 	firstName: string,
 	lastName: string,
 	middleName?: string | undefined | null,
+	pfrRegNumber?: string | undefined | null,
 	repDoc?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	snils?: string | undefined | null,
@@ -42396,6 +44389,10 @@ export type GraphQLTypes = {
 	/** Хэш заявки */
 	hash: string
 };
+	["ArchiveComponentMetricInput"]: {
+		/** Хеш метрики */
+	metric_hash: string
+};
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
 	account: string,
@@ -42536,8 +44533,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -42546,10 +44543,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -43573,6 +45574,27 @@ export type GraphQLTypes = {
 		referer?: string | undefined | null
 };
 	["CandidateStatus"]: CandidateStatus;
+	/** Ручная запись фактического времени по задаче */
+["CapitalAddWorklogInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Дата работы YYYY-MM-DD (по умолчанию сегодня) */
+	date?: string | undefined | null,
+	/** Количество часов (> 0) */
+	hours: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя-исполнителя */
+	username: string
+};
+	["CapitalAllocateFundsInput"]: {
+		/** Сумма направляемых средств (asset, eg "10000.0000 RUB"). */
+	amount: string,
+	/** Имя кооператива. */
+	coopname: string,
+	/** Идентификатор проекта или компонента. */
+	project_hash: string
+};
 	["CapitalCandidate"]: {
 	__typename: "CapitalCandidate",
 	about?: string | undefined | null,
@@ -43684,6 +45706,45 @@ export type GraphQLTypes = {
 	status?: GraphQLTypes["CommitStatus"] | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	/** Цель по мере на компоненте (инстанс меры с целевым значением) */
+["CapitalComponentMetric"]: {
+	__typename: "CapitalComponentMetric",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал цель */
+	created_by: string,
+	/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Фактическое значение (сумма вкладов) */
+	fact: number,
+	/** Хеш меры из справочника */
+	measure_hash: string,
+	/** Хеш цели на компоненте */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Режим ряда меры */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Статус цели */
+	status: GraphQLTypes["MetricStatus"],
+	/** Целевое значение на компоненте */
+	target_value: number,
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalComponentMetric']: Omit<GraphQLTypes["CapitalComponentMetric"], "...on CapitalComponentMetric">
 };
 	/** Конфигурация CAPITAL контракта кооператива */
 ["CapitalConfigObject"]: {
@@ -43948,6 +46009,21 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalExpense']: Omit<GraphQLTypes["CapitalExpense"], "...on CapitalExpense">
 };
+	["CapitalFibLevel"]: {
+	__typename: "CapitalFibLevel",
+	/** Фибо-коэффициент */
+	ratio: number,
+	/** Значение уровня на ряде */
+	value: number,
+	['...on CapitalFibLevel']: Omit<GraphQLTypes["CapitalFibLevel"], "...on CapitalFibLevel">
+};
+	/** Запрос открытой сессии таймера участника */
+["CapitalGetOpenTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Инвестиция в системе CAPITAL */
 ["CapitalInvest"]: {
 	__typename: "CapitalInvest",
@@ -44045,8 +46121,8 @@ export type GraphQLTypes = {
 	present: boolean,
 	/** Приоритет задачи */
 	priority: GraphQLTypes["IssuePriority"],
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента; пусто — свободная задача */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order: number,
 	/** Статус задачи */
@@ -44100,6 +46176,27 @@ export type GraphQLTypes = {
 	username: string,
 	['...on CapitalIssueLinkedGitCommit']: Omit<GraphQLTypes["CapitalIssueLinkedGitCommit"], "...on CapitalIssueLinkedGitCommit">
 };
+	/** Привязка задачи к метрике с плановым вкладом */
+["CapitalIssueMetricBinding"]: {
+	__typename: "CapitalIssueMetricBinding",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Плановый вклад задачи в метрику */
+	delta: number,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	['...on CapitalIssueMetricBinding']: Omit<GraphQLTypes["CapitalIssueMetricBinding"], "...on CapitalIssueMetricBinding">
+};
 	/** Права доступа пользователя к задаче */
 ["CapitalIssuePermissions"]: {
 	__typename: "CapitalIssuePermissions",
@@ -44142,10 +46239,14 @@ export type GraphQLTypes = {
 	__typename: "CapitalLog",
 	/** Внутренний идентификатор */
 	_id: string,
+	/** ФИО инициатора (если доступно), иначе username */
+	actor_name: string,
 	/** Название кооператива */
 	coopname: string,
 	/** Дата создания записи */
 	created_at: GraphQLTypes["DateTime"],
+	/** Детали события: суммы, изменения, контекст */
+	description?: string | undefined | null,
 	/** ID сущности */
 	entity_id?: string | undefined | null,
 	/** Тип сущности к которой относится событие */
@@ -44154,7 +46255,7 @@ export type GraphQLTypes = {
 	event_type: GraphQLTypes["LogEventType"],
 	/** Инициатор действия (username) */
 	initiator: string,
-	/** Текстовое описание события */
+	/** Полное текстовое описание события (совместимость) */
 	message: string,
 	/** Вспомогательные данные */
 	metadata?: GraphQLTypes["JSON"] | undefined | null,
@@ -44162,6 +46263,8 @@ export type GraphQLTypes = {
 	project_hash?: string | undefined | null,
 	/** Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.) */
 	reference_id?: string | undefined | null,
+	/** Краткий заголовок действия без имени пайщика */
+	title: string,
 	['...on CapitalLog']: Omit<GraphQLTypes["CapitalLog"], "...on CapitalLog">
 };
 	/** Фильтр для поиска логов событий */
@@ -44184,6 +46287,270 @@ export type GraphQLTypes = {
 	show_components_logs?: boolean | undefined | null,
 	/** Показывать логи по задачам */
 	show_issue_logs?: boolean | undefined | null
+};
+	/** Мера: что измеряем (справочник без целевого значения) */
+["CapitalMeasure"]: {
+	__typename: "CapitalMeasure",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Кто создал меру */
+	created_by: string,
+	/** Хеш меры */
+	measure_hash: string,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Режим ряда: скорость или уровень */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Статус меры */
+	status: GraphQLTypes["MetricStatus"],
+	/** Категория меры: личное, продукт, контент, кооператив или качество */
+	tag: GraphQLTypes["MeasureCatalogTag"],
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Волна: шаг локального анализа импульса и отката */
+	wave_period: GraphQLTypes["MetricSeriesPeriod"],
+	['...on CapitalMeasure']: Omit<GraphQLTypes["CapitalMeasure"], "...on CapitalMeasure">
+};
+	["CapitalMetricComponentRollup"]: {
+	__typename: "CapitalMetricComponentRollup",
+	/** Сумма фактов метрик */
+	fact_sum: number,
+	/** Число активных метрик */
+	metrics_count: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Сумма целей метрик */
+	target_sum: number,
+	['...on CapitalMetricComponentRollup']: Omit<GraphQLTypes["CapitalMetricComponentRollup"], "...on CapitalMetricComponentRollup">
+};
+	/** Запись журнала вкладов в метрику */
+["CapitalMetricContribution"]: {
+	__typename: "CapitalMetricContribution",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Хеш записи вклада */
+	contribution_hash: string,
+	/** Величина вклада */
+	delta: number,
+	/** Хеш задачи, если вклад от задачи */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Момент вклада */
+	occurred_at: GraphQLTypes["DateTime"],
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Источник вклада */
+	source: GraphQLTypes["MetricContributionSource"],
+	/** Кто зафиксировал вклад */
+	username: string,
+	['...on CapitalMetricContribution']: Omit<GraphQLTypes["CapitalMetricContribution"], "...on CapitalMetricContribution">
+};
+	["CapitalMetricSeries"]: {
+	__typename: "CapitalMetricSeries",
+	/** Текущий накопленный факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Точки ряда */
+	points: Array<GraphQLTypes["CapitalMetricSeriesPoint"]>,
+	/** Режим ряда */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalMetricSeries']: Omit<GraphQLTypes["CapitalMetricSeries"], "...on CapitalMetricSeries">
+};
+	["CapitalMetricSeriesPoint"]: {
+	__typename: "CapitalMetricSeriesPoint",
+	/** Накопленный факт на конец периода */
+	cumulative: number,
+	/** Сумма вкладов за период (скорость) */
+	delta: number,
+	/** Идеальная линия burn-up к дедлайну на конец периода */
+	ideal_cumulative?: number | undefined | null,
+	/** Конец периода, не включая (UTC) */
+	period_end: GraphQLTypes["DateTime"],
+	/** Начало периода (UTC) */
+	period_start: GraphQLTypes["DateTime"],
+	['...on CapitalMetricSeriesPoint']: Omit<GraphQLTypes["CapitalMetricSeriesPoint"], "...on CapitalMetricSeriesPoint">
+};
+	["CapitalMetricSuperposition"]: {
+	__typename: "CapitalMetricSuperposition",
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
+	/** Rollup планов/фактов по дочерним компонентам */
+	components: Array<GraphQLTypes["CapitalMetricComponentRollup"]>,
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
+	/** Метрики в резонансе */
+	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number,
+	['...on CapitalMetricSuperposition']: Omit<GraphQLTypes["CapitalMetricSuperposition"], "...on CapitalMetricSuperposition">
+};
+	["CapitalMetricSuperpositionFrame"]: {
+	__typename: "CapitalMetricSuperpositionFrame",
+	/** Средняя амплитуда движения: 0 — покой, выше — есть рост/ход */
+	activity: number,
+	/** Момент кадра (конец бакета периода) */
+	at: GraphQLTypes["DateTime"],
+	/** Баланс процесса: в покое 1; при росте — согласованность фаз к цели */
+	balance: number,
+	/** Когерентность фазоров от 0 до 1; в покое равна 1 */
+	coherence: number,
+	/** Сколько метрик тянут вниз */
+	down_count: number,
+	/** Суммарный факт по охвату на момент кадра */
+	fact_sum: number,
+	/** Сколько метрик нейтральны */
+	flat_count: number,
+	/** Рост на оси импульса от 0 до 1; в покое 0 */
+	growth: number,
+	/** Метрики в резонансе на момент кадра */
+	items: Array<GraphQLTypes["CapitalMetricSuperpositionItem"]>,
+	/** Угол суммы фазоров в радианах */
+	resultant_angle: number,
+	/** Мнимая часть суммы фазоров */
+	resultant_im: number,
+	/** Модуль суммы фазоров */
+	resultant_magnitude: number,
+	/** Действительная часть суммы фазоров */
+	resultant_re: number,
+	/** Суммарная цель по охвату */
+	target_sum: number,
+	/** Сколько метрик тянут вверх */
+	up_count: number,
+	['...on CapitalMetricSuperpositionFrame']: Omit<GraphQLTypes["CapitalMetricSuperpositionFrame"], "...on CapitalMetricSuperpositionFrame">
+};
+	["CapitalMetricSuperpositionHistory"]: {
+	__typename: "CapitalMetricSuperpositionHistory",
+	/** Кадры резонанса по бакетам периода */
+	frames: Array<GraphQLTypes["CapitalMetricSuperpositionFrame"]>,
+	/** Начало окна истории */
+	from: GraphQLTypes["DateTime"],
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш запрошенного проекта/компонента */
+	project_hash: string,
+	/** Конец окна истории */
+	to: GraphQLTypes["DateTime"],
+	['...on CapitalMetricSuperpositionHistory']: Omit<GraphQLTypes["CapitalMetricSuperpositionHistory"], "...on CapitalMetricSuperpositionHistory">
+};
+	["CapitalMetricSuperpositionItem"]: {
+	__typename: "CapitalMetricSuperpositionItem",
+	/** Амплитуда фазора — сила недавнего движения от 0 до 1 */
+	amplitude: number,
+	/** Текущая метка волны */
+	current_label: GraphQLTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: GraphQLTypes["WavePhase"],
+	/** Вклад в общую динамику: тянет вверх, вниз или нейтрально */
+	drive: GraphQLTypes["MetricDriveDirection"],
+	/** Факт */
+	fact: number,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Фаза цикла в радианах: 0 — импульс к цели, π — коррекция */
+	phase_rad: number,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Название компонента */
+	project_title: string,
+	/** Скорость последнего периода (Δ) */
+	recent_velocity: number,
+	/** Режим ряда */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Цель */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	['...on CapitalMetricSuperpositionItem']: Omit<GraphQLTypes["CapitalMetricSuperpositionItem"], "...on CapitalMetricSuperpositionItem">
+};
+	["CapitalMetricWave"]: {
+	__typename: "CapitalMetricWave",
+	/** Прогнозный коридор */
+	corridor: GraphQLTypes["CapitalWaveCorridor"],
+	/** Текущая метка волны */
+	current_label: GraphQLTypes["WaveLabel"],
+	/** Текущая фаза */
+	current_phase: GraphQLTypes["WavePhase"],
+	/** Предупреждение о характере разметки */
+	disclaimer: string,
+	/** Текущий факт */
+	fact: number,
+	/** Фибо-сетка */
+	fib_levels: Array<GraphQLTypes["CapitalFibLevel"]>,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Метка волны на каждой точке ряда */
+	point_labels: Array<GraphQLTypes["WaveLabel"]>,
+	/** Режим ряда, на котором построена волна */
+	series_mode: GraphQLTypes["MetricSeriesMode"],
+	/** Свинги с метками */
+	swings: Array<GraphQLTypes["CapitalWaveSwing"]>,
+	/** Целевое значение */
+	target_value: number,
+	/** Название метрики */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Значения ряда для разметки (скорость или уровень) */
+	values: Array<number>,
+	['...on CapitalMetricWave']: Omit<GraphQLTypes["CapitalMetricWave"], "...on CapitalMetricWave">
 };
 	["CapitalOnboardingState"]: {
 	__typename: "CapitalOnboardingState",
@@ -44208,6 +46575,13 @@ export type GraphQLTypes = {
 	question: string,
 	step: GraphQLTypes["CapitalOnboardingStep"],
 	title?: string | undefined | null
+};
+	/** Пауза открытого таймера (задача остаётся привязанной) */
+["CapitalPauseTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	["CapitalProgramExpense"]: {
 	__typename: "CapitalProgramExpense",
@@ -44278,8 +46652,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -44288,10 +46662,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -44343,8 +46721,8 @@ export type GraphQLTypes = {
 	development_repository_url?: string | undefined | null,
 	/** Фактические показатели проекта */
 	fact: GraphQLTypes["CapitalProjectFactPool"],
-	/** ID в блокчейне */
-	id: number,
+	/** ID в блокчейне; у персональных проектов отсутствует */
+	id?: number | undefined | null,
 	/** Приглашение к проекту */
 	invite: string,
 	/** Открыт ли проект */
@@ -44353,10 +46731,14 @@ export type GraphQLTypes = {
 	is_planed: boolean,
 	/** Счетчик задач проекта */
 	issue_counter: number,
+	/** Владелец персонального проекта */
+	local_owner?: string | undefined | null,
 	/** Мастер проекта */
 	master: string,
 	/** Мета-информация проекта */
 	meta: string,
+	/** Происхождение проекта: blockchain (кооперативный) или local (персональный) */
+	origin: string,
 	/** Хеш родительского проекта */
 	parent_hash: string,
 	/** Название родительского проекта */
@@ -44488,6 +46870,8 @@ export type GraphQLTypes = {
 	is_planed?: boolean | undefined | null,
 	/** Фильтр по мастеру проекта */
 	master?: string | undefined | null,
+	/** Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain */
+	origin?: string | undefined | null,
 	/** Фильтр по хешу родительского проекта */
 	parent_hash?: string | undefined | null,
 	/** Фильтр по хешу проекта */
@@ -44673,6 +47057,13 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalResult']: Omit<GraphQLTypes["CapitalResult"], "...on CapitalResult">
 };
+	/** Снятие паузы — продолжение учёта на той же задаче */
+["CapitalResumeTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Сегмент участника в проекте CAPITAL */
 ["CapitalSegment"]: {
 	__typename: "CapitalSegment",
@@ -44807,6 +47198,15 @@ export type GraphQLTypes = {
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
 };
+	/** Старт таймера на одной задаче */
+["CapitalStartTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Имя пользователя */
+	username: string
+};
 	/** Полное состояние CAPITAL контракта кооператива */
 ["CapitalState"]: {
 	__typename: "CapitalState",
@@ -44839,6 +47239,13 @@ export type GraphQLTypes = {
 	/** Общая сумма членских взносов по программе */
 	program_membership_funded: string,
 	['...on CapitalState']: Omit<GraphQLTypes["CapitalState"], "...on CapitalState">
+};
+	/** Остановка открытого таймера участника */
+["CapitalStopTimerInput"]: {
+		/** Имя кооператива */
+	coopname: string,
+	/** Имя пользователя */
+	username: string
 };
 	/** История (критерий выполнения) в системе CAPITAL */
 ["CapitalStory"]: {
@@ -44995,6 +47402,35 @@ export type GraphQLTypes = {
 	/** Имя пользователя (опционально) */
 	username?: string | undefined | null
 };
+	/** Сессия таймера учёта времени по задаче */
+["CapitalTimerSession"]: {
+	__typename: "CapitalTimerSession",
+	/** Идентификатор сессии */
+	_id: string,
+	/** Хеш участника */
+	contributor_hash: string,
+	/** Имя кооператива */
+	coopname: string,
+	/** Накопленные секунды без пауз на момент ответа */
+	elapsed_seconds: number,
+	/** Сессия на паузе */
+	is_paused: boolean,
+	/** Хеш задачи */
+	issue_hash: string,
+	/** Название задачи */
+	issue_title?: string | undefined | null,
+	/** Момент паузы (null если идёт или остановлена) */
+	paused_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш проекта */
+	project_hash: string,
+	/** Время старта */
+	started_at: GraphQLTypes["DateTime"],
+	/** Время остановки (null если открыта) */
+	stopped_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Сумма завершённых пауз в миллисекундах */
+	total_paused_ms: number,
+	['...on CapitalTimerSession']: Omit<GraphQLTypes["CapitalTimerSession"], "...on CapitalTimerSession">
+};
 	["CapitalTopupProgramExpenseInput"]: {
 		/** Сумма пополнения (asset, eg "10000.0000 RUB"). */
 	amount: string,
@@ -45033,6 +47469,34 @@ export type GraphQLTypes = {
 	/** Отображаемое имя голосующего */
 	voter_display_name?: string | undefined | null,
 	['...on CapitalVote']: Omit<GraphQLTypes["CapitalVote"], "...on CapitalVote">
+};
+	["CapitalWaveCorridor"]: {
+	__typename: "CapitalWaveCorridor",
+	/** Базовый прогноз ряда */
+	base: Array<number>,
+	/** Оценка периодов до цели (базовый) */
+	eta_base_periods?: number | undefined | null,
+	/** Оценка периодов до цели (оптимистичный) */
+	eta_optimistic_periods?: number | undefined | null,
+	/** Оценка периодов до цели (пессимистичный) */
+	eta_pessimistic_periods?: number | undefined | null,
+	/** Оптимистичный прогноз ряда */
+	optimistic: Array<number>,
+	/** Горизонт прогноза в периодах */
+	periods_ahead: number,
+	/** Пессимистичный прогноз ряда */
+	pessimistic: Array<number>,
+	['...on CapitalWaveCorridor']: Omit<GraphQLTypes["CapitalWaveCorridor"], "...on CapitalWaveCorridor">
+};
+	["CapitalWaveSwing"]: {
+	__typename: "CapitalWaveSwing",
+	/** Индекс точки в ряде */
+	index: number,
+	/** Метка волны */
+	label: GraphQLTypes["WaveLabel"],
+	/** Значение на экстремуме */
+	value: number,
+	['...on CapitalWaveSwing']: Omit<GraphQLTypes["CapitalWaveSwing"], "...on CapitalWaveSwing">
 };
 	["Category"]: {
 	__typename: "Category",
@@ -45595,6 +48059,24 @@ export type GraphQLTypes = {
 	/** Имя пользователя */
 	username: string
 };
+	["CreateComponentMetricInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш меры из централизованного справочника */
+	measure_hash: string,
+	/** Хеш компонента */
+	project_hash: string,
+	/** Не используется: режим ряда задан в справочнике мер */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение на компоненте */
+	target_value: number,
+	/** Не используется: меры только из справочника */
+	title?: string | undefined | null,
+	/** Не используется: меры только из справочника */
+	unit?: string | undefined | null
+};
 	["CreateCustomCategoryInput"]: {
 		/** Название новой категории */
 	displayName: string
@@ -45764,8 +48246,8 @@ export type GraphQLTypes = {
 	labels?: Array<string> | undefined | null,
 	/** Приоритет задачи */
 	priority?: GraphQLTypes["IssuePriority"] | undefined | null,
-	/** Хеш проекта */
-	project_hash: string,
+	/** Хеш проекта или компонента. Если не указан — свободная задача без привязки к проекту */
+	project_hash?: string | undefined | null,
 	/** Порядок сортировки */
 	sort_order?: number | undefined | null,
 	/** Статус задачи */
@@ -45799,6 +48281,20 @@ export type GraphQLTypes = {
 	["CreateMatrixAccountInputDTO"]: {
 		password: string,
 	username: string
+};
+	["CreateMeasureInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Режим ряда; по умолчанию скорость */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Категория меры; по умолчанию продукт */
+	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
+	/** Название меры */
+	title: string,
+	/** Единица измерения */
+	unit: string,
+	/** Волна: шаг локального анализа; по умолчанию день */
+	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
 };
 	["CreateMembershipExitInput"]: {
 		/** Имя аккаунта кооператива */
@@ -47487,6 +49983,12 @@ export type GraphQLTypes = {
 	/** ID корневой категории */
 	rootCategoryId?: number | undefined | null
 };
+	["GetComponentMetricsInput"]: {
+		/** Хеш компонента */
+	project_hash: string,
+	/** Фильтр по статусу; по умолчанию только активные */
+	status?: GraphQLTypes["MetricStatus"] | undefined | null
+};
 	["GetContributorInput"]: {
 		/** ID участника */
 	_id?: string | undefined | null,
@@ -47551,6 +50053,10 @@ export type GraphQLTypes = {
 		/** ID инвестиции */
 	_id: string
 };
+	["GetIssueMetricBindingsInput"]: {
+		/** Хеш задачи */
+	issue_hash: string
+};
 	["GetLedger2HistoryInput"]: {
 		/** Бух.счёт (×1000): 51000/80000/86000 — для debit/credit действий. */
 	accountId?: number | undefined | null,
@@ -47614,6 +50120,12 @@ export type GraphQLTypes = {
 	["GetMaxOriginServerTsForRoomInput"]: {
 		matrixRoomId: string
 };
+	["GetMeasuresInput"]: {
+		/** Имя аккаунта кооператива */
+	coopname: string,
+	/** Фильтр по статусу; без фильтра — все меры (для мониторинга) */
+	status?: GraphQLTypes["MetricStatus"] | undefined | null
+};
 	["GetMeetInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -47623,6 +50135,40 @@ export type GraphQLTypes = {
 	["GetMeetsInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string
+};
+	["GetMetricContributionsInput"]: {
+		/** Хеш метрики */
+	metric_hash: string
+};
+	["GetMetricSeriesInput"]: {
+		/** Начало окна ряда (включительно). По умолчанию — 12 периодов назад */
+	from?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Конец окна ряда. По умолчанию — сейчас */
+	to?: GraphQLTypes["DateTime"] | undefined | null
+};
+	["GetMetricSuperpositionHistoryInput"]: {
+		/** Период агрегации кадров истории */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента для истории резонанса */
+	project_hash: string
+};
+	["GetMetricSuperpositionInput"]: {
+		/** Период агрегации для волновой фазы */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Хеш проекта или компонента: сводка по своим метрикам и дочерним компонентам */
+	project_hash: string
+};
+	["GetMetricWaveInput"]: {
+		/** Хеш метрики */
+	metric_hash: string,
+	/** Период агрегации ряда для разметки */
+	period: GraphQLTypes["MetricSeriesPeriod"],
+	/** Горизонт прогнозного коридора в периодах */
+	periods_ahead?: number | undefined | null
 };
 	["GetOneCoopDocumentsInput"]: {
 		/** Номер блока, начиная с которого извлекать документы */
@@ -47823,6 +50369,12 @@ export type GraphQLTypes = {
 ["InstanceStatus"]: InstanceStatus;
 	/** Статусы инвестиции в системе CAPITAL */
 ["InvestStatus"]: InvestStatus;
+	["IssueMetricBindingItemInput"]: {
+		/** Плановый вклад (может быть отрицательным) */
+	delta: number,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	/** Приоритет задачи в системе CAPITAL */
 ["IssuePriority"]: IssuePriority;
 	/** Статус задачи в системе CAPITAL */
@@ -48251,6 +50803,14 @@ export type GraphQLTypes = {
 ["LogEntityType"]: LogEntityType;
 	/** Типы событий в системе логирования */
 ["LogEventType"]: LogEventType;
+	["LogMetricContributionInput"]: {
+		/** Величина вклада (может быть отрицательной) */
+	delta: number,
+	/** Хеш задачи, если вклад связан с задачей */
+	issue_hash?: string | undefined | null,
+	/** Хеш метрики */
+	metric_hash: string
+};
 	["LoginInput"]: {
 		/** Электронная почта */
 	email: string,
@@ -51254,6 +53814,8 @@ export type GraphQLTypes = {
 	matrixUsername?: string | undefined | null,
 	['...on MatrixAccountStatusResponseDTO']: Omit<GraphQLTypes["MatrixAccountStatusResponseDTO"], "...on MatrixAccountStatusResponseDTO">
 };
+	/** Категория меры в справочнике */
+["MeasureCatalogTag"]: MeasureCatalogTag;
 	/** Данные о собрании кооператива */
 ["Meet"]: {
 	__typename: "Meet",
@@ -51541,6 +54103,16 @@ export type GraphQLTypes = {
 };
 	/** Статус процесса выхода пайщика из кооператива */
 ["MembershipExitStatus"]: MembershipExitStatus;
+	/** Источник вклада в метрику */
+["MetricContributionSource"]: MetricContributionSource;
+	/** Направление вклада метрики в общую динамику */
+["MetricDriveDirection"]: MetricDriveDirection;
+	/** Режим ряда метрики: скорость или уровень значения */
+["MetricSeriesMode"]: MetricSeriesMode;
+	/** Период агрегации ряда метрики */
+["MetricSeriesPeriod"]: MetricSeriesPeriod;
+	/** Статус метрики компонента */
+["MetricStatus"]: MetricStatus;
 	["MissingRequisiteField"]: {
 	__typename: "MissingRequisiteField",
 	key: string,
@@ -51584,7 +54156,7 @@ export type GraphQLTypes = {
 	["MoveCapitalIssueToComponentInput"]: {
 		/** Хеш задачи */
 	issue_hash: string,
-	/** project_hash компонента, в который переносим задачу */
+	/** Хеш компонента, в который переносим или назначаем задачу */
 	target_project_hash: string
 };
 	["Mutation"]: {
@@ -51617,10 +54189,22 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalAddAuthor: GraphQLTypes["CapitalProject"],
+	/** Ручная запись фактического времени по задаче (на себя как исполнителя)
+
+Требуемые роли: chairman, member, user.  */
+	capitalAddWorklog: GraphQLTypes["CapitalTimeEntry"],
+	/** Направление средств программы в проект или компонент
+
+Требуемые роли: chairman.  */
+	capitalAllocateFunds: GraphQLTypes["Transaction"],
 	/** Одобрение коммита в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalApproveCommit: GraphQLTypes["CapitalCommit"],
+	/** Архивация метрики компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalArchiveComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Расчет голосов в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -51649,6 +54233,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalCreateCommit: GraphQLTypes["CapitalCommit"],
+	/** Создание цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Создание цикла в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -51665,6 +54253,14 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCreateIssue: GraphQLTypes["CapitalIssue"],
+	/** Создание персонального проекта или компонента без публикации в блокчейн
+
+Требуемые роли: chairman, member, user.  */
+	capitalCreateLocalProject: GraphQLTypes["CapitalProject"],
+	/** Устарело: справочник мер централизован, создание только через миграции. Мутация всегда отклоняется.
+
+Требуемые роли: chairman.  */
+	capitalCreateMeasure: GraphQLTypes["CapitalMeasure"],
 	/** Создание шаблона процесса
 
 Требуемые роли: chairman, member.  */
@@ -51829,11 +54425,15 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalImportContributor: GraphQLTypes["Transaction"],
+	/** Ручной вклад в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalLogMetricContribution: GraphQLTypes["CapitalMetricContribution"],
 	/** Подписание приложения в CAPITAL контракте
 
 Требуемые роли: chairman.  */
 	capitalMakeClearance: GraphQLTypes["Transaction"],
-	/** Перенос задачи между компонентами одного проекта (без закоммиченного времени и использованных Git-привязок)
+	/** Перенос задачи между компонентами одного проекта или назначение свободной задачи компоненту
 
 Требуемые роли: chairman, member, user.  */
 	capitalMoveIssueToComponent: GraphQLTypes["CapitalIssue"],
@@ -51841,6 +54441,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalOpenProject: GraphQLTypes["CapitalProject"],
+	/** Пауза таймера — задача остаётся привязанной, время не тикает
+
+Требуемые роли: chairman, member, user.  */
+	capitalPauseTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Внесение результата в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -51857,10 +54461,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalRegisterContributor: GraphQLTypes["Transaction"],
+	/** Продолжить таймер после паузы на той же задаче
+
+Требуемые роли: chairman, member, user.  */
+	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Установка конфигурации CAPITAL контракта
 
 Требуемые роли: chairman.  */
 	capitalSetConfig: GraphQLTypes["Transaction"],
+	/** Установка привязок задачи к метрикам компонента
+
+Требуемые роли: chairman, member, user.  */
+	capitalSetIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
 	/** Установка мастера проекта в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -51885,6 +54497,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStartProject: GraphQLTypes["CapitalProject"],
+	/** Старт таймера на задаче (не больше одной открытой сессии на участника)
+
+Требуемые роли: chairman, member, user.  */
+	capitalStartTimer: GraphQLTypes["CapitalTimerSession"],
 	/** Запуск голосования в CAPITAL контракте
 
 Требуемые роли: chairman.  */
@@ -51893,6 +54509,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalStopProject: GraphQLTypes["CapitalProject"],
+	/** Остановка открытого таймера — создаёт запись факта по задаче таймера
+
+Требуемые роли: chairman, member, user.  */
+	capitalStopTimer?: GraphQLTypes["CapitalTimeEntry"] | undefined | null,
 	/** Голосование в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
@@ -51901,10 +54521,18 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	capitalTopupProgramExpensePool: GraphQLTypes["Transaction"],
+	/** Обновление цели по мере на компоненте
+
+Требуемые роли: chairman, member, user.  */
+	capitalUpdateComponentMetric: GraphQLTypes["CapitalComponentMetric"],
 	/** Обновление задачи в CAPITAL контракте
 
 Требуемые роли: chairman, member, user.  */
 	capitalUpdateIssue: GraphQLTypes["CapitalIssue"],
+	/** Включение или выключение меры в справочнике (без изменения состава)
+
+Требуемые роли: chairman.  */
+	capitalUpdateMeasure: GraphQLTypes["CapitalMeasure"],
 	/** Обновление шаблона процесса (шаги, рёбра, статус)
 
 Требуемые роли: chairman, member.  */
@@ -52984,6 +55612,18 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on PaginatedCapitalLogsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalLogsPaginationResult"], "...on PaginatedCapitalLogsPaginationResult">
 };
+	["PaginatedCapitalMetricContributionsPaginationResult"]: {
+	__typename: "PaginatedCapitalMetricContributionsPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["CapitalMetricContribution"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedCapitalMetricContributionsPaginationResult']: Omit<GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"], "...on PaginatedCapitalMetricContributionsPaginationResult">
+};
 	["PaginatedCapitalProgramExpensesPaginationResult"]: {
 	__typename: "PaginatedCapitalProgramExpensesPaginationResult",
 	/** Текущая страница */
@@ -53993,6 +56633,10 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalCommits: GraphQLTypes["PaginatedCapitalCommitsPaginationResult"],
+	/** Цели по мерам на компоненте с фактом
+
+Требуемые роли: chairman, member, user.  */
+	capitalComponentMetrics: Array<GraphQLTypes["CapitalComponentMetric"]>,
 	/** Получение участника по ID, имени пользователя или хешу участника */
 	capitalContributor?: GraphQLTypes["CapitalContributor"] | undefined | null,
 	/** Получение списка участников кооператива с фильтрацией */
@@ -54009,6 +56653,10 @@ export type GraphQLTypes = {
 	capitalExpense?: GraphQLTypes["CapitalExpense"] | undefined | null,
 	/** Получение списка расходов кооператива с фильтрацией */
 	capitalExpenses: GraphQLTypes["PaginatedCapitalExpensesPaginationResult"],
+	/** Открытая сессия таймера участника (если есть)
+
+Требуемые роли: chairman, member, user.  */
+	capitalGetOpenTimer?: GraphQLTypes["CapitalTimerSession"] | undefined | null,
 	/** Получение экземпляра процесса по ID */
 	capitalGetProcessInstance?: GraphQLTypes["ProcessInstance"] | undefined | null,
 	/** Получение экземпляров процессов для проекта */
@@ -54025,10 +56673,38 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssue?: GraphQLTypes["CapitalIssue"] | undefined | null,
+	/** Привязки задачи к метрикам
+
+Требуемые роли: chairman, member, user.  */
+	capitalIssueMetricBindings: Array<GraphQLTypes["CapitalIssueMetricBinding"]>,
 	/** Получение списка задач кооператива с фильтрацией
 
 Требуемые роли: chairman, member, user.  */
 	capitalIssues: GraphQLTypes["PaginatedCapitalIssuesPaginationResult"],
+	/** Справочник мер кооператива
+
+Требуемые роли: chairman, member, user.  */
+	capitalMeasures: Array<GraphQLTypes["CapitalMeasure"]>,
+	/** Журнал вкладов в метрику
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricContributions: GraphQLTypes["PaginatedCapitalMetricContributionsPaginationResult"],
+	/** Временной ряд метрики: накопление и скорость по периодам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSeries: GraphQLTypes["CapitalMetricSeries"],
+	/** Метрика резонанса и rollup планов/фактов по компонентам
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperposition: GraphQLTypes["CapitalMetricSuperposition"],
+	/** История резонанса метрик по бакетам выбранного периода
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricSuperpositionHistory: GraphQLTypes["CapitalMetricSuperpositionHistory"],
+	/** Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор
+
+Требуемые роли: chairman, member, user.  */
+	capitalMetricWave: GraphQLTypes["CapitalMetricWave"],
 	/** Программный расход по expense_hash.
 
 Требуемые роли: chairman, member.  */
@@ -54319,7 +56995,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getReport: GraphQLTypes["GeneratedReport"],
-	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок, декабрь ПСВ) reportYear = year - 1 — именно он возвращается в периоде.
+	/** Матрица отчётов × периодов для календарного виджета. year = календарный год сдачи (когда приходит дедлайн). Для ячеек с dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) reportYear = year - 1 — именно он возвращается в периоде.
 
 Требуемые роли: chairman.  */
 	getReportCalendar: Array<GraphQLTypes["ReportCalendarRow"]>,
@@ -54934,6 +57610,7 @@ export type GraphQLTypes = {
 	oktmo: GraphQLTypes["RequisiteFieldView"],
 	okved: GraphQLTypes["RequisiteFieldView"],
 	orgName: GraphQLTypes["RequisiteFieldView"],
+	pfrRegNumber: GraphQLTypes["RequisiteFieldView"],
 	phone: GraphQLTypes["RequisiteFieldView"],
 	sfrRegNumber: GraphQLTypes["RequisiteFieldView"],
 	signerFirstName: GraphQLTypes["RequisiteFieldView"],
@@ -55418,6 +58095,12 @@ export type GraphQLTypes = {
 	/** Имя аккаунта кооператива */
 	coopname: string
 };
+	["SetIssueMetricBindingsInput"]: {
+		/** Полный список привязок задачи к метрикам */
+	bindings: Array<GraphQLTypes["IssueMetricBindingItemInput"]>,
+	/** Хеш задачи */
+	issue_hash: string
+};
 	["SetMasterInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -55878,6 +58561,22 @@ export type GraphQLTypes = {
 	startsAt: GraphQLTypes["DateTime"],
 	title: string
 };
+	["UpdateComponentMetricInput"]: {
+		/** Срок достижения цели */
+	deadline?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Перепривязка к мере из справочника */
+	measure_hash?: string | undefined | null,
+	/** Хеш цели на компоненте */
+	metric_hash: string,
+	/** Режим ряда при поиске/создании меры по названию */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Целевое значение */
+	target_value?: number | undefined | null,
+	/** Название меры — перепривязка через поиск/создание меры */
+	title?: string | undefined | null,
+	/** Единица измерения — вместе с названием для поиска/создания меры */
+	unit?: string | undefined | null
+};
 	["UpdateEntrepreneurDataInput"]: {
 		/** Дата рождения */
 	birthdate: string,
@@ -55948,6 +58647,22 @@ export type GraphQLTypes = {
 	/** Название задачи */
 	title?: string | undefined | null
 };
+	["UpdateMeasureInput"]: {
+		/** Хеш меры */
+	measure_hash: string,
+	/** Не используется: справочник меняется только через миграции */
+	series_mode?: GraphQLTypes["MetricSeriesMode"] | undefined | null,
+	/** Статус меры: активна или выключена (архив) */
+	status?: GraphQLTypes["MetricStatus"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	tag?: GraphQLTypes["MeasureCatalogTag"] | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	title?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	unit?: string | undefined | null,
+	/** Не используется: справочник меняется только через миграции */
+	wave_period?: GraphQLTypes["MetricSeriesPeriod"] | undefined | null
+};
 	["UpdateOrganizationDataInput"]: {
 		/** Город */
 	city: string,
@@ -55995,8 +58710,10 @@ export type GraphQLTypes = {
 	oktmo?: string | undefined | null,
 	/** ОКВЭД — напр. 94.99, 46.73.7 */
 	okved?: string | undefined | null,
+	/** Рег. номер ПФР — XXX-XXX-XXXXXX (для ЕФС-1, отдельно от рег. номера СФР) */
+	pfrRegNumber?: string | undefined | null,
 	phoneOverride?: string | undefined | null,
-	/** Рег. номер СФР — XXX-XXX-XXXXXX */
+	/** Рег. номер СФР — 10 цифр */
 	sfrRegNumber?: string | undefined | null,
 	signerRepDoc?: string | undefined | null,
 	/** СНИЛС — XXX-XXX-XXX YY или 11 цифр */
@@ -56259,6 +58976,10 @@ export type GraphQLTypes = {
 	/** Владелец кошельков (для коллективных — coopname) */
 	username: string
 };
+	/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+["WaveLabel"]: WaveLabel;
+	/** Фаза волны: импульс или коррекция */
+["WavePhase"]: WavePhase;
 	["WebPushSubscriptionDataInput"]: {
 		/** Endpoint для отправки уведомлений */
 	endpoint: string,
@@ -56362,6 +59083,7 @@ export type GraphQLTypes = {
 	oktmo?: string | undefined | null,
 	okved?: string | undefined | null,
 	orgName: string,
+	phone?: string | undefined | null,
 	['...on ZeroReportOrganizationEdits']: Omit<GraphQLTypes["ZeroReportOrganizationEdits"], "...on ZeroReportOrganizationEdits">
 };
 	["ZeroReportSignerEdits"]: {
@@ -56370,6 +59092,7 @@ export type GraphQLTypes = {
 	firstName: string,
 	lastName: string,
 	middleName?: string | undefined | null,
+	pfrRegNumber?: string | undefined | null,
 	repDoc?: string | undefined | null,
 	sfrRegNumber?: string | undefined | null,
 	snils?: string | undefined | null,
@@ -56866,12 +59589,52 @@ export enum MarketplaceWriteoffProposalTrigger {
 	CRON = "CRON",
 	MANUAL = "MANUAL"
 }
+/** Категория меры в справочнике */
+export enum MeasureCatalogTag {
+	CONTENT = "CONTENT",
+	COOPERATIVE = "COOPERATIVE",
+	PERSONAL = "PERSONAL",
+	PRODUCT = "PRODUCT",
+	QUALITY = "QUALITY"
+}
 /** Статус процесса выхода пайщика из кооператива */
 export enum MembershipExitStatus {
 	AUTHORIZED = "AUTHORIZED",
 	AWAITING_CONFIRMATION = "AWAITING_CONFIRMATION",
 	COMPLETED = "COMPLETED",
 	PENDING = "PENDING"
+}
+/** Источник вклада в метрику */
+export enum MetricContributionSource {
+	ISSUE_DONE = "ISSUE_DONE",
+	ISSUE_REOPEN = "ISSUE_REOPEN",
+	MANUAL = "MANUAL"
+}
+/** Направление вклада метрики в общую динамику */
+export enum MetricDriveDirection {
+	DOWN = "DOWN",
+	FLAT = "FLAT",
+	UP = "UP"
+}
+/** Режим ряда метрики: скорость или уровень значения */
+export enum MetricSeriesMode {
+	LEVEL = "LEVEL",
+	RATE = "RATE"
+}
+/** Период агрегации ряда метрики */
+export enum MetricSeriesPeriod {
+	DAY = "DAY",
+	HOUR = "HOUR",
+	MINUTE = "MINUTE",
+	MINUTE_5 = "MINUTE_5",
+	MINUTE_15 = "MINUTE_15",
+	MONTH = "MONTH",
+	WEEK = "WEEK"
+}
+/** Статус метрики компонента */
+export enum MetricStatus {
+	ACTIVE = "ACTIVE",
+	ARCHIVED = "ARCHIVED"
 }
 /** Тип комнаты вне проекта: пайщики, совет, комната секретаря */
 export enum NonProjectRoomKind {
@@ -56985,7 +59748,6 @@ export enum ProgramType {
 /** Статусы проекта в системе CAPITAL */
 export enum ProjectStatus {
 	ACTIVE = "ACTIVE",
-	CANCELLED = "CANCELLED",
 	FINALIZED = "FINALIZED",
 	PENDING = "PENDING",
 	RESULT = "RESULT",
@@ -57114,6 +59876,22 @@ export enum UserStatus {
 	Refunding = "Refunding",
 	Registered = "Registered"
 }
+/** Метка волны 5/3: импульс 1–5, коррекция A–C */
+export enum WaveLabel {
+	W1 = "W1",
+	W2 = "W2",
+	W3 = "W3",
+	W4 = "W4",
+	W5 = "W5",
+	WA = "WA",
+	WB = "WB",
+	WC = "WC"
+}
+/** Фаза волны: импульс или коррекция */
+export enum WavePhase {
+	CORRECTION = "CORRECTION",
+	IMPULSE = "IMPULSE"
+}
 /** Тип подписанта для нулевых форм: руководитель или представитель */
 export enum ZeroReportSignerType {
 	CHAIRMAN = "CHAIRMAN",
@@ -57155,6 +59933,7 @@ type ZEUS_VARIABLES = {
 	["ApprovalFilter"]: ValueTypes["ApprovalFilter"];
 	["ApprovalStatus"]: ValueTypes["ApprovalStatus"];
 	["ApproveKuTrustedInput"]: ValueTypes["ApproveKuTrustedInput"];
+	["ArchiveComponentMetricInput"]: ValueTypes["ArchiveComponentMetricInput"];
 	["AuthorizeDecisionInput"]: ValueTypes["AuthorizeDecisionInput"];
 	["BankAccountDetailsInput"]: ValueTypes["BankAccountDetailsInput"];
 	["BankAccountInput"]: ValueTypes["BankAccountInput"];
@@ -57191,17 +59970,24 @@ type ZEUS_VARIABLES = {
 	["CancelKuDecisionInput"]: ValueTypes["CancelKuDecisionInput"];
 	["CandidateFilterInput"]: ValueTypes["CandidateFilterInput"];
 	["CandidateStatus"]: ValueTypes["CandidateStatus"];
+	["CapitalAddWorklogInput"]: ValueTypes["CapitalAddWorklogInput"];
+	["CapitalAllocateFundsInput"]: ValueTypes["CapitalAllocateFundsInput"];
 	["CapitalCommitFilter"]: ValueTypes["CapitalCommitFilter"];
 	["CapitalContributorFilter"]: ValueTypes["CapitalContributorFilter"];
 	["CapitalCreateProgramExpenseInput"]: ValueTypes["CapitalCreateProgramExpenseInput"];
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
+	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
 	["CapitalLogFilterInput"]: ValueTypes["CapitalLogFilterInput"];
 	["CapitalOnboardingStep"]: ValueTypes["CapitalOnboardingStep"];
 	["CapitalOnboardingStepInput"]: ValueTypes["CapitalOnboardingStepInput"];
+	["CapitalPauseTimerInput"]: ValueTypes["CapitalPauseTimerInput"];
 	["CapitalProjectFilter"]: ValueTypes["CapitalProjectFilter"];
+	["CapitalResumeTimerInput"]: ValueTypes["CapitalResumeTimerInput"];
 	["CapitalSegmentFilter"]: ValueTypes["CapitalSegmentFilter"];
+	["CapitalStartTimerInput"]: ValueTypes["CapitalStartTimerInput"];
+	["CapitalStopTimerInput"]: ValueTypes["CapitalStopTimerInput"];
 	["CapitalStoryContentFormat"]: ValueTypes["CapitalStoryContentFormat"];
 	["CapitalStoryFilter"]: ValueTypes["CapitalStoryFilter"];
 	["CapitalTimeEntriesFilter"]: ValueTypes["CapitalTimeEntriesFilter"];
@@ -57238,6 +60024,7 @@ type ZEUS_VARIABLES = {
 	["CreateCategoryInput"]: ValueTypes["CreateCategoryInput"];
 	["CreateChatCoopCalendarEventInput"]: ValueTypes["CreateChatCoopCalendarEventInput"];
 	["CreateCommitInput"]: ValueTypes["CreateCommitInput"];
+	["CreateComponentMetricInput"]: ValueTypes["CreateComponentMetricInput"];
 	["CreateCustomCategoryInput"]: ValueTypes["CreateCustomCategoryInput"];
 	["CreateCycleInput"]: ValueTypes["CreateCycleInput"];
 	["CreateDebtInput"]: ValueTypes["CreateDebtInput"];
@@ -57252,6 +60039,7 @@ type ZEUS_VARIABLES = {
 	["CreateIssueInput"]: ValueTypes["CreateIssueInput"];
 	["CreateKuDecisionInput"]: ValueTypes["CreateKuDecisionInput"];
 	["CreateMatrixAccountInputDTO"]: ValueTypes["CreateMatrixAccountInputDTO"];
+	["CreateMeasureInput"]: ValueTypes["CreateMeasureInput"];
 	["CreateMembershipExitInput"]: ValueTypes["CreateMembershipExitInput"];
 	["CreateOrganizationDataInput"]: ValueTypes["CreateOrganizationDataInput"];
 	["CreateProcessTemplateInput"]: ValueTypes["CreateProcessTemplateInput"];
@@ -57346,6 +60134,7 @@ type ZEUS_VARIABLES = {
 	["GetCategoryAttributesInput"]: ValueTypes["GetCategoryAttributesInput"];
 	["GetCategoryByIdInput"]: ValueTypes["GetCategoryByIdInput"];
 	["GetCategoryTreeInput"]: ValueTypes["GetCategoryTreeInput"];
+	["GetComponentMetricsInput"]: ValueTypes["GetComponentMetricsInput"];
 	["GetContributorInput"]: ValueTypes["GetContributorInput"];
 	["GetCoopRequestsInput"]: ValueTypes["GetCoopRequestsInput"];
 	["GetDebtInput"]: ValueTypes["GetDebtInput"];
@@ -57355,13 +60144,20 @@ type ZEUS_VARIABLES = {
 	["GetExtensionsInput"]: ValueTypes["GetExtensionsInput"];
 	["GetInstallationStatusInput"]: ValueTypes["GetInstallationStatusInput"];
 	["GetInvestInput"]: ValueTypes["GetInvestInput"];
+	["GetIssueMetricBindingsInput"]: ValueTypes["GetIssueMetricBindingsInput"];
 	["GetLedger2HistoryInput"]: ValueTypes["GetLedger2HistoryInput"];
 	["GetLedger2PostingsInput"]: ValueTypes["GetLedger2PostingsInput"];
 	["GetLedgerHistoryInput"]: ValueTypes["GetLedgerHistoryInput"];
 	["GetLedgerInput"]: ValueTypes["GetLedgerInput"];
 	["GetMaxOriginServerTsForRoomInput"]: ValueTypes["GetMaxOriginServerTsForRoomInput"];
+	["GetMeasuresInput"]: ValueTypes["GetMeasuresInput"];
 	["GetMeetInput"]: ValueTypes["GetMeetInput"];
 	["GetMeetsInput"]: ValueTypes["GetMeetsInput"];
+	["GetMetricContributionsInput"]: ValueTypes["GetMetricContributionsInput"];
+	["GetMetricSeriesInput"]: ValueTypes["GetMetricSeriesInput"];
+	["GetMetricSuperpositionHistoryInput"]: ValueTypes["GetMetricSuperpositionHistoryInput"];
+	["GetMetricSuperpositionInput"]: ValueTypes["GetMetricSuperpositionInput"];
+	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
 	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProductTypeByIdInput"]: ValueTypes["GetProductTypeByIdInput"];
@@ -57384,6 +60180,7 @@ type ZEUS_VARIABLES = {
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
 	["InvestStatus"]: ValueTypes["InvestStatus"];
+	["IssueMetricBindingItemInput"]: ValueTypes["IssueMetricBindingItemInput"];
 	["IssuePriority"]: ValueTypes["IssuePriority"];
 	["IssueStatus"]: ValueTypes["IssueStatus"];
 	["JSON"]: ValueTypes["JSON"];
@@ -57405,6 +60202,7 @@ type ZEUS_VARIABLES = {
 	["ListUtcDatesWithNewRoomMessagesInput"]: ValueTypes["ListUtcDatesWithNewRoomMessagesInput"];
 	["LogEntityType"]: ValueTypes["LogEntityType"];
 	["LogEventType"]: ValueTypes["LogEventType"];
+	["LogMetricContributionInput"]: ValueTypes["LogMetricContributionInput"];
 	["LoginInput"]: ValueTypes["LoginInput"];
 	["LogoutInput"]: ValueTypes["LogoutInput"];
 	["MakeClearanceInput"]: ValueTypes["MakeClearanceInput"];
@@ -57558,11 +60356,17 @@ type ZEUS_VARIABLES = {
 	["MarketplaceWriteoffProtocolDocumentInput"]: ValueTypes["MarketplaceWriteoffProtocolDocumentInput"];
 	["MarketplaceWriteoffServiceMemoSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffServiceMemoSignablePayloadInput"];
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"];
+	["MeasureCatalogTag"]: ValueTypes["MeasureCatalogTag"];
 	["MembershipExitApplicationGenerateDocumentInput"]: ValueTypes["MembershipExitApplicationGenerateDocumentInput"];
 	["MembershipExitApplicationSignedDocumentInput"]: ValueTypes["MembershipExitApplicationSignedDocumentInput"];
 	["MembershipExitApplicationSignedMetaDocumentInput"]: ValueTypes["MembershipExitApplicationSignedMetaDocumentInput"];
 	["MembershipExitDecisionGenerateDocumentInput"]: ValueTypes["MembershipExitDecisionGenerateDocumentInput"];
 	["MembershipExitStatus"]: ValueTypes["MembershipExitStatus"];
+	["MetricContributionSource"]: ValueTypes["MetricContributionSource"];
+	["MetricDriveDirection"]: ValueTypes["MetricDriveDirection"];
+	["MetricSeriesMode"]: ValueTypes["MetricSeriesMode"];
+	["MetricSeriesPeriod"]: ValueTypes["MetricSeriesPeriod"];
+	["MetricStatus"]: ValueTypes["MetricStatus"];
 	["MoveCapitalIssueToComponentInput"]: ValueTypes["MoveCapitalIssueToComponentInput"];
 	["NonProjectRoomKind"]: ValueTypes["NonProjectRoomKind"];
 	["NotificationChannel"]: ValueTypes["NotificationChannel"];
@@ -57666,6 +60470,7 @@ type ZEUS_VARIABLES = {
 	["SetBranchPrivateInput"]: ValueTypes["SetBranchPrivateInput"];
 	["SetCapitalProjectDevelopmentRepositoryUrlInput"]: ValueTypes["SetCapitalProjectDevelopmentRepositoryUrlInput"];
 	["SetConfigInput"]: ValueTypes["SetConfigInput"];
+	["SetIssueMetricBindingsInput"]: ValueTypes["SetIssueMetricBindingsInput"];
 	["SetMasterInput"]: ValueTypes["SetMasterInput"];
 	["SetPaymentStatusInput"]: ValueTypes["SetPaymentStatusInput"];
 	["SetPlanInput"]: ValueTypes["SetPlanInput"];
@@ -57697,9 +60502,11 @@ type ZEUS_VARIABLES = {
 	["UpdateBankAccountInput"]: ValueTypes["UpdateBankAccountInput"];
 	["UpdateCallTranscriptionMemoInput"]: ValueTypes["UpdateCallTranscriptionMemoInput"];
 	["UpdateChatCoopCalendarEventInput"]: ValueTypes["UpdateChatCoopCalendarEventInput"];
+	["UpdateComponentMetricInput"]: ValueTypes["UpdateComponentMetricInput"];
 	["UpdateEntrepreneurDataInput"]: ValueTypes["UpdateEntrepreneurDataInput"];
 	["UpdateIndividualDataInput"]: ValueTypes["UpdateIndividualDataInput"];
 	["UpdateIssueInput"]: ValueTypes["UpdateIssueInput"];
+	["UpdateMeasureInput"]: ValueTypes["UpdateMeasureInput"];
 	["UpdateOrganizationDataInput"]: ValueTypes["UpdateOrganizationDataInput"];
 	["UpdateProcessTemplateInput"]: ValueTypes["UpdateProcessTemplateInput"];
 	["UpdateReportRequisitesInput"]: ValueTypes["UpdateReportRequisitesInput"];
@@ -57717,6 +60524,8 @@ type ZEUS_VARIABLES = {
 	["VoteOnAnnualGeneralMeetInput"]: ValueTypes["VoteOnAnnualGeneralMeetInput"];
 	["VoteOnKuDecisionInput"]: ValueTypes["VoteOnKuDecisionInput"];
 	["WalmoveInput"]: ValueTypes["WalmoveInput"];
+	["WaveLabel"]: ValueTypes["WaveLabel"];
+	["WavePhase"]: ValueTypes["WavePhase"];
 	["WebPushSubscriptionDataInput"]: ValueTypes["WebPushSubscriptionDataInput"];
 	["WebPushSubscriptionKeysInput"]: ValueTypes["WebPushSubscriptionKeysInput"];
 	["WorkingHoursBreakInput"]: ValueTypes["WorkingHoursBreakInput"];

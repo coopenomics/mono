@@ -59,6 +59,22 @@ export class LogOutputDTO {
   initiator!: string;
 
   @Field(() => String, {
+    description: 'ФИО инициатора (если доступно), иначе username',
+  })
+  actor_name!: string;
+
+  @Field(() => String, {
+    description: 'Краткий заголовок действия без имени пайщика',
+  })
+  title!: string;
+
+  @Field(() => String, {
+    description: 'Детали события: суммы, изменения, контекст',
+    nullable: true,
+  })
+  description?: string;
+
+  @Field(() => String, {
     description: 'Идентификатор-ссылка (invest_hash, commit_hash, result_hash и т.д.)',
     nullable: true,
   })
@@ -71,7 +87,7 @@ export class LogOutputDTO {
   metadata?: Record<string, any>;
 
   @Field(() => String, {
-    description: 'Текстовое описание события',
+    description: 'Полное текстовое описание события (совместимость)',
   })
   message!: string;
 

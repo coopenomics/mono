@@ -241,6 +241,12 @@ export interface CapitalBlockchainPort {
   ): Promise<TransactResult>;
 
   /**
+   * Направление средств программы в проект или компонент из доступного остатка
+   * `global_available_invest_pool` (председатель).
+   */
+  allocateFunds(data: CapitalContract.Actions.Allocate.IAllocate): Promise<TransactResult>;
+
+  /**
    * Редактирование участника CAPITAL контракта
    */
   editContributor(data: CapitalContract.Actions.EditContributor.IEditContributor): Promise<TransactResult>;

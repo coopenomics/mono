@@ -1,135 +1,166 @@
 <template lang="pug">
-q-card(flat)
+.contributors-table
+  .contributors-table__skel(v-if='loading && !contributors.length')
+    .skel(v-for='i in 6', :key='i')
 
-  q-table(
-    :rows='contributors',
-    :columns='columns',
-    row-key='contributor_hash',
-    :loading='loading',
-    :pagination='pagination',
-    @request='onRequest',
-    binary-state-sort,
-    flat,
-    square,
-    no-data-label='У кооператива нет участников Благороста'
+  EmptyState(
+    v-else-if='!loading && !contributors.length',
+    title='Участников пока нет',
+    body='У кооператива ещё нет участников программы «Благорост».'
   )
+    template(#icon)
+      q-icon(name='group')
 
-    template(#body='props')
-      q-tr(:props='props')
-        q-td
-          .row.items-center
-            ExpandToggleButton(
-              :expanded='isExpanded(props.row.contributor_hash)',
-              @click='handleToggleExpand(props.row.contributor_hash)'
+  template(v-else)
+    .table-wrap
+      .table-scroll
+        table.table
+          thead
+            tr
+              th.col-toggle
+              th.col-sort(@click='onSort("username")')
+                | ФИО {{ sortMark('username') }}
+              th.col-sort(@click='onSort("status")')
+                | Статус {{ sortMark('status') }}
+              th.col-num Главный кошелёк
+              th.col-num Генерация
+              th.col-num Благорост
+              th.col-sort.col-num(@click='onSort("rate_per_hour")')
+                | Ставка/час {{ sortMark('rate_per_hour') }}
+              th.col-sort.col-num(@click='onSort("hours_per_day")')
+                | Часы/день {{ sortMark('hours_per_day') }}
+          tbody
+            template(
+              v-for='row in contributors',
+              :key='row.contributor_hash'
             )
-
-        q-td {{ props.row.display_name || '-' }}
-        q-td
-          q-chip(
-            :color='getContributorStatusColor(props.row.status)',
-            text-color='white',
-            :label='getContributorStatusLabel(props.row.status)',
-            size='sm'
-          )
-
-        q-td.text-right {{ formatAsset2Digits(calculateMainWalletTotal(props.row)) }}
-        q-td.text-right {{ formatAsset2Digits(calculateGenerationWalletTotal(props.row)) }}
-        q-td.text-right {{ formatAsset2Digits(calculateBlagorostWalletTotal(props.row)) }}
-        q-td.text-right {{ formatAsset2Digits(props.row.rate_per_hour) }}
-        q-td.text-right {{ props.row.hours_per_day || '-' }}
-
-      // Раскрывающаяся строка с информацией "О себе" и параметрами документов
-      q-tr.q-virtual-scroll--with-prev(
-        no-hover,
-        v-if='isExpanded(props.row.contributor_hash)',
-        :key='`${props.row.contributor_hash}-about`'
-      )
-        q-td(colspan='100%', style='padding: 0px !important')
-          .q-pa-md
-            .row.q-col-gutter-md
-              .col-12.col-md-4
-                .text-subtitle2.q-mb-md О себе
-                .text-body2 {{ props.row.about || 'Информация отсутствует' }}
-
-              .col-12.col-md-4
-                .text-subtitle2.q-mb-md Вклады по ролям
-                q-list(dense)
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Инвестор
-                      q-item-label {{ formatAsset2Digits(calculateInvestorTotal(props.row)) }}
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Исполнитель
-                      q-item-label {{ formatAsset2Digits(props.row.contributed_as_creator) }}
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Соавтор
-                      q-item-label {{ formatAsset2Digits(props.row.contributed_as_author) }}
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Координатор
-                      q-item-label {{ formatAsset2Digits(props.row.contributed_as_coordinator) }}
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Участник
-                      q-item-label {{ formatAsset2Digits(props.row.contributed_as_contributor) }}
-                  q-item.q-mb-md(dense)
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Общий вклад
-                      q-item-label {{ formatAsset2Digits(calculateTotalContribution(props.row)) }}
-
-              .col-12.col-md-4(v-if='props.row.document_parameters && hasDocumentParameters(props.row.document_parameters)')
-                .text-subtitle2.q-mb-md Параметры документов
-                q-list(dense)
-                  q-item.q-mb-md(
-                    v-if='props.row.document_parameters.blagorost_contributor_contract_number',
-                    dense
+              tr.data-row(@click='handleToggleExpand(row.contributor_hash)')
+                td.col-toggle
+                  button.icon-btn(
+                    type='button',
+                    :aria-label='isExpanded(row.contributor_hash) ? "Свернуть" : "Развернуть"',
+                    @click.stop='handleToggleExpand(row.contributor_hash)'
                   )
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Договор УХД
-                      q-item-label {{ props.row.document_parameters.blagorost_contributor_contract_number }}
-                      q-item-label.text-caption(v-if='props.row.document_parameters.blagorost_contributor_contract_created_at') от {{ props.row.document_parameters.blagorost_contributor_contract_created_at }}
+                    q-icon(
+                      :name='isExpanded(row.contributor_hash) ? "expand_more" : "chevron_right"'
+                    )
+                td.cell-name {{ row.display_name || row.username || '—' }}
+                td
+                  BaseBadge(:variant='statusVariant(row.status)')
+                    | {{ getContributorStatusLabel(row.status) }}
+                td.col-num.t-mono {{ formatAsset2Digits(calculateMainWalletTotal(row)) }}
+                td.col-num.t-mono {{ formatAsset2Digits(calculateGenerationWalletTotal(row)) }}
+                td.col-num.t-mono {{ formatAsset2Digits(calculateBlagorostWalletTotal(row)) }}
+                td.col-num.t-mono {{ formatAsset2Digits(row.rate_per_hour) }}
+                td.col-num {{ row.hours_per_day || '—' }}
 
-                  q-item.q-mb-md(
-                    v-if='props.row.document_parameters.generator_agreement_number',
-                    dense
-                  )
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Соглашение Генератор
-                      q-item-label {{ props.row.document_parameters.generator_agreement_number }}
-                      q-item-label.text-caption(v-if='props.row.document_parameters.generator_agreement_created_at') от {{ props.row.document_parameters.generator_agreement_created_at }}
+              tr.expand-row(v-if='isExpanded(row.contributor_hash)')
+                td(colspan='8')
+                  .contributors-table__details
+                    .contributors-table__block
+                      .contributors-table__block-title.t-eyebrow О себе
+                      p.contributors-table__about.t-sm {{ row.about || 'Информация отсутствует' }}
 
-                  q-item.q-mb-md(
-                    v-if='props.row.document_parameters.blagorost_agreement_number',
-                    dense
-                  )
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Соглашение Благорост
-                      q-item-label {{ props.row.document_parameters.blagorost_agreement_number }}
-                      q-item-label.text-caption(v-if='props.row.document_parameters.blagorost_agreement_created_at') от {{ props.row.document_parameters.blagorost_agreement_created_at }}
+                    .contributors-table__block
+                      .contributors-table__block-title.t-eyebrow Взносы по ролям
+                      .contributors-table__rows
+                        DataRow(
+                          label='Инвестор',
+                          :value='formatAsset2Digits(calculateInvestorTotal(row))',
+                          mono
+                        )
+                        DataRow(
+                          label='Исполнитель',
+                          :value='formatAsset2Digits(row.contributed_as_creator)',
+                          mono
+                        )
+                        DataRow(
+                          label='Соавтор',
+                          :value='formatAsset2Digits(row.contributed_as_author)',
+                          mono
+                        )
+                        DataRow(
+                          label='Координатор',
+                          :value='formatAsset2Digits(row.contributed_as_coordinator)',
+                          mono
+                        )
+                        DataRow(
+                          label='Участник',
+                          :value='formatAsset2Digits(row.contributed_as_contributor)',
+                          mono
+                        )
+                        DataRow(
+                          label='Общий взнос',
+                          :value='formatAsset2Digits(calculateTotalContribution(row))',
+                          mono
+                        )
 
-                  q-item.q-mb-md(
-                    v-if='props.row.document_parameters.blagorost_storage_agreement_number',
-                    dense
-                  )
-                    q-item-section
-                      q-item-label.text-caption.text-grey-7 Соглашение о хранении
-                      q-item-label {{ props.row.document_parameters.blagorost_storage_agreement_number }}
-                      q-item-label.text-caption(v-if='props.row.document_parameters.blagorost_storage_agreement_created_at') от {{ props.row.document_parameters.blagorost_storage_agreement_created_at }}
+                    .contributors-table__block(
+                      v-if='row.document_parameters && hasDocumentParameters(row.document_parameters)'
+                    )
+                      .contributors-table__block-title.t-eyebrow Параметры документов
+                      .contributors-table__rows.contributors-table__rows--docs
+                        DataRow(
+                          v-if='row.document_parameters.blagorost_contributor_contract_number',
+                          label='Договор УХД',
+                          :value='docLabel(row.document_parameters.blagorost_contributor_contract_number, row.document_parameters.blagorost_contributor_contract_created_at)',
+                          align='vertical',
+                          mono
+                        )
+                        DataRow(
+                          v-if='row.document_parameters.generator_agreement_number',
+                          label='Соглашение Генератор',
+                          :value='docLabel(row.document_parameters.generator_agreement_number, row.document_parameters.generator_agreement_created_at)',
+                          align='vertical',
+                          mono
+                        )
+                        DataRow(
+                          v-if='row.document_parameters.blagorost_agreement_number',
+                          label='Соглашение Благорост',
+                          :value='docLabel(row.document_parameters.blagorost_agreement_number, row.document_parameters.blagorost_agreement_created_at)',
+                          align='vertical',
+                          mono
+                        )
+                        DataRow(
+                          v-if='row.document_parameters.blagorost_storage_agreement_number',
+                          label='Соглашение о хранении',
+                          :value='docLabel(row.document_parameters.blagorost_storage_agreement_number, row.document_parameters.blagorost_storage_agreement_created_at)',
+                          align='vertical',
+                          mono
+                        )
+
+    .table-foot
+      span.t-sm.t-muted {{ rangeLabel }}
+      .contributors-table__pager
+        BaseButton(
+          variant='ghost',
+          size='sm',
+          :disabled='pagination.page <= 1',
+          @click='goToPage(pagination.page - 1)'
+        ) Назад
+        BaseButton(
+          variant='ghost',
+          size='sm',
+          :disabled='pagination.page * pagination.rowsPerPage >= totalCount',
+          @click='goToPage(pagination.page + 1)'
+        ) Ещё
 </template>
 
 <script lang="ts" setup>
 import { reactive, computed } from 'vue';
 import type { IContributor } from 'app/extensions/capital/entities/Contributor/model/types';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
-import { getContributorStatusColor, getContributorStatusLabel } from 'app/extensions/capital/shared/lib/contributorStatus';
-import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { getContributorStatusLabel } from 'app/extensions/capital/shared/lib/contributorStatus';
+import { EmptyState, BaseBadge, BaseButton } from 'src/shared/ui/base';
+import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { useSystemStore } from 'src/entities/System/model';
+import { Zeus } from '@coopenomics/sdk';
 
 interface Props {
   contributors: IContributor[];
   loading?: boolean;
+  totalCount?: number;
   pagination?: {
     page: number;
     rowsPerPage: number;
@@ -139,12 +170,23 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'request', props: { pagination: any }): void;
+  (
+    e: 'request',
+    props: {
+      pagination: {
+        page: number;
+        rowsPerPage: number;
+        sortBy: string;
+        descending: boolean;
+      };
+    },
+  ): void;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   contributors: () => [],
   loading: false,
+  totalCount: 0,
   pagination: () => ({
     page: 1,
     rowsPerPage: 25,
@@ -156,151 +198,122 @@ withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const system = useSystemStore();
-const governSymbol = computed(() => system.info?.symbols?.root_govern_symbol || 'GOV');
+const governSymbol = computed(
+  () => system.info?.symbols?.root_govern_symbol || 'GOV',
+);
 
-// Определяем столбцы таблицы
-const columns = [
-  {
-    name: 'expand',
-    label: '',
-    align: 'left' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'username',
-    label: 'ФИО',
-    align: 'left' as const,
-    field: 'username' as const,
-    sortable: true,
-  },
-  {
-    name: 'status',
-    label: 'Статус',
-    align: 'center' as const,
-    field: 'status' as const,
-    sortable: true,
-  },
-  {
-    name: 'main_wallet',
-    label: 'Главный кошелек',
-    align: 'right' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'generation_wallet',
-    label: 'Генерация',
-    align: 'right' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'blagorost_wallet',
-    label: 'Благорост',
-    align: 'right' as const,
-    field: '' as const,
-    sortable: false,
-  },
-  {
-    name: 'rate_per_hour',
-    label: 'Ставка/час',
-    align: 'right' as const,
-    field: 'rate_per_hour' as const,
-    sortable: true,
-  },
-  {
-    name: 'hours_per_day',
-    label: 'Часы/день',
-    align: 'right' as const,
-    field: 'hours_per_day' as const,
-    sortable: true,
-  },
-];
-
-// Состояние для раскрывающихся строк
 const expanded = reactive<Record<string, boolean>>({});
 
-// Функция для безопасного получения состояния раскрытия
-const isExpanded = (contributorHash: string) => {
-  return expanded[contributorHash] || false;
-};
+const isExpanded = (contributorHash: string) =>
+  expanded[contributorHash] || false;
 
-// Обработчик переключения раскрытия
 const handleToggleExpand = (contributorHash: string) => {
   expanded[contributorHash] = !expanded[contributorHash];
 };
 
-// Функция для расчета суммы инвестора + пропертора
+const statusVariant = (status: string): BaseBadgeVariant => {
+  switch (status) {
+    case Zeus.ContributorStatus.ACTIVE:
+      return 'pos';
+    case Zeus.ContributorStatus.APPROVED:
+      return 'info';
+    case Zeus.ContributorStatus.PENDING:
+    case Zeus.ContributorStatus.IMPORT:
+      return 'warn';
+    case Zeus.ContributorStatus.INACTIVE:
+      return 'neg';
+    default:
+      return 'neutral';
+  }
+};
+
+const sortMark = (field: string) => {
+  if (props.pagination.sortBy !== field) return '';
+  return props.pagination.descending ? '↓' : '↑';
+};
+
+const onSort = (field: string) => {
+  const same = props.pagination.sortBy === field;
+  emit('request', {
+    pagination: {
+      ...props.pagination,
+      sortBy: field,
+      descending: same ? !props.pagination.descending : true,
+      page: 1,
+    },
+  });
+};
+
+const goToPage = (page: number) => {
+  emit('request', {
+    pagination: {
+      ...props.pagination,
+      page,
+    },
+  });
+};
+
+const rangeLabel = computed(() => {
+  const total = props.totalCount || props.contributors.length;
+  if (!total) return '0 из 0';
+  const from = (props.pagination.page - 1) * props.pagination.rowsPerPage + 1;
+  const to = Math.min(
+    props.pagination.page * props.pagination.rowsPerPage,
+    total,
+  );
+  return `${from}–${to} из ${total}`;
+});
+
+const assetAmount = (raw?: string | null) => {
+  const availableStr = raw || `0 ${governSymbol.value}`;
+  const total = Number(availableStr.split(' ')[0] || '0');
+  const currency = availableStr.split(' ')[1] || governSymbol.value;
+  return currency ? `${total} ${currency}` : total.toString();
+};
+
 const calculateInvestorTotal = (contributor: IContributor) => {
-  const investor = Number(contributor?.contributed_as_investor?.split(' ')[0] || '0');
-  const propertor = Number(contributor?.contributed_as_propertor?.split(' ')[0] || '0');
+  const investor = Number(
+    contributor?.contributed_as_investor?.split(' ')[0] || '0',
+  );
+  const propertor = Number(
+    contributor?.contributed_as_propertor?.split(' ')[0] || '0',
+  );
   const total = investor + propertor;
-  const currency = contributor?.contributed_as_investor?.split(' ')[1] ||
-                  contributor?.contributed_as_propertor?.split(' ')[1] || '';
+  const currency =
+    contributor?.contributed_as_investor?.split(' ')[1] ||
+    contributor?.contributed_as_propertor?.split(' ')[1] ||
+    governSymbol.value;
   return currency ? `${total} ${currency}` : total.toString();
 };
 
-// Функции для расчета сумм кошельков
-const calculateMainWalletTotal = (contributor: IContributor) => {
-  const availableStr = contributor?.main_wallet?.available || '0.0000';
-  const total = Number(availableStr.split(' ')[0] || '0');
+const calculateMainWalletTotal = (contributor: IContributor) =>
+  assetAmount(contributor?.main_wallet?.available);
 
-  // Определяем валюту из поля available или используем системный символ
-  const currency = availableStr.split(' ')[1] || governSymbol.value;
+const calculateGenerationWalletTotal = (contributor: IContributor) =>
+  assetAmount(contributor?.generation_wallet?.available);
 
-  return currency ? `${total} ${currency}` : total.toString();
-};
+const calculateBlagorostWalletTotal = (contributor: IContributor) =>
+  assetAmount(contributor?.blagorost_wallet?.available);
 
-const calculateGenerationWalletTotal = (contributor: IContributor) => {
-  const availableStr = contributor?.generation_wallet?.available || '0.0000';
-  const total = Number(availableStr.split(' ')[0] || '0');
-
-  // Определяем валюту из поля available или используем системный символ
-  const currency = availableStr.split(' ')[1] || governSymbol.value;
-
-  return currency ? `${total} ${currency}` : total.toString();
-};
-
-const calculateBlagorostWalletTotal = (contributor: IContributor) => {
-  const availableStr = contributor?.blagorost_wallet?.available || '0.0000';
-  const total = Number(availableStr.split(' ')[0] || '0');
-
-  // Определяем валюту из поля available или используем системный символ
-  const currency = availableStr.split(' ')[1] || governSymbol.value;
-
-  return currency ? `${total} ${currency}` : total.toString();
-};
-
-// Функция для расчета общего вклада
 const calculateTotalContribution = (contributor: IContributor) => {
-  const investor = Number(contributor?.contributed_as_investor?.split(' ')[0] || '0');
-  const creator = Number(contributor?.contributed_as_creator?.split(' ')[0] || '0');
-  const author = Number(contributor?.contributed_as_author?.split(' ')[0] || '0');
-  const coordinator = Number(contributor?.contributed_as_coordinator?.split(' ')[0] || '0');
-  const contributorAmount = Number(contributor?.contributed_as_contributor?.split(' ')[0] || '0');
-  const propertor = Number(contributor?.contributed_as_propertor?.split(' ')[0] || '0');
-
-  const total = investor + creator + author + coordinator + contributorAmount + propertor;
-
-  // Определяем валюту из любого поля, которое ее содержит
-  const currency = contributor?.contributed_as_investor?.split(' ')[1] ||
-                  contributor?.contributed_as_creator?.split(' ')[1] ||
-                  contributor?.contributed_as_author?.split(' ')[1] ||
-                  contributor?.contributed_as_coordinator?.split(' ')[1] ||
-                  contributor?.contributed_as_contributor?.split(' ')[1] ||
-                  contributor?.contributed_as_propertor?.split(' ')[1] || '';
-
+  const parts = [
+    contributor?.contributed_as_investor,
+    contributor?.contributed_as_creator,
+    contributor?.contributed_as_author,
+    contributor?.contributed_as_coordinator,
+    contributor?.contributed_as_contributor,
+    contributor?.contributed_as_propertor,
+  ];
+  const total = parts.reduce(
+    (sum, raw) => sum + Number(raw?.split(' ')[0] || '0'),
+    0,
+  );
+  const currency =
+    parts.map((p) => p?.split(' ')[1]).find(Boolean) || governSymbol.value;
   return currency ? `${total} ${currency}` : total.toString();
 };
 
-// Обработчик запросов пагинации и сортировки
-const onRequest = (props: { pagination: any }) => {
-  emit('request', props);
-};
-
-// Проверяет, есть ли хотя бы один параметр документа
-const hasDocumentParameters = (params: any) => {
+const hasDocumentParameters = (params: Record<string, unknown> | null | undefined) => {
   if (!params) return false;
   return !!(
     params.blagorost_contributor_contract_number ||
@@ -309,10 +322,140 @@ const hasDocumentParameters = (params: any) => {
     params.blagorost_storage_agreement_number
   );
 };
+
+const docLabel = (number?: string | null, date?: string | null) => {
+  if (!number) return '—';
+  return date ? `${number} от ${date}` : number;
+};
 </script>
 
 <style lang="scss" scoped>
-.q-chip {
+.contributors-table {
+  min-width: 0;
+}
+
+.contributors-table__skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+
+  .skel {
+    height: 48px;
+    border-radius: var(--p-r-sm);
+  }
+}
+
+.table-wrap {
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+  background: var(--p-surface-2);
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.col-toggle {
+  width: 40px;
+}
+
+.col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.col-sort {
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--p-ink);
+  }
+}
+
+.cell-name {
   font-weight: 500;
+  color: var(--p-ink);
+  min-width: 12rem;
+}
+
+.data-row {
+  cursor: pointer;
+}
+
+.expand-row td {
+  padding: 0 !important;
+  background: var(--p-surface);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.contributors-table__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--p-5);
+  padding: var(--p-4) var(--p-5);
+}
+
+.contributors-table__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-3);
+  min-width: 0;
+}
+
+.contributors-table__block-title {
+  color: var(--p-ink-3);
+}
+
+.contributors-table__about {
+  margin: 0;
+  color: var(--p-ink-1);
+  line-height: var(--p-lh-body);
+  white-space: pre-wrap;
+}
+
+.contributors-table__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  min-width: 0;
+
+  :deep(.data-row--horizontal) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  :deep(.data-row__value-text) {
+    white-space: nowrap;
+  }
+}
+
+.contributors-table__rows--docs {
+  :deep(.data-row) {
+    min-width: 0;
+  }
+
+  :deep(.data-row__value-text) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.table-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+  padding: var(--p-3) 0 0;
+}
+
+.contributors-table__pager {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
 }
 </style>

@@ -27,7 +27,10 @@ export class ExpenseProposalMapper {
 
     let blockchainData: IExpenseProposalBlockchainData | undefined;
 
-    if (entity.id) {
+    // id=0 — валидный on-chain primary key (available_primary_key с пустой таблицы).
+    // Нельзя проверять truthy: иначе первая СЗ теряет username/items/суммы в GraphQL
+    // и ExpensePaymentsListener не создаёт исходящие платежи.
+    if (entity.id != null) {
       blockchainData = {
         id: String(entity.id),
         proposal_hash: entity.proposal_hash,

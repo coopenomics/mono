@@ -121,18 +121,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             path: 'documents',
             name: 'user-documents',
             component: markRaw(UserDocumentsPage),
-          },
-          {
-            // Отдельная страница документа (deep-link из поиска и реестра).
-            meta: {
-              title: 'Документ',
-              roles: ['user', 'member', 'chairman'],
-              requiresAuth: true,
-              hidden: true,
-            },
-            path: 'documents/:hash',
-            name: 'user-document-details',
-            component: markRaw(DocumentDetailsPage),
+            children: [
+              {
+                // Отдельная страница документа (deep-link из поиска и реестра).
+                meta: {
+                  title: 'Документ',
+                  roles: ['user', 'member', 'chairman'],
+                  requiresAuth: true,
+                  hidden: true,
+                },
+                path: ':hash',
+                name: 'user-document-details',
+                component: markRaw(DocumentDetailsPage),
+              },
+            ],
           },
           {
             meta: {

@@ -1,5 +1,7 @@
 <template lang="pug">
-q-page.program-expenses-page
+//- Родитель списка расходов: деталь — child через router-view (подсветка «Расходы» в matched).
+router-view(v-if='!isExpensesRoot')
+q-page.program-expenses-page(v-else)
   //- Действия страницы — в топбар через canon Teleport в слот-host шапки.
   //- На мобильном — micro-вариант (иконка + tooltip).
   Teleport(to='#header-actions-host', defer)
@@ -64,13 +66,13 @@ q-page.program-expenses-page
   )
   TopupProgramExpensePoolDialog(
     v-model='topupOpen',
-    @topped-up='refresh'
+    @topped-up='onToppedUp'
   )
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useWindowSize } from 'src/shared/hooks';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
@@ -87,7 +89,11 @@ const system = useSystemStore();
 const store = useProgramExpenseStore();
 const configStore = useConfigStore();
 const ledger2Store = useLedger2Store();
+const router = useRouter();
+const route = useRoute();
 const { isMobile } = useWindowSize();
+
+const isExpensesRoot = computed(() => route.name === 'capital-program-expenses');
 
 const coopname = computed(() => system.info.coopname);
 const createOpen = ref(false);
@@ -116,11 +122,18 @@ const expenseWallet = computed(() => ledger2Store.getWalletByName(PROGRAM_EXPENS
 const expensePool = computed(() => splitAsset(expenseWallet.value?.available));
 
 const loading = ref(false);
+
+/** Parser → PG обычно отстаёт от блока на 1–3с; ранний refetch вернёт пулы до topup. */
+const POST_CHAIN_REFETCH_MS = 3500;
+
 async function refresh(): Promise<void> {
   try {
     loading.value = true;
     await Promise.all([
-      store.loadProgramExpenses({ coopname: coopname.value }),
+      store.loadProgramExpenses({
+        coopname: coopname.value,
+        options: { page: 1, limit: 100, sortBy: 'createdAt', sortOrder: 'DESC' },
+      }),
       configStore.loadState({ coopname: coopname.value }),
       ledger2Store.loadWallets(coopname.value),
     ]);
@@ -129,7 +142,23 @@ async function refresh(): Promise<void> {
   }
 }
 
-onMounted(refresh);
+/** После topup обновляем оба пула с задержкой (инвест-пул + w.cap.pgexp). */
+function onToppedUp(): void {
+  setTimeout(() => {
+    void Promise.all([
+      configStore.loadState({ coopname: coopname.value }),
+      ledger2Store.loadWallets(coopname.value),
+    ]);
+  }, POST_CHAIN_REFETCH_MS);
+}
+
+onMounted(() => {
+  if (isExpensesRoot.value) void refresh();
+});
+
+watch(isExpensesRoot, (isRoot) => {
+  if (isRoot) void refresh();
+});
 
 // Строки для общего виджета списка СЗ — из capital-запроса программных расходов.
 const listRows = computed<ExpenseProposalListRow[]>(() =>
@@ -143,7 +172,6 @@ const listRows = computed<ExpenseProposalListRow[]>(() =>
   })),
 );
 
-const router = useRouter();
 function openExpense(expenseHash: string): void {
   router.push({ name: 'capital-program-expense', params: { expense_hash: expenseHash } });
 }

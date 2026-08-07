@@ -1,56 +1,45 @@
 <template lang="pug">
-div
-  // Лоадер загрузки логов
-  WindowLoader(v-if='initialLoading', text='Загрузка истории...')
+.project-logs
+  .project-logs__loading(v-if='initialLoading')
+    q-skeleton(v-for='n in 6', :key='n', type='text', height='48px', class='q-mb-sm')
 
-  // Список логов с бесконечной прокруткой
-  div(v-else)
-    q-list(separator)
-      q-item(
-        v-for='log in logs',
-        :key='log._id'
-      )
-        q-item-section(avatar)
-          q-icon(
-            :name='getEventTypeIcon(log.event_type)',
-            :color='getEventTypeColor(log.event_type)',
-            size='sm'
-          )
-        q-item-section
-          q-item-label {{ log.message }}
-          q-item-label.caption.text-grey-6 {{ formatDate(log.created_at) }}
+  template(v-else)
+    ActivityTimeline(
+      v-if='events.length',
+      :events='events',
+      group-by-date
+    )
 
-    // Индикатор загрузки следующей страницы
-    q-inner-loading(v-if='loading && logs.length > 0', showing color='primary')
+    .project-logs__more(v-if='loading && logs.length')
+      q-spinner(color='primary', size='24px')
 
-    // Триггер для автозагрузки
     q-intersection(
-      v-if='hasMorePages && !loading',
+      v-if='hasMorePages && !loading && logs.length',
       @visibility='loadNextPage',
       once
     )
 
-    // Сообщение об отсутствии данных
-    div(
-      v-if='logs.length === 0 && !loading',
-      class='text-center q-pa-lg text-grey-6'
+    EmptyState(
+      v-if='!logs.length && !loading',
+      title='Записей пока нет',
+      body='Здесь появится лента действий по проектам, инвестициям и результатам.'
     )
-      | Нет записей в истории
+      template(#icon)
+        q-icon(name='history', size='48px')
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
-import { WindowLoader } from 'src/shared/ui/Loader';
+import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { FailAlert } from 'src/shared/api';
-import { Zeus } from '@coopenomics/sdk';
-
-const LogEventType = Zeus.LogEventType;
+import { mapCapitalLogToActivity } from 'app/extensions/capital/shared/lib/mapCapitalLogToActivity';
 
 interface Props {
   projectHash?: string;
-  showComponentsLogs: boolean;
-  title: string;
+  showComponentsLogs?: boolean;
+  title?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -59,7 +48,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const projectStore = useProjectStore();
 
-// Состояние
 const logs = ref<any[]>([]);
 const loading = ref(false);
 const initialLoading = ref(false);
@@ -67,22 +55,17 @@ const currentPage = ref(1);
 const hasMorePages = ref(true);
 const pageSize = 20;
 
-// Загрузка логов проекта/компонента
-const loadLogs = async (page = 1, append = false) => {
-  if (append) {
-    loading.value = true;
-  } else {
-    initialLoading.value = true;
-  }
+const events = computed(() => logs.value.map(mapCapitalLogToActivity));
+
+async function loadLogs(page = 1, append = false) {
+  if (append) loading.value = true;
+  else initialLoading.value = true;
 
   try {
-    const filter: any = {
+    const filter: Record<string, unknown> = {
       show_components_logs: props.showComponentsLogs,
     };
-
-    if (props.projectHash) {
-      filter.project_hash = props.projectHash;
-    }
+    if (props.projectHash) filter.project_hash = props.projectHash;
 
     const result = await projectStore.loadProjectLogs({
       filter,
@@ -94,144 +77,76 @@ const loadLogs = async (page = 1, append = false) => {
       },
     });
 
-    if (append) {
-      logs.value = [...logs.value, ...result.items];
-    } else {
-      logs.value = result.items;
-    }
-
-    // Проверяем, есть ли еще страницы
+    logs.value = append ? [...logs.value, ...result.items] : result.items;
     hasMorePages.value = result.items.length === pageSize;
   } catch (error) {
     console.error('Ошибка при загрузке логов:', error);
-    const errorMessage = props.projectHash
-      ? (props.showComponentsLogs
-        ? 'Не удалось загрузить историю проекта'
-        : 'Не удалось загрузить историю компонента')
-      : 'Не удалось загрузить ленту активности';
-    FailAlert(errorMessage);
+    FailAlert(
+      props.projectHash
+        ? props.showComponentsLogs
+          ? 'Не удалось загрузить историю проекта'
+          : 'Не удалось загрузить историю компонента'
+        : 'Не удалось загрузить ленту активности',
+    );
   } finally {
     loading.value = false;
     initialLoading.value = false;
   }
-};
+}
 
-// Загрузка следующей страницы
-const loadNextPage = () => {
+function loadNextPage() {
   if (!loading.value && hasMorePages.value) {
     currentPage.value++;
-    loadLogs(currentPage.value, true);
+    void loadLogs(currentPage.value, true);
   }
-};
+}
 
-// Форматирование даты
-const formatDate = (date: string | Date) => {
-  return new Date(date).toLocaleString('ru-RU', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+watch(
+  () => props.projectHash,
+  async (newHash, oldHash) => {
+    if (newHash !== oldHash) {
+      currentPage.value = 1;
+      hasMorePages.value = true;
+      await loadLogs(1, false);
+    }
+  },
+);
 
-// Получение иконки для типа события
-const getEventTypeIcon = (eventType: Zeus.LogEventType): string => {
-  const iconMap: Record<string, string> = {
-    [LogEventType.PROJECT_CREATED]: 'add_circle',
-    [LogEventType.PROJECT_EDITED]: 'edit',
-    [LogEventType.PROJECT_STARTED]: 'play_arrow',
-    [LogEventType.PROJECT_STOPPED]: 'stop',
-    [LogEventType.PROJECT_CLOSED]: 'lock',
-    [LogEventType.PROJECT_OPENED]: 'lock_open',
-    [LogEventType.COMPONENT_CREATED]: 'add_circle_outline',
-    [LogEventType.CONTRIBUTOR_JOINED]: 'person_add',
-    [LogEventType.INVESTMENT_RECEIVED]: 'attach_money',
-    [LogEventType.COMMIT_RECEIVED]: 'code',
-    [LogEventType.ISSUE_CREATED]: 'bug_report',
-    [LogEventType.ISSUE_UPDATED]: 'edit_note',
-    [LogEventType.STORY_CREATED]: 'description',
-    [LogEventType.STORY_UPDATED]: 'edit_document',
-    [LogEventType.VOTING_STARTED]: 'how_to_vote',
-    [LogEventType.VOTE_SUBMITTED]: 'check_circle',
-    [LogEventType.RESULT_PUSHED]: 'assignment_turned_in',
-    [LogEventType.PROJECT_MASTER_ASSIGNED]: 'admin_panel_settings',
-    [LogEventType.AUTHOR_ADDED]: 'group_add',
-    [LogEventType.FUNDS_ALLOCATED]: 'account_balance',
-    [LogEventType.EXPENSE_CREATED]: 'receipt',
-    [LogEventType.DEBT_CREATED]: 'credit_card',
-  };
-
-  return iconMap[eventType] || 'info';
-};
-
-// Получение цвета для типа события
-const getEventTypeColor = (eventType: Zeus.LogEventType): string => {
-  const colorMap: Record<string, string> = {
-    [LogEventType.PROJECT_CREATED]: 'positive',
-    [LogEventType.PROJECT_EDITED]: 'info',
-    [LogEventType.PROJECT_STARTED]: 'positive',
-    [LogEventType.PROJECT_STOPPED]: 'negative',
-    [LogEventType.PROJECT_CLOSED]: 'warning',
-    [LogEventType.PROJECT_OPENED]: 'positive',
-    [LogEventType.COMPONENT_CREATED]: 'primary',
-    [LogEventType.CONTRIBUTOR_JOINED]: 'secondary',
-    [LogEventType.INVESTMENT_RECEIVED]: 'positive',
-    [LogEventType.COMMIT_RECEIVED]: 'info',
-    [LogEventType.ISSUE_CREATED]: 'warning',
-    [LogEventType.ISSUE_UPDATED]: 'info',
-    [LogEventType.STORY_CREATED]: 'primary',
-    [LogEventType.STORY_UPDATED]: 'info',
-    [LogEventType.VOTING_STARTED]: 'accent',
-    [LogEventType.VOTE_SUBMITTED]: 'positive',
-    [LogEventType.RESULT_PUSHED]: 'positive',
-    [LogEventType.PROJECT_MASTER_ASSIGNED]: 'warning',
-    [LogEventType.AUTHOR_ADDED]: 'secondary',
-    [LogEventType.FUNDS_ALLOCATED]: 'positive',
-    [LogEventType.EXPENSE_CREATED]: 'negative',
-    [LogEventType.DEBT_CREATED]: 'warning',
-  };
-
-  return colorMap[eventType] || 'grey';
-};
-
-
-// Watcher для изменения projectHash
-watch(() => props.projectHash, async (newHash, oldHash) => {
-  if (newHash !== oldHash) {
+watch(
+  () => props.showComponentsLogs,
+  async () => {
     currentPage.value = 1;
     hasMorePages.value = true;
     await loadLogs(1, false);
-  }
-});
+  },
+);
 
-// Watcher для изменения showComponentsLogs
-watch(() => props.showComponentsLogs, async () => {
-  currentPage.value = 1;
-  hasMorePages.value = true;
-  await loadLogs(1, false);
-});
-
-// Инициализация
 onMounted(async () => {
   await loadLogs(1, false);
 });
 </script>
 
 <style lang="scss" scoped>
-.q-list {
-  .q-item {
-    min-height: 60px;
-    padding: 12px 16px;
-  }
-
-  .q-item__section--avatar {
-    min-width: 40px;
-  }
+.project-logs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-5);
+  padding: var(--p-6);
+  background: var(--p-surface);
+  min-height: calc(100vh - var(--p-topbar-h, 64px));
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.text-caption {
-  font-size: 0.75rem;
-  line-height: 1rem;
+.project-logs__loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.project-logs__more {
+  display: flex;
+  justify-content: center;
+  padding: var(--p-4);
 }
 </style>

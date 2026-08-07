@@ -17,6 +17,8 @@ import {
  *
  * В нулевом отчёте — одна запись <ПерсСвФЛ> для подписанта (председателя)
  * с @СумВыпл=0. СНИЛС обязателен — берётся из signer.snils.
+ * СвНП @Тлф и краткое НаимОрг — по эталону принятого Астралом файла
+ * (см. Корректировки_отчетов/ПСВ).
  */
 export class PsvGenerator implements IReportGenerator {
   readonly reportType = ReportType.PSV;
@@ -55,13 +57,14 @@ export class PsvGenerator implements IReportGenerator {
       poMestu: '214',
     });
 
-    dokument.ele('СвНП')
-      .ele('НПЮЛ')
-        .att('НаимОрг', organization.orgName)
-        .att('ИННЮЛ', organization.inn)
-        .att('КПП', organization.kpp)
-      .up()
-    .up();
+    const svnp = dokument.ele('СвНП');
+    if (organization.phone) svnp.att('Тлф', organization.phone);
+    svnp.ele('НПЮЛ')
+      .att('НаимОрг', organization.orgName)
+      .att('ИННЮЛ', organization.inn)
+      .att('КПП', organization.kpp)
+      .up();
+    svnp.up();
 
     // ПСВ использует базовый <Подписант ПрПодп="1"> без <СвПред>, даже если
     // type=representative (это особенность формы — подписант персонифицированных

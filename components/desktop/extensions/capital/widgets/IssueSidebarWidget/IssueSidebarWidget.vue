@@ -1,6 +1,6 @@
 <template lang="pug">
 div(
-  :class="compactMobile ? 'capital-sidebar-mobile-compact q-px-md q-pb-sm' : 'capital-sidebar-root-desktop q-pa-md column no-wrap min-w-0 w-full'"
+  :class="compactMobile ? 'capital-sidebar-mobile-compact q-px-md q-pb-sm' : 'capital-sidebar-root-desktop q-pa-md'"
 )
   template(v-if="compactMobile")
     q-btn.capital-sidebar-details-btn(
@@ -28,8 +28,15 @@ div(
           @issue-updated='handleIssueUpdated'
         ).full-width.q-mt-xs
 
-        MoveIssueButton(
+        IssueMetricBindingsPanel.q-mb-sm(
           v-if='issue && projectHash'
+          :issue-hash='issue.issue_hash'
+          :project-hash='projectHash'
+          :readonly='isMetricsReadonly'
+        )
+
+        MoveIssueButton(
+          v-if='issue && (projectHash || permissions?.can_move_issue || permissions?.can_edit_issue)'
           :issue='issue'
           :project-hash='projectHash'
           :permissions='permissions'
@@ -38,70 +45,61 @@ div(
         ).q-mb-xs
 
         DeleteIssueButton(
-          v-if='issue && projectHash'
+          v-if='issue && permissions?.can_delete_issue'
           :issue-hash='issue.issue_hash'
-          :project-hash='projectHash'
-          :can-delete='permissions?.can_delete_issue ?? false'
+          :project-hash='projectHash || ""'
+          :can-delete='true'
           @deleted='emit("issue-deleted")'
         )
 
-        .capital-sidebar-logs.q-mt-md(v-if='issue?.issue_hash')
-          IssueLogsTableWidget(
-            :issue-hash='issue.issue_hash'
-            :refresh-trigger='logsRefreshTrigger'
-            compact
-          )
-
   template(v-else)
-    IssueControls(
-      :issue='issue'
-      :permissions='permissions'
-      @update:status='handleStatusUpdate'
-      @update:priority='handlePriorityUpdate'
-      @update:estimate='handleEstimateUpdate'
-      @update:labels='handleLabelsUpdate'
-      @creators-set='handleCreatorsSet'
-      @issue-updated='handleIssueUpdated'
-    ).full-width
-    .capital-sidebar-bottom.column(
-      v-if="issue && projectHash"
-    )
+    .capital-sidebar-body
+      IssueControls(
+        :issue='issue'
+        :permissions='permissions'
+        @update:status='handleStatusUpdate'
+        @update:priority='handlePriorityUpdate'
+        @update:estimate='handleEstimateUpdate'
+        @update:labels='handleLabelsUpdate'
+        @creators-set='handleCreatorsSet'
+        @issue-updated='handleIssueUpdated'
+      ).full-width
+
+      IssueMetricBindingsPanel.q-mt-sm(
+        v-if='issue && projectHash'
+        :issue-hash='issue.issue_hash'
+        :project-hash='projectHash'
+        :readonly='isMetricsReadonly'
+      )
 
       MoveIssueButton(
+        v-if='issue && (projectHash || permissions?.can_move_issue || permissions?.can_edit_issue)'
         :issue='issue'
         :project-hash='projectHash'
         :permissions='permissions'
         :parent-project-hash='parentProjectHash'
         @moved='emit("issue-moved", $event)'
-      ).q-mb-sm
+      ).q-mt-sm
 
-      .capital-sidebar-delete-footer.q-pb-sm(
-        v-if="permissions?.can_delete_issue"
+    .capital-sidebar-delete-footer(
+      v-if="issue && permissions?.can_delete_issue"
+    )
+      DeleteIssueButton(
+        :issue-hash='issue.issue_hash'
+        :project-hash='projectHash || ""'
+        :can-delete='true'
+        @deleted='emit("issue-deleted")'
       )
-        DeleteIssueButton(
-          :issue-hash='issue.issue_hash'
-          :project-hash='projectHash'
-          :can-delete='true'
-          @deleted='emit("issue-deleted")'
-        )
-
-      .capital-sidebar-logs(
-        v-if='issue.issue_hash'
-      )
-        IssueLogsTableWidget(
-          :issue-hash='issue.issue_hash'
-          :refresh-trigger='logsRefreshTrigger'
-          compact
-        )
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import type { IIssue, IIssuePermissions } from 'app/extensions/capital/entities/Issue/model'
 import { IssueControls } from 'app/extensions/capital/widgets/IssueControls'
-import { IssueLogsTableWidget } from '../IssueLogsTableWidget'
 import { DeleteIssueButton } from 'app/extensions/capital/features/Issue/DeleteIssue'
 import { MoveIssueButton } from 'app/extensions/capital/features/Issue/MoveIssue'
+import { IssueMetricBindingsPanel } from 'app/extensions/capital/features/Metric/BindIssueMetrics'
+import { Zeus } from '@coopenomics/sdk'
 
 interface Props {
   issue: IIssue | null | undefined
@@ -112,16 +110,20 @@ interface Props {
   projectHash?: string
   /** parent_hash родительского проекта текущего компонента (для списка других компонентов того же проекта) */
   parentProjectHash?: string | null
-  /** Счётчик для перезагрузки логов задачи (с IssuePage) */
-  logsRefreshTrigger?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   compactMobile: false,
-  logsRefreshTrigger: 0,
 })
 
 const detailsOpen = ref(false)
+
+/** Привязки метрик фиксируются при DONE — дальше только просмотр */
+const isMetricsReadonly = computed(
+  () =>
+    !(props.permissions?.can_edit_issue) ||
+    props.issue?.status === Zeus.IssueStatus.DONE,
+)
 
 watch(
   () => props.compactMobile,
@@ -171,43 +173,30 @@ const handleIssueUpdated = (issue: unknown) => {
 </script>
 
 <style lang="scss" scoped>
+// Родитель (.issue-sidebar-pane) — column + full-height + .col на этом корне.
+// Заполняем высоту flex-ом и прижимаем удаление margin-top: auto.
 .capital-sidebar-root-desktop {
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-.capital-sidebar-bottom {
-  flex-shrink: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  padding-top: 12px;
-}
-
-.body--dark .capital-sidebar-bottom,
-.q-dark .capital-sidebar-bottom {
-  border-top-color: rgba(255, 255, 255, 0.12);
+.capital-sidebar-body {
+  flex: 0 0 auto;
 }
 
 .capital-sidebar-delete-footer {
+  margin-top: auto;
   flex-shrink: 0;
-
-  :deep(.q-btn) {
-    margin-top: 0;
-  }
-}
-
-.capital-sidebar-logs {
-  padding-top: 4px;
-}
-
-.capital-sidebar-logs__heading {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.65);
-  margin-bottom: 6px;
-}
-
-.body--dark .capital-sidebar-logs__heading,
-.q-dark .capital-sidebar-logs__heading {
-  color: rgba(255, 255, 255, 0.72);
+  border-top: 1px solid var(--p-line);
+  padding-top: var(--p-3);
+  background: var(--p-surface);
 }
 
 .capital-sidebar-mobile-compact {

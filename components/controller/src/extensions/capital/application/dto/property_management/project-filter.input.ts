@@ -87,4 +87,11 @@ export class ProjectFilterInputDTO {
     description: 'Показывать только проекты, у которых есть задачи, созданные указанными пользователями по username',
   })
   has_issues_with_creators?: string[];
+
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Происхождение: blockchain, local или any (все). По умолчанию в списках — blockchain',
+  })
+  origin?: string;
 }

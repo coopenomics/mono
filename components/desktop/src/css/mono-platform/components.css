@@ -302,9 +302,9 @@ body {
    ------------------------------------------------------------------- */
 .wallet {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr);
   gap: var(--p-4);
-  align-items: center;
+  align-items: start;
   background: var(--p-surface);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
@@ -320,12 +320,26 @@ body {
   background: var(--prog-bg, var(--p-primary-soft));
   color: var(--prog-fg, var(--p-primary));
   flex-shrink: 0;
+  /* Hairline-обводка плитки: в dark surface-3 всё ещё близко к surface —
+     без линии квадрат иконки «пропадает». */
+  box-shadow: inset 0 0 0 1px var(--p-line-1);
 }
 .wallet__icon svg { width: 20px; height: 20px; }
+/* Тело справа от иконки: заголовок приоритетен; сумма/действие уходят
+   на следующую строку только если горизонтали не хватает (flex-wrap). */
+.wallet__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2) var(--p-4);
+  min-width: 0;
+}
 .wallet__main {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1 1 12rem;
   min-width: 0;
 }
 .wallet__title {
@@ -333,13 +347,15 @@ body {
   font-weight: 600;
   color: var(--p-ink);
   letter-spacing: -0.005em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: var(--p-lh-h3, 1.35);
+  /* Заголовок не режем — перенос строк, полная ширина колонки main. */
+  white-space: normal;
+  overflow: visible;
 }
 .wallet__sub {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-2);
+  /* Подзаголовок вторичен — одна строка с ellipsis (длинный URL и т.п.). */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -350,6 +366,10 @@ body {
   align-items: flex-end;
   gap: 6px;
   text-align: right;
+  /* Вторичный блок: на одной линии с main, если есть место; иначе — ниже. */
+  flex: 0 1 auto;
+  margin-left: auto;
+  max-width: 100%;
 }
 .wallet__metric { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .wallet__metric-val {
@@ -374,8 +394,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: normal;
+  text-align: right;
+  max-width: 16rem;
 }
-.wallet__metric-label svg { width: 11px; height: 11px; color: var(--p-ink-3); }
+.wallet__metric-label svg { width: 11px; height: 11px; color: var(--p-ink-3); flex-shrink: 0; }
 .wallet__submetric {
   display: inline-flex;
   align-items: center;
@@ -408,11 +431,11 @@ body {
 /* — Compact-row variant for dense lists — */
 .wallet--row {
   padding: 10px var(--p-4);
-  grid-template-columns: 32px minmax(0, 1fr) auto;
   gap: var(--p-3);
 }
 .wallet--row .wallet__icon { width: 32px; height: 32px; border-radius: var(--p-r-xs); }
 .wallet--row .wallet__icon svg { width: 16px; height: 16px; }
+.wallet--row .wallet__main { flex-basis: 8rem; }
 .wallet--row .wallet__metric-val { font-size: 16px; }
 
 /* ---- Table ---- */

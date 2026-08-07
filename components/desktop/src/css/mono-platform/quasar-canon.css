@@ -107,16 +107,22 @@
   border-color: var(--p-line-2) !important;
 }
 
-/* Ghost — flat */
-.q-btn--flat {
+/* Ghost — flat (не трогаем destructive: text-negative остаётся красным) */
+.q-btn--flat:not(.text-negative) {
   color: var(--p-ink) !important;
 }
-.q-btn--flat:hover {
+.q-btn--flat:not(.text-negative):hover {
   background: var(--p-surface-2);
 }
 .q-btn--flat.text-grey-7,
 .q-btn--flat.text-grey {
   color: var(--p-ink-2) !important;
+}
+.q-btn--flat.text-negative {
+  color: var(--p-neg) !important;
+}
+.q-btn--flat.text-negative:hover {
+  background: var(--p-neg-soft);
 }
 
 /* Danger */
@@ -293,7 +299,9 @@
   font-size: var(--p-fs-body);
   border-bottom: 1px solid var(--p-line);
 }
-.q-table tbody tr:hover {
+/* Не красить q-tr--no-hover: вложенные строки-обёртки (раскрытый
+   проект/компонент) иначе подсвечиваются при ховере дочерних задач. */
+.q-table tbody > tr:not(.q-tr--no-hover):hover {
   background: var(--p-surface-2);
 }
 .q-table__top {
@@ -369,10 +377,20 @@ body.body--dark {
   line-height: 1.45;
   gap: 12px;
 }
+/* Текстовая колонка тоста должна сжиматься до ширины контейнера: без min-width:0
+   flex-элемент не уже своего содержимого, и «длинное слово» (хэш, id, ссылка)
+   распирало тост, вылезая текстом за пределы тёмной подложки. */
+.q-notification__content {
+  min-width: 0;
+}
 .q-notification__message {
   color: inherit;
   font-weight: 500;
   padding: 2px 0;
+  /* Переносим по границе слова, а неразрывные длинные токены (sha256-хэш,
+     account-id, URL) — в любом месте, иначе они рвут ширину тоста. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__caption {
   color: inherit;
@@ -380,6 +398,8 @@ body.body--dark {
   font-size: var(--p-fs-meta, 12px);
   line-height: 1.45;
   padding-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .q-notification__icon {
   color: inherit;

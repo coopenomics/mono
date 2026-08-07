@@ -53,6 +53,13 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   const totalPages = ref(1);
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Первый опрос после загрузки страницы задаёт БАЗУ счётчика, а не «прирост».
+   * Без этого флага любое накопленное непрочитанное выглядело как «пришло
+   * только что» (0 → N) и всплывало тостом при каждом открытии приложения.
+   * Тостим только то, что реально пришло за время этой сессии.
+   */
+  let primed = false;
 
   const items = computed<NotificationItem[]>(() => notifications.value.map(toItem));
   const hasMore = computed(() => currentPage.value < totalPages.value);
@@ -84,14 +91,17 @@ export const useNotificationInboxStore = defineStore(namespace, () => {
   async function refreshUnreadCount(): Promise<void> {
     const next = await api.loadUnreadCount(coopname());
     // Прирост непрочитанных между опросами = пришло новое: тостим и подтягиваем ленту.
-    if (next > unreadCount.value) {
-      unreadCount.value = next;
-      await loadInbox(true);
-      const newest = notifications.value.find((n) => !n.isRead);
-      if (newest) NotifyAlert(newest.title, newest.body);
-    } else {
-      unreadCount.value = next;
-    }
+    // На ПЕРВОМ опросе прироста нет по определению — только фиксируем базу.
+    const grew = primed && next > unreadCount.value;
+    unreadCount.value = next;
+    primed = true;
+    if (!grew) return;
+
+    await loadInbox(true);
+    const newest = notifications.value.find((n) => !n.isRead);
+    // Тело шарится с email-шаблонами и несёт HTML — тост рендерит текстом,
+    // поэтому прогоняем через тот же plainText, что и лента (см. toItem).
+    if (newest) NotifyAlert(plainText(newest.title), plainText(newest.body));
   }
 
   async function markRead(id: string): Promise<void> {

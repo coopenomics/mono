@@ -23,9 +23,9 @@ echo "Удаляем blockchain data..."
 # sudo chmod -R 755 ../blockchain-data/ 2>/dev/null || true
 docker run --rm -v "$(cd .. && pwd)/blockchain-data:/d" alpine sh -c 'rm -rf /d/* /d/.[!.]* 2>/dev/null || true'
 
-# Пересоздаем и запускаем базы данных
+# Пересоздаем и запускаем базы данных + MinIO (file-storage).
 echo "Пересоздаем и запускаем базы данных..."
-docker compose up -d mongo postgres monoredis
+docker compose up -d mongo postgres monoredis minio
 
 # Ждем готовности MongoDB (standalone, ping вместо ожидания PRIMARY).
 echo "Ждем готовности MongoDB..."
@@ -42,6 +42,14 @@ until docker compose exec -T postgres pg_isready -U postgres -d voskhod > /dev/n
   sleep 2
 done
 echo "PostgreSQL готов!"
+
+# Ждем готовности MinIO
+echo "Ждем готовности MinIO..."
+until docker compose exec -T minio curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; do
+  echo "MinIO еще не готов, ждем..."
+  sleep 2
+done
+echo "MinIO готов!"
 
 # Запускаем boot процесс
 echo "Запускаем boot процесс..."

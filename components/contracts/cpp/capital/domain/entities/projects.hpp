@@ -24,7 +24,6 @@ namespace Capital::Projects {
     const eosio::name VOTING = "voting"_n;       ///< Проект на голосовании
     const eosio::name RESULT = "result"_n;        ///< Проект завершен
     const eosio::name FINALIZED = "finalized"_n;  ///< Проект финализирован (все конвертации завершены, неиспользованные средства возвращены)
-    const eosio::name CANCELLED = "cancelled"_n;  ///< Проект отменен
   }// namespace Capital::Projects::Status
 }// namespace Capital::Projects
 
@@ -713,6 +712,30 @@ namespace Capital::Projects {
     eosio::check(project != projects.end(), "Проект не найден");
     // Все уникальные участники должны сконвертировать свои сегменты
     return project->counts.total_converted_segments >= project->counts.total_unique_participants;
+  }
+
+  /**
+   * @brief Считает неиспользованные проектом инвестиции
+   *
+   * Неиспользованный остаток = все полученные инвестиции минус то, что проект
+   * фактически израсходовал: выплаты участникам при конвертации сегментов
+   * (total_used_for_compensation) и оплаченные расходы (used_expense_pool).
+   * В сумму входят и прямые инвестиции пайщиков, и аллоцированные программные
+   * средства — возврат идёт единым остатком в глобальный пул программы, потому
+   * что деньги инвесторов уже находятся в «Благоросте» и лично им не возвращаются.
+   *
+   * Единая точка расчёта для всех сценариев возврата: финализация
+   * (finalizeproj), остановка (stopproject), отмена (cancelproj), удаление
+   * (delproject) и отклонение советом (declprj).
+   *
+   * @param prj Проект
+   * @return Неиспользованный остаток (никогда не отрицательный)
+   */
+  inline eosio::asset calculate_unused_investments(const project &prj) {
+    int64_t used = prj.fact.total_used_for_compensation.amount + prj.fact.used_expense_pool.amount;
+    int64_t unused = prj.fact.total_received_investments.amount - used;
+
+    return eosio::asset(unused > 0 ? unused : 0, _root_govern_symbol);
   }
 
   /**

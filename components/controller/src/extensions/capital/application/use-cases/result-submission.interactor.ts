@@ -19,6 +19,8 @@ import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для подведения результатов в CAPITAL контракте
@@ -33,6 +35,8 @@ export class ResultSubmissionInteractor {
     private readonly resultRepository: ResultRepository,
     @Inject(SEGMENT_REPOSITORY)
     private readonly segmentRepository: SegmentRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly segmentSyncService: SegmentSyncService,
     private readonly resultSyncService: ResultSyncService,
@@ -45,6 +49,9 @@ export class ResultSubmissionInteractor {
    * Внесение результата в CAPITAL контракте
    */
   async pushResult(data: PushResultDomainInput): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'внесение результата');
+
     // Вызываем блокчейн порт
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
@@ -78,6 +85,8 @@ export class ResultSubmissionInteractor {
     data: ConvertSegmentDomainInput,
     _currentUser: MonoAccountDomainInterface
   ): Promise<SegmentDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'конвертацию сегмента');
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -88,8 +97,16 @@ export class ResultSubmissionInteractor {
     await this.capitalBlockchainPort.convertSegment(blockchainData);
 
     // После успешной конвертации сегмент удаляется из блокчейна,
-    // поэтому устанавливаем флаг завершения вместо синхронизации
-    const segmentEntity = await this.segmentRepository.markAsCompleted(data.coopname, data.project_hash, data.username);
+    // поэтому устанавливаем флаг завершения вместо синхронизации.
+    // Хэш приводим к нижнему регистру, как и при поиске проекта выше: в базе
+    // project_hash всегда нормализован (segment.entity.ts, segment.mapper.ts),
+    // а цепь регистр не различает — checksum256 парсится из hex. Без этого
+    // запрос с заглавными проходил в цепи, но не находил строку в базе.
+    const segmentEntity = await this.segmentRepository.markAsCompleted(
+      data.coopname,
+      data.project_hash.toLowerCase(),
+      data.username
+    );
 
     if (!segmentEntity) {
       throw new Error(
@@ -169,10 +186,15 @@ export class ResultSubmissionInteractor {
    * Акт НЕ генерируется заново - используется существующий акт с первой подписью.
    */
   async signActAsChairman(data: SignActAsChairmanDomainInput): Promise<SegmentDomainEntity> {
-    // Получаем результат из базы данных, чтобы узнать username участника
+    // Получаем результат из базы данных, чтобы узнать участника и его проект.
+    // project_hash проверяется наравне с username: ниже по нему синхронизируется
+    // сегмент, и пустое значение молча уводило бы синхронизацию в никуда
+    // (как это делал прежний `|| ''`).
     const resultEntity = await this.resultRepository.findByResultHash(data.result_hash);
-    if (!resultEntity || !resultEntity.username) {
-      throw new Error(`Результат с хэшем ${data.result_hash} не найден или не содержит username`);
+    if (!resultEntity || !resultEntity.username || !resultEntity.project_hash) {
+      throw new Error(
+        `Результат с хэшем ${data.result_hash} не найден или не содержит username и project_hash`
+      );
     }
 
     // Валидация подписей: должны быть подписи от username (участника) и chairman (председателя)
@@ -191,8 +213,8 @@ export class ResultSubmissionInteractor {
     // Синхронизируем сегмент
     const segmentEntity = await this.segmentSyncService.syncSegment(
       data.coopname,
-      resultEntity.project_hash || '',
-      resultEntity.username || '',
+      resultEntity.project_hash,
+      resultEntity.username,
       transactResult
     );
 

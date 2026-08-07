@@ -301,6 +301,10 @@ import { ProcessService } from './application/services/process.service';
 import { ProcessResolver } from './application/resolvers/process.resolver';
 import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
 import { StoryTypeormRepository } from './infrastructure/repositories/story.typeorm-repository';
+import { ComponentMetricTypeormRepository } from './infrastructure/repositories/component-metric.typeorm-repository';
+import { MeasureTypeormRepository } from './infrastructure/repositories/measure.typeorm-repository';
+import { IssueMetricBindingTypeormRepository } from './infrastructure/repositories/issue-metric-binding.typeorm-repository';
+import { MetricContributionTypeormRepository } from './infrastructure/repositories/metric-contribution.typeorm-repository';
 import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeorm-repository';
 import { DebtTypeormRepository } from './infrastructure/repositories/debt.typeorm-repository';
 import { ResultTypeormRepository } from './infrastructure/repositories/result.typeorm-repository';
@@ -308,6 +312,7 @@ import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.
 import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
 import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
 import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
+import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
 import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
 
 // GitHub (маркеры коммитов)
@@ -368,6 +373,7 @@ import { ProjectMapperService } from './application/services/project-mapper.serv
 import { CommitMapperService } from './application/services/commit-mapper.service';
 import { GitService } from './application/services/git.service';
 import { GenerationService } from './application/services/generation.service';
+import { ComponentMetricService } from './application/services/component-metric.service';
 import { ComponentMatrixAnnouncementService } from './application/services/component-matrix-announcement.service';
 import { IssuePermissionsService } from './application/services/issue-permissions.service';
 import { ProjectPermissionsService } from './application/services/project-permissions.service';
@@ -412,6 +418,10 @@ import { CYCLE_REPOSITORY } from './domain/repositories/cycle.repository';
 import { ISSUE_REPOSITORY } from './domain/repositories/issue.repository';
 import { COMMENT_REPOSITORY } from './domain/repositories/comment.repository';
 import { STORY_REPOSITORY } from './domain/repositories/story.repository';
+import { COMPONENT_METRIC_REPOSITORY } from './domain/repositories/component-metric.repository';
+import { MEASURE_REPOSITORY } from './domain/repositories/measure.repository';
+import { ISSUE_METRIC_BINDING_REPOSITORY } from './domain/repositories/issue-metric-binding.repository';
+import { METRIC_CONTRIBUTION_REPOSITORY } from './domain/repositories/metric-contribution.repository';
 import { VOTE_REPOSITORY } from './domain/repositories/vote.repository';
 import { DEBT_REPOSITORY } from './domain/repositories/debt.repository';
 import { RESULT_REPOSITORY } from './domain/repositories/result.repository';
@@ -419,12 +429,14 @@ import { EXPENSE_REPOSITORY } from './domain/repositories/expense.repository';
 import { COMMIT_REPOSITORY } from './domain/repositories/commit.repository';
 import { STATE_REPOSITORY } from './domain/repositories/state.repository';
 import { TIME_ENTRY_REPOSITORY } from './domain/repositories/time-entry.repository';
+import { TIMER_SESSION_REPOSITORY } from './domain/repositories/timer-session.repository';
 import { SEGMENT_REPOSITORY } from './domain/repositories/segment.repository';
 
 import { ContractManagementResolver } from './application/resolvers/contract-management.resolver';
 import { ParticipationManagementResolver } from './application/resolvers/participation-management.resolver';
 import { ProjectManagementResolver } from './application/resolvers/project-management.resolver';
 import { GenerationResolver } from './application/resolvers/generation.resolver';
+import { ComponentMetricResolver } from './application/resolvers/component-metric.resolver';
 import { InvestsManagementResolver } from './application/resolvers/invests-management.resolver';
 import { DebtManagementResolver } from './application/resolvers/debt-management.resolver';
 import { PropertyManagementResolver } from './application/resolvers/property-management.resolver';
@@ -728,6 +740,7 @@ IssueIdGenerationService,
     CommitMapperService,
     GitService,
     GenerationService,
+    ComponentMetricService,
     ComponentMatrixAnnouncementService,
     IssuePermissionsService,
     ProjectPermissionsService,
@@ -793,6 +806,7 @@ IssueIdGenerationService,
     ParticipationManagementResolver,
     ProjectManagementResolver,
     GenerationResolver,
+    ComponentMetricResolver,
     InvestsManagementResolver,
     DebtManagementResolver,
     PropertyManagementResolver,
@@ -865,6 +879,22 @@ IssueIdGenerationService,
       useClass: StoryTypeormRepository,
     },
     {
+      provide: COMPONENT_METRIC_REPOSITORY,
+      useClass: ComponentMetricTypeormRepository,
+    },
+    {
+      provide: MEASURE_REPOSITORY,
+      useClass: MeasureTypeormRepository,
+    },
+    {
+      provide: ISSUE_METRIC_BINDING_REPOSITORY,
+      useClass: IssueMetricBindingTypeormRepository,
+    },
+    {
+      provide: METRIC_CONTRIBUTION_REPOSITORY,
+      useClass: MetricContributionTypeormRepository,
+    },
+    {
       provide: VOTE_REPOSITORY,
       useClass: VoteTypeormRepository,
     },
@@ -891,6 +921,10 @@ IssueIdGenerationService,
     {
       provide: TIME_ENTRY_REPOSITORY,
       useClass: TimeEntryTypeormRepository,
+    },
+    {
+      provide: TIMER_SESSION_REPOSITORY,
+      useClass: TimerSessionTypeormRepository,
     },
     {
       provide: SEGMENT_REPOSITORY,

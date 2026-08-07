@@ -56,6 +56,12 @@ function urlFor(bucket: string, key: string, ttlSeconds: number): { path: string
   return { path: `/api/storage/${encodeURIComponent(bucket)}/${encodedKey}`, exp, sig };
 }
 
+// Каждый тест поднимает свой Nest-контекст через makeApp: в одиночку это ~3 с,
+// то есть впритык к дефолтным 5 с jest. В полном прогоне под нагрузкой лимит
+// превышался, и спек падал по таймауту, проходя при этом изолированно.
+// Ассертов это не касается — поднят только предел ожидания.
+jest.setTimeout(30_000);
+
 describe('FileStorageHttpController', () => {
   let app: INestApplication;
   let stub: AdapterStub;

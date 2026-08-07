@@ -270,7 +270,10 @@ export class DocumentPackageV1Aggregator {
    * Раньше все соглашения шли через soviet::sndagreement, поэтому агрегатор искал
    * приложение только в soviet::newagreement. После перевода программных оферт на
    * wallet::signagree они перестали находиться и молча выпадали из приложений к
-   * заявлению на повестке совета. Фолбэк на wallet::signagree восстанавливает связь.
+   * заявлению на повестке совета. Связь восстанавливает фолбэк на
+   * soviet::newresolved — общее уведомление, которое make_complete_document шлёт
+   * на каждый вызов, включая wallet::signagree (см. findLinkedAgreementDocument).
+   * Сам wallet::signagree агрегатор не опрашивает.
    *
    * @returns агрегат документа либо null, если документ или носитель подписи не найдены
    */

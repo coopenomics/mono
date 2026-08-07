@@ -9,6 +9,8 @@
       @update:model-value='v => emitField("otch", v)'
       dense outlined
       input-class='text-right'
+      :error='errFor("otch")'
+      :error-message='msgFor("otch")'
     )
   .br-input
     q-input(
@@ -17,6 +19,8 @@
       @update:model-value='v => emitField("prev", v)'
       dense outlined
       input-class='text-right'
+      :error='errFor("prev")'
+      :error-message='msgFor("prev")'
     )
   .br-input
     q-input(
@@ -25,6 +29,8 @@
       @update:model-value='v => emitField("prePrev", v)'
       dense outlined
       input-class='text-right'
+      :error='errFor("prePrev")'
+      :error-message='msgFor("prePrev")'
     )
 </template>
 
@@ -39,6 +45,10 @@ const props = defineProps<{
   label: string
   code: string
   row: BalanceRow | null
+  /** JSONPath строки без учёта суффикса (например "balance.assetsTotal") — для сопоставления с fieldErrors. */
+  basePath?: string
+  /** Серверные ошибки валидации всей формы: ключ = JSONPath поля. */
+  fieldErrors?: Record<string, string[]>
 }>()
 
 const emit = defineEmits<{
@@ -57,6 +67,18 @@ function emitField(key: keyof BalanceRow, raw: unknown): void {
   const base: BalanceRow = props.row ?? { otch: 0, prev: 0, prePrev: 0 }
   const next: BalanceRow = { ...base, [key]: clamp(raw) }
   emit('update', next)
+}
+
+function pathFor(key: keyof BalanceRow): string {
+  return props.basePath ? `${props.basePath}.${key}` : key
+}
+
+function errFor(key: keyof BalanceRow): boolean {
+  return (props.fieldErrors?.[pathFor(key)]?.length ?? 0) > 0
+}
+
+function msgFor(key: keyof BalanceRow): string {
+  return props.fieldErrors?.[pathFor(key)]?.[0] ?? ''
 }
 </script>
 

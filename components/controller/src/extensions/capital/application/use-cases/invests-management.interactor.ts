@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateProjectInvestDomainInput } from '../../domain/actions/create-project-invest-domain-input.interface';
 import type { CreateProgramInvestDomainInput } from '../../domain/actions/create-program-invest-domain-input.interface';
+import type { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
 import type { TransactResult } from '@wharfkit/session';
 import { INVEST_REPOSITORY, InvestRepository } from '../../domain/repositories/invest.repository';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
@@ -19,6 +20,8 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -35,6 +38,8 @@ export class InvestsManagementInteractor {
     private readonly appendixRepository: AppendixRepository,
     @Inject(CONTRIBUTOR_REPOSITORY)
     private readonly contributorRepository: ContributorRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
     private readonly logger: WinstonLoggerService
@@ -115,6 +120,9 @@ export class InvestsManagementInteractor {
     data: CreateProjectInvestDomainInput,
     _currentUser: MonoAccountDomainInterface
   ): Promise<TransactResult> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'инвестирование');
+
     // Преобразовываем доменный документ в формат блокчейна
     const blockchainData = {
       ...data,
@@ -143,6 +151,21 @@ export class InvestsManagementInteractor {
     };
 
     return await this.capitalBlockchainPort.createProgramInvest(blockchainData);
+  }
+
+  /**
+   * Направление средств программы в проект или компонент (allocate)
+   */
+  async allocateFunds(data: AllocateFundsInputDTO): Promise<TransactResult> {
+    const project_hash = data.project_hash.toLowerCase();
+    const project = await this.projectRepository.findByHash(project_hash);
+    assertBlockchainProject(project, 'направление средств');
+
+    return await this.capitalBlockchainPort.allocateFunds({
+      coopname: data.coopname,
+      project_hash,
+      amount: data.amount,
+    });
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============

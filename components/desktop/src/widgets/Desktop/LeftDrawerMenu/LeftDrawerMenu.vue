@@ -156,9 +156,6 @@ const activeKey = computed<string | undefined>(() => {
   for (const r of filteredRoutes.value) {
     if (r.name === currentName) return String(r.name);
     if (current.matched.some((m) => m.name === r.name)) return String(r.name);
-    if (r.name === 'projects-list' && currentName.startsWith('project-')) {
-      return String(r.name);
-    }
   }
   return undefined;
 });

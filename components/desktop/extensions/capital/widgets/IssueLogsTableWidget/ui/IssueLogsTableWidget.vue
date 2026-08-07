@@ -1,46 +1,40 @@
 <template lang="pug">
-div.issue-logs(:class='{ "issue-logs--compact": compact }')
-  // Список логов с бесконечной прокруткой
-  q-list(separator)
-    q-item(v-for='log in logs', :key='log._id')
-      q-item-section(avatar)
-        q-icon(
-          :name='getEventTypeIcon(log.event_type)',
-          :color='getEventTypeColor(log.event_type)',
-          size='sm'
-        )
-      q-item-section
-        q-item-label(
-          :class='log.event_type === LogEventType.COMMIT_RECEIVED ? "issue-log-message issue-log-message--code" : "issue-log-message"'
-        ) {{ log.message }}
-        q-item-label.caption.text-grey-6 {{ formatDate(log.created_at) }}
+.issue-logs(:class='{ "issue-logs--compact": compact }')
+  .issue-logs__loading(v-if='initialLoading')
+    q-skeleton(v-for='n in 4', :key='n', type='text', height='40px', class='q-mb-sm')
 
-    // Индикатор загрузки следующей страницы
-    q-inner-loading(
-      v-if='loading && logs.length > 0',
-      showing,
-      color='primary'
+  template(v-else)
+    ActivityTimeline(
+      v-if='events.length',
+      :events='events',
+      group-by-date
     )
 
-    // Триггер для автозагрузки
+    .issue-logs__more(v-if='loading && logs.length')
+      q-spinner(color='primary', size='20px')
+
     q-intersection(
-      v-if='hasMorePages && !loading',
+      v-if='hasMorePages && !loading && logs.length',
       @visibility='loadNextPage',
       once
     )
 
-    // Сообщение об отсутствии данных
-    .text-center.q-pa-lg.text-grey-6(v-if='logs.length === 0 && !loading')
-      | Нет записей в истории задачи
+    EmptyState(
+      v-if='!logs.length && !loading',
+      title='История пуста',
+      body='Здесь появятся изменения задачи, коммиты и связанные действия.'
+    )
+      template(#icon)
+        q-icon(name='history', size='40px')
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model';
+import { ActivityTimeline } from 'src/shared/ui/domain/ActivityTimeline';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { FailAlert } from 'src/shared/api';
-import { Zeus } from '@coopenomics/sdk';
-
-const LogEventType = Zeus.LogEventType;
+import { mapCapitalLogToActivity } from 'app/extensions/capital/shared/lib/mapCapitalLogToActivity';
 
 interface Props {
   issueHash: string;
@@ -55,23 +49,23 @@ const props = withDefaults(defineProps<Props>(), {
 
 const issueStore = useIssueStore();
 
-// Состояние
 const logs = ref<any[]>([]);
 const loading = ref(false);
+const initialLoading = ref(false);
 const currentPage = ref(1);
 const hasMorePages = ref(true);
 const pageSize = 20;
 
-// Загрузка логов задачи
-const loadLogs = async (page = 1, append = false) => {
-  if (append) {
-    loading.value = true;
-  }
+const events = computed(() => logs.value.map(mapCapitalLogToActivity));
+
+async function loadLogs(page = 1, append = false) {
+  if (append) loading.value = true;
+  else initialLoading.value = true;
 
   try {
     const result = await issueStore.loadIssueLogs({
       data: {
-        issue_hash: props.issueHash
+        issue_hash: props.issueHash,
       },
       options: {
         page,
@@ -81,102 +75,24 @@ const loadLogs = async (page = 1, append = false) => {
       },
     });
 
-    if (append) {
-      logs.value = [...logs.value, ...result.items];
-    } else {
-      logs.value = result.items;
-    }
-
-    // Проверяем, есть ли еще страницы
+    logs.value = append ? [...logs.value, ...result.items] : result.items;
     hasMorePages.value = result.items.length === pageSize;
   } catch (error) {
     console.error('Ошибка при загрузке логов задачи:', error);
     FailAlert('Не удалось загрузить историю задачи');
   } finally {
     loading.value = false;
+    initialLoading.value = false;
   }
-};
+}
 
-// Загрузка следующей страницы
-const loadNextPage = () => {
+function loadNextPage() {
   if (!loading.value && hasMorePages.value) {
     currentPage.value++;
-    loadLogs(currentPage.value, true);
+    void loadLogs(currentPage.value, true);
   }
-};
+}
 
-// Форматирование даты
-const formatDate = (date: string | Date) => {
-  return new Date(date).toLocaleString('ru-RU', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-// Получение иконки для типа события
-const getEventTypeIcon = (eventType: Zeus.LogEventType): string => {
-  const iconMap: Record<string, string> = {
-    [LogEventType.PROJECT_CREATED]: 'add_circle',
-    [LogEventType.PROJECT_EDITED]: 'edit',
-    [LogEventType.PROJECT_STARTED]: 'play_arrow',
-    [LogEventType.PROJECT_STOPPED]: 'stop',
-    [LogEventType.PROJECT_CLOSED]: 'lock',
-    [LogEventType.PROJECT_OPENED]: 'lock_open',
-    [LogEventType.COMPONENT_CREATED]: 'add_circle_outline',
-    [LogEventType.CONTRIBUTOR_JOINED]: 'person_add',
-    [LogEventType.INVESTMENT_RECEIVED]: 'attach_money',
-    [LogEventType.COMMIT_RECEIVED]: 'code',
-    [LogEventType.ISSUE_CREATED]: 'bug_report',
-    [LogEventType.ISSUE_UPDATED]: 'edit_note',
-    [LogEventType.STORY_CREATED]: 'description',
-    [LogEventType.STORY_UPDATED]: 'edit_document',
-    [LogEventType.VOTING_STARTED]: 'how_to_vote',
-    [LogEventType.VOTE_SUBMITTED]: 'check_circle',
-    [LogEventType.RESULT_PUSHED]: 'assignment_turned_in',
-    [LogEventType.PROJECT_MASTER_ASSIGNED]: 'admin_panel_settings',
-    [LogEventType.AUTHOR_ADDED]: 'group_add',
-    [LogEventType.FUNDS_ALLOCATED]: 'account_balance',
-    [LogEventType.EXPENSE_CREATED]: 'receipt',
-    [LogEventType.DEBT_CREATED]: 'credit_card',
-  };
-
-  return iconMap[eventType] || 'info';
-};
-
-// Получение цвета для типа события
-const getEventTypeColor = (eventType: Zeus.LogEventType): string => {
-  const colorMap: Record<string, string> = {
-    [LogEventType.PROJECT_CREATED]: 'positive',
-    [LogEventType.PROJECT_EDITED]: 'info',
-    [LogEventType.PROJECT_STARTED]: 'positive',
-    [LogEventType.PROJECT_STOPPED]: 'negative',
-    [LogEventType.PROJECT_CLOSED]: 'warning',
-    [LogEventType.PROJECT_OPENED]: 'positive',
-    [LogEventType.COMPONENT_CREATED]: 'primary',
-    [LogEventType.CONTRIBUTOR_JOINED]: 'secondary',
-    [LogEventType.INVESTMENT_RECEIVED]: 'positive',
-    [LogEventType.COMMIT_RECEIVED]: 'info',
-    [LogEventType.ISSUE_CREATED]: 'warning',
-    [LogEventType.ISSUE_UPDATED]: 'info',
-    [LogEventType.STORY_CREATED]: 'primary',
-    [LogEventType.STORY_UPDATED]: 'info',
-    [LogEventType.VOTING_STARTED]: 'accent',
-    [LogEventType.VOTE_SUBMITTED]: 'positive',
-    [LogEventType.RESULT_PUSHED]: 'positive',
-    [LogEventType.PROJECT_MASTER_ASSIGNED]: 'warning',
-    [LogEventType.AUTHOR_ADDED]: 'secondary',
-    [LogEventType.FUNDS_ALLOCATED]: 'positive',
-    [LogEventType.EXPENSE_CREATED]: 'negative',
-    [LogEventType.DEBT_CREATED]: 'warning',
-  };
-
-  return colorMap[eventType] || 'grey';
-};
-
-// Watcher для изменения issueId
 watch(
   () => props.issueHash,
   async (newHash, oldHash) => {
@@ -188,67 +104,52 @@ watch(
   },
 );
 
-// Инициализация
+watch(
+  () => props.refreshTrigger,
+  async (newValue, oldValue) => {
+    if (newValue !== oldValue && newValue !== undefined) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      currentPage.value = 1;
+      hasMorePages.value = true;
+      await loadLogs(1, false);
+    }
+  },
+);
+
 onMounted(async () => {
   await loadLogs(1, false);
-});
-
-// Следим за изменениями issueHash для перезагрузки логов при смене задачи
-watch(() => props.issueHash, async (newValue, oldValue) => {
-  if (newValue !== oldValue && newValue) {
-    await loadLogs(1, false);
-  }
-});
-
-// Следим за изменениями refreshTrigger для перезагрузки логов
-watch(() => props.refreshTrigger, async (newValue, oldValue) => {
-  if (newValue !== oldValue && newValue !== undefined) {
-    // Небольшая задержка для синхронизации базы данных
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    await loadLogs(1, false);
-  }
 });
 </script>
 
 <style lang="scss" scoped>
+.issue-logs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
+  min-width: 0;
+}
+
 .issue-logs--compact {
-  :deep(.q-list .q-item) {
-    min-height: 48px;
-    padding: 8px 10px;
+  gap: var(--p-3);
+
+  :deep(.activity-timeline__group-head) {
+    font-size: var(--p-fs-meta);
   }
 
-  :deep(.q-item__section--avatar) {
-    min-width: 32px;
-  }
-
-  :deep(.q-icon) {
-    font-size: 18px !important;
+  :deep(.activity-timeline__title) {
+    font-size: var(--p-fs-body-sm);
   }
 }
 
-.q-list {
-  .q-item {
-    min-height: 60px;
-    padding: 12px 16px;
-  }
-
-  .q-item__section--avatar {
-    min-width: 40px;
-  }
+.issue-logs__loading,
+.issue-logs__more {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
 }
 
-.text-caption {
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
-.issue-log-message {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.issue-log-message--code {
-  font-family: 'Courier New', ui-monospace, monospace;
-  font-size: 0.8125rem;
+.issue-logs__more {
+  align-items: center;
+  padding: var(--p-3);
 }
 </style>

@@ -16,13 +16,14 @@ q-select(
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { Zeus } from '@coopenomics/sdk'
 
 import { useUpdateIssue } from '../../model'
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model'
 import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib'
+import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
 
 interface Props {
   modelValue: Zeus.IssueStatus
@@ -44,7 +45,10 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const route = useRoute()
-const projectHash = computed(() => route.params.project_hash as string)
+const issuePage = inject(ISSUE_PAGE_KEY, null)
+const projectHash = computed(
+  () => issuePage?.projectHash.value || (route.params.project_hash as string) || '',
+)
 
 // Ref для доступа к q-select компоненту
 const selectRef = ref()

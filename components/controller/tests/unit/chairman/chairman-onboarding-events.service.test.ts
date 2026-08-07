@@ -25,7 +25,10 @@ function makeRepoStub(cfg: Record<string, any>) {
     update: jest.fn(async (next: any) => {
       Object.assign(plugin.config, next.config);
     }),
-    // patchConfig — атомарный shallow-merge; возвращает свежий слитый config.
+    // Сервис перешёл на атомарный частичный UPDATE (config || patch) вместо
+    // read-modify-write всего config — иначе конкурентные DecisionTrackedEvent
+    // теряют флаги друг друга. Заглушка повторяет контракт: частичное слияние
+    // и возврат обновлённой сущности (её читает isL1Complete).
     patchConfig: jest.fn(async (_name: string, patch: any) => {
       Object.assign(plugin.config, patch);
       return plugin;

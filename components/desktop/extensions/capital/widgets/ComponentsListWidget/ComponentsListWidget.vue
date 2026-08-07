@@ -1,5 +1,14 @@
 <template lang="pug">
-div
+// Одна surface-плоскость: «+ Добавить» и список на одном фоне (canvas снаружи).
+// Вложенный в Мастерскую — белое-на-белом, визуально невидимо.
+.list-surface
+  // Полоска-добавлялка перед списком компонентов проекта
+  CreateComponentButton(
+    v-if='project && project.permissions?.can_edit_project',
+    :project='project',
+    row
+  )
+
   q-table(
     :rows='components || []',
     :columns='columns',
@@ -10,54 +19,54 @@ div
     square,
     hide-header,
     hide-pagination,
-    no-data-label='Нет компонентов'
   )
     template(#body='props')
       q-tr(
         :props='props'
       )
         q-td
-          .row.items-center(style='padding-left:25px; min-height: 48px')
-            // Кнопка раскрытия (35px)
-            .col-auto(style='width: 35px; flex-shrink: 0')
+          .row.items-center.component-row
+            // Кнопка раскрытия
+            .col-auto.component-row__toggle
               ExpandToggleButton(
                 :expanded='expanded[props.row.project_hash]',
                 @click='handleToggleComponent(props.row.project_hash)'
               )
 
-            // ID с иконкой типа внутри бейджа (100px + отступ 0px)
-            .col-auto(style='width: 100px; flex-shrink: 0')
+            // ID — плоский muted-текст фиксированной колонки (Linear-style)
+            .col-auto.component-row__id
               EntityIdBadge(
                 v-if='props.row.id'
                 :raw-id='props.row.id'
                 copy-on-click
                 address-clipboard
+                flat
               )
-                template(#prefix)
-                  q-icon(name='fa-regular fa-file-code', size='xs')
 
-            // Title со статусом (400px)
-            .col(style='width: 400px; padding-left: 10px')
+            // Статус — фиксированный слот, заголовки уровня стартуют с одной координаты
+            .col-auto.row-status
+              q-icon(
+                :name='getProjectStatusIcon(props.row.status)',
+                :color='getProjectStatusDotColor(props.row.status)',
+                size='xs'
+              )
+
+            // Title
+            .col.component-row__title-col
               .list-item-title(
                 @click.stop='handleOpenComponent(props.row.project_hash)'
-                style='display: inline-block; vertical-align: top; word-wrap: break-word; white-space: normal'
               )
-                q-icon(
-                  :name='getProjectStatusIcon(props.row.status)',
-                  :color='getProjectStatusDotColor(props.row.status)',
-                  size='xs'
-                ).q-mr-sm
+                PrivateShieldIcon(:show='isLocalRow(props.row)')
                 span {{ props.row.title }}
 
-            // Actions - только CreateIssueButton (140px, выравнивание по правому краю)
-            .col-auto.ml-auto(style='width: 140px')
-              .row.items-center.justify-end.q-gutter-xs
-                CreateIssueButton(
-                  @click.stop,
-                  :mini='true',
-                  :project-hash='props.row.project_hash',
-                  flat
-                )
+            // Правая сетка строки: (слот времени) | (слот выравнивания) | действие —
+            // время на уровне компонента пока скрыто — почти всегда нули
+            .col-auto.row-cells
+              .cell-time
+              .cell-side
+              .cell-actions
+                // Мастер — ответственный за компонент (зеркально исполнителям задач)
+                SetMasterAvatar(:project='props.row')
                 //- ProjectMenuWidget(:project='props.row', @click.stop)
 
       // Слот для дополнительного контента компонента
@@ -66,32 +75,39 @@ div
         v-if='expanded[props.row.project_hash]',
         :key='`e_${props.row.project_hash}`'
       )
-        q-td(colspan='100%')
-          // Скелетон загрузки
-          div(v-if='loadingComponents[props.row.project_hash]', style='padding: 16px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px', style='margin-bottom: 8px')
-            q-skeleton(height='24px')
+        q-td.component-row__nested(colspan='100%')
+          // Скелетон загрузки задач компонента
+          .component-row__skeleton(v-if='loadingComponents[props.row.project_hash]')
+            .skel.skel--num(v-for='i in 4', :key='i')
           // Реальный контент
           slot(v-else, name='component-content', :component='props.row')
+
+    // Канон-пустое состояние вместо дефолтного q-table no-data
+    template(#no-data)
+      .list-empty
+        q-icon(name='inbox', size='20px')
+        span Нет компонентов
 </template>
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
-import type { IProjectComponent } from 'app/extensions/capital/entities/Project/model';
+import type { IProject, IProjectComponent } from 'app/extensions/capital/entities/Project/model';
 import {
   getProjectStatusIcon,
   getProjectStatusDotColor,
 } from 'app/extensions/capital/shared/lib/projectStatus';
-import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
+import { SetMasterAvatar } from 'app/extensions/capital/features/Project/SetMaster';
+import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import { EntityIdBadge } from 'src/shared/ui';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { PrivateShieldIcon } from 'app/extensions/capital/shared/ui';
 // import { ProjectMenuWidget } from 'app/extensions/capital/widgets/ProjectMenuWidget';
 
 const props = defineProps<{
   components: IProjectComponent[] | undefined;
   expanded: Record<string, boolean>;
   expandAll?: boolean;
+  /** Родительский проект — для полоски «Добавить компонент» в начале списка */
+  project?: IProject;
 }>();
 
 const emit = defineEmits<{
@@ -142,6 +158,9 @@ watch(() => props.components, (newComponents) => {
     }, 50);
   }
 });
+
+const isLocalRow = (row: IProjectComponent | IProject) =>
+  row.origin === 'local' || props.project?.origin === 'local';
 
 const handleToggleComponent = (componentHash: string) => {
   // Если компонент разворачивается (становится expanded), устанавливаем loading
@@ -200,28 +219,134 @@ const columns = [
 </script>
 
 <style lang="scss" scoped>
+// Рабочая плоскость списка: button+table на --p-surface, без рамки —
+// при вложении в другую surface визуально сливается
+.list-surface {
+  background: var(--p-surface);
+}
+
+// Структурные ширины колонок строки компонента. Собственного отступа
+// уровня нет — каскадный отступ задаёт родительский виджет, чтобы при
+// одиночном использовании список начинался от края
+.component-row {
+  padding-right: var(--p-3);
+  min-height: 48px;
+}
+
+.component-row__toggle {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.component-row__id {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.row-status {
+  width: 22px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+// Вложенный уровень (задачи компонента) — отступ каскада
+.component-row__nested {
+  padding: 0 0 0 var(--p-7) !important;
+
+  @media (max-width: 640px) {
+    padding-left: var(--p-3) !important;
+  }
+}
+
+// Правая сетка строки — фиксированные колонки, общие для всех уровней
+// дерева (проект/компонент/задача): время | статус-инвестиции | действия
+.row-cells {
+  display: flex;
+  align-items: center;
+}
+
+.cell-time {
+  width: 110px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-side {
+  width: 132px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cell-actions {
+  width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+
+@media (max-width: 640px) {
+  .cell-time,
+  .cell-side {
+    display: none;
+  }
+
+  .cell-actions {
+    width: auto;
+  }
+}
+
+.row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
+}
+
+.component-row__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  padding: var(--p-4);
+}
+
 .q-table {
   tr {
     min-height: 48px;
   }
 
   .q-td {
-    padding: 0; // Убираем padding таблицы, так как теперь используем внутренний padding
+    padding: 0; // строка использует внутренние отступы .component-row
   }
 }
 
-.q-chip {
-  font-weight: 500;
-}
-
-// Импорт глобального стиля для подсветки
 :deep(.list-item-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  vertical-align: top;
+  word-wrap: break-word;
+  white-space: normal;
+  font-size: var(--p-fs-body);
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
 
   &:hover {
-    color: var(--q-accent);
+    color: var(--p-primary);
   }
 }
 </style>

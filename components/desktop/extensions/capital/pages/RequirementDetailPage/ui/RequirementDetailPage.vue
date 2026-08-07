@@ -31,6 +31,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IStory } from 'app/extensions/capital/entities/Story/model';
 import type { IProjectPermissions } from 'app/extensions/capital/entities/Project/model';
 import { EditRequirementPanel } from 'app/extensions/capital/features/Story/EditRequirement';
+import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 type PanelExposed = {
   tryNavigateAway?: () => boolean;
@@ -39,6 +40,7 @@ type PanelExposed = {
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
+const { routeName } = useCapitalWorkspaceRoutes();
 
 const loading = ref(true);
 const loadError = ref('');
@@ -52,9 +54,13 @@ const storyHash = computed(() => route.params.story_hash as string);
 
 const canEdit = computed(() => projectPermissions.value?.can_edit_requirement ?? false);
 
-const listRouteName = computed(() =>
-  route.name === 'component-requirement-detail' ? 'component-requirements' : 'project-requirements'
-);
+const listRouteName = computed(() => {
+  const name = String(route.name ?? '');
+  if (name.endsWith('component-requirement-detail')) {
+    return routeName('component-requirements');
+  }
+  return routeName('project-requirements');
+});
 
 const goToList = () => {
   void router.push({

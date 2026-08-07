@@ -13,7 +13,6 @@ export function useCreateIssue() {
 
   const initialCreateIssueInput: ICreateIssueInput = {
     coopname: '',
-    project_hash: '',
     title: '',
     labels: [],
     attachments: [],
@@ -36,8 +35,10 @@ export function useCreateIssue() {
   ): Promise<ICreateIssueOutput> {
     const transaction = await api.createIssue(data);
 
-    // Добавляем задачу в список конкретного проекта
-    store.addIssue(data.project_hash, transaction);
+    // Добавляем задачу в список конкретного проекта (свободные — без кэша проекта)
+    if (data.project_hash) {
+      store.addIssue(data.project_hash, transaction);
+    }
 
     // Сбрасываем createIssueInput после выполнения createIssue
     resetInput(createIssueInput, initialCreateIssueInput);

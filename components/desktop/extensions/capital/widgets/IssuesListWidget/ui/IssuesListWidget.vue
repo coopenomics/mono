@@ -1,61 +1,85 @@
 <template lang="pug">
-div
-  q-card(flat)
-    q-card-section(style='padding: 0px')
-      //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
-      .issues-scroll-area(
-        v-if='!compact',
-        style='height: calc(100vh - 55px); overflow-y: auto'
-      )
-        q-table(
-          ref='tableRef',
-          :rows='issues?.items || []',
-          :columns='columns',
-          row-key='_id',
-          :pagination='pagination',
-          :loading='onLoading',
-          flat,
-          square,
-          hide-header,
-          hide-pagination,
-          virtual-scroll,
-          @virtual-scroll='onScroll',
-          :virtual-scroll-target='".issues-scroll-area"',
-          :virtual-scroll-item-size='48',
-          :virtual-scroll-sticky-size-start='48',
-          :rows-per-page-options='[0]',
-          no-data-label="Нет задач"
-        )
-          template(#body='props')
-            q-tr(:props='props')
-              q-td
-                IssueListRow(
-                  :issue='props.row'
-                  @click='handleIssueClick'
-                )
+// Одна surface-плоскость: «+ Добавить» и список на одном фоне.
+// --fill: на вкладке задач тянется на высоту page-surface (без 100vh-скролла).
+// Вложенный compact — без --fill, белое-на-белом визуально невидимо.
+.list-surface(:class="{ 'list-surface--fill': !compact }")
+  //- Полноэкранный режим с виртуальным скроллом (для отдельных страниц)
+  .issues-scroll-area(v-if='!compact')
+    // Полоска-добавлялка — только мастеру (can_manage_issues)
+    CreateIssueButton(
+      v-if='canManageIssues',
+      :project-hash='projectHash',
+      row
+    )
 
-      //- Компактный режим без фиксированной высоты (для вложенного использования)
-      div(v-else)
-        q-table(
-          :rows='issues?.items || []',
-          :columns='columns',
-          row-key='_id',
-          :pagination='compactPagination',
-          :loading='loading',
-          flat,
-          square,
-          hide-header,
-          hide-pagination,
-          :rows-per-page-options='[0]',
-          no-data-label="Нет задач"
-        )
-          template(#body='props')
-            q-tr(:props='props')
-              q-td
-                IssueListRow(
-                  :issue='props.row'
-                  @click='handleIssueClick'
-                )
+    q-table(
+      ref='tableRef',
+      :rows='issues?.items || []',
+      :columns='columns',
+      row-key='_id',
+      :pagination='pagination',
+      :loading='onLoading',
+      flat,
+      square,
+      hide-header,
+      hide-pagination,
+      virtual-scroll,
+      @virtual-scroll='onScroll',
+      :virtual-scroll-target='".issues-scroll-area"',
+      :virtual-scroll-item-size='48',
+      :virtual-scroll-sticky-size-start='48',
+      :rows-per-page-options='[0]'
+    )
+      template(#body='props')
+        q-tr(:props='props')
+          q-td
+            IssueListRow(
+              :issue='props.row'
+              :is-private='isPrivateList'
+              @click='handleIssueClick'
+            )
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
+
+  //- Компактный режим без фиксированной высоты (для вложенного использования)
+  template(v-else)
+    // Полоска-добавлялка — только мастеру (can_manage_issues)
+    CreateIssueButton(
+      v-if='canManageIssues',
+      :project-hash='projectHash',
+      row
+    )
+
+    q-table(
+      :rows='issues?.items || []',
+      :columns='columns',
+      row-key='_id',
+      :pagination='compactPagination',
+      :loading='loading',
+      flat,
+      square,
+      hide-header,
+      hide-pagination,
+      :rows-per-page-options='[0]'
+    )
+      template(#body='props')
+        q-tr(:props='props')
+          q-td
+            IssueListRow(
+              :issue='props.row'
+              :is-private='isPrivateList'
+              @click='handleIssueClick'
+            )
+
+      // Канон-пустое состояние вместо дефолтного q-table no-data
+      template(#no-data)
+        .list-empty
+          q-icon(name='inbox', size='20px')
+          span Нет задач
 
 </template>
 <script lang="ts" setup>
@@ -66,6 +90,7 @@ import {
 } from 'app/extensions/capital/entities/Issue/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
+import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
 
 const props = defineProps<{
@@ -75,11 +100,17 @@ const props = defineProps<{
   master?: string;
   creators?: string[];
   compact?: boolean;
+  /** Право мастера на управление задачами — без него полоска «Добавить задачу» скрыта */
+  canManageIssues?: boolean;
+  /** Личный проект/компонент — показать щит у задач */
+  isPrivate?: boolean;
 }>();
 
 const emit = defineEmits<{
   issueClick: [issue: IIssue];
 }>();
+
+const isPrivateList = computed(() => !!props.isPrivate);
 
 const issueStore = useIssueStore();
 const { info } = useSystemStore();
@@ -272,6 +303,25 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+// Рабочая плоскость списка: button+table на --p-surface, без рамки —
+// при вложении в другую surface визуально сливается
+.list-surface {
+  background: var(--p-surface);
+}
+
+// На вкладке задач — заполняет page-surface, скролл внутри (не 100vh)
+.list-surface--fill {
+  height: 100%;
+  min-height: 100%;
+}
+
+// Высота от родителя (page-surface), не от 100vh — иначе лишний скролл
+// под топбаром + табами
+.issues-scroll-area {
+  height: 100%;
+  overflow-y: auto;
+}
+
 // table-layout: fixed + width: 100% — иначе html-table ужимает колонки под
 // контент: длинный title распирает строку шире контейнера, actions-блок
 // уезжает за правый край (наблюдалось на ComponentTasksPage с боковой панелью).
@@ -287,5 +337,16 @@ onMounted(async () => {
     padding: 0; // строка живёт в IssueListRow.vue со своими отступами
     overflow: hidden;
   }
+}
+
+// Канон-пустое состояние списка
+.list-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  width: 100%;
+  padding: var(--p-3) var(--p-4);
+  color: var(--p-ink-3);
+  font-size: var(--p-fs-body-sm);
 }
 </style>

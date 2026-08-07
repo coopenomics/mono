@@ -2,7 +2,7 @@
 BaseDialog(
   v-model='showDialog',
   :title='props.title',
-  size='md',
+  :size='props.size',
   @update:model-value='onModelUpdate'
 )
   template(v-if='$slots.title', #head)
@@ -23,6 +23,7 @@ BaseDialog(
 import { ref, nextTick, watch, type ComponentPublicInstance } from 'vue';
 import { BaseDialog } from '../base/BaseDialog';
 import { Form } from '../Form';
+import type { BaseDialogSize } from '../base/BaseDialog/BaseDialog.types';
 
 const FOCUSABLE_SELECTOR =
   'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([disabled]), ' +
@@ -35,10 +36,12 @@ const props = withDefaults(defineProps<{
   dialogStyle?: string;
   isSubmitting?: boolean;
   disabled?: boolean;
+  size?: BaseDialogSize;
 }>(), {
   title: '',
   isSubmitting: false,
   disabled: false,
+  size: 'md',
 });
 
 const emit = defineEmits<{

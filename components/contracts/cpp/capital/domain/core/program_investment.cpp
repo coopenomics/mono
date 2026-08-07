@@ -101,4 +101,31 @@ namespace Capital::Core {
     Capital::State::update_global_state(state);
   }
 
+  /**
+   * @brief Возвращает неизрасходованные средства проекта в программу
+   *
+   * Отправляет трекинговое действие returntopool, если возвращать есть что.
+   * Действие исполняется вложенно — уже после того, как вызывающий код
+   * закончил работу, в том числе после удаления строки проекта. Поэтому
+   * returntopool не требует существования проекта.
+   *
+   * @param coopname Имя кооператива
+   * @param project_id ID проекта
+   */
+  void return_unused_investments(eosio::name coopname, uint64_t project_id) {
+    Capital::project_index projects(_capital, coopname.value);
+    auto project = projects.find(project_id);
+    eosio::check(project != projects.end(), "Проект не найден");
+
+    eosio::asset unused = Capital::Projects::calculate_unused_investments(*project);
+    if (unused.amount == 0) return;
+
+    action(
+      permission_level{_capital, "active"_n},
+      _capital,
+      "returntopool"_n,
+      std::make_tuple(coopname, project->project_hash, unused)
+    ).send();
+  }
+
 } // namespace Capital::Core

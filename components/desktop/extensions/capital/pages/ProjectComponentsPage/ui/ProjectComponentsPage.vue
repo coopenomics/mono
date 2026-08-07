@@ -3,6 +3,7 @@ div
   // Список компонентов проекта
   ComponentsListWidget(
     :components='project?.components || []',
+    :project='project || undefined',
     :expanded='expandedComponents',
     @open-component='handleComponentClick',
     @toggle-component='handleComponentToggle'
@@ -10,7 +11,9 @@ div
     template(#component-content='{ component }')
       IssuesListWidget(
         :project-hash='component.project_hash',
+        :can-manage-issues='!!component.permissions?.can_manage_issues',
         :compact='true',
+        :is-private='project?.origin === "local" || component.origin === "local"',
         @issue-click='handleIssueClick'
       )
 </template>
@@ -23,8 +26,10 @@ import { useExpandableState } from 'src/shared/lib/composables';
 import { ComponentsListWidget } from 'app/extensions/capital/widgets/ComponentsListWidget';
 import { IssuesListWidget } from 'app/extensions/capital/widgets/IssuesListWidget';
 import type { IIssue } from 'app/extensions/capital/entities/Issue/model';
+import { useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
 
 const router = useRouter();
+const { routeName } = useCapitalWorkspaceRoutes();
 
 // Используем composable для загрузки проекта
 const { project, loadProject } = useProjectLoader();
@@ -40,7 +45,7 @@ const {
 // Обработчик клика по компоненту
 const handleComponentClick = (componentHash: string) => {
   router.push({
-    name: 'component-description',
+    name: routeName('component-description'),
     params: {
       project_hash: componentHash,
     },
@@ -55,7 +60,7 @@ const handleComponentToggle = (componentHash: string) => {
 // Обработчик клика по задаче
 const handleIssueClick = (issue: IIssue) => {
   router.push({
-    name: 'component-issue',
+    name: routeName('component-issue-description'),
     params: {
       project_hash: issue.project_hash,
       issue_hash: issue.issue_hash,

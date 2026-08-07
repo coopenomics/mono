@@ -18,10 +18,13 @@ import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
+import { AssetUtils } from '~/shared/utils/asset.utils';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
   type IssueLinkedGitCommitRepository,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
+import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -38,6 +41,8 @@ export class GenerationInteractor {
     private readonly contributorRepository: ContributorRepository,
     @Inject(COMMIT_REPOSITORY)
     private readonly commitRepository: CommitRepository,
+    @Inject(PROJECT_REPOSITORY)
+    private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
     @Inject(forwardRef(() => CommitSyncService))
     private readonly commitSyncService: CommitSyncService,
@@ -54,6 +59,9 @@ export class GenerationInteractor {
    * commit_hash: из Git diff, из привязанных GitHub-коммитов или из off-chain взноса без Git (nonce в meta)
    */
   async createCommit(data: CreateCommitDomainInput, _currentUser: MonoAccountDomainInterface): Promise<CommitDomainEntity> {
+    const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
+    assertBlockchainProject(project, 'фиксацию коммита');
+
     // Получаем участника по username
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(data.username, data.coopname);
 
@@ -61,16 +69,15 @@ export class GenerationInteractor {
       throw new Error(`Участник не найден: ${data.username} в кооперативе ${data.coopname}`);
     }
 
-    // Ленивый ремонт: перед расчётом доступного времени приводим estimate-билеты
-    // всех DONE-задач проекта к текущему составу creators. Идемпотентно — лечит
-    // расхождения, оставшиеся после прежних операций (смена creators без смены estimate,
-    // возврат задачи из DONE и обратно, удалённые билеты у сиротских задач).
-    await this.timeTrackingService.recalcDoneEstimatesForContributorProject(
-      contributor.contributor_hash,
-      data.project_hash
-    );
+    // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать.
+    const { amount: ratePerHour } = AssetUtils.parseAsset(contributor.rate_per_hour);
+    if (ratePerHour <= 0) {
+      throw new Error(
+        'Нельзя зафиксировать коммит: в профиле участника не задана стоимость часа. Укажите ставку и повторите.'
+      );
+    }
 
-    // Получаем доступное время для коммита
+    // Получаем доступное время для коммита (факт = uncommitted TimeEntry по DONE)
     const availableHours = await this.timeTrackingService.getAvailableCommitHours(
       contributor.contributor_hash,
       data.project_hash
@@ -267,6 +274,18 @@ export class GenerationInteractor {
     // Фиксируем указанное количество времени в коммите
     await this.timeTrackingService.commitTime(contributor.contributor_hash, data.project_hash, chainHours, commitHash);
 
+    // Снимок задач, чьи часы вошли в коммит — для приёмки мастером и сборки результата
+    const committedIssues = await this.timeTrackingService.getCommittedIssueSummaries(commitHash);
+    if (committedIssues.length > 0) {
+      const issuesPayload: CommitContentData = {
+        type: 'committed_issues',
+        data: { issues: committedIssues },
+      };
+      if (!enrichedData) enrichedData = [];
+      enrichedData.push(issuesPayload);
+      createdEntity.data = enrichedData;
+    }
+
     // Сохраняем сущность в базу данных после успешной транзакции
     await this.commitRepository.saveCreated(createdEntity);
 
@@ -449,13 +468,18 @@ export class GenerationInteractor {
     const out: CommitContentData[] = [];
     for (const item of payload) {
       if (item.type !== 'contribution_feedback') continue;
-      const stars = Number(item.data?.satisfaction_stars);
-      if (!Number.isInteger(stars) || stars < 1 || stars > 5) continue;
-      const reviewText = typeof item.data?.review_text === 'string' ? item.data.review_text : '';
+      const starsRaw = Number(item.data?.satisfaction_stars);
+      const hasStars = Number.isInteger(starsRaw) && starsRaw >= 1 && starsRaw <= 5;
+      const reviewText = typeof item.data?.review_text === 'string' ? item.data.review_text.trim() : '';
       if (reviewText.length > 8000) continue;
+      // Оценка и текст независимы: достаточно одного из двух
+      if (!hasStars && !reviewText) continue;
       out.push({
         type: 'contribution_feedback',
-        data: { satisfaction_stars: stars, review_text: reviewText },
+        data: {
+          satisfaction_stars: hasStars ? starsRaw : 0,
+          review_text: reviewText,
+        },
       });
     }
     return out;

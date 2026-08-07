@@ -83,7 +83,9 @@ const handleSubmit = async () => {
       invite: '',
     };
 
-    await createComponent(inputData);
+    await createComponent(inputData, {
+      local: props.project.origin === 'local',
+    });
     SuccessAlert('Компонент успешно создан');
 
     // Закрываем диалог после успешного создания
