@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { OperatorBranchBar } from 'src/entities/OperatorBranch'
 import { useDesktopStore } from 'src/entities/Desktop'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { OperatorInventoryLabelingSection } from 'src/pages/Marketplace/OperatorInventoryLabeling'
@@ -27,7 +27,6 @@ const DEFAULT_SECTION: WarehouseSection = 'labeling'
 
 const route = useRoute()
 const router = useRouter()
-const branchStore = useOperatorBranchStore()
 const desktop = useDesktopStore()
 
 /** Раздел живёт в адресе: ссылку на нужную вкладку можно послать коллеге. */
