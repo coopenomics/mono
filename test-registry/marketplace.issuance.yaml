@@ -55,8 +55,8 @@ cases:
     kind: side
     scenario: Оператор указывает к выдаче больше единиц, чем принято на складе
     expect: отказ — выдать больше принятого нельзя
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.side.04
     level: ui
@@ -71,8 +71,8 @@ cases:
     kind: side
     scenario: Повторная подпись акта выдачи оператором
     expect: повторная подпись не создаёт второй акт
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.side.06
     level: backend

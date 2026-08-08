@@ -178,6 +178,17 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.paymentRepo,
     mocks.offerRepo,
     mocks.inventoryRepo,
+    // Эпик 19 (адресное хранение): боксы, координатные ячейки и настройки
+    // склада. В сценариях этого спека адресное хранение выключено, поэтому
+    // достаточно заглушек — но пропускать аргументы нельзя, спек перестаёт
+    // компилироваться (именно так он и был сломан).
+    { findByCoop: jest.fn(), findById: jest.fn() } as never,
+    { findByContainer: jest.fn(), findById: jest.fn() } as never,
+    {
+      // Адресное хранение выключено: боксов и ячеек в кооперативе нет,
+      // приёмка кладёт имущество без адреса.
+      get: jest.fn().mockResolvedValue({ containers_enabled: false, cells_enabled: false }),
+    } as never,
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
     mocks.supplierSettings,

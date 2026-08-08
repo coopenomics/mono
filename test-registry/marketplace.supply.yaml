@@ -52,8 +52,8 @@ cases:
     kind: side
     scenario: Приёмка партии без единой выбранной позиции (все галки сняты)
     expect: акт не создаётся, партия остаётся ждать
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   - id: mkt.supply.side.02
     level: backend
@@ -95,8 +95,8 @@ cases:
     kind: side
     scenario: Закрывающая подпись председателя раньше подписи поставщика
     expect: отказ — порядок подписей нарушать нельзя
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   - id: mkt.supply.side.07
     level: ui
