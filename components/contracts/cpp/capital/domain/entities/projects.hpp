@@ -1,7 +1,7 @@
 #pragma once
 
 #include "plan_pool.hpp"
-#include "fact_pool.hpp" 
+#include "fact_pool.hpp"
 #include "crps.hpp"
 #include "generation_amounts.hpp"
 #include "votes.hpp"
@@ -71,7 +71,23 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] project {
   
   // Время создания проекта
   time_point_sec created_at = current_time_point(); ///< Время создания проекта
-  
+
+  // ВНИМАНИЕ: поле добавлено в ХВОСТ struct и обёрнуто в binary_extension.
+  // Поля в таблицу EOSIO можно дописывать только в конец struct и только через
+  // binary_extension — иначе ломается десериализация уже записанных проектов.
+  // Контракт стоит на проде, строки projects записаны без этого поля: до
+  // прогона capital::migrate оно приходит как absent и читается через
+  // Capital::Projects::debt_ext_or_zero (absent → 0.0000 RUB).
+  //
+  // Зачем поле: сумма непогашенных ссуд по всем сегментам проекта. Это
+  // производная от segments, а не самостоятельное состояние — она нужна,
+  // чтобы деаллокация (diallocate) могла за O(1) понять, есть ли в проекте
+  // выданные ссуды, и не уронить инвариант provisional_amount >= debt_amount
+  // из update_segment_total_cost. Пересчитывается обходом сегментов в
+  // sync_total_debt: при migrate, при выдаче/отклонении ссуды, при конвертации
+  // сегмента и в самой деаллокации.
+  eosio::binary_extension<eosio::asset> total_debt_amount; ///< Сумма непогашенных ссуд по сегментам проекта (производная от segments)
+
   uint64_t primary_key() const { return id; } ///< Первичный ключ (1)
   uint64_t by_created_at() const { return created_at.sec_since_epoch(); } ///< Индекс по времени создания (2)
   checksum256 by_hash() const { return project_hash; } ///< Индекс по хэшу проекта (3)
@@ -724,9 +740,13 @@ namespace Capital::Projects {
    * средства — возврат идёт единым остатком в глобальный пул программы, потому
    * что деньги инвесторов уже находятся в «Благоросте» и лично им не возвращаются.
    *
-   * Единая точка расчёта для всех сценариев возврата: финализация
-   * (finalizeproj), остановка (stopproject), отмена (cancelproj), удаление
-   * (delproject) и отклонение советом (declprj).
+   * Единая точка расчёта для сценариев полного возврата остатка: финализация
+   * (finalizeproj), удаление (delproject) и отклонение советом (declprj).
+   * Остановка проекта (stopproject) средств не возвращает — она только переводит
+   * проект в pending и снимает авторизацию.
+   *
+   * Частичный возврат по решению кооператива идёт другим путём — action
+   * diallocate, см. calculate_max_deallocatable.
    *
    * @param prj Проект
    * @return Неиспользованный остаток (никогда не отрицательный)
@@ -736,6 +756,28 @@ namespace Capital::Projects {
     int64_t unused = prj.fact.total_received_investments.amount - used;
 
     return eosio::asset(unused > 0 ? unused : 0, _root_govern_symbol);
+  }
+
+  /**
+   * @brief Значение binary_extension<asset> total_debt_amount или ноль в RUB.
+   *
+   * Проекты, записанные до появления поля, отдают absent. Материализованный
+   * asset с пустым символом — след default-constructed asset() при записи
+   * пустого extension; при нулевой сумме нормализуем, при ненулевой падаем,
+   * потому что это уже потеря данных, а не отсутствие поля.
+   */
+  inline eosio::asset debt_ext_or_zero(const eosio::binary_extension<eosio::asset> &v) {
+    if (!v.has_value()) {
+      return eosio::asset(0, _root_govern_symbol);
+    }
+
+    const eosio::asset &a = v.value();
+    if (a.symbol == _root_govern_symbol) {
+      return a;
+    }
+
+    eosio::check(a.amount == 0, "total_debt_amount содержит ненулевую сумму с несовместимым символом");
+    return eosio::asset(0, _root_govern_symbol);
   }
 
   /**

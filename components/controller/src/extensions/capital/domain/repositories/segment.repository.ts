@@ -21,6 +21,15 @@ export interface SegmentRepository extends IBlockchainSyncRepository<SegmentDoma
   ): Promise<PaginationResultDomainInterface<SegmentDomainEntity>>;
 
   /**
+   * Найти все сегменты одного компонента без постраничного вывода.
+   *
+   * Нужен там, где ответ считается по всем участникам сразу и любой предел
+   * выборки исказил бы результат — например, при расчёте предела возврата
+   * средств из компонента.
+   */
+  findAllByProjectHash(coopname: string, project_hash: string): Promise<SegmentDomainEntity[]>;
+
+  /**
    * Найти один сегмент по фильтрам
    */
   findOne(filter?: SegmentFilterInputDTO): Promise<SegmentDomainEntity | null>;

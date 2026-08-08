@@ -242,7 +242,7 @@ public:
     void allocate(eosio::name coopname, checksum256 project_hash, eosio::asset amount);
     
     [[eosio::action]]
-    void diallocate(eosio::name coopname, checksum256 project_hash);
+    void diallocate(eosio::name coopname, checksum256 project_hash, eosio::asset amount);
     
     
     // Расходы

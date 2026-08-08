@@ -37,14 +37,19 @@ function makeInteractor(o: { project?: any } = {}) {
     findByHash: jest.fn(async () => project),
   } as any;
 
+  // Зависимости подставляются по порядку объявления в конструкторе, поэтому
+  // каждая заглушка подписана: при добавлении новой зависимости в интерактор
+  // сразу видно, на чьё место она встала. Безымянные заглушки уже один раз
+  // сдвинули логгер и уронили сборку тестов.
   const interactor = new InvestsManagementInteractor(
     capitalBlockchainPort,
-    {} as any,
-    {} as any,
-    {} as any,
+    {} as any, // investRepository
+    {} as any, // appendixRepository
+    {} as any, // contributorRepository
     projectRepository,
-    {} as any,
-    {} as any,
+    {} as any, // segmentRepository
+    {} as any, // domainToBlockchainUtils
+    {} as any, // investSyncService
     makeLoggerStub()
   );
 
