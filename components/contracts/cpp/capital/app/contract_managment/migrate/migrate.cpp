@@ -1,22 +1,29 @@
 /**
- * @brief Миграция контракта capital — восстановление хвостового
- *        binary_extension поля total_debt_amount в capital::projects.
+ * @brief Миграция контракта capital — восстановление инварианта сумм голосования
+ *        у проекта, поставленного на голосование до исправления расчёта.
  *
- * Контекст: контракт стоит на проде, строки projects записаны до появления
- * поля и отдают absent. Значение производно от segments, восстановить его
- * можно только суммированием debt_amount по сегментам проекта — что и делает
- * sync_total_debt.
+ * Контекст: calculate_voting_amounts считал equal_voting_amount независимым
+ * делением пула на число голосующих и добавлял к нему весь остаток от деления.
+ * При остатке >= 2 сумма active_voting_amount + equal_voting_amount выходила
+ * больше total_voting_pool, и submitvote отбивал любой голос проверкой
+ * «(Общая сумма голосов + Равная не голосующая сумма) должны равняться сумме
+ * на распределении». Расчёт исправлен, но у проекта, уже стоящего на
+ * голосовании, суммы записаны в таблицу, а пересчитать их нечем: пересчёт
+ * живёт в startvoting, который требует статус active, а обратного перехода из
+ * voting в active в контракте нет.
  *
- * Действие: для каждого проекта каждого кооператива пересчитать
- * total_debt_amount обходом сегментов (индекс byproject) и материализовать поле.
+ * Действие: у проекта kBrokenVotingProjectId в кооперативе
+ * kBrokenVotingCoopname привести equal_voting_amount к остатку пула после
+ * активной части — ровно то, что теперь считает calculate_voting_amounts.
+ * Остальные поля сумм верны и не трогаются.
  *
- * Идемпотентно: повторный вызов после успешного прогона — no-op (sync_total_debt
- * пишет в таблицу только при расхождении).
+ * Идемпотентно: повторный вызов после успешного прогона — no-op (пишем только
+ * при расхождении). На окружениях, где такого проекта нет, — no-op.
  * Вызывается автоматически при деплое (playbooks/contracts/deploy-contract.yml).
  *
- * Прежняя миграция (program_expense_pool / program_expense_reserved в
- * capital::state) проведена на всех окружениях и удалена: действие миграции
- * несёт только незакрытый переход, иначе оно копит уже отработавший код.
+ * Прежняя миграция (total_debt_amount в capital::projects) проведена на всех
+ * окружениях и удалена: действие миграции несёт только незакрытый переход,
+ * иначе оно копит уже отработавший код.
  *
  * @ingroup public_actions
  * @ingroup public_capital_actions
@@ -26,15 +33,26 @@
 void capital::migrate() {
   require_auth(_capital);
 
-  // Список кооперативов берём из state — там по строке на кооператив,
-  // а projects лежат в scope = coopname.
-  Capital::global_state_table global_state_inst(_capital, _capital.value);
+  // Проект «Системный логотип v1»: пул 8128.8320 RUB на 3 голосующих, остаток
+  // от деления — 2, поэтому equal был записан на 0.0001 RUB больше нужного.
+  static const eosio::name kBrokenVotingCoopname = "voskhod"_n;
+  static const uint64_t kBrokenVotingProjectId = 12;
 
-  for (auto state_itr = global_state_inst.begin(); state_itr != global_state_inst.end(); ++state_itr) {
-    Capital::project_index projects(_capital, state_itr->coopname.value);
+  Capital::project_index projects(_capital, kBrokenVotingCoopname.value);
 
-    for (auto project_itr = projects.begin(); project_itr != projects.end(); ++project_itr) {
-      Capital::Projects::sync_total_debt(state_itr->coopname, project_itr->id);
-    }
+  auto project_itr = projects.find(kBrokenVotingProjectId);
+  if (project_itr == projects.end()) {
+    return;
   }
+
+  const eosio::asset expected_equal =
+    project_itr->voting.amounts.total_voting_pool - project_itr->voting.amounts.active_voting_amount;
+
+  if (project_itr->voting.amounts.equal_voting_amount == expected_equal) {
+    return;
+  }
+
+  projects.modify(project_itr, _capital, [&](auto &p) {
+    p.voting.amounts.equal_voting_amount = expected_equal;
+  });
 }
