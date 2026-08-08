@@ -99,3 +99,22 @@ cases:
       раздел доступен, объясняет порядок (удалённое решение → очный осмотр → приём возврата) и предлагает сканер для QR из заявки пайщика
     test: components/docs-harness/scenarios/marketplace/operator/returns.mjs
     status: passing
+
+  - id: mkt.ret.side.08
+    level: backend
+    kind: side
+    scenario: Заявление на возврат без причины либо с причиной длиннее предела
+    expect: >
+      отказ с конкретным сообщением; заказ не читается, состояние не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: passing
+
+  - id: mkt.ret.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Заявление без фотографий либо с числом фотографий сверх предела
+    expect: >
+      отказ с конкретным сообщением; допустимая граница (ровно предел) проходит
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: passing
