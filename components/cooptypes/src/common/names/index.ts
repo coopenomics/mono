@@ -30,7 +30,7 @@ export const _soviet = {
 
 export const _marketplace = {
   production: 'marketplace',
-  testnet: 'markettest22',
+  testnet: 'marketplace',
 } as const
 
 export const _registrator = {
