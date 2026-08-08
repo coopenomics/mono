@@ -28,10 +28,11 @@ cases:
   - id: mkt.iss.happy.02
     level: ui
     kind: happy
-    scenario: Заказчик подтверждает получение в своём кабинете
-    expect: заказ переходит в «Получен», средства уходят поставщику
-    test: ~
-    status: missing
+    scenario: >
+      Заказчик видит выданный заказ в «Моих заказах» после подписи оператора
+    expect: статус «Получен», сохранены количество, сумма и пункт выдачи
+    test: components/docs-harness/scenarios/marketplace/orderer/ready-to-receive.mjs
+    status: passing
 
   - id: mkt.iss.side.01
     level: ui
