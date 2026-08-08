@@ -45,16 +45,16 @@ cases:
     kind: side
     scenario: Заказ по несуществующему предложению
     expect: «Предложение не найдено», заказ не создаётся
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.02
     level: backend
     kind: side
     scenario: Заказ по предложению другого кооператива
     expect: отказ доступа «Предложение принадлежит другому кооперативу»
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.03
     level: backend
@@ -62,24 +62,24 @@ cases:
     scenario: >
       Заказ по предложению, снятому с публикации либо отклонённому модерацией
     expect: отказ с указанием статуса предложения, заказ не создаётся
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.04
     level: backend
     kind: side
     scenario: Количество больше доступного остатка (предложение с ограничением)
     expect: отказ с указанием доступного количества
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.05
     level: backend
     kind: side
     scenario: Количество нулевое или отрицательное
     expect: «Количество должно быть больше нуля»
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.06
     level: backend
@@ -104,8 +104,8 @@ cases:
       Заказ упаковками: количество трактуется как число упаковок, базовое количество считается через содержимое упаковки.
     expect: >
       остаток проверяется по базовому количеству, а не по числу упаковок; цена берётся за упаковку
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.09
     level: backend
@@ -210,8 +210,8 @@ cases:
     scenario: Цепь не вернула хэш транзакции при создании заказа
     expect: >
       явный отказ с предложением повторить; заказ не остаётся в полусозданном состоянии
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.happy.03
     level: ui

@@ -56,8 +56,8 @@ cases:
     kind: side
     scenario: Пустое название товара
     expect: отказ «Укажите название товара», предложение не создаётся
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.02
     level: backend
@@ -81,24 +81,24 @@ cases:
     scenario: >
       Не указано ни количество товара, ни признак «без ограничения»
     expect: отказ с требованием указать количество либо снять ограничение
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.05
     level: backend
     kind: side
     scenario: Указан размер упаковки без стратегии маркировки «по упаковке»
     expect: отказ, объясняющий несовместимость размера упаковки и стратегии
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.06
     level: backend
     kind: side
     scenario: Стратегия «по упаковке» без размера упаковки
     expect: отказ с требованием указать размер упаковки (целое от 1)
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.07
     level: backend
@@ -121,24 +121,24 @@ cases:
     kind: side
     scenario: Число упаковок превышает предел
     expect: отказ с указанием максимума
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.10
     level: backend
     kind: side
     scenario: Недопустимая единица измерения
     expect: отказ «Выбрана недопустимая единица измерения»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.11
     level: backend
     kind: side
     scenario: Не указано ни одной точки поставки
     expect: отказ с требованием указать хотя бы один кооперативный участок
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.12
     level: backend
@@ -162,8 +162,8 @@ cases:
     kind: side
     scenario: Попытка вернуть на публикацию чужое предложение
     expect: отказ «Можно изменять только свои предложения»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.15
     level: backend
