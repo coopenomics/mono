@@ -47,6 +47,19 @@ function parseEnv(file) {
   return out;
 }
 
+// Значения — строки из .env; ключи взяты из KEYS и все являются валидными
+// идентификаторами, поэтому кавычек не требуют. Пишем в стиле
+// public/config.default.js (одинарные кавычки), а не JSON.stringify: иначе
+// vite-plugin-checker показывал бы оверлей `quotes` поверх приложения, пока
+// файл не попал в .eslintignore.
+function jsString(value) {
+  const escaped = String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n');
+  return `'${escaped}'`;
+}
+
 /**
  * Пишет public/config.js по components/desktop/.env.
  * Возвращает {written, config} — written=false если файл уже актуален
@@ -58,11 +71,15 @@ export function ensureDesktopConfig() {
   for (const k of KEYS) if (env[k] !== undefined) config[k] = env[k];
   config.TIMEZONE = config.TIMEZONE || 'Europe/Moscow';
 
+  const entries = Object.entries(config)
+    .map(([key, value]) => `  ${key}: ${jsString(value)},\n`)
+    .join('');
+
   const body =
     '// Сгенерировано docs-harness (lib/desktop-config.mjs) из components/desktop/.env.\n' +
     '// Нужен только для SPA-dev, где SSR middleware generateConfig не работает.\n' +
     '// Не коммитить: в проде перехватил бы реальный /config.js.\n' +
-    `window.__APP_CONFIG__ = ${JSON.stringify(config, null, 2)};\n`;
+    `window.__APP_CONFIG__ = {\n${entries}};\n`;
 
   const target = path.join(DESKTOP, 'public/config.js');
   const current = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null;
