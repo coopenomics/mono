@@ -1,0 +1,14 @@
+# Target labels
+ expense_contract
+# Source files and their labels
+/project/build/CMakeFiles/expense_contract
+/project/build/CMakeFiles/expense_contract.rule
+/project/build/CMakeFiles/expense_contract-complete.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-build.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-configure.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-download.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-install.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-mkdir.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-patch.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-test.rule
+/project/build/expense_contract-prefix/src/expense_contract-stamp/expense_contract-update.rule

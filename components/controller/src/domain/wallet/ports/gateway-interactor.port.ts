@@ -1,6 +1,7 @@
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import type { CreateWithdrawInputDomainInterface } from '~/domain/wallet/interfaces/create-withdraw-input-domain.interface';
+import type { CreateSystemOutgoingPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-system-outgoing-payment-input-domain.interface';
 import type { SetPaymentStatusInputDomainInterface } from '~/domain/gateway/interfaces/set-payment-status-domain-input.interface';
 import type { InternalPaymentFiltersDomainInterface } from '~/domain/gateway/interfaces/payment-filters-domain.interface';
 import type {
@@ -19,6 +20,14 @@ export interface GatewayInteractorPort {
   createInitialPayment(data: CreateInitialPaymentInputDomainInterface): Promise<PaymentDomainEntity>;
   createDeposit(data: CreateDepositPaymentInputDomainInterface): Promise<PaymentDomainEntity>;
   createWithdraw(data: CreateWithdrawInputDomainInterface): Promise<PaymentDomainEntity>;
+  /**
+   * Story 598-17 / AR35: создать системный outgoing_payment, инициированный
+   * расширением (без пользовательского заявления и без method_id).
+   * Кассирский стол показывает такие платежи в общей ленте.
+   */
+  createSystemOutgoingPayment(
+    data: CreateSystemOutgoingPaymentInputDomainInterface
+  ): Promise<PaymentDomainEntity>;
 
   /**
    * Подготовить (с валидацией) исходящий платеж к созданию БЕЗ записи в БД.

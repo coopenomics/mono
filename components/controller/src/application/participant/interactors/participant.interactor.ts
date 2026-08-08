@@ -34,7 +34,12 @@ import {
   AGREEMENT_CONFIGURATION_SERVICE,
 } from '~/domain/registration/services/agreement-configuration.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
-import { DocumentType, AgreementId } from '~/domain/registration/enum';
+import { DocumentType } from '~/domain/registration/enum';
+import {
+  isGenericProgramAgreementId,
+  mapLegacyExtensionOfferToDocumentType,
+  mapPlatformAgreementIdToDocumentType,
+} from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
 
 @Injectable()
@@ -195,7 +200,9 @@ export class ParticipantInteractor {
     const missingLinkedDocs: string[] = [];
 
     for (const agreement of linkedAgreements) {
-      const doc = data[agreement.id];
+      const doc = data[agreement.id as keyof RegisterParticipantDomainInterface] as
+        | ISignedDocumentDomainInterface
+        | undefined;
       if (doc) {
         expectedLinks.push(doc.doc_hash);
       } else {
@@ -222,18 +229,12 @@ export class ParticipantInteractor {
 
     // Сохраняем все требуемые соглашения динамически на основе конфигурации
     for (const agreementId of requiredAgreements) {
-      const doc = data[agreementId];
-      if (doc) {
-        // Преобразуем agreementId в соответствующий DocumentType
-        const documentType = this.mapAgreementIdToDocumentType(agreementId);
-        if (documentType) {
-          await this.candidateRepository.saveDocument(
-            data.username,
-            documentType,
-            doc
-          );
-        }
-      }
+      const doc = data[agreementId as keyof RegisterParticipantDomainInterface] as
+        | ISignedDocumentDomainInterface
+        | undefined;
+      if (!doc) continue;
+
+      await this.saveRegistrationAgreement(data.username, agreementId, doc);
     }
 
     // Гард A (замок профиля): фиксируем каноничный отпечаток удостоверяющих
@@ -292,33 +293,29 @@ export class ParticipantInteractor {
   }
 
   /**
-   * Преобразует agreementId в соответствующий DocumentType.
-   *
-   * Платформенные оферты (signature/wallet/user/privacy) сопоставляются
-   * по AgreementId enum явно. Оферты расширений (например 'blagorost_offer',
-   * 'generator_offer' от capital) сопоставляются identity-фолбэком —
-   * строковое значение agreementId должно совпасть с одним из значений
-   * DocumentType. Это позволяет ядру не знать о капитал-специфике.
+   * Сохраняет подписанное соглашение: платформенные и legacy capital — в фиксированные
+   * колонки; оферты новых расширений — в generic program_agreements по agreement_id.
    */
-  private mapAgreementIdToDocumentType(agreementId: string): DocumentType | null {
-    switch (agreementId) {
-      case AgreementId.SIGNATURE_AGREEMENT:
-        return DocumentType.SIGNATURE_AGREEMENT;
-      case AgreementId.WALLET_AGREEMENT:
-        return DocumentType.WALLET_AGREEMENT;
-      case AgreementId.USER_AGREEMENT:
-        return DocumentType.USER_AGREEMENT;
-      case AgreementId.PRIVACY_AGREEMENT:
-        return DocumentType.PRIVACY_AGREEMENT;
+  private async saveRegistrationAgreement(
+    username: string,
+    agreementId: string,
+    document: ISignedDocumentDomainInterface
+  ): Promise<void> {
+    if (isGenericProgramAgreementId(agreementId)) {
+      await this.candidateRepository.saveProgramAgreement(username, agreementId, document);
+      return;
     }
 
-    const documentTypeValues = Object.values(DocumentType) as string[];
-    if (documentTypeValues.includes(agreementId)) {
-      return agreementId as DocumentType;
+    const documentType =
+      mapPlatformAgreementIdToDocumentType(agreementId) ??
+      mapLegacyExtensionOfferToDocumentType(agreementId);
+
+    if (!documentType) {
+      this.logger.warn(`Неизвестный agreementId при сохранении: ${agreementId}`);
+      return;
     }
 
-    this.logger.warn(`Неизвестный agreementId: ${agreementId}`);
-    return null;
+    await this.candidateRepository.saveDocument(username, documentType, document);
   }
 
   async addParticipant(data: AddParticipantDomainInterface): Promise<AccountDomainEntity> {

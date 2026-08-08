@@ -6,3 +6,6 @@ state/participants/*.json
 !state/participants/.gitkeep
 state/cooperatives/*.json
 !state/cooperatives/.gitkeep
+
+# Расход пула пайщиков для сценария гейта — локальное состояние стенда.
+state/gate-used.json

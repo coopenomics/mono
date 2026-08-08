@@ -11,7 +11,12 @@ import { EditBranchGraphQLInput } from '../dto/edit-branch-input.dto';
 import { DeleteBranchGraphQLInput } from '../dto/delete-branch-input.dto';
 import { AddTrustedAccountGraphQLInput } from '../dto/add-trusted-account-input.dto';
 import { DeleteTrustedAccountGraphQLInput } from '../dto/delete-trusted-account-input.dto';
+import { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-input.dto';
+import { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
+import { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
+import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
@@ -26,9 +31,11 @@ export class BranchResolver {
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async getBranches(
-    @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput
+    @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput,
+    @CurrentUser() currentUser: MonoAccountDomainInterface
   ): Promise<BranchDTO[]> {
-    return this.branchService.getBranches(data);
+    // имя текущего пайщика нужно, чтобы вычислить доступность приватных участков (is_available)
+    return this.branchService.getBranches(data, currentUser?.username);
   }
 
   @Mutation(() => BranchDTO, { name: 'createBranch', description: 'Создать кооперативный участок' })
@@ -78,6 +85,42 @@ export class BranchResolver {
     @Args('data', { type: () => DeleteTrustedAccountGraphQLInput }) data: DeleteTrustedAccountGraphQLInput
   ): Promise<BranchDTO> {
     return this.branchService.deleteTrustedAccount(data);
+  }
+
+  @Mutation(() => BranchDTO, {
+    name: 'setBranchPrivate',
+    description: 'Установить приватность кооперативного участка (выбор только из белого списка)',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async setBranchPrivate(
+    @Args('data', { type: () => SetBranchPrivateGraphQLInput }) data: SetBranchPrivateGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.setBranchPrivate(data);
+  }
+
+  @Mutation(() => BranchDTO, {
+    name: 'addBranchWhitelist',
+    description: 'Добавить пайщика в белый список приватного кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async addBranchWhitelist(
+    @Args('data', { type: () => AddBranchWhitelistGraphQLInput }) data: AddBranchWhitelistGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.addBranchWhitelist(data);
+  }
+
+  @Mutation(() => BranchDTO, {
+    name: 'deleteBranchWhitelist',
+    description: 'Удалить пайщика из белого списка приватного кооперативного участка',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async deleteBranchWhitelist(
+    @Args('data', { type: () => DeleteBranchWhitelistGraphQLInput }) data: DeleteBranchWhitelistGraphQLInput
+  ): Promise<BranchDTO> {
+    return this.branchService.deleteBranchWhitelist(data);
   }
 
   @Mutation(() => Boolean, { name: 'selectBranch', description: 'Выбрать кооперативный участок' })

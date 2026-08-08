@@ -12,7 +12,7 @@ export interface AgreementRegistrationSpec {
   /**
    * Уникальный идентификатор оферты в рамках платформы.
    * Строка, потому что расширение само определяет своё пространство имён
-   * (например, 'blagorost_offer', 'generator_offer', 'order_table_offer').
+   * (например, 'blagorost_offer', 'generator_offer', 'marketplace_offer').
    */
   id: string;
 
@@ -25,8 +25,12 @@ export interface AgreementRegistrationSpec {
 
   /**
    * Тип соглашения для on-chain `agreements` (sendAgreement action).
-   * Расширение предоставляет своё значение (например 'capital' для capital,
-   * 'order_table' для Стола заказов).
+   * Должно быть валидным eosio::name (max 12 символов из [.a-z1-5], БЕЗ `_`)
+   * и существовать в `soviet::coagreements` (создаётся либо в init.cpp, либо
+   * через createprog) — иначе sndagreement/signagree падают
+   * «Соглашение указанного типа не найдено».
+   * Расширение предоставляет своё значение (например 'capital' для Capital,
+   * 'marketplace' для Стола заказов = program_id=2).
    */
   agreement_type: string;
 

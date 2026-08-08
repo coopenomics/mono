@@ -1,0 +1,1 @@
+cmd='/usr/bin/cmake;-DCMAKE_TOOLCHAIN_FILE=/cdt/build/lib/cmake/cdt/CDTWasmToolchain.cmake;-DIS_TESTNET=ON;-GUnix Makefiles;<SOURCE_DIR><SOURCE_SUBDIR>'

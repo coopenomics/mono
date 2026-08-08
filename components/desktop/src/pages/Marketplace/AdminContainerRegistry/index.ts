@@ -1,0 +1,1 @@
+export { AdminContainerRegistryPage } from './ui'

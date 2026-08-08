@@ -1,0 +1,1 @@
+/cdt/build/bin/cdt-ld CMakeFiles/sendinline.dir/src/sendinline.cpp.obj -o sendinline.wasm 

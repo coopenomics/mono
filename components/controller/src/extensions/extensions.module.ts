@@ -11,7 +11,9 @@ import { ParticipantPluginModule } from './participant/participant-extension.mod
 import { ChatCoopPluginModule } from './chatcoop/chatcoop-extension.module';
 import { OneCoopPluginModule } from './1ccoop/oneccoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
-import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
+import { MarketplacePluginModule } from './marketplace/marketplace-extension.module';
+import { ExpensesPluginModule } from './expenses/expenses-extension.module';
+import { KuPluginModule } from './ku/ku-extension.module';
 import { ExtensionDomainModule } from '~/domain/extension/extension-domain.module';
 import { GatewayDomainModule } from '~/domain/gateway/gateway-domain.module';
 
@@ -37,7 +39,9 @@ export class ExtensionsModule {
         InterCommunicationBridgeModule,
         OneCoopPluginModule,
         ReportsExtensionModule,
-        ExpensesExtensionModule,
+        MarketplacePluginModule,
+        ExpensesPluginModule,
+        KuPluginModule,
       ],
       providers: [],
       // Экспортируем все модули расширений, чтобы их провайдеры были доступны
@@ -55,7 +59,9 @@ export class ExtensionsModule {
         InterCommunicationBridgeModule,
         OneCoopPluginModule,
         ReportsExtensionModule,
-        ExpensesExtensionModule,
+        MarketplacePluginModule,
+        ExpensesPluginModule,
+        KuPluginModule,
       ],
     };
   }

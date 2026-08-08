@@ -75,6 +75,13 @@ namespace Names {
     constexpr eosio::name CONFIRM_EXPENSE_PAYMENT = "exppaycnfrm"_n;
   }
   
+  namespace Branch {
+    // Расходы участка обслуживает шасси expense; branch видит инициирование
+    // (createexp) и этот callback завершения — по нему неизрасходованный
+    // остаток возвращается в общий кошелёк участка.
+    constexpr eosio::name ON_BRANCH_EXPENSE_DONE = "onexpdone"_n;
+  }
+
   namespace Loan {
     constexpr eosio::name CREATE_DEBT = "createdebt"_n;
     constexpr eosio::name SETTLE_DEBT = "settledebt"_n;

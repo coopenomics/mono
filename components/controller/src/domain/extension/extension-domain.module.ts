@@ -11,6 +11,23 @@ import { chatcoopManagedMatrixRoomsV2Migration } from '~/extensions/chatcoop/mig
 import { chatcoopManagedMatrixRoomsV3Migration } from '~/extensions/chatcoop/migrations/chatcoop-managed-matrix-rooms-v3.migration';
 import { chatcoopStatePgV4Migration } from '~/extensions/chatcoop/migrations/chatcoop-state-pg-v4.migration';
 import { chatcoopMessageHistoryIngestCursorV5Migration } from '~/extensions/chatcoop/migrations/chatcoop-message-history-ingest-cursor-v5.migration';
+import { marketplaceBootstrapV1Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v1.migration';
+import { marketplaceBootstrapV2Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v2.migration';
+import { marketplaceBootstrapV3Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v3.migration';
+import { marketplaceBootstrapV4Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v4.migration';
+import { marketplaceBootstrapV5Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v5.migration';
+import { marketplaceBootstrapV6Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v6.migration';
+import { marketplaceBootstrapV7Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v7.migration';
+import { marketplaceBootstrapV8Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v8.migration';
+import { marketplaceBootstrapV9Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v9.migration';
+import { marketplaceBootstrapV10Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v10.migration';
+import { marketplaceBootstrapV11Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v11.migration';
+import { marketplaceBootstrapV12Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v12.migration';
+import { marketplaceBootstrapV13Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v13.migration';
+import { marketplaceBootstrapV14Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v14.migration';
+import { marketplaceBootstrapV15Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v15.migration';
+import { marketplaceBootstrapV16Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v16.migration';
+import { marketplaceBootstrapV17Migration } from '~/extensions/marketplace/migrations/marketplace-bootstrap-v17.migration';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 
 import { ExtensionsModule } from '~/extensions/extensions.module';
@@ -54,6 +71,23 @@ export class ExtensionDomainModule {
     this.migrationService.registerMigration(chatcoopManagedMatrixRoomsV3Migration);
     this.migrationService.registerMigration(chatcoopStatePgV4Migration);
     this.migrationService.registerMigration(chatcoopMessageHistoryIngestCursorV5Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV1Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV2Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV3Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV4Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV5Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV6Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV7Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV8Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV9Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV10Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV11Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV12Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV13Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV14Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV15Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV16Migration);
+    this.migrationService.registerMigration(marketplaceBootstrapV17Migration);
 
     // Устанавливаем расширения по умолчанию
     await this.extensionInteractor.installDefaultApps();

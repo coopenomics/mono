@@ -20,6 +20,7 @@ import { GATEWAY_INTERACTOR_PORT, GatewayInteractorPort } from '~/domain/wallet/
 import type { CreateDepositPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-deposit-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';
 import type { ProgramWalletFilterInputDTO } from '../dto/program-wallet-filter-input.dto';
+import { UserWalletDTO } from '../dto/user-wallet.dto';
 import { PaginationResult, PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { getProgramId, getProgramType } from '~/domain/wallet/enums/program-type.enum';
 import { config } from '~/config';
@@ -187,6 +188,34 @@ export class WalletInteractor {
 
     const wallets = await this.assembleProgramWallets({ coopname, username: filter.username, program_id });
     return wallets.length > 0 ? wallets[0] : null;
+  }
+
+  /**
+   * Кошельки пайщика «как есть» — сырой срез `ledger2::userwallets` без
+   * сворачивания share+member. Каждый кошелёк — отдельная строка со своим
+   * идентификатором; human_name и program_id берём из реестра кошельков
+   * cooptypes. Источник — PG-кеш репозитория (read-path, ADR-011).
+   */
+  async getUserWallets(username: string, coopname?: string): Promise<UserWalletDTO[]> {
+    const coop = coopname || config.coopname;
+    const rows = await this.userWalletRepository.findByUsername(coop, username);
+
+    return rows.map((row) => {
+      const wallet_name = row.wallet_name ?? '';
+      const named = wallet_name as `${string}.${string}.${string}`;
+      const pid = Ledger2.programIdForWallet(named);
+
+      const dto = new UserWalletDTO();
+      dto.id = row.id ?? '';
+      dto.coopname = row.coopname ?? coop;
+      dto.wallet_name = wallet_name;
+      dto.human_name = Ledger2.getWalletHumanName(named) ?? wallet_name;
+      dto.program_id = pid !== undefined ? String(pid) : null;
+      dto.username = row.username ?? username;
+      dto.available = row.available ?? '0';
+      dto.blocked = row.blocked ?? '0';
+      return dto;
+    });
   }
 
   /**

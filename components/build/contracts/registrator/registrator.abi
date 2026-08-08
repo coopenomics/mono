@@ -1,0 +1,955 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "account",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "referer",
+                    "type": "name"
+                },
+                {
+                    "name": "registrator",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "storages",
+                    "type": "name[]"
+                },
+                {
+                    "name": "verifications",
+                    "type": "verification[]"
+                },
+                {
+                    "name": "registered_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "adduser",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "referer",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "spread_initial",
+                    "type": "bool"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "candidate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "candidate_legacy",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "statement",
+                    "type": "document"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "changekey",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "changer",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                }
+            ]
+        },
+        {
+            "name": "confirmpay",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "confirmreg",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "authorization",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "cooperative",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "parent_username",
+                    "type": "name"
+                },
+                {
+                    "name": "announce",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "is_cooperative",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_branched",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_enrolled",
+                    "type": "bool"
+                },
+                {
+                    "name": "coop_type",
+                    "type": "name"
+                },
+                {
+                    "name": "registration",
+                    "type": "asset"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_registration",
+                    "type": "asset$"
+                },
+                {
+                    "name": "org_initial",
+                    "type": "asset$"
+                },
+                {
+                    "name": "org_minimum",
+                    "type": "asset$"
+                },
+                {
+                    "name": "status",
+                    "type": "name$"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec$"
+                },
+                {
+                    "name": "document",
+                    "type": "document$"
+                }
+            ]
+        },
+        {
+            "name": "cooperative2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "parent_username",
+                    "type": "name"
+                },
+                {
+                    "name": "announce",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "is_cooperative",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_branched",
+                    "type": "bool"
+                },
+                {
+                    "name": "is_enrolled",
+                    "type": "bool"
+                },
+                {
+                    "name": "coop_type",
+                    "type": "name"
+                },
+                {
+                    "name": "registration",
+                    "type": "asset"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_registration",
+                    "type": "asset$"
+                },
+                {
+                    "name": "org_initial",
+                    "type": "asset$"
+                },
+                {
+                    "name": "org_minimum",
+                    "type": "asset$"
+                },
+                {
+                    "name": "status",
+                    "type": "name$"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec$"
+                },
+                {
+                    "name": "document",
+                    "type": "document2$"
+                },
+                {
+                    "name": "active_participants_count",
+                    "type": "uint64$"
+                }
+            ]
+        },
+        {
+            "name": "createbranch",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "declinepay",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "declinereg",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "decparticpnt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "delcoop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "registrator",
+                    "type": "name"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "disbranches",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "document",
+            "base": "",
+            "fields": [
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "enabranches",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "migrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "newaccount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "referer",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "org_data",
+            "base": "",
+            "fields": [
+                {
+                    "name": "is_cooperative",
+                    "type": "bool"
+                },
+                {
+                    "name": "coop_type",
+                    "type": "name"
+                },
+                {
+                    "name": "announce",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_minimum",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "regcoop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "params",
+                    "type": "org_data"
+                },
+                {
+                    "name": "document",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "reguser",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "braname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "type",
+                    "type": "name"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                },
+                {
+                    "name": "registration_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "stcoopstatus",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "updateaccnt",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "account_to_change",
+                    "type": "name"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "updatecoop",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_initial",
+                    "type": "asset"
+                },
+                {
+                    "name": "org_minimum",
+                    "type": "asset"
+                },
+                {
+                    "name": "announce",
+                    "type": "string"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "verificate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "procedure",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "verification",
+            "base": "",
+            "fields": [
+                {
+                    "name": "verificator",
+                    "type": "name"
+                },
+                {
+                    "name": "is_verified",
+                    "type": "bool"
+                },
+                {
+                    "name": "procedure",
+                    "type": "name"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "last_update",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "notice",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "adduser",
+            "type": "adduser",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "changekey",
+            "type": "changekey",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "confirmpay",
+            "type": "confirmpay",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "confirmreg",
+            "type": "confirmreg",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createbranch",
+            "type": "createbranch",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinepay",
+            "type": "declinepay",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declinereg",
+            "type": "declinereg",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "decparticpnt",
+            "type": "decparticpnt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delcoop",
+            "type": "delcoop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "disbranches",
+            "type": "disbranches",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "enabranches",
+            "type": "enabranches",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "migrate",
+            "type": "migrate",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "newaccount",
+            "type": "newaccount",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "regcoop",
+            "type": "regcoop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reguser",
+            "type": "reguser",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stcoopstatus",
+            "type": "stcoopstatus",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updateaccnt",
+            "type": "updateaccnt",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatecoop",
+            "type": "updatecoop",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "verificate",
+            "type": "verificate",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accounts",
+            "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "candidates",
+            "type": "candidate_legacy",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "candidates2",
+            "type": "candidate",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "coops",
+            "type": "cooperative2",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "orgs",
+            "type": "cooperative",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

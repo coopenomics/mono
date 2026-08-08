@@ -242,8 +242,37 @@ function clearDraft(): void {
   localStorage.removeItem(props.draftKey);
 }
 
+/**
+ * Подставляет данные записи-источника в пустую форму: расход, открытый из
+ * планового, сразу приходит с назначением, суммой и сроком. Начатый вручную
+ * черновик не трогаем — он важнее подсказки.
+ */
+function applyPrefill(): void {
+  if (!props.prefill) return;
+  if (form.description || form.items.length) return;
+
+  form.description = props.prefill.description;
+  form.deadline = props.prefill.deadline ?? '';
+  addItem();
+  const item = form.items[0];
+  if (item) {
+    item.description = props.prefill.description;
+    item.amount = props.prefill.amount;
+  }
+}
+
+// Форма живёт между открытиями (черновик), поэтому подсказку применяем на
+// каждом открытии — она сработает только если форма пуста.
+watch(
+  () => props.modelValue,
+  (opened) => {
+    if (opened) applyPrefill();
+  },
+);
+
 onMounted(() => {
   restoreDraft();
+  applyPrefill();
   if (!form.items.length) addItem();
   watch(
     form,
@@ -338,8 +367,17 @@ function generateItemHash(expenseHash: string, idx: number): string {
 }
 
 /** `YYYY-MM-DD` (date-input) → `DD.MM.YYYY` (документ). */
+/**
+ * Срок исполнения обязателен: он попадает в текст служебной записки, и без
+ * него совет рассматривал бы расход без указания, к какому сроку платить.
+ * Пустое или неполное значение выводит документ в нечитаемый вид, поэтому
+ * подача прерывается здесь, а не «доезжает» до документа.
+ */
 function formatDeadline(value: string): string {
   const [year, month, day] = value.split('-');
+  if (!year || !month || !day) {
+    throw new Error('Укажите срок исполнения — дату, к которой расход должен быть оплачен');
+  }
   return `${day}.${month}.${year}`;
 }
 
@@ -349,6 +387,10 @@ type GenerateStatementInput =
 async function submitForm(): Promise<void> {
   try {
     submitting.value = true;
+
+    if (!form.deadline.trim()) {
+      throw new Error('Укажите срок исполнения — дату, к которой расход должен быть оплачен');
+    }
 
     const expense_hash = await generateUniqueHash();
     const assetSymbol = symbol.value;

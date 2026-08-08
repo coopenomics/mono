@@ -31,6 +31,16 @@ export class BranchBlockchainAdapter implements BranchBlockchainPort {
     );
   }
 
+  // Членство пайщика в кооперативном участке хранится в таблице участников совета
+  // (participant.braname проставляется при выборе участка через soviet::selectbranch).
+  async getParticipants(coopname: string): Promise<SovietContract.Tables.Participants.IParticipants[]> {
+    return this.blockchainService.getAllRows(
+      SovietContract.contractName.production,
+      coopname,
+      SovietContract.Tables.Participants.tableName
+    );
+  }
+
   async createBranch(data: BranchContract.Actions.CreateBranch.ICreateBranch): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
 
@@ -99,6 +109,48 @@ export class BranchBlockchainAdapter implements BranchBlockchainPort {
     return this.blockchainService.transact({
       account: BranchContract.contractName.production,
       name: BranchContract.Actions.DeleteTrusted.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async setBranchPrivate(data: BranchContract.Actions.SetPrivate.ISetPrivate): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.SetPrivate.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async addBranchWhitelist(data: BranchContract.Actions.AddWhite.IAddWhite): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.AddWhite.actionName,
+      authorization: [{ actor: data.coopname, permission: 'active' }],
+      data,
+    });
+  }
+
+  async deleteBranchWhitelist(data: BranchContract.Actions.DelWhite.IDelWhite): Promise<TransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    return this.blockchainService.transact({
+      account: BranchContract.contractName.production,
+      name: BranchContract.Actions.DelWhite.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
       data,
     });

@@ -24,12 +24,12 @@ describe('ExtensionDomainListingService.assertInstallable', () => {
 
   it('в основной сети Стол заказов ставить запрещено', () => {
     chainConfig.is_mainnet = true;
-    expect(() => service.assertInstallable('orders')).toThrow('недоступно для установки');
+    expect(() => service.assertInstallable('market')).toThrow('недоступно для установки');
   });
 
   it('вне основной сети Стол заказов ставить разрешено', () => {
     chainConfig.is_mainnet = false;
-    expect(() => service.assertInstallable('orders')).not.toThrow();
+    expect(() => service.assertInstallable('market')).not.toThrow();
   });
 
   it('расширение, открытое везде, ставится и в основной сети', () => {

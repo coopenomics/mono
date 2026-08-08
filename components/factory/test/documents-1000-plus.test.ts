@@ -28,6 +28,24 @@ beforeAll(async () => {
     })
   }
 
+  // Подменяем метод getDecision для фабрики Протокола списания скоропорта
+  // (1105) — голоса совета приходят из SIMPLE_EXPLORER_API, в тесте
+  // обращений к нему нет.
+  const factory1105 = (generator as any).factories['1105']
+  if (factory1105) {
+    vi.spyOn(factory1105, 'getDecision').mockImplementation(async () => {
+      return {
+        id: 1,
+        date: '01.06.2026',
+        time: '12:00',
+        votes_for: 3,
+        votes_against: 0,
+        votes_abstained: 0,
+        voters_percent: 100,
+      }
+    })
+  }
+
   const commonUdata = {
     coopname: 'voskhod',
     username: 'ant',
@@ -506,6 +524,49 @@ describe('тест генератора документов с registry_id >= 1
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
+    })
+  })
+
+  // Документы списания скоропорта по решению совета (ЦПП «Стол заказов»)
+  it('генерируем заявление председателя о списании скоропорта (1106)', async () => {
+    await testDocumentGeneration({
+      registry_id: 1106,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      proposal_hash: '0000abcd1234567890abcdef0000abcd1234567890abcdef00001234567890ab',
+      cycle_started_at: '2026-06-01',
+      items: [
+        {
+          braname: 'voskhod1',
+          asset_title: 'Сахар-песок «Сладкий», 1 кг',
+          quantity: '12',
+          amount: '1020.0000 RUB',
+          reason: 'Истёк срок годности',
+        },
+        {
+          braname: 'voskhod2',
+          asset_title: 'Молоко «Доброе», 1 л',
+          quantity: '5',
+          amount: '485.0000 RUB',
+          reason: 'Повреждена упаковка',
+        },
+      ],
+      total_amount: '1505.0000 RUB',
+    })
+  })
+
+  it('генерируем протокол совета о списании скоропорта (1105)', async () => {
+    await testDocumentGeneration({
+      registry_id: 1105,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      decision_id: 1,
+      proposal_hash: '0000abcd1234567890abcdef0000abcd1234567890abcdef00001234567890ab',
+      cycle_started_at: '2026-06-01',
+      total_amount: '1505.0000 RUB',
+      items_count: 2,
     })
   })
 })

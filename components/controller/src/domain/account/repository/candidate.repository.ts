@@ -15,6 +15,11 @@ export interface CandidateRepository {
     documentType: DocumentType,
     document: ISignedDocumentDomainInterface
   ): Promise<void>;
+  saveProgramAgreement(
+    username: string,
+    agreementId: string,
+    document: ISignedDocumentDomainInterface
+  ): Promise<void>;
   findAllPaginated(
     options: PaginationInputDomainInterface & {
       referer?: string;

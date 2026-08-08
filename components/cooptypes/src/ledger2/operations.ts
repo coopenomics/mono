@@ -139,10 +139,160 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     debit: 8, credit: 51,
     human_name: 'Доплата сверх подотчёта (перерасход)' },
 
-  // marketplace
-  { code: 'o.mkt.supply', process_type: 'p.mkt.reqst', contract: 'marketplace', name: 'CONFIRM_SUPPLY', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.wal.share', debit: 51, credit: 80, human_name: 'Подтверждение поставки' },
+  // marketplace — членская модель «Стола заказов» (синхронно с
+  // operations.hpp `OPERATION_REGISTRY`, namespace operations::marketplace).
+  // Legacy клиринговые o.mkt.supply/o.mkt.recv (p.mkt.reqst) удалены —
+  // membership-модель их не использует.
+  { code: 'o.mkt.lock',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_ORDER',     wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.order',
+    debit: 80, credit: 86,
+    human_name: 'Резервирование под заказ' },
 
-  { code: 'o.mkt.recv', process_type: 'p.mkt.reqst', contract: 'marketplace', name: 'CONFIRM_RECEIPT', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.payout', debit: 80, credit: 51, human_name: 'Подтверждение получения — выплата поставщику' },
+  // Доплата по факту (signiss2, actual > ordered): паевой сперва конвертируется
+  // в членский «Стола заказов» (o.mkt.conv), затем им добирается резерв
+  // (o.mkt.lockm). Списание идёт ИМЕННО с членского, не напрямую с паевого.
+  { code: 'o.mkt.conv',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONVERT_TO_MKT_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.member',
+    debit: 80, credit: 86,
+    human_name: 'Конвертация паевого в членский «Стола заказов» под доплату' },
+
+  { code: 'o.mkt.lockm',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FROM_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.order',
+    debit: null, credit: null,
+    human_name: 'Добор резерва заказа с членского «Стола заказов»' },
+
+  // Снятие резерва (отмена / недовыдача / actual < ordered): средства уходят
+  // на членский «Стола заказов» (не на универсальный членский) — остаются в программе.
+  { code: 'o.mkt.unlock',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'UNLOCK_ORDER',   wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Снятие резерва при отмене заказа' },
+
+  // Удержание 50% при отказе пайщика от получения после акцепта поставщиком:
+  // удержанная половина тела заказа транзитом через пул членских взносов уходит
+  // в общий кошелёк КУ (тем же o.brn.common). Прямой перевод на w.brn.common
+  // невозможен — walletop держит один username на обе стороны.
+  { code: 'o.mkt.penal',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'REFUSAL_PENALTY', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.order', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Удержание при отказе пайщика от получения после акцепта поставщиком' },
+
+  { code: 'o.mkt.purch',   process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PURCHASE_FROM_SUPPLIER', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 10, credit: 86,
+    human_name: 'Приёмка имущества кооперативом по АПП приёмки' },
+
+  { code: 'o.mkt.payout',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'PAY_SUPPLIER',   wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.payout',
+    debit: 86, credit: 51,
+    human_name: 'Оплата поставщику с расчётного счёта по факту приёмки' },
+
+  { code: 'o.mkt.consum',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'CONSUME_BY_MEMBER', wallet_op: 'BURN', wallet_from: 'w.mkt.order', wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Выдача имущества пайщику по АПП выдачи' },
+
+  // Гарантийный возврат — compensating forward к o.mkt.consum: восстановление
+  // средств на членском «Стола заказов» заказчика и возврат имущества на склад.
+  { code: 'o.mkt.return',  process_type: 'p.mkt.return',  contract: 'marketplace',
+    name: 'RETURN_BY_MEMBER', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.mkt.member',
+    debit: 10, credit: 86,
+    human_name: 'Гарантийный возврат — восстановление средств и имущества' },
+
+  { code: 'o.mkt.wroff',   process_type: 'p.mkt.wroff',   contract: 'marketplace',
+    name: 'WRITE_OFF_PERISHABLE', wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 86, credit: 10,
+    human_name: 'Утилизация скоропорта' },
+
+  // Уценка при выдаче из остатка кооператива: разница цены прибытия и факта
+  // выбывает со склада в прочие расходы (requirement 76, вопрос 4).
+  { code: 'o.mkt.loss',    process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MARKDOWN_LOSS',  wallet_op: 'NONE', wallet_from: null, wallet_to: null,
+    debit: 91, credit: 10,
+    human_name: 'Уценка имущества при выдаче со склада кооператива' },
+
+  // Членский взнос по заказу (requirement b6 «Экономика КУ»): блокировка по
+  // единой ставке кооператива на createorder с паевого, дособор на signiss2.
+  { code: 'o.mkt.fee',     process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MEMBERSHIP_FEE_LOCK', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.mkt.fee',
+    debit: 80, credit: 86,
+    human_name: 'Членский взнос «Стола заказов» по заказу' },
+
+  // Возврат неиспользованной части взноса: отмена — полностью, недовыдача —
+  // пропорционально факту.
+  { code: 'o.mkt.refund',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'MEMBERSHIP_FEE_REFUND', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Возврат членского взноса по заказу' },
+
+  // Членский взнос под заказ из остатка — из уже внесённых членских средств
+  // пайщика (stockorder фондируется из членского начисто). Парный по взносу к
+  // o.mkt.lockm; инверсия o.mkt.refund. Паевой пополняет членский заранее (o.mkt.conv).
+  { code: 'o.mkt.lockmf',  process_type: 'p.mkt.supply',  contract: 'marketplace',
+    name: 'LOCK_FEE_FROM_MEMBER', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.member', wallet_to: 'w.mkt.fee',
+    debit: null, credit: null,
+    human_name: 'Членский взнос «Стола заказов» из внесённых средств' },
+
+  // branch — экономика кооперативного участка (requirement b6)
+  { code: 'o.brn.common',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'DISTRIBUTE_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.mkt.fee', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Членский взнос в общий кошелёк кооперативного участка' },
+
+  { code: 'o.brn.release', process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'RELEASE_FROM_COMMON', wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.pool',
+    debit: null, credit: null,
+    human_name: 'Изъятие из общего кошелька кооперативного участка на распределение' },
+
+  { code: 'o.brn.person',  process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'DISTRIBUTE_PERSONAL', wallet_op: 'TRANSFER', wallet_from: 'w.brn.pool', wallet_to: 'w.brn.person',
+    debit: null, credit: null,
+    human_name: 'Распределение членского взноса доверенному кооперативного участка' },
+
+  { code: 'o.brn.expfnd',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_FUND',   wallet_op: 'TRANSFER', wallet_from: 'w.brn.common', wallet_to: 'w.brn.expns',
+    debit: null, credit: null,
+    human_name: 'Выделение средств кооперативного участка под расход' },
+
+  { code: 'o.brn.expunf',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_UNFUND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.brn.common',
+    debit: null, credit: null,
+    human_name: 'Возврат неизрасходованных средств в общий кошелёк кооперативного участка' },
+
+  { code: 'o.brn.spend',   process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'SPEND_COMMON',   wallet_op: 'BURN', wallet_from: 'w.brn.expns', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Прямая оплата расхода кооперативного участка по реквизитам' },
+
+  { code: 'o.brn.expadv',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_ADVANCE', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Выдача аванса под отчёт по расходу кооперативного участка' },
+
+  { code: 'o.brn.exprpt',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_REPORT', wallet_op: 'BURN', wallet_from: 'w.exp.adv', wallet_to: null,
+    debit: null, credit: null,
+    human_name: 'Закрытие подотчёта по расходу кооперативного участка' },
+
+  { code: 'o.brn.expret',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_RETURN', wallet_op: 'TRANSFER', wallet_from: 'w.exp.adv', wallet_to: 'w.brn.expns',
+    debit: 51, credit: 86,
+    human_name: 'Возврат неиспользованного аванса по расходу кооперативного участка' },
+
+  { code: 'o.brn.expovr',  process_type: 'p.brn.spend',   contract: 'branch',
+    name: 'EXPENSE_OVERSPEND', wallet_op: 'TRANSFER', wallet_from: 'w.brn.expns', wallet_to: 'w.exp.adv',
+    debit: 86, credit: 51,
+    human_name: 'Доплата сверх аванса по расходу кооперативного участка' },
+
+  { code: 'o.brn.aid',     process_type: 'p.brn.aid',     contract: 'branch',
+    name: 'FINANCIAL_AID',  wallet_op: 'BURN', wallet_from: 'w.brn.person', wallet_to: null,
+    debit: 86, credit: 51,
+    human_name: 'Материальная помощь доверенному кооперативного участка' },
+
+  { code: 'o.brn.conv',    process_type: 'p.brn.fees',    contract: 'branch',
+    name: 'CONVERT_TO_MKT', wallet_op: 'TRANSFER', wallet_from: 'w.brn.person', wallet_to: 'w.mkt.member',
+    debit: null, credit: null,
+    human_name: 'Перевод персональных средств доверенного в членский кошелёк «Стола заказов»' },
 
   // soviet
   { code: 'o.sov.axncnv', process_type: 'p.sov.axncnv', contract: 'soviet', name: 'CONVERT_AXN', wallet_op: 'TRANSFER', wallet_from: 'w.wal.share', wallet_to: 'w.sov.delgte', debit: 80, credit: 86, human_name: 'Трансляция паевого в членский взнос инфраструктуры' },

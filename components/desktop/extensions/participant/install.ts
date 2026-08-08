@@ -182,10 +182,10 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             },
           },
           {
-            // Предпоследний пункт: выход из кооператива (не путать с «Выйти из
+            // Предпоследний пункт: выйти из кооператива (не путать с «Выйти из
             // кабинета» в RailUserCard). Иконка group_remove — не logout.
             meta: {
-              title: 'Выход из кооператива',
+              title: 'Выйти из кооператива',
               icon: 'group_remove',
               roles: [],
               requiresAuth: true,

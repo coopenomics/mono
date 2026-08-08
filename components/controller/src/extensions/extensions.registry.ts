@@ -14,6 +14,9 @@ import { Schema as ParticipantSchema } from './participant/types';
 import { OneCoopPluginModule, OneCoopPlugin, Schema as OneCoopSchema } from './1ccoop/oneccoop-extension.module';
 import { CapitalPluginModule, CapitalPlugin, Schema as CapitalSchema } from './capital/capital-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
+import { MarketplacePluginModule, MarketplacePlugin } from './marketplace/marketplace-extension.module';
+import { Schema as MarketplaceSchema } from './marketplace/types';
+import { KuPluginModule, KuPlugin, Schema as KuSchema } from './ku/ku-extension.module';
 
 /**
  * Конфигурация рабочего стола (workspace), который предоставляет расширение
@@ -74,6 +77,13 @@ export interface IRegistryExtension {
   tags?: string[]; // список тегов
   readme: Promise<string>; // README содержимое
   instructions: Promise<string>; // INSTALL содержимое
+
+  // Канон авторизации/онбординга столов теперь выражается через grants:
+  // расширение публикует ExtensionDesktopGrantsProvider (см.
+  // domain/desktop/ports/extension-grants.port.ts), а гейтинг до принятия ЦПП
+  // сворачивается в вычисление грантов (нет прав → стол/страница не видны).
+  // Отдельные поля onboarding_route/onboarding_desktop/isOnboarded больше не
+  // нужны. Подробности — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
 
   // Для обратной совместимости: если есть desktops, значит это desktop расширение
   get is_desktop(): boolean;
@@ -177,23 +187,23 @@ export const AppRegistry: INamedExtension = {
   trustee: {
     is_builtin: true,
     is_internal: true,
-    availability: ExtensionAvailability.NOWHERE,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'trustee',
-        title: 'Стол Уполномоченного',
+        title: 'Кооперативный участок',
         icon: 'fa-solid fa-users-cog',
       },
     ],
-    title: 'Стол Уполномоченного',
-    description: 'Приложение для председателя кооперативного участка.',
+    title: 'Кооперативный участок',
+    description: 'Собрания пайщиков кооперативных участков: учреждение участков решением собрания с утверждением советом, свободные решения и приём доверенных лиц по заявлению.',
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: KuPluginModule,
+    pluginClass: KuPlugin,
+    schema: KuSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./ku'),
+    instructions: getInstructionsContent('./ku'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
@@ -366,28 +376,53 @@ export const AppRegistry: INamedExtension = {
       return !!this.desktops && this.desktops.length > 0;
     },
   },
-  orders: {
+  market: {
     is_builtin: false,
     is_internal: true,
     // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
     // остаётся закрытым, пока здесь не поставят EVERYWHERE.
     availability: ExtensionAvailability.NON_MAINNET_ONLY,
+    // Расширение «Стол заказов» предоставляет ЧЕТЫРЕ рабочих стола, разнесённых
+    // по ролям пайщика. Каждый `name` ОБЯЗАН совпадать с workspace из desktop
+    // `extensions/market/install.ts`: фронт привязывает маршруты только к тем
+    // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
+    // Если стол не объявлен в этом списке — его маршруты молча теряются.
+    // Видимость столов/страниц — канон авторизации (grants): backend
+    // (MarketplaceDesktopGrantsProvider) выдаёт права текущему пользователю,
+    // фронт сверяет с ними `meta.requires` маршрутов. До принятия ЦПП советом
+    // у председателя только Extension:configure (страница подключения), у
+    // остальных — пусто; после принятия — полный набор по ролям.
     desktops: [
       {
-        name: 'orders',
-        title: 'Стол заказов',
-        icon: 'fa-solid fa-shopping-cart',
+        name: 'market',
+        title: 'Стол заказчика',
+        icon: 'fa-solid fa-cart-shopping',
+      },
+      {
+        name: 'market-supplier',
+        title: 'Стол поставщика',
+        icon: 'fa-solid fa-store',
+      },
+      {
+        name: 'market-pvz',
+        title: 'Стол ПВЗ',
+        icon: 'fa-solid fa-map-location-dot',
+      },
+      {
+        name: 'market-admin',
+        title: 'Стол администратора',
+        icon: 'fa-solid fa-shield-halved',
       },
     ],
     title: 'Стол заказов',
     description: 'Приложение для заказа и поставки имущества в кооперативе.',
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
-    class: BuiltinPluginModule,
-    pluginClass: BuiltinPlugin,
-    schema: BuiltinSchema,
+    class: MarketplacePluginModule,
+    pluginClass: MarketplacePlugin,
+    schema: MarketplaceSchema,
     tags: ['стол', 'управление'],
-    readme: getReadmeContent('./orders'),
-    instructions: getInstructionsContent('./orders'),
+    readme: getReadmeContent('./marketplace'),
+    instructions: getInstructionsContent('./marketplace'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

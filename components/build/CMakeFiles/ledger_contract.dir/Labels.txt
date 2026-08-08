@@ -1,0 +1,14 @@
+# Target labels
+ ledger_contract
+# Source files and their labels
+/project/build/CMakeFiles/ledger_contract
+/project/build/CMakeFiles/ledger_contract.rule
+/project/build/CMakeFiles/ledger_contract-complete.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-build.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-configure.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-download.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-install.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-mkdir.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-patch.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-test.rule
+/project/build/ledger_contract-prefix/src/ledger_contract-stamp/ledger_contract-update.rule

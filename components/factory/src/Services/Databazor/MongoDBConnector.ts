@@ -52,6 +52,19 @@ export class MongoDBConnector {
     if (!this.documents)
       throw new Error('Database not connected')
 
-    await this.documents.updateOne({ hash: document.hash }, { $set: { ...document } }, { upsert: true })
+    // Версионируем черновики по (hash + meta.block_num), а НЕ только по hash.
+    // Тело документа (hash = sha256 PDF-бинарника) у двух генераций одного
+    // акта может совпасть: created_at впечатан в PDF лишь до минуты, а
+    // meta.block_num тянется getCurrentBlock() на каждой генерации и плавает
+    // внутри минуты. Ключ только по hash затирал предыдущую версию ($set),
+    // и второй подписант (напр. председатель в двухподписном акте), читая
+    // черновик по doc_hash, получал чужую meta → meta_hash не совпадал с
+    // подписью первого подписанта, и подпись падала. Компаунд-ключ хранит
+    // все версии: каждая остаётся доступной по своему block_num.
+    await this.documents.updateOne(
+      { hash: document.hash, 'meta.block_num': document.meta.block_num },
+      { $set: { ...document } },
+      { upsert: true },
+    )
   }
 }

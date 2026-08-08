@@ -60,9 +60,10 @@
                 td.col-action(v-if='!hideActions', @click.stop)
                   .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
-                    //- Возврат вступительного взноса отклонить нельзя — совет уже
-                    //- отказал, кассир обязан вернуть деньги. Прячем «Отклонить».
-                    SetOrderRefundedStatusButton(v-if='!isRefundType(row.type)', :id='row.id')
+                    //- Там, где решение уже принято советом (возврат взноса, расход
+                    //- по СЗ, материальная помощь), кассир не отклоняет — прячем
+                    //- «Отклонить», остаётся только «Подтвердить».
+                    SetOrderRefundedStatusButton(v-if='!isNonDeclinablePayout(row.type)', :id='row.id')
                   span.no-actions(v-else) —
 
               tr.expand-row(v-if='expanded.get(row.id)')
@@ -152,7 +153,7 @@
           @click.stop
         )
           SetOrderPaidStatusButton(:id='row.id')
-          SetOrderRefundedStatusButton(v-if='!isRefundType(row.type)', :id='row.id')
+          SetOrderRefundedStatusButton(v-if='!isNonDeclinablePayout(row.type)', :id='row.id')
         template(v-if='expanded.get(row.id)')
           PaymentDetails.pay-card__details(:payment='row')
           //- Чек об оплате — ядро, для любого исходящего платежа (стол кассира).
@@ -241,6 +242,7 @@ import {
   reportStateLabel,
   reportStateVariant,
 } from 'src/shared/lib/expenses';
+import { paymentStatusVariant } from 'src/shared/lib/payment';
 import { Zeus } from '@coopenomics/sdk';
 
 const props = defineProps({
@@ -269,18 +271,9 @@ const items = computed<IPaymentRow[]>(
 const onLoading = ref(false);
 
 // Статус платежа → canon-вариант бейджа (точка + цвет из дизайн-токенов).
-const statusVariants: Record<string, BaseBadgeVariant> = {
-  [Zeus.PaymentStatus.COMPLETED]: 'pos',
-  [Zeus.PaymentStatus.PENDING]: 'warn',
-  [Zeus.PaymentStatus.FAILED]: 'neg',
-  [Zeus.PaymentStatus.PAID]: 'info',
-  [Zeus.PaymentStatus.REFUNDED]: 'neutral',
-  [Zeus.PaymentStatus.EXPIRED]: 'neutral',
-};
-const getStatusVariant = (status?: string | null): BaseBadgeVariant => {
-  if (!status) return 'neutral';
-  return statusVariants[status] || 'neutral';
-};
+// Общая карта — src/shared/lib/payment (переиспользуется и на «Мои средства»
+// Стола заказов для статуса выплаты матпомощи).
+const getStatusVariant = paymentStatusVariant;
 
 const isIncoming = (direction?: string | null): boolean =>
   direction === Zeus.PaymentDirection.INCOMING;
@@ -307,10 +300,15 @@ const amountLabel = (row: IPaymentRow): string =>
   formatAsset2Digits(`${row.quantity} ${row.symbol}`);
 
 // Платежи, которые кассир не может отклонить — только «Подтвердить»:
-// возврат вступительного/мин.паевого (совет уже отказал в приёме) и оплата
-// расхода по СЗ (совет уже утвердил расход; отказ — только решением совета).
-const isRefundType = (type?: string | null): boolean =>
-  type === Zeus.PaymentType.REGISTRATION_REFUND || type === Zeus.PaymentType.EXPENSE;
+// возврат вступительного/мин.паевого (совет уже отказал в приёме), оплата
+// расхода по СЗ (совет уже утвердил расход) и материальная помощь (совет
+// принял решение о выплате). Во всех трёх случаях решение уже принято советом
+// и кассир его не пересматривает: если реквизиты неверны, он уточняет их у
+// получателя лично и выплачивает — отказ решением совета не отменяется.
+const isNonDeclinablePayout = (type?: string | null): boolean =>
+  type === Zeus.PaymentType.REGISTRATION_REFUND ||
+  type === Zeus.PaymentType.EXPENSE ||
+  type === Zeus.PaymentType.AID;
 
 // Material-иконки (канон запрещает FontAwesome fa-*).
 const getDirectionIcon = (direction?: string | null) => {

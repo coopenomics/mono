@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { FileStorageInfrastructureModule } from '~/infrastructure/file-storage';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
@@ -25,24 +26,33 @@ import { ExpenseProposalResolver } from './application/resolvers/expense-proposa
 import { ExpenseMutationsResolver } from './application/resolvers/expense-mutations.resolver';
 import { ExpenseFilesResolver } from './application/resolvers/expense-files.resolver';
 import { ExpensesInterExpenseChassisAdapter } from './infrastructure/inter/expenses-inter-expense-chassis.adapter';
+import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
+import {
+  EXPENSE_PLANS_SERVICE,
+  ExpensePlansService,
+} from './application/services/expense-plans.service';
+import { ExpensePlansResolver } from './application/resolvers/expense-plans.resolver';
 
 /**
- * Шасси расходов цифрового кооператива (MVP — Благорост).
+ * Расширение «Расходы» цифрового кооператива.
  *
- * Backend-сторона контракта `expense`:
- *   - TypeORM-зеркало on-chain proposals + items;
- *   - MinIO-bucket `expenses:files` (платёжки/чеки/возвраты);
- *   - GraphQL Query/Mutation для UI;
- *   - sync через parser2 (после ABI regen).
+ * Две части одного домена расходов:
+ *   - шасси расходов (MVP — Благорост): backend-сторона контракта `expense`
+ *     (TypeORM-зеркало on-chain proposals + items, MinIO-bucket `expenses:files`,
+ *     GraphQL Query/Mutation, sync через parser2);
+ *   - оффчейн-реестр плановых расходов кооператива и его участков (requirement b6
+ *     «Экономика КУ», раунд 5) + расчёт 30-дневного резерва — план-записи
+ *     совмещаются с процессами шасси на пути оплаты.
  *
  * Расширение НЕ предоставляет собственного «стола» — расход живёт в Столе
- * Благороста и Председателя. Поэтому в `AppRegistry` запись не заводится,
- * модуль подключается напрямую в `ExtensionsModule.register()`.
+ * Благороста, Председателя и участка. Поэтому в `AppRegistry` запись не
+ * заводится, модуль подключается напрямую в `ExtensionsModule.register()`.
  *
- * Подробности и план реализации — см. `README.md` рядом.
+ * Подробности и план реализации шасси — см. `README.md` рядом.
  */
 @Module({
   imports: [
+    NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
     DocumentDomainModule,
     BlockchainModule,
@@ -79,6 +89,9 @@ import { ExpensesInterExpenseChassisAdapter } from './infrastructure/inter/expen
     ExpenseMutationsResolver,
     ExpenseFilesResolver,
     ExpensesInterExpenseChassisAdapter,
+    ExpensePlansService,
+    { provide: EXPENSE_PLANS_SERVICE, useExisting: ExpensePlansService },
+    ExpensePlansResolver,
   ],
   exports: [
     ExpenseContractInfoService,
@@ -90,6 +103,8 @@ import { ExpensesInterExpenseChassisAdapter } from './infrastructure/inter/expen
     ExpensesMutationsService,
     ExpenseFilesService,
     ExpensesInterExpenseChassisAdapter,
+    ExpensePlansService,
+    EXPENSE_PLANS_SERVICE,
   ],
 })
-export class ExpensesExtensionModule {}
+export class ExpensesPluginModule {}

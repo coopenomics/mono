@@ -79,6 +79,10 @@ if (!fs.existsSync(path.join(localZeusDir, 'index.ts'))) {
   process.exit(1);
 }
 
+// Внимание: сгенерированный zeus ws-путь подписок (apiSubscription +
+// SubscriptionThunder) теряет variables и НЕ используется. Боевой транспорт —
+// sdk/src/utils/wsSubscription.ts (негенерируемый), Client.Subscription собран
+// на нём. Не переключать SDK обратно на zeus Subscription без фикса upstream.
 fs.rmSync(sdkZeusDir, { recursive: true, force: true });
 fs.cpSync(localZeusDir, sdkZeusDir, { recursive: true });
 

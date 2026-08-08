@@ -1,0 +1,411 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "authexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "decision",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "callback_handler",
+            "base": "",
+            "fields": [
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "action",
+                    "type": "name"
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "closeexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "createexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "source_wallet",
+                    "type": "name"
+                },
+                {
+                    "name": "items",
+                    "type": "item[]"
+                },
+                {
+                    "name": "callback",
+                    "type": "callback_handler"
+                },
+                {
+                    "name": "statement",
+                    "type": "document2"
+                }
+            ]
+        },
+        {
+            "name": "declexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "reason",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "document2",
+            "base": "",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "string"
+                },
+                {
+                    "name": "hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "doc_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                },
+                {
+                    "name": "signatures",
+                    "type": "signature_info[]"
+                }
+            ]
+        },
+        {
+            "name": "item",
+            "base": "",
+            "fields": [
+                {
+                    "name": "item_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "mechanics",
+                    "type": "uint8"
+                },
+                {
+                    "name": "recipient_type",
+                    "type": "uint8"
+                },
+                {
+                    "name": "recipient",
+                    "type": "name"
+                },
+                {
+                    "name": "description",
+                    "type": "string"
+                },
+                {
+                    "name": "planned_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "actual_amount",
+                    "type": "asset"
+                },
+                {
+                    "name": "status",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "overspendexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "item_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "overspend_amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "payexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "item_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "actual_amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "proposal",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "source_wallet",
+                    "type": "name"
+                },
+                {
+                    "name": "status",
+                    "type": "uint8"
+                },
+                {
+                    "name": "items",
+                    "type": "item[]"
+                },
+                {
+                    "name": "total_planned",
+                    "type": "asset"
+                },
+                {
+                    "name": "total_actual",
+                    "type": "asset"
+                },
+                {
+                    "name": "callback",
+                    "type": "callback_handler"
+                },
+                {
+                    "name": "statement_doc",
+                    "type": "document2"
+                },
+                {
+                    "name": "decision_doc",
+                    "type": "document2"
+                },
+                {
+                    "name": "created_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "updated_at",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "reportexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "item_hash",
+                    "type": "checksum256"
+                }
+            ]
+        },
+        {
+            "name": "returnexp",
+            "base": "",
+            "fields": [
+                {
+                    "name": "coopname",
+                    "type": "name"
+                },
+                {
+                    "name": "proposal_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "item_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "return_amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "signature_info",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint32"
+                },
+                {
+                    "name": "signed_hash",
+                    "type": "checksum256"
+                },
+                {
+                    "name": "signer",
+                    "type": "name"
+                },
+                {
+                    "name": "public_key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "signature",
+                    "type": "signature"
+                },
+                {
+                    "name": "signed_at",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "meta",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "authexp",
+            "type": "authexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "closeexp",
+            "type": "closeexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "createexp",
+            "type": "createexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "declexp",
+            "type": "declexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "overspendexp",
+            "type": "overspendexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "payexp",
+            "type": "payexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "reportexp",
+            "type": "reportexp",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "returnexp",
+            "type": "returnexp",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "proposals",
+            "type": "proposal",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

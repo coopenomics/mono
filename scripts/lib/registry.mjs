@@ -21,6 +21,16 @@ export const SIGNIFICANT_ROOTS = [
   'components/controller/src/domain/',
   'components/desktop/extensions/',
   'components/contracts/cpp/',
+  // UI Стола заказов лежит НЕ в desktop/extensions (там всего 3 файла
+  // установщика), а в ядре desktop — 45 страниц плюс виджеты, фичи и
+  // сущности. Без этих корней гейт не замечал правок интерфейса
+  // маркетплейса вообще. Корни намеренно без завершающего слэша: остаток
+  // пути тогда начинается с «/», и область в аудите получается одна на
+  // пространство имён, а не по строке на каждую страницу.
+  'components/desktop/src/pages/Marketplace',
+  'components/desktop/src/widgets/Marketplace',
+  'components/desktop/src/features/Marketplace',
+  'components/desktop/src/entities/Marketplace',
 ];
 
 const FEATURE_RE = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;

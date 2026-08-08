@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/meet_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/meet_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/meet_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/meet_contract-prefix/src/meet_contract-stamp/meet_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"meet_contract"
+		],
+		"name" : "meet_contract"
+	}
+}

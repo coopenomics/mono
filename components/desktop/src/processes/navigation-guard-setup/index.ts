@@ -5,11 +5,6 @@ import { useSystemStore } from 'src/entities/System/model';
 import { LocalStorage } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 
-function hasAccess(to, userRole) {
-  if (!to.meta?.roles || to.meta?.roles.length === 0) return true;
-  return userRole && to.meta?.roles.includes(userRole);
-}
-
 // Функция для получения URL для редиректа
 function getRedirectUrl(router: Router, to: any): string {
   if (process.env.CLIENT) {
@@ -54,18 +49,6 @@ export function setupNavigationGuard(router: Router) {
       if (attempts >= maxAttempts) {
         session.loadComplete = true;
         console.warn('User data loading timeout');
-      }
-    }
-
-    // Определяем роль пользователя при каждом запросе
-    let userRole: string | null = null;
-    if (session.isAuth) {
-      if (session.isChairman) {
-        userRole = 'chairman';
-      } else if (session.isMember) {
-        userRole = 'member';
-      } else {
-        userRole = 'user'; // Авторизованный пользователь без специальной роли
       }
     }
 
@@ -128,11 +111,21 @@ export function setupNavigationGuard(router: Router) {
       return;
     }
 
-    // проверка по ролям
-    if (hasAccess(to, userRole)) {
+    // Проверка доступа к маршруту: канон авторизации столов (grants).
+    // Стор сам решает — grant-стол (по `meta.requires` против выданных бэкендом
+    // прав) или legacy (по `meta.roles`). Настоящий enforcement — на резолверах.
+    if (desktops.hasRouteAccess(to.matched.map((r) => r.name ?? null), to.meta)) {
       next();
     } else {
       next({ name: 'permissionDenied', query: to.query });
     }
+  });
+
+  // Синхронизация активного рабочего стола с маршрутом после КАЖДОГО успешного
+  // перехода: прямой заход по URL и переход кнопкой со стола А на маршрут стола Б
+  // больше не оставляют активным «не тот» стол (см. DesktopStore). Только меняет
+  // состояние — навигацию afterEach не инициирует, цикла не будет.
+  router.afterEach((to) => {
+    desktops.syncActiveWorkspaceFromRoute(to.matched.map((r) => r.name ?? null));
   });
 }

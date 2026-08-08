@@ -33,9 +33,11 @@
             tr(v-for='row in store.items', :key='row.id')
               td.col-date {{ formatDateToHumanDateTime(row.createdAt) }}
               td.cell-recipient
-                template(v-if='row.recipientUsername')
-                  span.cell-recipient__name(v-if='recipientName(row.recipientUsername)') {{ recipientName(row.recipientUsername) }}
-                  AccountBadge(:account-name='row.recipientUsername', size='sm')
+                IdentityCell(
+                  v-if='row.recipientUsername',
+                  :account-name='row.recipientUsername',
+                  :full-name='recipientName(row.recipientUsername)'
+                )
                 span.cell-recipient__sub(v-else) {{ row.recipientSubscriberId }}
               td {{ workflowLabel(row.workflowId) }}
               td {{ channelLabels[row.channel] ?? row.channel }}
@@ -64,9 +66,12 @@
       .nj-card(v-for='row in store.items', :key='row.id')
         .nj-card__head
           .nj-card__recipient
-            span.nj-card__name(v-if='row.recipientUsername && recipientName(row.recipientUsername)') {{ recipientName(row.recipientUsername) }}
-            AccountBadge(v-if='row.recipientUsername', :account-name='row.recipientUsername', size='sm')
-            span.nj-card__sub(v-else-if='!row.recipientUsername') {{ row.recipientSubscriberId }}
+            IdentityCell(
+              v-if='row.recipientUsername',
+              :account-name='row.recipientUsername',
+              :full-name='recipientName(row.recipientUsername)'
+            )
+            span.nj-card__sub(v-else) {{ row.recipientSubscriberId }}
           BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
         .nj-card__grid
           .nj-card__cell
@@ -121,7 +126,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { TableSkeleton } from 'src/shared/ui/base/TableSkeleton';
 import type { TableSkeletonColumn } from 'src/shared/ui/base/TableSkeleton';
-import { AccountBadge } from 'src/shared/ui/domain/AccountBadge';
+import { IdentityCell } from 'src/shared/ui/domain/IdentityCell';
 import { FilterBar } from 'src/shared/ui/domain/FilterBar';
 import type { FilterDefinition, FilterValues } from 'src/shared/ui/domain/FilterBar';
 import { formatDateToHumanDateTime } from 'src/shared/lib/utils/dates/formatDateToHumanDateTime';
@@ -315,11 +320,6 @@ onMounted(() => {
   align-items: flex-start;
   gap: 4px;
 }
-.cell-recipient__name {
-  color: var(--p-ink);
-  font-size: var(--p-fs-body-sm, 13px);
-  line-height: 1.3;
-}
 .cell-recipient__sub {
   font-family: var(--p-mono);
   font-size: var(--p-fs-mono-sm, 12px);
@@ -371,12 +371,6 @@ onMounted(() => {
   align-items: flex-start;
   gap: 2px;
   min-width: 0;
-}
-.nj-card__name {
-  font-weight: 500;
-  color: var(--p-ink);
-  font-size: var(--p-fs-body-sm, 13px);
-  overflow-wrap: break-word;
 }
 .nj-card__sub {
   font-family: var(--p-mono);

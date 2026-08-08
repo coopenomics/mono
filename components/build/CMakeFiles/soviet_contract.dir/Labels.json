@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/soviet_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/soviet_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/soviet_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"soviet_contract"
+		],
+		"name" : "soviet_contract"
+	}
+}

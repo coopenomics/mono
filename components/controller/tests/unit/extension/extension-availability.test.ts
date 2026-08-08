@@ -27,9 +27,9 @@ describe('Доступность расширений по сети', () => {
     });
 
     it('Стол заказов открыт только вне основной сети', () => {
-      expect(AppRegistry.orders.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
-      expect(isExtensionAvailable(AppRegistry.orders.availability, true)).toBe(false);
-      expect(isExtensionAvailable(AppRegistry.orders.availability, false)).toBe(true);
+      expect(AppRegistry.market.availability).toBe(ExtensionAvailability.NON_MAINNET_ONLY);
+      expect(isExtensionAvailable(AppRegistry.market.availability, true)).toBe(false);
+      expect(isExtensionAvailable(AppRegistry.market.availability, false)).toBe(true);
     });
   });
 });

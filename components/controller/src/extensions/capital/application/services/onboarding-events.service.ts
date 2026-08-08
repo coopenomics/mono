@@ -74,8 +74,8 @@ export class CapitalOnboardingEventsService {
       const wasAlreadyDone = !!(plugin.config as any)[flagKey];
 
       // Атомарный частичный UPDATE (config || patch) вместо read-modify-write всего
-      // config целиком: два DecisionTrackedEvent для разных шагов, обработанные
-      // конкурентно, иначе теряют флаг друг друга (lost update на общем jsonb-блобе).
+      // config целиком: два решения совета по разным шагам, утверждённые почти
+      // одновременно, иначе теряли бы флаг друг друга (lost update на общем jsonb-блобе).
       const updated = await this.extensionRepository.patchConfig('capital', {
         [flagKey]: true,
       } as Partial<IConfig>);

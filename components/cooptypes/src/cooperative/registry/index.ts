@@ -72,6 +72,22 @@ export * as GenerationConvertStatement from './1080.GenerationConvertStatement'
 
 export * as CapitalizationToMainWalletConvertStatement from './1090.CapitalizationToMainWalletConvertStatement'
 
+// Marketplace — ЦПП «Стол заказов» (Story 1.7)
+// Положение ЦПП «Стол заказов» (онбординг — первый документ, утверждаемый Советом)
+export * as MarketplaceProgramTemplate from './1100.MarketplaceProgramTemplate'
+export * as MarketplaceOfferTemplate from './1101.MarketplaceOfferTemplate'
+export * as MarketplaceOffer from './1102.MarketplaceOffer'
+export * as MarketplaceTransportNote from './1103.MarketplaceTransportNote'
+export * as MarketplaceAplReception from './1104.MarketplaceAplReception'
+export * as MarketplaceAplIssuance from './1105.MarketplaceAplIssuance'
+export * as MarketplaceReturnStatement from './1106.MarketplaceReturnStatement'
+export * as MarketplaceWriteoffProtocol from './1107.MarketplaceWriteoffProtocol'
+export * as MarketplaceWriteoffStatement from './1108.MarketplaceWriteoffStatement'
+export * as BranchFinancialAidStatement from './1109.BranchFinancialAidStatement'
+export * as MarketplaceConvertStatement from './1110.MarketplaceConvertStatement'
+export * as MarketplaceWriteoffServiceMemo from './1111.MarketplaceWriteoffServiceMemo'
+export * as BranchFinancialAidProtocol from './1112.BranchFinancialAidProtocol'
+
 export * as SosediAgreement from './699.SosediAgreement'
 
 // общие собрания
@@ -82,3 +98,14 @@ export * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVot
 export * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
 
 export * from './capitalProgramPrivateData'
+// самоорганизация кооперативных участков
+export * as BranchMeetingProposal from './320.BranchMeetingProposal'
+export * as BranchMeetingBallot from './322.BranchMeetingBallot'
+export * as BranchMeetingDecision from './323.BranchMeetingDecision'
+export * as BranchEstablishmentPetition from './324.BranchEstablishmentPetition'
+export * as BranchEstablishmentSovietDecision from './325.BranchEstablishmentSovietDecision'
+export * as BranchTrustedStatement from './326.BranchTrustedStatement'
+export * as BranchTrustedLiabilityAgreement from './327.BranchTrustedLiabilityAgreement'
+export * as BranchTrusteeLiabilityAgreement from './328.BranchTrusteeLiabilityAgreement'
+export * as BranchTrusteePowerOfAttorney from './329.BranchTrusteePowerOfAttorney'
+export * as BranchTrustedPowerOfAttorney from './330.BranchTrustedPowerOfAttorney'

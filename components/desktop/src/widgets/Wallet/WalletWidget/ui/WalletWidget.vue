@@ -44,13 +44,13 @@ const minimumAmount = computed(() => {
 // Доступные средства с форматированием
 const availableBalance = computed(() => {
   const available = walletStore.program_wallets[0]?.available || '0';
-  return formatAsset2Digits(`${available} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${available} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 
 // Минимальный остаток с форматированием
 const minimumBalance = computed(() => {
   const minimum = session.participantAccount?.minimum_amount || '0';
-  return formatAsset2Digits(`${minimum} ${info.symbols.root_govern_symbol}`);
+  return formatAsset2Digits(`${minimum} ${info.symbols?.root_govern_symbol ?? '₽'}`);
 });
 </script>
 

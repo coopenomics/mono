@@ -1,6 +1,9 @@
 import { Resolver, Query } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { DesktopService } from '../services/desktop.service';
 import { DesktopDTO } from '../dto/desktop.dto';
+import { OptionalGqlJwtAuthGuard } from '~/application/auth/guards/optional-graphql-jwt-auth.guard';
+import { OptionalCurrentUser } from '~/application/auth/decorators/optional-current-user.decorator';
 
 @Resolver(() => DesktopDTO)
 export class DesktopResolver {
@@ -10,7 +13,12 @@ export class DesktopResolver {
     name: 'getDesktop',
     description: 'Получить состав приложений рабочего стола',
   })
-  async getDesktop(): Promise<DesktopDTO> {
-    return this.desktopService.getDesktop();
+  // Открыт и гостю, и пайщику: состав столов и права доступа (grants)
+  // зависят от того, кто спрашивает, поэтому опциональная авторизация.
+  @UseGuards(OptionalGqlJwtAuthGuard)
+  async getDesktop(
+    @OptionalCurrentUser() user: { username?: string; role?: string; status?: string } | null,
+  ): Promise<DesktopDTO> {
+    return this.desktopService.getDesktop(user ?? undefined);
   }
 }

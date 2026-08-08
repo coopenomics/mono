@@ -122,6 +122,100 @@ export const useDesktopStore = defineStore(namespace, () => {
     });
   });
 
+  // ─────────────────── Канон авторизации столов (grants) ───────────────────
+  // Единый источник «кто что видит» — backend: getDesktop кладёт в каждый
+  // workspace расширения массив `grants` (capability текущего пользователя).
+  // Фронт лишь сверяет требование маршрута `meta.requires` с этим набором
+  // (plain includes) — без собственной policy. Расширения без grants
+  // (`grants === undefined`) работают по-старому: видимость по `meta.roles`.
+  // Подробности и схема — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
+
+  function workspaceGrants(workspaceName: string): string[] | undefined {
+    const ws = currentDesktop.value?.workspaces.find((w) => w.name === workspaceName);
+    // Бэкенд отдаёт `grants: null` для core-столов (нет провайдера грантов) и
+    // массив (возможно пустой `[]`) для grant-управляемых расширений. Схлопываем
+    // null → undefined, чтобы core-столы шли по legacy-ветке `meta.roles`, а
+    // осмысленный пустой набор `[]` (grant-режим без прав) сохранялся как есть.
+    const grants = (ws as any)?.grants;
+    return grants ?? undefined;
+  }
+
+  function currentUserRole(): string {
+    const session = useSessionStore();
+    return session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user';
+  }
+
+  /**
+   * Выдано ли пайщику конкретное право в столе расширения.
+   *
+   * В отличие от `isPageVisible` / `hasRouteAccess` (сверяют `meta.requires`
+   * маршрута) — для фоновых запросов глобальных виджетов, не привязанных к
+   * маршруту: оверлей висит поверх всего ЛК и обязан спрашивать бэкенд только
+   * о том, на что у пайщика есть права, иначе резолвер отвечает 403 на каждой
+   * дочитке (инцидент 2026-08-06: гейт «подпись на месте» раз в минуту просил
+   * акты поставщика у пайщика без допуска в реестре).
+   *
+   * Стол ещё не загружен или не грант-управляемый → `false`: фоновому опросу
+   * лучше промолчать и повториться на следующей дочитке, чем ловить 403.
+   */
+  function hasGrant(workspaceName: string, grant: string): boolean {
+    return workspaceGrants(workspaceName)?.includes(grant) ?? false;
+  }
+
+  // Видна ли страница (пункт меню / доступ к маршруту) внутри стола.
+  function isPageVisible(meta: RouteMeta | undefined, workspaceName: string): boolean {
+    const grants = workspaceGrants(workspaceName);
+    if (grants !== undefined) {
+      // grant-стол: страница объявляет требование `requires` и видна, только
+      // если право выдано бэкендом. Страница без `requires` в grant-столе
+      // скрыта (иначе пустой набор грантов открыл бы её всем).
+      const requires = (meta as any)?.requires as string | undefined;
+      return requires ? grants.includes(requires) : false;
+    }
+    // legacy: по core-роли
+    const roles = (meta as any)?.roles as string[] | undefined;
+    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+  }
+
+  // Виден ли стол в переключателе: для grant-стола — есть хотя бы одна
+  // доступная по грантам страница; для legacy — по роли родительского маршрута.
+  function isWorkspaceVisible(menuItem: WorkspaceMenuItem): boolean {
+    const grants = workspaceGrants(menuItem.workspaceName);
+    if (grants !== undefined) {
+      const children = (menuItem.mainRoute?.children ?? []) as RouteRecordRaw[];
+      return children.some((c) => {
+        const requires = (c.meta as any)?.requires as string | undefined;
+        return requires ? grants.includes(requires) : false;
+      });
+    }
+    const roles = (menuItem.meta as any)?.roles as string[] | undefined;
+    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+  }
+
+  // Доступ к маршруту для навигационного гарда. В grant-столе глушит только при
+  // явном невыполненном `requires`; нет требования → пускаем (настоящий
+  // enforcement — на резолверах бэкенда). Для legacy — по `meta.roles`.
+  function hasRouteAccess(
+    matchedRouteNames: Array<string | symbol | null | undefined>,
+    meta: RouteMeta | undefined,
+  ): boolean {
+    const wsNames = new Set(
+      (currentDesktop.value?.workspaces ?? []).map((w) => w.name),
+    );
+    const wsName = matchedRouteNames
+      .filter((n): n is string | symbol => n != null)
+      .map(String)
+      .find((n) => wsNames.has(n));
+    const grants = wsName ? workspaceGrants(wsName) : undefined;
+    if (grants !== undefined) {
+      const requires = (meta as any)?.requires as string | undefined;
+      if (!requires) return true;
+      return grants.includes(requires);
+    }
+    const roles = (meta as any)?.roles as string[] | undefined;
+    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+  }
+
   // Храним название активного workspace
   const activeWorkspaceName = ref<string | null>(null);
 
@@ -130,6 +224,42 @@ export const useDesktopStore = defineStore(namespace, () => {
     activeWorkspaceName.value = name;
     // Сохраняем выбранный рабочий стол в localStorage (SSR-safe)
     safeLocalStorageSetItem(STORAGE_KEY_WORKSPACE, name);
+  }
+
+  /**
+   * Синхронизирует активный рабочий стол с ТЕКУЩИМ маршрутом.
+   *
+   * Находит workspace, которому принадлежит маршрут — по имени родительского
+   * маршрута стола (`mainRoute.name`), присутствующему в цепочке `to.matched`, —
+   * и делает его активным. БЕЗ навигации и БЕЗ спиннера (isWorkspaceChanging
+   * не трогаем): мы уже находимся на этом маршруте, надо лишь поправить состояние.
+   *
+   * Зачем: `activeWorkspaceName` иначе ставится только кликом по плитке стола,
+   * редиректом с `index` и из localStorage. При прямом заходе по URL или при
+   * переходе кнопкой со стола А на маршрут стола Б активный стол оставался
+   * прежним — в шапке и левом меню «висел» не тот стол. Маппинг идёт по
+   * `mainRoute.name → workspaceName`, поэтому не зависит от совпадения имени
+   * workspace с именем маршрута. Если маршрут не принадлежит ни одному столу
+   * (глобальные /auth/*, и т.п.) — ничего не меняем.
+   *
+   * @returns true, если активный стол был определён по маршруту.
+   */
+  function syncActiveWorkspaceFromRoute(
+    matchedRouteNames: Array<string | symbol | null | undefined>,
+  ): boolean {
+    if (!currentDesktop.value) return false;
+    const names = new Set(
+      matchedRouteNames.filter((n): n is string | symbol => n != null).map(String),
+    );
+    const owner = workspaceMenus.value.find(
+      (menu) => menu.mainRoute?.name != null && names.has(String(menu.mainRoute.name)),
+    );
+    if (!owner) return false;
+    if (activeWorkspaceName.value !== owner.workspaceName) {
+      activeWorkspaceName.value = owner.workspaceName;
+      safeLocalStorageSetItem(STORAGE_KEY_WORKSPACE, owner.workspaceName);
+    }
+    return true;
   }
 
   // Функция для определения и выбора дефолтного рабочего стола
@@ -335,31 +465,54 @@ export const useDesktopStore = defineStore(namespace, () => {
       }
     }
 
-    // Если нет настроенного маршрута или он не найден, используем defaultRoute рабочего стола
-    if ((currentWorkspace as any).defaultRoute) {
-      return {
-        name: (currentWorkspace as any).defaultRoute,
-        params: { coopname: info.coopname },
-      };
-    }
-
-    // Если нет defaultRoute, ищем первый маршрут в детях основного маршрута
     const ws = workspaceMenus.value.find(
       (menu) => menu.workspaceName === activeWorkspaceName.value,
     );
-    if (
-      ws &&
-      ws.mainRoute &&
-      ws.mainRoute.children &&
-      ws.mainRoute.children.length > 0
-    ) {
-      const firstChild = ws.mainRoute.children[0];
-      return {
-        name: firstChild.name as string,
-        params: { coopname: info.coopname },
-      };
+    const children = (ws?.mainRoute?.children ?? []) as RouteRecordRaw[];
+
+    // defaultRoute рабочего стола — но только если он доступен текущему
+    // пользователю по канону grants (иначе попали бы на permissionDenied,
+    // напр. председатель до принятия ЦПП и admin-defaultRoute «Модерация»).
+    const defaultRouteName = (currentWorkspace as any).defaultRoute as string | undefined;
+    if (defaultRouteName) {
+      const defaultChild = children.find((c) => c.name === defaultRouteName);
+      if (
+        defaultChild &&
+        isPageVisible(defaultChild.meta as RouteMeta, activeWorkspaceName.value)
+      ) {
+        return { name: defaultRouteName, params: { coopname: info.coopname } };
+      }
     }
 
+    // Иначе — первый ДОСТУПНЫЙ дочерний маршрут стола.
+    const firstVisible = children.find((c) =>
+      isPageVisible(c.meta as RouteMeta, activeWorkspaceName.value as string),
+    );
+    if (firstVisible?.name) {
+      return { name: firstVisible.name as string, params: { coopname: info.coopname } };
+    }
+
+    return null;
+  }
+
+  /**
+   * Первый доступный пайщику маршрут расширения (по канону grants): идём по
+   * видимым столам расширения и берём первую видимую страницу. Используется
+   * для редиректа после установки/включения — чтобы привести на то, что
+   * пользователю реально доступно (напр. страница подключения ЦПП до онбординга,
+   * а не дефолтный admin-роут, который ещё закрыт).
+   */
+  function firstAccessibleRoute(extensionName: string): { name: string } | null {
+    const desks = workspaceMenus.value.filter(
+      (m) => m.extensionName === extensionName && isWorkspaceVisible(m),
+    );
+    for (const desk of desks) {
+      const children = (desk.mainRoute?.children ?? []) as RouteRecordRaw[];
+      const visible = children.find((c) =>
+        isPageVisible(c.meta as RouteMeta, desk.workspaceName),
+      );
+      if (visible?.name) return { name: String(visible.name) };
+    }
     return null;
   }
 
@@ -388,8 +541,15 @@ export const useDesktopStore = defineStore(namespace, () => {
     loadDesktop,
     setRoutes,
     workspaceMenus,
+    // Канон авторизации столов (grants)
+    hasGrant,
+    isPageVisible,
+    isWorkspaceVisible,
+    hasRouteAccess,
+    firstAccessibleRoute,
     activeWorkspaceName,
     selectWorkspace,
+    syncActiveWorkspaceFromRoute,
     selectDefaultWorkspace,
     activeSecondLevelRoutes,
     registerWorkspaceMenus,

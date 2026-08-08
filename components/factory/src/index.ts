@@ -107,6 +107,18 @@ export class Generator implements IGenerator {
       [Actions.AnnualGeneralMeetingVotingBallot.Template.registry_id]: new Actions.AnnualGeneralMeetingVotingBallot.Factory(this.storage), // 303
       [Actions.AnnualGeneralMeetingDecision.Template.registry_id]: new Actions.AnnualGeneralMeetingDecision.Factory(this.storage), // 304
 
+      // самоорганизация кооперативных участков
+      [Actions.BranchMeetingProposal.Template.registry_id]: new Actions.BranchMeetingProposal.Factory(this.storage), // 320
+      [Actions.BranchMeetingBallot.Template.registry_id]: new Actions.BranchMeetingBallot.Factory(this.storage), // 322
+      [Actions.BranchMeetingDecision.Template.registry_id]: new Actions.BranchMeetingDecision.Factory(this.storage), // 323
+      [Actions.BranchEstablishmentPetition.Template.registry_id]: new Actions.BranchEstablishmentPetition.Factory(this.storage), // 324
+      [Actions.BranchEstablishmentSovietDecision.Template.registry_id]: new Actions.BranchEstablishmentSovietDecision.Factory(this.storage), // 325
+      [Actions.BranchTrustedStatement.Template.registry_id]: new Actions.BranchTrustedStatement.Factory(this.storage), // 326
+      [Actions.BranchTrustedLiabilityAgreement.Template.registry_id]: new Actions.BranchTrustedLiabilityAgreement.Factory(this.storage), // 327
+      [Actions.BranchTrusteeLiabilityAgreement.Template.registry_id]: new Actions.BranchTrusteeLiabilityAgreement.Factory(this.storage), // 328
+      [Actions.BranchTrusteePowerOfAttorney.Template.registry_id]: new Actions.BranchTrusteePowerOfAttorney.Factory(this.storage), // 329
+      [Actions.BranchTrustedPowerOfAttorney.Template.registry_id]: new Actions.BranchTrustedPowerOfAttorney.Factory(this.storage), // 330
+
       [Actions.DecisionOfParticipantApplication.Template.registry_id]: new Actions.DecisionOfParticipantApplication.Factory(this.storage), // 501
       [Actions.ProjectFreeDecision.Template.registry_id]: new Actions.ProjectFreeDecision.Factory(this.storage), // 599
       [Actions.FreeDecision.Template.registry_id]: new Actions.FreeDecision.Factory(this.storage), // 600
@@ -171,6 +183,27 @@ export class Generator implements IGenerator {
       [Actions.GenerationConvertStatement.Template.registry_id]: new Actions.GenerationConvertStatement.Factory(this.storage), // 1080
 
       [Actions.CapitalizationToMainWalletConvertStatement.Template.registry_id]: new Actions.CapitalizationToMainWalletConvertStatement.Factory(this.storage), // 1090
+
+      // Marketplace (Стол заказов) — Эпик 1: онбординг ЦПП
+      [Actions.MarketplaceProgramTemplate.Template.registry_id]: new Actions.MarketplaceProgramTemplate.Factory(this.storage), // 1100 — Положение ЦПП
+      [Actions.MarketplaceOfferTemplate.Template.registry_id]: new Actions.MarketplaceOfferTemplate.Factory(this.storage), // 1101
+      [Actions.MarketplaceOffer.Template.registry_id]: new Actions.MarketplaceOffer.Factory(this.storage), // 1102
+
+      // Marketplace (Стол заказов) — Эпик 5
+      [Actions.MarketplaceTransportNote.Template.registry_id]: new Actions.MarketplaceTransportNote.Factory(this.storage), // 1103
+      [Actions.MarketplaceAplReception.Template.registry_id]: new Actions.MarketplaceAplReception.Factory(this.storage), // 1104 — приёмка (поставщик → кооператив)
+      [Actions.MarketplaceAplIssuance.Template.registry_id]: new Actions.MarketplaceAplIssuance.Factory(this.storage), // 1105 — выдача (кооператив → заказчик)
+
+      // Marketplace (Стол заказов) — Эпик 7: гарантийный возврат
+      [Actions.MarketplaceReturnStatement.Template.registry_id]: new Actions.MarketplaceReturnStatement.Factory(this.storage), // 1106
+
+      // Marketplace (Стол заказов) — Эпик 8: списание скоропорта
+      [Actions.MarketplaceWriteoffProtocol.Template.registry_id]: new Actions.MarketplaceWriteoffProtocol.Factory(this.storage), // 1107
+      [Actions.MarketplaceWriteoffStatement.Template.registry_id]: new Actions.MarketplaceWriteoffStatement.Factory(this.storage), // 1108
+      [Actions.BranchFinancialAidStatement.Template.registry_id]: new Actions.BranchFinancialAidStatement.Factory(this.storage), // 1109
+      [Actions.MarketplaceConvertStatement.Template.registry_id]: new Actions.MarketplaceConvertStatement.Factory(this.storage), // 1110
+      [Actions.MarketplaceWriteoffServiceMemo.Template.registry_id]: new Actions.MarketplaceWriteoffServiceMemo.Factory(this.storage), // 1111
+      [Actions.BranchFinancialAidProtocol.Template.registry_id]: new Actions.BranchFinancialAidProtocol.Factory(this.storage), // 1112
     }
     await this.storage.connect()
   }

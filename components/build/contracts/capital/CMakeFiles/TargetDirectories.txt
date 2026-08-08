@@ -1,0 +1,3 @@
+/project/build/contracts/capital/CMakeFiles/capital.dir
+/project/build/contracts/capital/CMakeFiles/edit_cache.dir
+/project/build/contracts/capital/CMakeFiles/rebuild_cache.dir

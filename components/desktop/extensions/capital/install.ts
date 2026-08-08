@@ -1,6 +1,7 @@
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
 import { ContributorsPage, ProgramExpensesPage, ProgramExpensePage, AllocationsPage, MeasuresPage, MyTasksPage, MyProjectsPage } from './pages';
 import { CapitalBase } from './pages/CapitalBase';
 import { ProjectsListPage } from './pages/ProjectsListPage';
@@ -431,3 +432,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     ],
   }];
 }
+
+/**
+ * Кошельки, которые «Благорост» приносит на стол пайщика (путь B).
+ * Единый кошелёк программы у пайщика (`w.cap.blago`). Генератор
+ * (`w.cap.gen`) — кооперативный кошелёк без L3-разреза, на столе пайщика
+ * НЕ показываем.
+ */
+export const walletCards: DesktopWalletCard[] = [
+  {
+    wallet_name: 'w.cap.blago',
+    label: 'Благорост',
+    accent: 'blagorost',
+    icon: 'savings',
+  },
+];

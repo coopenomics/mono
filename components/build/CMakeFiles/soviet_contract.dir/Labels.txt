@@ -1,0 +1,14 @@
+# Target labels
+ soviet_contract
+# Source files and their labels
+/project/build/CMakeFiles/soviet_contract
+/project/build/CMakeFiles/soviet_contract.rule
+/project/build/CMakeFiles/soviet_contract-complete.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-build.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-configure.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-download.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-install.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-mkdir.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-patch.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-test.rule
+/project/build/soviet_contract-prefix/src/soviet_contract-stamp/soviet_contract-update.rule

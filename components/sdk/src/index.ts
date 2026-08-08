@@ -4,14 +4,17 @@ import WebSocket from 'isomorphic-ws'
 
 import * as Classes from './classes'
 import * as Mutations from './mutations'
-import { type GraphQLResponse, Thunder, Subscription as ZeusSubscription } from './zeus/index'
+import { wsSubscription, type WsSubscriptionApi } from './utils/wsSubscription'
+import { type GraphQLResponse, Thunder, ZeusScalars } from './zeus/index'
 
-import { ZeusScalars } from './zeus/index'
+/** Таймаут HTTP GraphQL — без него при мёртвом бэкенде fetch висит и копит запросы. */
+const HTTP_TIMEOUT_MS = 30_000
 
 export * as Classes from './classes'
 export * as Mutations from './mutations'
 export * as Queries from './queries'
 export * as Selectors from './selectors'
+export * as Subscriptions from './subscriptions'
 
 export * as Types from './types'
 
@@ -29,6 +32,8 @@ export class Client {
   private crypto: Classes.Crypto
   private vote: Classes.Vote
   private thunder: ReturnType<typeof Thunder>
+  /** Shared graphql-ws транспорт — не создавать на каждый доступ к getter. */
+  private subscriptionApi: WsSubscriptionApi | null = null
   private static scalars = ZeusScalars({
     DateTime: {
       decode: (e: unknown) => new Date(e as string), // Преобразует строку в объект Date
@@ -181,9 +186,28 @@ export class Client {
 
   /**
    * Подписка на GraphQL-события.
+   * Синглтон на экземпляр Client: повторный доступ к getter НЕ плодит
+   * graphql-ws клиентов (иначе при обрыве каждый orphan долбит реконнект).
    */
   public get Subscription() {
-    return ZeusSubscription(this.options.api_url.replace(/^http/, 'ws'))
+    if (!this.subscriptionApi) {
+      // headers как getter — Authorization актуален на каждом (ре)коннекте.
+      // Не сгенерированный Zeus-Subscription: тот теряет variables (см.
+      // utils/wsSubscription.ts), а правки генерята стирает регенерация.
+      this.subscriptionApi = wsSubscription(this.options.api_url.replace(/^http/, 'ws'), {
+        headers: () => this.currentHeaders,
+      })
+    }
+    return this.subscriptionApi
+  }
+
+  /**
+   * Полностью гасит shared ws-транспорт (logout / teardown).
+   * Обычное закрытие одной подписки — через `stream.ws.close()` (unsubscribe).
+   */
+  public disposeSubscriptions(): void {
+    this.subscriptionApi?.dispose()
+    this.subscriptionApi = null
   }
 
   /**
@@ -193,38 +217,49 @@ export class Client {
    */
   private createThunder(baseUrl: string) {
     return Thunder(async (query, variables) => {
-      const response = await fetch(baseUrl, {
-        body: JSON.stringify({ query, variables }),
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.currentHeaders,
-        },
-      })
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      const timeoutId = controller
+        ? setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS)
+        : null
 
-      if (!response.ok) {
-        return new Promise((resolve, reject) => {
-          response
-            .text()
-            .then((text) => {
-              try {
-                reject(JSON.parse(text))
-              }
-              catch {
-                reject(text)
-              }
-            })
-            .catch(reject)
+      try {
+        const response = await fetch(baseUrl, {
+          body: JSON.stringify({ query, variables }),
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.currentHeaders,
+          },
+          signal: controller?.signal,
         })
+
+        if (!response.ok) {
+          return new Promise((resolve, reject) => {
+            response
+              .text()
+              .then((text) => {
+                try {
+                  reject(JSON.parse(text))
+                }
+                catch {
+                  reject(text)
+                }
+              })
+              .catch(reject)
+          })
+        }
+
+        const json = (await response.json()) as GraphQLResponse
+
+        if (json.errors) {
+          throw json.errors
+        }
+
+        return json.data
       }
-
-      const json = (await response.json()) as GraphQLResponse
-
-      if (json.errors) {
-        throw json.errors
+      finally {
+        if (timeoutId) clearTimeout(timeoutId)
       }
-
-      return json.data
     }, { scalars: Client.scalars })
   }
 }

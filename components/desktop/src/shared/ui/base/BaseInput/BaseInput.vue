@@ -1,20 +1,24 @@
 <template>
   <q-input
-    outlined
+    :outlined="!flat"
+    :borderless="flat"
     dense
     color="primary"
-    reserve-hint-space
+    :reserve-hint-space="!flat"
     no-error-icon
     :model-value="modelValue ?? ''"
     :label="label"
+    :stack-label="stackLabel"
     :hint="hint"
     :error="!!error"
     :error-message="error"
     :placeholder="placeholder"
     :type="type"
     :autogrow="autogrow"
+    :mask="mask"
     :prefix="prefix"
     :suffix="suffix"
+    :autofocus="autofocus"
     :readonly="readonly"
     :disable="disabled"
     :clearable="clearable"
@@ -22,9 +26,11 @@
     :name="name"
     :for="resolvedId"
     :input-class="mono ? 'base-input__native--mono' : undefined"
-    class="base-input"
+    :class="['base-input', { 'base-input--flat': flat }]"
     @update:model-value="onUpdate"
     @clear="$emit('clear')"
+    @blur="$emit('blur', $event)"
+    @focus="$emit('focus', $event)"
   >
     <template v-if="$slots.prepend" #prepend>
       <slot name="prepend" />
@@ -55,11 +61,16 @@ const props = withDefaults(defineProps<BaseInputProps>(), {
   disabled: false,
   required: false,
   autogrow: false,
+  stackLabel: false,
 });
 
+// Quasar QInput форвардит нативные blur/focus как обычный Event, не строго
+// FocusEvent — типизация здесь под то, что реально приходит из q-input.
 const emit = defineEmits<{
   'update:modelValue': [value: string];
   clear: [];
+  blur: [event: Event];
+  focus: [event: Event];
 }>();
 
 const autoId = useId();
@@ -74,5 +85,27 @@ function onUpdate(value: string | number | null): void {
 .base-input :deep(.base-input__native--mono) {
   font-family: var(--p-mono);
   font-size: var(--p-fs-mono);
+}
+
+/* Безрамочный (flat) режим: поле выглядит как текст в ячейке. В покое — едва
+   заметная штриховая нижняя линия (иначе поле неотличимо от статичного
+   текста — жалоба 2026-08-02), на наведении — мягкий фон и линия сплошная,
+   на фокусе — нижняя линия акцентом, чтобы видеть, что поле активно. */
+.base-input--flat :deep(.q-field__control) {
+  border-radius: var(--p-r-sm, 8px);
+  border-bottom: 1px dashed var(--p-line-2);
+  transition:
+    background var(--p-dur-fast, 120ms) var(--p-ease-standard),
+    border-color var(--p-dur-fast, 120ms) var(--p-ease-standard);
+}
+.base-input--flat:hover :deep(.q-field__control) {
+  background: var(--p-surface-2);
+  border-bottom-style: solid;
+  border-bottom-color: var(--p-primary-line);
+}
+.base-input--flat.q-field--focused :deep(.q-field__control) {
+  background: var(--p-surface-2);
+  border-bottom-color: transparent;
+  box-shadow: inset 0 -2px 0 var(--p-primary);
 }
 </style>

@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/fund_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/fund_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/fund_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/fund_contract-prefix/src/fund_contract-stamp/fund_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"fund_contract"
+		],
+		"name" : "fund_contract"
+	}
+}

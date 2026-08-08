@@ -22,7 +22,21 @@ export async function useInitExtensionsProcess(router: Router) {
       for (const config of workspaceConfigs) {
         if (config?.workspace && config?.routes?.length) {
 
-          // Записываем маршруты в соответствующий workspace
+          // Записываем маршруты в соответствующий workspace.
+          // ВАЖНО: setRoutes привязывает маршруты только к workspace, который
+          // backend объявил в AppRegistry (см. desktop.interactor). Если фронт
+          // вернул workspace, которого нет в desktop'е с бэкенда, маршруты
+          // молча потеряются — поэтому предупреждаем явно.
+          const workspaceExists = store.workspaceMenus.some(
+            (w) => w.workspaceName === config.workspace,
+          );
+          if (!workspaceExists) {
+            console.warn(
+              `📦 [InitExtensions] Расширение "${extensionName}" вернуло workspace ` +
+              `"${config.workspace}", которого нет в desktop с бэкенда (AppRegistry). ` +
+              'Маршруты этого стола не будут отображены — добавьте стол в extensions.registry.ts.',
+            );
+          }
           store.setRoutes(config.workspace, config.routes as any);
 
           // Регистрируем маршруты в router, добавляя их в базовый родительский маршрут
@@ -39,19 +53,29 @@ export async function useInitExtensionsProcess(router: Router) {
           }
         }
       }
-    } catch {
-      // Продолжаем загрузку других расширений даже если одно не загрузилось
+    } catch (error) {
+      // Продолжаем загрузку других расширений даже если одно не загрузилось,
+      // но НЕ глотаем ошибку молча — иначе сломанный install выглядит как
+      // «пустой стол» без единой подсказки в консоли.
+      console.error(
+        `📦 [InitExtensions] Не удалось загрузить расширение "${extensionName}":`,
+        error,
+      );
     }
   }
 
 
 }
 
-// Функция для динамической загрузки маршрутов конкретного расширения
+// Функция для динамической загрузки маршрутов конкретного расширения.
+// Возвращает список workspace-конфигов расширения — вызывающий код
+// (кнопки включения) использует `defaultRoute` первого стола для редиректа
+// на «домашнюю» страницу расширения (для расширений с онбордингом это
+// страница подключения, см. канон в EXTENSIONS_SCHEMA_SYSTEM.md).
 export async function loadExtensionRoutes(
   extensionName: string,
   router: Router,
-) {
+): Promise<IWorkspaceConfig[]> {
   const store = useDesktopStore();
 
   try {
@@ -60,7 +84,7 @@ export async function loadExtensionRoutes(
     const installFunction = extensionsRegistry[extensionName];
 
     if (!installFunction) {
-      return;
+      return [];
     }
 
     const result = await installFunction();
@@ -91,11 +115,12 @@ export async function loadExtensionRoutes(
       }
     }
 
-
+    return workspaceConfigs;
   } catch (error) {
     console.error(
       `📦 [LoadExtensionRoutes] Failed to load routes for extension "${extensionName}":`,
       error,
     );
+    return [];
   }
 }

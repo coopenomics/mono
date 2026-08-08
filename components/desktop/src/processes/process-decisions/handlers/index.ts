@@ -1,9 +1,12 @@
 import { Cooperative } from 'cooptypes';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
+import { DigitalDocument } from 'src/shared/lib/document';
+import { useSystemStore } from 'src/entities/System/model';
 import { useGenerateFreeDecision } from 'src/features/FreeDecision/GenerateDecision';
 import { useGenerateParticipantApplicationDecision } from 'src/features/Decision/ParticipantApplication';
 import { useGenerateSovietDecisionOnAnnualMeet } from 'src/features/Meet/GenerateSovietDecision/model';
 import { useGenerateReturnByMoneyDecision } from 'src/features/Wallet/GenerateReturnByMoneyDecision';
+import { useGenerateEstablishmentDecision } from 'src/features/Ku/GenerateEstablishmentDecision';
 import { useGenerateMembershipExitDecision } from 'src/features/Membership/GenerateMembershipExitDecision';
 
 /**
@@ -31,6 +34,30 @@ export function registerBaseDecisionHandlers() {
         username,
         decision_id,
         project_id: parsedDocumentMeta.project_id,
+      });
+    },
+  });
+
+  // Обработчик для BranchEstablishmentDecision (решение об учреждении кооперативного участка)
+  decisionFactory.registerHandler('branchdec', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения branchdec');
+      }
+
+      // в мете заявления (петиции 324) — реквизиты учреждаемого участка
+      const parsedDocumentMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.BranchEstablishmentPetition.Action;
+
+      const { generateEstablishmentDecision } = useGenerateEstablishmentDecision();
+      return await generateEstablishmentDecision({
+        username,
+        decision_id,
+        branch_name: parsedDocumentMeta.branch_name ?? '',
+        address: parsedDocumentMeta.address ?? '',
+        // username избранного председателя участка из меты петиции (324); ФИО резолвит фабрика
+        chairman: parsedDocumentMeta.chairman ?? '',
       });
     },
   });
@@ -98,6 +125,95 @@ export function registerBaseDecisionHandlers() {
         payment_hash: parsedDocumentMeta.payment_hash,
         quantity: parsedDocumentMeta.quantity,
         currency: parsedDocumentMeta.currency,
+      });
+    },
+  });
+
+  // Обработчик для MarketplaceWriteoffProtocol (протокол совета о списании
+  // скоропорта со складов кооперативных участков, ЦПП «Стол заказов»).
+  // Документ-Решение совета (registry 1107) генерируется из метаданных
+  // подписанного Заявления о списании (1108) + decision_id текущего решения.
+  // Фабрика сама резолвит состав совета, голоса и реквизиты кооператива по
+  // decision_id — клиенту достаточно проброса итоговых полей проекта.
+  decisionFactory.registerHandler('mktwroff', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения mktwroff');
+      }
+
+      const statementMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.MarketplaceWriteoffStatement.Action;
+
+      if (!statementMeta.proposal_hash || !Array.isArray(statementMeta.items)) {
+        throw new Error('Некорректные метаданные заявления для решения mktwroff');
+      }
+
+      const { info } = useSystemStore();
+
+      const protocolAction: Cooperative.Registry.MarketplaceWriteoffProtocol.Action =
+        {
+          registry_id:
+            Cooperative.Registry.MarketplaceWriteoffProtocol.registry_id,
+          coopname: info.coopname,
+          username,
+          lang: 'ru',
+          decision_id,
+          proposal_hash: statementMeta.proposal_hash,
+          cycle_started_at: statementMeta.cycle_started_at,
+          total_amount: statementMeta.total_amount,
+          items_count: statementMeta.items.length,
+        };
+
+      return await new DigitalDocument().generate(protocolAction, {
+        lang: 'ru',
+      });
+    },
+  });
+
+  // Обработчик для BranchFinancialAidProtocol (протокол совета о выплате
+  // материальной помощи доверенному кооперативного участка).
+  // Документ-Решение совета (registry 1112) генерируется из метаданных
+  // подписанного Заявления на выплату (1109) + decision_id текущего решения.
+  // Получатель берётся из заявления: подписант заявления и есть тот, кому
+  // выплачивают. Фабрика сама резолвит его ФИО, состав совета и голоса.
+  decisionFactory.registerHandler('brnaid', {
+    generateHandler: async ({ decision_id, username, row }) => {
+      if (!row.table?.statement?.meta) {
+        throw new Error('Отсутствуют метаданные заявления для решения brnaid');
+      }
+
+      const statementMeta = JSON.parse(
+        row.table.statement.meta,
+      ) as Cooperative.Registry.BranchFinancialAidStatement.Action;
+
+      if (
+        !statementMeta.aid_hash ||
+        !statementMeta.braname ||
+        !statementMeta.amount ||
+        !statementMeta.username
+      ) {
+        throw new Error('Некорректные метаданные заявления для решения brnaid');
+      }
+
+      const { info } = useSystemStore();
+
+      const protocolAction: Cooperative.Registry.BranchFinancialAidProtocol.Action =
+        {
+          registry_id:
+            Cooperative.Registry.BranchFinancialAidProtocol.registry_id,
+          coopname: info.coopname,
+          username,
+          lang: 'ru',
+          decision_id,
+          aid_hash: statementMeta.aid_hash,
+          receiver: statementMeta.username,
+          braname: statementMeta.braname,
+          amount: statementMeta.amount,
+        };
+
+      return await new DigitalDocument().generate(protocolAction, {
+        lang: 'ru',
       });
     },
   });

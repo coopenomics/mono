@@ -59,7 +59,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   await page.goto(
-    `${env.BASE_URL}/${env.COOPNAME}/capital/commits`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/commits`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

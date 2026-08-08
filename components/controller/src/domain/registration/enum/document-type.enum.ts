@@ -22,4 +22,7 @@ export enum DocumentType {
 
   /** Оферта по программе генератора */
   GENERATOR_OFFER = 'generator_offer',
+
+  /** Оферта по ЦПП «Стол заказов» (marketplace, program_id=2) */
+  MARKETPLACE_OFFER = 'marketplace_offer',
 }

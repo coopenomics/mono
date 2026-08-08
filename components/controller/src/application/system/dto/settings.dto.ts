@@ -39,7 +39,10 @@ export class SettingsDTO implements SettingsDomainInterface {
   @Field(() => Date, { description: 'Дата последнего обновления' })
   updated_at!: Date;
 
-  constructor(data: SettingsDomainInterface) {
+  @Field(() => Boolean, { description: 'Открыта ли регистрация новых пайщиков' })
+  is_registration_open!: boolean;
+
+  constructor(data: SettingsDomainInterface, isRegistrationOpen = false) {
     this.coopname = data.coopname;
     this.authorized_default_workspace = data.authorized_default_workspace;
     this.authorized_default_route = data.authorized_default_route;
@@ -48,6 +51,7 @@ export class SettingsDTO implements SettingsDomainInterface {
     this.provider_name = data.provider_name;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+    this.is_registration_open = isRegistrationOpen;
   }
 }
 

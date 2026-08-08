@@ -149,6 +149,30 @@ const envVarsSchema = z.object({
   LIVEKIT_API_KEY: z.string().optional().describe('LiveKit API key для генерации токенов'),
   LIVEKIT_API_SECRET: z.string().optional().describe('LiveKit API secret для генерации токенов'),
 
+  // Параметры геокодера (провайдер-агностично; реализация выбирается через GEOCODER_PROVIDER)
+  GEOCODER_PROVIDER: z
+    .enum(['yandex', 'noop'])
+    .default('noop')
+    .describe('Провайдер геокодинга адресов: yandex | noop (отключён). Будущие: google, maps.me'),
+  GEOCODER_API_KEY: z
+    .string()
+    .optional()
+    .describe('API ключ выбранного провайдера геокодинга'),
+  GEOCODER_BASE_URL: z
+    .string()
+    .optional()
+    .describe('Базовый URL HTTP API геокодера (пусто — дефолт провайдера)'),
+  GEOCODER_RATE_LIMIT_RPS: z
+    .string()
+    .default('10')
+    .transform((val) => parseInt(val, 10))
+    .describe('Локальный rate-limit на запросы к провайдеру геокодинга (req/sec)'),
+  GEOCODER_TIMEOUT_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10))
+    .describe('Таймаут одиночного HTTP-запроса к провайдеру геокодинга (ms)'),
+
   // Параметры OpenAI Whisper для STT
   OPENAI_API_KEY: z.string().optional().describe('OpenAI API ключ для Whisper STT'),
   OPENAI_BASE_URL: z.string().optional().describe('Базовый URL для Whisper API (через chatcoop-proxy nginx)'),
@@ -306,6 +330,13 @@ export default {
     base_url: envVars.data.OPENAI_BASE_URL,
     whisper_model: envVars.data.WHISPER_MODEL,
     whisper_language: envVars.data.WHISPER_LANGUAGE,
+  },
+  geocoder: {
+    provider: envVars.data.GEOCODER_PROVIDER,
+    api_key: envVars.data.GEOCODER_API_KEY,
+    base_url: envVars.data.GEOCODER_BASE_URL,
+    rate_limit_rps: envVars.data.GEOCODER_RATE_LIMIT_RPS,
+    timeout_ms: envVars.data.GEOCODER_TIMEOUT_MS,
   },
   file_storage: {
     endpoint: envVars.data.MINIO_ENDPOINT,

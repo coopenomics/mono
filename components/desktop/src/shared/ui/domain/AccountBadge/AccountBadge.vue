@@ -57,8 +57,10 @@ async function onCopy(): Promise<void> {
   font-family: var(--p-mono);
   font-weight: 500;
   font-feature-settings: 'tnum' 1;
-  background: var(--p-surface-3);
-  color: var(--p-ink-1);
+  /* Без серой плашки: имя аккаунта — вторичный идентификатор (под ФИО/именем).
+     Фон убран глобально (везде одинаково, единый домен-компонент). */
+  background: transparent;
+  color: var(--p-ink-3);
   border-radius: var(--p-r-xs, 6px);
   line-height: 1.2;
   vertical-align: middle;
@@ -68,12 +70,12 @@ async function onCopy(): Promise<void> {
 }
 
 .account-badge--sm {
-  padding: 2px var(--p-2, 8px);
+  padding: 2px 0;
   font-size: var(--p-fs-mono-sm, 12px);
 }
 
 .account-badge--md {
-  padding: 4px var(--p-2, 8px);
+  padding: 4px 0;
   font-size: var(--p-fs-mono, 13px);
 }
 

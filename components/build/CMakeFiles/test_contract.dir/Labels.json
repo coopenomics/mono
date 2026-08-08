@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/project/build/CMakeFiles/test_contract"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/test_contract.rule"
+		},
+		{
+			"file" : "/project/build/CMakeFiles/test_contract-complete.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-build.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-configure.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-download.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-install.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-mkdir.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-patch.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-test.rule"
+		},
+		{
+			"file" : "/project/build/test_contract-prefix/src/test_contract-stamp/test_contract-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"test_contract"
+		],
+		"name" : "test_contract"
+	}
+}

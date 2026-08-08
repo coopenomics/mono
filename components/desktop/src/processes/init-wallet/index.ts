@@ -19,6 +19,17 @@ function walletInitTimeoutPromise(): Promise<never> {
   });
 }
 
+// URL-based fallback на случай если info.coopname ещё не подгрузился
+// из getSystemInfo (race с login: init-wallet стартует до того как
+// useSystemStore.loadSystemInfo() заполнил info из бэка).
+function getCoopnameFromUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const src = window.location.hash || window.location.pathname || '';
+  // hash вида "#/voskhod/..." или path "/voskhod/..."
+  const m = src.replace(/^#/, '').match(/^\/?([a-z0-9_-]+)\b/i);
+  return m ? m[1] : '';
+}
+
 export function useInitWalletProcess() {
   const session = useSessionStore();
   const wallet = useWalletStore();
@@ -60,8 +71,12 @@ export function useInitWalletProcess() {
           // вернёт пустой кошелёк, а UI начнёт показывать подписи документов,
           // которых юзер на этом этапе подписывать не должен.
           if (session.isFullyActive) {
+            // info.coopname может быть undefined если getSystemInfo ещё не
+            // отдала ответ (race с login). URL-fallback гарантирует, что мы
+            // не вызовем loadUserWallet({coopname: undefined}) → GraphQL 400.
+            const coopname = info.coopname || getCoopnameFromUrl();
             await wallet.loadUserWallet({
-              coopname: info.coopname,
+              coopname,
               username: session.username,
             });
           }
@@ -78,7 +93,7 @@ export function useInitWalletProcess() {
         e instanceof Error && e.message === WALLET_INIT_TIMEOUT_MESSAGE;
       if (isTimeout) {
         console.warn(
-          `Инициализация данных пользователя превысила ${WALLET_INIT_TIMEOUT_MS} мс (возможна недоступность API или внешних сервисов уведомлений). Интерфейс будет доступен, повторная попытка загрузки — через фоновый цикл.`,
+          `Инициализация данных пользователя превысила ${WALLET_INIT_TIMEOUT_MS} мс (возможна недоступность API или внешних сервисов уведомлений). Интерфейс будет доступен без фонового ретрая — обновите страницу после восстановления бэкенда.`,
         );
       }
 
@@ -109,10 +124,8 @@ export function useInitWalletProcess() {
       finishFirstInitUi();
     }
 
-    // фоновая проверка каждые 10 сек (только если это не принудительная перезагрузка)
-    if (!forceReload) {
-      setTimeout(run, 10_000);
-    }
+    // Без рекурсивного setTimeout(run, 10_000): при мёртвом бэкенде цикл
+    // вместе с ws-reconnect вывешивал вкладку (self-DDoS).
   };
 
   return { run };

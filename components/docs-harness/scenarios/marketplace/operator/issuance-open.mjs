@@ -1,0 +1,116 @@
+// Сценарий: оператор открывает выдачу заказа по коду получателя.
+//
+// Заказы на пункте выдачи сгруппированы по заказчикам. Открыть выдачу можно
+// только по QR-коду получателя — так подтверждается, что пришёл именно он.
+// Код имеет вид `blago:receive:<кооператив>:<пайщик>` и показывается заказчику
+// в разделе «Показать QR». В harness камеры нет, используется штатный ручной
+// ввод кода.
+//
+// Прежняя версия требовала ручного ввода «ID кооперативного участка выдачи» —
+// такого шага больше нет, участок берётся из контекста стола.
+//
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const loadFixture = (username) =>
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
+
+const RECEIVER_CODE = `blago:receive:${process.env.COOPNAME || 'voskhod'}:ekaterina`;
+
+export const meta = {
+  title: 'Стол ПВЗ — открытие выдачи заказа',
+  docPath: 'new/marketplace/operator/issuance-open.md',
+  assetsDir: 'assets/new/marketplace/operator/issuance-open',
+  role: 'user',
+  mode: 'docs',
+  fixture: 'chairkrg',
+  fixtures: ['chairkrg'],
+  feature: 'marketplace.issuance',
+  cases: ['mkt.iss.happy.01'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
+};
+
+export default async ({ page, shot, expect }) => {
+  await loginAs(page, loadFixture('chairkrg'));
+  await pickBranchIfAsked(page);
+
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/issuance`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
+  await page.waitForSelector('text=Сканировать QR', { timeout: 60000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    '01-issuance-board',
+    'Поток выдач участка: заказы сгруппированы по заказчикам, карточки показывают, что кому причитается. Выдачу нельзя открыть «просто так» — нужен код получателя.',
+  );
+
+  await page.getByText('Сканировать QR').first().click({ force: true });
+  await page.waitForSelector('text=Или введите код вручную', { timeout: 20000 });
+  await page.waitForTimeout(1000);
+
+  await shot(
+    page,
+    '02-scan-receiver',
+    'Оператор читает код получателя: заказчик показывает его с экрана телефона или с распечатки. Код подтверждает, что за заказом пришёл именно тот пайщик.',
+  );
+
+  // Поле ввода — внутри диалога: первым input на странице идёт поиск.
+  const dialog = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Сканирование QR' }).first();
+  const input = dialog.locator('input').first();
+  await input.click();
+  await input.type(RECEIVER_CODE, { delay: 20 });
+  await page.waitForTimeout(400);
+  await dialog.locator('button:has-text("Применить")').first().click();
+  await page.waitForTimeout(8000);
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    '03-issuance-opened',
+    'Код принят: открылась выдача пайщику. Оператор сверяет имущество с заказами — «План» это сколько заказано, «Принято» сколько на складе; выдать больше нельзя, снятые позиции остаются на складе. Внизу — себестоимость, членский взнос и итог к оплате.',
+    {
+      preserveNotifications: true,
+      expect: async (p) => {
+        // Нераспознанный код оставил бы диалог с ошибкой — проверяем, что её нет.
+        await expect(p.locator('text=Нераспознанный код')).toHaveCount(0, { timeout: 15000 });
+        await expect(p.locator('text=Открытие выдачи пайщику').first()).toBeVisible({ timeout: 15000 });
+      },
+    },
+  );
+
+  await page.locator('button:has-text("Подписать и отправить пайщику")').first().click();
+  await page.waitForTimeout(10000);
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    '04-issuance-signed',
+    'Акт выдачи подписан оператором и отправлен пайщику: теперь заказчик подтверждает получение сам в своём кабинете. До его подписи имущество считается невыданным.',
+    {
+      preserveNotifications: true,
+      expect: async (p) => {
+        // Диалог обязан закрыться — иначе подпись не ушла на сервер.
+        await expect(p.locator('text=Открытие выдачи пайщику')).toHaveCount(0, { timeout: 20000 });
+      },
+    },
+  );
+};

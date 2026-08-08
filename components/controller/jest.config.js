@@ -7,6 +7,9 @@ module.exports = {
   testEnvironmentOptions: {
     NODE_ENV: 'test',
   },
+  // Локально dev-стек controller'а живёт в docker и параллельный пул jest
+  // съедает CPU/RAM — вешает сервер. Любой `pnpm jest [...]` идёт в один воркер.
+  maxWorkers: 1,
   restoreMocks: true,
   // Заглушки окружения до импорта тестовых модулей: спеки в src/ тянут реальные
   // сервисы, те — `~/config`, а он при невалидном env делает process.exit(1).

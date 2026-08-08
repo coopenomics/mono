@@ -283,8 +283,8 @@ const { rows, fileName, parseCsv, clear: clearParsed } = useParticipantCsvParser
   coopSymbol: () => coop.governSymbol || 'RUB',
   getDefaults,
   quantity: () => ({
-    precision: system.info?.symbols.root_govern_precision ?? 4,
-    symbol: system.info?.symbols.root_govern_symbol ?? 'RUB',
+    precision: system.info?.symbols?.root_govern_precision ?? 4,
+    symbol: system.info?.symbols?.root_govern_symbol ?? 'RUB',
   }),
 });
 

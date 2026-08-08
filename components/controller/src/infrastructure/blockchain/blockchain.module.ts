@@ -15,8 +15,6 @@ import { ACCOUNT_BLOCKCHAIN_PORT } from '~/domain/account/interfaces/account-blo
 import { AccountBlockchainAdapter } from './adapters/account.adapter';
 import { SovietBlockchainAdapter } from './adapters/soviet-blockchain.adapter';
 import { SOVIET_BLOCKCHAIN_PORT } from '~/domain/common/ports/soviet-blockchain.port';
-import { COOPLACE_BLOCKCHAIN_PORT } from '~/domain/cooplace/interfaces/cooplace-blockchain.port';
-import { CooplaceBlockchainAdapter } from './adapters/cooplace-blockchain.adapter';
 import { MEET_BLOCKCHAIN_PORT } from '~/domain/meet/ports/meet-blockchain.port';
 import { MeetBlockchainAdapter } from './adapters/meet-blockchain.adapter';
 import { DomainToBlockchainUtils } from '../../shared/utils/domain-to-blockchain.utils';
@@ -61,10 +59,6 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
       useClass: SovietBlockchainAdapter,
     },
     {
-      provide: COOPLACE_BLOCKCHAIN_PORT,
-      useClass: CooplaceBlockchainAdapter,
-    },
-    {
       provide: MEET_BLOCKCHAIN_PORT,
       useClass: MeetBlockchainAdapter,
     },
@@ -102,7 +96,6 @@ import { Ledger2ContractInfoService } from './services/ledger2-contract-info.ser
     SYSTEM_BLOCKCHAIN_PORT,
     ACCOUNT_BLOCKCHAIN_PORT,
     SOVIET_BLOCKCHAIN_PORT,
-    COOPLACE_BLOCKCHAIN_PORT,
     MEET_BLOCKCHAIN_PORT,
     GATEWAY_BLOCKCHAIN_PORT,
     WALLET_BLOCKCHAIN_PORT,

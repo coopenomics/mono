@@ -87,13 +87,13 @@
     "vue-window-size": "^2.0.0",
     "vue3-apexcharts": "^1.11.1",
     "vue3-dropzone": "^2.2.1",
-    "vue3-openlayers": "^10.0.1",
     "windows-1251": "^3.0.4"
   },
   "devDependencies": {
     "@prettier/plugin-pug": "^3.2.0",
     "@quasar/app-vite": "^2.5.2",
     "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/serviceworker": "^0.0.141",
     "@typescript-eslint/eslint-plugin": "^8.57.0",
     "@typescript-eslint/parser": "^8.57.0",

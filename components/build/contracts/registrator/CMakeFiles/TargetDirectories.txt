@@ -1,0 +1,3 @@
+/project/build/contracts/registrator/CMakeFiles/registrator.dir
+/project/build/contracts/registrator/CMakeFiles/edit_cache.dir
+/project/build/contracts/registrator/CMakeFiles/rebuild_cache.dir

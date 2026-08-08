@@ -13,6 +13,7 @@ import { SymbolsDTO } from './symbols.dto';
 import { SettingsDTO } from './settings.dto';
 import { BoardMemberDTO } from './board-member.dto';
 import { SystemFeaturesDTO } from './system-features.dto';
+import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
 
 @ObjectType('SystemInfo')
 export class SystemInfoDTO {
@@ -79,7 +80,7 @@ export class SystemInfoDTO {
     this.blockchain_info = new BlockchainInfoDTO(entity.blockchain_info);
     this.system_status = entity.system_status || 'install';
     this.symbols = entity.symbols;
-    this.settings = new SettingsDTO(entity.settings);
+    this.settings = new SettingsDTO(entity.settings, isRegistrationOpen(entity.vars));
     this.blockchain_account = entity.blockchain_account;
     this.cooperator_account = new CooperativeOperatorAccountDTO({
       ...entity.cooperator_account,

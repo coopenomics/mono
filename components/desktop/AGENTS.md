@@ -261,7 +261,7 @@ extensions/
 | **participant** | `participant` | user, chairman, member | Стол пайщика: кошелёк, профиль, подключение к кооперативу, реквизиты, документы, платежи, собрания, контакты, поддержка. | `WalletPage`, `ProfilePage`, `ConnectionAgreementPage`, `UserPaymentMethodsPage` |
 | **capital** | `capital` | все | Благорост: профиль вклада, регистрация, проекты, трекер времени, коммиты, голосования, результаты, приглашения, лента активности. Имеет собственную систему обработчиков решений через `registerCapitalDecisionHandlers()`. | `CapitalProfilePage`, `ProjectsListPage`, `TrackerPage`, `ProjectsVotingPage` |
 | **chatcoop** | `chatcoop` | chairman, member, user | Кооперативный мессенджер: быстрый клиент, мобильный клиент, транскрипции звонков. | `ChatCoopPage`, `MobileClientPage`, `TranscriptionsPage` |
-| **market** | `market` | все | Стол заказов: витрина, создание объявлений, мои объявления, мои заказы. | `ShowcasePage`, `CreateParentOfferPage`, `UserParentOffersPage` |
+| **market** | `market` | все | Стол заказов: витрина, создание объявлений, мои объявления, мои заказы. | `ShowcasePage`, `CreateMarketplaceOfferPage`, `UserParentOffersPage`, `MyOrdersPage` |
 | **market-admin** | `market-admin` | chairman, member | Стол администратора маркетплейса: модерация, управление заказами. | `ModerationPage`, `SuppliesListPage` |
 | **powerup** | `powerup` | chairman, member | Стол вычислительных ресурсов: мониторинг, настройки аренды, логи. | `MonitorPage`, `SettingsPage`, `LogsPage` |
 

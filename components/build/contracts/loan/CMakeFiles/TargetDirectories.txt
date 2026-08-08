@@ -1,0 +1,3 @@
+/project/build/contracts/loan/CMakeFiles/loan.dir
+/project/build/contracts/loan/CMakeFiles/edit_cache.dir
+/project/build/contracts/loan/CMakeFiles/rebuild_cache.dir

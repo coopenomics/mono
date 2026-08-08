@@ -3,8 +3,8 @@ import { computed, markRaw, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { VueFlow, type EdgeMouseEvent, type NodeMouseEvent, type VueFlowStore } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Controls, ControlButton } from '@vue-flow/controls';
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-vue-next';
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -38,7 +38,11 @@ const props = defineProps<{
 
 const router = useRouter();
 const { theme } = useTheme();
+// containerRef — внешняя обёртка (включает FocusBar + канву), на неё навешен fullscreen.
+// canvasRef — только канва VueFlow, по её размерам считается центрирование/zoom,
+// чтобы FocusBar не «съедал» центр и активный узел реально оказывался по центру видимой области.
 const containerRef = ref<HTMLElement | null>(null);
+const canvasRef = ref<HTMLElement | null>(null);
 
 const gridColor = computed(() => (theme.value === 'dark' ? '#23232a' : '#e5e5e5'));
 
@@ -63,9 +67,12 @@ const layout = computed(() =>
 // ── Fit view ─────────────────────────────────────────────────────────────
 const vfInstance = ref<VueFlowStore | null>(null);
 const minZoom = 0.15;
-const maxZoom = 2.0;
-// Во сколько раз сильнее, чем fitView (≈ 4 нажатия «+» в зум-контролах).
-const START_ZOOM_BOOST = 2.0;
+const maxZoom = 3.0;
+// Стартовый zoom — константа, единая для всех стандартов. Раньше считали как
+// fittedZoom × boost, и масштаб скакал между стандартами (большой граф →
+// мелкий fitted, маленький → крупный). Берём фикс — пользователь видит
+// одинаковый стартовый кадр независимо от размера графа.
+const START_ZOOM = 1.2;
 
 function doFit(): void {
   if (!vfInstance.value) return;
@@ -73,16 +80,10 @@ function doFit(): void {
     requestAnimationFrame(() => {
       if (!vfInstance.value) return;
       const vf = vfInstance.value;
-      // 1) Сперва fit — чтобы понять базовый zoom, при котором граф влезает.
-      vf.fitView({ padding: 0.18 });
-      const fittedZoom = vf.getViewport().zoom;
-      const targetZoom = Math.min(fittedZoom * START_ZOOM_BOOST, maxZoom);
-
-      // 2) Сдвигаем viewport так, чтобы круглешок-старт встал слева ~15%,
-      //    по вертикали — по центру.
-      const container = containerRef.value;
-      const cw = container?.clientWidth ?? 800;
-      const ch = container?.clientHeight ?? 600;
+      // Ставим круглешок-старт в центре канвы с фиксированным zoom.
+      const canvas = canvasRef.value;
+      const cw = canvas?.clientWidth ?? 800;
+      const ch = canvas?.clientHeight ?? 600;
       const startN = vf.findNode(START_ID);
       if (startN) {
         const w = (startN.dimensions?.width ?? 48);
@@ -90,14 +91,13 @@ function doFit(): void {
         const nx = startN.position.x + w / 2;
         const ny = startN.position.y + h / 2;
         vf.setViewport({
-          x: cw * 0.32 - nx * targetZoom,
-          y: ch * 0.5 - ny * targetZoom,
-          zoom: targetZoom,
+          x: cw * 0.5 - nx * START_ZOOM,
+          y: ch * 0.5 - ny * START_ZOOM,
+          zoom: START_ZOOM,
         });
       } else {
-        // Fallback: просто увеличим текущий zoom относительно fit.
-        const vp = vf.getViewport();
-        vf.setViewport({ x: vp.x, y: vp.y, zoom: targetZoom });
+        // Fallback (нет start-узла): fitView, чтобы хоть что-то показать.
+        vf.fitView({ padding: 0.18 });
       }
     });
   });
@@ -126,13 +126,13 @@ function focusedNodeId(): string | null {
 }
 
 function ensureInView(nodeId: string | null): void {
-  if (!nodeId || !vfInstance.value || !containerRef.value) return;
+  if (!nodeId || !vfInstance.value || !canvasRef.value) return;
   const vf = vfInstance.value;
   const node = vf.findNode(nodeId);
   if (!node) return;
   const vp = vf.getViewport();
-  const cw = containerRef.value.clientWidth;
-  const ch = containerRef.value.clientHeight;
+  const cw = canvasRef.value.clientWidth;
+  const ch = canvasRef.value.clientHeight;
   const w = node.dimensions?.width ?? 120;
   const h = node.dimensions?.height ?? 80;
   const left = vp.x + node.position.x * vp.zoom;
@@ -159,7 +159,7 @@ watch(
 );
 
 let resizeObserver: ResizeObserver | null = null;
-watch(containerRef, (el) => {
+watch(canvasRef, (el) => {
   resizeObserver?.disconnect();
   resizeObserver = null;
   if (!el || typeof ResizeObserver === 'undefined') return;
@@ -170,6 +170,34 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect();
   resizeObserver = null;
 });
+
+// ── Fullscreen рабочей области ────────────────────────────────────────
+const isFullscreen = ref(false);
+
+function onFsChange(): void {
+  isFullscreen.value = document.fullscreenElement === containerRef.value;
+  // После смены размера — перепосчитать viewport.
+  requestAnimationFrame(() => doFit());
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('fullscreenchange', onFsChange);
+}
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('fullscreenchange', onFsChange);
+  }
+});
+
+function toggleFullscreen(): void {
+  const el = containerRef.value;
+  if (!el) return;
+  if (document.fullscreenElement === el) {
+    void document.exitFullscreen();
+  } else {
+    void el.requestFullscreen();
+  }
+}
 
 function onNodeClick({ node }: NodeMouseEvent) {
   switch (node.type) {
@@ -254,31 +282,9 @@ function labelForNav(n: Nav): string {
     </button>
 
     <div ref="containerRef" class="process-graph">
-      <VueFlow
-        :nodes="layout.nodes"
-        :edges="layout.edges"
-        :node-types="nodeTypes"
-        :nodes-draggable="false"
-        :nodes-connectable="false"
-        :elements-selectable="false"
-        :zoom-on-scroll="false"
-        :zoom-on-pinch="false"
-        :zoom-on-double-click="false"
-        :pan-on-scroll="false"
-        :pan-on-drag="true"
-        :prevent-scrolling="false"
-        :min-zoom="minZoom"
-        :max-zoom="maxZoom"
-        @pane-ready="onPaneReady"
-        @node-click="onNodeClick"
-        @edge-click="onEdgeClick"
-      >
-        <Background :pattern-color="gridColor" :gap="16" :size="1" />
-        <Controls position="top-right" :show-interactive="false" />
-      </VueFlow>
-
-      <!-- Горизонтальная полоса деталей фокуса, прилипшая к низу рабочей области. -->
-      <div class="focus-bar-slot">
+      <!-- Левая колонка: панель деталей фокуса. Соседняя с канвой,
+           не перекрывает её — центрирование на канве честное. -->
+      <aside class="focus-panel">
         <FocusBar
           :standard="standard"
           :focus-status="focusStatus"
@@ -286,6 +292,64 @@ function labelForNav(n: Nav): string {
           :focus-document="focusDocument"
           :focus-operation="focusOperation"
         />
+      </aside>
+
+      <!-- Правая колонка: канва VueFlow. -->
+      <div ref="canvasRef" class="process-graph__canvas">
+        <VueFlow
+          :nodes="layout.nodes"
+          :edges="layout.edges"
+          :node-types="nodeTypes"
+          :nodes-draggable="false"
+          :nodes-connectable="false"
+          :elements-selectable="false"
+          :zoom-on-scroll="false"
+          :zoom-on-pinch="true"
+          :zoom-on-double-click="false"
+          :pan-on-scroll="true"
+          :pan-on-drag="true"
+          :prevent-scrolling="true"
+          :min-zoom="minZoom"
+          :max-zoom="maxZoom"
+          @pane-ready="onPaneReady"
+          @node-click="onNodeClick"
+          @edge-click="onEdgeClick"
+        >
+          <Background :pattern-color="gridColor" :gap="16" :size="1" />
+          <Controls position="top-right" :show-interactive="false">
+            <ControlButton
+              :title="isFullscreen ? 'Свернуть из полноэкранного режима' : 'Развернуть на весь экран'"
+              :aria-label="isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'"
+              @click="toggleFullscreen"
+            >
+              <Minimize2 v-if="isFullscreen" :size="14" />
+              <Maximize2 v-else :size="14" />
+            </ControlButton>
+          </Controls>
+        </VueFlow>
+
+        <!-- Дублирующие prev/next в виде оверлеев — видны только в fullscreen,
+             где внешние кнопки .graph-nav скрыты за пределами экрана. -->
+        <button
+          type="button"
+          class="graph-nav graph-nav--floating graph-nav--floating-prev"
+          :disabled="!prevItem"
+          :aria-label="prevItem ? `Назад: ${labelForNav(prevItem)}` : 'Назад (нет)'"
+          :title="prevItem ? `Назад: ${labelForNav(prevItem)}` : ''"
+          @click="pushNav(prevItem)"
+        >
+          <ChevronLeft :size="20" />
+        </button>
+        <button
+          type="button"
+          class="graph-nav graph-nav--floating graph-nav--floating-next"
+          :disabled="!nextItem"
+          :aria-label="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : 'Вперёд (нет)'"
+          :title="nextItem ? `Вперёд: ${labelForNav(nextItem)}` : ''"
+          @click="pushNav(nextItem)"
+        >
+          <ChevronRight :size="20" />
+        </button>
       </div>
     </div>
 
@@ -308,6 +372,9 @@ function labelForNav(n: Nav): string {
   align-items: stretch;
   gap: 10px;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
 }
 
 .graph-nav {
@@ -336,8 +403,10 @@ function labelForNav(n: Nav): string {
 .process-graph {
   flex: 1;
   min-width: 0;
-  min-height: 520px;
-  height: calc(100vh - 240px);
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg);
@@ -345,25 +414,64 @@ function labelForNav(n: Nav): string {
   position: relative;
 }
 
-/* Полоса деталей фокуса — приклеена к низу рабочей области изнутри */
-.focus-bar-slot {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  z-index: 10;
-  pointer-events: auto;
-}
-.focus-bar-slot :deep(.focus-bar) {
-  margin-bottom: 0;
+/* Левая колонка — панель деталей фокуса. Соседняя с канвой, не наложение. */
+.focus-panel {
+  flex: 0 0 360px;
+  max-width: 38%;
+  min-width: 260px;
+  border-right: 1px solid var(--border);
   background: var(--bg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  max-height: 42%;
   overflow-y: auto;
+  padding: 12px;
+  box-sizing: border-box;
 }
-.focus-bar-slot :deep(.focus-bar--edge) {
+.focus-panel :deep(.focus-bar) {
+  margin-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  height: auto;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 14px;
+}
+.focus-panel :deep(.focus-bar__col) {
+  flex: 0 0 auto;
+  width: 100%;
+}
+.focus-panel :deep(.focus-bar--edge) {
   background: var(--edge-focus-soft);
 }
+
+/* Правая колонка — канва VueFlow. */
+.process-graph__canvas {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+}
+
+/* В полноэкранном режиме рабочая зона занимает весь экран. */
+.process-graph:fullscreen {
+  border: none;
+  border-radius: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Floating prev/next: пара кнопок у нижнего края канвы в fullscreen. */
+.graph-nav--floating {
+  display: none;
+  position: absolute;
+  bottom: 16px;
+  height: 44px;
+  z-index: 11;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+.graph-nav--floating-prev { right: 68px; }
+.graph-nav--floating-next { right: 16px; }
+.process-graph:fullscreen .graph-nav--floating { display: flex; }
 
 :deep(.vue-flow__edge) {
   cursor: pointer;

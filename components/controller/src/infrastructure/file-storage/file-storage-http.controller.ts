@@ -103,6 +103,14 @@ export class FileStorageHttpController {
       res.setHeader('Content-Length', String(obj.size));
     }
     res.setHeader('Cache-Control', `private, max-age=${remaining}`);
+    // Эти объекты — публично встраиваемые ресурсы (картинки оферт и т.п.),
+    // которые SPA грузит как <img> с другого origin (в dev — другой порт, чем
+    // у бэкенда). Глобальный helmet ставит `Cross-Origin-Resource-Policy:
+    // same-origin`, из-за чего браузер режет такую загрузку
+    // (ERR_BLOCKED_BY_RESPONSE.NotSameOrigin). Переопределяем на cross-origin
+    // именно здесь: доступ к файлу защищён HMAC-подписью с TTL в URL, а не
+    // origin'ом, поэтому ослабления безопасности нет.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.status(HttpStatus.OK);
 
     obj.stream.on('error', (err) => {

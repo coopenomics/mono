@@ -17,6 +17,7 @@ import {
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
+import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
 
 @Injectable()
 export class AccountBlockchainAdapter implements AccountBlockchainPort {
@@ -43,8 +44,8 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
 
     // Проверяем наличие всех требуемых документов на основе конфигурации
     for (const agreementConfig of blockchainAgreements) {
-      const documentKey = agreementConfig.id as keyof typeof candidate.documents;
-      if (!candidate.documents?.[documentKey]) {
+      const document = getCandidateAgreementDocument(candidate, agreementConfig.id);
+      if (!document) {
         throw new HttpApiError(HttpStatus.BAD_REQUEST, `Не найден документ: ${agreementConfig.title}`);
       }
     }
@@ -133,8 +134,7 @@ export class AccountBlockchainAdapter implements AccountBlockchainPort {
     for (const ca of coagreements) coagreementByType.set(ca.type, ca);
 
     for (const agreementConfig of blockchainAgreements) {
-      const documentKey = agreementConfig.id as keyof typeof candidate.documents;
-      const document = candidate.documents?.[documentKey] as ISignedDocumentDomainInterface | undefined;
+      const document = getCandidateAgreementDocument(candidate, agreementConfig.id);
       if (!document) continue;
 
       const coagreement = coagreementByType.get(agreementConfig.agreement_type);

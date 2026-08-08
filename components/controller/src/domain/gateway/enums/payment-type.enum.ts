@@ -6,6 +6,9 @@ export enum PaymentTypeEnum {
   REGISTRATION = 'registration', // Регистрационный взнос
   DEPOSIT = 'deposit', // Паевой взнос
   WITHDRAWAL = 'withdrawal', // Возврат паевого взноса
+  // Исходящая оплата третьим лицам/поставщикам (например, по акту
+  // приёма-передачи) — НЕ возврат паевого взноса: семантика обычной покупки.
+  PAYMENT = 'payment',
   // Исходящий возврат вступительного и мин. паевого взносов при отказе совета
   // в приёме. Отдельный тип, не WITHDRAWAL — чтобы не путать с возвратом паевого.
   REGISTRATION_REFUND = 'registration_refund',
@@ -27,6 +30,12 @@ export enum PaymentTypeEnum {
   // подтверждение кассиром (выплата) проводит on-chain expense::overspendexp и
   // закрывает позицию expense::reportexp.
   EXPENSE_OVERSPEND = 'expense_overspend',
+  // Исходящая материальная помощь доверенному кооперативного участка (Стол
+  // заказов, requirement b6) — выплата с его персонального кошелька членских
+  // средств на реквизиты. Подтверждение кассиром проводит on-chain
+  // branch::aidconfirm; отказ — branch::aiddecline (средства остаются на
+  // персональном кошельке).
+  AID = 'aid',
 }
 
 /**
@@ -44,11 +53,13 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentTypeEnum, string> = {
   [PaymentTypeEnum.REGISTRATION]: 'Вступительный и мин. паевой взносы',
   [PaymentTypeEnum.DEPOSIT]: 'Паевой взнос',
   [PaymentTypeEnum.WITHDRAWAL]: 'Возврат паевого взноса',
+  [PaymentTypeEnum.PAYMENT]: 'Оплата',
   [PaymentTypeEnum.REGISTRATION_REFUND]: 'Возврат вступит. и мин.паевого взноса',
   [PaymentTypeEnum.MEMBERSHIP_EXIT]: 'Возврат паевого взноса при выходе из кооператива',
   [PaymentTypeEnum.EXPENSE]: 'Оплата расхода по служебной записке',
   [PaymentTypeEnum.EXPENSE_RETURN]: 'Возврат неиспользованного аванса под отчёт',
   [PaymentTypeEnum.EXPENSE_OVERSPEND]: 'Доплата по перерасходу аванса',
+  [PaymentTypeEnum.AID]: 'Материальная помощь',
 };
 
 /**
@@ -88,8 +99,10 @@ export const INCOMING_PAYMENT_TYPES = [
  */
 export const OUTGOING_PAYMENT_TYPES = [
   PaymentTypeEnum.WITHDRAWAL,
+  PaymentTypeEnum.PAYMENT,
   PaymentTypeEnum.REGISTRATION_REFUND,
   PaymentTypeEnum.MEMBERSHIP_EXIT,
   PaymentTypeEnum.EXPENSE,
   PaymentTypeEnum.EXPENSE_OVERSPEND,
+  PaymentTypeEnum.AID,
 ];

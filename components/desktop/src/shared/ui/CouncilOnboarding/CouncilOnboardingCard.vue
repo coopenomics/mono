@@ -1,58 +1,79 @@
 <template lang="pug">
-// Показываем лоадер пока данные загружаются
-WindowLoader(
-  v-if="loading"
-  :text="loadingText"
-)
+//- Единая карточка онбординга. Лоадер — внутри карточки (q-inner-loading),
+//- а не оверлеем на всё окно: иначе он «болтается» поверх уже отрисованной
+//- страницы. Шаги совета и доп.шаги (навигация на другие столы) идут одним
+//- сквозным списком 1-2-3-4 — без второй карточки и заголовков-разделов.
+q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading }")
+  q-inner-loading(:showing="loading")
+    q-spinner(color="primary", size="2.5em")
+    div.text-caption.text-grey-7.q-mt-sm(v-if="loadingText") {{ loadingText }}
 
-// Показываем поздравление если онбординг завершен
-slot(name="completion" v-else-if="isCompleted")
-  q-card(flat)
-    q-card-section.text-center
-      q-icon(name="celebration" size="64px" color="positive")
-      div.text-h5.q-mt-md {{ completionTitle }}
-      div.text-body1.q-mt-sm {{ completionMessage }}
+  template(v-if="!loading")
+    //- Поздравление, если шаги совета завершены — канон-состояние EmptyState.
+    slot(name="completion", v-if="isCompleted")
+      EmptyState.council-onboarding__done(
+        :title="completionTitle",
+        :body="completionMessage"
+      )
+        template(#icon)
+          q-icon(name="celebration", size="26px")
 
-// Показываем шаги если онбординг не завершен и данные загружены
-q-card(v-else flat)
-  q-card-section.row.items-center.justify-between
-    div
-      div.text-h5 {{ title }}
-      q-chip(
-        v-if="countdownLabel"
-        color="primary"
-        text-color="white"
-        icon="schedule"
-      ) {{ countdownLabel }}
-  q-separator
-  q-card-section
-    q-list(separator)
-      q-item(v-for="(step, index) in steps" :key="step.id")
-        q-item-section
-          div.row.items-center.q-gutter-sm
-            q-icon(
-              :name="getIcon(step)"
-              :color="getIconColor(step)"
-              size="22px"
-            )
-            div.text-subtitle1 {{ index + 1 }}. {{ step.title }}
-          div.text-caption.text-grey-7 {{ step.description }}
+    //- Шапка (только пока шаги совета не завершены).
+    template(v-if="!isCompleted")
+      q-card-section
+        div.text-h5 {{ title }}
+        div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
+        div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
           q-chip(
-            v-if="step.status === 'in_progress'"
-            dense
-            color="amber"
-            text-color="black"
-            icon="hourglass_top"
-            class="q-mt-xs"
-          ) Ожидаем решение совета
-        q-item-section(side)
-          q-btn(
-            v-if="showAction(index)"
-            :disable="submitting"
-            color="primary"
-            label="Объявить собрание совета"
-            @click="() => handleStepClick(step)"
+            v-if="countdownLabel",
+            color="primary",
+            text-color="white",
+            icon="schedule"
+          ) {{ countdownLabel }}
+          slot(name="status")
+      q-separator
+
+    //- Единый список: шаги совета (пока не завершено) + доп.шаги (всегда).
+    //- Одна структура и один вертикальный ритм у всех строк — без q-item и
+    //- q-gutter (их разная высота и отрицательные margin'ы давали «гармошку»),
+    //- хайрлайны-разделители между всеми шагами одинаковые.
+    q-card-section.council-onboarding__steps(v-if="!isCompleted || extraStepsList.length")
+      template(v-if="!isCompleted")
+        div.council-onboarding__step(v-for="(step, index) in steps", :key="step.id")
+          div.council-onboarding__step-head
+            q-icon(:name="getIcon(step)", :color="getIconColor(step)", size="22px")
+            div.text-subtitle1.council-onboarding__step-title {{ index + 1 }}. {{ step.title }}
+          div.text-caption.text-grey-7.council-onboarding__step-desc {{ step.description }}
+          div.council-onboarding__step-action(v-if="step.status === 'in_progress'")
+            q-chip.q-ma-none(
+              dense,
+              color="amber",
+              text-color="black",
+              icon="hourglass_top"
+            ) Ожидаем решение совета
+          div.council-onboarding__step-action(v-else-if="showAction(index)")
+            BaseButton(
+              variant="primary",
+              size="sm",
+              :loading="submitting",
+              @click="() => handleStepClick(step)"
+            ) Объявить собрание совета
+
+      div.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
+        div.council-onboarding__step-head
+          q-icon(name="radio_button_unchecked", color="grey-6", size="22px")
+          div.text-subtitle1.council-onboarding__step-title {{ steps.length + i + 1 }}. {{ step.title }}
+        div.text-caption.text-grey-7.council-onboarding__step-desc {{ step.description }}
+        div.council-onboarding__step-action
+          BaseButton(
+            variant="primary",
+            size="sm",
+            :disabled="step.disabled",
+            @click="() => emit('extra-action', step)"
           )
+            span {{ step.actionLabel }}
+            template(#icon-right)
+              q-icon.q-ml-xs(name="arrow_forward", size="16px")
 
   BaseDialog(
     v-model='dialogOpen',
@@ -82,35 +103,54 @@ q-card(v-else flat)
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, useSlots, watch } from 'vue';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
+import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { WindowLoader } from 'src/shared/ui/Loader';
-import type { ICouncilOnboardingStep, ICouncilOnboardingConfig } from './types';
+import type {
+  ICouncilOnboardingStep,
+  ICouncilOnboardingConfig,
+  ICouncilOnboardingExtraStep,
+} from './types';
 
 interface Props {
   config: ICouncilOnboardingConfig;
   loading?: boolean;
+  // Идёт отправка проекта решения в Совет (async в родителе). Пока true —
+  // кнопка «Объявить» крутит лоадер, диалог не закрывается.
+  submitting?: boolean;
   loadingText?: string;
   title?: string;
+  subtitle?: string;
   completionTitle?: string;
   completionMessage?: string;
+  // Доп.шаги (навигация на другие столы) — рисуются в общем списке после
+  // шагов совета и видны всегда. По умолчанию пусто (другие онбординги не
+  // передают — поведение не меняется).
+  extraSteps?: ICouncilOnboardingExtraStep[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  submitting: false,
   loadingText: 'Загрузка данных онбординга...',
   title: 'Адаптация к работе на платформе',
   completionTitle: 'Онбординг завершен!',
   completionMessage: 'Все необходимые документы утверждены.',
+  extraSteps: () => [],
 });
 
 const emit = defineEmits<{
   (e: 'step-submit', step: ICouncilOnboardingStep): void;
+  (e: 'extra-action', step: ICouncilOnboardingExtraStep): void;
 }>();
 
-const submitting = ref(false);
+const slots = useSlots();
+// Есть ли переданный контент в слоте статуса — чтобы не рисовать пустой
+// статус-ряд, если расширение не передаёт чип подключения.
+const hasStatusSlot = computed(() => Boolean(slots.status));
+
 const dialogOpen = ref(false);
 const currentStep = ref<ICouncilOnboardingStep | null>(null);
 const dialogTitle = ref('');
@@ -119,6 +159,8 @@ const dialogDecision = ref('');
 const dialogDecisionPrefix = ref('');
 
 const steps = computed(() => props.config.steps);
+// Null-safe доступ к доп.шагам: prop опционален, дефолт — пустой список.
+const extraStepsList = computed(() => props.extraSteps ?? []);
 
 const countdownLabel = computed(() => {
   if (!props.config.expireAt) return null;
@@ -184,15 +226,89 @@ const closeDialog = () => {
   dialogDecisionPrefix.value = '';
 };
 
-const submitStep = async () => {
+const submitStep = () => {
   if (!currentStep.value) return;
-
-  try {
-    submitting.value = true;
-    emit('step-submit', currentStep.value);
-    closeDialog();
-  } finally {
-    submitting.value = false;
-  }
+  // Диалог здесь НЕ закрываем: реальная отправка проекта решения в Совет —
+  // async-операция в родителе (handleStepSubmit). Пока она идёт, prop
+  // `submitting` = true → кнопка «Объявить» крутит лоадер, диалог открыт и
+  // некликабелен. Закрытие — по watcher'у ниже, когда submitting вернётся
+  // в false (успех или ошибка). Иначе диалог схлопывался мгновенно и юзер
+  // не видел, что транзакция ещё идёт.
+  emit('step-submit', currentStep.value);
 };
+
+// Закрываем диалог по завершении async-отправки (submitting: true → false).
+watch(
+  () => props.submitting,
+  (now, prev) => {
+    if (prev && !now && dialogOpen.value) closeDialog();
+  },
+);
 </script>
+
+<style scoped lang="scss">
+// Пока идёт загрузка — резервируем высоту, чтобы q-inner-loading центрировал
+// спиннер в осмысленной области, а не в схлопнутой пустой карточке.
+.council-onboarding--loading {
+  min-height: 240px;
+}
+
+// Таймер + статус подключения в один ряд с предсказуемым зазором. Не Quasar
+// .row + .q-gutter: у чипов свои дефолтные margin'ы, из-за которых зазор
+// «прыгает»; здесь gap + сброс margin дают ровную линию и аккуратный перенос.
+.council-onboarding__status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+
+  :deep(.q-chip) {
+    margin: 0;
+  }
+}
+
+// Единый ритм шагов: одинаковый вертикальный отступ и хайрлайн-разделитель
+// у КАЖДОЙ строки (и шаги совета, и доп.шаги — в одном контейнере), чтобы не
+// было «гармошки» из-за разной высоты строк/разных секций.
+.council-onboarding__steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.council-onboarding__step {
+  padding: 16px 0;
+
+  &:not(:first-child) {
+    border-top: 1px solid var(--p-line);
+  }
+}
+
+// Шапка шага: иконка + заголовок в одну линию с ровным зазором (без
+// q-gutter — его отрицательные margin'ы ломали вертикальный ритм).
+.council-onboarding__step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.council-onboarding__step-desc {
+  margin-top: 4px;
+}
+
+// Действие шага (кнопка/чип) — отдельным ярусом снизу, слева, с предсказуемым
+// отступом. Кнопки навигации — солидные primary, не блёклый outline.
+.council-onboarding__step-action {
+  margin-top: 12px;
+}
+
+// Success-акцент для завершённого онбординга: иконка-плитка EmptyState по
+// умолчанию приглушённая (surface-2 / ink-3) — для «подключено» красим её
+// в позитивный токен и чуть увеличиваем.
+.council-onboarding__done :deep(.empty__icon) {
+  width: 56px;
+  height: 56px;
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
+}
+</style>

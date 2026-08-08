@@ -143,9 +143,9 @@
             EntityIdBadge(
               v-if='props.row.processHash'
               :rawId='shortHash(props.row.processHash)'
-              @click='copyFullHash(props.row.processHash)'
+              @click='goToProcess(props.row.processHash)'
             )
-              q-tooltip Клик — копировать полный хэш
+              q-tooltip Открыть процесс в реестре процессов
             span.t-faint(v-else) —
           q-td {{ formatDate(props.row.createdAt) }}
           q-td
@@ -246,6 +246,21 @@
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
                       .text-caption.t-faint(v-else) Проводок нет
 
+              //- Слот расширения: содержание процесса в бизнес-терминах.
+              //- Рисуется только если соответствующее расширение зарегистрировало
+              //- свой info-widget через processInfoFactory.registerHandler.
+              .q-mt-md(v-if='props.row.processHash && hasProcessInfo(props.row)')
+                q-card(flat bordered)
+                  q-card-section.q-pb-none
+                    .text-subtitle2 Содержание процесса
+                  q-card-section.q-pt-sm
+                    component(
+                      :is='processInfoComponent(props.row)'
+                      :process-hash='props.row.processHash'
+                      :process-type='rowProcessType(props.row) || ""'
+                      :coopname='info.coopname'
+                    )
+
       template(#item='props')
         .col-12
           q-card.q-pa-md.q-mb-sm
@@ -269,7 +284,7 @@
                 EntityIdBadge(
                   v-if='props.row.processHash'
                   :rawId='shortHash(props.row.processHash)'
-                  @click='copyFullHash(props.row.processHash)'
+                  @click='goToProcess(props.row.processHash)'
                 )
 </template>
 
@@ -291,6 +306,7 @@ import { useAccountStore } from 'src/entities/Account'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
+import { processInfoFactory } from 'src/shared/lib/process-info-factory'
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -321,6 +337,25 @@ function rowLabel(row: ILedger2Operation): string {
 
 function rowChipText(row: ILedger2Operation): string {
   return row.operationCode ?? (row.action === 'walmove' ? 'o.adj.walmove' : row.action === 'revert' ? 'o.adj.rev' : '—')
+}
+
+/**
+ * Слот «Содержание процесса» рисуют прикладные расширения (marketplace,
+ * capital, …) через `processInfoFactory.registerHandler(process_type, …)`.
+ * Сама страница остаётся неизменной — она лишь даёт расширению место,
+ * чтобы показать заказчика, поставщика, состав заказа и deep-link на свой
+ * собственный стол. Без зарегистрированного компонента блок не появляется.
+ */
+function rowProcessType(row: ILedger2Operation): string | undefined {
+  return Ledger2.getOperationProcessType(row.operationCode)
+}
+function hasProcessInfo(row: ILedger2Operation): boolean {
+  const pt = rowProcessType(row)
+  return !!pt && processInfoFactory.hasHandler(pt)
+}
+function processInfoComponent(row: ILedger2Operation) {
+  const pt = rowProcessType(row)
+  return pt ? processInfoFactory.getInfoComponent(pt) : undefined
 }
 
 // Цветовая схема по контракту-источнику operation_code — пастельный chip +
@@ -366,14 +401,15 @@ function shortHash(hash: string | null | undefined): string {
   return hash.slice(0, 8)
 }
 
-async function copyFullHash(hash: string | null | undefined) {
+// № процесса ведёт в реестр процессов (единая адресация: процесс агрегирует
+// документы + операции + проводки по этому хэшу).
+function goToProcess(hash: string | null | undefined) {
   if (!hash) return
-  try {
-    await copyToClipboard(hash)
-    SuccessAlert('Скопировано')
-  } catch {
-    FailAlert('Не удалось скопировать')
-  }
+  router.push({
+    name: 'reports-processes',
+    params: { coopname: info.coopname },
+    query: { process_hash: hash },
+  })
 }
 
 function formatAmount(qty: string | null | undefined): string {

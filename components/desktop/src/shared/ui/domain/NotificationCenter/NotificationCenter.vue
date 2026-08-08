@@ -359,15 +359,12 @@ function plural(n: number, one: string, few: string, many: string): string {
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
   /* In-app тела несут перенос строки как \n (не HTML <br> — тело рендерится
-     как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор). */
+     как текст, без v-html: payload содержит ФИО/заголовки = XSS-вектор).
+     Текст уведомления не обрезаем — председатель/пайщик должен видеть
+     причину/комментарий целиком, а не только первые два ряда (см. review
+     2026-07-27: решение по возврату обрезалось на полуслове названия КУ). */
   white-space: pre-line;
   overflow-wrap: anywhere;
-  word-break: break-word;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
 .notification-center__item-date {

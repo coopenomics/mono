@@ -238,6 +238,7 @@ public:
 
   //branch.cpp
   [[eosio::action]] void deletebranch(eosio::name coopname, eosio::name braname);
+  [[eosio::action]] void setbranch(eosio::name coopname, eosio::name username, eosio::name braname);
   
 };
   

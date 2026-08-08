@@ -29,5 +29,8 @@ declare module 'vue-router' {
     icon: string;
     requiresAuth?: boolean;
     hidden?: boolean;
+    // Страница открыта в режиме только для чтения (например, карточка
+    // предложения, открытая модератором со стола администратора).
+    readonly?: boolean;
   }
 }
