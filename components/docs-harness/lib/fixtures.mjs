@@ -34,7 +34,41 @@ export const KNOWN_FIXTURES = {
   opkrg: { email: 'opkrg@voskhod.coop', firstName: 'Александр', lastName: 'Кузнецов', middleName: 'Владимирович' },
   sidorov: { email: 'sidorov@voskhod.coop', firstName: 'Дмитрий', lastName: 'Сидоров', middleName: 'Николаевич' },
   petrova: { email: 'petrova@voskhod.coop', firstName: 'Екатерина', lastName: 'Петрова', middleName: 'Александровна' },
+
+  // Пул для сценария первого входа на Стол заказов. Подпись оферты ЦПП —
+  // ончейн-действие, отменить его нельзя, поэтому пайщик «расходуется» за один
+  // прогон. Чтобы сценарий воспроизводился без reboot, берём следующего
+  // неподключённого из пула (см. freshGateFixture).
+  kozlova: { email: 'kozlova@voskhod.coop', firstName: 'Мария', lastName: 'Козлова', middleName: 'Ивановна' },
+  novikov: { email: 'novikov@voskhod.coop', firstName: 'Сергей', lastName: 'Новиков', middleName: 'Петрович' },
+  fedorova: { email: 'fedorova@voskhod.coop', firstName: 'Ольга', lastName: 'Фёдорова', middleName: 'Дмитриевна' },
+  morozov: { email: 'morozov@voskhod.coop', firstName: 'Артём', lastName: 'Морозов', middleName: 'Сергеевич' },
 };
+
+// Кандидаты для сценария гейта, по порядку расходования.
+export const GATE_POOL = ['petrova', 'kozlova', 'novikov', 'fedorova', 'morozov'];
+
+/**
+ * Возвращает имя пайщика, ещё не подключённого к Столу заказов, создавая его
+ * при необходимости. Признак расходования — файл state/gate-used.json: он
+ * локальный, как и сами фикстуры, и переживает прогоны в пределах стенда.
+ * После reboot стенда его чистят вместе с фикстурами.
+ */
+export function freshGateFixture({ log = () => {} } = {}) {
+  const usedFile = path.join(HARNESS_ROOT, 'state/gate-used.json');
+  const used = fs.existsSync(usedFile) ? JSON.parse(fs.readFileSync(usedFile, 'utf8')) : [];
+  const next = GATE_POOL.find((name) => !used.includes(name));
+  if (!next) {
+    throw new Error(
+      `пул пайщиков для гейта исчерпан (${GATE_POOL.join(', ')}): подпись оферты не отменяется, ` +
+      'нужен reboot:extra либо новые профили в KNOWN_FIXTURES',
+    );
+  }
+  ensureFixture(next, { log });
+  fs.mkdirSync(path.dirname(usedFile), { recursive: true });
+  fs.writeFileSync(usedFile, JSON.stringify([...used, next], null, 2));
+  return next;
+}
 
 function readEnvFile(file) {
   const out = {};

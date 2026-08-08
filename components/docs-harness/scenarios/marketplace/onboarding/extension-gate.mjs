@@ -11,14 +11,16 @@
 // принять за норму (так и было: прежний сценарий снимал его трижды и
 // считался пройденным).
 //
-// Фикстура: petrova / Петрова Екатерина Александровна — свежая пайщица.
-// На стенде, где она уже подключилась, сценарий не воспроизводится: нужен
-// прогон после reboot:extra.
+// Фикстура выбирается из пула автоматически: подпись оферты ЦПП — ончейн-
+// действие, отменить его нельзя, поэтому пайщик расходуется за один прогон.
+// freshGateFixture() берёт следующего неподключённого и создаёт при
+// необходимости; когда пул кончится, сценарий скажет об этом прямо.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
+import { freshGateFixture } from '../../../lib/fixtures.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,15 +33,15 @@ export const meta = {
   assetsDir: 'assets/new/marketplace/onboarding/extension-gate',
   role: 'user',
   mode: 'docs',
-  fixture: 'petrova',
-  fixtures: ['petrova'],
+  // Конкретный пайщик определяется в рантайме — см. freshGateFixture().
   feature: 'marketplace.onboarding',
   cases: ['mkt.onb.happy.03'],
   prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches'],
 };
 
 export default async ({ page, shot, expect, env: e }) => {
-  const fixture = loadFixture('petrova');
+  const username = freshGateFixture({ log: (m) => console.log(`  ${m}`) });
+  const fixture = loadFixture(username);
   await loginAs(page, fixture);
   await pickBranchIfAsked(page);
   await cleanViteOverlays(page);
