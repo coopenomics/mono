@@ -90,3 +90,12 @@ cases:
     expect: действие недоступно до факта выдачи
     test: ~
     status: missing
+
+  - id: mkt.ret.side.07
+    level: ui
+    kind: side
+    scenario: Оператор открывает раздел гарантийных возвратов участка
+    expect: >
+      раздел доступен, объясняет порядок (удалённое решение → очный осмотр → приём возврата) и предлагает сканер для QR из заявки пайщика
+    test: components/docs-harness/scenarios/marketplace/operator/returns.mjs
+    status: passing
