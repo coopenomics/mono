@@ -99,8 +99,8 @@ cases:
     kind: side
     scenario: Пайщик уже подписал программную оферту ЦПП
     expect: гейт не требуется, источник «подписано», проставлена дата подписи
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.06
     level: backend
@@ -108,8 +108,8 @@ cases:
     scenario: В кооперативе не настроено соглашение типа «Стол заказов»
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.07
     level: backend
@@ -125,8 +125,8 @@ cases:
     scenario: Шаблон оферты ЦПП не заведён в реестре документов
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.09
     level: backend
@@ -134,8 +134,8 @@ cases:
     scenario: >
       Запись пайщика в кошельке помечена как отсутствующая (удалена в цепи), хотя программа в ней когда-то была.
     expect: гейт снова требуется — подпись не засчитывается
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.10
     level: backend
