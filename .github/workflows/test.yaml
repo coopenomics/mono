@@ -67,8 +67,14 @@ jobs:
       # cooptypes + parser + notifications + controller.
       # Юнит-тесты controller гоняются через `jest -i` (runInBand) — так же,
       # как требует CLAUDE.md для локального запуска.
+      #
+      # Через скрипт, а не `pnpm run test:unit`: цепочка `&&` обрывалась на
+      # первом красном пакете, а в Job Summary попадал отчёт последнего
+      # отработавшего раннера — на вкладке результатов было «1 файл, 7 тестов»
+      # при тысяче с лишним реальных. Скрипт гоняет все пакеты и сводит их в
+      # одну таблицу с поимённым списком падений.
       - name: Unit-тесты
-        run: pnpm run test:unit
+        run: node scripts/run-unit-tests.mjs
 
   component:
     runs-on: ubuntu-latest
