@@ -82,14 +82,24 @@ export class MarketplaceOrderSupplierActionService {
    * статус ACCEPTED) — далее единый путь формирования отгрузки (Эпик 14).
    * Партию здесь НЕ формируем: поставщик сам выберет вариант доставки.
    *
-   * Best-effort per-order: если chain.acceptOrder упал на каком-то заказе —
-   * логируем и продолжаем; в партию попадают только успешно принятые.
+   * Проверки — все до первого обращения к цепи: заказ существует, принадлежит
+   * этому кооперативу и этому поставщику, активен и не в партии. Отказ по любой
+   * из них не оставляет следа, потому что цепи мы ещё не касались.
+   *
+   * Сбой самой цепи на отдельном заказе — best-effort: принятое on-chain уже не
+   * откатить, поэтому такой заказ логируется и пропускается, а партия
+   * собирается из принятых. Если не прошёл ни один — отказ целиком.
    */
   async acceptOrdersBatch(input: MarketplaceSupplierAcceptBatchInput): Promise<MarketplaceSupplierBatchResult> {
     const orderIds = this.dedupeOrderIds(input.order_ids);
     const accepted: MarketplaceOrderDomainEntity[] = [];
     const txHashes: string[] = [];
 
+    // Раньше эти проверки жили внутри цикла приёма: непроходной заказ в
+    // середине списка ронял всю операцию уже ПОСЛЕ того, как предыдущие были
+    // приняты on-chain и переведены в ACCEPTED. Поставщик получал 400 и не
+    // знал, что часть заказов всё-таки принята.
+    const candidates: MarketplaceOrderDomainEntity[] = [];
     for (const orderId of orderIds) {
       const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
       if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
@@ -97,7 +107,10 @@ export class MarketplaceOrderSupplierActionService {
           `Заказ ${order.id} нельзя принять — он уже не активен или присоединён к партии. [E4SAS-ACC-WRONG-STATE]`
         );
       }
+      candidates.push(order);
+    }
 
+    for (const order of candidates) {
       let txHash: string;
       try {
         const tx = await this.chainPort.acceptOrder({
@@ -200,6 +213,10 @@ export class MarketplaceOrderSupplierActionService {
     const declined: MarketplaceOrderDomainEntity[] = [];
     const txHashes: string[] = [];
 
+    // Как и в приёме: все проверки до первого обращения к цепи, иначе
+    // непроходной заказ в середине списка оставляет уже отклонённые заказы
+    // отклонёнными, а поставщику отдаёт ошибку.
+    const candidates: MarketplaceOrderDomainEntity[] = [];
     for (const orderId of orderIds) {
       const order = await this.guardSupplierOrder(orderId, input.coopname, input.offerer_account);
       if (order.status !== MarketplaceOrderStatuses.ACTIVE || order.cycle_id != null) {
@@ -207,6 +224,10 @@ export class MarketplaceOrderSupplierActionService {
           `Заказ ${order.id} нельзя отклонить — он уже не активен или присоединён к партии. [E4SAS-DEC-WRONG-STATE]`
         );
       }
+      candidates.push(order);
+    }
+
+    for (const order of candidates) {
       const res = await this.runDeclineChain(order, input.offerer_account, reason);
       declined.push(res.order);
       txHashes.push(res.tx_hash);

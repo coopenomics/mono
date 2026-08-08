@@ -155,12 +155,29 @@ cases:
     scenario: >
       Массовый приём, где ни один заказ не удалось принять
     expect: отказ «Не удалось принять ни одного заказа», частичного эффекта нет
-    test: ~
-    status: missing
-    decision_needed: true
-    # Из кода не видно, что происходит при ЧАСТИЧНОМ успехе: часть заказов
-    # принята, часть нет. Нужен ответ человека — атомарность или частичный
-    # результат с отчётом.
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
+
+  # Решение заказчика (2026-08-08): массовое действие атомарно.
+  - id: mkt.order.side.20
+    level: backend
+    kind: side
+    scenario: >
+      Массовый приём, где один из заказов непроходной (чужой, не найден
+      или уже не активен)
+    expect: >
+      отказ до первого обращения к цепи; ни один заказ не принят,
+      партия не создаётся
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
+
+  - id: mkt.order.side.21
+    level: backend
+    kind: side
+    scenario: Массовый отказ, где один из заказов непроходной
+    expect: отказ до первого обращения к цепи; ни один отказ не отправлен
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
 
     # ── Отмена заказчиком ───────────────────────────────────────────────────
   - id: mkt.order.side.15

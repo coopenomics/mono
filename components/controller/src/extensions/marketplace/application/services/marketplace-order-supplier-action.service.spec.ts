@@ -158,6 +158,84 @@ describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => 
         service.acceptOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'] })
       ).rejects.toBeInstanceOf(BadRequestException);
     });
+
+    it('ни один заказ не прошёл цепь → отказ целиком, партия не создаётся', async () => {
+      mocks.orderRepo.findById
+        .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+        .mockResolvedValueOnce(buildOrder({ id: 'order-2', order_hash: 'h2' }));
+      mocks.chainPort.acceptOrder.mockRejectedValue(new Error('chain timeout'));
+
+      await expect(
+        service.acceptOrdersBatch({
+          coopname: 'voskhod',
+          offerer_account: 'supplier1',
+          order_ids: ['order-1', 'order-2'],
+        })
+      ).rejects.toThrow('Не удалось принять ни одного заказа');
+
+      // Ни статуса, ни партии: у поставщика после отказа состояние не поехало.
+      expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
+      expect(mocks.cycleRepo.create).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Непроходной заказ в середине списка обязан остановить операцию ДО первого
+     * обращения к цепи. Раньше проверки жили внутри цикла приёма: заказы до
+     * непроходного уже уходили on-chain и переводились в ACCEPTED, а поставщик
+     * получал 400 — и не знал, что часть заказов принята.
+     */
+    describe('частичного эффекта нет: проверки идут до цепи', () => {
+      it('непроходной по статусу заказ вторым — цепь не вызывается ни разу', async () => {
+        mocks.orderRepo.findById
+          .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+          .mockResolvedValueOnce(buildOrder({ id: 'order-2', status: 'ACCEPTED' as any }));
+
+        await expect(
+          service.acceptOrdersBatch({
+            coopname: 'voskhod',
+            offerer_account: 'supplier1',
+            order_ids: ['order-1', 'order-2'],
+          })
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(mocks.chainPort.acceptOrder).not.toHaveBeenCalled();
+        expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
+        expect(mocks.cycleRepo.create).not.toHaveBeenCalled();
+      });
+
+      it('чужой заказ вторым — цепь не вызывается ни разу', async () => {
+        mocks.orderRepo.findById
+          .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+          .mockResolvedValueOnce(buildOrder({ id: 'order-2', supplier_account: 'someone-else' }));
+
+        await expect(
+          service.acceptOrdersBatch({
+            coopname: 'voskhod',
+            offerer_account: 'supplier1',
+            order_ids: ['order-1', 'order-2'],
+          })
+        ).rejects.toBeInstanceOf(ForbiddenException);
+
+        expect(mocks.chainPort.acceptOrder).not.toHaveBeenCalled();
+        expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
+      });
+
+      it('заказ, которого нет, вторым — цепь не вызывается ни разу', async () => {
+        mocks.orderRepo.findById
+          .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+          .mockResolvedValueOnce(null);
+
+        await expect(
+          service.acceptOrdersBatch({
+            coopname: 'voskhod',
+            offerer_account: 'supplier1',
+            order_ids: ['order-1', 'missing'],
+          })
+        ).rejects.toBeInstanceOf(NotFoundException);
+
+        expect(mocks.chainPort.acceptOrder).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('declineOrdersBatch', () => {
@@ -199,6 +277,24 @@ describe('MarketplaceOrderSupplierActionService (Эпик 15 — batch)', () => 
         service.declineOrdersBatch({ coopname: 'voskhod', offerer_account: 'supplier1', order_ids: ['order-1'], reason: 'x' })
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(mocks.offerCounters.onOrderUnblocked).not.toHaveBeenCalled();
+    });
+
+    it('непроходной заказ вторым — ни один отказ не уходит в цепь', async () => {
+      mocks.orderRepo.findById
+        .mockResolvedValueOnce(buildOrder({ id: 'order-1', order_hash: 'h1' }))
+        .mockResolvedValueOnce(buildOrder({ id: 'order-2', cycle_id: 'cycle-x' }));
+
+      await expect(
+        service.declineOrdersBatch({
+          coopname: 'voskhod',
+          offerer_account: 'supplier1',
+          order_ids: ['order-1', 'order-2'],
+          reason: 'нет ресурса',
+        })
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(mocks.chainPort.declineOrder).not.toHaveBeenCalled();
+      expect(mocks.orderRepo.applyStatusTransition).not.toHaveBeenCalled();
     });
   });
 });
