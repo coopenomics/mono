@@ -59,16 +59,16 @@ cases:
     kind: side
     scenario: Приём ЦПП с датой принятия в будущем (более чем на минуту вперёд)
     expect: BadRequest, приём не выполняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.03
     level: backend
     kind: side
     scenario: Приём ЦПП с неразбираемой датой принятия
     expect: BadRequest, приём не выполняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.04
     level: backend
