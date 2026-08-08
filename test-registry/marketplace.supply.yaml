@@ -44,8 +44,8 @@ cases:
     kind: happy
     scenario: Поставщик подписывает акт приёмки, председатель участка ставит закрывающую подпись
     expect: имущество оприходовано на склад участка
-    test: ~
-    status: missing
+    test: components/docs-harness/scenarios/marketplace/operator/apl-reception-chairman-sign.mjs
+    status: passing
 
   - id: mkt.supply.side.01
     level: ui
