@@ -58,7 +58,7 @@ const makeType = (over: Record<string, unknown> = {}) =>
     length_cm: 60,
     width_cm: 40,
     height_cm: 30,
-    volume_liters: '72.000',
+    volume_m3: '0.072',
     max_weight_kg: null,
     is_active: true,
     created_at: new Date('2026-08-06T00:00:00Z'),
@@ -233,29 +233,29 @@ describe('MarketplaceContainerService.update', () => {
   });
 });
 
-describe('MarketplaceContainerService.sumVolumeLiters', () => {
+describe('MarketplaceContainerService.sumVolumeM3', () => {
   it('складывает объём по типам боксов', async () => {
     const { service } = makeService({
       typeRepo: {
         list: jest.fn(async () => [
-          makeType({ id: 'type-1', volume_liters: '72.000' }),
-          makeType({ id: 'type-2', volume_liters: '10.500' }),
+          makeType({ id: 'type-1', volume_m3: '0.072' }),
+          makeType({ id: 'type-2', volume_m3: '0.0105' }),
         ]),
       },
     });
 
-    const total = await service.sumVolumeLiters(COOPNAME, [
+    const total = await service.sumVolumeM3(COOPNAME, [
       makeContainer({ container_type_id: 'type-1' }),
       makeContainer({ container_type_id: 'type-2' }),
       makeContainer({ container_type_id: 'type-2' }),
     ]);
 
-    expect(total).toBe('93.000');
+    expect(total).toBe('0.093');
   });
 
   it('пустая выборка — нулевой объём без запроса типов', async () => {
     const { service, typeRepo } = makeService();
-    expect(await service.sumVolumeLiters(COOPNAME, [])).toBe('0.000');
+    expect(await service.sumVolumeM3(COOPNAME, [])).toBe('0.000');
     expect(typeRepo.list).not.toHaveBeenCalled();
   });
 });

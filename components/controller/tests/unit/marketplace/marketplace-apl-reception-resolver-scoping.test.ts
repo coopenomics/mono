@@ -10,9 +10,12 @@
  * В каждом блоке: владелец/член → метод дёргается; чужой → ForbiddenException,
  * нижележащий метод не дёргается.
  */
+// Конфиг подменяем поверх настоящего (он валиден благодаря tests/setup-env.ts):
+// импорт резолвера тянет за собой модули расширений, а те читают blockchain/postgres
+// прямо на верхнем уровне — от объекта с одним `coopname` они падают на импорте.
 jest.mock('~/config/config', () => ({
   __esModule: true,
-  default: { coopname: 'voskhod' },
+  default: { ...jest.requireActual('~/config/config').default, coopname: 'voskhod' },
 }));
 
 import { ForbiddenException } from '@nestjs/common';

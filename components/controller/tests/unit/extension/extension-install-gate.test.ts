@@ -4,14 +4,22 @@
  */
 const chainConfig = { is_mainnet: true };
 
-jest.mock('~/config/config', () => ({
-  __esModule: true,
-  default: {
-    get blockchain() {
-      return chainConfig;
+// Подменяем только сеть, остальное берём из настоящего конфига (он валиден
+// благодаря tests/setup-env.ts): реестр расширений тянет модули, читающие
+// config.postgres/config.blockchain на верхнем уровне, и от урезанного объекта
+// весь сьют падает ещё на импорте.
+jest.mock('~/config/config', () => {
+  const actual = jest.requireActual('~/config/config').default;
+  return {
+    __esModule: true,
+    default: {
+      ...actual,
+      get blockchain() {
+        return { ...actual.blockchain, ...chainConfig };
+      },
     },
-  },
-}));
+  };
+});
 
 import { ExtensionDomainListingService } from '~/domain/extension/services/extension-listing-domain.service';
 
