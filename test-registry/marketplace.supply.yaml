@@ -125,3 +125,26 @@ cases:
       позиция числится поступившей с указанием количества и заказчика, помечена как ещё не маркированная
     test: components/docs-harness/scenarios/marketplace/operator/warehouse.mjs
     status: passing
+
+  - id: mkt.supply.happy.05
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор печатает лист этикеток для принятого имущества и открывает привязку этикетки к позиции.
+    expect: >
+      позиция числится немаркированной, доступны печать листа этикеток и сканер привязки
+    test: components/docs-harness/scenarios/marketplace/operator/inventory-label.mjs
+    status: passing
+
+  - id: mkt.supply.side.09
+    level: ui
+    kind: side
+    scenario: >
+      Привязка этикетки к позиции склада отсканированным кодом
+    expect: позиция перестаёт числиться немаркированной
+    test: ~
+    status: missing
+    # Не закрывается сценарием: коды этикеток система выдаёт печатной формой
+    # (PDF), прочитать их из harness нечем. Ручной ввод произвольного номера
+    # сканер отбивает справедливо — «Нераспознанный код». Закрытие требует
+    # чтения печатной формы либо тестового кода из API.
