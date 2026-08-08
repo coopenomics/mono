@@ -79,14 +79,28 @@ cases:
     test: ~
     status: missing
 
+  # Вопрос «что с подписанными актами при пересборке» снят чтением кода
+  # (2026-08-08): пересобрать можно только черновик до подписи поставщика.
+  # Кнопка «Отменить и пересобрать» на столе оператора
+  # (pages/Marketplace/OperatorReception) показывается лишь в статусе
+  # PENDING_SUPPLIER_SIGN; после подписи её место занимает «Подписать
+  # председателем», а сервер отвечает конфликтом. Подписанный акт пересобрать
+  # нельзя вообще — решения человека не требуется.
   - id: mkt.supply.side.05
     level: backend
     kind: side
-    scenario: Повторное формирование актов по уже принятой партии
-    expect: повторные акты не создаются
-    test: ~
-    status: missing
-    decision_needed: true
+    scenario: Повторное формирование акта по партии, где приёмка уже открыта
+    expect: отказ «уже сформирована», второй акт не создаётся
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
+
+  - id: mkt.supply.side.13
+    level: backend
+    kind: side
+    scenario: Формирование акта по партии после отмены прежнего черновика
+    expect: партия снова свободна — акт формируется заново
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
     # В интерфейсе у принятой партии есть «Отменить и пересобрать»; из кода не
     # выводится, что происходит с уже подписанными актами при пересборке.
 

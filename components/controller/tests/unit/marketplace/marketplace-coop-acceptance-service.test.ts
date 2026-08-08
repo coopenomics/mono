@@ -105,6 +105,12 @@ describe('MarketplaceCoopAcceptanceService', () => {
 
     expect(status.document_registry_id).toBe(200);
     expect(status.accepted_by_board_decision_id).toBe('new-decision');
+    // Повторный приём не отказ: ЦПП остаётся принятой, а поля перезаписываются
+    // данными нового решения совета. Ровно одна запись конфига — не дубликат.
+    expect(status.status).toBe('active');
+    expect(repo.patchConfig).toHaveBeenCalledTimes(1);
+    expect(repo._state.config.coopAcceptance.accepted).toBe(true);
+    expect(repo._state.config.coopAcceptance.accepted_at).toBe('2026-05-14T00:00:00Z');
   });
 
   it('accept без явного accepted_at → берётся текущее время (валидный ISO)', async () => {
