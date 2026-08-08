@@ -89,3 +89,13 @@ cases:
     expect: акт не считается подписанным, повторная попытка возможна
     test: ~
     status: missing
+
+  - id: mkt.iss.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      После выдачи оператор видит заказ в истории участка, а поток выдач пуст.
+    expect: >
+      выданный заказ сохранён в истории с составом и суммой; очередь выдач не содержит завершённых
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-finalize.mjs
+    status: passing
