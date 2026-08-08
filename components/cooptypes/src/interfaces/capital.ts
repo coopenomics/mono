@@ -439,6 +439,7 @@ export interface IDelproject {
 export interface IDiallocate {
   coopname: IName
   project_hash: IChecksum256
+  amount: IAsset
 }
 
 export interface IDocument2 {
@@ -678,6 +679,8 @@ export interface IProject {
   crps: ICrpsData
   voting: IVotingData
   created_at: ITimePointSec
+  /** Сумма непогашенных ссуд по сегментам проекта. Хвостовое binary_extension — у проектов, записанных до его появления, приходит undefined до прогона capital::migrate */
+  total_debt_amount?: IAsset
 }
 
 export interface IProperty {

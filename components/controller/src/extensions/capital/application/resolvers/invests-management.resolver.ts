@@ -3,6 +3,11 @@ import { InvestsManagementService } from '../services/invests-management.service
 import { CreateProjectInvestInputDTO } from '../dto/invests_management/create-project-invest-input.dto';
 import { CreateProgramInvestInputDTO } from '../dto/invests_management/create-program-invest-input.dto';
 import { AllocateFundsInputDTO } from '../dto/invests_management/allocate-funds.input';
+import { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
+import {
+  DeallocationLimitInputDTO,
+  DeallocationLimitOutputDTO,
+} from '../dto/invests_management/deallocation-limit.dto';
 import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
 import { RolesGuard } from '~/application/auth/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
@@ -77,7 +82,37 @@ export class InvestsManagementResolver {
     return await this.investsManagementService.allocateFunds(data);
   }
 
+  /**
+   * Мутация для возврата средств из компонента в программу (diallocate)
+   */
+  @Mutation(() => TransactionDTO, {
+    name: 'capitalDeallocateFunds',
+    description: 'Возврат ранее направленных средств из компонента в программу',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async deallocateFunds(
+    @Args('data', { type: () => DeallocateFundsInputDTO }) data: DeallocateFundsInputDTO
+  ): Promise<TransactionDTO> {
+    return await this.investsManagementService.deallocateFunds(data);
+  }
+
   // ============ ЗАПРОСЫ ИНВЕСТИЦИЙ ============
+
+  /**
+   * Предел возврата средств из компонента в программу
+   */
+  @Query(() => DeallocationLimitOutputDTO, {
+    name: 'capitalDeallocationLimit',
+    description: 'Сколько средств можно вернуть из компонента в программу и чем сумма ограничена',
+  })
+  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @AuthRoles(['chairman'])
+  async getDeallocationLimit(
+    @Args('data', { type: () => DeallocationLimitInputDTO }) data: DeallocationLimitInputDTO
+  ): Promise<DeallocationLimitOutputDTO> {
+    return await this.investsManagementService.getDeallocationLimit(data);
+  }
 
   /**
    * Получение всех инвестиций с фильтрацией

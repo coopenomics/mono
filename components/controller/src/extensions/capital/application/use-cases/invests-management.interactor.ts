@@ -21,7 +21,11 @@ import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/applic
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 import { Cooperative } from 'cooptypes';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
+import { SEGMENT_REPOSITORY, SegmentRepository } from '../../domain/repositories/segment.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import type { DeallocateFundsInputDTO } from '../dto/invests_management/deallocate-funds.input';
+import type { DeallocationLimitInputDTO } from '../dto/invests_management/deallocation-limit.dto';
+import { calculateDeallocationLimit, type DeallocationLimit } from '../../domain/utils/deallocation-limit';
 
 /**
  * Интерактор домена для управления инвестициями CAPITAL контракта
@@ -40,6 +44,8 @@ export class InvestsManagementInteractor {
     private readonly contributorRepository: ContributorRepository,
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
+    @Inject(SEGMENT_REPOSITORY)
+    private readonly segmentRepository: SegmentRepository,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
     private readonly investSyncService: InvestSyncService,
     private readonly logger: WinstonLoggerService
@@ -166,6 +172,48 @@ export class InvestsManagementInteractor {
       project_hash,
       amount: data.amount,
     });
+  }
+
+  /**
+   * Возврат ранее направленных средств из компонента в программу
+   */
+  async deallocateFunds(data: DeallocateFundsInputDTO): Promise<TransactResult> {
+    const project_hash = data.project_hash.toLowerCase();
+    const project = await this.projectRepository.findByHash(project_hash);
+    assertBlockchainProject(project, 'возврат средств');
+
+    return await this.capitalBlockchainPort.deallocateFunds({
+      coopname: data.coopname,
+      project_hash,
+      amount: data.amount,
+    });
+  }
+
+  /**
+   * Сколько средств можно вернуть из компонента в программу.
+   *
+   * Предел считается по данным цепи, синхронизированным в базу. Контракт
+   * проверяет ту же границу сам — здесь она нужна, чтобы показать председателю
+   * потолок до отправки транзакции.
+   */
+  async getDeallocationLimit(data: DeallocationLimitInputDTO): Promise<DeallocationLimit> {
+    const project_hash = data.project_hash.toLowerCase();
+    const project = await this.projectRepository.findByHash(project_hash);
+    assertBlockchainProject(project, 'расчёт доступного возврата');
+
+    // Без постраничного вывода: предел считается по самому «дорогому» заёмщику,
+    // и пропущенный участник дал бы сумму, которую контракт отклонит
+    const segments = await this.segmentRepository.findAllByProjectHash(data.coopname, project_hash);
+
+    return calculateDeallocationLimit(
+      {
+        // Неизвестный цепи статус маппится в UNDEFINED и в разрешённые не попадает —
+        // при рассинхроне схемы возврат закрывается, а не открывается наугад
+        status: project.status,
+        ...(project.fact ?? {}),
+      },
+      segments
+    );
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============
