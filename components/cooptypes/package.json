@@ -1,7 +1,7 @@
 {
   "name": "cooptypes",
   "type": "module",
-  "version": "2026.8.8-3",
+  "version": "2026.8.8-4",
   "description": "Shared TypeScript типы и интерфейсы экосистемы кооперативов",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",
