@@ -51,8 +51,8 @@ cases:
     kind: side
     scenario: Запрос статуса ЦПП, когда расширение не установлено в кооперативе
     expect: NotFound с указанием, что расширение не установлено
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    status: passing
 
   - id: mkt.onb.side.02
     level: backend

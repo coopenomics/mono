@@ -122,32 +122,32 @@ cases:
     kind: side
     scenario: Приём заказа, уже присоединённого к партии либо не активного
     expect: отказ, что заказ нельзя принять в текущем состоянии
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.11
     level: backend
     kind: side
     scenario: Отказ по заказу без указания причины
     expect: «Укажите причину отказа»
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.12
     level: backend
     kind: side
     scenario: Массовое действие поставщика с пустым списком заказов
     expect: отказ «Не выбрано ни одного заказа»
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.13
     level: backend
     kind: side
     scenario: Действие по заказу, оформленному по чужому предложению
     expect: отказ «Действие доступно только поставщику-владельцу предложения»
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.14
     level: backend
