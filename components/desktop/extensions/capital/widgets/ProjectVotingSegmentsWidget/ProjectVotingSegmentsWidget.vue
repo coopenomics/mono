@@ -111,7 +111,7 @@
             color='primary',
             track-size='10px',
             thumb-size='22px',
-            @update:model-value='(v) => setVoteUnits(segment.username, v)'
+            @update:model-value='(v) => setVoteUnits(segment.username, v ?? 0)'
           )
           .voting-segments__vote-foot
             span.t-sm.t-muted(v-if='innerMaxUnits(segment.username) === 0')

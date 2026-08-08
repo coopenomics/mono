@@ -15,7 +15,11 @@ export interface MarketplaceOfferDeliveryPoint {
 
 // Реальные GraphQL-enum'ы (Zeus), не собственные строки — сервер сериализует
 // enum именем варианта ('KG'/'PACKAGED'), не JS-значением backend'а.
-export { MarketplaceUnitOfMeasure, MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
+// Импорт + реэкспорт, а не `export ... from`: транзитный реэкспорт не вводит
+// имена в область видимости самого файла, а они нужны здесь же — в типах форм ниже.
+import { MarketplaceSaleForm, MarketplaceUnitOfMeasure } from 'src/shared/lib/consts/marketplace-units';
+
+export { MarketplaceUnitOfMeasure, MarketplaceSaleForm };
 
 /** Строка упаковки в форме оффера (Эпик 18): содержимое + цена за упаковку. */
 export interface MarketplaceOfferPackageForm {

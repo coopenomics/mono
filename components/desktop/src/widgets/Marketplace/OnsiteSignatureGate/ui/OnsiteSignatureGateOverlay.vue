@@ -76,8 +76,10 @@ function receptionLineQuantity(l: { quantity: number; unit: string; packageSize:
   return `${saleUnit.units}×${saleUnit.unitLabel}`;
 }
 
-function proposalItemQuantity(i: { quantity: number; unit_of_measure: string | null }): string {
-  return marketplaceQuantityLabel(i.quantity, i.unit_of_measure);
+// Единица измерения у позиции предложения необязательна (услуги её не имеют),
+// поэтому принимаем и отсутствующее значение, а не только явный null.
+function proposalItemQuantity(i: { quantity: number; unit_of_measure?: string | null }): string {
+  return marketplaceQuantityLabel(i.quantity, i.unit_of_measure ?? null);
 }
 
 const supplierBusy = (g: ReceptionGroup<MarketplaceAplReceptionView>) => signingKey.value === g.key;

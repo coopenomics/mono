@@ -486,7 +486,7 @@ function setPlacementQuantity(orderId: string, index: number, value: number | nu
  * смысл — сервер потребует количество у каждой части.
  */
 function addPlacementRow(u: PostingUnit): void {
-  const rows = rowsOf(u.orderId).map((row) => ({
+  const rows: PlacementRow[] = rowsOf(u.orderId).map((row) => ({
     ...row,
     quantity: row.quantity ?? roundQuantity(u, u.quantity),
   }));
