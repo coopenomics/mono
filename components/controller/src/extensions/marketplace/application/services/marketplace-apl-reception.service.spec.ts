@@ -651,6 +651,79 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
       ).rejects.toThrow('нет Order');
     });
   });
+
+  /**
+   * Потолок приёмки — акцепт, то есть заказанное количество.
+   *
+   * Привезли меньше — принимаем недовоз, это штатная ситуация. Привезти больше
+   * заказанного нельзя: лишнее имущество никем не оплачено и не заказано, а
+   * акт приёма-передачи стал бы основанием для выплаты поставщику сверх
+   * заказа. Партия и ТТН здесь не ограничитель — они лишь декларация.
+   */
+  describe('create: приёмка сверх заказанного', () => {
+    const shipment = {
+      id: 'ship-1',
+      coopname: 'voskhod',
+      cycle_id: 'cycle-1',
+      braname: 'ku.krasn.1',
+      status: 'SUPPLY_PREPARED',
+    };
+
+    function withOrder(quantity: number) {
+      mocks.shipmentRepo.findById.mockResolvedValue(shipment as never);
+      mocks.receptionRepo.findByShipmentId.mockResolvedValue(null);
+      const order = buildOrder({ id: 'order-1', quantity });
+      (mocks.orderRepo as any).findByShipmentId = jest.fn().mockResolvedValue([order]);
+    }
+
+    it('факт больше заказанного → отказ, акт не создаётся', async () => {
+      withOrder(2);
+
+      await expect(
+        service.create({
+          coopname: 'voskhod',
+          shipment_id: 'ship-1',
+          fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 3 }],
+        } as never)
+      ).rejects.toThrow('Нельзя принять сверх акцепта');
+
+      expect(mocks.receptionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('дробный или отрицательный факт → отказ', async () => {
+      withOrder(5);
+
+      for (const bad of [-1, 1.5]) {
+        await expect(
+          service.create({
+            coopname: 'voskhod',
+            shipment_id: 'ship-1',
+            fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: bad }],
+          } as never)
+        ).rejects.toThrow('Некорректное fact_quantity');
+      }
+
+      expect(mocks.receptionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('недовоз проходит: факт меньше заказанного — не отказ', async () => {
+      withOrder(5);
+
+      // Дальше сценарий упрётся в заглушки документа; важно, что проверка
+      // количества пропустила — недовоз это нормальный ход приёмки.
+      const error = await service
+        .create({
+          coopname: 'voskhod',
+          shipment_id: 'ship-1',
+          fact_quantity_per_order: [{ order_id: 'order-1', fact_quantity: 3 }],
+        } as never)
+        .then(() => null)
+        .catch((e: Error) => e);
+
+      expect(error?.message ?? '').not.toContain('сверх акцепта');
+      expect(error?.message ?? '').not.toContain('Некорректное fact_quantity');
+    });
+  });
 });
 
 describe('MarketplaceAplReceptionService — единица заказа (фасовка) в акте приёмки', () => {

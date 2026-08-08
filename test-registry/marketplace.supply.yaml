@@ -60,8 +60,8 @@ cases:
     kind: side
     scenario: Оператор указывает к приёмке больше единиц, чем было заказано
     expect: отказ — принять больше заказанного нельзя
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    status: passing
 
   - id: mkt.supply.side.03
     level: backend

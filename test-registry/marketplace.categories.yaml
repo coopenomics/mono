@@ -106,8 +106,8 @@ cases:
     kind: side
     scenario: Управление категориями от пайщика без роли председателя
     expect: отказ доступа, справочник не меняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-category-admin-access.test.ts
+    status: passing
 
   - id: mkt.cat.side.04
     level: ui
