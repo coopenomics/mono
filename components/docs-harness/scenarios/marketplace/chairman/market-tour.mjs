@@ -2,7 +2,7 @@
 // Авторизуется как chairman (ant) и перебирает все маршруты /market/* и /market-pvz/*,
 // используя harness:noBranchOverlay чтобы обойти выбор кооп. участка.
 
-import { cleanViteOverlays, env, passFirstLoginAgreements } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, passFirstLoginAgreements , pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Стол председателя: разделы Стола заказов',
@@ -11,19 +11,21 @@ export const meta = {
   role: 'chairman',
 };
 
+// Только разделы стола администратора: тур председателя по чужим столам
+// (заказчика, поставщика, участка) упирался в отказ в правах и в маршруты,
+// которых больше нет. Каждый из этих столов документируется своим сценарием.
 const ROUTES = [
-  { name: '01-catalog',          path: '/market/catalog',           caption: 'Каталог Стола заказов: список предложений товаров и услуг' },
-  { name: '02-create-offer',     path: '/market-supplier/create-offer',      caption: 'Форма «Создать предложение» — добавление товара/услуги в каталог' },
-  { name: '03-my-orders',        path: '/market/my-orders',         caption: 'Мои заказы: лента заказов председателя как заказчика' },
-  { name: '04-ready-to-receive', path: '/market/ready-to-receive',  caption: 'Готовые к выдаче: заказы со статусом READY_TO_RECEIVE на пункте выдачи' },
-  { name: '05-returns',          path: '/market/returns',           caption: 'Возвраты: заявки на возврат товара от заказчиков' },
-  { name: '06-writeoffs',        path: '/market-admin/writeoffs',         caption: 'Списания: запросы на списание со склада, ждущие одобрения совета' },
-  { name: '07-warehouse-summary',path: '/market-admin/warehouse-summary', caption: 'Склад кооператива: сводный остаток товаров по всем ПВЗ' },
-  { name: '08-ecosystem',        path: '/market-admin/ecosystem',         caption: 'Реестр экосистемы: участники marketplace (заказчики, поставщики, операторы)' },
-  { name: '09-pvz-list',         path: '/market-pvz/list',          caption: 'Пункты выдачи: список ПВЗ кооператива' },
-  { name: '10-pvz-issuance',     path: '/market-pvz/issuance',      caption: 'Выдача заказов на ПВЗ: реестр товаров, ждущих выдачи заказчику' },
-  { name: '11-pvz-returns',      path: '/market-pvz/returns',       caption: 'Возвраты на ПВЗ: обработка возвратов оператором' },
-  { name: '12-pvz-warehouse',    path: '/market-pvz/warehouse',     caption: 'Склад ПВЗ: текущий остаток у конкретного пункта выдачи' },
+  { name: '01-orders',            path: '/market-admin/orders',             caption: 'Реестр заказов кооператива с текущими статусами' },
+  { name: '02-suppliers',         path: '/market-admin/suppliers',          caption: 'Реестр поставщиков: кто допущен публиковать предложения' },
+  { name: '03-offers',            path: '/market-admin/offers',             caption: 'Реестр предложений кооператива любого статуса' },
+  { name: '04-moderation',        path: '/market-admin/moderation',         caption: 'Очередь модерации: предложения, ждущие решения председателя' },
+  { name: '05-economy',           path: '/market-admin/economy',            caption: 'Экономика Стола заказов: ставка членского взноса и сводные показатели' },
+  { name: '06-categories',        path: '/market-admin/category-whitelist', caption: 'Доступные категории: чем кооператив разрешает торговать' },
+  { name: '07-issuance-points',   path: '/market-admin/issuance-points',    caption: 'Пункты выдачи заказов: участки, подключённые к Столу заказов' },
+  { name: '08-writeoffs',         path: '/market-admin/writeoffs',          caption: 'Списания скоропорта: проекты, выносимые на совет' },
+  { name: '09-warehouse-summary', path: '/market-admin/warehouse-summary',  caption: 'Сводный склад кооператива по всем участкам' },
+  { name: '10-payouts',           path: '/market-admin/payouts',            caption: 'Выплаты поставщикам: обзор для совета' },
+  { name: '11-ecosystem',         path: '/market-admin/ecosystem',          caption: 'Реестр экосистемы: участники Стола заказов' },
 ];
 
 export default async ({ page, shot, context }) => {
@@ -47,8 +49,13 @@ export default async ({ page, shot, context }) => {
   for (const route of ROUTES) {
     const url = `${env.APP_PREFIX}/${env.COOPNAME}${route.path}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(4500);
+    // networkidle перед кадром: без него страница успевает начать следующую
+    // навигацию во время съёмки, и Playwright падает на «Unable to capture
+    // screenshot» — выглядит как поломка сценария, а это гонка.
+    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(2500);
+    await pickBranchIfAsked(page, { timeout: 3000 });
     await cleanViteOverlays(page);
-    await shot(page, route.name, `${route.caption} (URL: \`#/${env.COOPNAME}${route.path}\`)`);
+    await shot(page, route.name, `${route.caption}.`);
   }
 };
