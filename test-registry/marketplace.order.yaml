@@ -94,8 +94,8 @@ cases:
     kind: side
     scenario: Итоговая сумма заказа получается нулевой
     expect: отказ с требованием проверить количество и цену
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.08
     level: backend
