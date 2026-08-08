@@ -37,6 +37,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     // Оформление списывает средства с кошелька заказчика: при нулевом балансе
     // сервер отбивает заказ («Недостаточно средств для оформления»), и падение
     // выглядит как поломка интерфейса.

@@ -29,6 +29,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
   title: 'Стол заказчика — «Готово к получению»',

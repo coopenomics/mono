@@ -214,6 +214,15 @@ if (REBOOT) {
     if (f.endsWith('.json')) fs.rmSync(path.join(stateDir, f));
   }
   console.log('  фикстуры пайщиков сброшены — будут созданы заново');
+
+  // Расход пула гейта считается по этому файлу. На новой цепи ни одна оферта
+  // не подписана, поэтому пул снова целиком свободен — без сброса сценарий
+  // гейта падает «пул исчерпан» на чистом стенде.
+  const gateUsed = path.join(HARNESS_ROOT, 'state/gate-used.json');
+  if (fs.existsSync(gateUsed)) {
+    fs.rmSync(gateUsed);
+    console.log('  пул пайщиков для гейта сброшен');
+  }
 }
 
 // public/config.js: в SPA-dev нет SSR-middleware, и без него фронт уходит на
@@ -226,9 +235,20 @@ const checks = [
   ['controller', `http://127.0.0.1:${PORTS.controller}/v1/graphql`, 'POST', '{"query":"{__typename}"}'],
   ['desktop', `http://127.0.0.1:${PORTS.desktop}`, 'GET', null],
 ];
+// После reboot контейнеры уже запущены, но контроллер ещё компилируется
+// (nodemon + ts) и минуту-полторы не отвечает. Мгновенная проверка роняла
+// прогон сразу после успешного reboot — ждём, а не сдаёмся на первом отказе.
+const WAIT_SECONDS = REBOOT ? 300 : 30;
 for (const [name, url, method, body] of checks) {
-  if (!curlOk(url, method, body)) {
-    console.error(`✗ ${name} не отвечает (${url}). Подними стек и повтори.`);
+  const deadline = Date.now() + WAIT_SECONDS * 1000;
+  let ok = curlOk(url, method, body);
+  if (!ok) console.log(`  … ${name} ещё не отвечает, жду до ${WAIT_SECONDS}с`);
+  while (!ok && Date.now() < deadline) {
+    spawnSync('sleep', ['5']);
+    ok = curlOk(url, method, body);
+  }
+  if (!ok) {
+    console.error(`✗ ${name} не отвечает (${url}) за ${WAIT_SECONDS}с. Подними стек и повтори.`);
     process.exit(2);
   }
   console.log(`  ✓ ${name}`);

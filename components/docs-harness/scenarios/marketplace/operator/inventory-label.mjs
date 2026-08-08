@@ -52,6 +52,7 @@ export const meta = {
     'marketplace:02-branches',
     'marketplace:03-assign-branches',
     'marketplace:04-supplier',
+    'marketplace:05-sign-offer',
     'marketplace-deposits:fund',
   ],
 };
@@ -96,8 +97,10 @@ export default async ({ page, shot, expect }) => {
 
   // Кнопка сканера у самой позиции — не универсальный сканер в шапке стола.
   await page.locator('button[aria-label="Привязать этикетку сканером"]').first().click();
+  // Порталов на странице несколько: закрытый диалог печати остаётся в DOM
+  // скрытым, и без фильтра по видимости `.first()` цепляется за него.
   const bindDialog = page
-    .locator('[id^="q-portal--dialog--"]')
+    .locator('[id^="q-portal--dialog--"]:visible')
     .filter({ hasText: 'Привязать этикетку' })
     .first();
   await bindDialog.waitFor({ state: 'visible', timeout: 20000 });

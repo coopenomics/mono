@@ -22,6 +22,9 @@ import { RegistratorContract, type Cooperative } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
+import { signProgramAgreement } from '../init/sign-program-agreement'
+import { walletDraftId, walletProgramId } from '../tests/capital/consts'
+import { fakeDocument } from '../tests/shared/fakeDocument'
 
 const log = (...a: unknown[]) => console.error('[add-plain-participant]', ...a)
 
@@ -106,6 +109,32 @@ export async function addPlainParticipant(args: Args) {
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
     log('registrator::changekey OK')
+  }
+
+  // === 4.5. wallet::signagree — соглашение ЦПП «Кошелёк» ===
+  // Без него пайщик существует, но не участник программы: `ledger2::walletop`
+  // отказывает «нет программных соглашений в wallet::users (требуется
+  // program_id=1 для w.wal.share)», и любое пополнение или перевод падает.
+  // Идемпотентно: повторная подпись — no-op, поэтому проверяем сначала.
+  const walletUsers = (await blockchain.getTableRows(
+    'wallet', coopname, 'users', 1000,
+  )) as Array<{ username: string, programs: Array<{ program_id: number | string }> }>
+  const already = walletUsers
+    .find(r => r.username === username)
+    ?.programs?.some(p => Number(p.program_id) === walletProgramId)
+  if (already) {
+    log('wallet::signagree пропущен — соглашение уже подписано')
+  }
+  else {
+    await signProgramAgreement(
+      blockchain,
+      coopname,
+      username,
+      walletProgramId,
+      walletDraftId,
+      fakeDocument,
+    )
+    log('wallet::signagree OK')
   }
 
   // === 5. Mongo: individual запись (upsert) ===

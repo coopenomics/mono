@@ -157,6 +157,15 @@ export function fixturesOfScenario(scenario, meta = {}) {
   if (fs.existsSync(file)) {
     const src = fs.readFileSync(file, 'utf8');
     for (const m of src.matchAll(/state\/participants\/([\w-]+)\.json/g)) names.add(m[1]);
+    // Путь к state-файлу почти везде строится через переменную
+    // (`.../participants/${username}.json`), поэтому поиск литералов выше
+    // ничего не находит, а состав объявлен в `meta.fixtures`. Читаем его из
+    // исходника: до создания пайщиков сценарий импортировать нельзя — он
+    // тянет Playwright и лезет в state, которого ещё нет.
+    const declared = src.match(/^\s*fixtures:\s*\[([^\]]*)\]/m);
+    if (declared) {
+      for (const m of declared[1].matchAll(/['"]([\w-]+)['"]/g)) names.add(m[1]);
+    }
   }
   return [...names];
 }
