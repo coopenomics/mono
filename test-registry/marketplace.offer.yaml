@@ -64,16 +64,16 @@ cases:
     kind: side
     scenario: Отрицательный срок годности
     expect: отказ «Срок годности не может быть отрицательным»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.03
     level: backend
     kind: side
     scenario: Цена с более чем четырьмя знаками после запятой
     expect: отказ с указанием допустимой точности
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.04
     level: backend
@@ -145,8 +145,8 @@ cases:
     kind: side
     scenario: Один и тот же кооперативный участок указан в поставке дважды
     expect: отказ с именем повторённого участка
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.13
     level: backend
@@ -170,16 +170,16 @@ cases:
     kind: side
     scenario: Возврат на публикацию предложения, которое не было снято
     expect: отказ «Вернуть на публикацию можно только снятое предложение»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.16
     level: backend
     kind: side
     scenario: Повторное снятие уже снятого либо отклонённого предложения
     expect: отказ «Нельзя снять предложение, которое уже снято/отклонено»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.17
     level: backend

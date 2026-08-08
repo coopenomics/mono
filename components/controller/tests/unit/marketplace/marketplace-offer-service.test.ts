@@ -1056,3 +1056,67 @@ describe('MarketplaceOfferService — изображения', () => {
     ).rejects.toThrow(BadRequestException);
   });
 });
+
+/**
+ * Границы срока годности и точности цены.
+ *
+ * Срок годности — основа списания скоропорта: отрицательное значение сделало бы
+ * имущество просроченным в момент приёмки. Точность цены ограничена четырьмя
+ * знаками, потому что столько же знаков у символа расчётов кооператива —
+ * лишние привели бы к расхождению суммы заказа с суммой проводки.
+ */
+describe('MarketplaceOfferService: границы срока годности и цены', () => {
+  it('create с отрицательным сроком годности → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ shelf_life_days: -1 }))
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('update с отрицательным сроком годности → 400, предложение не меняется', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.findById.mockResolvedValue(makeOffer({ status: 'ACTIVE' }));
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.update('offer-1', 'alice', { shelf_life_days: -5 })
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.applyUpdate).not.toHaveBeenCalled();
+  });
+
+  it('нулевой срок годности допустим — товар без ограничения по сроку', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.create.mockResolvedValue(makeOffer());
+    const service = makeService(repo, cats);
+
+    await service.create(baseCreateRequest({ shelf_life_days: 0 }));
+    expect(repo.create).toHaveBeenCalled();
+  });
+
+  it('цена с пятью знаками после запятой → 400', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    const service = makeService(repo, cats);
+
+    await expect(
+      service.create(baseCreateRequest({ price_per_unit: '50.12345' }))
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('цена ровно с четырьмя знаками принимается', async () => {
+    const repo = makeOfferRepo();
+    const cats = makeCategoryRepo();
+    repo.create.mockResolvedValue(makeOffer());
+    const service = makeService(repo, cats);
+
+    await service.create(baseCreateRequest({ price_per_unit: '50.1234' }));
+    expect(repo.create).toHaveBeenCalled();
+  });
+});
