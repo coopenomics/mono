@@ -8,6 +8,15 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 /** Устанавливается через `scripts/register-schema-gen-env.cjs` (-r) перед запуском generate-schema */
 const isSchemaGeneration = process.env.CONTROLLER_SCHEMA_GEN === '1';
 
+/**
+ * Идентификатор основной сети Коопеномики.
+ *
+ * NODE_ENV различить контуры не может: в шаблоне docker-compose плейбука он
+ * жёстко выставлен в `production` и на тестовом узле, и на боевом. Единственный
+ * параметр, который реально приходит из inventory разным, — CHAIN_ID.
+ */
+const MAINNET_CHAIN_ID = '6e37f9ac0f0ea717bfdbf57d1dd5d7f0e2d773227d9659a63bbf86eec0326c1b';
+
 
 const envVarsSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
@@ -228,6 +237,8 @@ export default {
   blockchain: {
     url: envVars.data.BLOCKCHAIN_RPC,
     id: envVars.data.CHAIN_ID,
+    /** Узел работает в основной сети. Любая другая цепь (тестовая, локальная) — false. */
+    is_mainnet: envVars.data.CHAIN_ID === MAINNET_CHAIN_ID,
     root_symbol: envVars.data.ROOT_SYMBOL,
     root_govern_symbol: envVars.data.ROOT_GOVERN_SYMBOL,
     root_precision: envVars.data.ROOT_PRECISION,

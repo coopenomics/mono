@@ -2,9 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
 import { ExtensionDomainEntity } from '../entities/extension-domain.entity';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
-import { AppRegistry, IRegistryExtension } from '~/extensions/extensions.registry';
+import {
+  AppRegistry,
+  isExtensionAvailable,
+  type IResolvedRegistryExtension,
+} from '~/extensions/extensions.registry';
 import zodToJsonSchema from 'zod-to-json-schema';
 import type { GetExtensionsGraphQLInput } from '~/application/appstore/dto/get-extensions-input.dto';
+import appConfig from '~/config/config';
 
 /**
  * Новый доменный сервис, занимающийся сборкой информации о расширениях:
@@ -68,6 +73,20 @@ export class ExtensionDomainListingService<TConfig = any> {
   }
 
   /**
+   * Запрещает установку приложения, которое в этой сети не открыто.
+   *
+   * Проверка обязана быть на сервере: скрытая карточка в интерфейсе не мешает
+   * вызвать мутацию установки напрямую.
+   */
+  assertInstallable(name: string): void {
+    const ext = AppRegistry[name];
+    if (!ext) throw new Error(`Приложение ${name} не найдено в реестре`);
+    if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet)) {
+      throw new Error(`Приложение ${name} недоступно для установки`);
+    }
+  }
+
+  /**
    * Проверяет конфиг по Zod-схеме из AppRegistry
    */
   validateConfig(name: string, config: any): void {
@@ -90,7 +109,7 @@ export class ExtensionDomainListingService<TConfig = any> {
   private async buildDTO(
     name: string,
     installed: ExtensionDomainEntity<TConfig> | null,
-    registryData: IRegistryExtension
+    registryData: IResolvedRegistryExtension
   ): Promise<ExtensionDTO<TConfig>> {
     const dto = new ExtensionDTO(name, registryData, installed);
 
@@ -101,15 +120,17 @@ export class ExtensionDomainListingService<TConfig = any> {
   }
 
   /**
-   * Получаем карту {key: IRegistryExtension} с преобразованной схемой (Zod → JSON)
+   * Получаем карту {key: IResolvedRegistryExtension} с преобразованной схемой (Zod → JSON)
+   * и доступностью, вычисленной для сети, в которой работает этот узел.
    */
-  private async extractRegistryData(): Promise<Record<string, IRegistryExtension>> {
-    const map: Record<string, IRegistryExtension> = {};
+  private async extractRegistryData(): Promise<Record<string, IResolvedRegistryExtension>> {
+    const map: Record<string, IResolvedRegistryExtension> = {};
 
     for (const [key, ext] of Object.entries(AppRegistry)) {
-      const { schema, ...rest } = ext;
+      const { schema, availability, ...rest } = ext;
       map[key] = {
         ...rest,
+        is_available: isExtensionAvailable(availability, appConfig.blockchain.is_mainnet),
         schema: zodToJsonSchema(schema),
       };
     }

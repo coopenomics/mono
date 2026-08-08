@@ -11,6 +11,7 @@ import { CapitalContract } from 'cooptypes';
 import { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Сервис синхронизации коммитов с блокчейном
@@ -74,7 +75,7 @@ export class CommitSyncService
     // Синхронизируем коммит (createIfNotExists сам разберется - создать новый или обновить существующий)
     const commitEntity = await this.repository.createIfNotExists(
       blockchainCommit,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 

@@ -17,6 +17,23 @@
       q-icon(:name='hasVoted ? "hourglass_empty" : "group"')
 
   template(v-else)
+    .voting-segments__tools(v-if='canDistribute')
+      span.t-sm.t-muted Распределите голосующую сумму между участниками — остаток должен стать нулевым
+      .voting-segments__tools-actions
+        BaseButton(variant='ghost', size='sm', @click='splitEqually')
+          template(#icon-left)
+            q-icon(name='balance', size='16px')
+          | Поровну
+        BaseButton(
+          variant='ghost',
+          size='sm',
+          :disabled='distributedUnits === 0',
+          @click='resetAll'
+        )
+          template(#icon-left)
+            q-icon(name='restart_alt', size='16px')
+          | Сбросить
+
     .voting-segments__items
       .voting-segments__item(v-for='segment in rows', :key='segment.username')
         .voting-segments__row(
@@ -41,23 +58,14 @@
             //- До завершения: ввод голоса / ожидание / нельзя за себя
             template(v-if='!isVotingCompleted')
               .voting-segments__input(
-                v-if='!hasVoted && !isCurrentUser(segment.username) && isVotingParticipant'
+                v-if='canDistribute && !isCurrentUser(segment.username)'
               )
                 BaseInput(
-                  :model-value='voteAmounts[segment.username]',
+                  :model-value='inputValue(segment.username)',
                   type='number',
                   :suffix='governSymbol',
                   mono,
-                  @update:model-value='(v) => setVoteAmount(segment.username, v)'
-                )
-                q-slider(
-                  v-model='voteAmounts[segment.username]',
-                  :min='0',
-                  :max='getSliderMax(segment.username)',
-                  :step='0.0001',
-                  color='primary',
-                  track-color='grey-3',
-                  :disable='hasVoted'
+                  @update:model-value='(v) => setVoteFromInput(segment.username, v)'
                 )
               .voting-segments__hint(v-else-if='hasVoted')
                 q-icon(name='hourglass_empty', size='16px')
@@ -87,6 +95,38 @@
                   | {{ formatAsset2Digits(segment.voting_bonus || '0.0000 RUB') }}
                 span.t-sm.t-muted Результат
 
+        //- Ползунок во всю ширину: шкала всегда равна голосующей сумме,
+        //- поэтому чужие ручки не сдвигаются, когда двигаешь свою.
+        .voting-segments__vote(
+          v-if='canDistribute && !isCurrentUser(segment.username)',
+          :class='{ "voting-segments__vote--locked": innerMaxUnits(segment.username) === 0 }',
+          @click.stop
+        )
+          q-slider(
+            :model-value='voteUnits[segment.username] || 0',
+            :min='0',
+            :max='poolUnits',
+            :inner-max='innerMaxUnits(segment.username)',
+            :step='1',
+            color='primary',
+            track-size='10px',
+            thumb-size='22px',
+            @update:model-value='(v) => setVoteUnits(segment.username, v)'
+          )
+          .voting-segments__vote-foot
+            span.t-sm.t-muted(v-if='innerMaxUnits(segment.username) === 0')
+              | Запас исчерпан — уменьшите долю у других участников
+            span.t-sm.t-muted(v-else) {{ sharePercent(segment.username) }}% голосующей суммы
+            BaseButton(
+              variant='ghost',
+              size='sm',
+              :disabled='remainingUnits === 0',
+              @click='giveRemainder(segment.username)'
+            )
+              template(#icon-left)
+                q-icon(name='add', size='16px')
+              | Отдать остаток
+
         .voting-segments__details(
           v-if='isResultStatus && expanded[segment.username]'
         )
@@ -99,9 +139,19 @@
     .voting-segments__foot(
       v-if='isVotingParticipant && !isVotingCompleted && !hasVoted'
     )
-      .voting-segments__remain(v-if='maxVotingAmount > 0')
-        span.t-sm.t-muted Осталось распределить
-        span.t-mono {{ remainingLabel }}
+      .voting-segments__remain(v-if='poolUnits > 0')
+        .voting-segments__remain-head
+          span.t-sm.t-muted Осталось распределить
+          span.t-mono.voting-segments__remain-value(
+            :class='{ "voting-segments__remain-value--done": remainingUnits === 0 }'
+          ) {{ remainingLabel }}
+        q-linear-progress.voting-segments__remain-bar(
+          :value='distributedRatio',
+          size='6px',
+          color='primary',
+          track-color='transparent',
+          rounded
+        )
       SubmitVoteButton(
         :coopname='coopname',
         :project-hash='projectHash',
@@ -122,7 +172,7 @@ import { FailAlert } from 'src/shared/api';
 import { Zeus } from '@coopenomics/sdk';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
-import { EmptyState, BaseBadge, BaseInput } from 'src/shared/ui/base';
+import { EmptyState, BaseBadge, BaseInput, BaseButton } from 'src/shared/ui/base';
 
 interface Props {
   projectHash: string;
@@ -151,43 +201,72 @@ const segments = computed(() =>
   segmentStore.getSegmentsByProject(props.projectHash),
 );
 const rows = computed(() => segments.value?.items || []);
-const voteAmounts = ref<Record<string, number>>({});
+/**
+ * Голоса в целых единицах символа (десятитысячных для RUB): суммы обязаны
+ * сойтись с active_voting_amount ровно, а сложение долей во float на шаге
+ * 0.0001 копит погрешность и контракт отбивает голос.
+ */
+const voteUnits = ref<Record<string, number>>({});
 const hasVoted = ref(false);
 
 const governSymbol = computed(
   () => info.symbols?.root_govern_symbol || 'RUB',
 );
 
-const maxVotingAmount = computed(() => {
-  if (!props.project?.voting?.amounts?.active_voting_amount) return 0;
-  const amount = props.project.voting.amounts.active_voting_amount;
-  return parseFloat(amount.split(' ')[0]);
-});
+const precision = computed(() => info.symbols?.root_govern_precision ?? 4);
+const unitScale = computed(() => 10 ** precision.value);
 
-const totalDistributed = computed(() => {
-  return Object.values(voteAmounts.value).reduce(
-    (sum, amount) => sum + (amount || 0),
+const parseAssetToUnits = (raw?: string | null): number => {
+  if (!raw) return 0;
+  const [amount = '0'] = String(raw).trim().split(' ');
+  const [intPart = '0', fracPart = ''] = amount.split('.');
+  const frac = `${fracPart}${'0'.repeat(precision.value)}`.slice(
     0,
+    precision.value,
   );
-});
+  return Number(intPart) * unitScale.value + Number(frac || '0');
+};
 
-const remaining = computed(() =>
-  Math.max(0, maxVotingAmount.value - totalDistributed.value),
+const unitsToAssetString = (units: number) =>
+  `${(units / unitScale.value).toFixed(precision.value)} ${governSymbol.value}`;
+
+const formatUnits = (units: number) =>
+  formatAsset2Digits(unitsToAssetString(units));
+
+/** Вся сумма, которую голосующий обязан раздать другим участникам */
+const poolUnits = computed(() =>
+  parseAssetToUnits(props.project?.voting?.amounts?.active_voting_amount),
 );
 
-const remainingLabel = computed(() => {
-  const formatted = formatAsset2Digits(
-    `${remaining.value} ${governSymbol.value}`,
-  );
-  return formatted;
-});
+const distributedUnits = computed(() =>
+  Object.values(voteUnits.value).reduce((sum, units) => sum + (units || 0), 0),
+);
 
-const getSliderMax = (username: string) => {
-  const totalOtherVotes = Object.entries(voteAmounts.value)
-    .filter(([u]) => u !== username)
-    .reduce((sum, [, amount]) => sum + (amount || 0), 0);
-  return Math.max(0, maxVotingAmount.value - totalOtherVotes);
+const remainingUnits = computed(() =>
+  Math.max(0, poolUnits.value - distributedUnits.value),
+);
+
+const remainingLabel = computed(() => formatUnits(remainingUnits.value));
+
+const distributedRatio = computed(() =>
+  poolUnits.value > 0 ? distributedUnits.value / poolUnits.value : 0,
+);
+
+/**
+ * Предел хода конкретного ползунка: своё значение плюс весь нераспределённый
+ * остаток. Максимум шкалы при этом фиксирован (poolUnits) — именно поэтому
+ * ручки остальных участников не двигаются, пока тянешь эту.
+ */
+const innerMaxUnits = (username: string) =>
+  Math.min(poolUnits.value, (voteUnits.value[username] || 0) + remainingUnits.value);
+
+const sharePercent = (username: string) => {
+  if (poolUnits.value <= 0) return 0;
+  return Math.round(((voteUnits.value[username] || 0) / poolUnits.value) * 100);
 };
+
+const inputValue = (username: string) =>
+  (voteUnits.value[username] || 0) / unitScale.value;
 
 const isVotingParticipant = computed(() => {
   return (
@@ -215,26 +294,22 @@ const isResultStatus = computed(() => {
 const isValidVoting = computed(() => {
   if (hasVoted.value || !isVotingParticipant.value) return false;
 
-  const votes = Object.entries(voteAmounts.value).filter(
-    ([, amount]) => amount > 0,
+  const votes = Object.entries(voteUnits.value).filter(
+    ([username, units]) => units > 0 && !isCurrentUser(username),
   );
   const expectedVotes = (segments.value?.items.length || 0) - 1;
   if (votes.length !== expectedVotes) return false;
 
-  // Допуск на погрешность float
-  if (Math.abs(totalDistributed.value - maxVotingAmount.value) > 1e-6) {
-    return false;
-  }
-
-  return true;
+  // Суммы целые, поэтому сходятся точно — допуска на погрешность не нужно
+  return remainingUnits.value === 0;
 });
 
 const preparedVotes = computed(() => {
-  return Object.entries(voteAmounts.value)
-    .filter(([, amount]) => amount > 0)
-    .map(([username, amount]) => ({
+  return Object.entries(voteUnits.value)
+    .filter(([username, units]) => units > 0 && !isCurrentUser(username))
+    .map(([username, units]) => ({
       recipient: username,
-      amount: `${amount.toFixed(info.symbols.root_govern_precision)} ${info.symbols.root_govern_symbol}`,
+      amount: unitsToAssetString(units),
     }));
 });
 
@@ -242,9 +317,59 @@ const isCurrentUser = (username: string) => {
   return username === props.currentUsername;
 };
 
-const setVoteAmount = (username: string, value: string | number) => {
-  const n = typeof value === 'string' ? parseFloat(value) : Number(value);
-  voteAmounts.value[username] = Number.isFinite(n) ? Math.max(0, n) : 0;
+/** Голосующий раздаёт сумму — значит его собственная строка ползунка не нужна */
+const canDistribute = computed(
+  () =>
+    !isVotingCompleted.value &&
+    !hasVoted.value &&
+    isVotingParticipant.value &&
+    poolUnits.value > 0,
+);
+
+const setVoteUnits = (username: string, value: number) => {
+  const units = Math.round(Number(value));
+  if (!Number.isFinite(units)) return;
+  voteUnits.value[username] = Math.max(
+    0,
+    Math.min(units, innerMaxUnits(username)),
+  );
+};
+
+const setVoteFromInput = (username: string, value: string | number) => {
+  const amount = typeof value === 'string' ? parseFloat(value) : Number(value);
+  if (!Number.isFinite(amount)) {
+    voteUnits.value[username] = 0;
+    return;
+  }
+  setVoteUnits(username, Math.round(amount * unitScale.value));
+};
+
+/** Добить остаток одним кликом: мышью последние копейки не поймать */
+const giveRemainder = (username: string) => {
+  if (remainingUnits.value === 0) return;
+  setVoteUnits(username, (voteUnits.value[username] || 0) + remainingUnits.value);
+};
+
+const splitEqually = () => {
+  const targets = rows.value
+    .map((segment: any) => segment.username)
+    .filter((username: string) => !isCurrentUser(username));
+
+  if (!targets.length || poolUnits.value <= 0) return;
+
+  const base = Math.floor(poolUnits.value / targets.length);
+  let rest = poolUnits.value - base * targets.length;
+
+  targets.forEach((username: string) => {
+    voteUnits.value[username] = base + (rest > 0 ? 1 : 0);
+    if (rest > 0) rest -= 1;
+  });
+};
+
+const resetAll = () => {
+  Object.keys(voteUnits.value).forEach((username) => {
+    voteUnits.value[username] = 0;
+  });
 };
 
 const loadSegments = async () => {
@@ -265,7 +390,7 @@ const loadSegments = async () => {
 
     segments.value?.items.forEach((segment: any) => {
       if (!isCurrentUser(segment.username)) {
-        voteAmounts.value[segment.username] = 0;
+        voteUnits.value[segment.username] = 0;
       }
     });
 
@@ -289,9 +414,7 @@ const handleToggleExpand = (username: string) => {
 
 const handleVoteSubmitted = () => {
   hasVoted.value = true;
-  Object.keys(voteAmounts.value).forEach((key) => {
-    voteAmounts.value[key] = 0;
-  });
+  resetAll();
   emit('votes-changed', {
     projectHash: props.projectHash,
     voter: props.currentUsername,
@@ -309,21 +432,11 @@ watch(
   },
 );
 
-watch(
-  voteAmounts,
-  (newAmounts) => {
-    Object.keys(newAmounts).forEach((username) => {
-      const max = getSliderMax(username);
-      if (newAmounts[username] > max) {
-        voteAmounts.value[username] = max;
-      }
-      if (newAmounts[username] < 0) {
-        voteAmounts.value[username] = 0;
-      }
-    });
-  },
-  { deep: true },
-);
+// Голосующая сумма приходит с сервера и может обновиться под открытой формой —
+// тогда набранное распределение уже не про этот пул, начинаем с нуля.
+watch(poolUnits, () => {
+  resetAll();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -340,6 +453,22 @@ watch(
   .skel {
     height: 56px;
   }
+}
+
+.voting-segments__tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+  padding: var(--p-3) 0;
+  border-bottom: 1px solid var(--p-line);
+}
+
+.voting-segments__tools-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
 }
 
 .voting-segments__items {
@@ -404,6 +533,48 @@ watch(
   gap: var(--p-2);
 }
 
+.voting-segments__vote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding: 0 var(--p-1) var(--p-3) var(--p-8);
+  min-width: 0;
+
+  //- Три зоны трека: отдано этому участнику (selection), доступный запас
+  //- (inner) и уже роздано другим (track). Цвета — токенами, чтобы тема
+  //- переключалась вместе с остальным интерфейсом.
+  :deep(.q-slider__track) {
+    background: var(--p-line-1);
+  }
+
+  :deep(.q-slider__inner) {
+    background: var(--p-line-2);
+  }
+
+  :deep(.q-slider__thumb) {
+    color: var(--p-primary);
+  }
+
+  :deep(.q-slider) {
+    margin-left: 0;
+    margin-right: var(--p-2);
+  }
+
+  //- Запас исчерпан: Quasar сам делает такой ползунок неперетаскиваемым,
+  //- показываем это состоянием, а не молчанием.
+  &--locked :deep(.q-slider__thumb) {
+    opacity: 0.45;
+  }
+}
+
+.voting-segments__vote-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-2);
+  min-width: 0;
+}
+
 .voting-segments__hint {
   display: inline-flex;
   align-items: center;
@@ -451,9 +622,31 @@ watch(
 .voting-segments__remain {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  gap: var(--p-1);
   margin-right: auto;
+  min-width: 240px;
+  flex: 1 1 240px;
+}
+
+.voting-segments__remain-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--p-3);
+}
+
+.voting-segments__remain-value {
+  font-weight: 600;
+  color: var(--p-ink);
+
+  &--done {
+    color: var(--p-pos);
+  }
+}
+
+.voting-segments__remain-bar {
+  border-radius: var(--p-r-pill);
+  background: var(--p-line-1);
 }
 
 @media (max-width: 640px) {

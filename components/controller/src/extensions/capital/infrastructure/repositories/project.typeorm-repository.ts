@@ -21,6 +21,26 @@ import { AssetUtils } from '~/shared/utils/asset.utils';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 
+/**
+ * Среднее по процентным полям проекта и его компонентов.
+ *
+ * WHY: каждое значение приводится к числу явно. Проценты синхронизировались двумя путями и
+ * до нормализации в RPC-транспорте могли лечь в БД строкой — тогда `sum + value` склеивал
+ * строки, среднее выходило NaN и роняло сериализацию GraphQL Float на всём списке проектов.
+ * Записи, сохранённые до фикса, живут в БД до следующей дельты, поэтому усреднение обязано
+ * оставаться устойчивым к ним.
+ */
+function averagePercent(values: Array<number | string | null | undefined>): number {
+  if (values.length === 0) return 0;
+
+  const sum = values.reduce<number>((accumulator, value) => {
+    const parsed = Number(value ?? 0);
+    return accumulator + (Number.isFinite(parsed) ? parsed : 0);
+  }, 0);
+
+  return sum / values.length;
+}
+
 @Injectable()
 export class ProjectTypeormRepository
   extends BaseBlockchainRepository<ProjectDomainEntity, ProjectTypeormEntity>
@@ -825,10 +845,8 @@ export class ProjectTypeormRepository
 
       // Для процентных полей берем среднее значение
       const planWithPercents = [project, ...components].filter(c => c.plan);
-      project.plan.return_base_percent =
-        planWithPercents.reduce((sum, c) => sum + (c.plan?.return_base_percent || 0), 0) / planWithPercents.length;
-      project.plan.use_invest_percent =
-        planWithPercents.reduce((sum, c) => sum + (c.plan?.use_invest_percent || 0), 0) / planWithPercents.length;
+      project.plan.return_base_percent = averagePercent(planWithPercents.map(c => c.plan?.return_base_percent));
+      project.plan.use_invest_percent = averagePercent(planWithPercents.map(c => c.plan?.use_invest_percent));
 
       // Агрегация fact данных
       const factAssets = [project.fact, ...components.filter(c => c.fact).map(c => c.fact)];
@@ -859,10 +877,8 @@ export class ProjectTypeormRepository
 
       // Для процентных полей берем среднее значение
       const factWithPercents = [project, ...components].filter(c => c.fact);
-      project.fact.return_base_percent =
-        factWithPercents.reduce((sum, c) => sum + (c.fact?.return_base_percent || 0), 0) / factWithPercents.length;
-      project.fact.use_invest_percent =
-        factWithPercents.reduce((sum, c) => sum + (c.fact?.use_invest_percent || 0), 0) / factWithPercents.length;
+      project.fact.return_base_percent = averagePercent(factWithPercents.map(c => c.fact?.return_base_percent));
+      project.fact.use_invest_percent = averagePercent(factWithPercents.map(c => c.fact?.use_invest_percent));
 
     } catch (error: any) {
       console.error(`Ошибка при агрегации данных проекта ${project.project_hash}:`, error.message);

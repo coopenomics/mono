@@ -56,6 +56,7 @@ import {
   type ExtensionDomainRepository,
 } from '~/domain/extension/repositories/extension-domain.repository';
 import type { IConfig } from '../../capital-extension.module';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте
@@ -444,7 +445,7 @@ export class ParticipationManagementInteractor {
     // ШАГ 4: Обновляем существующую запись полными данными
     savedAppendix.updateFromBlockchain(
       blockchainData,
-      Number(result.transaction?.ref_block_num) ?? 0,
+      getAppliedBlockNum(result),
       true
     );
     await this.appendixRepository.save(savedAppendix);
