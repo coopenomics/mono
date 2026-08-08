@@ -1,0 +1,90 @@
+feature: marketplace.issuance
+title: Выдача заказа на пункте выдачи — открытие по коду, подписи оператора и заказчика
+
+# Слайс от готового к получению заказа до подтверждения получения заказчиком.
+# Порядок подписей по решению L1 проекта: при выдаче первым подписывает
+# председатель участка (оператор), финальную подпись ставит заказчик — то есть
+# зеркально приёмке, где финальная подпись у председателя.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-issuance*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OperatorIssuance/**
+    - components/desktop/src/pages/Marketplace/OrdererReceiveCode/**
+    - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
+
+cases:
+  - id: mkt.iss.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор открывает выдачу по коду получателя, сверяет имущество и подписывает акт выдачи.
+    expect: >
+      выдача открывается только по коду пайщика; после подписи акт уходит заказчику на подтверждение
+    test: components/docs-harness/scenarios/marketplace/operator/issuance-open.mjs
+    status: passing
+
+  - id: mkt.iss.happy.02
+    level: ui
+    kind: happy
+    scenario: Заказчик подтверждает получение в своём кабинете
+    expect: заказ переходит в «Получен», средства уходят поставщику
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.01
+    level: ui
+    kind: side
+    scenario: Оператор пытается открыть выдачу без кода получателя
+    expect: выдача не открывается
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.02
+    level: backend
+    kind: side
+    scenario: Код получателя принадлежит другому пайщику, а не тому, чей заказ
+    expect: отказ — выдать чужой заказ нельзя
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.03
+    level: backend
+    kind: side
+    scenario: Оператор указывает к выдаче больше единиц, чем принято на складе
+    expect: отказ — выдать больше принятого нельзя
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.04
+    level: ui
+    kind: side
+    scenario: Часть позиций снята с выдачи (заказчик забирает не всё)
+    expect: снятые позиции остаются на складе, к оплате идёт только выданное
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.05
+    level: backend
+    kind: side
+    scenario: Повторная подпись акта выдачи оператором
+    expect: повторная подпись не создаёт второй акт
+    test: ~
+    status: missing
+
+  - id: mkt.iss.side.06
+    level: backend
+    kind: side
+    scenario: Заказчик подтверждает получение по акту, который ему не адресован
+    expect: отказ доступа
+    test: ~
+    status: missing
+
+  - id: mkt.iss.break.01
+    level: backend
+    kind: break
+    scenario: Цепь недоступна в момент подписи акта выдачи
+    expect: акт не считается подписанным, повторная попытка возможна
+    test: ~
+    status: missing
