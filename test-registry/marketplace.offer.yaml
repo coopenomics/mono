@@ -186,32 +186,32 @@ cases:
     kind: side
     scenario: Модерация предложения, которое уже одобрено или отклонено
     expect: конфликт «Это предложение уже одобрено/отклонено — модерация недоступна»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.18
     level: backend
     kind: side
     scenario: Отклонение предложения без указания причины
     expect: отказ «Укажите причину отклонения предложения»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.19
     level: backend
     kind: side
     scenario: Причина отклонения длиннее допустимого предела
     expect: отказ с указанием максимальной длины
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.20
     level: backend
     kind: side
     scenario: Модерация несуществующего предложения
     expect: «Предложение не найдено»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.21
     level: backend
