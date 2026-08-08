@@ -1,12 +1,12 @@
-// Сценарий: поставщик подписывает акт приёма-передачи.
+// Сценарий: партия поставщика во время приёмки на участке.
 //
-// Когда партия принята на пункте выдачи, на её карточке в «Подготовке
-// отгрузки» появляется «Подписать передачу»: этой подписью поставщик
-// подтверждает факт приёмки. Дальше акт уходит на закрывающую подпись
-// председателя участка, и только после неё имущество оприходуется на склад.
+// Подпись поставщика на акте ставится ОЧНО, в момент передачи имущества: она
+// оформляется на столе пункта выдачи вместе с приёмкой, и на карточке партии
+// потом видно «Поставщик подписал <время>». Своей кнопки подписи у поставщика
+// нет — пока идёт приёмка, он видит статус и ждёт подписей акта.
 //
-// Отдельного раздела «Акты приёмки» у поставщика больше нет — прежний
-// сценарий ходил на /market/apl-receptions и получал 404.
+// Отдельного раздела «Акты приёмки» у поставщика тоже нет — прежний сценарий
+// ходил на /market/apl-receptions и получал 404.
 //
 // Фикстура: ivanpetrov / Петров Иван Сергеевич.
 
@@ -21,7 +21,7 @@ const loadFixture = (username) =>
   JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
 export const meta = {
-  title: 'Стол поставщика — подпись акта приёмки',
+  title: 'Стол поставщика — партия на приёмке',
   docPath: 'new/marketplace/offerer/apl-reception-sign.md',
   assetsDir: 'assets/new/marketplace/offerer/apl-reception-sign',
   role: 'user',
@@ -29,7 +29,7 @@ export const meta = {
   fixture: 'ivanpetrov',
   fixtures: ['ivanpetrov'],
   feature: 'marketplace.supply',
-  cases: ['mkt.supply.happy.03'],
+  cases: ['mkt.supply.side.08'],
   prepare: [
     'marketplace:01-l1-accept',
     'marketplace:02-branches',
@@ -54,41 +54,14 @@ export default async ({ page, shot, expect }) => {
 
   await shot(
     page,
-    '01-party-accepted',
-    'Партия принята на пункте выдачи: на её карточке появилось действие «Подписать передачу». Пока подписи нет, имущество числится за поставщиком.',
+    '01-party-in-reception',
+    'Партия глазами поставщика, пока идёт приёмка на участке: показан цикл, участок, способ доставки, статус и сумма. Собственных действий на этом шаге нет — подпись поставщик ставит очно при передаче имущества, дальше акт закрывает председатель участка.',
     {
       expect: async (p) => {
-        await expect(p.locator('text=Подписать передачу').first()).toBeVisible({ timeout: 20000 });
-      },
-    },
-  );
-
-  await page.locator('text=Подписать передачу').first().click();
-  await page.waitForTimeout(4000);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '02-sign-dialog',
-    'Акт приёма-передачи перед подписанием: состав партии, количество и сумма. Подпись поставщика подтверждает, что имущество передано участку.',
-  );
-
-  // Кнопка подписания живёт в диалоге; ищем её среди видимых, а не первую на
-  // странице — «Подписать передачу» на карточке осталась в фоне.
-  const signButton = page.locator('button:has-text("Подписать")').last();
-  await signButton.click();
-  await page.waitForTimeout(9000);
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '03-after-sign',
-    'После подписи акт уходит председателю участка на закрывающую подпись. Действие «Подписать передачу» с карточки пропадает — повторно подписать тот же акт нельзя.',
-    {
-      preserveNotifications: true,
-      expect: async (p) => {
-        await expect(p.locator('text=Подписать передачу')).toHaveCount(0, { timeout: 20000 });
+        // Партия обязана быть в таблице: её пропажа здесь означала бы, что
+        // поставщик теряет след отгруженного имущества.
+        await expect(p.locator('text=КУ Красногорск').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=750,00').first()).toBeVisible({ timeout: 20000 });
       },
     },
   );

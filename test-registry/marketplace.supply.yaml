@@ -105,3 +105,23 @@ cases:
     expect: партия не видна в ожидаемых поставках чужого участка
     test: ~
     status: missing
+
+  - id: mkt.supply.side.08
+    level: ui
+    kind: side
+    scenario: >
+      Поставщик смотрит партию, пока идёт приёмка на участке
+    expect: >
+      партия показана в статусе «Идёт приёмка» с пояснением, что нужно дождаться подписей акта; собственных действий у поставщика на этом шаге нет — подпись он ставит очно при передаче имущества
+    test: components/docs-harness/scenarios/marketplace/offerer/apl-reception-sign.mjs
+    status: passing
+
+  - id: mkt.supply.happy.04
+    level: ui
+    kind: happy
+    scenario: >
+      После закрывающей подписи оператор видит принятое имущество на складе участка в разделе «Раскладка и маркировка».
+    expect: >
+      позиция числится поступившей с указанием количества и заказчика, помечена как ещё не маркированная
+    test: components/docs-harness/scenarios/marketplace/operator/warehouse.mjs
+    status: passing

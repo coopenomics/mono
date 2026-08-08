@@ -16,6 +16,16 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
+  mode: 'docs',
+  feature: 'marketplace.supply',
+  cases: ['mkt.supply.happy.04'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
   title: 'Стол ПВЗ — склад моего кооперативного участка',
   docPath: 'new/marketplace/operator/inventory-list.md',
   assetsDir: 'assets/new/marketplace/operator/inventory-list',
