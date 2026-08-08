@@ -33,6 +33,26 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.cap.preimp",
   },
   {
+    "program_label": "Marketplace",
+    "required_program_id": 2,
+    "wallet_name": "w.mkt.order",
+  },
+  {
+    "program_label": "Marketplace",
+    "required_program_id": 2,
+    "wallet_name": "w.mkt.member",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.brn.person",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.brn.common",
+  },
+  {
     "program_label": null,
     "required_program_id": 0,
     "wallet_name": "w.exp.adv",
@@ -71,6 +91,26 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Первичный учёт РИД-взносов до перехода на электронный учёт",
     "kind": "USER_SHARED",
     "name": "w.cap.preimp",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — резерв под заказ у пайщика",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.order",
+  },
+  {
+    "human_name": "ЦПП «Стол Заказов» — членский кошелёк пайщика программы",
+    "kind": "USER_SHARED",
+    "name": "w.mkt.member",
+  },
+  {
+    "human_name": "Персональный кошелёк доверенного кооперативного участка",
+    "kind": "USER_SHARED",
+    "name": "w.brn.person",
+  },
+  {
+    "human_name": "Общий кошелёк членских взносов кооперативного участка",
+    "kind": "USER_SHARED",
+    "name": "w.brn.common",
   },
   {
     "human_name": "Подотчётные средства пайщика",
@@ -131,6 +171,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Выплаты поставщикам",
     "kind": "COOPERATIVE",
     "name": "w.mkt.payout",
+  },
+  {
+    "human_name": "Резерв членских взносов «Стола заказов» под заказы",
+    "kind": "COOPERATIVE",
+    "name": "w.mkt.fee",
+  },
+  {
+    "human_name": "Транзитный пул ручного распределения кооперативного участка",
+    "kind": "COOPERATIVE",
+    "name": "w.brn.pool",
+  },
+  {
+    "human_name": "Пул расходов кооперативного участка",
+    "kind": "COOPERATIVE",
+    "name": "w.brn.expns",
   },
   {
     "human_name": "Пул программных расходов ЦПП «Благорост»",

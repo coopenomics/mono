@@ -29,11 +29,11 @@ beforeAll(async () => {
   }
 
   // Подменяем метод getDecision для фабрики Протокола списания скоропорта
-  // (1105) — голоса совета приходят из SIMPLE_EXPLORER_API, в тесте
+  // (1107) — голоса совета приходят из SIMPLE_EXPLORER_API, в тесте
   // обращений к нему нет.
-  const factory1105 = (generator as any).factories['1105']
-  if (factory1105) {
-    vi.spyOn(factory1105, 'getDecision').mockImplementation(async () => {
+  const factory1107 = (generator as any).factories['1107']
+  if (factory1107) {
+    vi.spyOn(factory1107, 'getDecision').mockImplementation(async () => {
       return {
         id: 1,
         date: '01.06.2026',
@@ -528,9 +528,9 @@ describe('тест генератора документов с registry_id >= 1
   })
 
   // Документы списания скоропорта по решению совета (ЦПП «Стол заказов»)
-  it('генерируем заявление председателя о списании скоропорта (1106)', async () => {
+  it('генерируем заявление председателя о списании скоропорта (1108)', async () => {
     await testDocumentGeneration({
-      registry_id: 1106,
+      registry_id: 1108,
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
@@ -541,6 +541,7 @@ describe('тест генератора документов с registry_id >= 1
           braname: 'voskhod1',
           asset_title: 'Сахар-песок «Сладкий», 1 кг',
           quantity: '12',
+          unit: 'кг',
           amount: '1020.0000 RUB',
           reason: 'Истёк срок годности',
         },
@@ -548,6 +549,7 @@ describe('тест генератора документов с registry_id >= 1
           braname: 'voskhod2',
           asset_title: 'Молоко «Доброе», 1 л',
           quantity: '5',
+          unit: 'л',
           amount: '485.0000 RUB',
           reason: 'Повреждена упаковка',
         },
@@ -556,9 +558,9 @@ describe('тест генератора документов с registry_id >= 1
     })
   })
 
-  it('генерируем протокол совета о списании скоропорта (1105)', async () => {
+  it('генерируем протокол совета о списании скоропорта (1107)', async () => {
     await testDocumentGeneration({
-      registry_id: 1105,
+      registry_id: 1107,
       coopname: 'voskhod',
       username: 'ant',
       lang: 'ru',
