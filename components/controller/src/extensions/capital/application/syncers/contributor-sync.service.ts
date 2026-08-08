@@ -9,6 +9,7 @@ import type { IContributorBlockchainData } from '../../domain/interfaces/contrib
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
 import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
+import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 
 /**
  * Сервис синхронизации участников с блокчейном
@@ -78,7 +79,7 @@ export class ContributorSyncService
     // Синхронизируем участника (createIfNotExists сам разберется - создать новый или обновить существующий)
     const contributorEntity = await this.repository.createIfNotExists(
       processedBlockchainContributor,
-      Number(transactResult.transaction?.ref_block_num ?? 0),
+      getAppliedBlockNum(transactResult),
       true
     );
 
