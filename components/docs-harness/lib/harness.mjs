@@ -241,9 +241,34 @@ export async function pickBranchIfAsked(page, { timeout = 12000 } = {}) {
     await option.click();
     await page.waitForTimeout(600);
   }
-  if (!picked) throw new Error('диалог выбора участка открылся, но список участков пуст');
+  if (!picked) {
+    // Председателю кооператива участок не нужен, а список для него может быть
+    // пуст. Диалог всё равно перехватывает клики, поэтому закрываем его, а не
+    // роняем сценарий: отсутствие выбора здесь не дефект проверяемого экрана.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+    const stillOpen = await dialog.locator('.q-field').first().isVisible().catch(() => false);
+    if (stillOpen) {
+      await dialog.locator('button').filter({ hasText: 'close' }).first().click({ force: true }).catch(() => {});
+      await page.waitForTimeout(800);
+    }
+    return null;
+  }
 
   await dialog.locator('button:has-text("Продолжить")').first().click();
+  await page.waitForTimeout(2500);
+
+  // Выбор участка завершается подписанием «Заявления пайщика»: без подписи
+  // диалог остаётся на экране и перехватывает клики по странице под ним —
+  // именно на этом сценарии молча упирались в «не могу нажать».
+  const statement = page.locator('[id^="q-portal--dialog--"]').filter({ hasText: 'Заявление пайщика' }).first();
+  const needsSign = await statement.waitFor({ state: 'attached', timeout: 8000 }).then(() => true).catch(() => false);
+  if (needsSign) {
+    await statement.locator('button:has-text("подписать"), button:has-text("Подписать")').first().click({ force: true });
+    await statement.waitFor({ state: 'detached', timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+  }
+
   await dialog.waitFor({ state: 'detached', timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(1500);
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});

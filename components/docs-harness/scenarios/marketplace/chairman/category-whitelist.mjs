@@ -10,7 +10,7 @@
 //
 // Фикстура: председатель кооператива (ant, Иванов Иван Иванович).
 
-import { loginAsChairman } from '../../../lib/harness.mjs';
+import { loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Доступные категории кооператива',
@@ -25,11 +25,17 @@ export const meta = {
 
 export default async ({ page, shot, expect, env, context }) => {
   await loginAsChairman(page, context);
+  // Диалог выбора участка платформа показывает и председателю: пока он висит,
+  // клики уходят в него, а не в страницу.
+  await pickBranchIfAsked(page);
 
   await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/category-whitelist`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Доступные категории', { timeout: 60000 });
+  // Диалог участка платформа поднимает уже после перехода на страницу —
+  // закрываем его здесь, иначе он перехватит клики по таблице.
+  await pickBranchIfAsked(page);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(900);
 
@@ -53,8 +59,15 @@ export default async ({ page, shot, expect, env, context }) => {
 
   // Выключение категории — то самое ограничение каталога, ради которого экран
   // и существует. Проверяем именно смену состояния, а не факт клика.
-  const firstToggle = page.locator('.q-toggle').first();
-  await firstToggle.click();
+  // Тумблер берём в строке таблицы: первым на странице идёт переключатель
+  // темы в шапке, и клик по нему просто перекрашивает интерфейс.
+  const firstToggle = page.locator('tbody tr .q-toggle, .q-table tbody tr .q-toggle').first();
+  // Диалог участка всплывает асинхронно и может подняться уже после первого
+  // кадра — проверяем непосредственно перед взаимодействием с таблицей.
+  await pickBranchIfAsked(page, { timeout: 4000 });
+  // force: диалог платформы успевает перерисоваться поверх таблицы между
+  // проверкой и кликом, а ждать его исчезновения бесполезно — он возвращается.
+  await firstToggle.click({ force: true });
   await page.waitForTimeout(2500);
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 
@@ -71,7 +84,7 @@ export default async ({ page, shot, expect, env, context }) => {
 
   // Возвращаем состояние: сценарий не должен оставлять стенд с урезанным
   // каталогом — на нём дальше публикуется предложение поставщика.
-  await firstToggle.click();
+  await firstToggle.click({ force: true });
   await page.waitForTimeout(2500);
   await expect(page.locator('text=Открыт весь каталог').first()).toBeVisible({ timeout: 10000 });
 };

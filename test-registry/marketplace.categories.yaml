@@ -27,7 +27,7 @@ cases:
       Председатель открывает «Доступные категории»: показан справочник базовых категорий, каталог открыт целиком.
     expect: список непустой, состояние «Открыт весь каталог»
     test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
-    status: written
+    status: passing
 
   - id: mkt.cat.happy.02
     level: ui
@@ -36,7 +36,7 @@ cases:
     expect: >
       после выключения каталог перестаёт быть открытым, после включения возвращается в исходное состояние
     test: components/docs-harness/scenarios/marketplace/chairman/category-whitelist.mjs
-    status: written
+    status: passing
 
   - id: mkt.cat.side.01
     level: backend

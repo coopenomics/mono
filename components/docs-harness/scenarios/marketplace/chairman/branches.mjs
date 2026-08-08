@@ -6,7 +6,7 @@
 //
 // Фикстура — chairman кооператива `ant` (Иван Иванов).
 
-import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
+import { loginAsChairman, dismissOnboardingDialogs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Сеть ПВЗ: реестр кооперативных участков',
@@ -17,6 +17,9 @@ export const meta = {
 
 export default async ({ page, context, shot, expect, env }) => {
   await loginAsChairman(page, context);
+  // Диалог выбора участка платформа показывает и председателю: пока он висит,
+  // клики уходят в него, а не в страницу.
+  await pickBranchIfAsked(page);
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу «Кооперативные участки»
