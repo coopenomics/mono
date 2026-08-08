@@ -81,5 +81,5 @@ cases:
       Маршрут стола требует грант, которого нет ни в одной роли матрицы
     expect: >
       расхождение обнаруживается тестом: каждый грант из meta.requires маршрутов Стола заказов выдаётся хотя бы одной ролью
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
+    status: passing
