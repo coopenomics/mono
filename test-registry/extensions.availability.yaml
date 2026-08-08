@@ -1,0 +1,99 @@
+feature: extensions.availability
+title: Доступность расширений в зависимости от сети узла
+
+# Приложение обкатывают на тестовом контуре раньше, чем открывают в основной
+# сети. Признак контура берётся из CHAIN_ID: NODE_ENV для этого не годится —
+# в шаблоне docker-compose плейбука он выставлен в `production` на обоих узлах.
+#
+# Переключатель — поле `availability` записи реестра: EVERYWHERE /
+# NON_MAINNET_ONLY / NOWHERE. Наружу (GraphQL, рабочие столы) уходит уже
+# вычисленный под текущую сеть `is_available`.
+sources:
+  backend:
+    - components/controller/src/extensions/extensions.registry.ts
+    - components/controller/src/domain/extension/services/extension-listing-domain.service.ts
+    - components/controller/src/application/appstore/services/extension.service.ts
+
+cases:
+  - id: ext.avail.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Расширение помечено доступным в любой сети, узел работает в основной сети.
+    expect: >
+      расширение отдаётся как доступное и ставится без отказа
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    status: written
+
+  - id: ext.avail.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Расширение открыто только вне основной сети, узел работает в основной сети.
+    expect: >
+      расширение отдаётся как недоступное — карточка не кликабельна, рабочий
+      стол расширения в состав столов не попадает
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    status: written
+
+  - id: ext.avail.side.02
+    level: backend
+    kind: side
+    scenario: >
+      То же расширение на тестовом или локальном контуре.
+    expect: >
+      расширение доступно к установке
+    test: components/controller/tests/unit/extension/extension-availability.test.ts
+    status: written
+
+  - id: ext.avail.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Расширение закрыто везде (ещё не открыто для установки), узел вне основной сети.
+    expect: >
+      расширение остаётся недоступным — тестовый контур не является послаблением
+    test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    status: written
+
+  - id: ext.avail.break.01
+    level: backend
+    kind: break
+    scenario: >
+      Пайщик вызывает мутацию установки расширения напрямую, минуя интерфейс,
+      для приложения, закрытого в этой сети.
+    expect: >
+      сервер отказывает в установке; скрытая карточка не является защитой
+    test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    status: written
+
+  - id: ext.avail.break.02
+    level: backend
+    kind: break
+    scenario: >
+      В мутацию установки передано имя, которого нет в реестре.
+    expect: >
+      сервер отказывает с сообщением о ненайденном приложении
+    test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    status: written
+
+  # Открытые вопросы, требующие решения человека:
+  #
+  # Установленное ранее расширение, которое затем закрыли в этой сети, сейчас
+  # продолжает работать (runApps смотрит только на enabled), но пропадает из
+  # списка установленных и из состава рабочих столов. Останавливать ли его
+  # принудительно — решения нет, поведение оставлено как есть.
+  - id: ext.avail.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Расширение было установлено, когда оно было открыто, после чего в реестре
+      его закрыли для этой сети.
+    expect: >
+      решение не принято: сейчас расширение продолжает работать (запуск смотрит
+      только на признак «включено»), но пропадает из списка установленных и из
+      состава рабочих столов. Нужно решить, останавливать ли его принудительно —
+      до этого тест не пишется, чтобы не закрепить случайное поведение
+    decision_needed: true
+    test: ~
+    status: missing

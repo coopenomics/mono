@@ -1,9 +1,9 @@
 // modules/appstore/dto/extension-graphql-input.dto.ts
 import { InputType, Field } from '@nestjs/graphql';
-import type { IRegistryExtension } from '~/extensions/extensions.registry';
+import type { IResolvedRegistryExtension } from '~/extensions/extensions.registry';
 
 @InputType('GetExtensionsInput')
-export class GetExtensionsGraphQLInput implements Partial<IRegistryExtension> {
+export class GetExtensionsGraphQLInput implements Partial<IResolvedRegistryExtension> {
   @Field(() => String, { description: 'Фильтр по имени', nullable: true })
   name?: string;
 

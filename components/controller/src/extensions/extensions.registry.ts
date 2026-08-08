@@ -26,12 +26,42 @@ export interface IDesktopConfig {
 }
 
 /**
+ * В каких сетях расширение разрешено ставить.
+ *
+ * Переключатель обкатки: приложение сначала открывают на тестовом контуре
+ * (`NON_MAINNET_ONLY`), а когда оно готово к боевой эксплуатации — здесь же,
+ * в реестре, переводят в `EVERYWHERE`.
+ */
+export enum ExtensionAvailability {
+  /** Доступно в любой сети, включая основную. */
+  EVERYWHERE = 'everywhere',
+  /** Доступно только вне основной сети — тестовый и локальный контуры. */
+  NON_MAINNET_ONLY = 'non_mainnet_only',
+  /** Недоступно нигде — расширение ещё не открыто для установки. */
+  NOWHERE = 'nowhere',
+}
+
+/**
+ * Вычисляет доступность расширения для сети, в которой работает узел.
+ */
+export function isExtensionAvailable(availability: ExtensionAvailability, isMainnet: boolean): boolean {
+  switch (availability) {
+    case ExtensionAvailability.EVERYWHERE:
+      return true;
+    case ExtensionAvailability.NON_MAINNET_ONLY:
+      return !isMainnet;
+    case ExtensionAvailability.NOWHERE:
+      return false;
+  }
+}
+
+/**
  * Основной интерфейс для описания расширения в реестре.
  * Обрати внимание: сохраняем его тут, а не в домене, чтобы не тянуть поля readme, instructions и т.д. в домен.
  */
 export interface IRegistryExtension {
   is_builtin: boolean; // признак, что расширение встроенное (?)
-  is_available: boolean; // признак, что расширение доступно для установки
+  availability: ExtensionAvailability; // в каких сетях расширение разрешено ставить
   is_internal: boolean; // признак, что расширение внутреннее
   desktops?: IDesktopConfig[]; // массив рабочих столов, которые предоставляет расширение
   external_url?: string; // ссылка на внешний ресурс
@@ -53,6 +83,12 @@ interface INamedExtension {
   [key: string]: IRegistryExtension;
 }
 
+/**
+ * Запись реестра, у которой доступность уже вычислена под текущую сеть узла.
+ * Именно её потребляет DTO — наружу отдаётся готовый `is_available`.
+ */
+export type IResolvedRegistryExtension = Omit<IRegistryExtension, 'availability'> & { is_available: boolean };
+
 // Асинхронные функции для чтения Markdown
 function getReadmeContent(dirPath: string): Promise<string> {
   return fs.readFile(path.join(__dirname, dirPath, 'README.md'), 'utf-8').catch(() => '');
@@ -69,7 +105,7 @@ export const AppRegistry: INamedExtension = {
   soviet: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'soviet',
@@ -93,7 +129,7 @@ export const AppRegistry: INamedExtension = {
   capital: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'capital',
@@ -117,7 +153,7 @@ export const AppRegistry: INamedExtension = {
   chairman: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'chairman',
@@ -141,7 +177,7 @@ export const AppRegistry: INamedExtension = {
   trustee: {
     is_builtin: true,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: [
       {
         name: 'trustee',
@@ -165,7 +201,7 @@ export const AppRegistry: INamedExtension = {
   participant: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'participant',
@@ -189,7 +225,7 @@ export const AppRegistry: INamedExtension = {
   powerup: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'powerup',
@@ -213,7 +249,7 @@ export const AppRegistry: INamedExtension = {
   yookassa: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
     title: 'YOOKASSA',
     description: 'Приложение для приёма платежей с помощью ЮКасса. Для использования необходимо установить API-ключ.',
@@ -231,7 +267,7 @@ export const AppRegistry: INamedExtension = {
   sberpoll: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
     title: 'SBERKASSA',
     description: 'Приложение для автоматического приёма паевых взносов в Сбербанке.',
@@ -249,7 +285,7 @@ export const AppRegistry: INamedExtension = {
   qrpay: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
     title: 'QR-CODE',
     description: 'Приложение для выставления QR-счёта на оплату из любого банковского приложения.',
@@ -267,7 +303,7 @@ export const AppRegistry: INamedExtension = {
   chatcoop: {
     is_builtin: false,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'chatcoop',
@@ -291,7 +327,7 @@ export const AppRegistry: INamedExtension = {
   onecoop: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
     title: 'Интеграция 1С',
     description: 'Приложение для синхронизации документов кооператива с внешней бухгалтерией 1С.',
@@ -309,7 +345,7 @@ export const AppRegistry: INamedExtension = {
   reports: {
     is_builtin: true,
     is_internal: true,
-    is_available: true,
+    availability: ExtensionAvailability.EVERYWHERE,
     desktops: [
       {
         name: 'reports',
@@ -333,7 +369,9 @@ export const AppRegistry: INamedExtension = {
   orders: {
     is_builtin: false,
     is_internal: true,
-    is_available: false,
+    // Обкатка Стола заказов идёт на тестовом контуре; в основной сети приложение
+    // остаётся закрытым, пока здесь не поставят EVERYWHERE.
+    availability: ExtensionAvailability.NON_MAINNET_ONLY,
     desktops: [
       {
         name: 'orders',
