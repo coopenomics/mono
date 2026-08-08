@@ -105,16 +105,16 @@ cases:
     kind: side
     scenario: Размер упаковки равен нулю или отрицателен
     expect: отказ «Размер упаковки должен быть больше нуля»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.08
     level: backend
     kind: side
     scenario: Отпуск упаковкой выбран, но не добавлено ни одной упаковки
     expect: отказ с требованием добавить упаковку
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-offer-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.09
     level: backend
@@ -226,8 +226,8 @@ cases:
     kind: side
     scenario: Модерация выполняется пайщиком без прав председателя
     expect: отказ доступа, статус предложения не меняется
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-access.test.ts
+    status: passing
 
   - id: mkt.offer.side.23
     level: ui

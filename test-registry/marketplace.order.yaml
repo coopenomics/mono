@@ -86,8 +86,8 @@ cases:
     kind: side
     scenario: Не указан ПВЗ получения
     expect: «Не указан ПВЗ получения», заказ не создаётся
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   - id: mkt.order.side.07
     level: backend
@@ -113,8 +113,8 @@ cases:
     scenario: >
       Заказ по предложению без ограничения количества («без ограничения»)
     expect: проверка остатка не применяется, заказ создаётся
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    status: passing
 
   # ── Приём и отказ поставщиком ───────────────────────────────────────────
   - id: mkt.order.side.10

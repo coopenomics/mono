@@ -79,8 +79,8 @@ cases:
     kind: side
     scenario: Заказчик подтверждает получение по акту, который ему не адресован
     expect: отказ доступа
-    test: ~
-    status: missing
+    test: components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.spec.ts
+    status: passing
 
   - id: mkt.iss.break.01
     level: backend
