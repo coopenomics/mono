@@ -925,6 +925,52 @@ describe('MarketplaceOfferService.update — упаковки при отпус�
     });
     expect(repo.applyUpdate.mock.calls[0][1]).not.toHaveProperty('status');
   });
+
+  /**
+   * Границы набора упаковок. Размер упаковки участвует в расчёте суммы заказа
+   * (цена ÷ содержимое), поэтому ноль и отрицательное значение обязаны
+   * отбиваться до записи: иначе предложение делит на ноль в витрине.
+   */
+  describe('границы набора упаковок', () => {
+    function prepared() {
+      const repo = makeOfferRepo();
+      const cats = makeCategoryRepo();
+      repo.findById.mockResolvedValue(packagedOffer());
+      repo.applyUpdate.mockImplementation((_id, patch) => Promise.resolve(makeOffer(patch as object)));
+      return { repo, cats, service: makeService(repo, cats) };
+    }
+
+    it.each([0, -1, -0.5])('размер упаковки %p → отказ, предложение не меняется', async (size) => {
+      const { repo, service } = prepared();
+
+      await expect(
+        service.update('offer-1', 'alice', {
+          packages: [{ size, price: '100.00', is_default: true }],
+        })
+      ).rejects.toThrow('Размер упаковки должен быть больше нуля');
+      expect(repo.applyUpdate).not.toHaveBeenCalled();
+    });
+
+    it('отпуск упаковкой без единой упаковки → отказ', async () => {
+      const { repo, service } = prepared();
+
+      await expect(
+        service.update('offer-1', 'alice', { packages: [] })
+      ).rejects.toThrow('добавьте хотя бы одну упаковку');
+      expect(repo.applyUpdate).not.toHaveBeenCalled();
+    });
+
+    it('нулевая цена упаковки → отказ', async () => {
+      const { repo, service } = prepared();
+
+      await expect(
+        service.update('offer-1', 'alice', {
+          packages: [{ size: 1, price: '0.0000', is_default: true }],
+        })
+      ).rejects.toThrow('Цена упаковки должна быть положительным числом');
+      expect(repo.applyUpdate).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('MarketplaceOfferService — изображения', () => {
