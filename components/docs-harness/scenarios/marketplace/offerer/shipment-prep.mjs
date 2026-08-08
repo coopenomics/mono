@@ -25,6 +25,8 @@ export const meta = {
   mode: 'docs',
   fixture: 'ivanpetrov',
   fixtures: ['ivanpetrov'],
+  feature: 'marketplace.supply',
+  cases: ['mkt.supply.happy.02'],
   prepare: [
     'marketplace:01-l1-accept',
     'marketplace:02-branches',

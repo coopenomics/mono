@@ -1,0 +1,107 @@
+feature: marketplace.supply
+title: Поставка — сборка партии поставщиком, приёмка на участке и подписи акта
+
+# Слайс от принятого заказа до оприходования имущества на склад участка:
+# поставщик собирает партию, привозит её на пункт выдачи, оператор сверяет
+# фактически привезённое с заказанным и формирует акт приёма-передачи,
+# поставщик подписывает акт, председатель участка ставит закрывающую подпись.
+#
+# Порядок подписей зафиксирован решением L1 проекта: при приёмке первым
+# подписывает поставщик, финальную подпись ставит председатель участка.
+# Обратный порядок — не «другая последовательность», а другой процесс.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-shipment*.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-cycle*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OffererSupplyPreparation/**
+    - components/desktop/src/pages/Marketplace/OffererShipParty/**
+    - components/desktop/src/pages/Marketplace/OperatorReception/**
+
+cases:
+  - id: mkt.supply.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Оператор участка принимает привезённую партию по коду поставщика, сверяет позиции с фактом и формирует акт приёма-передачи.
+    expect: >
+      партия переходит из «Ожидает приёмки» в «Ждёт подписи поставщика», проставлено время приёмки
+    test: components/docs-harness/scenarios/marketplace/operator/apl-reception-create.mjs
+    status: passing
+
+  - id: mkt.supply.happy.02
+    level: ui
+    kind: happy
+    scenario: Поставщик собирает партию из принятых заказов и отправляет её на участок
+    expect: партия создана в статусе «Собрана к отгрузке» с выбранным способом доставки
+    test: components/docs-harness/scenarios/marketplace/offerer/shipment-prep.mjs
+    status: passing
+
+  - id: mkt.supply.happy.03
+    level: ui
+    kind: happy
+    scenario: Поставщик подписывает акт приёмки, председатель участка ставит закрывающую подпись
+    expect: имущество оприходовано на склад участка
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.01
+    level: ui
+    kind: side
+    scenario: Приёмка партии без единой выбранной позиции (все галки сняты)
+    expect: акт не создаётся, партия остаётся ждать
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.02
+    level: backend
+    kind: side
+    scenario: Оператор указывает к приёмке больше единиц, чем было заказано
+    expect: отказ — принять больше заказанного нельзя
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.03
+    level: backend
+    kind: side
+    scenario: Приёмка партии оператором чужого кооперативного участка
+    expect: отказ доступа, статус партии не меняется
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.04
+    level: backend
+    kind: side
+    scenario: Код передачи принадлежит пайщику, который не является поставщиком
+    expect: приёмка не открывается, состав партии не показывается
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.05
+    level: backend
+    kind: side
+    scenario: Повторное формирование актов по уже принятой партии
+    expect: повторные акты не создаются
+    test: ~
+    status: missing
+    decision_needed: true
+    # В интерфейсе у принятой партии есть «Отменить и пересобрать»; из кода не
+    # выводится, что происходит с уже подписанными актами при пересборке.
+
+  - id: mkt.supply.side.06
+    level: backend
+    kind: side
+    scenario: Закрывающая подпись председателя раньше подписи поставщика
+    expect: отказ — порядок подписей нарушать нельзя
+    test: ~
+    status: missing
+
+  - id: mkt.supply.side.07
+    level: ui
+    kind: side
+    scenario: Партия, собранная на один участок, открывается оператором другого участка
+    expect: партия не видна в ожидаемых поставках чужого участка
+    test: ~
+    status: missing
