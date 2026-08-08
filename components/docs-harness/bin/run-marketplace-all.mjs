@@ -110,7 +110,6 @@ const GROUPS = [
     name: 'Списание',
     scenarios: [
       'marketplace/chairman/writeoff-propose',
-      'marketplace/board/agenda-writeoff',
     ],
   },
   {
@@ -120,7 +119,6 @@ const GROUPS = [
       'marketplace/chairman/market-tour',
       'marketplace/chairman/ecosystem',
       'marketplace/chairman/warehouse-summary',
-      'marketplace/chairman/design-system',
       'marketplace/branch-chairman/pvz-list',
       'marketplace/board/payouts-readonly',
       'marketplace/offerer/payments',

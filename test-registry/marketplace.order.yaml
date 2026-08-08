@@ -212,3 +212,13 @@ cases:
       явный отказ с предложением повторить; заказ не остаётся в полусозданном состоянии
     test: ~
     status: missing
+
+  - id: mkt.order.happy.03
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель смотрит реестр всех заказов кооператива с фильтрами по стадиям жизненного цикла.
+    expect: >
+      заказы видны с текущими статусами; из карточки открываются документы, операции и проводки процесса
+    test: components/docs-harness/scenarios/marketplace/orderer/consolidated.mjs
+    status: passing

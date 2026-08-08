@@ -92,7 +92,7 @@ cases:
     expect: >
       до подписи стол закрыт гейтом, после подписи гейт не показывается ни при переходе, ни после перезагрузки страницы
     test: components/docs-harness/scenarios/marketplace/onboarding/extension-gate.mjs
-    status: passing
+    status: written
 
   - id: mkt.onb.side.05
     level: backend
