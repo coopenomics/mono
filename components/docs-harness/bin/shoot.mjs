@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { ensureFixture } from '../lib/fixtures.mjs';
 
 const HARNESS_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Harness живёт в components/docs-harness/, репо-корень — на два уровня выше.
@@ -30,32 +31,9 @@ if (!scenario) {
   process.exit(2);
 }
 
-// Известные тестовые пайщики — один раз создаются на свежей цепочке,
-// дальше их WIF лежит в state/participants/<name>.json и переиспользуется.
-// Имена ТОЛЬКО человеческие (см. doc-shoot/SKILL.md «Фиксированные конвенции»).
-const KNOWN_FIXTURES = {
-  ivanpetrov: { email: 'ivan.petrov@example.com', firstName: 'Иван', lastName: 'Петров', middleName: 'Сергеевич' },
-  ekaterina: { email: 'ekaterina.smirnova@example.com', firstName: 'Екатерина', lastName: 'Смирнова', middleName: 'Александровна' },
-  // newadapter — пайщик БЕЗ Capital-регистрации (его не трогает фаза
-  // 05-additional-contributors). Используется в сценарии adaptation для
-  // снимков мастера выбора ролей / часов / ставки / документов УХД.
-  newadapter: { email: 'andrey.sidorov@example.com', firstName: 'Андрей', lastName: 'Сидоров', middleName: 'Михайлович' },
-
-  // === Marketplace MVP «Стол заказов» ===
-  // Председатели КУ — обычные пайщики, на которых председатель кооператива
-  // повесил branch.trustee через branch::createbranch.
-  chairkrg: { email: 'chairkrg@voskhod.coop', firstName: 'Пётр', lastName: 'Иванов', middleName: 'Сергеевич' },
-  chairodn: { email: 'chairodn@voskhod.coop', firstName: 'Сергей', lastName: 'Орлов', middleName: 'Васильевич' },
-  chairmyt: { email: 'chairmyt@voskhod.coop', firstName: 'Алексей', lastName: 'Мытищенко', middleName: 'Григорьевич' },
-  // Доверенное лицо КУ Красногорск (branch.trusted[]).
-  trustedkrg: { email: 'trustedkrg@voskhod.coop', firstName: 'Михаил', lastName: 'Петров', middleName: 'Андреевич' },
-  // Оператор КУ Красногорск (marketplace-роль operator).
-  opkrg: { email: 'opkrg@voskhod.coop', firstName: 'Александр', lastName: 'Кузнецов', middleName: 'Владимирович' },
-  // Поставщик (marketplace-роль offerer): публикует Предложения.
-  sidorov: { email: 'sidorov@voskhod.coop', firstName: 'Дмитрий', lastName: 'Сидоров', middleName: 'Николаевич' },
-  // Заказчица (marketplace-роль orderer): оформляет Заказы.
-  petrova: { email: 'petrova@voskhod.coop', firstName: 'Екатерина', lastName: 'Петрова', middleName: 'Александровна' },
-};
+// Реестр тестовых пайщиков и их создание живут в lib/fixtures.mjs: те же
+// фикстуры нужны сюите (bin/run-marketplace-all.mjs), а две копии профилей
+// разъехались бы на первой же новой роли.
 
 const log = (m) => console.error(`◇ ${m}`);
 const ok = (m) => console.error(`✓ ${m}`);
@@ -218,40 +196,12 @@ async function ensureDesktop(distRebuilt) {
 //      (для пайщиков, которыми сценарий логинится через UI — см. signin.mjs)
 //    Если файла нет — создаём через add-plain-participant, JSON-вывод в state.
 function ensureOneFixture(name) {
-  const fixturePath = path.join(HARNESS_ROOT, 'state/participants', `${name}.json`);
-  if (fs.existsSync(fixturePath)) { ok(`фикстура ${name} есть`); return; }
-  const profile = KNOWN_FIXTURES[name];
-  if (!profile) {
-    die(`фикстура «${name}» не описана в KNOWN_FIXTURES (bin/shoot.mjs). Добавь профиль или создай файл вручную через add-plain-participant.ts.`);
+  try {
+    const how = ensureFixture(name, { log });
+    ok(how === 'created' ? `фикстура ${name} создана` : `фикстура ${name} есть`);
+  } catch (e) {
+    die(e.message);
   }
-  log(`Создаю фикстуру ${name} через add-plain-participant...`);
-  const pg = readPgEnv();
-  const env = {
-    ...process.env,
-    MONGO_URI: `mongodb://127.0.0.1:${PORTS.mongo}/cooperative-x`,
-    POSTGRES_HOST: '127.0.0.1',
-    POSTGRES_PORT: PORTS.postgres,
-    POSTGRES_USERNAME: pg.POSTGRES_USERNAME || 'postgres',
-    POSTGRES_PASSWORD: pg.POSTGRES_PASSWORD || 'postgres!23!23',
-    POSTGRES_DATABASE: pg.POSTGRES_DATABASE || 'voskhod',
-    CHAIN_URL: `http://127.0.0.1:${PORTS.chain}`,
-    CONTROLLER_GRAPHQL_URL: `http://127.0.0.1:${PORTS.controller}/v1/graphql`,
-  };
-  const r = spawnSync('pnpm', [
-    '--filter', '@coopenomics/boot', 'exec', 'esno',
-    'src/scripts/add-plain-participant.ts',
-    name, profile.email, profile.firstName, profile.lastName, profile.middleName,
-  ], { cwd: REPO_ROOT, env, encoding: 'utf8' });
-  if (r.status !== 0) {
-    die(`add-plain-participant упал:\nstderr:\n${r.stderr}\nstdout:\n${r.stdout}`);
-  }
-  const lastLine = r.stdout.split('\n').filter((l) => l.trim()).pop();
-  if (!lastLine || !lastLine.startsWith('{')) {
-    die(`не нашёл JSON в выводе add-plain-participant:\n${r.stdout}`);
-  }
-  fs.mkdirSync(path.dirname(fixturePath), { recursive: true });
-  fs.writeFileSync(fixturePath, lastLine + '\n');
-  ok(`фикстура ${name} создана: ${path.relative(REPO_ROOT, fixturePath)}`);
 }
 
 function ensureFixtures(meta) {

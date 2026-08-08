@@ -178,6 +178,17 @@ function buildService(mocks: ReturnType<typeof buildMocks>): MarketplaceAplRecep
     mocks.paymentRepo,
     mocks.offerRepo,
     mocks.inventoryRepo,
+    // Эпик 19 (адресное хранение): боксы, координатные ячейки и настройки
+    // склада. В сценариях этого спека адресное хранение выключено, поэтому
+    // достаточно заглушек — но пропускать аргументы нельзя, спек перестаёт
+    // компилироваться (именно так он и был сломан).
+    { findByCoop: jest.fn(), findById: jest.fn() } as never,
+    { findByContainer: jest.fn(), findById: jest.fn() } as never,
+    {
+      // Адресное хранение выключено: боксов и ячеек в кооперативе нет,
+      // приёмка кладёт имущество без адреса.
+      get: jest.fn().mockResolvedValue({ containers_enabled: false, cells_enabled: false }),
+    } as never,
     { symbol: 'RUB', decimals: 4 },
     mocks.coreGateway,
     mocks.supplierSettings,
@@ -595,6 +606,49 @@ describe('MarketplaceAplReceptionService — FR45 AC5 compensating-rollback', ()
 
       expect(mocks.receptionRepo.applySignatures).not.toHaveBeenCalled();
       expect(mocks.shipmentRepo.applyStatusTransition).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Одна партия — одна активная приёмка. Пересобрать акт можно только через
+   * явную отмену черновика (кнопка «Отменить и пересобрать» на столе оператора,
+   * видна лишь до подписи поставщика): отмена ставит приёмке CANCELLED, а
+   * `findByShipmentId` отменённые не возвращает — и повторное формирование
+   * проходит. Пока активная приёмка жива, второй акт по той же партии
+   * создать нельзя.
+   */
+  describe('create: одна партия — одна активная приёмка', () => {
+    const shipment = {
+      id: 'ship-1',
+      coopname: 'voskhod',
+      cycle_id: 'cycle-1',
+      braname: 'ku.krasn.1',
+      status: 'SUPPLY_PREPARED',
+    };
+
+    it('по партии с активной приёмкой второй акт не формируется', async () => {
+      mocks.shipmentRepo.findById.mockResolvedValue(shipment as never);
+      mocks.receptionRepo.findByShipmentId.mockResolvedValue(buildReception());
+
+      await expect(
+        service.create({ coopname: 'voskhod', shipment_id: 'ship-1' } as never)
+      ).rejects.toThrow(ConflictException);
+
+      expect(mocks.receptionRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('после отмены черновика партия свободна — акт формируется заново', async () => {
+      mocks.shipmentRepo.findById.mockResolvedValue(shipment as never);
+      // Отменённую приёмку findByShipmentId не отдаёт — партия снова свободна.
+      mocks.receptionRepo.findByShipmentId.mockResolvedValue(null);
+      (mocks.orderRepo as any).findByShipmentId = jest.fn().mockResolvedValue([]);
+      mocks.orderRepo.findByCycleId.mockResolvedValue([]);
+
+      // До состава партии дело дойдёт — значит блокировки «уже сформирована»
+      // больше нет; на пустом составе сервис откажет уже по другой причине.
+      await expect(
+        service.create({ coopname: 'voskhod', shipment_id: 'ship-1' } as never)
+      ).rejects.toThrow('нет Order');
     });
   });
 });

@@ -172,6 +172,52 @@ describe('MarketplaceOrderCreateService', () => {
     ).rejects.toThrow(/Количество должно быть больше нуля/);
   });
 
+  it('Guard: не указан ПВЗ получения → BadRequest, предложение не читается', async () => {
+    // Проверка входа идёт до загрузки Offer'а: отказ не должен ни блокировать
+    // остаток, ни трогать цепь.
+    await expect(
+      service.execute({
+        coopname: 'voskhod',
+        orderer_account: 'orderer1',
+        offer_id: 'offer-1',
+        quantity: 1,
+        delivery_braname: '',
+        convert_statement: CONVERT_STATEMENT,
+      })
+    ).rejects.toThrow('Не указан ПВЗ получения.');
+    expect(mocks.offerRepo.findById).not.toHaveBeenCalled();
+    expect(mocks.counters.onOrderBlocked).not.toHaveBeenCalled();
+    expect(mocks.chainPort.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('предложение «без ограничения»: остаток не проверяется', async () => {
+    // У безлимитного предложения quantity_available не имеет смысла — заказ
+    // на любое количество обязан проходить проверку остатка.
+    mocks.offerRepo.findById.mockResolvedValue(
+      buildOffer({ unlimited_flag: true, quantity_available: 0 })
+    );
+    mocks.counters.onOrderBlocked.mockResolvedValue({
+      id: 'offer-1',
+      quantity_available: 0,
+      quantity_blocked: 999,
+      quantity_consumed: 0,
+    } as any);
+    mocks.chainPort.createOrder.mockRejectedValue(new Error('chain stop'));
+
+    // Ронять будет уже цепь — важно, что до неё дошло: гейт остатка пропустил.
+    await expect(
+      service.execute({
+        coopname: 'voskhod',
+        orderer_account: 'orderer1',
+        offer_id: 'offer-1',
+        quantity: 999,
+        delivery_braname: 'ku.krasn.1',
+        convert_statement: CONVERT_STATEMENT,
+      })
+    ).rejects.toThrow('chain stop');
+    expect(mocks.counters.onOrderBlocked).toHaveBeenCalledWith('offer-1', 999);
+  });
+
   it('compensating rollback: при chain submit fail вызывает counters.onOrderRolledBack', async () => {
     mocks.offerRepo.findById.mockResolvedValue(buildOffer());
     mocks.counters.onOrderBlocked.mockResolvedValue({

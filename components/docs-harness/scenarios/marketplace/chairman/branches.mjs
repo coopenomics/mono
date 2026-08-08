@@ -6,7 +6,7 @@
 //
 // Фикстура — chairman кооператива `ant` (Иван Иванов).
 
-import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
+import { loginAsChairman, dismissOnboardingDialogs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
   title: 'Сеть ПВЗ: реестр кооперативных участков',
@@ -17,10 +17,13 @@ export const meta = {
 
 export default async ({ page, context, shot, expect, env }) => {
   await loginAsChairman(page, context);
+  // Диалог выбора участка платформа показывает и председателю: пока он висит,
+  // клики уходят в него, а не в страницу.
+  await pickBranchIfAsked(page);
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу «Кооперативные участки»
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/chairman/settings/branches`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/chairman/settings/branches`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('text=Кооперативные участки', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(800);

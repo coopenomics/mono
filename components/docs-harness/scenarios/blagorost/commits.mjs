@@ -45,7 +45,7 @@ export default async ({ page, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // --- Открываем «Моё время» ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/capital/tracker`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/capital/tracker`, { waitUntil: 'domcontentloaded' });
 
   // Ждём пока проект «MVP v1» появится в списке (с available_hours).
   await page.waitForSelector('text=MVP v1', { timeout: 60000 });

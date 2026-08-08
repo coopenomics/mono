@@ -1,299 +1,156 @@
-// Сценарий: Стол поставщика → создание предложения.
-// Пайщик ivanpetrov входит на /market/create-offer, заполняет форму нового
-// предложения и отправляет. Снимки: пустая форма → заполненная → каталог с
-// новой карточкой.
+// Сценарий: поставщик публикует предложение.
 //
-// Quasar q-input/q-select рендерит label как div.q-field__label, а не
-// <label>, поэтому селектор `label:has-text(...)` НЕ находит поля. Используем
-// `.q-field:has(.q-field__label:has-text("X"))` и берём input внутри.
+// Форма — пятишаговая карточка товара: «Товар» → «Цена и наличие» →
+// «Условия поставки» → «Изображения» → «Проверка и публикация». После
+// публикации предложение уходит на модерацию председателю и до одобрения в
+// каталоге не появляется.
+//
+// Предусловия (фаза marketplace:04-supplier): пайщик допущен в реестр
+// поставщиков и указал реквизиты для выплат — без реквизитов форма показывает
+// блокирующее предупреждение и публиковать нельзя.
+//
+// Фикстура: ivanpetrov / Петров Иван Сергеевич.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loadFixture = (username) =>
-  JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
-  );
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
+
+export const OFFER_TITLE = 'Берёзовый сок ПК «Восход» (демо)';
 
 export const meta = {
-  title: 'Стол поставщика: создание предложения',
+  title: 'Стол поставщика — создание предложения',
   docPath: 'new/marketplace/offerer/offer-create.md',
   assetsDir: 'assets/new/marketplace/offerer/offer-create',
   role: 'user',
+  mode: 'docs',
   fixture: 'ivanpetrov',
   fixtures: ['ivanpetrov'],
+  feature: 'marketplace.offer',
+  cases: ['mkt.offer.happy.01'],
+  prepare: ['marketplace:01-l1-accept', 'marketplace:02-branches', 'marketplace:03-assign-branches', 'marketplace:04-supplier'],
 };
 
-async function signAllAgreements(page) {
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Формируем документ'),
-    { timeout: 30000 },
-  ).catch(() => {});
-  await page.waitForTimeout(500);
-
-  for (let i = 0; i < 8; i++) {
-    const clicked = await page.evaluate(() => {
-      const portals = Array.from(document.querySelectorAll('[id^="q-portal--dialog--"]'))
-        .filter((p) => getComputedStyle(p).display !== 'none');
-      if (portals.length === 0) return false;
-      const top = portals[portals.length - 1];
-      const btn = Array.from(top.querySelectorAll('button'))
-        .find((b) => b.textContent?.trim() === 'Подписать' && !b.disabled);
-      if (!btn) return false;
-      btn.scrollIntoView({ block: 'center', behavior: 'instant' });
-      btn.click();
-      return true;
-    });
-    if (!clicked) break;
-    await page.waitForTimeout(3500);
-  }
+// Числовые поля — управляемые: fill() без последующего blur оставляет модель
+// нетронутой, и шаг уезжает дальше с прежним значением.
+async function setNumber(page, label, value) {
+  const input = page.locator(`.q-field:has-text("${label}") input`).first();
+  await input.click();
+  await input.fill('');
+  await input.type(String(value));
+  await input.blur();
+  await page.waitForTimeout(300);
+  return input;
 }
 
-export default async ({ page, shot }) => {
+export default async ({ page, shot, expect }) => {
   const fixture = loadFixture('ivanpetrov');
-
-  // Сетевая телеметрия — критично для отлова silent submit failure.
-  let createOfferSent = false;
-  let createOfferStatus = null;
-  let createOfferBody = null;
-  page.on('request', (req) => {
-    if (req.url().includes('/v1/graphql') && req.method() === 'POST') {
-      try {
-        const body = req.postData() || '';
-        if (/marketplaceCreateOffer|MarketplaceCreateOffer/.test(body)) {
-          createOfferSent = true;
-        }
-      } catch {}
-    }
-  });
-  page.on('response', async (res) => {
-    if (createOfferSent && createOfferStatus === null && res.url().includes('/v1/graphql')) {
-      try {
-        const body = await res.text();
-        if (body.includes('marketplaceCreateOffer')) {
-          createOfferStatus = res.status();
-          createOfferBody = body.slice(0, 800);
-        }
-      } catch {}
-    }
-  });
-  page.on('pageerror', (err) => console.log(`[page-error] ${err.message}`));
-
   await loginAs(page, fixture);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
-  await signAllAgreements(page);
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.evaluate(() => {
-    document.querySelectorAll('.q-notification').forEach((n) => n.remove());
-  });
-  await page.waitForTimeout(2000);
+  await pickBranchIfAsked(page);
 
-  // PRE: каталог — это default route расширения `market`. Заходим на него
-  // первым: если 404 — extension не подгрузился (синтаксическая ошибка в
-  // одной из marketplace-страниц ломает useInitExtensionsProcess через
-  // boot/init.ts; см. ловушку в PLAN.md §9.X). Без этого pre-check форма
-  // create-offer тоже даст 404 без понятного сообщения.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/create-offer`, {
     waitUntil: 'domcontentloaded',
-    timeout: 45000,
+    timeout: 60000,
   });
-  await page.waitForTimeout(3000);
-  const catalogIs404 = await page.evaluate(() =>
-    document.body.innerText.includes('404 страница не найдена'),
-  );
-  if (catalogIs404) {
-    throw new Error(
-      '[offer-create] /market/catalog → 404. extension `market` не подгружен. '
-      + 'Проверь tail /tmp/desktop-dev.log — обычно vue/compiler-sfc Unexpected token.',
-    );
-  }
-
-  // --- 01. Пустая форма создания предложения ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/create-offer`, {
-    waitUntil: 'domcontentloaded',
-    timeout: 45000,
-  });
-  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.locator('.q-form').first().waitFor({ state: 'visible', timeout: 30000 });
-  await page.waitForTimeout(1000);
+  await page.waitForSelector('text=Название товара', { timeout: 120000 });
+  await page.waitForTimeout(1500);
   await cleanViteOverlays(page);
+
+  // Реквизиты для выплат обязаны быть настроены заранее: без них публикация
+  // закрыта, и сценарий упрётся в предупреждение вместо формы.
+  await expect(page.locator('text=Укажите реквизиты для выплат')).toHaveCount(0, { timeout: 10000 });
+
   await shot(
     page,
     '01-empty-form',
-    'Форма «Новое предложение» сразу после открытия: все поля пустые',
+    'Карточка товара заполняется по шагам: сначала название, категория и описание. Подсказка под формой напоминает, что после публикации предложение уходит на модерацию председателю и до одобрения в каталоге не появляется.',
   );
 
-  // --- 02. Форма с заполненными базовыми полями ---
-  // Quasar q-input: label = div.q-field__label, input лежит внутри .q-field.
-  const setField = async (labelText, value) => {
-    const field = page.locator(
-      `.q-field:has(.q-field__label:text-is("${labelText}"))`,
-    ).first();
-    if (await field.count() === 0) {
-      // fallback: label с обязательным звездочкой
-      const fallback = page.locator(
-        `.q-field:has(.q-field__label:has-text("${labelText}"))`,
-      ).first();
-      if (await fallback.count() === 0) {
-        console.log(`[offer-create] поле «${labelText}» не найдено`);
-        return false;
-      }
-      await fallback.locator('input, textarea').first().fill(value);
-      return true;
-    }
-    await field.locator('input, textarea').first().fill(value);
-    return true;
-  };
+  // --- Шаг 1. Товар --------------------------------------------------------
+  await page.locator('.q-field:has-text("Название товара") input').first().fill(OFFER_TITLE);
+  await page.locator('.q-field:has-text("Категория")').first().click();
+  const category = page.locator('.q-menu .q-item, .q-menu [role="option"]').first();
+  await category.waitFor({ state: 'visible', timeout: 15000 });
+  await category.click();
+  await page.locator('.q-field:has-text("Описание") textarea, .q-field:has-text("Описание") input')
+    .first()
+    .fill('Свежий берёзовый сок, разлив 1 л. Поставка через ПВЗ Красногорск.');
+  await page.waitForTimeout(500);
 
-  // q-select: клик по полю → меню q-menu → выбор первого option.
-  const pickFirstOption = async (labelText) => {
-    const field = page.locator(
-      `.q-field:has(.q-field__label:has-text("${labelText}"))`,
-    ).first();
-    if (await field.count() === 0) {
-      console.log(`[offer-create] q-select «${labelText}» не найден`);
-      return false;
-    }
-    await field.click();
-    await page.waitForTimeout(500);
-    const opt = page.locator('.q-menu .q-item').filter({ hasNot: page.locator('.disabled') }).first();
-    if (await opt.count() === 0) {
-      console.log(`[offer-create] options для «${labelText}» пустые`);
-      return false;
-    }
-    await opt.click();
-    await page.waitForTimeout(400);
-    return true;
-  };
-
-  // cycle_type параметризуется через env MP_CYCLE_TYPE (default time_based).
-  //   individual        — немедленный acceptIndividual → синтез заявки-из-одного-
-  //                        заказа → SUPPLY_PREPARED shipment (магистраль II).
-  //   volume_based       — партия стартует при sum(orders) >= target_volume
-  //                        (синхронный evaluateVolumeBasedAfterCreate).
-  //   open_subscription  — партия закрывается по сигналу поставщика вручную.
-  //   time_based         — партия по cron на cycle_end (created_at + cycle_days).
-  const cycleType = process.env.MP_CYCLE_TYPE || 'time_based';
-  const targetVolume = process.env.MP_TARGET_VOLUME || '5';
-  const productNames = {
-    individual: 'Мёд алтайский ПК «Восход» (individual, демо)',
-    volume_based: 'Картофель Адретта мешок 25 кг (volume, демо)',
-    open_subscription: 'Сыр Костромской ПК «Восход» (подписка, демо)',
-    time_based: 'Берёзовый сок ПК «Восход» (демо)',
-  };
-  const productName = productNames[cycleType] || productNames.time_based;
-
-  await setField('Название товара *', productName);
-  await setField('Описание', 'Свежий берёзовый сок, разлив 1 л. Поставка через ПВЗ Красногорск.');
-  await pickFirstOption('Категория *');
-  await setField('Цена за единицу *', '120');
-  await pickFirstOption('Единица *');
-  await setField('Доступное количество *', '50');
-  await setField('Гарантия (дней)', '7');
-
-  // «Тип отсечки заказов» — q-option-group (radio). Radio-label = полный текст
-  // CYCLE_TYPES (например «По объёму (volume_based)»). После клика по radio
-  // onCycleTypeChange переключает v-if блок с cycle-полями → ждём их появления.
-  const pickCycleRadio = async (radioText) => {
-    const radio = page.locator(`.q-radio:has-text("${radioText}")`).first();
-    if (await radio.count() === 0) {
-      throw new Error(`[offer-create] radio «${radioText}» не найден в форме cycle_type`);
-    }
-    await radio.click();
-    await page.waitForTimeout(500);
-  };
-
-  if (cycleType === 'individual') {
-    await pickCycleRadio('Индивидуально');
-  } else if (cycleType === 'volume_based') {
-    await pickCycleRadio('По объёму');
-    await setField('Целевой объём *', targetVolume);
-    await setField('Максимальный срок ожидания (дней) *', '30');
-  } else if (cycleType === 'open_subscription') {
-    await pickCycleRadio('Открытая подписка');
-    await setField('Лимит ожидания пайщика (дней, опц.)', '30');
-  } else {
-    // time_based (default)
-    await setField('Длительность цикла (дней) *', '7');
-  }
-
-  await page.waitForTimeout(1000);
-  await cleanViteOverlays(page);
   await shot(
     page,
-    '02-filled-form',
-    'Та же форма с заполненными полями: название, описание, цена, количество, гарантия',
+    '02-step-product',
+    `Шаг «Товар» заполнен: название «${OFFER_TITLE}», выбрана категория из списка доступных кооперативу, добавлено описание для каталога.`,
   );
+  await page.locator('button:has-text("Далее")').first().click();
+  await page.waitForTimeout(1500);
 
-  // --- 03. Клик «Опубликовать на модерацию» и assert успешной отправки ---
-  const submitBtn = page.locator('button:has-text("Опубликовать на модерацию")').first();
-  if (await submitBtn.count() === 0) {
-    throw new Error('[offer-create] кнопка «Опубликовать на модерацию» не найдена');
-  }
-  const isDisabled = await submitBtn.isDisabled();
-  if (isDisabled) {
-    // Снять текущее состояние формы для отладки и упасть громко.
-    const fieldsDump = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('.q-field')).map((f) => ({
-        label: f.querySelector('.q-field__label')?.textContent?.trim(),
-        value: f.querySelector('input')?.value,
-        error: f.querySelector('.q-field__messages')?.textContent?.trim(),
-      })),
-    );
-    console.log('[offer-create] form state:', JSON.stringify(fieldsDump, null, 2));
-    throw new Error('[offer-create] submit btn disabled — форма не валидна');
-  }
-  await submitBtn.click();
+  // --- Шаг 2. Цена и наличие ----------------------------------------------
+  const price = await setNumber(page, 'Цена за', 250);
+  const qty = await setNumber(page, 'Доступное количество', 100);
+  const shelf = await setNumber(page, 'Срок годности', 30);
+  // Проверяем, что значения дошли до модели: управляемые поля молча
+  // возвращаются к значениям по умолчанию, если ввод не был зафиксирован.
+  expect(await price.inputValue()).toBe('250');
+  expect(await qty.inputValue()).toBe('100');
+  expect(await shelf.inputValue()).toBe('30');
 
-  // Ждём пока мутация реально отправится.
-  let waited = 0;
-  while (!createOfferSent && waited < 10000) {
-    await page.waitForTimeout(200);
-    waited += 200;
-  }
-  if (!createOfferSent) {
-    throw new Error('[offer-create] submit нажат, но мутация marketplaceCreateOffer НЕ ушла');
-  }
-  // Ждём ответа.
-  let waitedRes = 0;
-  while (createOfferStatus === null && waitedRes < 30000) {
-    await page.waitForTimeout(200);
-    waitedRes += 200;
-  }
-  console.log(
-    `[offer-create] marketplaceCreateOffer sent=${createOfferSent} status=${createOfferStatus} waitedMs=${waited}+${waitedRes}`,
-  );
-  if (createOfferStatus !== 200) {
-    console.log(`[offer-create] response body: ${createOfferBody}`);
-    throw new Error(`[offer-create] mutation вернула статус ${createOfferStatus}`);
-  }
-  if (createOfferBody && /"errors":\s*\[/.test(createOfferBody)) {
-    throw new Error(`[offer-create] mutation вернула GraphQL errors: ${createOfferBody}`);
-  }
-
-  await page.waitForTimeout(3000);
-  await cleanViteOverlays(page);
   await shot(
     page,
-    '03-after-submit',
-    'Состояние UI после клика «Опубликовать на модерацию» — успешная отправка, идёт редирект в каталог',
+    '03-step-price',
+    'Шаг «Цена и наличие»: цена за единицу, способ отпуска (по мере или упаковкой), ограничение количества и срок годности. Срок годности определяет, до какого момента имущество можно выдать заказчику.',
+  );
+  await page.locator('button:has-text("Далее")').first().click();
+  await page.waitForTimeout(1500);
+
+  // --- Шаг 3. Условия поставки --------------------------------------------
+  await page.waitForSelector('text=Участки и объём поставки', { timeout: 20000 });
+  // Отмечаем участок именно чекбоксом: клик по строке ничего не переключает,
+  // а «Далее» без единого отмеченного участка молча остаётся на этом шаге.
+  const krgRow = page.locator('.q-checkbox').first();
+  await krgRow.click();
+  await page.waitForTimeout(1200);
+  await expect(page.locator('.q-checkbox[aria-checked="true"]').first()).toBeVisible({ timeout: 10000 });
+
+  await shot(
+    page,
+    '04-step-supply',
+    'Шаг «Условия поставки»: поставщик отмечает кооперативные участки, на которые готов обеспечить доставку. Заказчик сможет выбрать предложение только на отмеченном участке.',
+  );
+  await page.locator('button:has-text("Далее")').first().click();
+  await page.waitForTimeout(1500);
+
+  // --- Шаг 4. Изображения (необязательный) --------------------------------
+  await page.locator('button:has-text("Далее")').first().click();
+  await page.waitForTimeout(1500);
+
+  // --- Шаг 5. Проверка и публикация ---------------------------------------
+  await page.waitForSelector('text=Сверьте карточку перед отправкой', { timeout: 20000 });
+  await shot(
+    page,
+    '05-review',
+    'Последний шаг — сводка карточки перед отправкой. Здесь видно всё, что увидит модератор: товар, цену, условия поставки.',
   );
 
-  // --- 04. Каталог после создания ---
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/catalog`, {
-    waitUntil: 'domcontentloaded',
-    timeout: 45000,
-  });
+  const publish = page.locator('button:has-text("Опубликовать"), button:has-text("Отправить на модерацию")').first();
+  await publish.click();
+  await page.waitForTimeout(6000);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
+
   await shot(
     page,
-    '04-catalog-after',
-    'Каталог Стола заказов после создания предложения',
+    '06-after-publish',
+    'После публикации предложение попадает в «Мои предложения» со статусом «На модерации» и ждёт решения председателя.',
+    {
+      expect: async (p) => {
+        await expect(p.locator(`text=${OFFER_TITLE}`).first()).toBeVisible({ timeout: 20000 });
+      },
+    },
   );
 };

@@ -1,52 +1,90 @@
-// Сценарий: Председатель настраивает whitelist доступных категорий товаров.
-// Эпик 3 / Story 3.x — пустой whitelist означает, что доступен весь
-// глобальный каталог; с whitelist'ом — только перечисленные категории.
+// Сценарий: председатель настраивает доступные категории кооператива.
 //
-// Backend `available-category-admin.resolver.ts` (@AuthRoles chairman).
-// Tree-выбор через `marketplaceGetCategoryTree` подключится на следующем
-// шаге; в MVP — диалог с ручным вводом ID через запятую.
+// Модель (Эпик 16): есть базовые категории платформы и собственные категории
+// кооператива. Пока не выключена ни одна — «открыт весь каталог», предложения
+// можно публиковать в любой категории. Выключение категории ограничивает
+// список; базовые категории нельзя удалить, только выключить.
 //
-// Фикстура: chairman кооператива (ant, Иван Иванов).
+// Backend — available-category-admin.resolver.ts (@AuthRoles chairman);
+// маршрут стола требует грант `Whitelist:manage`.
+//
+// Фикстура: председатель кооператива (ant, Иванов Иван Иванович).
 
-import { loginAsChairman, dismissOnboardingDialogs } from '../../../lib/harness.mjs';
+import { loginAsChairman, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 export const meta = {
-  title: 'Whitelist категорий товаров кооператива',
+  title: 'Доступные категории кооператива',
   docPath: 'new/marketplace/chairman/category-whitelist.md',
   assetsDir: 'assets/new/marketplace/chairman/category-whitelist',
   role: 'chairman',
+  mode: 'docs',
+  feature: 'marketplace.categories',
+  cases: ['mkt.cat.happy.01', 'mkt.cat.happy.02'],
+  prepare: ['marketplace:01-l1-accept'],
 };
 
-export default async ({ page, context, shot, env }) => {
+export default async ({ page, shot, expect, env, context }) => {
   await loginAsChairman(page, context);
-  await dismissOnboardingDialogs(page);
+  // Диалог выбора участка платформа показывает и председателю: пока он висит,
+  // клики уходят в него, а не в страницу.
+  await pickBranchIfAsked(page);
 
-  // 1. Открыть страницу доступных категорий
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/category-whitelist`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/category-whitelist`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Доступные категории', { timeout: 60000 });
+  // Диалог участка платформа поднимает уже после перехода на страницу —
+  // закрываем его здесь, иначе он перехватит клики по таблице.
+  await pickBranchIfAsked(page);
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(900);
-  await dismissOnboardingDialogs(page);
+
+  // Реестр категорий обязан быть непустым: базовые категории заводит платформа,
+  // и пустая таблица означала бы, что справочник не доехал, а не «их нет».
+  const rows = page.locator('tbody tr, .q-table tbody tr');
+  await expect(rows.first()).toBeVisible({ timeout: 15000 });
+  const total = await rows.count();
+  expect(total).toBeGreaterThan(0);
+
   await shot(
     page,
     '01-overview',
-    'Страница «Доступные категории»: 4 stat-карточки в шапке — всего записей, число категорий, число типов товаров и состояние whitelist (активен / открыт каталог). Пустой whitelist означает, что пайщикам доступен весь глобальный каталог категорий.',
+    'Страница «Доступные категории» Стола администратора. Пока не выключена ни одна категория, вверху написано «Открыт весь каталог» — пайщики могут публиковать предложения в любой категории. У базовых категорий вид «Базовая»: их нельзя удалить, только выключить тумблером справа.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Открыт весь каталог').first()).toBeVisible({ timeout: 10000 });
+      },
+    },
   );
 
-  // 2. Открыть диалог добавления категорий
-  const addBtn = page.locator('button:has-text("Добавить")').first();
-  if (await addBtn.isVisible().catch(() => false)) {
-    await addBtn.click();
-    await page.waitForSelector('text=Добавить категории в whitelist', { timeout: 10000 });
-    await page.waitForTimeout(500);
-    await shot(
-      page,
-      '02-add-dialog',
-      'Диалог добавления: в MVP — ручной ввод ID через запятую (1, 7, 15). На следующем шаге Story 3.x подключится tree-выбор через marketplaceGetCategoryTree — выбор по дереву категорий и типов.',
-    );
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
-  }
+  // Выключение категории — то самое ограничение каталога, ради которого экран
+  // и существует. Проверяем именно смену состояния, а не факт клика.
+  // Тумблер берём в строке таблицы: первым на странице идёт переключатель
+  // темы в шапке, и клик по нему просто перекрашивает интерфейс.
+  const firstToggle = page.locator('tbody tr .q-toggle, .q-table tbody tr .q-toggle').first();
+  // Диалог участка всплывает асинхронно и может подняться уже после первого
+  // кадра — проверяем непосредственно перед взаимодействием с таблицей.
+  await pickBranchIfAsked(page, { timeout: 4000 });
+  // force: диалог платформы успевает перерисоваться поверх таблицы между
+  // проверкой и кликом, а ждать его исчезновения бесполезно — он возвращается.
+  await firstToggle.click({ force: true });
+  await page.waitForTimeout(2500);
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+
+  await shot(
+    page,
+    '02-category-off',
+    'После выключения категории каталог перестаёт быть открытым: подпись вверху меняется на ограниченный список, и опубликовать предложение в выключенной категории уже нельзя. Вернуть категорию можно тем же тумблером.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Открыт весь каталог')).toHaveCount(0, { timeout: 10000 });
+      },
+    },
+  );
+
+  // Возвращаем состояние: сценарий не должен оставлять стенд с урезанным
+  // каталогом — на нём дальше публикуется предложение поставщика.
+  await firstToggle.click({ force: true });
+  await page.waitForTimeout(2500);
+  await expect(page.locator('text=Открыт весь каталог').first()).toBeVisible({ timeout: 10000 });
 };

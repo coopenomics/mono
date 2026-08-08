@@ -1,17 +1,19 @@
-// Сценарий: Сводный обзор заказов пайщика-заказчика.
-// Эпик 4 / Story 4.4 — заказы группируются по cycle_id (time_based /
-// volume_based / open_subscription / individual) с суммарной стоимостью
-// партии и общим этапом партии (минимальный активный по STAGE_RANK).
+// Сценарий: реестр заказов кооператива на столе администратора.
 //
-// Канон-виджет `OrderCard` для отдельных заказов в партии.
-// Polling 15s — обновляет список без перезагрузки.
+// Сводная картина по всем заказам с текущими статусами: от ожидания сборки
+// партии до получения. Открыв заказ, председатель видит его состояние,
+// документы, операции и проводки процесса.
 //
-// Фикстура: ekaterina (Екатерина Смирнова), пайщица-заказчица.
+// Отдельной страницы «Сводный заказ» у заказчика больше нет (маршрут отдавал
+// 404): группировка заказов в партии — забота поставщика и участка, а сводную
+// картину по кооперативу даёт этот реестр.
+//
+// Фикстура: председатель кооператива (ant, Иванов Иван Иванович).
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loginAs, env, cleanViteOverlays } from '../../../lib/harness.mjs';
+import { loginAs, env, cleanViteOverlays , loginAsChairman } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,41 +23,45 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
-  title: 'Сводный заказ: партии заказчика по cycle_id',
-  docPath: 'new/marketplace/orderer/consolidated.md',
-  assetsDir: 'assets/new/marketplace/orderer/consolidated',
-  role: 'user',
-  fixture: 'ekaterina',
+  title: 'Стол администратора — реестр заказов кооператива',
+  docPath: 'new/marketplace/chairman/orders-registry.md',
+  assetsDir: 'assets/new/marketplace/chairman/orders-registry',
+  role: 'chairman',
+  mode: 'docs',
+  feature: 'marketplace.order',
+  cases: ['mkt.order.happy.03'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
 };
 
-export default async ({ page, shot }) => {
-  const fixture = loadFixture('ekaterina');
-  await loginAs(page, fixture);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
+export default async ({ page, shot, expect, context }) => {
+  await loginAsChairman(page, context);
 
-  // 1. Открыть страницу сводного заказа
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/consolidated`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/orders`, {
     waitUntil: 'domcontentloaded',
+    timeout: 60000,
   });
-  await page.waitForSelector('text=Сводный заказ', { timeout: 60000 });
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1200);
+  await page.waitForFunction(
+    () => document.body.innerText.includes('Реестр всех заказов кооператива'),
+    { timeout: 90000 },
+  );
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2500);
   await cleanViteOverlays(page);
+
   await shot(
     page,
-    '01-overview',
-    'Сводный обзор партий заказов пайщика-заказчика. Партии с cycle_id выводятся первыми (заказы внутри партии обслуживаются совместно — на одном цикле, с одной поставкой), индивидуальные заказы — отдельной группой. Для каждой партии показан тип цикла, этап партии, суммарная стоимость и ПВЗ доставки.',
+    '01-orders-registry',
+    'Реестр всех заказов кооператива с текущими статусами. Фильтры по стадиям повторяют жизненный цикл заказа: ожидает сборки партии, ждёт акцепта поставщика, в работе, получен. Открыв заказ, председатель видит документы, операции и проводки процесса.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Берёзовый сок').first()).toBeVisible({ timeout: 20000 });
+      },
+    },
   );
-
-  // 2. Развернуть первую партию (если есть заказы)
-  const firstGroup = page.locator('.mp-consolidated__group').first();
-  if (await firstGroup.isVisible().catch(() => false)) {
-    await firstGroup.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(400);
-    await shot(
-      page,
-      '02-group-detail',
-      'Партия развёрнута: внутри — карточки отдельных заказов (канон OrderCard role=orderer). Этап партии = минимальный активный статус среди заказов (если хотя бы один ждёт цикл — вся партия «Активна»).',
-    );
-  }
 };

@@ -16,6 +16,7 @@
  *     pnpm --filter @coopenomics/boot exec esno \
  *     src/scripts/seed-marketplace-branches.ts
  */
+import { randomUUID } from 'node:crypto'
 import { BranchContract, type Cooperative } from 'cooptypes'
 import { Generator } from '@coopenomics/factory'
 import Blockchain from '../blockchain'
@@ -108,6 +109,30 @@ async function main() {
     try {
       await generator.save('organization', orgData)
       log(`mongo organization ${b.braname} upserted`)
+
+      // Банковские реквизиты участка. Без них карточка участка не собирается:
+      // BranchInteractor.getBranch строит BankPaymentMethodDTO из метода оплаты
+      // и падает на null, а getBranches ловит это как «участок ещё не
+      // материализован» и молча выкидывает его из списка. Симптом — пустой
+      // выпадающий список в диалоге выбора участка при живых записях в цепи.
+      // В боевом потоке реквизиты вводит председатель при создании участка.
+      const hasMethod = await generator.get?.('paymentMethod', { username: b.braname })
+      if (!hasMethod) {
+        await generator.save('paymentMethod', {
+          is_default: true,
+          method_id: randomUUID(),
+          method_type: 'bank_transfer',
+          username: b.braname,
+          data: {
+            account_number: '40703810038000110117',
+            currency: 'RUB',
+            card_number: '',
+            bank_name: 'ПАО Сбербанк',
+            details: { bik: '044525225', corr: '30101810400000000225', kpp: '773643001' },
+          },
+        })
+        log(`mongo paymentMethod ${b.braname} создан`)
+      }
     } catch (e: any) {
       log(`mongo organization ${b.braname} failed: ${e.message ?? e}`)
     }

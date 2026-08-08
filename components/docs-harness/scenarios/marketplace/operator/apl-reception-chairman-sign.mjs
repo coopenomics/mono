@@ -1,104 +1,96 @@
-// Сценарий: operator-стол «Приёмка партии» — закрывающая подпись
-// председателя КУ (шаг 7 магистрали II, on-chain `signchair`).
+// Сценарий: председатель участка ставит закрывающую подпись на акте приёмки.
 //
-// Канон второй подписи: backend отдаёт по каждому Order группы агрегат
-// (rawDocument + document с подписью поставщика); председатель накладывает
-// свою подпись поверх (signatureId=2) тем же ключом сессии, документ не
-// перегенерируется. После закрывающей подписи партия принимается в
-// кооператив (ACCEPTED_TO_COOP).
+// Порядок подписей при приёмке: сначала поставщик (очно, в момент передачи
+// имущества), затем председатель участка. Только после закрывающей подписи
+// имущество оприходуется на склад участка и становится доступным к выдаче.
 //
-// Предусловие: в КУ `krg` есть АПП в статусе PENDING_CHAIRMAN_RECEPTION_SIGN
-// (поставщик уже подписал — шаг 6). Если такого нет — сценарий снимает
-// empty/pending-list state и завершается.
+// Прежняя версия сценария требовала ручного ввода «ID кооперативного участка»
+// — такого шага больше нет: активный участок берётся из контекста стола.
+//
+// Фикстура: chairkrg / Иванов Пётр Сергеевич — председатель КУ Красногорск.
 
-import { cleanViteOverlays, dismissOnboardingDialogs, env, loginAs } from '../../../lib/harness.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const loadFixture = (username) =>
-  JSON.parse(
-    fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'),
-  );
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, `../../../state/participants/${username}.json`), 'utf8'));
 
 export const meta = {
   title: 'Стол ПВЗ — закрывающая подпись приёмки',
   docPath: 'new/marketplace/operator/apl-reception-chairman-sign.md',
   assetsDir: 'assets/new/marketplace/operator/apl-reception-chairman-sign',
   role: 'user',
+  mode: 'docs',
   fixture: 'chairkrg',
   fixtures: ['chairkrg'],
+  feature: 'marketplace.supply',
+  cases: ['mkt.supply.happy.03'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
 };
 
-export default async ({ page, shot }) => {
-  const fixture = loadFixture('chairkrg');
-  await page.addInitScript(() => localStorage.setItem('harness:noBranchOverlay', '1'));
-  await loginAs(page, fixture);
-  await dismissOnboardingDialogs(page);
+export default async ({ page, shot, expect }) => {
+  await loginAs(page, loadFixture('chairkrg'));
+  await pickBranchIfAsked(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market-pvz/reception`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-pvz/reception`, {
     waitUntil: 'domcontentloaded',
-    timeout: 45000,
+    timeout: 60000,
   });
+  await page.waitForSelector('text=Ожидаемые поставки', { timeout: 60000 });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(2500);
-  await dismissOnboardingDialogs(page);
-
-  // Загружаем АПП этого КУ.
-  const branameInput = page.locator('label:has-text("ID кооперативного участка")').locator('input').first();
-  await branameInput.click({ clickCount: 3 });
-  await branameInput.fill('krg');
-  await page.waitForTimeout(300);
-  await page.locator('button:has-text("Загрузить АПП")').first().click();
-  await page.waitForTimeout(2000);
   await cleanViteOverlays(page);
 
   await shot(
     page,
-    '01-reception-list',
-    'Стол «Приёмка партии» председателя КУ Красногорск (`braname=krg`). В таблице — акты приёмки партий; для АПП в статусе PENDING_CHAIRMAN_RECEPTION_SIGN (поставщик уже подписал, шаг 6) доступна кнопка «Подписать председателем».',
-  );
-
-  // Ищем кнопку закрывающей подписи (видна только для PENDING_CHAIRMAN_RECEPTION_SIGN).
-  const signBtn = page.locator('button:has-text("Подписать председателем")').first();
-  const hasPending = await signBtn.count().then((c) => c > 0).catch(() => false);
-  if (!hasPending) {
-    console.warn('  ⚠️  Нет АПП в статусе PENDING_CHAIRMAN_RECEPTION_SIGN — сценарий ограничится списком');
-    return;
-  }
-
-  await signBtn.click();
-  await page.waitForTimeout(800);
-  await cleanViteOverlays(page);
-
-  await shot(
-    page,
-    '02-chairman-sign-dialog',
-    'Диалог закрывающей подписи: поставщик уже подписал акт(ы) приёмки, председатель накладывает закрывающую подпись поверх ключом активной сессии — документ не перегенерируется. После подписи партия принимается в кооператив.',
-  );
-
-  // Накладываем подпись (председатель = текущая сессия chairkrg).
-  await page.locator('.mp-sign-apl-chairman button:has-text("Подписать председателем")').first().click();
-
-  // Ждём Notify об успехе.
-  await page.waitForFunction(
-    () => {
-      const notifs = document.querySelectorAll('.q-notification__message');
-      for (const n of notifs) {
-        if ((n.textContent || '').includes('принята в кооператив')) return true;
-      }
-      return false;
+    '01-waiting-chairman',
+    'Акт приёмки после подписи поставщика: на карточке видно время приёмки и время подписи поставщика, статус — «Ждёт подписи председателя». Имущество ещё не на складе участка.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Ждёт подписи председателя').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=Поставщик подписал').first()).toBeVisible({ timeout: 20000 });
+      },
     },
-    { timeout: 45000 },
-  ).catch(() => {});
-  await page.waitForTimeout(800);
+  );
+
+  // Действие на карточке подписано как «Подписать председателем»; смешивать
+  // text= и CSS в одном селекторе нельзя — Playwright такой список не разбирает.
+  await page.getByText('Подписать председателем').first().click();
+  await page.waitForTimeout(5000);
+  await cleanViteOverlays(page);
 
   await shot(
     page,
-    '03-reception-accepted',
-    'После закрывающей подписи председателя: Notify «Акт приёмки закрыт подписью председателя. Партия принята в кооператив» (positive). On-chain прошёл `signchair` с обеими подписями, АПП → ACCEPTED_TO_COOP.',
-    { preserveNotifications: true },
+    '02-sign-dialog',
+    'Акт перед закрывающей подписью: состав партии и сумма поставки. Подпись председателя участка завершает приёмку.',
+  );
+
+  // Кнопка подтверждения — в подвале диалога, а не на карточке под ним.
+  await page.locator('button:has-text("Подписать")').last().click();
+  await page.waitForTimeout(10000);
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await cleanViteOverlays(page);
+
+  await shot(
+    page,
+    '03-after-sign',
+    'Приёмка завершена: акт подписан обеими сторонами, имущество оприходовано на склад участка и готово к выдаче заказчикам.',
+    {
+      preserveNotifications: true,
+      expect: async (p) => {
+        // Ожидание подписи председателя обязано исчезнуть.
+        await expect(p.locator('text=Ждёт подписи председателя')).toHaveCount(0, { timeout: 20000 });
+      },
+    },
   );
 };

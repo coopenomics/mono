@@ -68,7 +68,7 @@ export default async ({ page, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   await page.goto(
-    `${env.BASE_URL}/#/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/results`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/results`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForSelector('text=Стоимость ОАП', { timeout: 60000 }).catch(() => {});

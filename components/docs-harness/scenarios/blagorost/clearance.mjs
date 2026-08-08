@@ -76,7 +76,7 @@ export default async ({ page, shot, env }) => {
 
   // --- 01: страница компонента без допуска ---
   await page.goto(
-    `${env.BASE_URL}/#/${env.COOPNAME}/capital/components/${COMPONENT_HASH}`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

@@ -273,3 +273,76 @@ describe('MarketplaceIssuanceService — гард склада на выдаче
     });
   });
 });
+
+/**
+ * Закрывающая подпись акта выдачи принадлежит заказчику-владельцу заказа.
+ *
+ * Авторизация идёт по самой подписи, а не по тому, кто отправил запрос: чужой
+ * пайщик может дойти до мутации (роль `Issuance:sign:final` есть у любого
+ * заказчика), поэтому владельца проверяет сервис — по списку подписей.
+ */
+describe('MarketplaceIssuanceService.finalizeIssuance — акт закрывает только его заказчик', () => {
+  function readyOrder(overrides: Partial<MarketplaceOrderDomainEntity> = {}) {
+    return buildMocks(
+      { 'order-1': 10 },
+      {
+        status: 'READY_TO_RECEIVE',
+        orderer_signed_at: null,
+        issuance_fact: { actual_quantity: 10 },
+        ...overrides,
+      } as Partial<MarketplaceOrderDomainEntity>
+    );
+  }
+
+  function docSignedBy(signer: string) {
+    return { signatures: [{ signer, public_key: 'EOSpub', signature: 'SIG' }] } as any;
+  }
+
+  it('подпись чужого пайщика → отказ, статус заказа не меняется', async () => {
+    const mocks = readyOrder();
+    const service = buildService(mocks);
+
+    await expect(
+      service.finalizeIssuance({
+        coopname: 'voskhod',
+        order_id: 'order-1',
+        signed_document: docSignedBy('someone-else'),
+      } as never)
+    ).rejects.toThrow('ключом заказчика-владельца заказа');
+
+    expect(mocks.chainPort.signIss2).not.toHaveBeenCalled();
+  });
+
+  it('акт без единой подписи → тот же отказ', async () => {
+    const mocks = readyOrder();
+    const service = buildService(mocks);
+
+    await expect(
+      service.finalizeIssuance({
+        coopname: 'voskhod',
+        order_id: 'order-1',
+        signed_document: { signatures: [] } as any,
+      } as never)
+    ).rejects.toThrow('ключом заказчика-владельца заказа');
+
+    expect(mocks.chainPort.signIss2).not.toHaveBeenCalled();
+  });
+
+  it('подпись владельца проходит проверку авторства', async () => {
+    const mocks = readyOrder();
+    const service = buildService(mocks);
+
+    // Дальше сценарий упрётся в проверку самой подписи и заглушки —
+    // важно ровно одно: гейт авторства владельца пропустил.
+    const error = await service
+      .finalizeIssuance({
+        coopname: 'voskhod',
+        order_id: 'order-1',
+        signed_document: docSignedBy('orderer1'),
+      } as never)
+      .then(() => null)
+      .catch((e: Error) => e);
+
+    expect(error?.message ?? '').not.toContain('ключом заказчика-владельца заказа');
+  });
+});

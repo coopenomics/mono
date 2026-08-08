@@ -48,7 +48,7 @@ export default async ({ page, context, shot, env }) => {
 
   // 1. Открыть страницу установки конкретного расширения. Маршрут зашит
   // в chairman/install.ts: `extension/:name/install`.
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/chairman/extensions/extension/market/install`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/chairman/extensions/extension/market/install`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });
@@ -76,7 +76,7 @@ export default async ({ page, context, shot, env }) => {
     await shot(
       page,
       '02-after-install',
-      'Состояние после установки: уведомление об успехе + desktop перестроен с новыми extension routes (включая /market/onboarding/coop-cpp).',
+      'Состояние после установки: уведомление об успехе + desktop перестроен с новыми extension routes (включая /market-admin/onboarding/coop-cpp).',
     );
   }
 };

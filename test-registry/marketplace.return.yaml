@@ -1,0 +1,142 @@
+feature: marketplace.return
+title: Гарантийный возврат имущества — заявление заказчика и обработка на участке
+
+# Право на возврат задаёт председатель при одобрении предложения: гарантийный
+# срок в днях. Нулевой срок означает, что возврат по такому предложению не
+# предусмотрен вовсе, и заявление подать нельзя — это не отказ в правах, а
+# отсутствие самой возможности.
+#
+# Заявление подаётся из карточки полученного заказа; отдельной страницы
+# возвратов у заказчика нет. Обработка — на столе пункта выдачи.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-return*.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/OrdererReturnClaims/**
+    - components/desktop/src/pages/Marketplace/OrdererOrderDetail/**
+    - components/desktop/src/pages/Marketplace/OperatorReturnClaims/**
+    - components/desktop/src/pages/Marketplace/OperatorReturnClaimDetail/**
+
+cases:
+  - id: mkt.ret.side.01
+    level: ui
+    kind: side
+    scenario: >
+      Заказчик открывает карточку полученного заказа по предложению с нулевым гарантийным сроком.
+    expect: >
+      в блоке гарантийного возврата написано, что возврат не предусмотрен; действия подачи заявления нет
+    test: components/docs-harness/scenarios/marketplace/orderer/returns.mjs
+    status: passing
+
+  - id: mkt.ret.happy.01
+    level: ui
+    kind: happy
+    scenario: >
+      Заказчик подаёт заявление на гарантийный возврат по заказу, у которого гарантийный срок не истёк.
+    expect: заявление создано и видно оператору участка
+    test: ~
+    status: missing
+    # Требует предложения с ненулевым гарантийным сроком: на текущем стенде
+    # предложение одобрено с нулевым, поэтому сценарий пока не воспроизводится.
+
+  - id: mkt.ret.happy.02
+    level: ui
+    kind: happy
+    scenario: Оператор участка принимает возвращаемое имущество по заявлению
+    expect: имущество возвращается на склад, средства возвращаются заказчику
+    test: ~
+    status: missing
+
+  - id: mkt.ret.side.02
+    level: backend
+    kind: side
+    scenario: Заявление подано после истечения гарантийного срока
+    expect: отказ с указанием, что срок истёк
+    test: ~
+    status: missing
+
+  - id: mkt.ret.side.03
+    level: backend
+    kind: side
+    scenario: Заявление на возврат по чужому заказу
+    expect: отказ доступа
+    test: ~
+    status: missing
+
+  - id: mkt.ret.side.04
+    level: backend
+    kind: side
+    scenario: Возвращается больше единиц, чем было получено
+    expect: отказ — вернуть больше полученного нельзя
+    test: ~
+    status: missing
+
+  # Решение заказчика (2026-08-08): частичный возврат серией заявлений
+  # допустим — заявление не закрывает позицию целиком.
+  - id: mkt.ret.side.05
+    level: backend
+    kind: side
+    scenario: Новое заявление по заказу, у которого прежнее уже закрыто
+    expect: >
+      заявление принимается, пока по заказу остаётся невозвращённый остаток;
+      одновременно открытым может быть только одно заявление
+    test: ~
+    status: missing
+
+  - id: mkt.ret.side.19
+    level: backend
+    kind: break
+    scenario: >
+      Серия заявлений, суммарно превышающая выданное количество: выдано 10,
+      первое заявление на 6 принято на визите, второе подаётся ещё на 10
+    expect: >
+      отказ — суммарно нельзя вернуть больше выданного; остаток к возврату
+      считается за вычетом уже принятых возвратов
+    test: ~
+    status: missing
+    # ДЕФЕКТ ПРОДУКТА, подтверждён чтением кода (2026-08-08).
+    # `resolveActualQuantity` сверяет запрошенное количество с полным выданным
+    # (`issuance_fact.actual_quantity ?? quantity`) и НЕ вычитает уже
+    # возвращённое. Ограничение `findActiveByOrderId` смотрит только на
+    # PENDING_CHAIRMAN_REVIEW / APPROVED_FOR_VISIT, поэтому после
+    # ACCEPTED_AT_VISIT заказ снова свободен для нового заявления на полный
+    # объём. До решения о серии дефект был недостижим — заявление де-факто
+    # было одноразовым; с разрешённой серией он открывается.
+    # Не чиню: заказчик вынес подачу заявления на возврат в отдельную работу.
+
+  - id: mkt.ret.side.06
+    level: ui
+    kind: side
+    scenario: Заявление на возврат по заказу, который ещё не получен
+    expect: действие недоступно до факта выдачи
+    test: ~
+    status: missing
+
+  - id: mkt.ret.side.07
+    level: ui
+    kind: side
+    scenario: Оператор открывает раздел гарантийных возвратов участка
+    expect: >
+      раздел доступен, объясняет порядок (удалённое решение → очный осмотр → приём возврата) и предлагает сканер для QR из заявки пайщика
+    test: components/docs-harness/scenarios/marketplace/operator/returns.mjs
+    status: passing
+
+  - id: mkt.ret.side.08
+    level: backend
+    kind: side
+    scenario: Заявление на возврат без причины либо с причиной длиннее предела
+    expect: >
+      отказ с конкретным сообщением; заказ не читается, состояние не меняется
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: passing
+
+  - id: mkt.ret.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Заявление без фотографий либо с числом фотографий сверх предела
+    expect: >
+      отказ с конкретным сообщением; допустимая граница (ровно предел) проходит
+    test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    status: passing

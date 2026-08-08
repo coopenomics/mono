@@ -1,12 +1,12 @@
 // Сценарий: Стол заказчика → обзорный тур по разделам marketplace глазами
-// обычного пайщика (НЕ председателя). Авторизуется как ivanpetrov, проходит
+// обычного пайщика (НЕ председателя). Авторизуется как ekaterina, проходит
 // онбординг подписания соглашений (если не подписан), затем перебирает
 // маршруты marketplace, используя harness:noBranchOverlay.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,15 +20,18 @@ export const meta = {
   docPath: 'new/marketplace/orderer/marketplace-tour.md',
   assetsDir: 'assets/new/marketplace/orderer/marketplace-tour',
   role: 'user',
-  fixture: 'ivanpetrov',
-  fixtures: ['ivanpetrov'],
+  fixture: 'ekaterina',
+  fixtures: ['ekaterina'],
 };
 
 const ROUTES = [
   { name: '01-catalog',          path: '/market/catalog',           caption: 'Каталог Стола заказов глазами пайщика-заказчика — список доступных предложений товаров и услуг' },
   { name: '02-my-orders',        path: '/market/my-orders',         caption: 'Мои заказы: лента активных и завершённых заказов пайщика' },
-  { name: '03-ready-to-receive', path: '/market/ready-to-receive',  caption: 'Готовые к выдаче: товары, доставленные на ПВЗ и ждущие получения' },
-  { name: '04-returns',          path: '/market/returns',           caption: 'Возвраты: заявки на возврат, оформленные пайщиком после получения товара' },
+  // Разделов «Готово к получению» и «Возвраты» у заказчика нет: состояние
+  // заказа и гарантийный возврат живут в карточке самого заказа, а код
+  // получения — в «Показать QR».
+  { name: '03-cart',             path: '/market/cart',              caption: 'Корзина: выбранные позиции перед оформлением одного заказа' },
+  { name: '04-receive-code',     path: '/market/receive-code',      caption: 'Показать QR: код получения, который заказчик предъявляет оператору на пункте выдачи' },
 ];
 
 // Подписать все онбординг-диалоги пайщика, если они появляются после логина.
@@ -61,9 +64,10 @@ async function signAllAgreements(page) {
 }
 
 export default async ({ page, shot }) => {
-  const fixture = loadFixture('ivanpetrov');
+  const fixture = loadFixture('ekaterina');
 
   await loginAs(page, fixture);
+  await pickBranchIfAsked(page);
   await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
 
   await signAllAgreements(page);
@@ -76,7 +80,7 @@ export default async ({ page, shot }) => {
   await cleanViteOverlays(page);
 
   for (const route of ROUTES) {
-    const url = `${env.BASE_URL}/#/${env.COOPNAME}${route.path}`;
+    const url = `${env.APP_PREFIX}/${env.COOPNAME}${route.path}`;
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     // Ждём пока SPA-подгрузки прекратятся (GraphQL/REST + chain-rpc).
     await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});

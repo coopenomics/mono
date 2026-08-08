@@ -33,7 +33,7 @@ export default async ({ page, shot }) => {
   await signOnboardingAgreements(page);
   await dismissOnboardingDialogs(page);
 
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/payments`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-supplier/payments`, {
     waitUntil: 'domcontentloaded',
     timeout: 45000,
   });

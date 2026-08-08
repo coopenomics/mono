@@ -56,7 +56,7 @@ export default async ({ page, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   await page.goto(
-    `${env.BASE_URL}/#/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/voting`,
+    `${env.APP_PREFIX}/${env.COOPNAME}/capital/components/${COMPONENT_HASH}/voting`,
     { waitUntil: 'domcontentloaded' },
   );
   await page.waitForSelector('text=На распределении', { timeout: 60000 }).catch(() => {});

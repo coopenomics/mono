@@ -47,7 +47,7 @@ export default async ({ page, context, shot, env }) => {
   await dismissOnboardingDialogs(page);
 
   // 1. Открыть страницу подключения ЦПП
-  await page.goto(`${env.BASE_URL}/#/${env.COOPNAME}/market/onboarding/coop-cpp`, {
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market-admin/onboarding/coop-cpp`, {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForSelector('text=Подключение ЦПП', { timeout: 60000 });

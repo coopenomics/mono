@@ -256,3 +256,46 @@ describe('MarketplaceModerationService.listPending + listLog', () => {
     expect(logRepo.listByOffer).toHaveBeenCalledWith('offer-1');
   });
 });
+
+/**
+ * Гарантийный срок задаётся именно на одобрении: он питает окно возврата
+ * заказа (`warranty_until`). Отрицательное или дробное значение сделало бы это
+ * окно бессмысленным, а нулевое — законно означает «возврат не предусмотрен».
+ */
+describe('MarketplaceModerationService.approve: гарантийный срок', () => {
+  it('отрицательный гарантийный срок → 400, статус не меняется', async () => {
+    const offerRepo = makeOfferRepo();
+    const logRepo = makeLogRepo();
+    const service = new MarketplaceModerationService(offerRepo, logRepo, makeEventBus());
+
+    await expect(service.approve('offer-1', 'chair', -1)).rejects.toThrow(BadRequestException);
+    expect(offerRepo.applyUpdate).not.toHaveBeenCalled();
+    expect(logRepo.append).not.toHaveBeenCalled();
+  });
+
+  it('дробный гарантийный срок → 400', async () => {
+    const offerRepo = makeOfferRepo();
+    const logRepo = makeLogRepo();
+    const service = new MarketplaceModerationService(offerRepo, logRepo, makeEventBus());
+
+    await expect(service.approve('offer-1', 'chair', 1.5)).rejects.toThrow(BadRequestException);
+    expect(offerRepo.applyUpdate).not.toHaveBeenCalled();
+  });
+
+  it('нулевой гарантийный срок допустим — возврат по предложению не предусмотрен', async () => {
+    const offerRepo = makeOfferRepo();
+    const logRepo = makeLogRepo();
+    offerRepo.findById.mockResolvedValue(makeOffer());
+    offerRepo.applyUpdate.mockResolvedValue(
+      makeOffer({ status: 'ACTIVE' as MarketplaceOfferStatus, approved_by: 'chair' })
+    );
+    logRepo.append.mockResolvedValue(makeLog());
+    const service = new MarketplaceModerationService(offerRepo, logRepo, makeEventBus());
+
+    await service.approve('offer-1', 'chair', 0);
+    expect(offerRepo.applyUpdate).toHaveBeenCalledWith(
+      'offer-1',
+      expect.objectContaining({ status: 'ACTIVE', warranty_days: 0 })
+    );
+  });
+});

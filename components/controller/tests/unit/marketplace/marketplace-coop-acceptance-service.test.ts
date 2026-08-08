@@ -8,7 +8,7 @@
  *   (c) accept повторно (re-accept) — overrides предыдущее, нет дубликата;
  *   (d) если расширения нет в БД → NotFoundException.
  */
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { MarketplaceCoopAcceptanceService } from '~/extensions/marketplace/application/coop-acceptance/marketplace-coop-acceptance.service';
 
@@ -105,6 +105,12 @@ describe('MarketplaceCoopAcceptanceService', () => {
 
     expect(status.document_registry_id).toBe(200);
     expect(status.accepted_by_board_decision_id).toBe('new-decision');
+    // Повторный приём не отказ: ЦПП остаётся принятой, а поля перезаписываются
+    // данными нового решения совета. Ровно одна запись конфига — не дубликат.
+    expect(status.status).toBe('active');
+    expect(repo.patchConfig).toHaveBeenCalledTimes(1);
+    expect(repo._state.config.coopAcceptance.accepted).toBe(true);
+    expect(repo._state.config.coopAcceptance.accepted_at).toBe('2026-05-14T00:00:00Z');
   });
 
   it('accept без явного accepted_at → берётся текущее время (валидный ISO)', async () => {
@@ -128,5 +134,62 @@ describe('MarketplaceCoopAcceptanceService', () => {
     await expect(
       service.accept({ document_registry_id: 1, accepted_by_board_decision_id: 'x' })
     ).rejects.toThrow(NotFoundException);
+  });
+});
+
+/**
+ * Дата принятия ЦПП приходит с клиента, поэтому проверяется на сервере.
+ *
+ * Дата в будущем означала бы, что кооператив «принял программу» раньше, чем это
+ * произошло: по ней считается начало действия ЦПП. Минутный допуск оставлен
+ * намеренно — часы клиента и сервера расходятся, и отбивать такое расхождение
+ * как подлог было бы неверно.
+ */
+describe('MarketplaceCoopAcceptanceService.accept: дата принятия', () => {
+  const makeAcceptable = () =>
+    makeRepo({
+      coopAcceptance: { accepted: false, document_registry_id: 0, accepted_at: '', accepted_by_board_decision_id: '' },
+    });
+
+  it('неразбираемая дата → 400, конфиг не трогается', async () => {
+    const repo = makeAcceptable();
+    const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
+
+    await expect(
+      service.accept({
+        document_registry_id: 1101,
+        accepted_by_board_decision_id: 'board-decision-42',
+        accepted_at: 'вчера',
+      })
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.patchConfig).not.toHaveBeenCalled();
+  });
+
+  it('дата в будущем → 400, конфиг не трогается', async () => {
+    const repo = makeAcceptable();
+    const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
+    const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    await expect(
+      service.accept({
+        document_registry_id: 1101,
+        accepted_by_board_decision_id: 'board-decision-42',
+        accepted_at: future,
+      })
+    ).rejects.toThrow(BadRequestException);
+    expect(repo.patchConfig).not.toHaveBeenCalled();
+  });
+
+  it('расхождение часов в пределах минуты принимается', async () => {
+    const repo = makeAcceptable();
+    const service = new MarketplaceCoopAcceptanceService(repo, makeLogger());
+    const skewed = new Date(Date.now() + 30 * 1000).toISOString();
+
+    const status = await service.accept({
+      document_registry_id: 1101,
+      accepted_by_board_decision_id: 'board-decision-42',
+      accepted_at: skewed,
+    });
+    expect(status.status).toBe('active');
   });
 });

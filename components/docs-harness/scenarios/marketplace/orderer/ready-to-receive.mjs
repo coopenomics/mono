@@ -1,14 +1,16 @@
-// Сценарий: orderer-стол «Готово к получению» (Story 6.7).
-// Лента заказов в статусе READY_TO_RECEIVE — то, что пайщик сейчас может
-// забрать на ПВЗ. Снимаем заполненную ленту пайщицы Екатерины: её заказ
-// прошёл магистраль до открытия выдачи председателем КУ (signiss1) и теперь
-// ждёт получения. Финальная подпись получения (signiss2) выполняется на столе
-// оператора ПВЗ при сверке штрих-кода — здесь только очередь самого пайщика.
+// Сценарий: заказ получен — что видит заказчица после выдачи.
+//
+// Акт выдачи подписывает оператор на пункте выдачи («Подписать и отправить
+// пайщику»), после чего заказ у заказчицы переходит в «Получен». Отдельной
+// страницы «Готово к получению» больше нет — состояние заказа видно в «Моих
+// заказах», а код получения живёт в разделе «Показать QR».
+//
+// Фикстура: ekaterina / Смирнова Екатерина Александровна.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanViteOverlays, env, loginAs } from '../../../lib/harness.mjs';
+import { cleanViteOverlays, env, loginAs, pickBranchIfAsked } from '../../../lib/harness.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +20,17 @@ const loadFixture = (username) =>
   );
 
 export const meta = {
+  mode: 'docs',
+  feature: 'marketplace.issuance',
+  cases: ['mkt.iss.happy.02'],
+  fixtures: ['ekaterina'],
+  prepare: [
+    'marketplace:01-l1-accept',
+    'marketplace:02-branches',
+    'marketplace:03-assign-branches',
+    'marketplace:04-supplier',
+    'marketplace-deposits:fund',
+  ],
   title: 'Стол заказчика — «Готово к получению»',
   docPath: 'new/marketplace/orderer/ready-to-receive.md',
   assetsDir: 'assets/new/marketplace/orderer/ready-to-receive',
@@ -45,40 +58,28 @@ async function signAllAgreements(page) {
   }
 }
 
-export default async ({ page, shot }) => {
-  const fixture = loadFixture('ekaterina');
+export default async ({ page, shot, expect }) => {
+  await loginAs(page, loadFixture('ekaterina'));
+  await pickBranchIfAsked(page);
 
-  await loginAs(page, fixture);
-  await page.evaluate(() => localStorage.setItem('harness:noBranchOverlay', '1'));
-
-  await page.waitForFunction(
-    () => !document.body.innerText.includes('Формируем документ'),
-    { timeout: 30000 },
-  ).catch(() => {});
-  await page.waitForTimeout(1500);
-  await signAllAgreements(page);
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-
-  // Навигация с ретраем: core-guard роута асинхронно проверяет agreements/роли,
-  // и на холодном/нагруженном стенде может отбросить на /user/wallet (онбординг)
-  // до того, как marketplace-сессия загрузится. Повторяем переход, пока URL
-  // не закрепится на market/ready-to-receive.
-  const target = `${env.BASE_URL}/#/${env.COOPNAME}/market/ready-to-receive`;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-    await page.waitForTimeout(2500);
-    await signAllAgreements(page);
-    if (page.url().includes('ready-to-receive')) break;
-    await page.waitForTimeout(2000);
-  }
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1500);
+  await page.goto(`${env.APP_PREFIX}/${env.COOPNAME}/market/my-orders`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60000,
+  });
+  await page.waitForSelector('text=Мои заказы', { timeout: 90000 });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(3000);
   await cleanViteOverlays(page);
 
   await shot(
     page,
-    '01-ready-to-receive',
-    `Раздел «Готово к получению» пайщицы Екатерины: лента её заказов в статусе READY_TO_RECEIVE. По заказу видны идентификатор, пункт выдачи (КУ krg), количество, сумма и дата открытия выдачи председателем участка. Это сигнал «приходи на ПВЗ за имуществом»; саму выдачу с финальной подписью оформляет оператор на ПВЗ при сверке штрих-кода.`,
+    '01-order-received',
+    'Заказ после выдачи: статус «Получен», указаны количество, сумма и пункт выдачи. Табы позволяют смотреть заказы по стадиям — от ожидания поставщика до полученных.',
+    {
+      expect: async (p) => {
+        await expect(p.locator('text=Получен').first()).toBeVisible({ timeout: 20000 });
+        await expect(p.locator('text=975').first()).toBeVisible({ timeout: 20000 });
+      },
+    },
   );
 };
