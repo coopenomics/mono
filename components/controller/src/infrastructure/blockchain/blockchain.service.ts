@@ -12,6 +12,7 @@ import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
 import { Inject } from '@nestjs/common';
+import { normalizeAbiFloats } from './abi-float.normalizer';
 
 export type IndexPosition =
   | 'primary'
@@ -104,7 +105,7 @@ export class BlockchainService implements BlockchainPort {
     });
 
     const rows = await table.all({ scope });
-    return JSON.parse(JSON.stringify(rows)) as T[];
+    return normalizeAbiFloats(JSON.parse(JSON.stringify(rows)) as T[], abi, tableName);
   }
 
   public async query<T = any>(
@@ -138,7 +139,7 @@ export class BlockchainService implements BlockchainPort {
       to,
       maxRows,
     });
-    return JSON.parse(JSON.stringify(rows)) as T[];
+    return normalizeAbiFloats(JSON.parse(JSON.stringify(rows)) as T[], abi, tableName);
   }
 
   public async getSingleRow<T = any>(
@@ -165,7 +166,7 @@ export class BlockchainService implements BlockchainPort {
       key_type: keyType,
     });
 
-    return row ? (JSON.parse(JSON.stringify(row)) as T) : null;
+    return row ? normalizeAbiFloats(JSON.parse(JSON.stringify(row)) as T, abi, tableName) : null;
   }
 
   // Authentication related methods
