@@ -218,8 +218,8 @@ cases:
     kind: side
     scenario: Одобрение с отрицательным либо дробным гарантийным сроком возврата
     expect: отказ «Гарантийный срок возврата должен быть целым неотрицательным числом дней»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-moderation-service.test.ts
+    status: passing
 
   - id: mkt.offer.side.22
     level: backend
