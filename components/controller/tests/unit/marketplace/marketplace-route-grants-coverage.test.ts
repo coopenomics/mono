@@ -56,3 +56,38 @@ describe('гранты маршрутов Стола заказов покрыт
     }
   });
 });
+
+/**
+ * Разворачивание широких прав в подмножества.
+ *
+ * Матрица описывает право над всеми объектами как `:all`, а маршруты столов
+ * требуют более узкие формы — `:own`, `:own-KU`, `:to-self`. Фронт сверяет
+ * требование простым сравнением строк и про иерархию охвата не знает, поэтому
+ * разворачивание обязано происходить на сервере: без него у администратора с
+ * `Warehouse:read:all` не открылась бы страница склада участка.
+ */
+describe('expandGrantsForRoles: широкое право покрывает узкие', () => {
+  it('право над всеми объектами разворачивается в подмножества охвата', () => {
+    const grants = expandGrantsForRoles(['admin']);
+
+    expect(grants).toContain('Warehouse:read:all');
+    expect(grants).toContain('Warehouse:read:own-KU');
+    expect(grants).toContain('Warehouse:read:own');
+    expect(grants).toContain('Warehouse:read:to-self');
+  });
+
+  it('право без квалификатора охвата не размножается', () => {
+    const grants = expandGrantsForRoles(['admin']);
+
+    expect(grants).toContain('Offer:moderate');
+    expect(grants).not.toContain('Offer:moderate:own');
+    expect(grants).not.toContain('Offer:moderate:own-KU');
+  });
+
+  it('узкое право роли остаётся узким — доступ не расширяется', () => {
+    const grants = expandGrantsForRoles(['operator']);
+
+    expect(grants).toContain('Warehouse:read:own-KU');
+    expect(grants).not.toContain('Warehouse:read:all');
+  });
+});

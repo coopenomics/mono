@@ -83,3 +83,15 @@ cases:
       расхождение обнаруживается тестом: каждый грант из meta.requires маршрутов Стола заказов выдаётся хотя бы одной ролью
     test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
     status: passing
+
+  - id: mkt.cat.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Роль с правом над всеми объектами открывает страницу, требующую права в
+      более узком охвате (участок, свои объекты).
+    expect: >
+      широкое право разворачивается в подмножества охвата и покрывает узкое
+      требование; узкое право роли при этом не расширяется до всех объектов
+    test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
+    status: passing
