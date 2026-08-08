@@ -7574,16 +7574,6 @@ export type ValueTypes = {
 	/** Горизонт прогнозного коридора в периодах */
 	periods_ahead?: number | undefined | null | Variable<any, string>
 };
-	["GetOneCoopDocumentsInput"]: {
-	/** Номер блока, начиная с которого извлекать документы */
-	block_from: number | Variable<any, string>,
-	/** Номер блока, до которого извлекать документы */
-	block_to?: number | undefined | null | Variable<any, string>,
-	/** Количество записей на странице */
-	limit?: number | undefined | null | Variable<any, string>,
-	/** Номер страницы для пагинации */
-	page?: number | undefined | null | Variable<any, string>
-};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number | Variable<any, string>,
@@ -11999,34 +11989,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	notification: ValueTypes["AnnualGeneralMeetingNotificationSignedDocumentInput"] | Variable<any, string>,
 	username: string | Variable<any, string>
 };
-	["OneCoopDocumentOutput"]: AliasType<{
-	/** Тип действия документа */
-	action?:boolean | `@${string}`,
-	/** Номер блока, в котором документ был зафиксирован */
-	block_num?:boolean | `@${string}`,
-	/** Специфичные данные для конкретного типа действия */
-	data?:boolean | `@${string}`,
-	/** SHA-256 хеш основного документа */
-	hash?:boolean | `@${string}`,
-	/** SHA-256 хеш пакета документов */
-	package?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on OneCoopDocumentOutput']?: Omit<ValueTypes["OneCoopDocumentOutput"], "...on OneCoopDocumentOutput">
-}>;
-	["OneCoopDocumentsResponse"]: AliasType<{
-	/** Текущая страница */
-	current_page?:boolean | `@${string}`,
-	/** Массив документов */
-	items?:ValueTypes["OneCoopDocumentOutput"],
-	/** Максимальный номер блока в ответе (для синхронизации) */
-	max_block_num?:boolean | `@${string}`,
-	/** Общее количество документов */
-	total_count?:boolean | `@${string}`,
-	/** Общее количество страниц */
-	total_pages?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on OneCoopDocumentsResponse']?: Omit<ValueTypes["OneCoopDocumentsResponse"], "...on OneCoopDocumentsResponse">
-}>;
 	["OpenProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
@@ -13583,7 +13545,6 @@ marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ValueTypes["Marketplace
 marketplaceWriteoffStatementSignablePayload?: [{	data: ValueTypes["MarketplaceWriteoffStatementSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 membershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExit"]],
 membershipExitReturnPreview?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["MembershipExitReturnPreview"]],
-onecoopGetDocuments?: [{	data: ValueTypes["GetOneCoopDocumentsInput"] | Variable<any, string>},ValueTypes["OneCoopDocumentsResponse"]],
 paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
@@ -21731,16 +21692,6 @@ export type ResolverInputTypes = {
 	/** Горизонт прогнозного коридора в периодах */
 	periods_ahead?: number | undefined | null
 };
-	["GetOneCoopDocumentsInput"]: {
-	/** Номер блока, начиная с которого извлекать документы */
-	block_from: number,
-	/** Номер блока, до которого извлекать документы */
-	block_to?: number | undefined | null,
-	/** Количество записей на странице */
-	limit?: number | undefined | null,
-	/** Номер страницы для пагинации */
-	page?: number | undefined | null
-};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -26020,32 +25971,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	notification: ResolverInputTypes["AnnualGeneralMeetingNotificationSignedDocumentInput"],
 	username: string
 };
-	["OneCoopDocumentOutput"]: AliasType<{
-	/** Тип действия документа */
-	action?:boolean | `@${string}`,
-	/** Номер блока, в котором документ был зафиксирован */
-	block_num?:boolean | `@${string}`,
-	/** Специфичные данные для конкретного типа действия */
-	data?:boolean | `@${string}`,
-	/** SHA-256 хеш основного документа */
-	hash?:boolean | `@${string}`,
-	/** SHA-256 хеш пакета документов */
-	package?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["OneCoopDocumentsResponse"]: AliasType<{
-	/** Текущая страница */
-	current_page?:boolean | `@${string}`,
-	/** Массив документов */
-	items?:ResolverInputTypes["OneCoopDocumentOutput"],
-	/** Максимальный номер блока в ответе (для синхронизации) */
-	max_block_num?:boolean | `@${string}`,
-	/** Общее количество документов */
-	total_count?:boolean | `@${string}`,
-	/** Общее количество страниц */
-	total_pages?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["OpenProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -27542,7 +27467,6 @@ marketplaceWriteoffServiceMemoSignablePayload?: [{	data: ResolverInputTypes["Mar
 marketplaceWriteoffStatementSignablePayload?: [{	data: ResolverInputTypes["MarketplaceWriteoffStatementSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
 membershipExit?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExit"]],
 membershipExitReturnPreview?: [{	coopname: string,	username: string},ResolverInputTypes["MembershipExitReturnPreview"]],
-onecoopGetDocuments?: [{	data: ResolverInputTypes["GetOneCoopDocumentsInput"]},ResolverInputTypes["OneCoopDocumentsResponse"]],
 paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
@@ -35483,16 +35407,6 @@ export type ModelTypes = {
 	/** Горизонт прогнозного коридора в периодах */
 	periods_ahead?: number | undefined | null
 };
-	["GetOneCoopDocumentsInput"]: {
-	/** Номер блока, начиная с которого извлекать документы */
-	block_from: number,
-	/** Номер блока, до которого извлекать документы */
-	block_to?: number | undefined | null,
-	/** Количество записей на странице */
-	limit?: number | undefined | null,
-	/** Номер страницы для пагинации */
-	page?: number | undefined | null
-};
 	["GetPaymentMethodsInput"]: {
 	/** Количество элементов на странице */
 	limit: number,
@@ -40314,30 +40228,6 @@ export type ModelTypes = {
 	notification: ModelTypes["AnnualGeneralMeetingNotificationSignedDocumentInput"],
 	username: string
 };
-	["OneCoopDocumentOutput"]: {
-		/** Тип действия документа */
-	action: string,
-	/** Номер блока, в котором документ был зафиксирован */
-	block_num: number,
-	/** Специфичные данные для конкретного типа действия */
-	data: ModelTypes["JSON"],
-	/** SHA-256 хеш основного документа */
-	hash: string,
-	/** SHA-256 хеш пакета документов */
-	package: string
-};
-	["OneCoopDocumentsResponse"]: {
-		/** Текущая страница */
-	current_page: number,
-	/** Массив документов */
-	items: Array<ModelTypes["OneCoopDocumentOutput"]>,
-	/** Максимальный номер блока в ответе (для синхронизации) */
-	max_block_num: number,
-	/** Общее количество документов */
-	total_count: number,
-	/** Общее количество страниц */
-	total_pages: number
-};
 	["OpenProjectInput"]: {
 	/** Имя аккаунта кооператива */
 	coopname: string,
@@ -42102,8 +41992,6 @@ export type ModelTypes = {
 	membershipExit?: ModelTypes["MembershipExit"] | undefined | null,
 	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
 	membershipExitReturnPreview: ModelTypes["MembershipExitReturnPreview"],
-	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
-	onecoopGetDocuments: ModelTypes["OneCoopDocumentsResponse"],
 	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -50295,16 +50183,6 @@ export type GraphQLTypes = {
 	/** Горизонт прогнозного коридора в периодах */
 	periods_ahead?: number | undefined | null
 };
-	["GetOneCoopDocumentsInput"]: {
-		/** Номер блока, начиная с которого извлекать документы */
-	block_from: number,
-	/** Номер блока, до которого извлекать документы */
-	block_to?: number | undefined | null,
-	/** Количество записей на странице */
-	limit?: number | undefined | null,
-	/** Номер страницы для пагинации */
-	page?: number | undefined | null
-};
 	["GetPaymentMethodsInput"]: {
 		/** Количество элементов на странице */
 	limit: number,
@@ -55462,34 +55340,6 @@ export type GraphQLTypes = {
 	notification: GraphQLTypes["AnnualGeneralMeetingNotificationSignedDocumentInput"],
 	username: string
 };
-	["OneCoopDocumentOutput"]: {
-	__typename: "OneCoopDocumentOutput",
-	/** Тип действия документа */
-	action: string,
-	/** Номер блока, в котором документ был зафиксирован */
-	block_num: number,
-	/** Специфичные данные для конкретного типа действия */
-	data: GraphQLTypes["JSON"],
-	/** SHA-256 хеш основного документа */
-	hash: string,
-	/** SHA-256 хеш пакета документов */
-	package: string,
-	['...on OneCoopDocumentOutput']: Omit<GraphQLTypes["OneCoopDocumentOutput"], "...on OneCoopDocumentOutput">
-};
-	["OneCoopDocumentsResponse"]: {
-	__typename: "OneCoopDocumentsResponse",
-	/** Текущая страница */
-	current_page: number,
-	/** Массив документов */
-	items: Array<GraphQLTypes["OneCoopDocumentOutput"]>,
-	/** Максимальный номер блока в ответе (для синхронизации) */
-	max_block_num: number,
-	/** Общее количество документов */
-	total_count: number,
-	/** Общее количество страниц */
-	total_pages: number,
-	['...on OneCoopDocumentsResponse']: Omit<GraphQLTypes["OneCoopDocumentsResponse"], "...on OneCoopDocumentsResponse">
-};
 	["OpenProjectInput"]: {
 		/** Имя аккаунта кооператива */
 	coopname: string,
@@ -57396,8 +57246,6 @@ export type GraphQLTypes = {
 	membershipExit?: GraphQLTypes["MembershipExit"] | undefined | null,
 	/** Предварительный расчёт суммы возврата паевого взноса при выходе пайщика (минимальный + целевой паевой). Ориентир для пайщика; итог фиксирует совет. */
 	membershipExitReturnPreview: GraphQLTypes["MembershipExitReturnPreview"],
-	/** Получение документов кооператива для синхронизации с 1С. Требует секретный ключ в заголовке x-onecoop-secret-key. */
-	onecoopGetDocuments: GraphQLTypes["OneCoopDocumentsResponse"],
 	/** Получить запись о файле платежа + свежий короткоживущий read-URL.
 
 Требуемые роли: chairman, member, user.  */
@@ -60293,7 +60141,6 @@ type ZEUS_VARIABLES = {
 	["GetMetricSuperpositionHistoryInput"]: ValueTypes["GetMetricSuperpositionHistoryInput"];
 	["GetMetricSuperpositionInput"]: ValueTypes["GetMetricSuperpositionInput"];
 	["GetMetricWaveInput"]: ValueTypes["GetMetricWaveInput"];
-	["GetOneCoopDocumentsInput"]: ValueTypes["GetOneCoopDocumentsInput"];
 	["GetPaymentMethodsInput"]: ValueTypes["GetPaymentMethodsInput"];
 	["GetProductTypeByIdInput"]: ValueTypes["GetProductTypeByIdInput"];
 	["GetProjectCommunicationRoomsInput"]: ValueTypes["GetProjectCommunicationRoomsInput"];

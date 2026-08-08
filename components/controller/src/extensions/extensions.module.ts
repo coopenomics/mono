@@ -9,7 +9,6 @@ import { QrPayPluginModule } from './qrpay/qrpay-extension.module';
 import { BuiltinPluginModule } from './builtin/builtin-extension.module';
 import { ParticipantPluginModule } from './participant/participant-extension.module';
 import { ChatCoopPluginModule } from './chatcoop/chatcoop-extension.module';
-import { OneCoopPluginModule } from './1ccoop/oneccoop-extension.module';
 import { ReportsExtensionModule } from './reports/reports-extension.module';
 import { MarketplacePluginModule } from './marketplace/marketplace-extension.module';
 import { ExpensesPluginModule } from './expenses/expenses-extension.module';
@@ -37,7 +36,6 @@ export class ExtensionsModule {
         ParticipantPluginModule,
         ChatCoopPluginModule,
         InterCommunicationBridgeModule,
-        OneCoopPluginModule,
         ReportsExtensionModule,
         MarketplacePluginModule,
         ExpensesPluginModule,
@@ -57,7 +55,6 @@ export class ExtensionsModule {
         ParticipantPluginModule,
         ChatCoopPluginModule,
         InterCommunicationBridgeModule,
-        OneCoopPluginModule,
         ReportsExtensionModule,
         MarketplacePluginModule,
         ExpensesPluginModule,

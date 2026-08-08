@@ -811,9 +811,6 @@ export const AllTypesProps: Record<string,any> = {
 	GetMetricWaveInput:{
 		period:"MetricSeriesPeriod"
 	},
-	GetOneCoopDocumentsInput:{
-
-	},
 	GetPaymentMethodsInput:{
 
 	},
@@ -3056,9 +3053,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		membershipExitReturnPreview:{
 
-		},
-		onecoopGetDocuments:{
-			data:"GetOneCoopDocumentsInput"
 		},
 		paymentFile:{
 
@@ -6774,20 +6768,6 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	OneCoopDocumentOutput:{
-		action:"String",
-		block_num:"Int",
-		data:"JSON",
-		hash:"String",
-		package:"String"
-	},
-	OneCoopDocumentsResponse:{
-		current_page:"Int",
-		items:"OneCoopDocumentOutput",
-		max_block_num:"Int",
-		total_count:"Int",
-		total_pages:"Int"
-	},
 	Organization:{
 		city:"String",
 		country:"String",
@@ -7498,7 +7478,6 @@ export const ReturnTypes: Record<string,any> = {
 		marketplaceWriteoffStatementSignablePayload:"GeneratedDocument",
 		membershipExit:"MembershipExit",
 		membershipExitReturnPreview:"MembershipExitReturnPreview",
-		onecoopGetDocuments:"OneCoopDocumentsResponse",
 		paymentFile:"PaymentFile",
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",

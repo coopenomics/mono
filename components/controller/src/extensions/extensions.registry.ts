@@ -260,7 +260,7 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'YOOKASSA',
+    title: 'Оплата по Yookassa',
     description: 'Приложение для приёма платежей с помощью ЮКасса. Для использования необходимо установить API-ключ.',
     image: 'https://i.ibb.co/Hq6CJFj/Yookassa-Image.png',
     class: YookassaPluginModule,
@@ -278,7 +278,7 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'SBERKASSA',
+    title: 'Приём платежей на р/с в Сбере',
     description: 'Приложение для автоматического приёма паевых взносов в Сбербанке.',
     image: 'https://i.ibb.co/5rQTPLN/sber.png',
     class: SberpollPluginModule,
@@ -296,7 +296,7 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'QR-CODE',
+    title: 'Оплата по QR',
     description: 'Приложение для выставления QR-счёта на оплату из любого банковского приложения.',
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: QrPayPluginModule,
