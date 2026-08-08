@@ -43,8 +43,8 @@ cases:
     kind: side
     scenario: Попытка удалить базовую категорию платформы
     expect: отказ «Базовую категорию удалить нельзя»
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    status: passing
 
   - id: mkt.cat.side.02
     level: backend
