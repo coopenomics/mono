@@ -141,6 +141,14 @@ stack_up_infra() {
 }
 
 stack_up_authentik() {
+  # Bootstrap-значения authentik читаются им НАПРЯМУЮ из окружения и префикс file://
+  # не понимают — их надо положить в .env реальными значениями. Иначе админ-токеном
+  # становится сама строка `file:///run/secrets/...`, контроллер получает 403, а
+  # миграция «ключ→пароль» падает с 500. Синхронизируем перед каждым подъёмом:
+  # применяются они только при первой инициализации базы authentik, а её чистый
+  # ребут как раз и пересоздаёт.
+  bash "$(dirname "${BASH_SOURCE[0]}")/../sync-authentik-bootstrap.sh" || true
+
   echo "▸ Поднимаем authentik..."
   docker compose up -d $STACK_AUTH_SERVICES
   stack_wait_authentik || true

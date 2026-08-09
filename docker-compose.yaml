@@ -92,6 +92,10 @@ services:
       - coop_pg_app_password
       - authentik_webhook_token
       - auth_v2_session_binding_secret
+      # Админ-токен authentik: контроллер пишет им пароль пайщика при миграции
+      # «ключ→пароль» и при восстановлении доступа. Читается по пути из
+      # AUTHENTIK_ADMIN_TOKEN_FILE (controller/.env).
+      - authentik_bootstrap_token
 
   cooparser:
     build:
@@ -164,8 +168,16 @@ services:
       AUTHENTIK_POSTGRESQL__PASSWORD: file:///run/secrets/coop_pg_authentik_password
       AUTHENTIK_REDIS__HOST: monoredis
       AUTHENTIK_REDIS__DB: ${AUTHENTIK_REDIS_DB:-1}
-      AUTHENTIK_BOOTSTRAP_PASSWORD: file:///run/secrets/authentik_bootstrap_password
-      AUTHENTIK_BOOTSTRAP_TOKEN: file:///run/secrets/authentik_bootstrap_token
+      # ВНИМАНИЕ: BOOTSTRAP-переменные читаются authentik'ом НАПРЯМУЮ из окружения,
+      # минуя загрузчик конфига, поэтому префикс file:// они НЕ понимают и берут
+      # строку буквально. Раньше здесь стояло file:///run/secrets/... — и админ-токеном
+      # становилась сама эта строка, из-за чего контроллер получал от authentik 403,
+      # а миграция «ключ→пароль» падала с 500. Значения кладём напрямую из .env
+      # (скрипт синхронизации — components/boot/scripts/sync-authentik-bootstrap.sh).
+      # Остальные AUTHENTIK_*-переменные идут через загрузчик и file:// понимают —
+      # их не трогаем.
+      AUTHENTIK_BOOTSTRAP_PASSWORD: ${AUTHENTIK_BOOTSTRAP_PASSWORD:-}
+      AUTHENTIK_BOOTSTRAP_TOKEN: ${AUTHENTIK_BOOTSTRAP_TOKEN:-}
       AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
       AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
       AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
