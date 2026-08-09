@@ -43,9 +43,14 @@ export interface LoginResult {
 /**
  * Двухэтапный вход (Story 1.7, обновлён Story 11.2): (1) password через authentik —
  * встроенная форма гонит email+password в flow-executor (сессия), затем
- * `authorization_code`+PKCE молча (`signinSilent`); (2) timestamp-signature handshake
- * против controller'а (bind → подпись ключом из keystore → verify). Перед вызовом
- * кошелёк должен быть разблокирован (`unlockWallet`), иначе handshake бросит WalletLocked.
+ * `authorization_code`+PKCE молча (`signinSilent`); (2) расшифровка ключа паролём;
+ * (3) timestamp-signature handshake против controller'а (bind → подпись ключом из
+ * keystore → verify).
+ *
+ * Кошелёк разблокируется ЗДЕСЬ, а не вызывающей стороной. Раньше это ожидалось от
+ * приложения, но оно физически не могло: чтобы забрать зашифрованный ключ, нужно имя
+ * пайщика, а его возвращает как раз authentik на шаге 1. Приложение знает только
+ * почту, и вход падал на подписи с «Кошелёк заперт».
  *
  * База controller'а берётся из `configureCoopId({ apiUrl })`, OIDC-клиент — из
  * `configureOidc({ clientId, redirectUri })` (вызываются приложением на старте).
@@ -54,7 +59,20 @@ export async function login(params: LoginParams): Promise<LoginResult> {
   const apiUrl = coopIdApiUrl()
   // 1. password-этап: устанавливает сессию authentik (cookie) + отдаёт id_token.
   const user = await authenticateWithAuthentik({ issuer: params.issuer, email: params.email, password: params.password, flowSlug: params.flowSlug })
-  // 2. timestamp-signature handshake: платформенные токены + удостоверение.
+
+  // 2. Разблокировка ключа паролём. Имя пайщика берём из токена: `sub` здесь —
+  // внутренний идентификатор authentik, а нужен аккаунт в цепи, под которым лежит
+  // зашифрованный ключ. Его несёт `preferred_username` (scope `profile`).
+  const account = (user.profile?.preferred_username ?? '').toString()
+  if (!account) {
+    throw new AuthV2Error(
+      AuthV2ErrorCode.InvalidCredentials,
+      'authentik не вернул имя пайщика — без него нельзя забрать зашифрованный ключ',
+    )
+  }
+  await unlockWallet({ apiUrl, account, password: params.password })
+
+  // 3. timestamp-signature handshake: платформенные токены + удостоверение.
   const handshake = await performTimestampHandshake(apiUrl)
   return {
     accessToken: handshake.accessToken,
