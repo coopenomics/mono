@@ -370,37 +370,49 @@ program
  * Синхронизация реестра шаблонов документов с сетью.
  *
  * Локальный реестр документов (`@coopenomics/factory`) — источник истины:
- * команда доливает недостающие шаблоны, переписывает разошедшееся
- * содержание и поднимает версию там, где реестр её объявил выше сетевой.
- * Ничего не удаляет и не понижает.
+ * команда доливает недостающие шаблоны, переписывает разошедшееся содержание
+ * и поднимает версию там, где реестр её объявил выше сетевой. Ничего не
+ * удаляет и не понижает.
  *
- * Запускается в раскатке сети сразу после деплоя контрактов (образ
- * `dicoop/drafts:<branch>`), а вручную — так:
+ * Два режима, потому что подписывают транзакции по-разному:
  *
- *   CHAIN_URL=... EOSIO_PRV_KEY=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run
+ * - `--plan <каталог>` — только чтение цепи. Раскладывает план в каталог
+ *   (данные каждого действия JSON-файлом + `apply.sh`), а подписывает и
+ *   отправляет потом `cleos` из контейнера с кошельком. Так работает
+ *   раскатка сети: ключ системного аккаунта живёт в кошельке плейбука и
+ *   стирается вместе с ним, наружу не выходит;
+ * - без флагов — считает план и применяет его сам ключом из `EOSIO_PRV_KEY`.
+ *   Для локальной цепи, где ключ и так в конфиге.
+ *
+ *   CHAIN_URL=... pnpm -F @coopenomics/boot run drafts:sync -- --dry-run
  *
  * Окружение:
  *   CHAIN_URL           — endpoint ноды
- *   EOSIO_PRV_KEY       — ключ системного аккаунта (реестр правит eosio)
+ *   EOSIO_PRV_KEY       — ключ системного аккаунта, только для прямого режима
  *   RPC_WAIT_TIMEOUT_MS — сколько ждать готовности RPC, default 60000
  */
 program
   .command('drafts:sync')
   .description('Привести реестр документов в сети к локальному реестру шаблонов')
   .option('--dry-run', 'Показать план изменений, не отправляя транзакций')
-  .action(async (options: { dryRun?: boolean }) => {
-    const config = (await import('./configs')).default
-    const { syncDrafts } = await import('./init/drafts')
+  .option('--plan <dir>', 'Разложить план в каталог для применения через cleos')
+  .action(async (options: { dryRun?: boolean, plan?: string }) => {
+    const configs = (await import('./configs')).default
+    const { computeDraftsPlan, printDraftsPlan, applyDraftsPlan, writeDraftsPlan } = await import('./init/drafts')
     const { default: Blockchain } = await import('./blockchain')
 
     const dryRun = options.dryRun === true
+    const planDir = options.plan
+    // Ключ нужен только когда команда сама подписывает транзакции.
+    const applies = !dryRun && !planDir
 
-    if (!dryRun && !process.env.EOSIO_PRV_KEY) {
+    if (applies && !process.env.EOSIO_PRV_KEY) {
       console.error('Не задан EOSIO_PRV_KEY — реестр документов правит системный аккаунт')
+      console.error('Для раскатки сети используйте --plan <каталог>: подпишет cleos кошельком плейбука')
       process.exit(1)
     }
 
-    const url = `${config.network.protocol}://${config.network.host}${config.network.port}`
+    const url = `${configs.network.protocol}://${configs.network.host}${configs.network.port}`
     const timeoutMs = Number(process.env.RPC_WAIT_TIMEOUT_MS ?? 60000)
 
     console.log(`Реестр документов: ${url}`)
@@ -411,17 +423,23 @@ program
     }
 
     try {
-      const blockchain = new Blockchain(config.network, config.private_keys)
+      const blockchain = new Blockchain(configs.network, configs.private_keys)
       await blockchain.update_pass_instance()
 
-      const report = await syncDrafts(blockchain, { dryRun })
+      const plan = await computeDraftsPlan(blockchain)
+      printDraftsPlan(plan)
 
-      if (report.failed.length > 0) {
-        console.error(`Синхронизация завершена с ошибками: ${report.failed.length}`)
+      if (plan.problems.length > 0) {
+        console.error(`Реестр не сходится с сетью: ${plan.problems.length} проблем`)
         process.exit(1)
       }
 
-      console.log('Реестр документов синхронизирован')
+      if (planDir)
+        await writeDraftsPlan(plan, planDir)
+      else if (applies)
+        await applyDraftsPlan(blockchain, plan)
+
+      console.log('Готово')
       process.exit(0)
     }
     catch (e) {

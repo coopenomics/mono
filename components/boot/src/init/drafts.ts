@@ -2,23 +2,32 @@
  * Синхронизация реестра шаблонов документов с сетью.
  *
  * Локальный реестр (`Registry` из `@coopenomics/factory`) — источник истины.
- * Синхронизатор сравнивает его с таблицами `draft::drafts` / `draft::translations`
- * и приводит сеть к локальному состоянию:
+ * Сравнение с таблицами `draft::drafts` / `draft::translations` даёт план:
  *
  * - шаблона в сети нет            → `createdraft` (версия 1);
  * - содержание разошлось          → `editdraft` (версия не меняется);
  * - перевод разошёлся             → `edittrans`;
+ * - перевода на язык нет          → `createtrans`;
  * - целевая версия выше сетевой   → `upversion` до целевой.
  *
  * Ничего не удаляет: шаблоны, которых нет в локальном реестре, остаются в
- * сети нетронутыми и попадают в отчёт отдельной строкой.
- *
- * Идемпотентна: второй запуск подряд не отправляет ни одной транзакции.
+ * сети нетронутыми и попадают в отчёт отдельной строкой. Идемпотентно:
+ * второй запуск подряд даёт пустой план.
  *
  * Разделение «правка» / «бамп версии» — сознательное. Правка текста не должна
  * заставлять пайщиков переподписывать документ, поэтому версию поднимает
  * только явное объявление в реестре версий (`TemplateVersions` в фабрике).
+ *
+ * План отделён от применения, потому что подписывать транзакции в раскатке
+ * сети некому: ключ системного аккаунта живёт в кошельке `cleos`-контейнера
+ * плейбука и стирается вместе с ним. Поэтому в раскатке план считает этот
+ * код (сети нужно только чтение), а подписывает и отправляет `cleos` из
+ * того же контейнера, что деплоит контракты — см. {@link writeDraftsPlan}.
+ * Прямое применение ({@link applyDraftsPlan}) остаётся для локальной цепи,
+ * где ключ и так в конфиге.
  */
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { Registry, getTemplateVersion } from '@coopenomics/factory'
 import { DraftContract } from 'cooptypes'
 import type Blockchain from '../blockchain'
@@ -33,24 +42,40 @@ const DEFAULT_LANG = 'ru'
 /** Размер страницы при вычитывании таблиц: строки крупные (контекст документа). */
 const PAGE_SIZE = 20
 
-export interface IDraftsSyncOptions {
-  /** Показать план и выйти, не отправляя транзакций. */
-  dryRun?: boolean
+const ACTIONS = {
+  createDraft: DraftContract.Actions.CreateDraft.actionName,
+  editDraft: DraftContract.Actions.EditDraft.actionName,
+  createTranslation: DraftContract.Actions.CreateTranslation.actionName,
+  editTranslation: DraftContract.Actions.EditTranslation.actionName,
+  upVersion: DraftContract.Actions.UpVersion.actionName,
+} as const
+
+export type TDraftActionName = typeof ACTIONS[keyof typeof ACTIONS]
+
+export interface IPlannedAction {
+  /** Имя действия контракта `draft`. */
+  action: TDraftActionName
+  registry_id: number
+  /** Человекочитаемое пояснение — идёт в лог применения. */
+  reason: string
+  /** Данные действия ровно в том виде, в каком уходят в сеть. */
+  data: Record<string, unknown>
 }
 
-export interface IDraftsSyncReport {
+export interface IDraftsPlan {
+  actions: IPlannedAction[]
   created: number[]
   edited: number[]
   translated: number[]
+  translationsCreated: { registry_id: number, lang: string }[]
   bumped: { registry_id: number, from: number, to: number }[]
   unchanged: number[]
   /** Версия в сети выше объявленной в реестре — не понижаем, только сообщаем. */
   ahead: { registry_id: number, onchain: number, declared: number }[]
   /** Есть в сети, но нет в локальном реестре — не трогаем. */
   orphans: number[]
-  /** Шаблон объявляет переводы, которые синхронизатор поставить не может. */
-  skippedLangs: { registry_id: number, langs: string[] }[]
-  failed: { registry_id: number, error: string }[]
+  /** Расхождения, которые синхронизатор починить не может. */
+  problems: { registry_id: number, error: string }[]
 }
 
 interface IOnchainDraft {
@@ -77,8 +102,8 @@ interface ILocalDraft {
   description: string
   context: string
   model: string
-  translation: string
-  langs: string[]
+  /** Переводы по языкам, уже сериализованные. */
+  translations: Record<string, string>
   version: number
 }
 
@@ -117,10 +142,14 @@ function collectLocalDrafts(): ILocalDraft[] {
     const registry_id = Number(id)
     const template = Registry[id as unknown as keyof typeof Registry].Template
 
-    // Шаблон без перевода на язык по умолчанию поставить нечем: перевод
-    // создаётся одним действием с шаблоном и обязателен.
-    if (!template.translations?.[DEFAULT_LANG])
-      throw new Error(`Шаблон ${registry_id} не содержит перевода «${DEFAULT_LANG}»`)
+    // Часть шаблонов обходится без словаря перевода — в их контексте нет ни
+    // одного `{% trans %}`. Для таких перевод по умолчанию пустой: строка
+    // перевода всё равно заводится вместе с шаблоном и должна существовать.
+    const translations: Record<string, string> = {
+      [DEFAULT_LANG]: JSON.stringify(template.translations?.[DEFAULT_LANG] ?? {}),
+    }
+    for (const lang of Object.keys(template.translations ?? {}))
+      translations[lang] = JSON.stringify(template.translations[lang])
 
     drafts.push({
       registry_id,
@@ -128,8 +157,7 @@ function collectLocalDrafts(): ILocalDraft[] {
       description: template.description,
       context: template.context,
       model: JSON.stringify(template.model),
-      translation: JSON.stringify(template.translations[DEFAULT_LANG]),
-      langs: Object.keys(template.translations),
+      translations,
       version: getTemplateVersion(registry_id),
     })
   }
@@ -137,22 +165,21 @@ function collectLocalDrafts(): ILocalDraft[] {
   return drafts.sort((a, b) => a.registry_id - b.registry_id)
 }
 
-export async function syncDrafts(
-  blockchain: Blockchain,
-  options: IDraftsSyncOptions = {},
-): Promise<IDraftsSyncReport> {
-  const dryRun = options.dryRun === true
-
-  const report: IDraftsSyncReport = {
+/**
+ * Считает, что нужно сделать с реестром в сети. Только чтение — ключи не нужны.
+ */
+export async function computeDraftsPlan(blockchain: Blockchain): Promise<IDraftsPlan> {
+  const plan: IDraftsPlan = {
+    actions: [],
     created: [],
     edited: [],
     translated: [],
+    translationsCreated: [],
     bumped: [],
     unchanged: [],
     ahead: [],
     orphans: [],
-    skippedLangs: [],
-    failed: [],
+    problems: [],
   }
 
   const onchainDrafts = await fetchAllRows<IOnchainDraft>(
@@ -169,8 +196,11 @@ export async function syncDrafts(
     draftsById.set(Number(row.registry_id), row)
 
   const translationsById = new Map<number, IOnchainTranslation>()
-  for (const row of onchainTranslations)
+  const translationsByLang = new Map<string, IOnchainTranslation>()
+  for (const row of onchainTranslations) {
     translationsById.set(Number(row.id), row)
+    translationsByLang.set(`${Number(row.draft_id)}:${row.lang}`, row)
+  }
 
   const localDrafts = collectLocalDrafts()
   const localIds = new Set(localDrafts.map(d => d.registry_id))
@@ -178,208 +208,307 @@ export async function syncDrafts(
   console.log(
     `Реестр документов: локально ${localDrafts.length}, в сети ${onchainDrafts.length}`,
   )
-  if (dryRun)
-    console.log('Режим проверки: транзакции не отправляются')
 
   for (const local of localDrafts) {
     const onchain = draftsById.get(local.registry_id)
 
-    // Единственный перевод, который синхронизатор умеет ставить — тот, что
-    // создаётся вместе с шаблоном. Отдельное действие createtrans в контракте
-    // заводит пустую строку (не заполняет ни draft_id, ни lang, ни data),
-    // поэтому вторым языком тут управлять нечем.
-    const extraLangs = local.langs.filter(lang => lang !== DEFAULT_LANG)
-    if (extraLangs.length > 0)
-      report.skippedLangs.push({ registry_id: local.registry_id, langs: extraLangs })
+    if (!onchain) {
+      plan.actions.push({
+        action: ACTIONS.createDraft,
+        registry_id: local.registry_id,
+        reason: `создание шаблона «${local.title}»`,
+        data: {
+          scope: SCOPE,
+          username: SYSTEM_ACCOUNT,
+          registry_id: local.registry_id,
+          lang: DEFAULT_LANG,
+          title: local.title,
+          description: local.description,
+          context: local.context,
+          model: local.model,
+          translation_data: local.translations[DEFAULT_LANG],
+        },
+      })
+      plan.created.push(local.registry_id)
 
-    try {
-      if (!onchain) {
-        console.log(`[${local.registry_id}] создаю шаблон «${local.title}»`)
+      // Перевод по умолчанию заводится вместе с шаблоном, остальные — отдельно.
+      for (const lang of Object.keys(local.translations)) {
+        if (lang !== DEFAULT_LANG)
+          planCreateTranslation(plan, local, lang)
+      }
 
-        if (!dryRun) {
-          await blockchain.createDraft({
-            scope: SCOPE,
-            username: SYSTEM_ACCOUNT,
-            registry_id: local.registry_id,
-            lang: DEFAULT_LANG,
-            title: local.title,
-            description: local.description,
-            context: local.context,
-            model: local.model,
-            translation_data: local.translation,
-          })
-        }
+      // Свежесозданный шаблон всегда версии 1 — доводим до объявленной.
+      planVersion(plan, local.registry_id, 1, local.version)
+      continue
+    }
 
-        report.created.push(local.registry_id)
+    let touched = false
 
-        // Свежесозданный шаблон всегда версии 1 — доводим до объявленной.
-        await raiseVersion(blockchain, local.registry_id, 1, local.version, dryRun, report)
+    const contentChanged
+      = onchain.title !== local.title
+        || onchain.description !== local.description
+        || onchain.context !== local.context
+        || onchain.model !== local.model
+
+    if (contentChanged) {
+      plan.actions.push({
+        action: ACTIONS.editDraft,
+        registry_id: local.registry_id,
+        reason: 'обновление содержания',
+        data: {
+          scope: SCOPE,
+          username: SYSTEM_ACCOUNT,
+          registry_id: local.registry_id,
+          title: local.title,
+          description: local.description,
+          context: local.context,
+          model: local.model,
+        },
+      })
+      plan.edited.push(local.registry_id)
+      touched = true
+    }
+
+    for (const lang of Object.keys(local.translations)) {
+      // Строка перевода ищется по паре «шаблон + язык»; для языка по умолчанию
+      // подстраховываемся ссылкой из самого шаблона.
+      const existing = translationsByLang.get(`${local.registry_id}:${lang}`)
+        ?? (lang === DEFAULT_LANG
+          ? translationsById.get(Number(onchain.default_translation_id))
+          : undefined)
+
+      if (!existing) {
+        planCreateTranslation(plan, local, lang)
+        touched = true
         continue
       }
 
-      let touched = false
-
-      const contentChanged
-        = onchain.title !== local.title
-          || onchain.description !== local.description
-          || onchain.context !== local.context
-          || onchain.model !== local.model
-
-      if (contentChanged) {
-        console.log(`[${local.registry_id}] обновляю содержание`)
-
-        if (!dryRun) {
-          await blockchain.editDraft({
-            scope: SCOPE,
-            username: SYSTEM_ACCOUNT,
-            registry_id: local.registry_id,
-            title: local.title,
-            description: local.description,
-            context: local.context,
-            model: local.model,
-          })
-        }
-
-        report.edited.push(local.registry_id)
-        touched = true
-      }
-
-      const translationId = Number(onchain.default_translation_id)
-      const onchainTranslation = translationsById.get(translationId)
-      let translationBroken = false
-
-      if (!onchainTranslation) {
-        // Шаблон есть, а перевода по его default_translation_id нет — чинить
-        // нечем: createtrans в контракте не заполняет строку. Сообщаем.
-        translationBroken = true
-        report.failed.push({
+      if (existing.data !== local.translations[lang]) {
+        plan.actions.push({
+          action: ACTIONS.editTranslation,
           registry_id: local.registry_id,
-          error: `перевод ${translationId} не найден в сети`,
-        })
-      }
-      else if (onchainTranslation.data !== local.translation) {
-        console.log(`[${local.registry_id}] обновляю перевод ${translationId}`)
-
-        if (!dryRun) {
-          await blockchain.editTranslation({
+          reason: `обновление перевода «${lang}»`,
+          data: {
             scope: SCOPE,
             username: SYSTEM_ACCOUNT,
-            translate_id: translationId,
-            data: local.translation,
-          })
-        }
-
-        report.translated.push(local.registry_id)
+            translate_id: Number(existing.id),
+            data: local.translations[lang],
+          },
+        })
+        plan.translated.push(local.registry_id)
         touched = true
       }
-
-      const versionChanged = await raiseVersion(
-        blockchain,
-        local.registry_id,
-        Number(onchain.version),
-        local.version,
-        dryRun,
-        report,
-      )
-
-      if (!touched && !versionChanged && !translationBroken)
-        report.unchanged.push(local.registry_id)
     }
-    catch (error: any) {
-      const message = error?.message ?? String(error)
-      console.error(`[${local.registry_id}] ошибка: ${message}`)
-      report.failed.push({ registry_id: local.registry_id, error: message })
-    }
+
+    const versionChanged = planVersion(
+      plan,
+      local.registry_id,
+      Number(onchain.version),
+      local.version,
+    )
+
+    if (!touched && !versionChanged)
+      plan.unchanged.push(local.registry_id)
   }
 
   for (const row of onchainDrafts) {
     const registry_id = Number(row.registry_id)
     if (!localIds.has(registry_id))
-      report.orphans.push(registry_id)
+      plan.orphans.push(registry_id)
   }
 
-  printReport(report)
+  return plan
+}
 
-  return report
+function planCreateTranslation(plan: IDraftsPlan, local: ILocalDraft, lang: string): void {
+  plan.actions.push({
+    action: ACTIONS.createTranslation,
+    registry_id: local.registry_id,
+    reason: `создание перевода «${lang}»`,
+    data: {
+      scope: SCOPE,
+      username: SYSTEM_ACCOUNT,
+      registry_id: local.registry_id,
+      lang,
+      data: local.translations[lang],
+    },
+  })
+  plan.translationsCreated.push({ registry_id: local.registry_id, lang })
 }
 
 /**
- * Доводит версию шаблона в сети до объявленной. Возвращает `true`, если
- * версия менялась. Понижение невозможно — только сообщение в отчёт.
+ * Дописывает в план подъём версии до объявленной. Возвращает `true`, если
+ * версия меняется. Понижение невозможно — только сообщение в отчёт.
  */
-async function raiseVersion(
-  blockchain: Blockchain,
-  registry_id: number,
-  from: number,
-  to: number,
-  dryRun: boolean,
-  report: IDraftsSyncReport,
-): Promise<boolean> {
+function planVersion(plan: IDraftsPlan, registry_id: number, from: number, to: number): boolean {
   if (to === from)
     return false
 
   if (to < from) {
-    report.ahead.push({ registry_id, onchain: from, declared: to })
+    plan.ahead.push({ registry_id, onchain: from, declared: to })
     return false
   }
 
-  console.log(`[${registry_id}] поднимаю версию ${from} → ${to} (потребуется переподписание)`)
-
-  if (!dryRun) {
-    for (let version = from; version < to; version++) {
-      // Пауза между одинаковыми действиями обязательна: тело транзакции
-      // не меняется, и без смены опорного блока сеть отклонит вторую как
-      // дубликат по идентификатору.
-      if (version > from)
-        await sleep(1000)
-
-      await blockchain.upVersion({
+  for (let version = from; version < to; version++) {
+    plan.actions.push({
+      action: ACTIONS.upVersion,
+      registry_id,
+      reason: `подъём версии ${version} → ${version + 1} (потребуется переподписание)`,
+      data: {
         scope: SCOPE,
         username: SYSTEM_ACCOUNT,
         registry_id,
-      })
-    }
+      },
+    })
   }
 
-  report.bumped.push({ registry_id, from, to })
+  plan.bumped.push({ registry_id, from, to })
 
   return true
 }
 
-function printReport(report: IDraftsSyncReport): void {
-  console.log('--- Итог синхронизации реестра документов ---')
-  console.log(`создано:        ${report.created.length}${format(report.created)}`)
-  console.log(`обновлено:      ${report.edited.length}${format(report.edited)}`)
-  console.log(`переводов:      ${report.translated.length}${format(report.translated)}`)
-  console.log(`версий поднято: ${report.bumped.length}${
-    report.bumped.length ? ` (${report.bumped.map(b => `${b.registry_id}: ${b.from}→${b.to}`).join(', ')})` : ''
-  }`)
-  console.log(`без изменений:  ${report.unchanged.length}`)
+/**
+ * Применяет план напрямую через ключи в конфиге. Используется на локальной
+ * цепи (`boot`) — в раскатке сети подписывает `cleos`, см. {@link writeDraftsPlan}.
+ */
+export async function applyDraftsPlan(blockchain: Blockchain, plan: IDraftsPlan): Promise<void> {
+  for (const planned of plan.actions) {
+    console.log(`[${planned.registry_id}] ${planned.reason}`)
 
-  if (report.ahead.length > 0) {
+    // Повторный подъём версии одного шаблона даёт побайтово одинаковую
+    // транзакцию: без смены опорного блока сеть отклонит её как дубликат.
+    if (planned.action === ACTIONS.upVersion)
+      await sleep(1000)
+
+    switch (planned.action) {
+      case ACTIONS.createDraft:
+        await blockchain.createDraft(planned.data as any)
+        break
+      case ACTIONS.editDraft:
+        await blockchain.editDraft(planned.data as any)
+        break
+      case ACTIONS.createTranslation:
+        await blockchain.createTranslation(planned.data as any)
+        break
+      case ACTIONS.editTranslation:
+        await blockchain.editTranslation(planned.data as any)
+        break
+      case ACTIONS.upVersion:
+        await blockchain.upVersion(planned.data as any)
+        break
+    }
+  }
+}
+
+/**
+ * Раскладывает план на диск: данные каждого действия отдельным JSON-файлом и
+ * скрипт `apply.sh`, который проталкивает их через `cleos`.
+ *
+ * Так ключ системного аккаунта остаётся там, где он и был — в кошельке
+ * контейнера, который деплоит контракты и который плейбук стирает следом.
+ */
+export async function writeDraftsPlan(plan: IDraftsPlan, outDir: string): Promise<void> {
+  const actionsDir = join(outDir, 'actions')
+  await mkdir(actionsDir, { recursive: true })
+
+  const lines: string[] = [
+    '#!/bin/bash',
+    '# Сгенерировано `drafts:sync --plan` из реестра шаблонов документов.',
+    '# Подписывает и отправляет cleos кошельком того контейнера, где запущен.',
+    '#',
+    '# Окружение: CLEOS_URL — endpoint ноды.',
+    'set -euo pipefail',
+    '',
+    'CLEOS_URL="${CLEOS_URL:?не задан CLEOS_URL}"',
+    'DIR="$(cd "$(dirname "$0")" && pwd)"',
+    '',
+    'push() {',
+    '  local action="$1" file="$2" label="$3"',
+    '  echo "--- $label"',
+    `  cleos -u "$CLEOS_URL" push action ${SCOPE} "$action" "$(cat "$DIR/actions/$file")" -p ${SYSTEM_ACCOUNT}@active`,
+    '}',
+    '',
+  ]
+
+  if (plan.actions.length === 0) {
+    lines.push('echo "Реестр документов уже соответствует релизу — изменений нет."', 'exit 0', '')
+  }
+  else {
+    lines.push(`echo "Действий к применению: ${plan.actions.length}"`, '')
+
+    plan.actions.forEach((planned, index) => {
+      const file = `${String(index + 1).padStart(4, '0')}.${planned.action}.${planned.registry_id}.json`
+      lines.push(`push ${planned.action} ${file} "[${planned.registry_id}] ${planned.reason}"`)
+
+      // Повторные upversion одного шаблона побайтово совпадают — разносим их
+      // по разным опорным блокам, иначе вторая транзакция отбивается дублем.
+      if (planned.action === ACTIONS.upVersion)
+        lines.push('sleep 1')
+    })
+
+    lines.push('', 'echo "Реестр документов приведён к релизу."', '')
+  }
+
+  await Promise.all(
+    plan.actions.map((planned, index) => {
+      const file = `${String(index + 1).padStart(4, '0')}.${planned.action}.${planned.registry_id}.json`
+      return writeFile(join(actionsDir, file), JSON.stringify(planned.data), 'utf8')
+    }),
+  )
+
+  await writeFile(join(outDir, 'apply.sh'), lines.join('\n'), { mode: 0o755 })
+  await writeFile(join(outDir, 'plan.json'), JSON.stringify(plan, null, 2), 'utf8')
+
+  console.log(`План разложен в ${outDir}: действий ${plan.actions.length}`)
+}
+
+export function printDraftsPlan(plan: IDraftsPlan): void {
+  console.log('--- План синхронизации реестра документов ---')
+  console.log(`создать:        ${plan.created.length}${format(plan.created)}`)
+  console.log(`обновить:       ${plan.edited.length}${format(plan.edited)}`)
+  console.log(`переводов:      ${plan.translated.length}${format(plan.translated)}`)
+
+  if (plan.translationsCreated.length > 0) {
     console.log(
-      `версия в сети выше объявленной: ${report.ahead
+      `создать переводов: ${plan.translationsCreated.length} (${plan.translationsCreated
+        .map(t => `${t.registry_id}:${t.lang}`)
+        .join(', ')})`,
+    )
+  }
+
+  console.log(`версий поднять: ${plan.bumped.length}${
+    plan.bumped.length ? ` (${plan.bumped.map(b => `${b.registry_id}: ${b.from}→${b.to}`).join(', ')})` : ''
+  }`)
+  console.log(`без изменений:  ${plan.unchanged.length}`)
+  console.log(`всего действий: ${plan.actions.length}`)
+
+  if (plan.ahead.length > 0) {
+    console.log(
+      `версия в сети выше объявленной: ${plan.ahead
         .map(a => `${a.registry_id} (в сети ${a.onchain}, объявлено ${a.declared})`)
         .join(', ')}`,
     )
   }
 
-  if (report.orphans.length > 0)
-    console.log(`в сети, но не в реестре (не тронуты): ${report.orphans.join(', ')}`)
+  if (plan.orphans.length > 0)
+    console.log(`в сети, но не в реестре (не тронуты): ${plan.orphans.join(', ')}`)
 
-  if (report.skippedLangs.length > 0) {
-    console.log(
-      `переводы вне «${DEFAULT_LANG}» не синхронизируются: ${report.skippedLangs
-        .map(s => `${s.registry_id} (${s.langs.join(', ')})`)
-        .join(', ')}`,
-    )
+  if (plan.problems.length > 0) {
+    console.log('ПРОБЛЕМЫ:')
+    for (const problem of plan.problems)
+      console.log(`  [${problem.registry_id}] ${problem.error}`)
   }
+}
 
-  if (report.failed.length > 0) {
-    console.log('ОШИБКИ:')
-    for (const failure of report.failed)
-      console.log(`  [${failure.registry_id}] ${failure.error}`)
-  }
+/**
+ * Полный цикл для локальной цепи: посчитать план и применить его своими ключами.
+ */
+export async function syncDrafts(blockchain: Blockchain): Promise<IDraftsPlan> {
+  const plan = await computeDraftsPlan(blockchain)
+  printDraftsPlan(plan)
+  await applyDraftsPlan(blockchain, plan)
+
+  return plan
 }
 
 function format(ids: number[]): string {
