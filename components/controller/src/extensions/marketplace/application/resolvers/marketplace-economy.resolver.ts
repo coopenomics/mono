@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO, GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult, platformSettings } from '@coopenomics/extension-kit';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult, platformSettings } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';

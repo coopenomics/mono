@@ -1,12 +1,21 @@
+/**
+ * Входные типы GraphQL для подписанного документа: то, чем расширение принимает
+ * подпись от интерфейса пайщика.
+ *
+ * Здесь намеренно нет `implements ISignedDocumentDomainInterface` из
+ * `@coopenomics/innercoop`: пакеты каркаса и контрактов ортогональны и не
+ * зависят друг от друга (INV-007). Совместимость структурная — набор полей тот
+ * же, поэтому DTO подходит везде, где ждут контракт, без номинальной связи.
+ * Тот же приём уже применён к `ISyncLogger` и `ILoggerPort`.
+ */
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, ValidateNested, IsNumber, IsArray, ArrayMinSize, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { Cooperative } from 'cooptypes';
-import type { ISignatureInfoDomainInterface, ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType('SignatureInfoInput')
-export class SignatureInfoDTO implements ISignatureInfoDomainInterface {
+export class SignatureInfoDTO {
   @Field(() => Number, { description: 'Идентификатор номера подписи' })
   @IsNumber()
   public readonly id!: number;
@@ -37,7 +46,7 @@ export class SignatureInfoDTO implements ISignatureInfoDomainInterface {
 }
 
 @InputType('SignedDigitalDocumentInput')
-export class SignedDigitalDocumentInputDTO implements ISignedDocumentDomainInterface {
+export class SignedDigitalDocumentInputDTO {
   @Field(() => String, { description: 'Версия стандарта документа' })
   @IsString()
   public readonly version!: string;

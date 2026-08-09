@@ -2,7 +2,7 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ResultSubmissionService } from '../services/result-submission.service';
 import { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
@@ -13,8 +13,6 @@ import { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 

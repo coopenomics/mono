@@ -7,10 +7,8 @@ import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign
 import type { SignActAsChairmanInputDTO } from '../dto/result_submission/sign-act-as-chairman-input.dto';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
 import { ResultFilterInputDTO } from '../dto/result_submission/result-filter.input';
-import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ResultContributionStatementGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-statement-input.dto';
 import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-decision-input.dto';
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';

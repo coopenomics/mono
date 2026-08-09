@@ -11,7 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceUnitOfMeasureEnum } from './marketplace-offer.dto';
 import { marketplaceOrderUnitLabel } from '../shared/unit-label.util';

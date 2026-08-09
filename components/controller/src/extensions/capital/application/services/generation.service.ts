@@ -34,7 +34,7 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult, platformSettings } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
@@ -52,8 +52,6 @@ import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import type { IStoryDatabaseData, IStoryMatrixRequirementAnnouncementEvent } from '../../domain/interfaces/story-database.interface';
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';

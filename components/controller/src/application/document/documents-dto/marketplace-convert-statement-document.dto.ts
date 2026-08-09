@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
 import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { ExcludeCommonProps } from '~/application/document/types';
 
 /**

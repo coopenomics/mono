@@ -1,15 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { Throttle } from '@nestjs/throttler';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
 import { RegistrationService } from '../services/registration.service';
 import { GenerateRegistrationDocumentsInputDTO } from '../dto/generate-registration-documents-input.dto';
 import { GenerateRegistrationDocumentsOutputDTO } from '../dto/generate-registration-documents-output.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ParticipantApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { AccountDTO } from '~/application/account/dto/account.dto';
 import { RegisterParticipantInputDTO } from '../dto/register-participant-input.dto';

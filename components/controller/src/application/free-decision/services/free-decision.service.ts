@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import { GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { PublishProjectFreeDecisionInputDTO } from '../dto/publish-project-free-decision-input.dto';
 import type { CreateProjectFreeDecisionInputDTO } from '../dto/create-project-free-decision.dto';
 import { CreatedProjectFreeDecisionDTO } from '../dto/created-project-free-decision.dto';
@@ -7,7 +7,7 @@ import { v4 } from 'uuid';
 import type { FreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/free-decision-document.dto';
 import { FreeDecisionInteractor } from '~/application/free-decision/interactors/free-decision.interactor';
 import type { ProjectFreeDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-free-decision-document.dto';
-import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import type { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { AgendaService } from '~/application/agenda/services/agenda.service';
 import type { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 

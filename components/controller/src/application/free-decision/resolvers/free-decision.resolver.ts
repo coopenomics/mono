@@ -1,15 +1,13 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { ProjectFreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/project-free-decision-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';
 import { PublishProjectFreeDecisionInputDTO } from '../dto/publish-project-free-decision-input.dto';
 import { CreatedProjectFreeDecisionDTO } from '../dto/created-project-free-decision.dto';
 import { CreateProjectFreeDecisionInputDTO } from '../dto/create-project-free-decision.dto';
 import { FreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/free-decision-document.dto';
 import { FreeDecisionService } from '../services/free-decision.service';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { AgendaWithDocumentsDTO } from '~/application/agenda/dto/agenda-with-documents.dto';
 
 @Resolver()

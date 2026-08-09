@@ -1,7 +1,7 @@
 import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { MarketplaceConvertStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceOrderDTO } from './marketplace-order.dto';
 import { MarketplaceCartDTO } from './marketplace-cart.dto';

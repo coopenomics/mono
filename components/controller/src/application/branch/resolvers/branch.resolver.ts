@@ -2,7 +2,7 @@ import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { BranchService } from '../services/branch.service';
 import { GetBranchesGraphQLInput } from '../dto/get-branches-input.dto';
 import { BranchDTO } from '../dto/branch.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { CreateBranchGraphQLInput } from '../dto/create-branch-input.dto';
 import { EditBranchGraphQLInput } from '../dto/edit-branch-input.dto';
@@ -15,9 +15,6 @@ import { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelis
 import { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
 import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-
 @Resolver(() => BranchDTO)
 export class BranchResolver {
   constructor(private readonly branchService: BranchService) {}

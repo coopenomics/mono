@@ -3,8 +3,7 @@ import { DistributionManagementInteractor } from '../use-cases/distribution-mana
 import type { FundProgramInputDTO } from '../dto/distribution_management/fund-program-input.dto';
 import type { RefreshProgramInputDTO } from '../dto/distribution_management/refresh-program-input.dto';
 import type { TransactResult } from '@wharfkit/session';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';

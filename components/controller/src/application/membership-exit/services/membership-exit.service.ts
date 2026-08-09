@@ -7,7 +7,7 @@ import { config } from '~/config';
 import { ParticipantInteractor } from '~/application/participant/interactors/participant.interactor';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '~/domain/account/interfaces/account-blockchain.port';
 import { USER_WALLET_REPOSITORY, type UserWalletRepository } from '~/domain/wallet/repositories/user-wallet.repository';
 import { BLOCKCHAIN_PORT, type BlockchainPort } from '~/domain/common/ports/blockchain.port';

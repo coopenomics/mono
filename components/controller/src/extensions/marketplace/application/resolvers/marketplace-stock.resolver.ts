@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -42,7 +42,6 @@ import {
   MarketplaceUnpublishStockResultDTO,
   toMarketplaceStockProposalDTO,
 } from '../dto/marketplace-stock.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-order.dto';
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';

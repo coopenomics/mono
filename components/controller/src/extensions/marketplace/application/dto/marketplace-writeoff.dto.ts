@@ -1,7 +1,6 @@
 import { Field, Float, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
-import { createPaginationResult } from '@coopenomics/extension-kit';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { createPaginationResult, SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MarketplaceWriteoffProposalStatuses,
   MarketplaceWriteoffProposalTriggers,

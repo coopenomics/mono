@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { ConvertSegmentDomainInput } from '~/extensions/capital/domain/actions/convert-segment-domain-input.interface';
 
 /**

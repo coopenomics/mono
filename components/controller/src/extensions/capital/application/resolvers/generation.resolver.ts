@@ -18,7 +18,7 @@ import { GetCommitByHashInputDTO } from '../dto/generation/get-commit-by-hash.in
 import { GetStoryByHashInputDTO } from '../dto/generation/get-story-by-hash.input';
 import { DeleteStoryByHashInputDTO } from '../dto/generation/delete-story-by-hash.input';
 import { DeleteIssueByHashInputDTO } from '../dto/generation/delete-issue-by-hash.input';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
@@ -26,11 +26,8 @@ import { StoryOutputDTO } from '../dto/generation/story.dto';
 import { IssueOutputDTO } from '../dto/generation/issue.dto';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { GenerationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-money-invest-statement-document.dto';
 import { ProgramCapitalizationMoneyInvestStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/capitalization-program-money-invest-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-
 // Пагинированные результаты
 const paginatedStoriesResult = createPaginationResult(StoryOutputDTO, 'PaginatedCapitalStories');
 const paginatedIssuesResult = createPaginationResult(IssueOutputDTO, 'PaginatedCapitalIssues');

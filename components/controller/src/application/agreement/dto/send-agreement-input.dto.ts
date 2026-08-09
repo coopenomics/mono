@@ -1,7 +1,7 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 @InputType('SendAgreementInput')
 export class SendAgreementInputDTO {

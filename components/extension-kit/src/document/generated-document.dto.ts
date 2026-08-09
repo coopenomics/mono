@@ -1,18 +1,21 @@
+// Типы полей GraphQL указаны явными thunk'ами, а не выведены из TypeScript.
+// Пакет собирается esbuild'ом, а он не эмитит `design:type`: без thunk'а поле
+// осталось бы без типа и сборка схемы упала бы уже в приложении-потребителе.
 import { ObjectType, Field } from '@nestjs/graphql';
 import { IsString, IsObject } from 'class-validator';
-import type { GeneratedDocumentDomainInterface } from '~/domain/document/interfaces/generated-document-domain.interface';
+import type { GeneratedDocumentDomainInterface } from './generated-document.contract';
 import { GraphQLJSON } from 'graphql-type-json';
 @ObjectType('GeneratedDocument')
 export class GeneratedDocumentDTO implements GeneratedDocumentDomainInterface {
-  @Field({ description: 'Полное название документа' })
+  @Field(() => String, { description: 'Полное название документа' })
   @IsString()
   full_title!: string;
 
-  @Field({ description: 'HTML содержимое документа' })
+  @Field(() => String, { description: 'HTML содержимое документа' })
   @IsString()
   html!: string;
 
-  @Field({ description: 'Хэш документа' })
+  @Field(() => String, { description: 'Хэш документа' })
   @IsString()
   hash!: string;
 

@@ -11,10 +11,8 @@ import type { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-inp
 import type { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
 import type { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import type { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
-import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
-import type { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-
 @Injectable()
 export class BranchService {
   constructor(private readonly branchInteractor: BranchInteractor) {}

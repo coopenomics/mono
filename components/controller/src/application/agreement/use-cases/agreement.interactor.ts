@@ -9,9 +9,7 @@ import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
-
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 @Injectable()
 export class AgreementInteractor {
   private readonly logger = new Logger(AgreementInteractor.name);

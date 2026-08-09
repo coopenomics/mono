@@ -10,7 +10,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { MarketplaceAidStage } from '../services/marketplace-economy.service';
 import type {

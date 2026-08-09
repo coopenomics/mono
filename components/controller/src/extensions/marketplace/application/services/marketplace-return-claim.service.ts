@@ -67,7 +67,7 @@ import {
 } from '../../domain/entities/marketplace-return-claim.types';
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '~/application/document/documents-dto/marketplace-return-statement-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,

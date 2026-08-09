@@ -13,10 +13,9 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { PaginationInputDTO, type PaginationResult } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,

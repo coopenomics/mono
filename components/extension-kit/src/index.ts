@@ -25,3 +25,4 @@ export * from './registry/registry.contract';
 export * from './dto/pagination.dto';
 export * from './config/config-policy';
 export * from './config/platform-settings';
+export * from './document';

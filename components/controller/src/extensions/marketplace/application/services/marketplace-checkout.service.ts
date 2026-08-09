@@ -4,7 +4,7 @@ import { Cooperative, type MarketContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import type { MarketplaceCheckoutSignedLineInputDTO } from '../dto/marketplace-checkout.dto';
 import { computeOrderHash, computeStockOrderHash } from '../shared/order-hash.util';
 import { resolveSaleUnit } from '../shared/packaging.util';

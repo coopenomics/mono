@@ -20,7 +20,7 @@ import { DocumentDomainService } from '~/domain/document/services/document-domai
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { MarketplaceIssueActSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-issue-act-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
   type MarketplaceOrderDomainRepository,

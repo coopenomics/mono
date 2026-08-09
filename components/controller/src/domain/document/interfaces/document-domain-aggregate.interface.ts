@@ -1,4 +1,4 @@
-import type { GeneratedDocumentDomainInterface } from './generated-document-domain.interface';
+import type { GeneratedDocumentDomainInterface } from '@coopenomics/extension-kit';
 import type { ExtendedSignedDocumentDomainInterface } from './extended-signed-document-domain.interface';
 
 export interface DocumentAggregateDomainInterface {

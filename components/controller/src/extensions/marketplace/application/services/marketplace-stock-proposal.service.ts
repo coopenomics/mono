@@ -14,7 +14,7 @@ import {
   DOCUMENT_VALIDATION_SERVICE,
   type DocumentValidationService,
 } from '~/domain/document/services/document-validation.service';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   USER_WALLET_REPOSITORY,
   type UserWalletRepository,

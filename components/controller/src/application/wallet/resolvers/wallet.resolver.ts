@@ -1,10 +1,8 @@
 import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, createPaginationResult, PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
-import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
 import { CreateWithdrawInputDTO } from '../dto/create-withdraw-input.dto';

@@ -3,7 +3,7 @@ import { IsString, IsNumber } from 'class-validator';
 import { Cooperative } from 'cooptypes';
 import { GenerateMetaDocumentInputDTO } from '~/application/document/dto/generate-meta-document-input.dto';
 import { MetaDocumentInputDTO } from '~/application/document/dto/meta-document-input.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 
 type ExcludeCommonProps<T> = Omit<T, 'coopname' | 'username' | 'registry_id'>;
 

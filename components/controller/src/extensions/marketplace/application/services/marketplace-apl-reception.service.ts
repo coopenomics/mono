@@ -83,7 +83,7 @@ import type { DocumentDomainEntity } from '~/domain/document/entity/document-dom
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
 import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '~/application/document/documents-dto/marketplace-apl-reception-document.dto';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,

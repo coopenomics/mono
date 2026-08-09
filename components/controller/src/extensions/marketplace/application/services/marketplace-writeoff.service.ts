@@ -16,7 +16,7 @@ import { DocumentDomainService } from '~/domain/document/services/document-domai
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
-import { SignedDigitalDocumentInputDTO } from '~/application/document/dto/signed-digital-document-input.dto';
+import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,

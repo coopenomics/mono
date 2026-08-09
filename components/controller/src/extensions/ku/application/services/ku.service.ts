@@ -6,13 +6,12 @@ import { DocumentDomainService } from '~/domain/document/services/document-domai
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { ISignedDocumentDomainInterface, MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
+import type { GenerateDocumentOptionsInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
-import type { PaginationResult } from '@coopenomics/extension-kit';
 import { KU_BLOCKCHAIN_PORT, type KuBlockchainPort } from '../../domain/interfaces/ku-blockchain.port';
 import { KU_DECISION_REPOSITORY, type KuDecisionRepository } from '../../domain/repositories/ku-decision.repository';
 import {

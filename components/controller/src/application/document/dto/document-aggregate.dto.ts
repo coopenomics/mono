@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { ValidateNested } from 'class-validator';
-import { GeneratedDocumentDTO } from './generated-document.dto';
+import { GeneratedDocumentDTO } from '@coopenomics/extension-kit';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
 import { SignedDigitalDocumentDTO } from './signed-digital-document.dto';
 import { DocumentDomainAggregate } from '~/domain/document/aggregates/document-domain.aggregate';
