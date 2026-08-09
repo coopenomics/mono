@@ -2,11 +2,11 @@ import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import type { IDelta } from '~/types/common';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
 
 /**
  * Сервис для отправки уведомлений по одобрениям председателя

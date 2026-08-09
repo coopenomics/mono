@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import { KuDecisionQuestionDomainEntity } from '../../../domain/entities/ku-decision-question.entity';
 import type { IKuDecisionQuestionBlockchainData } from '../../../domain/interfaces/ku-blockchain-data.interface';
 import { KuContractInfoService } from '../../services/ku-contract-info.service';

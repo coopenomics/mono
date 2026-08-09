@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalContract } from 'cooptypes';
 import { platformSettings } from '@coopenomics/extension-kit';
-import type { IDelta } from '~/types/common';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import { ProgramShareRegistrationService } from '../services/program-share-registration.service';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
 
 /**
  * Слушатель дельт `capital::projects`. Как только проект (в т.ч. компонент)

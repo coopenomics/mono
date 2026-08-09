@@ -1,4 +1,4 @@
-import config from '~/config/config';
+import { platformSettings } from '../config/platform-settings';
 
 /**
  * Утилиты для работы с количествами и символами в платежной системе
@@ -10,7 +10,8 @@ export class QuantityUtils {
    * @returns true если символ поддерживается
    */
   static isSupportedSymbol(symbol: string): boolean {
-    return symbol === config.blockchain.root_symbol || symbol === config.blockchain.root_govern_symbol;
+    const { rootSymbol, rootGovernSymbol } = platformSettings().blockchain;
+    return symbol === rootSymbol || symbol === rootGovernSymbol;
   }
 
   /**
@@ -19,14 +20,14 @@ export class QuantityUtils {
    * @returns Precision для символа
    */
   static getPrecisionForSymbol(symbol: string): number {
-    if (symbol === config.blockchain.root_symbol) {
-      return config.blockchain.root_precision;
-    } else if (symbol === config.blockchain.root_govern_symbol) {
-      return config.blockchain.root_govern_precision;
+    const { rootSymbol, rootPrecision, rootGovernSymbol, rootGovernPrecision } = platformSettings().blockchain;
+
+    if (symbol === rootSymbol) {
+      return rootPrecision;
+    } else if (symbol === rootGovernSymbol) {
+      return rootGovernPrecision;
     } else {
-      throw new Error(
-        `Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${config.blockchain.root_symbol}, ${config.blockchain.root_govern_symbol}`
-      );
+      throw new Error(`Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${rootSymbol}, ${rootGovernSymbol}`);
     }
   }
 
@@ -36,9 +37,8 @@ export class QuantityUtils {
    */
   static validateSymbol(symbol: string): void {
     if (!this.isSupportedSymbol(symbol)) {
-      throw new Error(
-        `Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${config.blockchain.root_symbol}, ${config.blockchain.root_govern_symbol}`
-      );
+      const { rootSymbol, rootGovernSymbol } = platformSettings().blockchain;
+      throw new Error(`Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${rootSymbol}, ${rootGovernSymbol}`);
     }
   }
 

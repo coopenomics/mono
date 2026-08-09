@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
-import { DateUtils } from '~/shared/utils/date-utils';
 import { TrackedMeet, NotificationTypes, ILog } from './types';
-import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { ExtendedMeetStatus } from '~/domain/meet/enums/extended-meet-status.enum';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
 import { Workflows } from '@coopenomics/notifications';

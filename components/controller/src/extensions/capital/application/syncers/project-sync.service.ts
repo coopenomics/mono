@@ -13,10 +13,9 @@ import {
   CAPITAL_PROJECT_CREATED_EVENT,
   type ICapitalProjectCreatedPayload,
 } from '~/shared/constants/capital-project-matrix.events';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 import type { ISyncResult } from '@coopenomics/extension-kit/sync';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
+import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации проектов с блокчейном

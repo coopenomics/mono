@@ -32,9 +32,9 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { config } from '~/config';
 import { HOURS_FLOAT_EPSILON, hoursAlmostEqual, isNegligibleHours } from '../../domain/utils/hours-float';
 import type { TimeEntryType } from '../../domain/interfaces/time-entry-database.interface';
-import { EMPTY_HASH } from '~/shared/utils/constants';
 import { isPersonalTimeScope } from '../../domain/utils/private-project-access';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для учёта времени в CAPITAL контракте

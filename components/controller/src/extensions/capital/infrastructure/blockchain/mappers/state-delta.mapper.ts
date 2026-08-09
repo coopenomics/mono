@@ -1,10 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
 import { StateDomainEntity } from '../../../domain/entities/state.entity';
 import type { IStateBlockchainData } from '../../../domain/interfaces/state-blockchain.interface';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 
 /**
  * Маппер для преобразования дельт блокчейна в данные состояния

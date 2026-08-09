@@ -1,5 +1,5 @@
 import moment from 'moment-timezone';
-import { default as config } from '~/config/config';
+import { platformSettings } from '../config/platform-settings';
 
 // Устанавливаем локаль moment на русский для корректного humanize
 import 'moment/locale/ru';
@@ -13,21 +13,21 @@ export class DateUtils {
    * Преобразует UTC дату в локальную дату согласно временной зоне из конфигурации
    */
   static convertUtcToLocalTime(date: Date | string): Date {
-    return moment.utc(date).tz(config.timezone).toDate();
+    return moment.utc(date).tz(platformSettings().timezone).toDate();
   }
 
   /**
    * Форматирует дату в локальном формате с учетом временной зоны
    */
   static formatLocalDate(date: Date | string, format = 'DD.MM.YYYY'): string {
-    return moment.utc(date).tz(config.timezone).format(format);
+    return moment.utc(date).tz(platformSettings().timezone).format(format);
   }
 
   /**
    * Форматирует время в локальном формате с учетом временной зоны
    */
   static formatLocalTime(date: Date | string, format = 'HH:mm'): string {
-    return moment.utc(date).tz(config.timezone).format(format);
+    return moment.utc(date).tz(platformSettings().timezone).format(format);
   }
 
   /**
@@ -51,7 +51,7 @@ export class DateUtils {
    */
   static isTimeReached(targetDate: Date | string): boolean {
     const now = moment();
-    const target = moment.utc(targetDate).tz(config.timezone);
+    const target = moment.utc(targetDate).tz(platformSettings().timezone);
     return now.isAfter(target) || now.isSame(target);
   }
 
@@ -59,7 +59,7 @@ export class DateUtils {
    * Вычисляет дату за указанное количество дней до целевой даты
    */
   static getDaysBeforeDate(targetDate: Date | string, days: number): Date {
-    return moment.utc(targetDate).tz(config.timezone).subtract(days, 'days').toDate();
+    return moment.utc(targetDate).tz(platformSettings().timezone).subtract(days, 'days').toDate();
   }
 
   /**

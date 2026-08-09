@@ -6,11 +6,10 @@ import { Client, configureClient } from '@coopenomics/provider-client';
 import { config } from '~/config';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
 import { SystemBlockchainPort, SYSTEM_BLOCKCHAIN_PORT } from '~/domain/system/interfaces/system-blockchain.port';
 import { AmountComparisonUtils } from '~/shared/utils/amount-comparison.utils';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 
 @Injectable()
 export class ProviderService {

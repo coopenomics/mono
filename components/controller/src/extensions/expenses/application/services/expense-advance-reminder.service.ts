@@ -2,8 +2,7 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Workflows } from '@coopenomics/notifications';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import { platformSettings } from '@coopenomics/extension-kit';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,

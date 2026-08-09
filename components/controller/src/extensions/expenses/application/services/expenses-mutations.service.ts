@@ -9,7 +9,6 @@ import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/reposito
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface'
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum'
 import { PaymentDirectionEnum, PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum'
-import { QuantityUtils } from '~/shared/utils/quantity.utils'
 import { generateHashFromString, generateUniqueHash } from '~/utils/generate-hash.util'
 import { CreateExpenseProposalInputDTO } from '../dto/create-expense-proposal.input'
 import type { ExpenseItemInputDTO } from '../dto/expense-item.input'
@@ -34,6 +33,7 @@ import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
+import { QuantityUtils } from '@coopenomics/extension-kit';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0

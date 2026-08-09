@@ -4,7 +4,7 @@ import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 
 /**
  * Сервис для отправки уведомлений по wallet модулю

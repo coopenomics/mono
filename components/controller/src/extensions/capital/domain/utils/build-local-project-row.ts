@@ -1,4 +1,3 @@
-import { EMPTY_HASH } from '~/shared/utils/constants';
 import { ProjectOrigin } from '../enums/project-origin.enum';
 import { ProjectStatus } from '../enums/project-status.enum';
 import { IssueIdGenerationService } from '../services/issue-id-generation.service';
@@ -9,6 +8,7 @@ import {
   EMPTY_PROJECT_PLAN,
   EMPTY_PROJECT_VOTING,
 } from './empty-project-blockchain-pools';
+import { EMPTY_HASH } from '@coopenomics/extension-kit';
 
 export type CreateLocalProjectPayload = {
   coopname: string;

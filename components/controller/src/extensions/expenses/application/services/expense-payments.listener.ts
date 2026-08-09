@@ -7,7 +7,6 @@ import { PAYMENT_REPOSITORY, PaymentRepository } from '~/domain/gateway/reposito
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentTypeEnum, PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
 import type { PaymentDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
-import { QuantityUtils } from '~/shared/utils/quantity.utils';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
@@ -15,6 +14,7 @@ import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expe
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
+import { QuantityUtils } from '@coopenomics/extension-kit';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
 const RECIPIENT_ORG = 2;

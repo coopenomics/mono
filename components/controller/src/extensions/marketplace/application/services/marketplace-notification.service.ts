@@ -1,10 +1,9 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Workflows } from '@coopenomics/notifications';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { NotificationSenderService } from '~/application/notification/services/notification-sender.service';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,

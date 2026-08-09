@@ -11,9 +11,8 @@ import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfa
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils } from '@coopenomics/extension-kit';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.

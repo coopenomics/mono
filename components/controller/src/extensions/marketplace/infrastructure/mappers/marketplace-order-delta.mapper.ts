@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
-import type { IDelta } from '~/types/common';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import { Interfaces } from 'cooptypes';
 type IOrderRow = Interfaces.Marketplace.IOrder;
 import type { MarketplaceOrderBlockchainData } from '../../domain/entities/marketplace-order.entity';

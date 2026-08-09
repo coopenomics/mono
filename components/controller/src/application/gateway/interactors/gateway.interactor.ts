@@ -20,7 +20,6 @@ import type { CompleteIncomeDomainInterface } from '~/domain/gateway/interfaces/
 import type { CompleteOutcomeDomainInterface } from '~/domain/gateway/interfaces/complete-outcome-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
 import { ProviderPort, PROVIDER_PORT } from '~/domain/gateway/ports/provider.port';
-import { QuantityUtils } from '~/shared/utils/quantity.utils';
 import { SystemDomainPort, SYSTEM_DOMAIN_PORT } from '~/domain/system/interfaces/system-domain.port';
 import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/services/account-domain.service';
 import { AccountType } from '~/application/account/enum/account-type.enum';
@@ -28,6 +27,7 @@ import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/com
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
+import { QuantityUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена gateway для управления платежами (просмотр, изменение статуса и создание)

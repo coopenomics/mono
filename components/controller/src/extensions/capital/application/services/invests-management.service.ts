@@ -8,12 +8,11 @@ import type {
   DeallocationLimitInputDTO,
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils } from '@coopenomics/extension-kit';
 import { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
 import { Cooperative } from 'cooptypes';
 import { generateRandomHash } from '~/utils/generate-hash.util';

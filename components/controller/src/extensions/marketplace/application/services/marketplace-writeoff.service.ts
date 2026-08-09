@@ -15,7 +15,6 @@ import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type 
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -58,6 +57,7 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 
 export interface MarketplaceWriteoffItemInput {
   braname: string;

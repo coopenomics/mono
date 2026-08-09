@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Ledger2Contract } from 'cooptypes';
 import { platformSettings } from '@coopenomics/extension-kit';
-import type { IDelta } from '~/types/common';
 import { ProgramShareRegistrationService } from '../services/program-share-registration.service';
+import type { IDelta } from '@coopenomics/extension-kit/sync';
 
 const BLAGOROST_WALLET_NAME = 'w.cap.blago';
 

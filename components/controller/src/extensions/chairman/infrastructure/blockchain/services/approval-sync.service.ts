@@ -1,8 +1,7 @@
 import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
-import type { IDelta } from '~/types/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
+import { AbstractEntitySyncService, type IDelta } from '@coopenomics/extension-kit/sync';
 import { ApprovalDomainEntity } from '../../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../../domain/repositories/approval.repository';
 import { ApprovalDeltaMapper } from '../mappers/approval-delta.mapper';

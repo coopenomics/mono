@@ -7,7 +7,7 @@ import type { PaymentDomainEntity } from '~/domain/gateway/entities/payment-doma
 import { PaymentStatusEnum } from '~/domain/gateway/enums/payment-status.enum';
 import { PaymentDirectionEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { Workflows } from '@coopenomics/notifications';
-import { AmountFormatterUtils } from '~/shared/utils/amount-formatter.utils';
+import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 
 /**
  * Сервис для отправки уведомлений о статусе платежей

@@ -34,7 +34,7 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, EMPTY_HASH } from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
@@ -66,7 +66,6 @@ import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
-import { EMPTY_HASH } from '~/shared/utils/constants';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL

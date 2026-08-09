@@ -8,8 +8,7 @@ import { SegmentDeltaMapper } from '../../infrastructure/blockchain/mappers/segm
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
+import { waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации сегментов с блокчейном

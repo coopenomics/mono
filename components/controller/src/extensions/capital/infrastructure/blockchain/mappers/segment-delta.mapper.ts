@@ -1,10 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IDelta } from '~/types/common';
 import { SegmentDomainEntity } from '../../../domain/entities/segment.entity';
 import type { ISegmentBlockchainData } from '../../../domain/interfaces/segment-blockchain.interface';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { CapitalContractInfoService } from '../../services/capital-contract-info.service';
-import { AbstractBlockchainDeltaMapper } from '@coopenomics/extension-kit/sync';
+import { AbstractBlockchainDeltaMapper, type IDelta } from '@coopenomics/extension-kit/sync';
 import type { CapitalContract } from 'cooptypes';
 
 /**

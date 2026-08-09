@@ -26,6 +26,14 @@ export interface PlatformBlockchainSettings {
   rootSymbol: string;
   /** Точность системного токена — знаков после запятой. */
   rootPrecision: number;
+  /**
+   * Пауза перед чтением таблиц цепи сразу после успешной мутации, мс.
+   *
+   * На узле-последователе строка появляется в состоянии с задержкой
+   * относительно ответа RPC, и величина этой задержки зависит от узла контура,
+   * а не от расширения.
+   */
+  postTransactChainReadDelayMs: number;
 }
 
 export interface PlatformSettings {

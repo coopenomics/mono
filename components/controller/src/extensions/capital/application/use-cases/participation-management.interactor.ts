@@ -25,12 +25,10 @@ import type { ContributorFilterInputDTO } from '../dto/participation_management/
 import type { ProjectGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/project-generation-agreement-document.dto';
 import type { ComponentGenerationContractGenerateDocumentInputDTO } from '~/application/document/documents-dto/component-generation-agreement-document.dto';
 import type { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
 import { config } from '~/config';
 import { HttpApiError } from '~/utils/httpApiError';
 import httpStatus from 'http-status';
 import { Cooperative } from 'cooptypes';
-import { EMPTY_HASH } from '~/shared/utils/constants';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
 import { generateRandomHash, generateUniqueHash } from '~/utils/generate-hash.util';
 import type { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
@@ -43,8 +41,8 @@ import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort } fr
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { EMPTY_HASH, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для управления участием в CAPITAL контракте

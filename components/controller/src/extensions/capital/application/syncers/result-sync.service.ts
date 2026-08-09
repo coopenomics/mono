@@ -8,9 +8,7 @@ import { ResultDeltaMapper } from '../../infrastructure/blockchain/mappers/resul
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { TransactResult } from '@wharfkit/session';
-import { waitAfterTransactBeforeChainTableRead } from '~/shared/utils/post-transact-chain-read-delay';
-import { getAppliedBlockNum } from '~/shared/utils/transact-block-num';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, waitAfterTransactBeforeChainTableRead, getAppliedBlockNum } from '@coopenomics/extension-kit';
 
 /**
  * Сервис синхронизации результатов с блокчейном

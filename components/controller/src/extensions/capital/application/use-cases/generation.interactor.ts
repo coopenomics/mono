@@ -18,13 +18,13 @@ import { randomUUID } from 'crypto';
 import { sha256 } from '~/utils/sha256';
 import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
   type IssueLinkedGitCommitRepository,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
+import { AssetUtils } from '@coopenomics/extension-kit';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте

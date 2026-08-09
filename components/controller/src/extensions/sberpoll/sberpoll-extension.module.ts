@@ -4,13 +4,9 @@ import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator
 import { MESSAGE_CHANNEL_PORT, type IMessageChannelPort, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { PAYMENT_STATE_REPOSITORY, PaymentStateRepository } from '~/domain/gateway/repositories/payment-state.repository';
 import axios from 'axios';
-import { checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '~/shared/utils/payments';
 import config from '../../config/config';
 import { Inject, Module } from '@nestjs/common';
-import {
-  EXTENSION_REPOSITORY,
-  type ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, checkPaymentAmount, checkPaymentSymbol, getAmountPlusFee } from '@coopenomics/extension-kit';
 import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';

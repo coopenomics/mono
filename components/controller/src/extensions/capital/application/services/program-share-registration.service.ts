@@ -17,8 +17,8 @@ import type { ContributorDomainEntity } from '../../domain/entities/contributor.
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { WALLET_DOMAIN_PORT, type WalletDomainPort } from '~/domain/wallet/ports/wallet-domain.port';
 import { getProgramId, ProgramType } from '~/domain/wallet/enums/program-type.enum';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { HttpApiError } from '~/utils/httpApiError';
+import { AssetUtils } from '@coopenomics/extension-kit';
 
 const REGSHARE_TX_GAP_MS = 500;
 

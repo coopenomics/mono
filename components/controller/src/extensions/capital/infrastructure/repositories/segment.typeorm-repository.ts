@@ -12,9 +12,8 @@ import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-datab
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
-import { AssetUtils } from '~/shared/utils/asset.utils';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория сегментов

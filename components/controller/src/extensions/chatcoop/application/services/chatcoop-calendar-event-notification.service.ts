@@ -7,8 +7,7 @@ import type {
 import { PROJECT_CAPITAL_CLEARANCE_PORT, LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import { NOTIFICATION_PORT, type NotificationPort } from '~/domain/notification/interfaces/notify.port';
-import { platformSettings } from '@coopenomics/extension-kit';
-import { DateUtils } from '~/shared/utils/date-utils';
+import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import { isEligibleForActiveCoopCalendarBroadcast } from '~/domain/account/utils/participant-mass-notification.util';
 
 type CalendarRecipient = { username: string; email: string; subscriberId: string };
