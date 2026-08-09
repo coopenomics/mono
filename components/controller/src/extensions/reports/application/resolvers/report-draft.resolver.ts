@@ -3,7 +3,7 @@ import { BadRequestException, Inject, NotFoundException, UseGuards } from '@nest
 import { plainToInstance } from 'class-transformer';
 import { validate, type ValidationError } from 'class-validator';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { config } from '~/config';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import {

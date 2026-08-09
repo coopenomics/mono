@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { CandidateEntity } from '../entities/candidate.entity';
 import type { CandidateRepository } from '~/domain/account/repository/candidate.repository';
 import type { CandidateDomainInterface } from '~/domain/account/interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { DocumentType, ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 @Injectable()

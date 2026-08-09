@@ -21,7 +21,7 @@ import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit
 import type { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { ProjectMapperService } from './project-mapper.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';

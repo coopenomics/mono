@@ -4,7 +4,7 @@ import type { IProgramWithdrawDatabaseData } from '../../domain/interfaces/progr
 import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/program-withdraw-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
 import type { ProgramWithdrawStatus } from '../../domain/enums/program-withdraw-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 type toEntityDatabasePart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawDatabaseData>;
 type toEntityBlockchainPart = RequireFields<Partial<ProgramWithdrawTypeormEntity>, keyof IProgramWithdrawBlockchainData>;

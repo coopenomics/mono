@@ -1,5 +1,5 @@
 import type { MeetProcessedDomainInterface } from '../interfaces/meet-processed-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 
 export class MeetProcessedDomainEntity implements MeetProcessedDomainInterface {

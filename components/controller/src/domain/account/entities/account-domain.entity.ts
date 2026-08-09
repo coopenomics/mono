@@ -1,6 +1,6 @@
 import { RegistratorContract, type SovietContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
-import type { MonoAccountDomainInterface } from '../interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import type { PrivateAccountDomainInterface } from '../interfaces/private-account-domain.interface';
 import { AccountKind } from '~/application/account/enum/account-kind.enum';
 import type { RegistrationPaymentDomainInterface } from '../interfaces/registration-payment-domain.interface';

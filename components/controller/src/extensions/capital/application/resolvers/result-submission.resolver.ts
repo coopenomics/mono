@@ -15,7 +15,7 @@ import { ResultContributionDecisionGenerateInputDTO } from '../dto/result_submis
 import { ResultContributionActGenerateInputDTO } from '../dto/result_submission/generate-result-contribution-act-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
 // Пагинированные результаты

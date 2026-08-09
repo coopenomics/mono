@@ -3,7 +3,7 @@ import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import type { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { IssuePermissionsOutputDTO } from '../dto/generation/issue-permissions.dto';
 import { ProjectPermissionsOutputDTO } from '../dto/project_management/project-permissions.dto';
 import { IssuePermissionsService, IssueAction, ProjectAction } from './issue-permissions.service';

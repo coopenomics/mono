@@ -3,7 +3,7 @@ import { Name } from '@wharfkit/antelope';
 import { Cooperative } from 'cooptypes';
 import moment from 'moment';
 import config from '~/config/config';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Утилитарный класс для конвертации доменных объектов в инфраструктурные типы блокчейна

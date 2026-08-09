@@ -8,7 +8,7 @@ import {
   ExtendedSignedDocumentDomainInterface,
   SignatureInfoDomainInterface,
 } from '../interfaces/extended-signed-document-domain.interface';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { Classes } from '@coopenomics/sdk';
 import {
   UserCertificateDomainService,

@@ -7,3 +7,7 @@ export * from './ledger2-history.port';
 export * from './logger.port';
 export * from './message-channel.port';
 export * from './cooperative-vars.port';
+export * from './signed-document.port';
+export * from './signature-info.contract';
+export * from './meta-document.contract';
+export * from './mono-account.contract';

@@ -3,7 +3,7 @@ import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeo
 import type { IProgramPropertyDatabaseData } from '../../domain/interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/program-property-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { ProgramPropertyStatus } from '../../domain/enums/program-property-status.enum';
 
 type toEntityDatabasePart = RequireFields<Partial<ProgramPropertyTypeormEntity>, keyof IProgramPropertyDatabaseData>;

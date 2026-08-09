@@ -1,4 +1,4 @@
-import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { ProgramKey, CandidateStatus } from '~/domain/registration/enum';
 
 /**

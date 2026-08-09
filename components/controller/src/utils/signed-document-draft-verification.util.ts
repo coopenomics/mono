@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { Classes } from '@coopenomics/sdk';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { HttpApiError } from '~/utils/httpApiError';
 import { CurrencyValidationUtil } from '~/utils/currency-validation.util';
 

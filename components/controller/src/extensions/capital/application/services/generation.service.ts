@@ -67,7 +67,7 @@ import { TimeTrackingInteractor } from '../use-cases/time-tracking.interactor';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository } from '../../domain/repositories/time-entry.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { CommitMapperService } from './commit-mapper.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import {
   MATRIX_ROOM_MESSAGING_PORT,
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,

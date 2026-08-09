@@ -8,7 +8,7 @@ import type { GetDocumentsInputDomainInterface } from '~/domain/document/interfa
 import { DocumentPackageAggregator } from '~/domain/document/aggregators/document-package.aggregator';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import type { DocumentAggregateDomainInterface } from '~/domain/document/interfaces/document-domain-aggregate.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import {
   SIGNED_DOCUMENT_REPOSITORY,
   type SignedDocumentRepository,

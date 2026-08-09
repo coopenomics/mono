@@ -6,7 +6,7 @@ import type {
   MarketplaceAplReceptionVariant,
 } from './marketplace-apl-reception.types';
 import { MarketplaceAplReceptionStatuses } from './marketplace-apl-reception.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Story 5.3 / 5.4: домен АПП приёмки. Backend-only state machine; on-chain

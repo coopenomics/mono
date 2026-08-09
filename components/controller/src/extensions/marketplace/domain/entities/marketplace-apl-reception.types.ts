@@ -6,7 +6,7 @@
  */
 
 import type { MarketplaceShipmentTTNData } from './marketplace-shipment.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Вариант приёмки: А — поставщик лично прибыл; Б — экспедитор + ТТН

@@ -1,6 +1,6 @@
 import { Entity, Column, CreateDateColumn, Index, ManyToMany, OneToMany } from 'typeorm';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 import { IssueTypeormEntity } from './issue.typeorm-entity';
 import { SegmentTypeormEntity } from './segment.typeorm-entity';

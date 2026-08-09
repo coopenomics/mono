@@ -11,7 +11,7 @@ import type { IConfig } from '../../chairman-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
 import { MEET_DATA_PORT, MeetDataPort } from '~/domain/meet/ports/meet-data.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 

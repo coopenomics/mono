@@ -7,7 +7,7 @@ import {
   SaveCapitalProgramDocDataInputDTO,
 } from '../dto/onboarding.dto';
 import { CapitalOnboardingService } from '../services/onboarding.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 @Resolver()
 export class CapitalOnboardingResolver {

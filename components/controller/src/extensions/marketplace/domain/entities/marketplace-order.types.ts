@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
 
 export type MarketplaceOrderStatus =

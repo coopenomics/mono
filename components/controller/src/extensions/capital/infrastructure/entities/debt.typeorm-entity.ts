@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { DebtStatus } from '../../domain/enums/debt-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_debts';

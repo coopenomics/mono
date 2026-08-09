@@ -21,7 +21,7 @@ import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/gene
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { ParticipantApplicationDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/participant-application-decision-document.dto';
 import { ACCOUNT_DATA_PORT, AccountDataPort } from '~/domain/account/ports/account-data.port';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { AGREEMENT_QUERY_PORT, AgreementQueryPort } from '~/domain/registration/ports/agreement-query.port';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';

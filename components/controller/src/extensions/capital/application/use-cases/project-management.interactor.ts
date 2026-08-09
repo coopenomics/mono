@@ -23,7 +23,7 @@ import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';
 import { ProjectSyncService } from '../syncers/project-sync.service';
 import { SegmentSyncService } from '../syncers/segment-sync.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { ComponentMatrixAnnouncementService } from '../services/component-matrix-announcement.service';
 import { buildLocalProjectRow } from '../../domain/utils/build-local-project-row';
 import { assertBlockchainProject, isLocalProject } from '../../domain/utils/assert-blockchain-project';

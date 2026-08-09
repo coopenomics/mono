@@ -5,7 +5,7 @@ import {
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
 import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface, InnerNonProjectRoomKind } from '@coopenomics/innercoop';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,
   ChatcoopProjectCommunicationRoomDTO,
@@ -17,8 +17,6 @@ import {
   NonProjectRoomKindGql,
   RoomMessageKindGql,
 } from '../dto/project-communication.dto';
-import type { InnerNonProjectRoomKind } from '@coopenomics/innercoop';
-
 function mapKind(kind: 'text' | 'audio'): RoomMessageKindGql {
   return kind === 'text' ? RoomMessageKindGql.TEXT : RoomMessageKindGql.AUDIO;
 }

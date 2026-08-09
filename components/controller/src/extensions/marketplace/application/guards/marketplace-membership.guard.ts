@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, 
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import { platformSettings, hasServerSecret } from '@coopenomics/extension-kit';
-import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';

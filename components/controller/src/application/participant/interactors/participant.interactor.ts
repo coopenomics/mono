@@ -18,7 +18,7 @@ import { sha256 } from '~/utils/sha256';
 import { registrationProfileFingerprint } from '~/utils/registration-profile-fingerprint';
 import http from 'http-status';
 import { PublicKey, Signature } from '@wharfkit/antelope';
-import { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { GatewayInteractorPort, GATEWAY_INTERACTOR_PORT } from '~/domain/wallet/ports/gateway-interactor.port';
 import type { CreateInitialPaymentInputDomainInterface } from '~/domain/gateway/interfaces/create-initial-payment-input-domain.interface';
 import { PaymentDomainEntity } from '~/domain/gateway/entities/payment-domain.entity';

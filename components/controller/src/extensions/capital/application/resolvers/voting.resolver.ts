@@ -10,7 +10,7 @@ import { SubmitVoteInputDTO } from '../dto/voting/submit-vote-input.dto';
 import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { GetVoteInputDTO } from '../dto/voting/get-vote-input.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 
 // Пагинированные результаты

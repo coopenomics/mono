@@ -15,7 +15,7 @@ import type {
   MarketplaceReturnClaimPhoto,
   MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Эпик 7: TypeORM-сущность заявления на гарантийный возврат. Один Order

@@ -1,6 +1,6 @@
 import type { PaymentStatusEnum } from '../enums/payment-status.enum';
 import type { PaymentTypeEnum, PaymentDirectionEnum } from '../enums/payment-type.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Детали платежа

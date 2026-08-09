@@ -5,7 +5,7 @@ import type {
   MarketplaceOrderStatus,
 } from './marketplace-order.types';
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 
 /**

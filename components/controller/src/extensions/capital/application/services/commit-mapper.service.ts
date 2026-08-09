@@ -5,7 +5,7 @@ import { BaseProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectRepository, PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
 import { ProjectMapperService } from './project-mapper.service';
 import { TimeTrackingService } from './time-tracking.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Сервис для маппинга доменных сущностей коммитов в DTO

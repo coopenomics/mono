@@ -1,5 +1,4 @@
-import type { ISignedDocumentDomainInterface } from './signed-document-domain.interface';
-import type { ISignatureInfoDomainInterface } from './signature-info-domain.interface';
+import type { ISignedDocumentDomainInterface, ISignatureInfoDomainInterface } from '@coopenomics/innercoop';
 import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/user-certificate-domain.interface';
 
 export interface SignatureInfoDomainInterface extends ISignatureInfoDomainInterface {

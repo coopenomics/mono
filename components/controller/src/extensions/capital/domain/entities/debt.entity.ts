@@ -1,7 +1,7 @@
 import { DebtStatus } from '../enums/debt-status.enum';
 import type { IDebtDatabaseData } from '../interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../interfaces/debt-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 

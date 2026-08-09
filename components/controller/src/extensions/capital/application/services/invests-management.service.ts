@@ -9,7 +9,7 @@ import type {
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
 import { AssetUtils } from '~/shared/utils/asset.utils';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import type { TransactResult } from '@wharfkit/session';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';

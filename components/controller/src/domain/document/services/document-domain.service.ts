@@ -9,7 +9,7 @@ import { DocumentAggregator } from '../aggregators/document.aggregator';
 import { DocumentPackageAggregator } from '../aggregators/document-package.aggregator';
 import { getActions } from '~/utils/getFetch';
 import { toDotNotation } from '~/utils/toDotNotation';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { GenerateDocumentWithPrivateDataDomainInterface } from '../interfaces/generate-document-with-private-data.interface';
 
 @Injectable()

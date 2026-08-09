@@ -13,7 +13,7 @@ import { PassportInputDTO } from '../dto/passport-input.dto';
 import { DeleteAccountInputDTO } from '../dto/delete-account-input.dto';
 import { SearchPrivateAccountsInputDTO } from '../dto/search-private-accounts-input.dto';
 import { PrivateAccountSearchResultDTO } from '../dto/search-private-accounts-result.dto';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 export const AccountsPaginationResult = createPaginationResult(AccountDTO, 'Accounts');
 

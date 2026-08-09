@@ -1,4 +1,4 @@
-import type { ISignedDocumentDomainInterface } from './signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Доменный интерфейс для документа заявления о взносе результатов

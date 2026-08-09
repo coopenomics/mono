@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { ProjectOutputDTO, ProjectComponentOutputDTO, BaseProjectOutputDTO } from '../dto/project_management/project.dto';
 import { PermissionsService } from './permissions.service';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /** GraphQL CapitalProject.created_at: String! — Date из TypeORM недопустим. */
 function toCreatedAtString(value: unknown): string {

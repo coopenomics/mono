@@ -16,7 +16,7 @@ import {
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
 import { numericQuantityTransformer } from './numeric-quantity.transformer';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало

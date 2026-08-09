@@ -5,7 +5,7 @@ import { ACCOUNT_BLOCKCHAIN_PORT, type AccountBlockchainPort } from '../interfac
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 import config from '~/config/config';
 import { AccountDomainEntity } from '../entities/account-domain.entity';
-import type { MonoAccountDomainInterface } from '../interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
 import type { RegisterAccountDomainInterface } from '../interfaces/register-account-input.interface';
 import { ENTREPRENEUR_REPOSITORY, EntrepreneurRepository } from '~/domain/common/repositories/entrepreneur.repository';

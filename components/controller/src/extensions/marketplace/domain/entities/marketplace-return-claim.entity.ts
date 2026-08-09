@@ -9,7 +9,7 @@ import {
   type MarketplaceReturnClaimProps,
   type MarketplaceReturnClaimStatus,
 } from './marketplace-return-claim.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Эпик 7: домен заявления на гарантийный возврат. Backend ведёт state

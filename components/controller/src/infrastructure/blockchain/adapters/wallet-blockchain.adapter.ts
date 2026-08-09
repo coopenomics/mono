@@ -13,7 +13,7 @@ import type {
   GenerateReturnStatementDomainInterface,
   SignProgramAgreementDomainInterface,
 } from '~/domain/wallet/ports/wallet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
 import { DomainToBlockchainUtils } from '../../../shared/utils/domain-to-blockchain.utils';
 

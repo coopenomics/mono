@@ -15,7 +15,7 @@ import {
   AgreementConfigurationService,
 } from '~/domain/registration/services/agreement-configuration.service';
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { AccountType } from '~/application/account/enum/account-type.enum';
 import { getCandidateAgreementDocument } from '~/domain/registration/utils/candidate-agreement.utils';
 

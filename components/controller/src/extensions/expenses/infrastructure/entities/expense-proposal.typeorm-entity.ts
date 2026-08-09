@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type {
   IExpenseItemBlockchainData,
   IExpenseProposalCallbackHandler,

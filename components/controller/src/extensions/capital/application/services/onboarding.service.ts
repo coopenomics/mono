@@ -6,7 +6,7 @@ import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboar
 import type { IConfig } from '../../capital-extension.module';
 import { FreeDecisionPort, FREE_DECISION_PORT } from '~/domain/free-decision/ports/free-decision.port';
 import { Cooperative } from 'cooptypes';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { DecisionTrackingPort, DECISION_TRACKING_PORT } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
 import { computeOnboardingExpiresAt } from '~/domain/onboarding/constants/onboarding-ttl';

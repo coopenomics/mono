@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { DocumentAggregator } from '../aggregators/document.aggregator';
-import type { ISignedDocumentDomainInterface } from '../interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { DocumentDomainAggregate } from '../aggregates/document-domain.aggregate';
 
 /**

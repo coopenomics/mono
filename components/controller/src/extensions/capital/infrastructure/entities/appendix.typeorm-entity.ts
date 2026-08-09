@@ -1,6 +1,6 @@
 import { Entity, Column, Index } from 'typeorm';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_appendixes';

@@ -9,7 +9,7 @@
  * (`pendrev / approvvisit / accepted / rejremote / rejatku`).
  */
 
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Категория дефекта — опциональный признак для фасеточной аналитики

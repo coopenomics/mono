@@ -1,7 +1,7 @@
 import { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';
 import { CandidateOutputDTO } from '~/application/registration/dto/candidate.dto';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Доменный порт для доступа к кандидатам из других модулей (например, расширений)

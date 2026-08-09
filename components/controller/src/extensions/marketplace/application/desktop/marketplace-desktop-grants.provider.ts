@@ -1,6 +1,6 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 
-import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import type {
   IDesktopGrantsContext,

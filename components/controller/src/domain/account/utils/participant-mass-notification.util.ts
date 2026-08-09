@@ -1,5 +1,5 @@
 import type { AccountDomainEntity } from '~/domain/account/entities/account-domain.entity';
-import { MonoAccountStatusDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountStatusDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Кого включать в массовые уведомления «для пайщиков» (собрания, календарь и т.д.).

@@ -13,7 +13,7 @@ import { SetBranchPrivateGraphQLInput } from '../dto/set-branch-private-input.dt
 import { AddBranchWhitelistGraphQLInput } from '../dto/add-branch-whitelist-input.dto';
 import { DeleteBranchWhitelistGraphQLInput } from '../dto/delete-branch-whitelist-input.dto';
 import { SelectBranchInputDTO } from '../dto/select-branch-input.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { SelectBranchGenerateDocumentInputDTO } from '../../document/documents-dto/select-branch-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';

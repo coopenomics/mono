@@ -1,7 +1,7 @@
 import { ContributorStatus } from '../enums/contributor-status.enum';
 import type { IContributorDatabaseData } from '../interfaces/contributor-database.interface';
 import type { IContributorBlockchainData } from '../interfaces/contributor-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 

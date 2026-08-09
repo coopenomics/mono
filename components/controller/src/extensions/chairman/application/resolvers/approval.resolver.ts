@@ -5,7 +5,7 @@ import { ConfirmApproveInputDTO } from '../dto/confirm-approve-input.dto';
 import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { PaginationInputDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 

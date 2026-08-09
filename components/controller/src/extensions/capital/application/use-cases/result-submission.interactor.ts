@@ -18,7 +18,7 @@ import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.uti
 import { SegmentSyncService } from '../syncers/segment-sync.service';
 import { ResultSyncService } from '../syncers/result-sync.service';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
 

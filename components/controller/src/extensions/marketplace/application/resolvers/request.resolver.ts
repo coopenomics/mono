@@ -16,7 +16,7 @@ import { GetRequestInput } from '../dto/get-request-input.dto';
 import { GetRequestByHashInput } from '../dto/get-request-by-hash-input.dto';
 import { RequestType, RequestStatus } from '../../domain/entities/request-domain.entity';
 import { RequestImageType } from '../../domain/entities/request-image-domain.entity';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * GraphQL resolver для работы с заявками marketplace.

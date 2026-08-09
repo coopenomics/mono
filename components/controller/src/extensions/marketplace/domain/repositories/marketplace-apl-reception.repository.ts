@@ -5,7 +5,7 @@ import type {
   MarketplaceAplReceptionStatus,
   MarketplaceAplReceptionVariant,
 } from '../entities/marketplace-apl-reception.types';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 export const MARKETPLACE_APL_RECEPTION_REPOSITORY = Symbol('MARKETPLACE_APL_RECEPTION_REPOSITORY');
 

@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
 import type { MeetQuestionResultDomainInterface } from '~/domain/meet/interfaces/meet-decision-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 @Entity('meet_processed')
 export class MeetProcessedEntity {

@@ -1,7 +1,7 @@
 import type { RegistratorContract, SovietContract } from 'cooptypes';
 import type { BlockchainAccountInterface } from '~/types/shared';
 import type { CandidateDomainInterface } from '../interfaces/candidate-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Входные данные подачи заявления на выход пайщика из кооператива (registrator::exitcoop).

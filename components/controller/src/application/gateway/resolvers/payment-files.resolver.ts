@@ -1,7 +1,7 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { PaymentFilesService } from '../services/payment-files.service';
 import { UploadPaymentProofInputDTO } from '../dto/upload-payment-proof.input';
 import { PaymentFileOutputDTO } from '../dto/payment-file.output';

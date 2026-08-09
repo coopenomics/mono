@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 import {
   MonoAccountStatusDomainInterface,
   type MonoAccountDomainInterface,
-} from '~/domain/account/interfaces/mono-account-domain.interface';
+} from '@coopenomics/innercoop';
 
 registerEnumType(MonoAccountStatusDomainInterface, {
   name: 'UserStatus',

@@ -8,7 +8,7 @@ import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/
 import { UseGuards, UnauthorizedException } from '@nestjs/common';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
 import { GeneratedDocumentDTO } from '../dto/generated-document.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 

@@ -1,7 +1,7 @@
 import { ResultStatus } from '../enums/result-status.enum';
 import type { IResultDatabaseData } from '../interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../interfaces/result-blockchain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync';
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 /**

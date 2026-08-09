@@ -7,7 +7,7 @@ import type {
   ICoopCalendarEventNotificationPort,
   InnerCoopCalendarEventRead,
 } from '@coopenomics/innercoop';
-import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT } from '@coopenomics/innercoop';
+import { COOP_CALENDAR_EVENT_NOTIFICATION_PORT, COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
 import type { ChatcoopManagedMatrixRoomRepository } from '../../domain/repositories/managed-matrix-room.repository';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from '../../domain/repositories/managed-matrix-room.repository';
 import type { ChatCoopCalendarEventRepository } from '../../domain/repositories/calendar-event.repository';
@@ -15,8 +15,6 @@ import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from '../../domain/repositories/ca
 import type { ChatCoopCalendarIcsSubscriptionRepository } from '../../domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from '../../domain/repositories/calendar-ics-subscription.repository';
 import type { ChatCoopCalendarEventDomainEntity } from '../../domain/entities/calendar-event.entity';
-import { COOPERATIVE_VARS_PORT, type ICooperativeVarsPort } from '@coopenomics/innercoop';
-
 function sha256Hex(plain: string): string {
   return crypto.createHash('sha256').update(plain, 'utf8').digest('hex');
 }

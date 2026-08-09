@@ -4,7 +4,7 @@ import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import type { IResultDatabaseData } from '../../domain/interfaces/result-database.interface';
 import type { IResultBlockchainData } from '../../domain/interfaces/result-blockchain.interface';
 import type { RequireFields } from '~/shared/utils/require-fields';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { ResultOutputDTO } from '../../application/dto/result_submission/result.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';
 import { DomainToBlockchainUtils } from '~/shared/utils/domain-to-blockchain.utils';

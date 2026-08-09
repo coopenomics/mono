@@ -5,7 +5,7 @@ import type { FundProgramDomainInput } from '../../domain/actions/fund-program-d
 import type { RefreshProgramDomainInput } from '../../domain/actions/refresh-program-domain-input.interface';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/generation-convert-statement-document.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { Cooperative } from 'cooptypes';
 
 /**

@@ -14,7 +14,7 @@ import {
   type DecisionTrackingPort,
 } from '~/domain/decision-tracking/ports/decision-tracking.port';
 import { DecisionEventType } from '~/domain/decision-tracking/interfaces/tracking-rule-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { computeOnboardingExpiresAt } from '../constants/onboarding-ttl';
 import {
   ONBOARDING_STEP_QUERY_PORT,

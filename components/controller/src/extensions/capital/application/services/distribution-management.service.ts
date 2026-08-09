@@ -9,7 +9,7 @@ import { GenerationConvertStatementGenerateDocumentInputDTO } from '~/applicatio
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
 import { Cooperative } from 'cooptypes';
 import type { GenerateDocumentInputDTO } from '~/application/document/dto/generate-document-input.dto';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для управления распределением в CAPITAL

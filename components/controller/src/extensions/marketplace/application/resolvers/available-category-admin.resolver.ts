@@ -20,7 +20,7 @@ import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categori
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
 import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 
 /**
  * GraphQL резолвер для администрирования доступных категорий и типов товаров marketplace

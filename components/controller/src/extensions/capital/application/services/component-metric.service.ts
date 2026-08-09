@@ -33,7 +33,7 @@ import { DEFAULT_BLAGOROST_MEASURES, defaultMeasureHash } from '../../domain/cat
 import { buildMetricSeries } from '../../domain/utils/build-metric-series';
 import { PermissionsService } from './permissions.service';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
-import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import type { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import type { CreateComponentMetricInputDTO } from '../dto/metrics/create-component-metric-input.dto';
 import type { UpdateComponentMetricInputDTO } from '../dto/metrics/update-component-metric-input.dto';

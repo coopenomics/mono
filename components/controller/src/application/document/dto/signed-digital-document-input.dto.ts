@@ -2,8 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsString, ValidateNested, IsNumber, IsArray, ArrayMinSize, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { Cooperative } from 'cooptypes';
-import type { ISignatureInfoDomainInterface } from '~/domain/document/interfaces/signature-info-domain.interface';
-import type { ISignedDocumentDomainInterface } from '~/domain/document/interfaces/signed-document-domain.interface';
+import type { ISignatureInfoDomainInterface, ISignedDocumentDomainInterface } from '@coopenomics/innercoop';
 import { GraphQLJSON } from 'graphql-type-json';
 
 @InputType('SignatureInfoInput')

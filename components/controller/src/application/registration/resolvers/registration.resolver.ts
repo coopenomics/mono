@@ -15,7 +15,7 @@ import { AccountDTO } from '~/application/account/dto/account.dto';
 import { RegisterParticipantInputDTO } from '../dto/register-participant-input.dto';
 import { GatewayPaymentDTO } from '~/application/gateway/dto/gateway-payment.dto';
 import { CreateInitialPaymentInputDTO } from '~/application/gateway/dto/create-initial-payment-input.dto';
-import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
+import { MonoAccountDomainInterface } from '@coopenomics/innercoop';
 import { RegistrationAgreementDTO } from '../dto/registration-agreement.dto';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 
