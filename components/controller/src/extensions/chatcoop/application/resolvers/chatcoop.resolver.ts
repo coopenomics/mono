@@ -1,13 +1,13 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ChatCoopApplicationService } from '../services/chatcoop-application.service';
 import { CreateMatrixAccountInputDTO, CheckMatrixUsernameInput } from '../dto/create-matrix-account.dto';
 import { MatrixAccountStatusResponseDTO } from '../dto/matrix-account-status.dto';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 
 @Resolver()
 export class ChatCoopResolver {

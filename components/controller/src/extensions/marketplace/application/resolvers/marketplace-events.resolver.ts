@@ -3,7 +3,7 @@ import { Args, Resolver, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import config from '~/config/config';
 import logger from '~/config/logger';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';

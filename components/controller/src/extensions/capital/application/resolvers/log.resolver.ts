@@ -1,7 +1,7 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { LogInteractor } from '../use-cases/log.interactor';
 import { LogOutputDTO } from '../dto/logs/log.dto';

@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException, UseGuards }
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import { PaginationInputDTO } from '~/application/common/dto/pagination.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import { DocumentAggregateDTO } from '~/application/document/dto/document-aggregate.dto';

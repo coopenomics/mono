@@ -1,10 +1,10 @@
 import { Resolver, Mutation, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
+import { ActiveUserStatusGuard } from '@coopenomics/extension-kit';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';

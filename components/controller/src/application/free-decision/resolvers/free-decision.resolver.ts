@@ -1,8 +1,8 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { ProjectFreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/project-free-decision-document.dto';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';

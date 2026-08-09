@@ -2,9 +2,9 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { NotificationService } from '../services/notification.service';
 import { TriggerNotificationWorkflowInputDTO } from '../dto/trigger-notification-workflow-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
+import { AuthRoles } from '@coopenomics/extension-kit';
 
 /**
  * Резолвер для управления уведомлениями и подписками

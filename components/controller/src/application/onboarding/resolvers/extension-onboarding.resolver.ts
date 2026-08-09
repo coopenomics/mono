@@ -1,9 +1,9 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { ExtensionOnboardingService } from '~/domain/onboarding/services/extension-onboarding.service';
 import { ExtensionOnboardingStateDTO } from '../dto/extension-onboarding-state.dto';

@@ -2,7 +2,7 @@ import { Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common
 import { Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceVitrineDTO } from '../dto/marketplace-vitrine.dto';

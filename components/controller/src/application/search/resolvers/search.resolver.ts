@@ -6,8 +6,8 @@ import {
   SIGNED_DOCUMENT_REPOSITORY,
   type SignedDocumentRepository,
 } from '~/domain/document/repository/signed-document.repository';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import config from '~/config/config';
 

@@ -7,7 +7,7 @@ import { MatrixUserManagementService } from './domain/services/matrix-user-manag
 import { UnionChatService } from './domain/services/union-chat.service';
 import { UnionChatTypeormRepository } from './infrastructure/repositories/union-chat.typeorm-repository';
 import { UNION_CHAT_REPOSITORY } from './domain/repositories/union-chat.repository';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
+import { ActiveUserStatusGuard } from '@coopenomics/extension-kit';
 import { ChatCoopResolver } from './application/resolvers/chatcoop.resolver';
 import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calendar.resolver';
 import { ChatCoopCalendarFeedController } from './application/controllers/chatcoop-calendar-feed.controller';

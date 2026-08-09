@@ -1,8 +1,8 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { LedgerService } from '../services/ledger.service';
 import { GetLedgerInputDTO } from '../dto/get-ledger-input.dto';
 import { GetLedgerHistoryInputDTO } from '../dto/get-ledger-history-input.dto';

@@ -1,8 +1,8 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { GenerateDocumentOptionsInputDTO } from '~/application/document/dto/generate-document-options-input.dto';
 import { Throttle } from '@nestjs/throttler';
 import { CreateAnnualGeneralMeetInputDTO } from '../dto/create-meet-agenda-input.dto';
@@ -20,7 +20,7 @@ import { AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO } from '~/appl
 import { AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-soviet-decision-document.dto';
 import { AnnualGeneralMeetingDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-decision-document.dto';
 import { AnnualGeneralMeetingNotificationGenerateDocumentInputDTO } from '~/application/document/documents-dto/annual-general-meeting-notification-document.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { NotifyOnAnnualGeneralMeetInputDTO } from '../dto/notify-on-annual-general-meet-input.dto';
 

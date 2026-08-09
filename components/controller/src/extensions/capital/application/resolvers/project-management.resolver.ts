@@ -14,11 +14,11 @@ import { FinalizeProjectInputDTO } from '../dto/project_management/finalize-proj
 import { GetProjectInputDTO } from '../dto/project_management/get-project-input.dto';
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';

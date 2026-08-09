@@ -1,6 +1,6 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { Injectable, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { AttributeDomainService } from '../../domain/services/attribute-domain.service';
 import { AttributeDTO, AttributeGroupDTO, AttributeStatsDTO, DictionaryValueDTO } from '../dto/attribute.dto';

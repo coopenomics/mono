@@ -3,7 +3,7 @@ import { Query, Resolver } from '@nestjs/graphql';
 import { Ledger2 } from 'cooptypes';
 
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import {
   USER_WALLET_REPOSITORY,
   type UserWalletRepository,

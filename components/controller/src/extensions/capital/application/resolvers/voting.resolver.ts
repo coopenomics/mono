@@ -1,9 +1,9 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { VotingService } from '../services/voting.service';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { CalculateVotesInputDTO } from '../dto/voting/calculate-votes-input.dto';
 import { CompleteVotingInputDTO } from '../dto/voting/complete-voting-input.dto';
@@ -13,7 +13,7 @@ import { VoteOutputDTO } from '../dto/voting/vote.dto';
 import { VoteFilterInputDTO } from '../dto/voting/vote-filter.input';
 import { GetVoteInputDTO } from '../dto/voting/get-vote-input.dto';
 import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 

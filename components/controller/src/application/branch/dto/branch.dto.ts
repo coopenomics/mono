@@ -8,10 +8,10 @@ import { IndividualCertificateDTO } from '~/application/common/dto/individual-ce
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { IsArray, IsJSON, IsString } from 'class-validator';
 import { BankPaymentMethodDTO } from '~/application/payment-method/dto/bank-payment-method.dto';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 
 @ObjectType('Branch')
 export class BranchDTO implements BranchDomainInterface {

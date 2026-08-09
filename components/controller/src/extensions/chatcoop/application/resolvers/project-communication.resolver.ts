@@ -4,11 +4,11 @@ import {
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
-import { ActiveUserStatusGuard } from '~/application/auth/guards/active-user-status.guard';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { ActiveUserStatusGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,

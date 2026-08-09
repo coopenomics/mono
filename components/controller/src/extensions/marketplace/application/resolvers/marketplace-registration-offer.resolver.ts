@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import {
   AGREEMENT_QUERY_PORT,
   AgreementQueryPort,

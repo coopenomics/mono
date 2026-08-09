@@ -2,7 +2,7 @@ import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/commo
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
 import config from '~/config/config';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';

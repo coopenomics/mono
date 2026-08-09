@@ -3,7 +3,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import config from '~/config/config';
 import { GeneratedDocumentDTO } from '~/application/document/dto/generated-document.dto';
 import type { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
 import {
   createPaginationResult,
   PaginationInputDTO,

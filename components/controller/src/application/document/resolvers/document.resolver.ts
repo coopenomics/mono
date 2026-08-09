@@ -6,12 +6,12 @@ import { DocumentService } from '../services/document.service';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
 import { UseGuards, UnauthorizedException } from '@nestjs/common';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.dto';
 import { GeneratedDocumentDTO } from '../dto/generated-document.dto';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');

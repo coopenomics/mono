@@ -10,6 +10,7 @@
  * они знают о конкретных расширениях (реестр, дефолты конфигов, список миграций),
  * то есть являются composition root, а не переиспользуемым каркасом.
  */
+export * from './auth';
 export * from './base-extension.module';
 export * from './entities/extension.entity';
 export * from './entities/log-extension.entity';

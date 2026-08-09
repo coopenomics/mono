@@ -3,7 +3,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthStrategy } from './strategies/jwt.strategy';
-import { HttpJwtAuthGuard } from './guards/http-jwt-auth.guard';
+import { HttpJwtAuthGuard } from '@coopenomics/extension-kit';
 import { AuthResolver } from './resolvers/auth.resolver';
 import { AuthService } from './services/auth.service';
 import { AuthInteractor } from './interactors/auth.interactor';

@@ -1,11 +1,11 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ParticipationManagementService } from '../services/participation-management.service';
 import { ImportContributorInputDTO } from '../dto/participation_management/import-contributor-input.dto';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
 import { TransactionDTO } from '~/application/common/dto/transaction-result-response.dto';
 import { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
 import { RegisterContributorInputDTO } from '../dto/participation_management/register-contributor-input.dto';

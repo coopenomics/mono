@@ -1,7 +1,7 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { createPaginationResult, PaginationInputDTO, PaginationResult } from '~/application/common/dto/pagination.dto';
 import { CandidateFilterInputDTO } from '~/application/registration/dto/candidate-filter.dto';

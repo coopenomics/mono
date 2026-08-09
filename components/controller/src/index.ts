@@ -12,6 +12,12 @@ import { migrateData } from './migrator/migrate';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
+import { configureExtensionAuth } from '@coopenomics/extension-kit';
+
+// Guard'ы авторизации живут в @coopenomics/extension-kit и не знают про config
+// контроллера. Секрет межсервисного обхода передаём один раз здесь — на уровне
+// модуля, задолго до того как приложение начнёт принимать запросы.
+configureExtensionAuth({ serverSecret: config.server_secret });
 
 export let nestApp;
 

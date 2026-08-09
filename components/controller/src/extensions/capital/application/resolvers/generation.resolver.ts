@@ -18,12 +18,12 @@ import { GetCommitByHashInputDTO } from '../dto/generation/get-commit-by-hash.in
 import { GetStoryByHashInputDTO } from '../dto/generation/get-story-by-hash.input';
 import { DeleteStoryByHashInputDTO } from '../dto/generation/delete-story-by-hash.input';
 import { DeleteIssueByHashInputDTO } from '../dto/generation/delete-issue-by-hash.input';
-import { GqlJwtAuthGuard } from '~/application/auth/guards/graphql-jwt-auth.guard';
-import { RolesGuard } from '~/application/auth/guards/roles.guard';
+import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { RolesGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthRoles } from '~/application/auth/decorators/auth.decorator';
-import { CurrentUser } from '~/application/auth/decorators/current-user.decorator';
+import { AuthRoles } from '@coopenomics/extension-kit';
+import { CurrentUser } from '@coopenomics/extension-kit';
 import type { MonoAccountDomainInterface } from '~/domain/account/interfaces/mono-account-domain.interface';
 import { StoryOutputDTO } from '../dto/generation/story.dto';
 import { IssueOutputDTO } from '../dto/generation/issue.dto';
