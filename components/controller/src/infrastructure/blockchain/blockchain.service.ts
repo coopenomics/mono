@@ -223,6 +223,38 @@ export class BlockchainService implements BlockchainPort {
     }
   }
 
+  /**
+   * Публикует право заверения `cert` кооператива: ровно один ключ, без делегирования.
+   * Строгость не формальность — цепь доверия удостоверения должна вести к конкретному
+   * ключу, а не к набору подписантов, иначе проверить подпись нечем.
+   *
+   * Подписывает сам кооператив своим распорядительным ключом; право заверения отдельно
+   * именно затем, чтобы подпись удостоверений и распоряжение средствами не совпадали.
+   */
+  public async publishCertPermission(coopname: string, publicKey: string): Promise<void> {
+    const coopWif = await this.vaultDomainService.getWif(coopname);
+    if (!coopWif)
+      throw new Error(`Нет ключа кооператива ${coopname} — опубликовать право заверения нечем`);
+
+    this.initialize(coopname, coopWif);
+    await this.transact({
+      account: 'eosio',
+      name: 'updateauth',
+      authorization: [{ actor: coopname, permission: 'active' }],
+      data: {
+        account: coopname,
+        permission: 'cert',
+        parent: 'active',
+        auth: {
+          threshold: 1,
+          keys: [{ key: publicKey, weight: 1 }],
+          accounts: [],
+          waits: [],
+        },
+      },
+    });
+  }
+
   public recoverPublicKey(message: string, signature: string): string {
     // recoverMessage хэширует utf8-байты (Checksum256) и восстанавливает pubkey —
     // байт-в-байт зеркало клиентского PrivateKey.signMessage (SDK signTimestamp).

@@ -68,6 +68,12 @@ export interface BlockchainPort {
    * или он не single-key. Используется при сборке claim `coop_chain` сертификата.
    */
   getCertPublicKey(accountName: string): Promise<string | null>;
+  /**
+   * Публикует право заверения `cert` кооператива — строго один ключ без делегирования.
+   * Подписывает сам кооператив своим действующим ключом. Вызывается при старте, когда
+   * право отсутствует или разошлось с ключом, который держит приложение.
+   */
+  publishCertPermission(coopname: string, publicKey: string): Promise<void>;
   getCooperative(coopname: string): Promise<any>;
   changeKey(data: RegistratorContract.Actions.ChangeKey.IChangeKey): Promise<void>;
 

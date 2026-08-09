@@ -1,4 +1,4 @@
-import { createPrivateKey, randomUUID, type KeyObject } from 'node:crypto';
+import { randomUUID, type KeyObject } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { SignJWT } from 'jose';
 import config from '~/config/config';
@@ -14,6 +14,7 @@ import type { UserCertificateDomainInterface } from '~/domain/user/interfaces/us
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { VerificationTypesService } from '~/application/auth-v2/verification/verification-types.service';
 import { CertSettingsService } from '~/application/auth-v2/certificate/cert-settings.service';
+import { CertKeyService } from '~/application/auth-v2/certificate/cert-key.service';
 import { DATA_RETENTION_CONTRACT, RETENTION_PERIOD_SECONDS } from '~/application/auth-v2/certificate/retention-policy';
 import { CURRENT_SCHEMA_VERSION } from '~/application/auth-v2/certificate/schema-policy';
 
@@ -34,14 +35,13 @@ export interface CoopChainLink {
 
 /**
  * Выпуск participant_certificate (CoopID, Story 1.8): compact JWS alg=ES256K,
- * подписанный ключом права `cert` самого кооператива (PEM из Docker Secret
- * `coop_cert_key`). Сертификат самодостаточен — несёт цепь доверия `coop_chain`
+ * подписанный ключом права `cert` самого кооператива (секрет поставки либо
+ * собственный выпуск, см. CertKeyService). Сертификат самодостаточен — несёт цепь доверия `coop_chain`
  * (якорь → кооператив) для offline-верификации.
  * Подпись ES256K через jose + Node KeyObject — wharfkit в application не нужен.
  */
 @Injectable()
 export class CertificateService {
-  private signingKey: KeyObject | null = null;
   private coopChain: CoopChainLink[] | null = null;
 
   constructor(
@@ -51,6 +51,7 @@ export class CertificateService {
     @Inject(USER_CERTIFICATE_DOMAIN_SERVICE) private readonly certDomainService: UserCertificateDomainService,
     private readonly verificationTypesService: VerificationTypesService,
     private readonly certSettingsService: CertSettingsService,
+    private readonly certKeyService: CertKeyService,
   ) {}
 
   /**
@@ -95,7 +96,7 @@ export class CertificateService {
       .setJti(randomUUID()) // серийный номер удостоверения (ЛК показывает его, Story 1.9)
       .setIssuedAt(nowSeconds)
       .setExpirationTime(nowSeconds + ttlSeconds)
-      .sign(this.getSigningKey());
+      .sign(await this.getSigningKey());
 
     const size = Buffer.byteLength(jws, 'utf8');
     if (size > MAX_CERT_BYTES)
@@ -109,14 +110,13 @@ export class CertificateService {
     return this.certDomainService.createCertificateFromUserData(account);
   }
 
-  /** PEM cert-ключа → Node KeyObject (ES256K). Кэшируется на жизнь процесса. */
-  private getSigningKey(): KeyObject {
-    if (this.signingKey) return this.signingKey;
-    const pem = config.authV2.certKey;
-    if (!pem)
-      throw new Error('COOP_CERT_KEY(_FILE) не сконфигурирован: невозможно подписать participant_certificate');
-    this.signingKey = createPrivateKey(pem);
-    return this.signingKey;
+  /**
+   * Ключ подписи удостоверений. Живёт в `CertKeyService` — он же его и выпускает,
+   * если ключа ещё нет: раньше ключ приходил только секретом поставки, а при его
+   * отсутствии удостоверения просто не выпускались и никто об этом не узнавал.
+   */
+  private getSigningKey(): Promise<KeyObject> {
+    return this.certKeyService.getSigningKey();
   }
 
   /**
