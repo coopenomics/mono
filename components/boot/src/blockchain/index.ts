@@ -1041,6 +1041,98 @@ export default class Blockchain {
     console.log('Перевод создан: ', params.registry_id)
   }
 
+  async editDraft(params: DraftContract.Actions.EditDraft.IEditDraft) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.EditDraft.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Шаблон обновлён: ', params.registry_id)
+  }
+
+  async editTranslation(
+    params: DraftContract.Actions.EditTranslation.IEditTranslation,
+  ) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.EditTranslation.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Перевод обновлён: ', params.translate_id)
+  }
+
+  async upVersion(params: DraftContract.Actions.UpVersion.IUpVersion) {
+    await this.update_pass_instance()
+
+    await this.api.transact(
+      {
+        actions: [
+          {
+            account: DraftContract.contractName.production,
+            name: DraftContract.Actions.UpVersion.actionName,
+            authorization: [
+              {
+                actor: params.username,
+                permission: 'active',
+              },
+            ],
+            data: {
+              ...params,
+            },
+          },
+        ],
+      },
+      {
+        blocksBehind: 3,
+        expireSeconds: 30,
+      },
+    )
+
+    console.log('Версия шаблона поднята: ', params.registry_id)
+  }
+
   async createProgram(
     params: SovietContract.Actions.Programs.CreateProgram.ICreateProgram,
   ) {
